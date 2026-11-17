@@ -15,6 +15,22 @@ export const money = (t) => {
 /** Every sum of money in a text, in order. */
 export const moneyAll = (t) => [...String(t).matchAll(/£\s?([\d,]+(?:\.\d{2})?)/g)].map((m) => money(m[1]));
 
+/**
+ * What was taken against what the plan said, read off one sentence: { taken, said, line } or null. 7.12.0 says it one way
+ * in both views: "£5,154 taken before tax, as your plan said." (the two the same) or "£14,560 taken before tax. That is
+ * £1,040 less than your plan said" (the plan said 14,560 + 1,040); before 7.12.0, "£X taken; the plan said £Y". The
+ * reading takes the sentence's own words for the difference; it works out nothing else.
+ */
+export function takenAgainstPlan(t) {
+  const text = String(t);
+  let m = /£([\d,]+) taken before tax, as your plan said/.exec(text);
+  if (m) return { taken: money(m[1]), said: money(m[1]), line: m[0] };
+  m = /£([\d,]+) taken before tax\. That is £([\d,]+) (more|less) than your plan said/.exec(text);
+  if (m) { const taken = money(m[1]), d = money(m[2]); return { taken, said: m[3] === 'more' ? taken - d : taken + d, line: m[0] }; }
+  m = /£([\d,]+) taken; the plan said £([\d,]+)/.exec(text);
+  return m ? { taken: money(m[1]), said: money(m[2]), line: m[0] } : null;
+}
+
 /** '11 years 3 months' → 135; '11 years' → 132; '16 months' → 16. */
 export function months(t) {
   const y = /(\d+) years?/.exec(String(t));

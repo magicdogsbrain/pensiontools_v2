@@ -16,7 +16,7 @@ import { test } from '@playwright/test';
 import { ask } from './ask.js';
 import { accountFor } from './account.js';
 import { at, planPage, settled, fullPage } from './routes.js';
-import { visibleText, moneyAll, money, neverOnAnyPage, figuresOn } from './read.js';
+import { visibleText, moneyAll, money, neverOnAnyPage, figuresOn, takenAgainstPlan } from './read.js';
 import { kimKept, lockFromStressSettings, monthlyEntry, saveMonth } from './made.js';
 import { knownUnanswered } from './known.js';
 import { KIM62 } from './people.js';
@@ -69,10 +69,10 @@ test('s07 · Kim, 62, stopped last month: the year set up, two months recorded @
     // the simple home: taken against the plan, the ISA Kim typed
     await q.step('the simple home', async () => { await planPage(page, planId, 'home'); await settled(page).catch(() => {}); });
     const home = await visibleText(page);
-    const line = /£([\d,]+) taken; the plan said £([\d,]+)/.exec(home);
+    const line = takenAgainstPlan(home);
     const two = pounds(months(2, 2577.06));
-    q.exact('taken in November and December', line ? money(line[1]) : null, two, { byHand: '2 × 2,577.06 = 5,154.12', owner: 'MONTH' });
-    q.exact('what the plan said for November and December', line ? money(line[2]) : null, two, { byHand: '2 × 30,924.71 ÷ 12 = 5,154.12', owner: 'MONTH' });
+    q.exact('taken in November and December', line ? line.taken : null, two, { byHand: '2 × 2,577.06 = 5,154.12', owner: 'MONTH' });
+    q.exact('what the plan said for November and December', line ? line.said : null, two, { byHand: '2 × 30,924.71 ÷ 12 = 5,154.12', owner: 'MONTH' });
     year30925.push({ where: 'simple home', value: has(home, pounds(year)) ? pounds(year) : null });
     q.same('this year\'s income before tax', year30925, { want: pounds(year), owner: 'MONTH' });
     q.never('the simple home', /months are not recorded: April|April 2026: (?:due|not recorded)/i.test(home) ? ['a month before November counted as due'] : [], { must: 'no month before November 2026 asked for or counted', owner: 'FACTS' });

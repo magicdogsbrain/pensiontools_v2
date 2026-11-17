@@ -47,7 +47,7 @@ test('s01 · Jo, 33, asks what to pay in for £2,000 a month from 60 @phone', as
       const inAll = shareOfPay(T, JO33.pay);
       const ownPct = T - JO33.employerPct;
       const takeHome = fromTakeHome(shareOfPay(ownPct, JO33.pay));
-      q.exact(`what ${T}% comes to a month in all`, grab(/£([\d,]+) a month going into your pension/, text), pounds(inAll), { byHand: `${T} × 38,000 ÷ 1200 = ${inAll.toFixed(2)}`, tolerance: 1 });
+      q.exact(`what ${T}% comes to a month in all`, grab(/£([\d,]+) a month (?:in all )?going into your pension/, text), pounds(inAll), { byHand: `${T} × 38,000 ÷ 1200 = ${inAll.toFixed(2)}`, tolerance: 1 });
       q.exact(`Jo's own share at ${T}%`, grab(/you (\d+)%/, text), ownPct, { byHand: `${T}% − the employer's 3%` });
       const takeHomes = [...text.matchAll(/£([\d,]+)(?: a month)? from (?:your|Jo's) take-home pay/g)].map((m) => money(m[1]));
       q.exact(`what leaves Jo's take-home pay at ${T}%`, takeHomes.find((v) => Math.abs(v - takeHome) <= 1) ?? takeHomes[takeHomes.length - 1] ?? null, pounds(takeHome),

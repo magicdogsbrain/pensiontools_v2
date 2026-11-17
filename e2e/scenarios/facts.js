@@ -193,11 +193,12 @@ export const FACTS = Object.freeze({
   'taken.againstPlan': {
     label: 'what was taken against the plan', owner: 'MONTH', kind: 'money',
     simple: [
-      { page: 'home', find: `${M} taken; the plan said ${M}` },
-      { page: 'month', find: `${M} taken; the plan said ${M}` }
+      // 7.12.0: "£5,154 taken before tax, as your plan said." (one figure when the two are the same) or "… That is £X more"
+      { page: 'home', find: `${M} taken before tax` },
+      { page: 'month', find: `${M} taken before tax` }
     ],
     full: [
-      { page: 'plan document', find: `${M} taken before tax, against ${M}` }
+      { page: 'plan document', find: `${M} taken before tax` }
     ]
   },
   'statePension.amount': {

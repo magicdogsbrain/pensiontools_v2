@@ -17,7 +17,7 @@ import { FACTS } from './facts.js';
 import { accountFor, made, putPlan } from './account.js';
 import { at, signIn, planPage, settled } from './routes.js';
 import { sweep, sameYears } from './sweep.js';
-import { visibleText, moneyAll } from './read.js';
+import { visibleText, moneyAll, takenAgainstPlan } from './read.js';
 import { knownUnanswered } from './known.js';
 import { CHECKER } from './people.js';
 import { months, monthly } from './hand/money.js';
@@ -64,12 +64,13 @@ test.describe('s06 · the checker', () => {
       q.neverAcross(never);
       await q.step('the home, taken against the plan', async () => { await planPage(page, id, 'home'); await settled(page).catch(() => {}); });
       const home = await visibleText(page);
-      const line = /£([\d,]+) taken; the plan said £([\d,]+)/.exec(home);
-      const [taken, said] = line ? moneyAll(line[0]) : [null, null];
+      const read = takenAgainstPlan(home);
+      const line = read ? [read.line] : null;
+      const [taken, said] = read ? [read.taken, read.said] : [null, null];
       // 31,200 ÷ 12 × 6 = 15,600 (the year was set up at £31,200, April's prices)
       const want = months(6, monthly(31200));
-      q.exact('what was taken April to September', taken, want, { byHand: '6 months × 31,200 ÷ 12 = 15,600 (the tax-year set-up)', owner: 'MONTH', did: line ? line[0] : 'no "taken; the plan said" line on the home' });
-      q.exact('what the plan said for April to September', said, want, { byHand: '31,200 ÷ 12 × 6 = 15,600: the year was set up at £31,200; the lock\'s £30,000 is not this year\'s figure', owner: 'MONTH', did: line ? line[0] : 'no "the plan said" line on the home' });
+      q.exact('what was taken April to September', taken, want, { byHand: '6 months × 31,200 ÷ 12 = 15,600 (the tax-year set-up)', owner: 'MONTH', did: line ? line[0] : 'no "taken … your plan said" line on the home' });
+      q.exact('what the plan said for April to September', said, want, { byHand: '31,200 ÷ 12 × 6 = 15,600: the year was set up at £31,200; the lock\'s £30,000 is not this year\'s figure', owner: 'MONTH', did: line ? line[0] : 'no "your plan said" line on the home' });
     }, SEEDED);
   });
 
@@ -81,11 +82,12 @@ test.describe('s06 · the checker', () => {
       q.neverAcross(never);
       await q.step('the home, taken against the plan', async () => { await planPage(page, id, 'home'); await settled(page).catch(() => {}); });
       const home = await visibleText(page);
-      const line = /£([\d,]+) taken; the plan said £([\d,]+)[^\n]*/.exec(home);
-      const [taken, said] = line ? moneyAll(line[0]) : [null, null];
+      const read = takenAgainstPlan(home);
+      const line = read ? [read.line + (/^[^\n]*/.exec(home.slice(home.indexOf(read.line) + read.line.length)) || [''])[0]] : null;
+      const [taken, said] = read ? [read.taken, read.said] : [null, null];
       const want = months(3, monthly(34000));       // 34,000 ÷ 12 × 3 = 8,500
-      q.exact('what was taken July to September', taken, want, { byHand: '3 × 34,000 ÷ 12 = 8,500', owner: 'MONTH', did: line ? line[0] : 'no "taken; the plan said" line on the home' });
-      q.exact('what the plan said for July to September', said, want, { byHand: '34,000 ÷ 12 × 3 = 8,500', owner: 'MONTH', did: line ? line[0] : 'no "the plan said" line on the home' });
+      q.exact('what was taken July to September', taken, want, { byHand: '3 × 34,000 ÷ 12 = 8,500', owner: 'MONTH', did: line ? line[0] : 'no "taken … your plan said" line on the home' });
+      q.exact('what the plan said for July to September', said, want, { byHand: '34,000 ÷ 12 × 3 = 8,500', owner: 'MONTH', did: line ? line[0] : 'no "your plan said" line on the home' });
       q.never('the home', line && /more than|less than/.test(line[0]) ? [line[0]] : [], { must: 'no difference between taken and the plan when they are the same' });
       // a retiree's Saving page says in one sentence that it is for another stage; never "1 year of saving"
       await q.step('the Saving page', async () => { await planPage(page, id, 'saving'); await settled(page).catch(() => {}); });

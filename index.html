@@ -6981,7 +6981,7 @@
       document.getElementById('shapeStepBtn').classList.toggle('active', mode === 'phases');
       document.getElementById('incomeStepsEditor').style.display = mode === 'phases' ? 'block' : 'none';
       if (mode === 'phases' && !window._ssIncomeSteps.length) {
-        const base = +document.getElementById('ssBaseSalary')?.value || 40000;
+        const base = +document.getElementById('ssBaseSalary')?.value || '';   // none typed: an empty step, never a made-up £40,000 (7.12.0)
         const age = +document.getElementById('shapeAgeNow').value || 57;
         window._ssIncomeSteps = [{ fromAge: age, amount: base }];
       }

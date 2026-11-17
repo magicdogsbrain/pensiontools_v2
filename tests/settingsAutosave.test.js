@@ -183,3 +183,27 @@ describe('a box still being typed in when the page moves on', () => {
     expect(document.querySelector('[data-testid="settings.saveState"]').textContent).toBe('Saved');
   });
 });
+
+describe('"Saved" is never shown while a change waits to go', () => {
+  it('a second change after a save turns "Saved" into "Saving…" until it has gone', async () => {
+    document.body.innerHTML = '<div id="f"><h2>Settings</h2><input type="number" id="pot" value=""><input type="number" id="isa" value=""></div>';
+    let release = null;
+    const auto = createAutosave(window, document, {
+      root: () => document.getElementById('f'), heading: () => document.querySelector('#f h2'), testid: 'settings.saveState',
+      include: () => true, state: () => null, kindOf: () => 'money', canSave: async () => true, planId: async () => 'PlanA',
+      visible: () => true, byPerson: () => true, delay: 5, save: async () => { if (release === false) await new Promise((r) => { release = r; }); return true; }
+    });
+    await auto.loaded();
+    const type = (id, v) => { const el = document.getElementById(id); el.value = v; el.dispatchEvent(new Event('change', { bubbles: true })); };
+    const line = () => document.querySelector('[data-testid="settings.saveState"]').textContent;
+    type('pot', '300000'); await tick(30);
+    expect(line()).toBe('Saved');
+    release = false;                                  // the next save is slow
+    type('isa', '40000');
+    expect(line()).toBe('Saving…');                   // at once, before it goes
+    await tick(30);
+    expect(line()).toBe('Saving…');
+    release(); await tick(30);
+    expect(line()).toBe('Saved');
+  });
+});

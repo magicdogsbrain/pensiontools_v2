@@ -198,6 +198,7 @@ export function createAutosave(win, doc, o) {
   function schedule(ms) {
     if (timer) win.clearTimeout(timer);
     if (running) dirty = true;
+    if (statusEl && statusEl.textContent === FIELD_WORDS.saved) status(FIELD_WORDS.saving);   // a change waiting: never "Saved" beside it
     timer = win.setTimeout(() => { run(); }, ms == null ? delay : ms);
   }
 

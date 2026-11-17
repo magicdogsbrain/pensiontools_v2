@@ -71,5 +71,5 @@ test('a new plan from the wizard: no income, no ticked bed-and-ISA, empty what-i
   await expect(page.locator('#tryIncome')).toHaveValue('');
   await page.getByRole('button', { name: 'Run the test' }).click();
   await expect(page.locator('#strategyRunResults')).toContainText('This plan has no figures yet. Add your pot and what you want to spend on Stress tester → Settings.');
-  await page.locator('#strategyRunResults').screenshot({ path: test.info().outputPath('run-says-what-to-add.png') });
+  await page.locator('#strategyRunResults').screenshot({ path: test.info().outputPath('run-says-what-to-add.png'), timeout: 10_000 }).catch(() => {});   // a picture to look at, not a check
 });

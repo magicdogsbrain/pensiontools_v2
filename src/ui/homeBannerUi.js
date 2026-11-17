@@ -37,6 +37,7 @@ import { nextStepFor, nextStepAction } from '../services/NextStep.js';
 import { openingTab } from '../services/LifeStage.js';
 import { holdingsSummary, normaliseHoldings } from '../services/HoldingsRecord.js';
 import { planHasFigures } from '../services/DraftDecision.js';
+import { pressIfClosed } from './stressSubTabs.js';
 import { planHasSavingFigures } from '../services/PlanFigures.js';
 import { noteViewSwitch } from './viewSwitch.js';
 import { PLAN_ID } from '../services/OpenPlace.js';
@@ -146,7 +147,8 @@ export async function openingTabOf(deps, now = new Date()) {
 export function pressOpeningSub(win, doc, opening) {
   if (!opening || !opening.sub) return;
   const attr = opening.tab === 'stress' ? 'stresstab' : 'decisiontab';
-  win.setTimeout(() => { const b = doc.querySelector('.sub-tab[data-' + attr + '="' + opening.sub + '"]'); if (b) b.click(); }, 400);
+  // only when it is not open yet: a person who pressed it already may have typed there (the second walk's race hunt)
+  win.setTimeout(() => pressIfClosed(doc.querySelector('.sub-tab[data-' + attr + '="' + opening.sub + '"]')), 400);
 }
 
 /**

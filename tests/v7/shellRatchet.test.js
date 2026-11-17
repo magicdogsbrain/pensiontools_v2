@@ -96,7 +96,9 @@ import { resolve } from 'node:path';
 // Decision → Settings has no Save (7.12.0): an unlocked plan's settings follow Stress tester → Settings and a locked plan's
 // are frozen, so the button and its handler went: 8,862.
 // The ladder box reads one need (7.12.0, LadderPosition.ladderCheckWords): its "parked" alert went, and the check is one line: 8,848.
-const MAX_LINES = 8848;
+// The Stress tester's sub-tabs moved to src/ui/stressSubTabs.js (7.12.0, the race hunt): Settings pressed while open is not
+// drawn again: 8,827.
+const MAX_LINES = 8827;
 
 describe('index.html\'s inline script may only get shorter', () => {
   const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');

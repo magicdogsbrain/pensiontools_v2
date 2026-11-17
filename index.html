@@ -4194,6 +4194,7 @@
     import { shareBudgetWith, stopSharingBudget, getHouseholdSplitDismissed, setHouseholdSplitDismissed, budgetSharedFromOf } from './src/storage/ScenarioRepository.js';
     import { guestPlanRefusal, isExamplePlanError, DEMO_PLANS, EXAMPLE_PLAN_KEY, EXAMPLE_PLAN_DESCRIPTION } from './src/services/GuestPlans.js';   // three plans without an account; the read-only example (6.23.0)
     import { refreshDraftLines, paintDraftSettingsLine, openStressSettings, blankUnsetPots } from './src/ui/draftPlanLine.js'; import { planHasFigures } from './src/services/DraftDecision.js';   // an unlocked plan's own figures (7.12.0)
+    import { installStressSubTabs } from './src/ui/stressSubTabs.js';   // the Stress tester's sub-tabs; Settings pressed while open is not drawn again (7.12.0)
     import { updateHomeBanner, installHomeBanner, openingTabOf, pressOpeningSub } from './src/ui/homeBannerUi.js'; import { installHouseholdTab } from './src/ui/householdTabUi.js';   // the next-step banner is the plan home's first thing due, else the life stage's sentence (7.10.0; 6.20.2); the opening tab reads the plan's phase (7.11.0)
     import { moreSheetHtml, MORE_TABS } from './src/ui/mobileMenu.js';
     import { proportions as holdingsProportions, describeMix } from './src/services/Holdings.js';
@@ -5529,29 +5530,8 @@
       updateScrollHint();
     }
 
-    // Stress tester sub-tab switching
-    document.querySelectorAll('.sub-tab[data-stresstab]').forEach(tab => {
-      tab.addEventListener('click', async () => {
-        // Update sub-tab buttons
-        document.querySelectorAll('.sub-tab[data-stresstab]').forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
-
-        // Update sub-tab content
-        window.__hideHelpTip && window.__hideHelpTip();
-        document.querySelectorAll('.stress-subtab').forEach(c => c.classList.add('hidden'));
-        document.getElementById(`stress-${tab.dataset.stresstab}`).classList.remove('hidden');
-        if (tab.dataset.stresstab === 'montecarlo') updateStrategyNote();
-
-        // Only reload settings when explicitly switching to settings tab
-        // Don't overwrite test inputs - user may have entered custom values to test
-        if (tab.dataset.stresstab === 'stresssettings') await loadStressSettings();
-        // Drawdown / Glidepath: start from the plan's own horizon and inflation, not a stale 35.
-        if (tab.dataset.stresstab === 'drawdown' || tab.dataset.stresstab === 'glidepath') {
-          try { const s = await getStressSettingsAsync(); const pre = tab.dataset.stresstab === 'drawdown' ? 'dd' : 'gp';
-            const d = document.getElementById(pre + 'Duration'); if (d && s.duration) d.value = s.duration; } catch (e) { /* defaults stand */ }
-        }
-      });
-    });
+    // Stress tester sub-tab switching (src/ui/stressSubTabs.js): Settings pressed while open is not drawn again (7.12.0)
+    installStressSubTabs(document, window, { loadStressSettings, updateStrategyNote: () => updateStrategyNote(), getStressSettingsAsync });
 
     // Decision tool sub-tab switching
     document.querySelectorAll('.sub-tab[data-decisiontab]').forEach(tab => {

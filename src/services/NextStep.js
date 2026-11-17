@@ -94,7 +94,8 @@ export function nextStepAction(action, win) {
   const later = (fn) => setTimeout(fn, 400);
   if (a.kind === 'budget-wizard') return () => { win.switchToTab('budget'); later(() => win.openBudgetWizard()); };
   if (a.kind === 'apply-budget') return async () => { await win.applyBudgetToPlan(); win.updateNextStepBanner(); };
-  if (a.kind === 'stress-settings') return () => { win.switchToTab('stress'); later(() => win.document.querySelector('.sub-tab[data-stresstab="stresssettings"]')?.click()); win.scrollTo({ top: 0 }); };
+  // Settings pressed only when it is not open already: a press of the open tab used to draw the stored plan over what was typed
+  if (a.kind === 'stress-settings') return () => { win.switchToTab('stress'); later(() => { const b = win.document.querySelector('.sub-tab[data-stresstab="stresssettings"]'); if (b && !(b.classList && b.classList.contains('active'))) b.click(); }); win.scrollTo({ top: 0 }); };
   // a month to record: the month box set to it once the page has drawn and set its own default, and the form's listeners run
   // (as OpenPlace does) — "Record October" never opens on November
   const setMonth = () => {

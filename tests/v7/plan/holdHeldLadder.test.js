@@ -37,6 +37,21 @@ const PLAN_TICKERS = new Set(ORDERS.map((o) => o.tidm));
 // the pension lines that are neither one of the plan's gilts nor cash: three ordinary gilts, the 2026 gilt, four shares and a fund
 const OTHER = ['TS27', 'TN28', 'TG29', 'TN26', 'ULVR', 'AZN', 'LGEN', 'NG.', 'VWRP'];
 
+describe('the full view says the cash years once on its tab', () => {
+  // What you hold and "Your plan's mix" share the full view's tab: the need (34,000 × 5/12 + 0 + 33,000 = £47,167) is said
+  // once there, by the mix; the What you hold card points to it
+  const plan = living(alexLivingRaw());
+  it('one £47,167 on the tab, and the card points to the mix', () => {
+    const div = full(plan);
+    expect(flat(visibleText(div)).split('£47,167').length - 1).toBe(1);
+    const card = flat(visibleText(holdCard(div)));
+    expect(card).not.toContain('Your cash years need');
+    expect(card).not.toContain('All 14 of your plan’s gilts are held.');
+    expect(card).toContain('Everything here counts as yours, as it is.');
+    expect(holdCard(div).querySelector('a[href="#heldLadder"]')).toBeTruthy();
+  });
+});
+
 describe('(a) both views: three lines and a link, and nothing about keeping', () => {
   const plan = living(alexLivingRaw());
   it('the simple view', () => {

@@ -19,7 +19,7 @@ import { sayKeep } from '../../answers/plan/keepTest.js';
 import { KEEPTEST } from '../../v7/copy/keepTest.js';
 import { MOVE } from '../../v7/copy/move.js';
 import { heldLadderHtml } from './HeldLadderView.js';
-import { heldSummaryView, sayHeld } from '../../answers/plan/held.js';
+import { heldSummaryView } from '../../answers/plan/held.js';
 import { HELD } from '../../v7/copy/held.js';
 import { PLAN } from '../../v7/copy/plan.js';
 import { LAYOUT } from '../../appLayout.js';
@@ -236,12 +236,10 @@ export function holdingsCardHtml({ holdings = null, offer = null, keep = null } 
   // No offer to copy the Stress tester's fund list (6.13.1): that list is the portfolio a strategy is TESTED on and is
   // never a candidate for what you hold — even as a question. The record starts empty; paste or type it.
   if (!lines.length) h += '<p class="hint">Nothing recorded yet — paste from your platform or add lines.</p>';
-  // living on a ladder (7.12.0): what the plan's gilts and the cash years come to, and the way to "Your plan's mix"
+  // living on a ladder (7.12.0): the way to "Your plan's mix". It is on this same tab, below, and says the gilts held and
+  // what the cash years need; this card does not say them a second time
   if (keep && keep.held && keep.summary) {
-    const S = keep.summary;
-    h += '<div id="holdingsHeldSummary">' + S.figure.map((x, n) => (n === 0 ? '<p><strong>' + esc(sayHeld(x, HELD)) + '</strong></p>' : '<p>' + esc(sayHeld(x, HELD)) + '</p>')).join('')
-      + (S.cash ? '<p>' + esc(sayHeld(S.cash, HELD)) + '</p>' : '')
-      + '<p class="hint">' + esc(HELD.holdCounts) + ' <a href="#heldLadder">' + esc(HELD.holdLinkMix) + '</a></p></div>';
+    h += '<div id="holdingsHeldSummary"><p class="hint">' + esc(HELD.holdCounts) + ' <a href="#heldLadder">' + esc(HELD.holdLinkMix) + '</a></p></div>';
   }
   if (lines.length) {
     const rows = lines.map((l, i) => {

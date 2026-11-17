@@ -21,6 +21,7 @@ import { seedToScenario } from '../../../src/services/PlanFromSeed.js';
 import { upgradeScenario } from '../../../src/firebase/scenarioMigration.js';
 import { saverInputsOf } from '../../../src/answers/plan/saverInputs.js';
 import { applyPatch } from '../../../src/answers/plan/about.js';
+import { savedWant } from '../../../src/answers/plan/saving.js';
 import { answerInPlanPatch, answerPayInOf } from '../../../src/answers/plan/useAnswer.js';
 import { settingsFromCheckIn } from '../../../src/answers/plan/checkIn.js';
 import { SAVER_STAGES } from '../../../src/answers/plan/steps.js';
@@ -115,6 +116,33 @@ describe('useAnswer.js: the answer\'s saving figures onto the plan, nothing else
     const retired = applyPatch(plan, { 'stressTool.settings.retired': true, 'stressTool.settings.retireAge': 41 });
     const p = answerInPlanPatch(retired, answerB(checked(sam({ kind: 'total', total: 900 })), ENV), { today: DAY });
     expect(p).toEqual({ ok: false, problem: 'notSaving' });
+  });
+});
+
+describe('useAnswer.js (7.12.0, lead decision 9): "Use" carries the age and the amount tried, not only the pay-in', () => {
+  // walker 1: Jo tried £2,500 a month at 58 from her plan (£2,000 at 65) and pressed "Use: paying in 64%": the plan kept
+  // £2,000 at 65 with a pay-in sized for £2,500 at 58. By hand, what the plan must then hold: £2,500 a month from 58, and
+  // the pay-in the answer said would be enough at those.
+  const sharePlan = keptPlan(sam({ kind: 'share', pay: 38000, ownPct: 5, employerPct: 3 }, { stop: { age: 65 }, spend: { kind: 'amount', amount: 2000 } }), { id: 'Jo33Plan' });
+  const tried = answerB(checked(sam({ kind: 'share', pay: 38000, ownPct: 5, employerPct: 3 }, { stop: { age: 58 }, spend: { kind: 'amount', amount: 2500 } })), ENV);
+
+  it('the plan then wants £2,500 a month from 58, and pays in what the answer said', () => {
+    const p = answerInPlanPatch(sharePlan, tried, { today: DAY, payIn: tried.verdict.band === 'yes' ? 'now' : 'enough' });
+    expect(p.ok).toBe(true);
+    const written = applyPatch(sharePlan, p.patch);
+    const want = savedWant(written, { today: DAY });
+    expect(want.monthly).toBe(2500);
+    expect(want.stopAge).toBe(58);
+    if (tried.verdict.band !== 'yes') expect(written.accumulationTool.settings.ownPct).toBe(answerPayInOf(tried, { payIn: 'enough' }).payIn.ownPct);
+    // what it says changed names the want too
+    expect(p.line.id).toBe('usedAnswerWant');
+    expect(p.line.slots).toMatchObject({ amount: '£2,500', age: '58' });
+    // Undo puts every path back
+    for (const k of Object.keys(p.patch)) expect(p.previous).toHaveProperty([k]);
+  });
+  it('the same want and the same pay-in: nothing to write', () => {
+    const same = answerB(checked(sam({ kind: 'share', pay: 38000, ownPct: 5, employerPct: 3 }, { stop: { age: 65 }, spend: { kind: 'amount', amount: 2000 } })), ENV);
+    expect(answerInPlanPatch(sharePlan, same, { today: DAY })).toMatchObject({ ok: true, patch: {}, line: { id: 'usedSame' } });
   });
 });
 
@@ -399,6 +427,8 @@ describe('the panel: "Use these in ‘…’" first, "Keep as a new plan" second
     expect(one(root, 'b.keep.secondTitle').textContent).toBe(KEEP.newTitle);
     expect(one(root, 'b.keep.name').value).toBe(named.planDetails.name + ' (2)');
     expect(root.textContent).toContain('You opened this from ‘' + named.planDetails.name + '’. Trying figures here changes nothing in it until you use them.');
+    // (7.12.0) what these figures were for goes in too, said before the press: Sam's £1,810 a month from 63 (sam())
+    expect(one(root, 'b.use.what').textContent).toBe('What these figures were for goes into ‘' + name + '’ with the pay-in you choose: £1,810 a month from 63. Its pot and everything else stay as they are.');
     q.stop();
   });
 

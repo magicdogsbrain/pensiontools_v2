@@ -1091,7 +1091,7 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     const a = state.answers[q];
     const p = answerInPlanPatch(plan, a && a.result, { today: state.env.today, payIn });
     if (!p.ok) { fail(planId, p.problem === 'notSaving' ? 'notSaving' : 'problems'); return; }
-    const told = () => dispatch({ type: A.KEEP_USED, q, planId: String(planId), name: saidNameOf(plan), line: p.line });
+    const told = () => dispatch({ type: A.KEEP_USED, q, planId: String(planId), name: (p.line && p.line.slots && p.line.slots.name) || saidNameOf(plan), line: p.line });
     if (!Object.keys(p.patch).length) { told(); dispatch({ type: A.PLAN_SAVED, planId, previous: {}, line: p.line, op: 'saving' }); later(() => dispatch({ type: A.PLAN_TOAST_CLOSE })); return; }
     const data = declaredOnly({ ...p.patch, lastModified: now().toISOString() });
     if (lockedRefusal(plan, data)) { fail(planId, 'locked'); return; }

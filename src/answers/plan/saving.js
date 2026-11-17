@@ -226,8 +226,9 @@ export function checkWant(plan, typed, { today }) {
 /**
  * The want's own writes (About's for the stop age, then What you spend's for the amount, each on the plan as the one before
  * leaves it) → { ok, errors, patch, plan } — `plan` with them folded on, for What you pay in's own write to be worked on.
+ * Exported (7.12.0) for "Use these in ‘…’" on B's answer, which carries the age and the amount tried (answers/plan/useAnswer.js).
  */
-function wantWrites(plan, typed, { today }) {
+export function wantWrites(plan, typed, { today }) {
   const w = checkWant(plan, typed, { today });
   if (!w.ok) return { ok: false, errors: w.errors, patch: {}, plan };
   let base = plan;

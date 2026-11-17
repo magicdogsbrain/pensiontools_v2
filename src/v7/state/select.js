@@ -837,7 +837,7 @@ export function useInOf(state, q) {
     if (!t) return null;
     if (!rows) return { ...t, ready: false, why: state.plans && state.plans.status === 'failed' ? 'unread' : null };
     const row = rows.find((r) => r.id === t.id) || null;
-    return { ...t, name: row ? row.name : t.name, ready: true, why: rowRefusal(row) };
+    return { ...t, name: row ? row.name : t.name, ready: true, why: rowRefusal(row), locked: !!row && row.stageKey === 'committed-saving' };
   };
   // the plan kept from this answer leads while it is here; once it is gone, the plan B was opened from
   const kp = placed(kept);

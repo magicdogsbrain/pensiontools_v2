@@ -113,7 +113,11 @@ function UseIn({ q, v, state, dispatch }) {
   const used = v.used && v.used.planId === u.id ? v.used : null;
   const t = state.ui.toast;
   const toast = t && t.planId === u.id && t.op === 'saving' && (used || t.kind !== 'saved') ? t : null;
-  const doneText = used && used.line ? fill(used.line.id === 'usedAnswer' && used.line.slots.savings ? W.done.usedAnswerSavings : W.done[used.line.id] || W.done.usedAnswer, used.line.slots) : '';
+  const doneId = used && used.line ? (used.line.slots.savings && W.done[used.line.id + 'Savings'] ? used.line.id + 'Savings' : used.line.id) : null;
+  const doneText = used && used.line ? fill(W.done[doneId] || W.done.usedAnswer, used.line.slots) : '';
+  // (7.12.0) what these figures were for: the amount and the stop age of the answer, said before the press
+  const res = state.answers[q] && state.answers[q].result;
+  const aimSlots = { name, amount: res && res.spend && typeof res.spend.perMonth === 'number' ? money(res.spend.perMonth) : '', age: res && res.stop && typeof res.stop.age === 'number' ? String(res.stop.age) : '' };
   const press = (payIn) => dispatch({ type: 'keep/use', q, ...(payIn ? { payIn } : {}) });
   // a plan whose pay-ins cannot change: the one thing to do next is to open it
   const openNext = ['example', 'readonly', 'closed', 'notSaving'].includes(u.why);
@@ -151,7 +155,7 @@ function UseIn({ q, v, state, dispatch }) {
             <Button testid={`${q}.action.use`} kind="primary" aria-busy={saving ? 'true' : undefined} onClick={() => { if (!saving) press(null); }}>{saving ? at(W.working) : at(W.button)}</Button>
           </div>
         ))}
-      {u.can && <p class="note">{at(W.what)}</p>}
+      {u.can && <p class="note" data-testid={`${q}.use.what`}>{u.locked || !aimSlots.amount || !aimSlots.age ? at(W.whatLocked) : fill(W.what, aimSlots)}</p>}
       {problem && <p class="notice keep-problem" role="alert" data-testid={`${q}.use.problem`} data-problem={problem}>{at(W.problems[problem] || W.problems.failed)}</p>}
       {used && (
         <div class="notice saved" role="status" data-testid={`${q}.use.done`} data-line={used.line ? used.line.id : undefined}>

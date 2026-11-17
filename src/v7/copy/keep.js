@@ -154,10 +154,15 @@ export const KEEP = {
     tried: 'Use: paying in {now}, as tried',
     enough: 'Use: paying in {enough} (what would be enough)',
     savingsOnly: 'Use: paying in as now, and {savings} a month into savings (what would be enough)',
-    what: 'Only what goes in changes in ‘{name}’: what goes into your pension each month, and into ISAs and savings. Its ages, its pot and what you spend stay as they are.',
+    /** (7.12.0, lead decision 9) what these figures were for goes in with the pay-in: the amount and the stop age tried. */
+    what: 'What these figures were for goes into ‘{name}’ with the pay-in you choose: {amount} a month from {age}. Its pot and everything else stay as they are.',
+    /** A locked plan: what you want is said there, never changed by this. */
+    whatLocked: 'Only what goes in changes in ‘{name}’: what goes into your pension each month, and into ISAs and savings. It is locked, so what you want and when you stop stay as they are.',
     /** What changed, on the answer page (useAnswer.js line ids). */
     done: {
       usedAnswer: '‘{name}’ now has {payIn} going into your pension. Nothing else in it changed.',
+      usedAnswerWant: '‘{name}’ now wants {amount} a month from {age}, with {payIn} going into your pension. Nothing else in it changed.',
+      usedAnswerWantSavings: '‘{name}’ now wants {amount} a month from {age}, with {payIn} going into your pension and {savings} a month into ISAs and savings. Nothing else in it changed.',
       usedAnswerSavings: '‘{name}’ now has {payIn} going into your pension, and {savings} a month into ISAs and savings. Nothing else in it changed.',
       usedSame: '‘{name}’ already has these figures, so nothing changed.'
     },

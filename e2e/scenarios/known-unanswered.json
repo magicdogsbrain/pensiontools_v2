@@ -2,26 +2,6 @@
   "note": "Questions an area chose not to answer in this release: each scenario listed runs under test.fail(). The list may only shrink from one release to the next (tests/scenarioRules.test.js compares it with the copy at the last tag).",
   "unanswered": [
     {
-      "scenario": "s01",
-      "owner": "SAVER, WORDS",
-      "reason": "7.12.0 does not yet say on the answer what leaves take-home pay now and the employer's part now (the brief's 'now' sentence is on no B page); the share-of-pay slider still stops at 20% (Part 2, P2.1, not built); question B's own title says 'what should I pay in?', which the never-list forbids and no area was given to reword."
-    },
-    {
-      "scenario": "s02",
-      "owner": "SAVER",
-      "reason": "The plan's home says the saver's answer, the chance, what goes in and what would be enough, but not what could be spent a month paying in as now, which What you pay in says: the saver brief's home block and this scenario's R3 differ, and it needs a decision before a sentence is added."
-    },
-    {
-      "scenario": "s03",
-      "owner": "SAVER",
-      "reason": "Step 1 of 'Am I saving enough?' still takes what lands in the pension and does not say so (Part 2, P2.8, not built), so £300 typed as take-home pay is read as £300 landed; and a try still becomes 'as now' (Part 2, P2.1, not built)."
-    },
-    {
-      "scenario": "s04",
-      "owner": "SAVER, FACTS",
-      "reason": "The check-in's result does not say what was paid in since the last check-in, what markets added, or the higher-rate relief to claim (that line is on What you pay in); the home does not say what could be spent; About's age box still shows the age as typed a year ago (44, not 45); and the 'pot today' and 'age today' readings on the plan and Saving pages need their places in the register settled."
-    },
-    {
       "scenario": "s05",
       "owner": "MEASURE",
       "reason": "What you pay in and 'Does it last?' give the chance from two different runs (16 and 17 in 20 here); one shared reading of the chance is not built."
@@ -29,7 +9,7 @@
     {
       "scenario": "s06",
       "owner": "FACTS, MONTH, SAVER",
-      "reason": "'Your pots and tax' gives the plan's pots, not the pot today the home gives (the register reads both as one fact); the income page gives the plan's £30,000 while Month by month gives the year as set up (£31,200); the saver's home and full view do not say the month the move window opens or the next review in the full view; Month by month shows a drawing sum to someone still saving."
+      "reason": "'Your pots and tax' gives the plan's pots, not the pot today the home gives (the register reads both as one fact); the income page gives the plan's £30,000 while Month by month gives the year as set up (£31,200); the saver's home and full view do not say the month the move window opens or the next review in the full view; Month by month shows a drawing sum to someone still saving. The saver's home says the month the move window opens only within five years of the stop (the lead's rule for 7.12.0); this scenario reads it eleven years out."
     },
     {
       "scenario": "s07",
@@ -44,7 +24,7 @@
     {
       "scenario": "s09",
       "owner": "HOLD, SAVER",
-      "reason": "A totals-only plan's pension (£410,000) is not yet read on Accumulation and What you pay in, the home still says '0% of the plan's mix held' and the full view 'Record what you hold', and the home does not say the month work stops: the moving brief's S4 and its potsTodayOf step were not built in this release."
+      "reason": "The scenario types £410,000 and £40,000 into the full view's \"SIPP at retirement\" and ISA override boxes (the only totals boxes on Stress settings), so the plan holds no pension today and Accumulation and What you pay in rightly show none; whether the route is wrong or the full view needs a pension-today total is not settled. The home still says '0% of the plan's mix held' and the full view 'Record what you hold' to a totals-only plan (the moving brief's S4, not built), and the two views name the stage differently (one stage vocabulary)."
     },
     {
       "scenario": "s12",

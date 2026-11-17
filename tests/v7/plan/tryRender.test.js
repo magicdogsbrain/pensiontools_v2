@@ -167,4 +167,22 @@ describe('the section', () => {
     expect((text.match(/Fixed when you locked the plan on /g) || []).length).toBe(1);
     expect(all(root, '[data-testid="plan.lasts.try"] .plan-source')).toHaveLength(1);
   });
+  it('lasts-try-locked: the lead promises no "Use this", and under the result it says how to make the try the plan, with the way to unlock', () => {
+    // 7.12.0 (the living-record brief G): a locked plan changes only by unlocking, changing and locking again; the unlock
+    // confirm lives on "Your plan" (#/plan/<id>/plan), and unlocking keeps the records (copy/plan.js page.unlock says so)
+    const { root } = draw(load('lasts-try-locked'));
+    const sec = one(root, 'plan.lasts.try');
+    expect(sec.textContent).toContain('Change any of these and try it: the same one test, on a copy of your plan. Your locked plan is not changed.');
+    expect(sec.textContent).not.toContain('Use this');
+    const how = one(root, 'plan.lasts.try.makeItThePlan');
+    expect(how.textContent).toContain('To make this your plan: unlock it, change it and lock it again. Your recorded months stay as they are.');
+    const a = how.querySelector('a');
+    expect(a.getAttribute('href')).toBe('#/plan/SamBuckets04/plan');
+    expect(a.textContent).toBe('Unlock the plan');
+  });
+  it('lasts-try-tried (not locked): the lead and the result as before, with no unlock line', () => {
+    const { root } = draw(load('lasts-try-tried'));
+    expect(one(root, 'plan.lasts.try').textContent).toContain(T.lead);
+    expect(one(root, 'plan.lasts.try.makeItThePlan')).toBe(null);
+  });
 });

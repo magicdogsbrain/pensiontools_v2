@@ -306,7 +306,7 @@ function TryChange({ L, planId, dispatch, sourceText }) {
   return (
     <section class="plan-section lasts-try" data-section="try" data-testid="plan.lasts.try" data-try-status={t.status} data-open={t.open ? '1' : '0'}>
       <h3>{T.title}</h3>
-      <p class="note">{T.lead}</p>
+      <p class="note">{L.locked ? T.leadLocked : T.lead}</p>
       {!t.open && <div class="actions-row"><Button testid="plan.lasts.try.open" kind="primary" onClick={() => dispatch({ type: 'ui/toggle', id: 'tryOpen' })} {...keepFocus}>{T.buttons.open}</Button></div>}
       {t.open && (
         <>
@@ -359,6 +359,7 @@ function TryChange({ L, planId, dispatch, sourceText }) {
               </div>
             </div>
           )}
+          {L.locked && !r.stale && <p class="note" data-testid="plan.lasts.try.makeItThePlan">{T.makeItThePlan} <a href={href.plan(planId, 'plan')}>{T.unlockLink}</a></p>}
           {L.saving && (L.saving.kind === 'try' || L.saving.kind === 'tryKeep') && <p class="working-note" role="status" data-testid="plan.lasts.try.saving">{LASTS.saving}</p>}
           {keepProblem && <p class="notice" role="alert" data-testid="plan.lasts.try.keepProblem" data-problem={L.problem}>{keepProblem}</p>}
         </div>

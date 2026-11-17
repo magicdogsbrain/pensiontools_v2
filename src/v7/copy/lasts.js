@@ -174,6 +174,10 @@ export const LASTS = {
   try: {
     title: 'Try a change of your own',
     lead: 'Change any of these and try it: the same one test on a copy of your plan, over its full length. Nothing is kept until you press “Use this” or keep it as a separate plan.',
+    /** A locked plan (7.12.0): no "Use this" there; the way to make a try the plan is to unlock, change and lock again. */
+    leadLocked: 'Change any of these and try it: the same one test, on a copy of your plan. Your locked plan is not changed.',
+    makeItThePlan: 'To make this your plan: unlock it, change it and lock it again. Your recorded months stay as they are.',
+    unlockLink: 'Unlock the plan',
     fields: {
       'try.way':        { label: 'The way the money is taken' },
       'try.pot':        { label: 'The pension pot, in pounds', help: 'The shares, bonds and cash are scaled to this figure in their saved proportions; a slice of gold and trend funds is left as it is.' },

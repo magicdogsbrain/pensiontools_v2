@@ -429,9 +429,16 @@ function whereStep(C) {
       if (P.p50 != null && !older) { figures.potMid = r0(P.p50); lines.push(line('where.potMid', [money('potMid'), '.'], figures, sourceOf('locked', lockedAt, now))); }
       const parts = (Array.isArray(P.parts) ? P.parts : []).filter((x) => x && x.asOf && (x.key === 'pension' || x.key === 'isa'));
       const ms = parts.map((x) => ym(x.asOf)).filter(Boolean);
-      if (parts.length > 1 && ms.length === parts.length && Math.abs(monthsBetween(ms[0], ms[1])) > 1) {
-        const words = parts.map((x, i) => { figures['potPart' + i] = r0(x.value); return [(x.key === 'isa' ? 'ISA ' : 'Pension '), money('potPart' + i), ', ' + (x.source === 'holdings' ? 'from What you hold, ' + monthWords(x.asOf) : 'recorded ' + monthWords(x.asOf)) + '.']; });
-        lines.push(line('where.potParts', words.reduce((a, b, i) => a.concat(i ? [' '] : [], b), []), figures, sourceOf('record', null, now)));
+      // its parts, each as typed (7.12.0: always when there are two, so the ISA typed with each month is said back); one date
+      // when both come from the same month and the same place
+      if (parts.length > 1 && ms.length === parts.length) {
+        const whence = (x) => (x.source === 'holdings' ? 'from What you hold, ' + monthWords(x.asOf) : 'recorded ' + monthWords(x.asOf));
+        parts.forEach((x, i) => { figures['potPart' + i] = r0(x.value); });
+        const name = (x) => (x.key === 'isa' ? 'ISA ' : 'Pension ');
+        const words = whence(parts[0]) === whence(parts[1])
+          ? [name(parts[0]), money('potPart0'), ' and ', name(parts[1]).replace('Pension', 'pension'), money('potPart1'), ', ' + whence(parts[0]) + '.']
+          : parts.map((x, i) => [name(x), money('potPart' + i), ', ' + whence(x) + '.']).reduce((a, b, i) => a.concat(i ? [' '] : [], b), []);
+        lines.push(line('where.potParts', words, figures, sourceOf('record', null, now)));
       }
     } else if (P && Array.isArray(P.missing) && P.missing.includes('isa') && !P.missing.includes('pension')) {
       lines.push(line('where.potNoIsa', ['Your plan counts your ISA too, and we have no figure for it. You can type it in the ISA box when you next record a month, or add it under What you hold.'], figures, sourceOf('record', null, now)));

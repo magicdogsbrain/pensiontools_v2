@@ -313,7 +313,7 @@ export const PLAN = {
     'where.step': 'Step {n} of {of} of your plan',
     'where.pot': 'Your pot',
     'where.potMid': 'The plan’s middle line for now',
-    /** The pot's parts with their dates, when they are more than a month apart (7.12.0): the sentence carries its own words. */
+    /** The pot's parts as typed, with their dates (7.12.0): the sentence carries its own words. */
     'where.potParts': '',
     /** The band counts the ISA and no figure for it exists anywhere (7.12.0). */
     'where.potNoIsa': '',

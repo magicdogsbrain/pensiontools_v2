@@ -4312,7 +4312,7 @@
       if (entryContent) entryContent.classList.remove('hidden');
       // A different plan: the previous plan's recommendation and typed fund values must not linger.
       const out = document.getElementById('decisionOutput');
-      if (out) out.innerHTML = '<div class="card"><div class="loading"><p>Enter your fund values and click Calculate to see this month's figures.</p></div></div>';
+      if (out) out.innerHTML = '<div class="card"><div class="loading"><p>Enter your fund values and click Calculate to see this month’s figures.</p></div></div>';
       ['entryEquity', 'entryBond', 'entryCash', 'entryIsa', 'entryDiversifier'].forEach((id) => { const e = document.getElementById(id); if (e) e.value = ''; });
       currentDecision = null; monthEntry.setState('none');   // nothing calculated for this plan yet: Save off, and the line says so (3 Nov 2026)
     }

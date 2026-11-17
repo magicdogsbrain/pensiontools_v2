@@ -9,7 +9,7 @@
 import { test, expect } from '@playwright/test';
 import { ask } from './ask.js';
 import { accountFor } from './account.js';
-import { at, planPage, settled } from './routes.js';
+import { at, planPage, settled, screenOf } from './routes.js';
 import { visibleText, moneyAll } from './read.js';
 import { kimKept, lockFromStressSettings, monthlyEntry } from './made.js';
 import { knownUnanswered } from './known.js';
@@ -40,8 +40,8 @@ test('s08 · Kim asks what to take this month, and from which pot @phone', async
       const link = page.getByRole('link', { name }).or(page.getByRole('button', { name })).first();
       if (!(await link.isVisible().catch(() => false))) continue;
       // a person waits for the page the press opens (on a phone the old page's text can still be there a moment)
-      const was = page.url();
-      await q.step(`press "${(await link.innerText()).trim().slice(0, 40)}"`, async () => { await link.click(); await expect.poll(() => page.url(), { timeout: 15_000 }).not.toBe(was).catch(() => {}); await settled(page).catch(() => {}); });
+      const was = await screenOf(page).catch(() => null);
+      await q.step(`press "${(await link.innerText()).trim().slice(0, 40)}"`, async () => { await link.click(); await expect.poll(() => screenOf(page).catch(() => null), { timeout: 15_000 }).not.toBe(was).catch(() => {}); await settled(page).catch(() => {}); });
       presses += 1;
       text = await visibleText(page);
     }

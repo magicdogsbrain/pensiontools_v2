@@ -3437,7 +3437,7 @@
                   },
                   {
                     "k": "fromYear",
-                    "v": 12,
+                    "v": 5,
                     "kind": "count"
                   }
                 ]
@@ -5761,55 +5761,6 @@
     "care": null,
     "pick": null
   },
-  "ui": {
-    "railOpen": false,
-    "open": [],
-    "online": true,
-    "leaving": null,
-    "leaveProblem": null,
-    "saving": null,
-    "saveProblem": null,
-    "toast": {
-      "planId": "AlexWay01",
-      "kind": "saved",
-      "previous": {
-        "stressTool.settings.strategyId": "pots-and-valves",
-        "lastModified": "2026-08-14T10:05:00.000Z"
-      },
-      "line": {
-        "id": "way",
-        "slots": {
-          "way": "floor-to-age"
-        }
-      },
-      "op": "way"
-    },
-    "action": null,
-    "download": null,
-    "guest": {
-      "minutes": 0,
-      "usedUp": false,
-      "nag": null
-    },
-    "bringIn": null,
-    "account": {
-      "mode": "signIn",
-      "busy": null,
-      "problem": null,
-      "note": null,
-      "confirm": null,
-      "deleted": null
-    },
-    "profile": null,
-    "news": {
-      "popup": null,
-      "page": null,
-      "seen": null
-    },
-    "assumptions": null,
-    "several": null,
-    "severalDone": null
-  },
   "move": {
     "key": null,
     "status": "idle",
@@ -5860,5 +5811,54 @@
     "rows": {},
     "pots": null,
     "reason": null
+  },
+  "ui": {
+    "railOpen": false,
+    "open": [],
+    "online": true,
+    "leaving": null,
+    "leaveProblem": null,
+    "saving": null,
+    "saveProblem": null,
+    "toast": {
+      "planId": "AlexWay01",
+      "kind": "saved",
+      "previous": {
+        "stressTool.settings.strategyId": "pots-and-valves",
+        "lastModified": "2026-08-14T10:05:00.000Z"
+      },
+      "line": {
+        "id": "way",
+        "slots": {
+          "way": "floor-to-age"
+        }
+      },
+      "op": "way"
+    },
+    "action": null,
+    "download": null,
+    "guest": {
+      "minutes": 0,
+      "usedUp": false,
+      "nag": null
+    },
+    "bringIn": null,
+    "account": {
+      "mode": "signIn",
+      "busy": null,
+      "problem": null,
+      "note": null,
+      "confirm": null,
+      "deleted": null
+    },
+    "profile": null,
+    "news": {
+      "popup": null,
+      "page": null,
+      "seen": null
+    },
+    "assumptions": null,
+    "several": null,
+    "severalDone": null
   }
 }

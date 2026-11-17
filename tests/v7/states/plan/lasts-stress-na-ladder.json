@@ -3610,7 +3610,7 @@
                   },
                   {
                     "k": "fromYear",
-                    "v": 12,
+                    "v": 1,
                     "kind": "count"
                   }
                 ]
@@ -4277,6 +4277,7 @@
             },
             "lockedOn": "1 July 2026",
             "ladder": true,
+            "success": null,
             "ran": {
               "family": false,
               "cutsOn": false,
@@ -4284,6 +4285,7 @@
               "months": 3
             }
           },
+          "atStop": null,
           "fields": [
             {
               "path": "cutsOn",
@@ -4946,10 +4948,12 @@
               "cutTotal": null,
               "worstCut": null
             },
-            "id": "lasts.headline",
+            "id": "lasts.headlineDoc",
             "slots": {
-              "words": "in every future it tried"
+              "words": "in every future it tried",
+              "toAge": "86"
             },
+            "record": true,
             "sub": {
               "id": "lasts.subContract",
               "slots": {
@@ -6466,41 +6470,6 @@
     "care": null,
     "pick": null
   },
-  "ui": {
-    "railOpen": false,
-    "open": [],
-    "online": true,
-    "leaving": null,
-    "leaveProblem": null,
-    "saving": null,
-    "saveProblem": null,
-    "toast": null,
-    "action": null,
-    "download": null,
-    "guest": {
-      "minutes": 0,
-      "usedUp": false,
-      "nag": null
-    },
-    "bringIn": null,
-    "account": {
-      "mode": "signIn",
-      "busy": null,
-      "problem": null,
-      "note": null,
-      "confirm": null,
-      "deleted": null
-    },
-    "profile": null,
-    "news": {
-      "popup": null,
-      "page": null,
-      "seen": null
-    },
-    "assumptions": null,
-    "several": null,
-    "severalDone": null
-  },
   "move": {
     "key": null,
     "status": "idle",
@@ -6682,5 +6651,40 @@
     "rows": {},
     "pots": null,
     "reason": null
+  },
+  "ui": {
+    "railOpen": false,
+    "open": [],
+    "online": true,
+    "leaving": null,
+    "leaveProblem": null,
+    "saving": null,
+    "saveProblem": null,
+    "toast": null,
+    "action": null,
+    "download": null,
+    "guest": {
+      "minutes": 0,
+      "usedUp": false,
+      "nag": null
+    },
+    "bringIn": null,
+    "account": {
+      "mode": "signIn",
+      "busy": null,
+      "problem": null,
+      "note": null,
+      "confirm": null,
+      "deleted": null
+    },
+    "profile": null,
+    "news": {
+      "popup": null,
+      "page": null,
+      "seen": null
+    },
+    "assumptions": null,
+    "several": null,
+    "severalDone": null
   }
 }

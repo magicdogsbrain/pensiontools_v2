@@ -3139,7 +3139,8 @@
                   {
                     "id": "pots.statePensionOld",
                     "slots": {
-                      "year": "2038/39"
+                      "year": "2038/39",
+                      "age": ""
                     },
                     "sentence": {
                       "id": "pots.statePensionOld",
@@ -5379,43 +5380,6 @@
     "care": null,
     "pick": null
   },
-  "ui": {
-    "railOpen": false,
-    "open": [
-      "waysMore"
-    ],
-    "online": true,
-    "leaving": null,
-    "leaveProblem": null,
-    "saving": null,
-    "saveProblem": null,
-    "toast": null,
-    "action": null,
-    "download": null,
-    "guest": {
-      "minutes": 0,
-      "usedUp": false,
-      "nag": null
-    },
-    "bringIn": null,
-    "account": {
-      "mode": "signIn",
-      "busy": null,
-      "problem": null,
-      "note": null,
-      "confirm": null,
-      "deleted": null
-    },
-    "profile": null,
-    "news": {
-      "popup": null,
-      "page": null,
-      "seen": null
-    },
-    "assumptions": null,
-    "several": null,
-    "severalDone": null
-  },
   "move": {
     "key": null,
     "status": "idle",
@@ -5466,5 +5430,42 @@
     "rows": {},
     "pots": null,
     "reason": null
+  },
+  "ui": {
+    "railOpen": false,
+    "open": [
+      "waysMore"
+    ],
+    "online": true,
+    "leaving": null,
+    "leaveProblem": null,
+    "saving": null,
+    "saveProblem": null,
+    "toast": null,
+    "action": null,
+    "download": null,
+    "guest": {
+      "minutes": 0,
+      "usedUp": false,
+      "nag": null
+    },
+    "bringIn": null,
+    "account": {
+      "mode": "signIn",
+      "busy": null,
+      "problem": null,
+      "note": null,
+      "confirm": null,
+      "deleted": null
+    },
+    "profile": null,
+    "news": {
+      "popup": null,
+      "page": null,
+      "seen": null
+    },
+    "assumptions": null,
+    "several": null,
+    "severalDone": null
   }
 }

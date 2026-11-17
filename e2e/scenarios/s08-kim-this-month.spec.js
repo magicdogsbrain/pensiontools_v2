@@ -6,7 +6,7 @@
  * ((28,800 − 2,514) ÷ 0.85 ÷ 12); the pots named each carry a £ figure and they add up to the month's total. The full
  * view's Monthly Recommendation gives the same amount and the same split.
  */
-import { test } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import { ask } from './ask.js';
 import { accountFor } from './account.js';
 import { at, planPage, settled } from './routes.js';
@@ -39,7 +39,9 @@ test('s08 · Kim asks what to take this month, and from which pot @phone', async
       if (moneyAll(text).some((v) => Math.abs(v - draw) <= 1) || presses >= 2) break;
       const link = page.getByRole('link', { name }).or(page.getByRole('button', { name })).first();
       if (!(await link.isVisible().catch(() => false))) continue;
-      await q.step(`press "${(await link.innerText()).trim().slice(0, 40)}"`, async () => { await link.click(); await settled(page).catch(() => {}); });
+      // a person waits for the page the press opens (on a phone the old page's text can still be there a moment)
+      const was = page.url();
+      await q.step(`press "${(await link.innerText()).trim().slice(0, 40)}"`, async () => { await link.click(); await expect.poll(() => page.url(), { timeout: 15_000 }).not.toBe(was).catch(() => {}); await settled(page).catch(() => {}); });
       presses += 1;
       text = await visibleText(page);
     }

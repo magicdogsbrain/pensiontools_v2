@@ -30,6 +30,7 @@ import { keepView } from '../state/select.js';
 import { href } from '../router/routes.js';
 import { Button, LinkButton } from './Button.jsx';
 import { Money } from './Money.jsx';
+import { money } from '../../answers/shared/format.js';
 import { UndoToast } from './UndoToast.jsx';
 import { KEEP } from '../copy/keep.js';
 
@@ -54,7 +55,9 @@ function PayInChoice({ result, choice, saving, onPress, words, ask, note, ids, k
   const share = choice.how === 'share';
   const amount = (k) => slotted(choice.how === 'couple' ? t.between : t.aMonth, { amount: <Money source={result} k={k} /> });
   const nowNothing = !(result.payIn && result.payIn.now > 0);
-  const now = nowNothing ? t.nowNothing : slotted(t.now, { now: share ? <Money source={result} k="enough.now.totalPct" kind="pct" /> : amount('payIn.now') });
+  // (7.12.0, P2.1) while a pay-in is being tried, the first button keeps the figure tried, and says so
+  const tried = !!(result.tried && result.tried.payIn);
+  const now = nowNothing ? t.nowNothing : slotted(tried ? t.tried : t.now, { now: share ? <Money source={result} k="enough.now.totalPct" kind="pct" /> : amount('payIn.now') });
   const savings = <Money source={result} k="enough.atLevel.savingsIn" />;
   const pension = share ? <Money source={result} k="enough.atLevel.totalPct" kind="pct" /> : amount('enough.atLevel.payIn');
   const enough = choice.savingsOnly ? slotted(t.savingsOnly, { savings })
@@ -252,6 +255,9 @@ export function KeepPanel({ state, q, dispatch, heading = true }) {
               {v.cut && <p class="note" data-testid={`${q}.keep.cut`}>{fill(KEEP.cut, { kept: String(v.cut.keptToAge), years: String(v.cut.years), age: String(v.cut.planToAge), weightAge: String(v.cut.weightToAge) })}</p>}
               {boxProblem && <p class="error" id={`${id}.error`} data-error-for={id}>{KEEP.problems[boxProblem]}</p>}
             </div>
+            {/* (7.12.0, P2.1) a one-off sum of your own being tried: the plan counts it as already in the pension */}
+            {q === 'b' && (() => { const t = state.answers[q] && state.answers[q].result && state.answers[q].result.tried; return t && t.lump > 0
+              ? <p class="note" data-testid={`${q}.keep.lump`}>{fill(KEEP.lump, { lump: money(t.lump), lands: money(t.lumpLands) })}</p> : null; })()}
             {otherProblem && <p class="notice keep-problem" role="alert" data-testid={`${q}.keep.problem`} data-problem={otherProblem}>{fill(KEEP.problems[otherProblem] || KEEP.problems.failed, { name: v.partnerKept || '' })}</p>}
             {v.take && !v.saving
               ? <TakeChoice q={q} result={state.answers[q].result} level={v.take.level} wanted={v.take.wanted || null} saving={v.saving} kind={second ? 'plain' : 'primary'}

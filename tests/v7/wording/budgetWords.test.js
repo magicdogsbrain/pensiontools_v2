@@ -26,10 +26,12 @@ const filled = (s) => s.replace(/\{(amount|used|minimum|moderate|comfortable|yea
   // …and (7.9.0) the age each future is still followed on to for the kept plan's chance
   .replace(/\{weightAge\}/g, '103')
   // …and (16 Nov 2026) the name a keep would make when the name typed is a plan you already have
-  .replace(/\{makes\}/g, 'Stop at 60 · £1,850 a month (2)');
+  .replace(/\{makes\}/g, 'Stop at 60 · £1,850 a month (2)')
+  // …and (7.12.0, P2.1) a one-off sum of your own being tried, and what it lands with the tax added back
+  .replace(/\{lump\}/g, '£10,000').replace(/\{lands\}/g, '£12,500');
 const SCOPES = ['all', 'first', 'planner', 'saver', 'retired', 'result'];
 
-describe.each([['budget.js', BUDGET, ['amount', 'used', 'minimum', 'moderate', 'comfortable', 'yearly', 'diff', 'who', 'level', 'name']], ['keep.js', KEEP, ['name', 'now', 'enough', 'amount', 'pension', 'savings', 'payIn', 'kept', 'years', 'age', 'weightAge', 'makes']]])(
+describe.each([['budget.js', BUDGET, ['amount', 'used', 'minimum', 'moderate', 'comfortable', 'yearly', 'diff', 'who', 'level', 'name']], ['keep.js', KEEP, ['name', 'now', 'enough', 'amount', 'pension', 'savings', 'payIn', 'kept', 'years', 'age', 'weightAge', 'makes', 'lump', 'lands']]])(
   'src/v7/copy/%s', (file, words, slots) => {
     it('every string passes the banned list in every scope it is shown in', () => {
       const whole = strings(words).map(([, s]) => filled(s)).join('\n');

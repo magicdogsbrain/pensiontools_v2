@@ -31,6 +31,8 @@ export const KEEP = {
   payIn: {
     ask: 'Which pay-in do you want the plan to keep?',
     now: 'Keep: paying in as now ({now})',
+    /** (7.12.0) While a pay-in is being tried: the figure tried. */
+    tried: 'Keep: paying in {now}, as tried',
     nowNothing: 'Keep: paying nothing in, as now',
     enough: 'Keep: paying in {enough} (what would be enough)',
     aMonth: '{amount} a month',
@@ -40,6 +42,8 @@ export const KEEP = {
     note: 'Neither is chosen for you. You can change what goes in later, in the plan.'
   },
   saving: 'Keeping…',
+  /** (7.12.0, P2.1) B with a one-off sum of your own being tried: the plan kept counts it. */
+  lump: 'This plan counts the {lump} as already in your pension ({lands} with the tax added back).',
   /**
    * A new plan as the second choice (6.59.0: trying figures changes a plan only when the person says so, and a new plan is
    * made only when asked for): under "Use these in ‘…’" on B opened from a plan, and once a plan has been kept from this answer.
@@ -147,6 +151,7 @@ export const KEEP = {
     ask: 'Which pay-in do you want ‘{name}’ to use?',
     now: 'Use: paying in as now ({now})',
     nowNothing: 'Use: paying nothing in, as now',
+    tried: 'Use: paying in {now}, as tried',
     enough: 'Use: paying in {enough} (what would be enough)',
     savingsOnly: 'Use: paying in as now, and {savings} a month into savings (what would be enough)',
     what: 'Only what goes in changes in ‘{name}’: what goes into your pension each month, and into ISAs and savings. Its ages, its pot and what you spend stay as they are.',

@@ -13,8 +13,8 @@ import { test } from '@playwright/test';
 import { ask } from './ask.js';
 import { accountFor } from './account.js';
 import { signIn, comeBack, planPage, settled, fullPage, closeNews } from './routes.js';
-import { visibleText, money, neverOnAnyPage } from './read.js';
-import { samAYearAgo } from './made.js';
+import { visibleText, money, neverOnAnyPage, chance } from './read.js';
+import { samAYearAgo, pasteHoldings } from './made.js';
 import { knownUnanswered } from './known.js';
 import { SAM45 } from './people.js';
 import { goingIn, months, higherRateClaim } from './hand/money.js';
@@ -62,6 +62,10 @@ test('s04 · Sam comes back a year later, checks in with £131,000 and a pay ris
       ages.push({ where: `simple ${name}`, value: (await box(later, '[id="plan.about.age"]')) ?? grab(/(?:^|\n)(?:Your age|Age)(?: now| today)?:\s*(\d+)/i, t) ?? grab(/\byou are (\d+)\b(?! when)/i, t) ?? grab(/From age (\d+) to age/, t) });
       pots.push({ where: `simple ${name}`, value: grab(/(?:pot|pension)[^£\n]*£([\d,]+)[^\n]*today|£([\d,]+) today/i, t) ?? (await box(later, '[id="plan.saving.potNow"]')) });
       if (name === 'saving') pays.push({ where: 'simple What you pay in', value: await box(later, '[id="plan.saving.salary"]') });
+      // (7.12.0, round 3) Your plan names the pension today as the home does
+      if (name === 'plan') {
+        q.exact('the pension pot on Your plan', grab(/Pension pot: £([\d,]+)/, t), SAM45.potLater, { byHand: 'the check-in\'s £131,000, never the £120,000 the plan was made with', owner: 'FACTS' });
+      }
       for (const w of ['£120,000 today', 'age 44', 'you are 44']) if (t.includes(w)) stale.push(`${w} (simple ${name})`);
       q.never(`simple ${name}`, await neverOnAnyPage(later));
     }
@@ -78,6 +82,14 @@ test('s04 · Sam comes back a year later, checks in with £131,000 and a pay ris
     await q.step('the home again', async () => { await planPage(later, planId, 'home'); await settled(later).catch(() => {}); });
     const home = await visibleText(later);
     q.reach('the pot against the plan\'s path, in pounds, on the home', /£[\d,]+[^\n]*(?:path|line|on course)/i.test(home) || /(?:path|line)[^\n]*£[\d,]+/i.test(home), { did: 'no pounds against the plan\'s path on the home', owner: 'SAVER' });
+    // (7.12.0, round 3; lead decision 4) what Sam holds, listed, never moves the answer while it is not accepted as the plan:
+    // the home's chance before and after an all-shares fund of £131,000 is pasted on What you hold
+    const chanceOf = (t) => chance((/lasts as long as you do ((?:more than |less than |about )?(?:\d+ times|once) in 20)/.exec(t) || [])[1] || '');
+    const before = chanceOf(home);
+    await q.step('What you hold: an all-shares fund pasted', () => pasteHoldings(later, planId, ['Name\tCode\tValue', 'Invesco FTSE All-World (Acc)\tFWRA\t£131,000'].join('\n')));
+    await q.step('the home after listing what is held', async () => { await planPage(later, planId, 'home'); await settled(later).catch(() => {}); });
+    const afterHold = chanceOf(await visibleText(later));
+    q.same('the home\'s chance before and after listing what is held', [{ where: 'home, before', value: before }, { where: 'home, after listing an all-shares fund', value: afterHold }], { everywhere: true, owner: 'MEASURE' });
     const homeCould = grab(/could spend £([\d,]+) a month/, home);
     q.same('what Sam could spend a month', [{ where: 'home', value: homeCould }, { where: 'the check-in', value: grab(/could spend £([\d,]+) a month/, result) }], { everywhere: true, owner: 'SAVER' });
   });

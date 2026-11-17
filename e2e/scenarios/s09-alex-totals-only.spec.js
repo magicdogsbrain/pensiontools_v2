@@ -80,5 +80,16 @@ test('s09 · Alex, 57, plans with totals only: £410,000 and £40,000', async ({
     // money that comes in anyway: the State Pension from 67
     const sp = /State Pension[^\n]*?from (?:age )?(\d{2})\b/.exec(reads.income);
     q.exact('the age the State Pension starts', sp ? Number(sp[1]) : null, statePensionAgeFromAge(ALEX57.age), { byHand: 'born 1968 or 1969: 67', owner: 'FACTS' });
+    // (7.12.0, round 3) Your plan as locked: the State Pension's tax year is the one it starts in at 67, never the first tax
+    // year plus a stored default; by hand from the stop month About states (the plan's first tax year) and 67 − 60 years
+    await q.step('simple Your plan as locked', async () => { await planPage(page, planId, 'plan'); await settled(page).catch(() => {}); });
+    const asLocked = await visibleText(page);
+    const spYear = /State Pension[^\n]*?tax year (\d{4})\/\d{2}/.exec(asLocked);
+    if (spYear && stopAbout) {
+      const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+      const [mName, y] = stopAbout.split(' ');
+      const firstYear = MONTHS.indexOf(mName) >= 3 ? Number(y) : Number(y) - 1;   // a stop from April on is in that year's tax year (to the month)
+      q.exact('the tax year the State Pension starts on Your plan as locked', Number(spYear[1]), firstYear + (statePensionAgeFromAge(ALEX57.age) - ALEX57.stopAge), { byHand: `the plan's first tax year (${firstYear}/${String(firstYear + 1).slice(2)}) + (67 − 60)`, owner: 'FACTS' });
+    }
   });
 });

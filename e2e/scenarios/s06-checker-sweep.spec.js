@@ -15,9 +15,9 @@ import { test } from '@playwright/test';
 import { ask } from './ask.js';
 import { FACTS } from './facts.js';
 import { accountFor, made, putPlan } from './account.js';
-import { at, signIn, planPage, settled } from './routes.js';
+import { at, signIn, planPage, settled, fullPage } from './routes.js';
 import { sweep, sameYears } from './sweep.js';
-import { visibleText, moneyAll, takenAgainstPlan } from './read.js';
+import { visibleText, moneyAll, takenAgainstPlan, fact, chance } from './read.js';
 import { knownUnanswered } from './known.js';
 import { CHECKER } from './people.js';
 import { months, monthly } from './hand/money.js';
@@ -72,6 +72,13 @@ test.describe('s06 · the checker', () => {
       const want = months(6, monthly(31200));
       q.exact('what was taken April to September', taken, want, { byHand: '6 months × 31,200 ÷ 12 = 15,600 (the tax-year set-up)', owner: 'MONTH', did: line ? line[0] : 'no "taken … your plan said" line on the home' });
       q.exact('what the plan said for April to September', said, want, { byHand: '31,200 ÷ 12 × 6 = 15,600: the year was set up at £31,200; the lock\'s £30,000 is not this year\'s figure', owner: 'MONTH', did: line ? line[0] : 'no "your plan said" line on the home' });
+      // (7.12.0, round 3) Buckets in order cuts: the figure kept from the lock never says "Income cuts: none", and it is a
+      // record, with no verdict word of its own beside today's (one verdict per plan)
+      await q.step('Does it last?', async () => { await planPage(page, id, 'lasts'); await settled(page).catch(() => {}); });
+      const lasts = await visibleText(page);
+      q.never('simple Does it last? (a way of drawing that cuts)', /Income cuts: none — this way of drawing pays the plan in full until it cannot/.test(lasts) ? ['Income cuts: none — this way of drawing pays the plan in full until it cannot'] : [], { must: 'cuts never said to be none on Buckets in order, which cuts', owner: 'MEASURE' });
+      const docWords = await page.locator('[data-testid="plan.lasts.document"] .verdict-word').count();
+      q.never('simple Does it last? (the figure kept from the lock)', docWords ? ['a verdict word on the figure kept from the lock'] : [], { must: 'one verdict per plan: the kept figure said as a record', owner: 'MEASURE' });
     }, SEEDED);
   });
 
@@ -116,6 +123,23 @@ test.describe('s06 · the checker', () => {
       // the full view names the month of the next review as the simple view does
       const due = readings['due.next'];
       q.reach('the month of the next review in the full view', due.some((r) => r.where.startsWith('full view') && /\d{4}/.test(String(r.value))), { did: due.map((r) => `${r.where}: ${r.value}`).join('; ') || 'no next step read in either view', owner: 'FACTS' });
+      // (7.12.0, round 3) one chance per plan: the full view's "Will it last?", run, says the chance "Does it last?" says
+      await q.step('simple Does it last?', async () => { await planPage(page, id, 'lasts'); await settled(page).catch(() => {}); });
+      const simpleChance = (await fact(page, 'lasts.chance', { page: 'lasts', timeout: 90_000 }))?.value ?? null;
+      await q.step('the full view, Will it last? > Run the test', async () => {
+        await fullPage(page, 'will it last');
+        await page.getByRole('button', { name: 'Run the test', exact: true }).first().click();
+        await page.locator('[data-chance-block] [data-weighted] .hero').first().waitFor({ timeout: 120_000 });
+      });
+      const fullChance = chance(await page.locator('[data-chance-block] [data-weighted] .hero').first().innerText().catch(() => ''));
+      q.same('the chance the money lasts as long as you do', [{ where: 'simple Does it last?', value: simpleChance }, { where: 'full view Will it last?', value: fullChance }], { everywhere: true, owner: 'MEASURE' });
+      // the pots when work stops on a locked saver: the ones it was locked with, which every run uses
+      const lockedWith = corpus('05-saver-committed.json').planDocument.pots.potAtRetirement;
+      await q.step('the full view, Stress settings', () => fullPage(page, 'stress settings'));
+      const settings = await page.locator('body').innerText();
+      const said = /locked with £([\d,]+) in your pension/.exec(settings);
+      q.exact('the pension when work stops that every run uses, on Stress settings', said ? Number(said[1].replace(/,/g, '')) : null, Math.round(lockedWith.sipp), { byHand: 'the plan document\'s pots when work stops, as locked: £603,941', owner: 'SAVER' });
+      q.never('full view Stress settings', /Every strategy is priced on these; type your own/.test(settings) ? ['a figure worked out today called "priced on"'] : [], { must: 'only the pots the plan was locked with are "priced on"', owner: 'SAVER' });
       // the saver's Month by month says in one sentence that it is for another stage: never a drawing year worked out
       await q.step('Month by month', async () => { await planPage(page, id, 'month'); await settled(page).catch(() => {}); });
       const month = await visibleText(page);

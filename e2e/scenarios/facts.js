@@ -228,7 +228,8 @@ export const FACTS = Object.freeze({
       { page: 'saving', find: '(?:lasts|last) as long as you do ((?:more than |less than |about )?\\d+ times in 20)' }
     ],
     full: [
-      { page: 'will it last', find: '((?:more than |less than |about )?\\d+ times in 20)' }
+      // the verdict block's own figure (7.12.0): the page's first "N times in 20" is the "How careful?" list, not the answer
+      { page: 'will it last', region: '[data-chance-block] .verdict-heroes', find: '((?:more than |less than |about )?\\d+ times in 20)' }
     ]
   },
   'left.typically': {

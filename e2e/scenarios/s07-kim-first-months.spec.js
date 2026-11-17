@@ -79,5 +79,15 @@ test('s07 · Kim, 62, stopped last month: the year set up, two months recorded @
     const isa = /ISA £([\d,]+)/.exec(home);
     q.exact('the ISA on the home', isa ? money(isa[1]) : null, KIM62.isa, { byHand: 'as typed each month', owner: 'HOLD' });
     q.never('the simple home', [...(await neverOnAnyPage(page)), ...(/no figure on record/i.test(home) ? ['no figure on record'] : [])]);
+
+    // (7.12.0, round 3) one figure for the year before tax: "Your plan as locked" says what is taken, a quarter tax-free
+    await q.step('simple Your plan as locked', async () => { await planPage(page, planId, 'plan'); await settled(page).catch(() => {}); });
+    const asLocked = await visibleText(page);
+    const before = /From age \d+: £([\d,]+) a year before tax/.exec(asLocked);
+    q.exact('the year before tax on Your plan as locked', before ? money(before[1]) : null, pounds(year), { byHand: '(28,800 − 2,514) ÷ 0.85 = 30,924.71; never 32,858, the figure with every pound taxed', tolerance: 1, owner: 'MONTH' });
+    // one verdict per plan: the figure kept from the lock is a record, with no verdict word beside today's test
+    await q.step('simple Does it last?', async () => { await planPage(page, planId, 'lasts'); await settled(page).catch(() => {}); });
+    const docWords = await page.locator('[data-testid="plan.lasts.document"] .verdict-word').count();
+    q.never('simple Does it last? (the figure kept from the lock)', docWords ? ['a verdict word on the figure kept from the lock'] : [], { must: 'one verdict per plan: never "Not yet" above "Close"', owner: 'MEASURE' });
   });
 });

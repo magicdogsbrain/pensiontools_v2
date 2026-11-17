@@ -4,11 +4,11 @@
  * Firebase, no engine. The Decision tool renders this instead of P&V pot advice.
  *
  * The ladder's unit of account is the UK TAX year (6 April). Every rung funds one or more tax
- * years; money that has matured but belongs to a later tax year is "parked" (CSH2) and must not
- * be spent. This module answers, for any date:
+ * years. This module answers, for any date:
  *   - which tax year we are in, which income step, and what the ladder owes this year
  *   - the monthly amount to instruct the broker to pay
- *   - what should be sitting in cash now, and what should be parked for later years
+ *   - what the cash years still need (this year's payments to come, and the later cash years), against the cash held
+ *     (7.12.0: the need "Your plan's mix" reads; a gilt matured for a later year is cash held, not "parked")
  *   - the next maturity, what it is for, and how long it sits before it is needed
  */
 
@@ -60,14 +60,11 @@ export function ladderPosition(plan, o = {}) {
   const spread = !!cur && Y === first && !!potsDay && Number.isFinite(potsDay.getTime()) && taxYearOf(potsDay) === Y;
   const monthly = spread ? need / 12 : monthsLeft > 0 ? remaining / monthsLeft : 0;
 
-  // Everything that has already matured (or is cash) but belongs to a LATER tax year is parked.
-  const parked = [];
-  for (const y of years) {
-    if (y.Y <= Y) continue;
-    const matured = y.from === 'cash' ? true : (y.matures ? new Date(y.matures) <= today : false);
-    if (matured) parked.push({ Y: y.Y, age: y.age, amount: y.need, from: y.from, until: new Date(y.Y, 3, 6) });
-  }
-  const parkedTotal = parked.reduce((s, p) => s + p.amount, 0);
+  // What the cash years still need (7.12.0, as "Your plan's mix" reads it, answers/plan/held.js): this year's payments still
+  // to come (the month's payment times the months left), and every later year the plan pays from cash. A gilt that has
+  // matured for a later year is cash the person holds, not a need of its own.
+  const dueThisYear = cur ? monthly * monthsLeft : 0;
+  const laterCashYears = years.filter((y) => y.Y > Y && y.from === 'cash').reduce((s, y) => s + (+y.need || 0), 0);
 
   // Next maturity ahead of us.
   const future = (plan.orders || []).filter((r) => new Date(r.matures) > today).sort((a, b) => a.matures.localeCompare(b.matures));
@@ -79,17 +76,9 @@ export function ladderPosition(plan, o = {}) {
       ? Math.max(0, Math.round((new Date(next.taxYears[0], 3, 6) - new Date(next.matures)) / (30.44 * 24 * 3600 * 1000))) : 0
   } : null;
 
-  // Cash check: what should be liquid now is this year's remaining draw; the rest should be parked.
-  const shouldBeLiquid = remaining;
-  const expectedTotal = shouldBeLiquid + parkedTotal;
+  // Cash check: the cash held against what the cash years still need — a fact, never an instruction
   const bal = (o.cashBalance == null) ? null : o.cashBalance;
-  const cashCheck = bal == null ? null : {
-    balance: bal, shouldBeLiquid, parkedTotal, expectedTotal,
-    diff: bal - expectedTotal,
-    verdict: Math.abs(bal - expectedTotal) < Math.max(500, expectedTotal * 0.02) ? 'as expected'
-      : bal > expectedTotal ? 'more cash than the plan needs — park the surplus'
-      : 'less cash than the plan needs — check the last maturity landed'
-  };
+  const cashCheck = bal == null ? null : { balance: bal, dueThisYear, laterCashYears, need: dueThisYear + laterCashYears, diff: bal - (dueThisYear + laterCashYears) };
 
   // The first year of the ladder, for a plan that has not started drawing yet.
   const firstYear = years[0];
@@ -106,7 +95,7 @@ export function ladderPosition(plan, o = {}) {
     age: cur ? cur.age : null, gross, statePension: sp, fromLadder: need,
     source: cur ? cur.from : null, sourceHeld: cur ? !!cur.held : false,
     monthsLeft, drawnThisYear: drawn, remaining, monthly,
-    parked, parkedTotal, next: nextInfo, cashCheck,
+    next: nextInfo, cashCheck,
     yearsLeft: Math.max(0, last - Y),
     spread,
     instruction: cur
@@ -117,6 +106,29 @@ export function ladderPosition(plan, o = {}) {
 }
 
 function fmt(v) { return '£' + Math.round(v).toLocaleString('en-GB'); }
+
+/**
+ * The ladder box's check in words (7.12.0), one sentence a line: this year's payments still to come, then — with a cash
+ * figure — the cash held against what the cash years still need, then where the rest of the pension is read. Facts only:
+ * nothing about parking money or where to keep it.
+ * @param {object} lp  ladderPosition()
+ * @returns {string[]}
+ */
+export function ladderCheckWords(lp) {
+  if (!lp) return [];
+  const to = '5 April ' + (lp.taxYear + 1);
+  const due = lp.cashCheck ? lp.cashCheck.dueThisYear : lp.monthly * lp.monthsLeft;
+  const out = [fmt(lp.monthly) + ' a month for the ' + lp.monthsLeft + ' month' + (lp.monthsLeft === 1 ? '' : 's') + ' to ' + to + ': ' + fmt(due) + '.'];
+  const c = lp.cashCheck;
+  if (c) {
+    const parts = fmt(c.dueThisYear) + ' to ' + to + (Math.round(c.laterCashYears) > 0 ? ' and ' + fmt(c.laterCashYears) + ' for later cash years' : '');
+    const gap = Math.round(c.need) - Math.round(c.balance);
+    out.push('Cash: you hold ' + fmt(c.balance) + '. The plan’s cash years still ahead need ' + fmt(c.need) + ' (' + parts + '): '
+      + (gap > 0 ? fmt(gap) + ' more than your cash.' : gap < 0 ? fmt(-gap) + ' less than your cash.' : 'the same as your cash.'));
+  }
+  out.push('What else your pension holds is on Your plan’s mix.');
+  return out;
+}
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
 /**

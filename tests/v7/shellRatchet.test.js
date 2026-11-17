@@ -95,7 +95,8 @@ import { resolve } from 'node:path';
 // went, the button calling the module in one line: 8,950.
 // Decision → Settings has no Save (7.12.0): an unlocked plan's settings follow Stress tester → Settings and a locked plan's
 // are frozen, so the button and its handler went: 8,862.
-const MAX_LINES = 8862;
+// The ladder box reads one need (7.12.0, LadderPosition.ladderCheckWords): its "parked" alert went, and the check is one line: 8,848.
+const MAX_LINES = 8848;
 
 describe('index.html\'s inline script may only get shorter', () => {
   const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');

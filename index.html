@@ -4164,7 +4164,7 @@
 
     // State Pension date validation (guards against entering a date of birth)
     import { validateStatePensionDate, spSimConfigFromSettings } from './src/utils/StatePensionUtils.js';
-    import { ladderPosition, taxYearOf, borrowedFloorStatus, documentLadder, ladderForDisplay, repriceComparisonText, firstRungOf, ladderMonthAdvice } from './src/services/LadderPosition.js';
+    import { ladderPosition, taxYearOf, borrowedFloorStatus, documentLadder, ladderForDisplay, repriceComparisonText, firstRungOf, ladderMonthAdvice, ladderCheckWords } from './src/services/LadderPosition.js';
     import { repriceLadder } from './src/strategies/GiltLadderPlan.js';
     import { deriveTiming, migrateTiming, describeTiming, taxYearLabel, planYearOf, taxYearStartOf, decisionAnchorYear, staleDraft, staleDraftMessage, startYearChoices, stoppedWorkOf, taxYearOfMonth } from './src/services/PlanTiming.js';
     import { installStopMonth, stopMonthFromForm, paintStopMonth, wizardStop, recordBeforeStart, recordYearLabel as recordYearLabelFor, recordSourceWords, yearRowHtml, firstSetUpPlanYear, potsDayOf, planVsActualWords } from './src/ui/planStartUi.js';   // when the plan's income starts (6.51.0)
@@ -7972,12 +7972,12 @@
             + '<div><div class="hint">Cash bucket</div><div style="font-size:20px;font-weight:600;">' + g(u.cashBucket) + '</div>'
             + '<div class="hint">' + u.cashYears + ' year' + (u.cashYears === 1 ? '' : 's') + ' before the first rung matures</div></div>'
             + '</div>'
-            + '<p class="hint" style="margin-top:8px;">Keep the cash bucket in a money-market fund until each April. Figures in today\'s money.</p>';
+            + '<p class="hint" style="margin-top:8px;">Figures in today\'s money.</p>';
         } else { hb += '<p style="font-size:14px;">' + budEsc(lp.instruction) + '</p>'; }
         return hb + '</div>' + (sid === 'gilt-rotation' ? rotationWatchHtml() : '');
       }
       if (lp.phase === 'after') return '<div class="settings-section" style="border-color:var(--accent);"><div class="section-title">Your gilt ladder</div><p style="font-size:14px;">' + budEsc(lp.instruction) + '</p></div>' + rotationWatchHtml();
-      const src = lp.source === 'cash' ? 'the cash-years bucket (money-market fund)' : ('rung <strong>' + budEsc(lp.source) + '</strong>, which has already matured into cash');
+      const src = lp.source === 'cash' ? 'the plan’s cash years' : ('rung <strong>' + budEsc(lp.source) + '</strong>');
       let h = '<div class="settings-section" style="border-color:var(--accent);">'
         + '<div class="section-title">Your gilt ladder — tax year ' + budEsc(lp.taxYearLabel) + ', age ' + lp.age + '</div>'
         + '<div class="row-flex" style="gap:18px;flex-wrap:wrap;align-items:flex-start;">'
@@ -7987,20 +7987,15 @@
         + '<div class="hint">for the ' + lp.monthsLeft + ' month' + (lp.monthsLeft === 1 ? '' : 's') + ' to 5 April ' + (lp.taxYear + 1) + '</div></div>'
         + '<div><div class="hint">Paid by</div><div style="font-size:14px;">' + src + '</div></div>'
         + '</div>';
-      h += '<p class="hint" style="margin-top:8px;">Nothing to sell and nothing to decide: this year was bought years ago. Figures are in today\'s money — scale by the RPI uplift the rung actually paid.</p>';
-      if (lp.parkedTotal > 0) {
-        h += '<div class="alert alert-warning" style="margin-top:8px;"><strong>' + g(lp.parkedTotal) + ' is parked, not spendable.</strong> '
-          + budEsc(lp.parked.map((p2) => g(p2.amount) + ' for ' + p2.Y + '/' + String(p2.Y + 1).slice(2)).join('; '))
-          + '. Keep it in a money-market fund and move it to cash before its own April.</div>';
-      }
+      h += '<p class="hint" style="margin-top:8px;">Nothing to sell and nothing to decide: this year was bought years ago. Figures are in today\'s money' + (lp.source === 'cash' ? '.' : ' — scale by the RPI uplift the rung actually paid.') + '</p>';
       if (lp.next) {
         h += '<p style="font-size:14px;margin-top:8px;"><strong>Next maturity:</strong> ' + budEsc(lp.next.tidm) + ' on ' + dt(lp.next.matures)
           + ' — about ' + g(lp.next.pays) + ' for ' + budEsc((lp.next.taxYears || []).map((Y) => Y + '/' + String(Y + 1).slice(2)).join(' + '))
-          + (lp.next.sitsMonths > 1 ? '. It arrives ' + lp.next.sitsMonths + ' months early — keep it in a money-market fund until its April.' : '.') + '</p>';
+          + (lp.next.sitsMonths > 1 ? '. It arrives ' + lp.next.sitsMonths + ' months before the tax year it is for.' : '.') + '</p>';
       }
       h += '<div class="row-flex" style="gap:12px;margin-top:10px;align-items:flex-end;">'
         + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Already drawn this tax year (£)<input type="number" id="ladDrawn" value="' + Math.round(lp.drawnThisYear) + '" style="width:140px;"></label>'
-        + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">SIPP cash + money-market fund today (£)<input type="number" id="ladCash" style="width:140px;"></label>'
+        + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Your pension’s cash today (£)<input type="number" id="ladCash" style="width:140px;"></label>'
         + '<button type="button" class="risk-btn" data-on-click="recheckLadderMonth()">Check</button></div>'
         + '<div id="ladCheckResult" style="margin-top:8px;"></div>'
         + '<div class="hint" style="margin-top:6px;">' + lp.yearsLeft + ' year' + (lp.yearsLeft === 1 ? '' : 's') + ' of ladder still to run after this one.</div>'
@@ -8126,16 +8121,7 @@
       const settings = await getStressSettingsAsync();
       const lp = await ladderPositionForPlan(settings, null, { drawnThisYear: drawn, cashBalance: cash });
       if (!lp) { box.innerHTML = '<span class="hint">Could not rebuild the ladder from this plan\'s settings.</span>'; return; }
-      let h = '<div class="alert alert-info"><strong>' + gbp(Math.round(lp.monthly)) + ' a month</strong> for the ' + lp.monthsLeft
-        + ' month' + (lp.monthsLeft === 1 ? '' : 's') + ' to 5 April ' + (lp.taxYear + 1) + ' (' + gbp(Math.round(lp.remaining)) + ' still to draw this year).</div>';
-      if (lp.cashCheck) {
-        const c = lp.cashCheck;
-        const cls = c.verdict === 'as expected' ? 'alert-success' : 'alert-warning';
-        h += '<div class="alert ' + cls + '">Cash: you hold ' + gbp(Math.round(c.balance)) + '. The plan expects '
-          + gbp(Math.round(c.expectedTotal)) + ' (' + gbp(Math.round(c.shouldBeLiquid)) + ' to draw this year'
-          + (c.parkedTotal ? ' + ' + gbp(Math.round(c.parkedTotal)) + ' parked for later years' : '') + ') — ' + budEsc(c.verdict) + '.</div>';
-      }
-      box.innerHTML = h;
+      box.innerHTML = ladderCheckWords(lp).map((t, i) => '<div class="' + (i === 0 ? 'alert alert-info' : 'hint') + '">' + budEsc(t) + '</div>').join('');   // the need "Your plan's mix" reads (7.12.0)
     };
 
     // A contract-ladder plan has no risk mix, no valves, no diversifier sleeve, no bond tent and

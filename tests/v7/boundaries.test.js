@@ -272,7 +272,8 @@ const DELETE_WORD = /\bdeleteDoc\b/g;
 const STORAGE_FILES = {
   'src/v7/effects/draftStore.js': { keys: ['pt_v7_draft'], names: ['sessionStorage', 'localStorage'] },
   'src/v7/effects/activity.js':   { keys: ['pt_lastActivity'], names: [] },
-  'src/v7/effects/planSource.js': { keys: ['pt_guest_scenarios'], names: [] },
+  // (7.12.0) and "No, leave them here" answered in this window, so the hand-over is not offered again here
+  'src/v7/effects/planSource.js': { keys: ['pt_guest_scenarios', 'pt_guest_offer_declined'], names: [] },
   'src/v7/effects/planWrite.js':  { keys: ['pt_guest_scenarios'], names: [] },
   'src/v7/effects/openPlace.js':  { keys: [], names: [] },
   // road-to-7.md step 11: the visitor's meter may name the storage object (the keys stay GuestMeter.js's); What's new names its one key

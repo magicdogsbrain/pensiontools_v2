@@ -37,6 +37,7 @@ import { firstPaymentMonth, monthToRecord } from '../../services/YearPlan.js';
 import { pounds } from './income.js';
 import { takenBeforeTax, targetOfTaken } from '../../services/BeforeTax.js';
 import { CASH_SHORT_LABEL } from '../../services/DecisionOverlay.js';
+import { moveOfAlert } from '../../services/PlanRuleWords.js';
 import { taxFreeFractionOf } from '../../services/FlexibleAccess.js';
 import { shownPlanNameOn } from '../../services/PlanName.js';
 
@@ -238,13 +239,9 @@ function adviceOf(d) {
   for (const a of Array.isArray(d.alerts) ? d.alerts : []) {
     if (!a || typeof a.message !== 'string') continue;
     if (ov && ov.hidePots && (a.type === 'low-cash' || a.type === 'rebalance' || a.type === 'cash-replenish')) continue;
-    const amount = (/£([\d,]+)/.exec(a.message) || [])[1];
-    const pts = amount ? '£' + amount : null;
-    if (a.type === 'rebalance') moves.push({ id: /Equity→Bond/.test(a.message) ? 'sharesToBonds' : 'bondsToShares', slots: { amount: pts } });
-    else if (a.type === 'cash-replenish' && /^Waterfall: move £[\d,]+ from equities/.test(a.message)) moves.push({ id: 'sharesToBonds', slots: { amount: pts } });
-    else if (a.type === 'cash-replenish' && /^Waterfall: move £[\d,]+ from bonds/.test(a.message)) moves.push({ id: 'bondsToCash', slots: { amount: pts } });
-    else if (a.type === 'cash-replenish') moves.push({ id: 'topUpCash', slots: { amount: pts } });
-    else if (a.type === 'low-cash') moves.push({ id: 'lowCash', slots: {} });
+    // what the plan's rule does this month (services/PlanRuleWords.js, the full view reads the same)
+    const m = moveOfAlert(a);
+    if (m) moves.push(m);
   }
   const from = [];
   if (ov && (ov.floorMonthly > 0 || ov.hidePots)) {

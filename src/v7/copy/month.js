@@ -163,11 +163,18 @@ export const MONTH = {
     boughtShort: 'Your pension’s cash is {cash}, so this month’s {month} is not in cash. The next money into your pension is {label}: {amount} on {date}. Until then you can sell part of something you hold, at that day’s price, or wait for it. The tax is the same, as it is still taken from your pension.',
     boughtShortNoNext: 'Your pension’s cash is {cash}, so this month’s {month} is not in cash. You can sell part of something you hold to pay it, at that day’s price. The tax is the same, as it is still taken from your pension.',
     boughtPlain: 'Your plan pays this month from cash. The tax is the same, as it is still taken from your pension.',
-    movesTitle: 'Moves to make',
+    // what the plan's rule does this month, never an order (7.12.0 round 3, decision 6); the full view's Decision tool says the same
+    movesTitle: 'What the plan’s rule does this month',
     moves: {
-      sharesToBonds: 'Move {amount} from shares to bonds.', bondsToShares: 'Move {amount} from bonds to shares.', bondsToCash: 'Move {amount} from bonds to cash.',
-      topUpCash: 'Top up your cash: move {amount} from shares and bonds.', lowCash: 'Cash is low: this month takes money from pots below the line your plan keeps them above.'
+      sharesToBonds: 'The plan’s rule moves {amount} from shares to bonds, back towards its mix. You can make the move, or leave what you hold as it is.',
+      bondsToShares: 'The plan’s rule moves {amount} from bonds to shares, back towards its mix. You can make the move, or leave what you hold as it is.',
+      bondsToCash: 'The plan’s rule moves {amount} from bonds to cash. You can make the move, or leave what you hold as it is.',
+      topUpCash: 'The plan’s rule tops up cash with {amount} from shares and bonds. You can make the move, or leave your cash as it is.',
+      lowCash: 'This month takes money from pots below the level your plan keeps them at.'
     },
+    // the pots against the plan's levels, as facts (the full view's Fund Status)
+    levels: { title: 'Your pots against the plan’s levels', level: 'Plan’s level {amount}', above: '{amount} above', below: '{amount} below', same: 'At the plan’s level',
+      all: 'In all: {amount} {side} the plan’s levels ({pct}%).', allAbove: 'above', allBelow: 'below' },
     recalc: 'With the filled-in months on record, this month works out differently: the figures above include them.'
   },
   fill: {

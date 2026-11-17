@@ -4,6 +4,8 @@
  */
 
 import { formatCurrency, formatPercent } from '../../utils/FormatUtils.js';
+import { moveOfAlert } from '../../services/PlanRuleWords.js';
+import { MONTH } from '../../v7/copy/month.js';
 import { AlertSeverity } from '../../models/Decision.js';
 import { TAX_DEFAULTS } from '../../constants.js';
 import { calculateTax } from '../../services/TaxCalculator.js';
@@ -22,6 +24,14 @@ function fallbackAnnualTax(d, annualTaxable) {
  * @param {object} decision - Decision object from DecisionService
  * @param {HTMLElement} container - Container element to render into
  */
+const esc = (t) => String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const fillWords = (t, slots) => String(t || '').replace(/\{(\w+)\}/g, (m, k) => (slots && slots[k] != null ? String(slots[k]) : m));
+/** The month's pot moves and low-cash alert as the plan's rule (none under a contract strategy: nothing is sold from pots). */
+function planMoves(d) {
+  if (d.strategyOverlay && d.strategyOverlay.hidePots) return [];
+  return (d.alerts || []).map(moveOfAlert).filter(Boolean);
+}
+
 export function renderDecisionPanel(decision, container) {
   const html = buildDecisionHTML(decision);
   container.innerHTML = html;
@@ -80,9 +90,10 @@ function buildTaxSummary(d) {
     if (projectedSaved >= 0.5) {   // floating-point dust showed as "-£0.00" (6.10.4)
       html += '<div class="tax-comparison-row saved">';
       html += '<div class="label">Tax Saved</div>';
-      html += `<div class="success">-${formatCurrency(monthlySaved)}</div>`;
-      html += `<div class="success">-${formatCurrency(ytdSaved)}</div>`;
-      html += `<div class="success">-${formatCurrency(projectedSaved)}</div>`;
+      // a saving is said as the amount saved, never with a minus (7.12.0 round 3, walker 6)
+      html += `<div class="success">${formatCurrency(Math.abs(monthlySaved))}</div>`;
+      html += `<div class="success">${formatCurrency(Math.abs(ytdSaved))}</div>`;
+      html += `<div class="success">${formatCurrency(Math.abs(projectedSaved))}</div>`;
       html += '</div>';
     }
   }
@@ -114,14 +125,13 @@ function buildTaxSummary(d) {
 
   // Rebalancing recommendations
   // Contract strategies hold their income in rungs/cash, not P&V pots — no P&V rebalancing advice.
-  if (d.rebalanceNeeded && d.rebalanceActions.length > 0 && !(d.strategyOverlay && d.strategyOverlay.hidePots)) {
-    html += '<div class="rebalance-card">';
-    html += '<h4>Rebalancing Suggestions</h4>';
-    html += '<ul>';
-    for (const action of d.rebalanceActions) {
-      html += `<li>${action}</li>`;
-    }
-    html += '</ul>';
+  // What the plan's rule does this month (7.12.0 round 3, decision 6): the pot moves as the rule's, in "you can" words, the
+  // same sentences as Month by month (services/PlanRuleWords.js, src/v7/copy/month.js); never a list of orders
+  const moves = planMoves(d);
+  if (moves.length) {
+    html += '<div class="rebalance-card" id="planRuleMoves">';
+    html += `<h4>${esc(MONTH.advice.movesTitle)}</h4>`;
+    html += '<ul>' + moves.map((m) => `<li data-move="${m.id}">${esc(fillWords(MONTH.advice.moves[m.id], m.slots))}</li>`).join('') + '</ul>';
     html += '</div>';
   }
 
@@ -236,7 +246,8 @@ export function buildDecisionHTML(decision) {
 
   // Alerts
   // Contract strategies: the P&V cash/rebalance alerts do not apply (nothing is sold from pots).
-  const topAlerts = (d.alerts || []).filter((a) => !(d.strategyOverlay && d.strategyOverlay.hidePots && (a.type === 'low-cash' || a.type === 'rebalance' || a.type === 'cash-replenish')));
+  // the pot moves and the low-cash alert are said once, as the plan's rule, under the recommendation (planMoves)
+  const topAlerts = (d.alerts || []).filter((a) => !(a.type === 'low-cash' || a.type === 'rebalance' || a.type === 'cash-replenish'));
   if (topAlerts.length > 0) {
     html += '<div class="alerts">';
     for (const alert of topAlerts) {
@@ -370,7 +381,7 @@ export function buildDecisionHTML(decision) {
 
   // Fund status summary
   html += '<div class="fund-status">';
-  html += '<h4>Fund Status</h4>';
+  html += `<h4>${esc(MONTH.advice.levels.title)}</h4>`;
 
   const totalFunds = d.equity + d.bond + d.cash + (d.diversifier || 0);
   const totalMins = d.adjEquityMin + d.adjBondMin + d.adjCashTarget;
@@ -404,10 +415,10 @@ export function buildDecisionHTML(decision) {
   }
 
   // Overall status
-  const statusClass = surplus >= 0 ? 'healthy' : 'warning';
-  html += `<div class="overall-status ${statusClass}">`;
-  html += `<span>Total Surplus: ${formatCurrency(surplus)}</span>`;
-  html += `<span>(${Math.abs(surplusPercent).toFixed(1)}% ${surplus >= 0 ? 'above' : 'below'} target)</span>`;
+  // the pots against the plan's levels, as facts in one colour (7.12.0 round 3, walker 6): below a level is how you hold it
+  const L = MONTH.advice.levels;
+  html += '<div class="overall-status healthy">';
+  html += `<span>${esc(fillWords(L.all, { amount: formatCurrency(Math.abs(surplus)), side: surplus >= 0 ? L.allAbove : L.allBelow, pct: Math.abs(surplusPercent).toFixed(1) }))}</span>`;
   html += '</div>';
 
   html += '</div>'; // End fund-status
@@ -420,13 +431,14 @@ export function buildDecisionHTML(decision) {
  * Builds HTML for a fund status cell
  */
 function buildFundCell(name, current, minimum, surplus) {
-  const statusClass = surplus >= 0 ? 'healthy' : 'deficit';
-
-  return `<div class="fund-cell ${statusClass}">
+  // one colour: a pot below the plan's level is a fact, not an alarm (7.12.0 round 3, walker 6)
+  const L = MONTH.advice.levels;
+  const side = Math.round(surplus) === 0 ? L.same : fillWords(surplus > 0 ? L.above : L.below, { amount: formatCurrency(Math.abs(surplus)) });
+  return `<div class="fund-cell healthy">
     <div class="fund-name">${name}</div>
     <div class="fund-current">${formatCurrency(current)}</div>
-    <div class="fund-min">Min: ${formatCurrency(minimum)}</div>
-    <div class="fund-surplus">${surplus >= 0 ? '+' : ''}${formatCurrency(surplus)}</div>
+    <div class="fund-min">${esc(fillWords(L.level, { amount: formatCurrency(minimum) }))}</div>
+    <div class="fund-surplus">${esc(side)}</div>
   </div>`;
 }
 

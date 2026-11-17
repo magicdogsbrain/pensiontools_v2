@@ -19,8 +19,20 @@ const NOW = '2026-11-09T09:00:00.000Z';
 const sortKeys = (v) => (Array.isArray(v) ? v.map(sortKeys) : v && typeof v === 'object' ? Object.keys(v).sort().reduce((o, k) => { if (v[k] !== undefined) o[k] = sortKeys(v[k]); return o; }, {}) : v);
 const same = (a, b) => JSON.stringify(sortKeys(a)) === JSON.stringify(sortKeys(b));
 
+/**
+ * 7.12.0: living on a ladder What you hold has no Keep this and no keep test (what is held simply counts; "Your plan's mix"
+ * says how). The stored ladder records months, so it reads Living on it; it is read as Moving here, in place (as
+ * e2e/plan-keep.spec.js does): still saving, work stopping in April 2027, inside the move window, no month recorded.
+ */
+function asMoving(raw) {
+  const s = raw.stressTool.settings;
+  s.retired = false; s.retireAge = 66; s.stoppedWork = '2027-04';
+  delete s.firstTaxYear;
+  raw.decisionTool.history = [];
+  return raw;
+}
 function lockedLadder() {
-  const p = JSON.parse(readFileSync(join(REPO, 'tests', 'fixtures', 'plans', '20-locked-start-after-stop.json'), 'utf8'));
+  const p = asMoving(JSON.parse(readFileSync(join(REPO, 'tests', 'fixtures', 'plans', '20-locked-start-after-stop.json'), 'utf8')));
   delete p.household;
   p.holdings.lines.push({ asOf: '2026-11-01', contribution: null, kind: null, name: 'Example Shares plc', ocf: null, sedol: null, subClass: null, ticker: 'EXMPL', units: 100, value: 15000, wrapper: 'SIPP', keep: { as: 'mine', fundsGaps: true } });
   return { ...p, id: ID, planDetails: { ...p.planDetails, name: 'Sam’s plan' }, isActive: true };

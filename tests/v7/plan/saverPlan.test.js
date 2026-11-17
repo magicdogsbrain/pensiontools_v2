@@ -108,7 +108,8 @@ describe('the round trip: a plan kept from B gives back B\'s count and pay-in on
     const again = askAgain(read);
     expect(again.chance.fails).toBe(result.chance.fails);
     expect(again.payIn.needed).toBe(result.payIn.needed);
-    expect(again.sentences.enoughHead.text).toBe(result.sentences.enoughHead.text);
+    // (7.12.0: the plan knows the tax is added back at source, so what leaves take-home pay is exact there, never "about")
+    expect(again.sentences.enoughHead.text).toBe(result.sentences.enoughHead.text.replace(/\babout /g, ''));
     // a plan kept at the level we start at, or one with no record of an answer, reads at Balanced
     expect(saverInputsOf(kept(sam({ kind: 'total', total: 400 })).plan, { today: KEPT_ON }).inputs.confidence).toBe('balanced');
     const bare = { ...plan }; delete bare.fromAnswer;

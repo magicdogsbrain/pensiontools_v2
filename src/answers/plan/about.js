@@ -121,8 +121,12 @@ export function savedAbout(plan, { today }) {
   }
   const thisTY = taxYearStartOf(now);
   // the age as recorded, with its date (the planner's box shows the same; the engines age it forward from the date)
-  const age = timing.mode === 'legacy' ? null : (doc && isObj(doc.timing) ? num(doc.timing.currentAge) : num(ss.currentAge));
+  const ageTyped = timing.mode === 'legacy' ? null : (doc && isObj(doc.timing) ? num(doc.timing.currentAge) : num(ss.currentAge));
   const ageAsOf = doc && isObj(doc.timing) ? (doc.timing.currentAgeAsOf || null) : (ss.currentAgeAsOf || null);
+  // (7.12.0) the age today: the age as typed, a year older for each birthday since the day it was typed (the engines' own
+  // rule, PlanTiming.ageOnDate). Read, never written: it is saved only when the person saves
+  let age = ageTyped;
+  if (ageTyped != null && ageAsOf) { try { const a = ageOnDate({ currentAge: ageTyped, currentAgeAsOf: ageAsOf, spStartDate: ss.spStartDate }, now, now); if (num(a) != null) age = a; } catch { age = ageTyped; } }
   // the month work stopped or stops (6.51.0), as saved (locked: as the document has it)
   const stopMonth = (doc && isObj(doc.timing) ? stoppedWorkOf(doc.timing) : null) || stoppedWorkOf(ss);
   const stopAhead = !!stopMonth && !hasStopped(stopMonth, now);
@@ -134,6 +138,7 @@ export function savedAbout(plan, { today }) {
   const ageSource = locked ? source : { kind: 'saved', at: ageAsOf ? dayWords(ageAsOf) : source.at };
   return {
     locked, lockedOn: locked ? dayWords(lockedAtOf(plan)) : null, ss, stored, timing, duration, thisTY,
+    ageTyped, ageAsOf,
     values: { age, stopped, stopAge: stopped === 'age' ? num(timing.retireAge) : null, stopMonth: (stopped === 'yes' && !stopAhead) || stopped === 'month' ? stopMonth : null, startWhen, endAge, savedYear: stopped === 'yes' && startWhen === 'saved' ? fty : null },
     // whether that year was really saved (or fixed by the lock), or is only the derived start of a plan that has saved none:
     // the choice is then named by its year alone, never "as saved" (7.3.3)
@@ -282,8 +287,11 @@ export function checkAbout(plan, typed, { today }) {
     next = { ...stored };
     const agePrev = Math.floor(+ss.currentAge || 0);
     const asOfPrev = ss.currentAgeAsOf || stored.currentAgeAsOf || null;
-    next.currentAge = values.age;
-    next.currentAgeAsOf = values.age === agePrev && asOfPrev ? asOfPrev : localDay(now);
+    // (7.12.0) the age shown is today's, rolled on from the age typed: kept as typed (with its day) when it is that age
+    const rolled = saved.values.age != null && values.age === saved.values.age && saved.ageTyped === agePrev && !!asOfPrev;
+    next.currentAge = rolled ? agePrev : values.age;
+    // (any other age is the age today, from today; the age as typed again, while no birthday has passed, keeps its day)
+    next.currentAgeAsOf = (rolled || (values.age === agePrev && saved.values.age === agePrev)) && asOfPrev ? asOfPrev : localDay(now);
     const retired = values.stopped === 'yes';
     next.retired = retired;
     let retireAge = null;

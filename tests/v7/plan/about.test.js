@@ -6,6 +6,7 @@
  *  - E3: the sub-step tables for every stage × locked × linked, and on every corpus plan × date.
  */
 import { describe, it, expect } from 'vitest';
+import { ageOnDate } from '../../../src/services/PlanTiming.js';
 import fc from 'fast-check';
 import { aboutOf, aboutPatch, applyPatch, boxesOf, savedAbout, checkAbout, answerAge, parseMonth, get, derivedLines } from '../../../src/answers/plan/about.js';
 import { ABOUT_FIELDS, ABOUT_PATHS, ABOUT_WRITES, ALL_WRITES, MIN_YEARS } from '../../../src/answers/plan/schema.js';
@@ -324,7 +325,8 @@ describe('E1 — properties: read∘write∘read is identity; only declared keys
     fc.assert(fc.property(fc.constantFrom(...EDITABLE).chain((raw) => { const plan = entryOf(raw).plan; return validTyped(plan).map((typed) => ({ plan, typed })); }), ({ plan, typed }) => {
       const after = applyPatch(plan, aboutPatch(plan, typed, { today: TODAY }).patch);
       const ss = effectiveStressSettings(after, { now: noon(TODAY) });
-      expect(ss.currentAge).toBe(+typed.age);
+      // (7.12.0) the age typed is the age today: kept as the age typed before, with its day, when that is what it rolls on to
+      expect(ageOnDate(ss, noon(TODAY), noon(TODAY))).toBe(+typed.age);
       expect(ss.retired).toBe(typed.stopped === 'yes');
       expect(ss.duration).toBe(+typed.endAge - ss.shapeAgeNow);   // 7.9.0: "Plan to age 97" = to the 97th birthday
       expect(get(after, 'decisionTool.settings.firstTaxYear')).toBe(ss.firstTaxYear);

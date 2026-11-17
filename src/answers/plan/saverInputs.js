@@ -346,8 +346,6 @@ export function saverDraftOf(plan, { today, plans = [] } = {}) {
   if (!read.ok) return { ok: false, why: read.why };
   const exactMix = !read.env || !read.env.mix;
   const mixes = exactMix ? null : { risk: read.inputs.risk, savingRisk: read.inputs.savingRisk, mix: read.env.mix, savingMix: read.env.savingMix || read.env.mix };
-  const values = draftTextOf(SCHEMA_B, read.inputs);
-  // (7.12.0) a plan's part in pounds is what lands: the form says so, so it never reads it as take-home pay
-  if (values['you.payIn.kind'] === 'split' && !values['you.payIn.ownFrom']) values['you.payIn.ownFrom'] = 'lands';
-  return { ok: true, values, exactMix, mixes };
+  // (a plan's part in pounds is what lands: with no way said, B reads it so — payIn.js — and the line under the boxes says it)
+  return { ok: true, values: draftTextOf(SCHEMA_B, read.inputs), exactMix, mixes };
 }

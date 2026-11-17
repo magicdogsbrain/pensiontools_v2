@@ -72,7 +72,9 @@ test('s09 · Alex, 57, plans with totals only: £410,000 and £40,000', async ({
       const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
       const [mName, y] = stopAbout.split(' ');
       const toGo = monthsBetween('2026-11', `${y}-${String(MONTHS.indexOf(mName) + 1).padStart(2, '0')}`);
-      const said = /(\d+) years?(?: (\d+) months?)? (?:to go|away|from now)/.exec(reads.home + '\n' + reads.about);
+      // where the site says it (the register, facts.js yearsToGo): "3 years of saving" on What you pay in, "… 3 years left" on
+      // the home (the site never says a countdown, "to go" or "away", to anyone: src/v7/copy/banned.js)
+      const said = /(\d+) years?(?: and (\d+) months?)? (?:to go|away|from now|left|of saving)/.exec(reads.home + '\n' + reads.about + '\n' + reads.saving);
       q.exact('the whole years to go, from the stop month on About', said ? Number(said[1]) : null, Math.floor(toGo / 12), { byHand: `November 2026 to ${stopAbout}: ${toGo} months`, owner: 'FACTS' });
     }
     // money that comes in anyway: the State Pension from 67

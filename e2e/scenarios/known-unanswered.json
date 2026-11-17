@@ -2,11 +2,6 @@
   "note": "Questions an area chose not to answer in this release: each scenario listed runs under test.fail(). The list may only shrink from one release to the next (tests/scenarioRules.test.js compares it with the copy at the last tag).",
   "unanswered": [
     {
-      "scenario": "s09",
-      "owner": "HOLD, SAVER",
-      "reason": "The scenario types £410,000 and £40,000 into the full view's \"SIPP at retirement\" and ISA override boxes (the only totals boxes on Stress settings), so the plan holds no pension today and Accumulation and What you pay in rightly show none; whether the route is wrong or the full view needs a pension-today total is not settled. The home still says '0% of the plan's mix held' and the full view 'Record what you hold' to a totals-only plan (the moving brief's S4, not built), and the two views name the stage differently (one stage vocabulary)."
-    },
-    {
       "scenario": "s12",
       "owner": "COUPLE",
       "reason": "After Sam's stop moves to 62 the household check's starting pot (Kim's £320,000 plus Sam's pot at 62) is not stated where the scenario reads it; the route to the household result and the figure's place are not settled."

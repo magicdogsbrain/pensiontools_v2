@@ -106,24 +106,32 @@ export async function saveMonth(page) {
  * A new account's first plan made in the full view's set-up: its name, age and the age work stops, then "See if I can
  * afford to retire". Leaves the full view open on the plan.
  */
-export async function fullViewWizard(page, { name, age, stopAge }) {
+export async function fullViewWizard(page, { name, age, stopAge, stopMonth = null }) {
   await openFull(page).catch(() => {});
   const wiz = page.locator('#setupWizard');
   await expect(wiz.locator('#wizScenarioName')).toBeVisible({ timeout: 45_000 });
   await wiz.locator('#wizScenarioName').fill(name);
   await wiz.locator('#wizCurrentAge').fill(String(age));
   await wiz.locator('#wizRetireAge').fill(String(stopAge));
+  if (stopMonth) await wiz.locator('#wizStopMonth').fill(stopMonth);   // "Or the month you stop"
   await wiz.getByRole('button', { name: 'Next' }).click();
   await wiz.getByRole('button', { name: /See if I can afford to retire/ }).click();
   await expect(wiz).toBeHidden({ timeout: 30_000 });
+  // the new plan opens on the Stress tester; a person starts once it shows the plan
+  await expect(page.locator('#scenarioSelector')).toContainText(name, { timeout: 30_000 });
 }
 
-/** Stress Tester > Settings: the pension and the ISA as totals in the boxes it shows for them, then Save Settings. */
+/**
+ * Stress Tester > Settings: the pension and the ISA today as totals, in "Total in your SIPP" and "Total in your ISA" under
+ * the allocation (no funds listed), then Save Settings. (Not the "Or SIPP at retirement" boxes: those take the pots at the
+ * stop, and these are the figures today.)
+ */
 export async function stressTotals(page, { pension, isa }) {
   await fullPage(page, 'stress settings');
-  await page.locator('#tmPotSipp').fill(String(pension));
-  await page.locator('#tmPotIsa').fill(String(isa));
+  await closeNews(page);
+  await typeUntilItHolds(page, [['#ssPot', pension], ['#ssIsaBalance', isa]]);
   await page.locator('#ssSaveBtn').click();
+  await expect(page.getByText(/Settings saved/).first()).toBeVisible({ timeout: 30_000 });
 }
 
 /**
@@ -150,22 +158,40 @@ export async function fullViewDrawing(page, { name, age }) {
  * Stress Tester > Settings: "Full index-linked gilt ladder", the pension it is bought from, the years paid from cash
  * first, then Save Settings.
  */
-export async function stressLadder(page, { pension, cashYears }) {
+export async function stressLadder(page, { pension, cashYears, steps = null }) {
   await fullPage(page, 'stress settings');
   await closeNews(page);
   // the way's boxes are drawn and filled from the plan a moment after the press ("Buys with …" under them); a new plan's
   // settings can be drawn again from the store a moment later, over what was typed (reported in the round's notes): the
-  // way is pressed and the figures typed until they hold
+  // way is pressed and the figures typed until they hold at two looks in a row
   await page.locator('button[data-strat="full-il-gilt"]').click();
   await expect(page.locator('#miniPotNote')).toContainText('Buys with', { timeout: 15_000 });
+  const nums = page.locator('#incomeStepsEditor input[type=number]');
+  const typedSteps = async () => { const v = await nums.evaluateAll((es) => es.map((e) => e.value.replace(/\s/g, ''))); const out = []; for (let i = 0; i + 1 < v.length; i += 2) out.push([v[i], v[i + 1]]); return out; };
   let held = 0;
   await expect.poll(async () => {
-    if (!(await page.locator('button[data-strat="full-il-gilt"].active').isVisible())) { await page.locator('button[data-strat="full-il-gilt"]').click(); held = 0; return false; }
     let same = true;
-    for (const [sel, v] of [['#miniSipp', pension], ['#giltCashYears', cashYears]]) if ((await page.locator(sel).inputValue()) !== String(v)) { same = false; await page.locator(sel).fill(String(v)); await page.locator(sel).dispatchEvent('change'); }
+    if (!(await page.locator('button[data-strat="full-il-gilt"].active').isVisible())) { await page.locator('button[data-strat="full-il-gilt"]').click(); held = 0; return false; }
+    if (steps) {
+      // "Your income shape": the first step's amount by "or a number", then each later step added and typed
+      const want = steps.map((x, i) => [i ? String(x.from) : null, String(x.amount)]);
+      let got = await typedSteps();
+      if (got.length !== want.length || got[0][1] !== want[0][1]) {
+        same = false;
+        await page.locator('#shapeStartNumber').fill(want[0][1]);
+        await page.getByRole('button', { name: 'Use it' }).click();
+        for (let i = 1; i < want.length; i++) await page.getByRole('button', { name: '+ Add a step' }).click();
+        got = await typedSteps();
+      }
+      for (let i = 1; i < want.length && got.length === want.length; i++) {
+        if (got[i][0] !== want[i][0]) { same = false; await nums.nth(2 * i).fill(want[i][0]); }
+        if (got[i][1] !== want[i][1]) { same = false; await nums.nth(2 * i + 1).fill(want[i][1]); }
+      }
+    }
+    for (const [sel, v] of [['#miniSipp', pension], ['#giltCashYears', cashYears]]) if (v != null && (await page.locator(sel).inputValue()) !== String(v)) { same = false; await page.locator(sel).fill(String(v)); await page.locator(sel).dispatchEvent('change'); }
     held = same ? held + 1 : 0;
     return held >= 2;
-  }, { timeout: 30_000, intervals: [750] }).toBe(true);
+  }, { timeout: 45_000, intervals: [750] }).toBe(true);
   await page.locator('#ssSaveBtn').click();
   await expect(page.getByText(/Settings saved/).first()).toBeVisible({ timeout: 30_000 });   // a person waits for the save to be said
 }

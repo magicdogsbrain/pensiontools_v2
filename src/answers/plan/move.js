@@ -71,7 +71,7 @@ function waitingOf(plan, stage) {
   const yearsToStop = Number.isFinite(stage.monthsToStart) && stage.timingMode === 'future' ? stage.monthsToStart / 12 : (Number.isFinite(stage.yearsToStart) ? stage.yearsToStart : null);
   return !(Number.isFinite(yearsToStop) && yearsToStop <= windowYearsOf(plan));
 }
-const units = (u) => (u == null ? null : String(r0(u)));
+const units = (u) => (u == null ? null : String(r0(u)).replace(/\B(?=(\d{3})+(?!\d))/g, ','));   // with commas, as the page's other units (7.12.0)
 const ym = (s) => { const m = /^(\d{4})-(\d{2})$/.exec(String(s || '')); return m ? MONTHS[+m[2] - 1] + ' ' + m[1] : String(s || ''); };
 
 /** New money a month (the planner's loadTransitionUI): the record's payments in, else the saver's own from the Accumulation tool. */

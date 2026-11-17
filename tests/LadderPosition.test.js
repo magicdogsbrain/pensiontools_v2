@@ -57,19 +57,23 @@ describe('ladderPosition', () => {
     expect(p.monthly).toBeCloseTo(21700 / 6, 0);
   });
 
-  it('treats a matured rung belonging to a later year as parked', () => {
-    const p = ladderPosition(plan, { today: new Date('2030-05-01') });
-    expect(p.parkedTotal).toBe(0);          // 2031 is funded by T29 but that year is not in `years` here
-    const p2 = ladderPosition({ ...plan, years: [...plan.years, { Y: 2031, age: 65, gross: 43000, need: 43000, from: 'T29', held: true, matures: '2029-03-22' }] }, { today: new Date('2030-05-01') });
-    expect(p2.parkedTotal).toBe(43000);
-    expect(p2.parked[0].Y).toBe(2031);
+  // retaken in 7.12.0: a gilt matured for a later year is cash held, not "parked" money with a need of its own, and the check
+  // is a fact (cash held against what the cash years still need), never a verdict telling the person what to do
+  it('a gilt matured for a later year adds nothing to what the cash years still need', () => {
+    const p2 = ladderPosition({ ...plan, years: [...plan.years, { Y: 2031, age: 65, gross: 43000, need: 43000, from: 'T29', held: true, matures: '2029-03-22' }] }, { today: new Date('2030-05-01'), cashBalance: 0 });
+    expect(p2.parked).toBeUndefined();
+    expect(p2.cashCheck.laterCashYears).toBe(0);    // no later year is paid from cash: 2030 and 2031 are T29's
   });
 
-  it('flags a cash balance that does not match the plan', () => {
+  it('sets the cash held against what the cash years still need', () => {
+    // 10 April 2030, tax year 2030/31 paid by T29: 43,000 over 12 months = 3,583.33 a month, 12 months to come; no later cash year
     const p = ladderPosition(plan, { today: new Date('2030-04-10'), cashBalance: 43000 });
-    expect(p.cashCheck.verdict).toBe('as expected');
+    expect(p.cashCheck).toMatchObject({ balance: 43000, laterCashYears: 0 });
+    expect(Math.round(p.cashCheck.dueThisYear)).toBe(43000);
+    expect(Math.round(p.cashCheck.diff)).toBe(0);
+    expect(p.cashCheck.verdict).toBeUndefined();
     const q = ladderPosition(plan, { today: new Date('2030-04-10'), cashBalance: 20000 });
-    expect(q.cashCheck.verdict).toContain('less cash');
+    expect(Math.round(q.cashCheck.diff)).toBe(-23000);
   });
 
   it('describes the next maturity and how long it sits', () => {

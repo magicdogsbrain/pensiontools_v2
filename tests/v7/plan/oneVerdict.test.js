@@ -142,6 +142,27 @@ describe('the State Pension with no date: from the age the runs use, never the s
   });
 });
 
+// ---- the pots when you stop on a locked saver (walker 10 high 5: £784,574 "priced on these" against £604,000 tested) ------
+import { timingPotsAtStop } from '../../../src/services/PotsAtStop.js';
+import { potsAtRetirementLine } from '../../../src/ui/startingPotsWords.js';
+
+describe('a locked saver\'s Stress settings name the pots the plan was locked with', () => {
+  it('fixture 05 was locked with £603,941 in the pension and £54,126 in ISAs when work stops: those, never a figure worked out today, are "priced on"', () => {
+    const plan = entryOf(corpus()['05-saver-committed'], '2026-11-17').plan;
+    const lockedWith = plan.planDocument.pots.potAtRetirement;   // what the lock stored: 603,941 and 54,126
+    const t = timingPotsAtStop(plan, plan.stressTool.settings, new Date(2026, 10, 17, 12));
+    expect(t.source).toBe('locked');
+    expect(t.sipp).toBe(603941);
+    expect(t.isa).toBe(54126);
+    const words = potsAtRetirementLine(t).replace(/<[^>]+>/g, '');
+    expect(words).toContain('locked with £603,941 in your pension and £54,126 in ISAs');
+    // today's middling case is said as that, a second figure labelled, never "priced on"
+    if (t.today) expect(words).toMatch(/Today’s middling case/);
+    expect(words).not.toMatch(/Every strategy is priced on these; type your own/);
+    expect(lockedWith.sipp).toBe(603941);
+  });
+});
+
 // ---- a locked plan's own figure is a record, never a second verdict (walker 6 high 3: "Not yet" above "Close") -------------
 describe('"Does it last?" on a locked plan: the figure it was locked with is said as a record, with no verdict word of its own', () => {
   const stored = { ...storedBuckets, strategyId: 'pots-and-valves', ruin: { mc: 30, hist: 5 } };   // 7 futures in 10 to a fixed age

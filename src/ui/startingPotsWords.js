@@ -144,6 +144,11 @@ function accessNote(s) {
 }
 
 export function potsAtRetirementLine(p, override = {}) {
+  // 7.12.0: a locked plan: the pots it was locked with, which every run uses; today's middling case beside it, labelled
+  if (p && p.source === 'locked') {
+    return 'Your plan was locked with <strong>' + fmt(p.sipp) + '</strong> in your pension and <strong>' + fmt(p.isa) + '</strong> in ISAs when you stop work (the middling case then). Every strategy is priced on these.'
+      + (p.today ? ' Today’s middling case, from your pension today (' + fmt(p.today.from.pot) + ') and ' + fmt(p.today.from.monthly) + ' a month going in: pension ' + fmt(p.today.sipp) + ' · ISA ' + fmt(p.today.isa) + '.' : '');
+  }
   // 7.12.0: the pots worked out from the saver's facts (services/PotsAtStop.js), when the person typed none below
   if (p && p.source === 'worked' && p.from && !(+(override || {}).sipp > 0 || +(override || {}).isa > 0)) {
     return 'Pots at retirement in today\'s money, in a middling case: pension <strong>' + fmt(p.sipp) + '</strong> · ISA <strong>' + fmt(p.isa) + '</strong>. '

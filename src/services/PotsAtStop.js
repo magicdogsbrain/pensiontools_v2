@@ -20,6 +20,7 @@
  * Pure but for that small memo: no storage, no clock (the caller hands in `now`).
  */
 import { deriveTiming } from './PlanTiming.js';
+import { isLockedSettings } from './LockedPlanGuard.js';
 import { buildSavingPath } from './SavingPath.js';
 import { saverFacts } from './SaverFacts.js';
 
@@ -85,6 +86,12 @@ export function potsAtStopOf(plan, settings, { now = new Date(), env = {} } = {}
  */
 export function timingPotsAtStop(plan, settings, now = new Date()) {
   const w = potsAtStopOf(plan, { ...(settings || {}), potAtRetirement: null }, { now });
-  if (!w || w.source !== 'worked') return null;
-  return { ...w, low: w.careful, high: w.good, hasContributions: w.from.monthly > 0 };
+  const worked = w && w.source === 'worked' ? { ...w, low: w.careful, high: w.good, hasContributions: w.from.monthly > 0 } : null;
+  // (7.12.0) a locked plan is priced on the pots it was locked with (PlanReading.withDerivedPots reads the same): said as
+  // that, with today's middling case beside it as a second, labelled figure — never today's as "priced on"
+  const locked = plan && plan.decisionTool && isLockedSettings(plan.decisionTool.settings) && plan.planDocument && plan.planDocument.pots ? plan.planDocument.pots.potAtRetirement : null;
+  if (locked && typeof locked === 'object' && (+locked.sipp > 0 || +locked.isa > 0)) {
+    return { sipp: Math.round(+locked.sipp || 0), isa: Math.round(+locked.isa || 0), source: 'locked', lockedAt: plan.planDocument.lockedAt || null, today: worked };
+  }
+  return worked;
 }

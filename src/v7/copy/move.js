@@ -220,6 +220,7 @@ export const MOVE = {
     order: 'How to give the order: say the number of units — 1 unit is £1 of face value; if the screen counts £100 lots, use the figure in brackets. Ordering by amount also works, but the units you get then depend on the price that day, so the income is only close to the figure shown.',
     columns: { n: '#', buy: 'Buy', code: 'Code', sedol: 'SEDOL', matures: 'Matures', pays: 'Pays', years: 'For tax years', units: 'Units to order', price: 'Price at lock', cost: 'Cost at lock', bought: 'Bought' },
     lots: '({lots} if the screen counts £100 lots)',
+    partHeld: 'You hold {held} of the {plan}.',
     surplus: '(the surplus held in cash)',
     bought: { bought: 'bought', part: 'part bought', 'not yet': 'not yet', paid: 'paid out', sold: 'sold by the rotation', covered: 'held another way' },
     gate: 'This sheet is sized on an assumed State Pension of {annual} a year from {atAge}. Enter your State Pension forecast — the figure and the date — under About you and when, and lock the plan again before buying.',

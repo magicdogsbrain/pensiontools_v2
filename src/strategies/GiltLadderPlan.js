@@ -34,6 +34,7 @@ export function orderSheetRows(docOrPlan, holdings = null, { today = null, param
   if (!plan || !Array.isArray(plan.orders)) return [];
   const live = plan.orders.filter((o) => o && +o.pays > 0);
   let boughtOf = () => null;
+  let partUnitsOf = () => null;
   if (today && d.strategy && d.strategy.r) {
     const target = targetHoldings(d, { today, params });
     const diff = diffHoldings(holdingsLines(holdings), target, { needs: yearNeedsOf(d), today });
@@ -43,6 +44,9 @@ export function orderSheetRows(docOrPlan, holdings = null, { today = null, param
     // bought — never "not yet", which said the opposite of the move beside it
     const held = new Set([...diff.hold.map((h) => h.key), ...diff.sell.filter(isRungRow).map((s) => s.key)]);
     const part = new Set(diff.buy.filter((b) => +b.heldUnits > 0).map((b) => b.key));
+    // a rung part bought: the units still to buy and the units held, the Buy table's own figures (7.12.0 round 3, walker 5)
+    const partOf = new Map(diff.buy.filter((b) => +b.heldUnits > 0).map((b) => [b.key, { toBuy: Math.round(+b.units || 0), heldUnits: Math.round(+b.heldUnits) }]));
+    partUnitsOf = (o) => partOf.get(keyOf(o)) || null;
     const paid = new Set((target.paid || []).map((t) => t.key));
     const sold = new Set((target.sold || []).map((t) => t.key));
     // a rung whose years are all stood in for by a line the person keeps (7.6.0): held another way
@@ -54,7 +58,9 @@ export function orderSheetRows(docOrPlan, holdings = null, { today = null, param
     pays: Math.round(+o.pays || 0), taxYears: Array.isArray(o.taxYears) ? o.taxYears.slice() : [],
     nominal: +o.nominal > 0 ? Math.round(+o.nominal) : null, indexRatio: +o.indexRatio > 0 ? +o.indexRatio : null,
     cleanPrice: o.cleanPrice != null && Number.isFinite(+o.cleanPrice) ? +o.cleanPrice : null, cost: Math.round(+o.cost || 0),
-    bought: boughtOf(o)
+    bought: boughtOf(o),
+    // a rung part bought: what is still to buy ({ toBuy, heldUnits }), else null
+    part: boughtOf(o) === 'part' ? partUnitsOf(o) : null
   }));
 }
 

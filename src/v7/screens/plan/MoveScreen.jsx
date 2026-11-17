@@ -283,6 +283,19 @@ function Schedule({ V }) {
 }
 
 /** The order sheet (§3.6): the document's rungs; the units and the cost held back behind "Show the sheet anyway" while sized on an assumed State Pension. */
+const grouped = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+/**
+ * A rung's units on the order sheet: the plan's units; for a rung part bought, what is still to buy — the Buy table's figure —
+ * and how many are held of the plan's (7.12.0 round 3, walker 5: the sheet said 17,500 to order beside a Buy table of 2,800).
+ */
+function SheetUnits({ r, S, held }) {
+  const toOrder = !held && r.part && r.part.toBuy > 0 ? r.part.toBuy : +r.nominal;
+  return (<>
+    <strong>{grouped(toOrder)}</strong><br /><span class="note">{fill(S.lots, { lots: grouped(Math.round(toOrder / 100)) })}</span>
+    {!held && r.part && r.part.toBuy > 0 && <><br /><span class="note" data-testid="plan.move.sheet.partHeld">{fill(S.partHeld, { held: grouped(r.part.heldUnits), plan: grouped(r.nominal) })}</span></>}
+  </>);
+}
+
 function Sheet({ V, dispatch }) {
   const S = W.sheet;
   if (!V.ladder || !V.sheet.length) return null;
@@ -309,7 +322,7 @@ function Sheet({ V, dispatch }) {
           <tbody>{V.sheet.map((r) => (
             <tr key={r.n} data-rung={r.n} data-bought={r.bought || ''}>
               <td>{r.n}</td><td>{r.name}</td>{held && <td>{bought(r)}</td>}<td>{r.tidm}</td><td>{r.sedol}</td><td>{r.matures}</td><td>{r.pays}</td><td>{r.taxYears.join(', ')}{r.taxYears.length > 1 ? ' ' + S.surplus : ''}</td>
-              <td>{gated ? S.withheld : r.nominal ? <><strong>{String(r.nominal).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</strong><br /><span class="note">{fill(S.lots, { lots: String(Math.round(+r.nominal / 100)).replace(/\B(?=(\d{3})+(?!\d))/g, ',') })}</span></> : '—'}</td>
+              <td>{gated ? S.withheld : r.nominal ? <SheetUnits r={r} S={S} held={held} /> : '—'}</td>
               <td>{gated ? S.withheld : r.cleanPrice || '—'}</td><td>{gated ? S.withheld : r.cost}</td>{!held && <td>{bought(r)}</td>}
             </tr>
           ))}</tbody>

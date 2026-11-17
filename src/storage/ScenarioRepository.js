@@ -988,6 +988,25 @@ export async function saveActiveAccumulationTab(boxes, { now = new Date() } = {}
   return { ok: true, errors: {}, written: true };
 }
 
+/**
+ * A saver's pension typed on Stress tester → Settings is the pension today everywhere (7.12.0; the second walk: the Settings
+ * pot moved to £52,000 while the Accumulation tab and the pot at the stop still read £45,000): the same write as the
+ * Accumulation tab's pot box (PensionToday.pensionTodayPatch: the saving settings' potNow and this month's pot record).
+ * Nothing when it is already the pension today, or the plan is locked.
+ */
+export async function saveActivePensionToday(value, { now = new Date() } = {}) {
+  const active = await getActiveScenarioAsync();
+  if (!active) throw new Error('No active scenario');
+  const stored = (await loadScenario(active.id)) || active;
+  const plan = upgradeScenario(JSON.parse(JSON.stringify(stored)), { now }).scenario;
+  if (isLockedSettings(plan.decisionTool && plan.decisionTool.settings)) return { written: false };
+  const patch = pensionTodayPatch(plan, value, { now });
+  if (!Object.keys(patch).length) return { written: false };
+  await saveScenario(active.id, patch);
+  invalidateScenarioCache();
+  return { written: true };
+}
+
 export async function saveActiveAccumulation(settings) {
   const scenario = await getActiveScenarioAsync();
   if (!scenario) throw new Error('No active scenario');

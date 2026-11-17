@@ -4173,7 +4173,7 @@
     import { buildPlanDocument, whereAmI, guardrailOf, potRecordOf, recordIsaOf, guaranteeSaid } from './src/services/PlanDocument.js';
     import { planDocumentHtml, whereAmIHtml, planDocumentHeaderHtml, strategyNameOf } from './src/ui/components/PlanDocumentView.js'; import { startOpenPlace, straightIn } from './src/ui/components/OpenPlace.js';   // the hand-over from the preview's plan pages (6.26); straight in without an account (2 Nov 2026)
     import { isPlanNewerThanApp } from './src/storage/ScenarioRepository.js';
-    import { getActivePlanDocument, getActivePlanDocumentArchive, saveActivePlanDocument, archivePlanDocument, getActiveJourney, saveActiveJourney, getActiveAccumulationHistory, saveActiveAccumulationHistory, getActiveTransition, saveActiveTransition, getActiveHoldings, saveActiveHoldings, getActiveDrawCadence, saveActiveDrawCadence, saveActivePlanAmendments, saveActivePlanTasks, saveActivePhases, saveActiveWant, saveActiveAccumulationTab } from './src/storage/ScenarioRepository.js';
+    import { getActivePlanDocument, getActivePlanDocumentArchive, saveActivePlanDocument, archivePlanDocument, getActiveJourney, saveActiveJourney, getActiveAccumulationHistory, saveActiveAccumulationHistory, getActiveTransition, saveActiveTransition, getActiveHoldings, saveActiveHoldings, getActiveDrawCadence, saveActiveDrawCadence, saveActivePlanAmendments, saveActivePlanTasks, saveActivePhases, saveActiveWant, saveActiveAccumulationTab, saveActivePensionToday } from './src/storage/ScenarioRepository.js';
     import { deriveStage, decisionEntryAllowed, arrivalCheck, journeyAppend } from './src/services/LifeStage.js';
     import { setDbStartFields, paintDbStart, dbStartFromAgeInput, dbStartError, dbStartAgeForSave } from './src/ui/dbStartSetting.js';   // the final-salary start, asked by age (audit problem 3)
     import { pnvOnlySections, paintSettingUseNotes, heldIsaNote } from './src/ui/strategySettingsUse.js';   // the settings every strategy shows, and the notes beside them (audit problem 4)
@@ -4193,7 +4193,7 @@
     import { splitSectionHtml, splitNoneHtml, splitDismissedHtml, splitConfirmHtml, verdictSectionHtml, timelineSectionHtml, wealthSectionHtml, whatToDoHtml, survivorCareHtml, survivorResultHtml, careResultHtml, budgetShareHtml, budgetSharedLineHtml, householdNotSetWords } from './src/ui/householdView.js';
     import { shareBudgetWith, stopSharingBudget, getHouseholdSplitDismissed, setHouseholdSplitDismissed, budgetSharedFromOf } from './src/storage/ScenarioRepository.js';
     import { guestPlanRefusal, isExamplePlanError, DEMO_PLANS, EXAMPLE_PLAN_KEY, EXAMPLE_PLAN_DESCRIPTION } from './src/services/GuestPlans.js';   // three plans without an account; the read-only example (6.23.0)
-    import { refreshDraftLines, paintDraftSettingsLine, openStressSettings, blankUnsetPots, missingWords, bedAndIsaTicked, DRAFT_WORDS } from './src/ui/draftPlanLine.js'; window.openStressSettingsTab = () => openStressSettings(window); import { planHasFigures } from './src/services/DraftDecision.js'; import { testReadyOf } from './src/services/PlanFigures.js';   // an unlocked plan's own figures (7.12.0)
+    import { refreshDraftLines, paintDraftSettingsLine, openStressSettings, blankUnsetPots, missingWords, bedAndIsaTicked, DRAFT_WORDS } from './src/ui/draftPlanLine.js'; window.openStressSettingsTab = () => openStressSettings(window); import { planHasFigures } from './src/services/DraftDecision.js'; import { testReadyOf } from './src/services/PlanFigures.js'; import { sippTodayOf } from './src/services/PotsAtRetirement.js';   // an unlocked plan's own figures (7.12.0)
     import { installStressSubTabs } from './src/ui/stressSubTabs.js'; import { installStressSettingsAutosave, installAccumulationAutosave, accumulationInputsOf, SAVE_WORDS } from './src/ui/settingsAutosave.js'; import { orderStressSettingsSections } from './src/ui/settingsLayout.js'; import { tryFillKeyOf, tryNeedsFill, watchTryTouched } from './src/ui/tryBoxes.js';   // the Stress tester's sub-tabs (Settings pressed while open is not drawn again); Settings and the Accumulation tab save as they change; Settings' order (7.12.0)
     import { updateHomeBanner, installHomeBanner, openingTabOf, pressOpeningSub } from './src/ui/homeBannerUi.js'; import { installHouseholdTab } from './src/ui/householdTabUi.js';   // the next-step banner is the plan home's first thing due, else the life stage's sentence (7.10.0; 6.20.2); the opening tab reads the plan's phase (7.11.0)
     import { moreSheetHtml, MORE_TABS } from './src/ui/mobileMenu.js';
@@ -9477,8 +9477,7 @@
     window.runOnTrackCheck = async () => { if (window._acAutosave) await window._acAutosave.flush(); return paintSaverAnswer(document, { listScenariosAsync, getActiveScenarioId, saveWant: saveActiveWant, afterSave: () => window.loadAccumulationUI && window.loadAccumulationUI() }); };
     window._ssAutosave = installStressSettingsAutosave(window, document, { save: (o) => saveStressSettingsUI(o), planIsLocked, isLoggedIn, getActiveScenarioId, dbStartError: () => dbStartError(document, window._ssTiming) });
     window._acAutosave = installAccumulationAutosave(window, document, { saveTab: (b) => saveActiveAccumulationTab(b), planIsLocked, isLoggedIn, getActiveScenarioId,
-      afterSave: () => { invalidateStressCache(); if (document.getElementById('acOnTrack')?.textContent.trim()) window.runOnTrackCheck(); } });   // the answer on the card follows the boxes; Settings reads the new ages
-    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushSettings(); });
+      afterSave: () => { invalidateStressCache(); if (document.getElementById('acOnTrack')?.textContent.trim()) window.runOnTrackCheck(); } }); document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushSettings(); });   // the answer on the card follows the boxes; Settings reads the new ages; a page hidden sends what is typed
 
     // In-app confirm modal — replaces window.confirm(), which BLOCKS the whole renderer (and any
     // browser automation) with a native dialog. Promise<boolean>; Escape/backdrop = cancel.
@@ -9817,6 +9816,7 @@
           // my tagged funds") without re-entering it.
           taggedFunds: funds('ss').filter(f => f.ticker && f.value > 0)
         });
+        { const was = sippTodayOf(_curSS), typed = sippTodayOf(ssAlloc); if (window._ssTiming?.mode === 'future' && typed > 0 && Math.round(typed) !== Math.round(was)) { await saveActivePensionToday(typed); invalidateStressCache(); } }   // a saver's pot typed here is the pension today everywhere (7.12.0)
         // Refresh the Monte-Carlo / Historical starting-balance banners so they reflect the just-
         // saved allocation (they otherwise only re-render on load/tab-switch → stale after a save).
         renderStressStartSummary({ ...ssAlloc, duration: +document.getElementById('ssDuration').value || 35 }); if (!quiet) renderChargesField().catch(() => {});   // the box shows the charge as saved (as typed, when saved as it changed)

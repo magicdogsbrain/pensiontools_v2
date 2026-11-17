@@ -186,3 +186,34 @@ test('the Accumulation tab keeps what is typed: the stop age and the pot today, 
   await openSettings(page);
   await expect(page.locator('#tmRetireAge')).toHaveValue('62');
 });
+
+test('a saver\'s pension typed on Settings is the pension today on the Accumulation tab, and the pot at the stop follows', async ({ page }) => {
+  test.setTimeout(240_000);
+  const { uid } = await makeAccount(ALEX);
+  await putSettings(uid, { lastSeenVersion: VERSION, view: 'full' });
+  await openAt(page, '#/account');
+  await signIn(page, ALEX);
+  await expect(page.getByTestId('account.signIn')).toHaveCount(0, { timeout: 30_000 });
+  // Pat (fictional), 52, stopping at 63: £45,000 on the Accumulation tab, then £52,000 typed on Settings
+  await newPlan(page, { age: 52, retired: false, retireAge: 63, start: 'start-accumulation' });
+  await page.evaluate(() => window.switchToTab('accumulation'));
+  await typeIn(page, page.locator('#acSalary'), '31000');
+  await typeIn(page, page.locator('#acPotNow'), '45000');
+  await typeIn(page, page.locator('#acNetMonthly'), '103');
+  await expect(page.getByTestId('accumulation.saveState')).toHaveText('Saved', { timeout: 30_000 });
+  await openSettings(page);
+  const line = page.locator('#tmProjectionLine');
+  await expect(line).toContainText('£45,000');
+  const atStop = async () => Number(((await line.innerText()).match(/pension £([\d,]+)/) || [])[1]?.replace(/,/g, '') || 0);
+  const before = await atStop();
+  await typeIn(page, page.locator('#ssPot'), '52000');
+  await saved(page);
+  await page.evaluate(() => window.switchToTab('accumulation'));
+  await expect(page.locator('#acPotNow')).toHaveValue('52000', { timeout: 30_000 });
+  await openSettings(page);
+  await expect(line).toContainText('£52,000');
+  // by hand: £7,000 more today, grown at the middle rate (never below nothing), is at least £7,000 more when work stops
+  expect(await atStop()).toBeGreaterThanOrEqual(before + 7000);
+  const plan = (await plansOf(uid))[0];
+  expect(plan.accumulationTool.settings.potNow).toBe(52000);
+});

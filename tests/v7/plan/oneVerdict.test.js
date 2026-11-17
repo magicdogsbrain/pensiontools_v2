@@ -277,3 +277,18 @@ describe('the saving mix is the plan\'s own unless what is held was accepted as 
     expect(derivedLevelFrom(plan, { settings }).from).not.toBe('held');
   });
 });
+
+// ---- a way's own page on the Strategies tab opens on the same kind of verdict (walker 4 high 5) ---------------------------
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+describe('the Strategies tab: a way\'s page is judged for the plan\'s person and level, even before "Will it last?" was run', () => {
+  it('showStrategyPage runs the plan\'s one test (cached) before it draws a way\'s page, so no page falls back to "Very likely to last"', () => {
+    const html = readFileSync(join(process.cwd(), 'index.html'), 'utf8');
+    const body = /window\.showStrategyPage = async function \(id\) \{([\s\S]*?)\n    \};/.exec(html);
+    expect(body, 'showStrategyPage').not.toBe(null);
+    const ran = body[1].indexOf('await oneTestFor(');
+    const drawn = body[1].indexOf('specStrategyPageHtml(id)');
+    expect(ran).toBeGreaterThan(-1);
+    expect(ran).toBeLessThan(drawn);
+  });
+});

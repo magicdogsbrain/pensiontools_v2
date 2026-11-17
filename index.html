@@ -8640,7 +8640,7 @@
       document.querySelectorAll('#stratNav .strat-nav-item').forEach((b) => b.classList.toggle('active', b.dataset.page === id));
       const box = document.getElementById('stratPage');
       box.innerHTML = '<div class="loading"><div class="spinner"></div><div id="cmpProgress" class="hint" style="margin-top:8px;"></div></div>';
-      await new Promise((r) => setTimeout(r, 20));
+      await new Promise((r) => setTimeout(r, 20)); if (!['overview', 'assumptions', 'whatsnew', 'gilts'].includes(id)) await oneTestFor(await getStressSettingsAsync()).catch(() => null);   // 7.12.0: a way's page judges for the plan's person and level
       // Stale-render guard: a page the user has already left must not overwrite the one they opened.
       const stale = () => window._stratPage !== id;
       try {

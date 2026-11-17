@@ -175,17 +175,10 @@ function windowLineOf(life, { held, agreed, now = null }) {
     if (agreed) return { id: agreed.how === 'nothing' ? 'agreedAsItStands' : 'agreed', slots: { date: dayWords(agreed.at), stop: monthWords(w.to) } };
     return { id: held ? 'moving' : 'movingNoRecord', slots: { left, stop: monthWords(w.to) } };
   }
-  // (7.12.0) said only within five years of the stop: further off, "move window" means nothing yet; the review page keeps it
-  if (life.key === 'saving' && w.state === 'before' && w.from && !(monthsTo(w.to, now) > WINDOW_SAID_MONTHS)) return { id: 'saving', slots: { from: monthWords(w.from) } };
+  // a saver before the window: the month it opens, however far off (7.12.0: the same month the review page and the full view
+  // name, so which stage comes next, and when, is one fact on every page)
+  if (life.key === 'saving' && w.state === 'before' && w.from) return { id: 'saving', slots: { from: monthWords(w.from) } };
   return null;
-}
-
-/** How near the stop the home starts to say when the move window opens (7.12.0): five years. */
-const WINDOW_SAID_MONTHS = 60;
-/** Whole months from `now`'s month to a 'YYYY-MM' month. */
-function monthsTo(month, now) {
-  const m = /^(\d{4})-(\d{2})/.exec(String(month || ''));
-  return m && now instanceof Date ? (+m[1] * 12 + +m[2]) - (now.getFullYear() * 12 + now.getMonth() + 1) : null;
 }
 
 /**

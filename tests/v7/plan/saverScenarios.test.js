@@ -355,9 +355,9 @@ describe('step 5: the home says the answer', () => {
     expect(wanted(pageState(retired, '#/plan/' + retired.id))).toBe(null);
   }, 30000);
 
-  it('the move window is not said to someone more than five years from stopping; it is within five', () => {
+  it('the month the move window opens is said to a saver however far from stopping (7.12.0), and within five years', () => {
     const far = keptPlan(jo, { on: READ_ON, id: 'Jo06' });
-    expect(homeOf([entry(far)], far.id, { today: READ_ON }).moveWindow).toBe(null);
+    expect(homeOf([entry(far)], far.id, { today: READ_ON }).moveWindow).toMatchObject({ id: 'saving' });
     const near = keptPlan({ ...jo, you: { ...jo.you, age: 56 } }, { on: READ_ON, id: 'Jo07' });
     const w = homeOf([entry(near)], near.id, { today: READ_ON }).moveWindow;
     expect(w && w.id).toBe('saving');

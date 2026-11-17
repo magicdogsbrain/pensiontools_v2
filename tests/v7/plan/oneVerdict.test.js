@@ -122,6 +122,26 @@ describe('the kept answer\'s chance is not said beside a saving plan\'s own (wal
   });
 });
 
+// ---- the State Pension's year when only the yearly figure is known (walker 4 high 4: "from tax year 2041/42") ------------
+import { planPage } from '../../../src/answers/plan/read.js';
+import { corpus, entryOf } from './_plans.js';
+
+describe('the State Pension with no date: from the age the runs use, never the stored default year', () => {
+  it('62 in the plan\'s first tax year 2026/27, State Pension at 67: tax year 2031/32 (2026 + 5), never 2038/39 (2026 + the stored 12)', () => {
+    const raw = JSON.parse(JSON.stringify(corpus()['02-pnv-draft']));
+    delete raw.stressTool.settings.spWeeklyAmount; delete raw.stressTool.settings.spStartDate;
+    expect(raw.stressTool.settings.statePensionYear).toBe(12);
+    const entries = [entryOf(raw, '2026-11-17')];
+    const pg = planPage(entries, raw.id, 'plan', { today: '2026-11-17' });
+    const all = JSON.stringify(pg);
+    const m = /"id":"pots\.statePensionOld","slots":(\{[^}]*\})/.exec(all);
+    expect(m, 'the State Pension line').not.toBe(null);
+    const slots = JSON.parse(m[1]);
+    expect(slots.year).toBe('2031/32');
+    expect(slots.age).toBe('67');
+  });
+});
+
 // ---- a locked plan's own figure is a record, never a second verdict (walker 6 high 3: "Not yet" above "Close") -------------
 describe('"Does it last?" on a locked plan: the figure it was locked with is said as a record, with no verdict word of its own', () => {
   const stored = { ...storedBuckets, strategyId: 'pots-and-valves', ruin: { mc: 30, hist: 5 } };   // 7 futures in 10 to a fixed age

@@ -24,6 +24,7 @@ import { stepsFor, subStepsFor, ALL_STEPS, NEXT_ORDER, NEXT_INFO, DUE_IDS, RETIR
 import { stageOf } from '../../services/LifeStage.js';
 import { windowYearsOf, reviewDueOf, offCourseOf, moveWindowOf, heldPhase } from '../../services/Phases.js';
 import { monthsWanted } from '../../services/DrawCadence.js';
+import { defaultSpYear } from '../../services/IncomeSchedule.js';
 import { taskKeyOf, isPutOff } from './tasks.js';
 import { optionsFor } from './options.js';
 import { answerAge, bandsOf, netOf, safeTiming } from './about.js';
@@ -539,6 +540,7 @@ function planStep(C) {
   const startMonth = (timing && timing.startMonth) || stage.startMonth || null;
   const firstTaxYear = (timing && timing.firstTaxYear) || stage.firstTaxYear || null;
   const ladder = isLadderPlan(plan, ss);
+
   // the one-line result
   let result;
   if (first) figures.yearly = first.amount;
@@ -657,7 +659,15 @@ function planStep(C) {
   const spWeekly = locked && doc && doc.assumptions ? num(doc.assumptions.spWeeklyAmount) : num(ss.spWeeklyAmount);
   const spDate = locked && doc && doc.assumptions ? doc.assumptions.spStartDate : ss.spStartDate;
   if (spWeekly > 0) { figures.spWeekly = r0(spWeekly); income.push(line('pots.statePension', [money('spWeekly'), ' a week'], figures, src, { from: spDate ? (/^\d{4}-\d{2}-\d{2}$/.test(String(spDate)) ? dayWords(spDate) : String(spDate)) : '' })); }   // (a start date kept from an answer as a date is said in words)
-  else if (num(ss.statePension) > 0) { figures.spYearly = r0(ss.statePension); const fromYear = firstTaxYear && num(ss.statePensionYear) != null ? taxYearLabel(firstTaxYear + r0(ss.statePensionYear)) : ''; income.push(line('pots.statePensionOld', [money('spYearly'), ' a year'], figures, src, { year: fromYear })); }
+  else if (num(ss.statePension) > 0) {
+    // (7.12.0) the plan year the runs start it in (IncomeSchedule.defaultSpYear: the stored 12 is the old default, read as age
+    // 67), never the first tax year plus the stored 12 — which put it five years late for someone stopping at 60
+    figures.spYearly = r0(ss.statePension);
+    const at = timing && num(timing.shapeAgeNow) != null ? timing.shapeAgeNow : num(ss.shapeAgeNow);
+    const y = defaultSpYear({ ...ss, shapeAgeNow: at });
+    const known = firstTaxYear && y !== 999 && num(y) != null;
+    income.push(line(known ? 'pots.statePensionOld' : 'pots.statePensionOldNoYear', [money('spYearly'), ' a year'], figures, src, known ? { year: taxYearLabel(firstTaxYear + r0(y)), age: at != null ? String(r0(at + y)) : '' } : {}));
+  }
   else income.push(line('pots.noStatePension', [], figures, src));
   // the planner's rows are plan years; an age is the plan's start age plus the year (PlanDocument.shapeLayersFromSettings;
   // the final-salary start as dbStartSetting.dbStartAgeOf reads it: the age when saved, else the start age plus the year)

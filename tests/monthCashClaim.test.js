@@ -86,3 +86,12 @@ describe('a record stamped with the old label', () => {
     expect(fullText(d)).not.toContain('(already cash)');
   });
 });
+
+describe('the simple view names the gilt a month comes from without saying its money is in cash', () => {
+  it('"Where it comes from" never says "as cash" in a label: the cash sentence under it says that, from the cash entered', () => {
+    // a gilt's own label claimed its money was in cash even when the cash entered was £12; the full view says only "rung T29"
+    for (const [id, words] of Object.entries(MONTH.advice.from)) { expect(words, id).not.toMatch(/already|as cash/); }
+    expect(MONTH.advice.from.rung.replace('{year}', 'T29')).toBe('Your gilt T29');
+    expect(MONTH.advice.from.thisYear).toBe('This year’s gilt');
+  });
+});

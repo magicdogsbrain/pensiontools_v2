@@ -145,7 +145,7 @@ export const MONTH = {
     fromTitle: 'Where it comes from',
     from: {
       cash: 'Cash', bonds: 'Bonds', shares: 'Shares', diversifiers: 'Gold and trend',
-      rung: 'The gilt for {year}, already paid out as cash', thisYear: 'This year’s gilt, already paid out as cash', cashYears: 'The plan’s cash years',
+      rung: 'Your gilt {year}', thisYear: 'This year’s gilt', cashYears: 'The plan’s cash years',
       cashBefore: 'Your cash, until the first gilt pays', essentials: 'The gilt that pays for essentials', invested: 'Your invested money', investedRest: 'Your invested money, for the rest'
     },
     // said only when the cash entered covers the month (7.12.0); short, or with no cash figure, the other two

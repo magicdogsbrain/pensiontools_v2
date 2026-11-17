@@ -35,4 +35,8 @@ describe('index.html shows no ISO month or US-order date', () => {
     expect(html).not.toContain('.toLocaleDateString()');   // the browser's locale (US order on many machines)
     expect(html).not.toContain("toLocaleDateString('en-US");
   });
+  it('the share index\'s day in the rotation watch lines is in words (it printed "Updated 2026-11-11")', () => {
+    expect(html).not.toContain('budEsc(eq.date)');
+    expect(html).not.toContain('budEsc(eq.athDate)');
+  });
 });

@@ -62,7 +62,7 @@ function strings(obj, path = '', out = []) {
   return out;
 }
 /** A string as a person would see it: each {slot} filled with a figure of the right kind ({own} and {employer}: the two parts of a share of pay, 6.46.0, and {total} what they come to, 7.12.0; {ask}: a question's words). */
-const filled = (s) => s.replace(/\{(amount|min|max|own|employer|total)\}/g, '£25,000').replace(/\{(age|n|of|earliest)\}/g, '57')
+const filled = (s) => s.replace(/\{(amount|min|max|own|employer|total|lump|lands)\}/g, '£25,000').replace(/\{(age|n|of|earliest)\}/g, '57')
   .replace(/\{level\}/g, 'Moderate').replace(/\{who\}/g, 'one person').replace(/\{name\}/g, 'Stop later').replace(/\{words\}/g, 'in 9 futures out of 10')
   .replace(/\{version\}/g, '6.44.0').replace(/\{share\}/g, '31%').replace(/\{ask\}/g, 'When can I afford to stop work?');
 
@@ -481,7 +481,7 @@ describe('the words in src/v7/copy/', () => {
     const slots = new Set();
     for (const [, s] of strings(words)) for (const m of s.matchAll(/\{([a-zA-Z]+)\}/g)) slots.add(m[1]);
     // (total: what your part and your employer's come to, under the two boxes — PersonBlock's SplitLands, 7.12.0)
-    for (const slot of slots) expect(['age', 'amount', 'max', 'min', 'n', 'of', 'earliest', 'level', 'who', 'name', 'words', 'own', 'employer', 'share', 'total'], slot).toContain(slot);
+    for (const slot of slots) expect(['age', 'amount', 'max', 'min', 'n', 'of', 'earliest', 'level', 'who', 'name', 'words', 'own', 'employer', 'share', 'total', 'lump', 'lands'], slot).toContain(slot);
     for (const [where, s] of strings(words)) expect(s, where).not.toMatch(/\b(error|failed|invalid|submit|calculate|simulate)\b/i);
     for (const [where, s] of strings(words.buttons)) expect(s, where).not.toMatch(/^run\b/i);
   });

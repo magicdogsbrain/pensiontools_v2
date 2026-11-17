@@ -91,3 +91,32 @@ export function payInEntered(v, who) {
   const total = num(v[`${who}.payIn.total`]) ? v[`${who}.payIn.total`] : null;
   return { kind, employer: 0, total, yours: total === null ? 0 : total };
 }
+
+/**
+ * (7.12.0, P2.1) The pay-in being tried on B's answer, read from the parsed values: what payInEntered reads, with the try
+ * (try.payIn — your part as typed, or one figure — or try.payInPct, your share) in place of the box typed as now.
+ */
+export function payInTriedEntered(v) {
+  const kind = v['you.payIn.kind'];
+  if (kind === 'share' && num(v['try.payInPct'])) return payInEntered({ ...v, 'you.payIn.ownPct': v['try.payInPct'] }, 'you');
+  if (num(v['try.payIn'])) return payInEntered({ ...v, [kind === 'split' ? 'you.payIn.own' : 'you.payIn.total']: v['try.payIn'] }, 'you');
+  return payInEntered(v, 'you');
+}
+
+/**
+ * (7.12.0, P2.1) The draft/set that tries `n` going in a month on B's answer — never a box typed as now: a share of pay as
+ * the share that lands at least that much; your part in pounds in the unit you typed it in (a take-home figure is what
+ * lands less your employer's part, × 0.8); one figure as it is.
+ */
+export function tryPayInTo(entry, n, share = null) {
+  if (entry && entry.kind === 'share' && num(entry.pay) && entry.pay > 0) {
+    const employer = num(entry.employer) ? entry.employer : payInParts(entry).employer;
+    const ownPct = share && num(share.ownPct) ? share.ownPct : Math.min(100, Math.max(0, Math.ceil(((n - employer) * 1200 / entry.pay) * 100 - 1e-6) / 100));
+    return [set('b', 'try.payInPct', pctTyped(ownPct))];
+  }
+  if (entry && entry.kind === 'split') {
+    const employer = num(entry.employer) ? entry.employer : 0;
+    return [set('b', 'try.payIn', asTyped(Math.max(0, n - employer) * (entry.ownFrom === 'takeHome' ? 0.8 : 1)))];
+  }
+  return [set('b', 'try.payIn', asTyped(n))];
+}

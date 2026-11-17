@@ -177,6 +177,12 @@ export const B = {
     assumedFewer: 'Show fewer',
 
     tryTitle: 'Try a change',
+    /** (7.12.0, P2.1) A try on the answer: what is being tried, and the way back to what was typed as now. */
+    tryingPayIn: 'Trying {amount} a month going in. What you typed stays as it is.',
+    tryingLump: 'Trying {lump} put in now from your own money ({lands} in your pension with the tax added back).',
+    tryBack: 'Back to what you pay now',
+    tryBackLump: 'Back to what you have now',
+    tryLumpLabel: 'A one-off sum of your own, put in now',
     tryPayIn: 'Pay in',
     tryPayInCouple: 'You pay in',
     tryPayInDown: 'Pay in {amount} less a month',
@@ -288,6 +294,14 @@ export const B = {
   fields: {
     household: { label: 'Who is this for?', options: { single: 'Just me', couple: 'Me and my partner' } },
 
+    // (7.12.0, P2.1) a try on the answer, under "Try a change": never a box of the numbers step
+    'you.lump': {
+      label: 'A one-off sum of your own, put in now',
+      help: 'From your own money. Your provider adds the tax back, so £10,000 put in is £12,500 in your pension.',
+      errors: { notANumber: 'Use figures only, for example 10,000.' }
+    },
+    'try.payIn': { label: 'What you pay in a month, tried', errors: { notANumber: 'Use figures only, for example 400.' } },
+    'try.payInPct': { label: 'Your share of pay, tried', errors: { notANumber: 'Use figures only, for example 8.' } },
     'you.pot': {
       label: 'Your pension pot',
       help: 'All your pension pots added together.',

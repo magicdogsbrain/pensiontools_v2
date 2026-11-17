@@ -22,7 +22,7 @@ import { answerB } from '../../../src/answers/b/answer.js';
 import { leverActions, LEVERS } from '../../../src/v7/components/Levers.jsx';
 import { changedLine } from '../../../src/v7/components/TryAChange.jsx';
 import { cellActions } from '../../../src/v7/components/Grid.jsx';
-import { payInTo, payInEntered, asTyped } from '../../../src/v7/components/payInTo.js';
+import { payInTo, payInEntered, asTyped, tryPayInTo } from '../../../src/v7/components/payInTo.js';
 import { buildPlanSeed } from '../../../src/answers/keep/planSeed.js';
 import { seedToScenario } from '../../../src/services/PlanFromSeed.js';
 import { money } from '../../../src/answers/shared/format.js';
@@ -86,20 +86,19 @@ describe('"Pay in more" on a pay-in entered as your part and your employer\'s (r
   const tried = actions ? actions.reduce((s, a) => reduce(s, a), start) : null;
   const again = tried ? ask(tried) : null;
 
-  it('the lever raises your part by the whole rise and leaves the employer\'s box as typed', () => {
+  it('the lever tries your part raised by the whole rise (7.12.0, P2.1: a try, the boxes typed as now left as they are)', () => {
     expect(lever && typeof lever.payIn === 'number').toBe(true);
     expect(result.inputs.you.payIn).toEqual({ kind: 'split', own: 450, employer: 250 });
     expect(lever.payIn).toBeGreaterThan(700);
-    expect(actions).toEqual([
-      { type: 'draft/set', q: 'b', path: 'you.payIn.own', value: money(lever.payIn - 250).slice(1) },
-      { type: 'draft/set', q: 'b', path: 'you.payIn.kind', value: 'split' }
-    ]);
+    expect(actions).toEqual([{ type: 'draft/set', q: 'b', path: 'try.payIn', value: money(lever.payIn - 250).slice(1) }]);
+    expect(tried.draft.b.values['you.payIn.own']).toBe('450');
     expect(tried.draft.b.values['you.payIn.employer']).toBe('250');
     expect(tried.draft.b.values['you.payIn.total']).toBe(undefined);
   });
   it('asked again, what goes in is the lever\'s figure, the employer\'s part inside it, and it is on course', () => {
     expect(again.inputs.you.payIn).toEqual({ kind: 'split', own: lever.payIn - 250, employer: 250 });
     expect(again.payIn.now).toBe(lever.payIn);
+    expect(again.tried.now).toBe(700);                                        // what is paid now, as typed
     expect(again.payIn.employer).toBe(250);
     expect(again.onCourse).toBe(true);
     expect(again.chance.fixedAge).toBe(lever.lasted);
@@ -120,19 +119,15 @@ describe('"Pay in more" on a pay-in entered as your part and your employer\'s (r
   it('an entry of one figure is still one figure (the lever as it was)', () => {
     const one = ask(typed(HOUSEHOLDS['stop at 55, before the pension opens']));
     const a = leverActions('payMore', one);
-    expect(a.slice(0, 2)).toEqual([
-      { type: 'draft/set', q: 'b', path: 'you.payIn.total', value: money(one.levers.payMore.payIn).slice(1) },
-      { type: 'draft/set', q: 'b', path: 'you.payIn.kind', value: 'total' }
-    ]);
+    expect(a.slice(0, 1)).toEqual([{ type: 'draft/set', q: 'b', path: 'try.payIn', value: money(one.levers.payMore.payIn).slice(1) }]);
     // a kind that is none of the three: one figure, as before
     const other = { ...result, inputs: { ...result.inputs, you: { ...result.inputs.you, payIn: { kind: 'odd', odd: 5 } } } };
-    expect(leverActions('payMore', other)[0].path).toBe('you.payIn.total');
+    expect(leverActions('payMore', other)[0].path).toBe('try.payIn');
     // a share of pay (R1, saving-enough-and-check-in.md 3.6): the share is written and the kind kept — for a lever in pounds,
     // the share that lands at least its figure, to the box's 0.01%
     const shared = { ...result, inputs: { ...result.inputs, you: { ...result.inputs.you, payIn: { kind: 'share', pay: 35000, ownPct: 4, employerPct: 6 } } } };
     const written = leverActions('payMore', shared);
-    expect(written.slice(0, 2).map((x) => x.path)).toEqual(['you.payIn.ownPct', 'you.payIn.kind']);
-    expect(written[1].value).toBe('share');
+    expect(written.slice(0, 1).map((x) => x.path)).toEqual(['try.payInPct']);
     const lands = payInParts({ kind: 'share', pay: 35000, ownPct: Number(written[0].value), employerPct: 6 }).total;
     expect(lands).toBeGreaterThanOrEqual(result.levers.payMore.payIn);
     expect(lands).toBeLessThan(result.levers.payMore.payIn + 35000 * 0.0001 / 12 + 0.01);
@@ -147,9 +142,10 @@ describe('the stepper and the grid cell on a split entry keep the employer\'s pa
 
   it('"+ £50" on the stepper: your part up by £50, the employer\'s as typed; asked again, £50 more goes in', () => {
     const entered = payInEntered(v, 'you');
-    expect(entered).toEqual({ kind: 'split', employer: 250, total: 700, yours: 450 });
-    const actions = payInTo('b', 'you', entered, entered.total + 50);
-    expect(actions).toEqual([{ type: 'draft/set', q: 'b', path: 'you.payIn.own', value: '500' }, { type: 'draft/set', q: 'b', path: 'you.payIn.kind', value: 'split' }]);
+    expect(entered).toEqual({ kind: 'split', employer: 250, total: 700, yours: 450, ownFrom: 'lands', typed: 450 });
+    // (7.12.0, P2.1) B's stepper tries it: the box typed as now is left as it is
+    const actions = tryPayInTo(entered, entered.total + 50);
+    expect(actions).toEqual([{ type: 'draft/set', q: 'b', path: 'try.payIn', value: '500' }]);
     const again = ask(actions.reduce((s, a) => reduce(s, a), start));
     expect(again.inputs.you.payIn).toEqual({ kind: 'split', own: 500, employer: 250 });
     expect(again.payIn.now).toBe(750);
@@ -160,8 +156,7 @@ describe('the stepper and the grid cell on a split entry keep the employer\'s pa
     const actions = cellActions(result, 62, 1820);
     expect(actions).toEqual([
       { type: 'draft/set', q: 'b', path: 'stop.age', value: '62' },
-      { type: 'draft/set', q: 'b', path: 'you.payIn.own', value: '1,570' },
-      { type: 'draft/set', q: 'b', path: 'you.payIn.kind', value: 'split' }
+      { type: 'draft/set', q: 'b', path: 'try.payIn', value: '1,570' }
     ]);
     const again = ask(actions.reduce((s, a) => reduce(s, a), start));
     expect(again.inputs.you.payIn).toEqual({ kind: 'split', own: 1570, employer: 250 });
@@ -174,14 +169,14 @@ describe('the stepper and the grid cell on a split entry keep the employer\'s pa
     expect(r.inputs.you.payIn).toEqual({ kind: 'split', own: 450, employer: 250.5 });
     const lever = r.levers.payMore;
     const actions = leverActions('payMore', r);
-    expect(actions[0]).toEqual({ type: 'draft/set', q: 'b', path: 'you.payIn.own', value: asTyped(lever.payIn - 250.5) });
+    expect(actions[0]).toEqual({ type: 'draft/set', q: 'b', path: 'try.payIn', value: asTyped(lever.payIn - 250.5) });
     expect(actions[0].value).toMatch(/^\d{1,3}(,\d{3})*\.50$/);                // the lever's figure is whole pounds: 50p is left in your part
     const again = ask(actions.reduce((s, a) => reduce(s, a), pence));
     expect(again.payIn.now).toBe(lever.payIn);                                // not 50p over, as money()'s rounding gave
     expect(again.onCourse).toBe(true);
     expect(changedLine('b', B, r.inputs, again.inputs)).toBe(`You changed what goes in each month from ${money(700.5)} to ${money(lever.payIn)}.`);
     // the stepper too: £50 on top of £700.50 is £750.50, your part £500 exactly
-    const step = payInTo('b', 'you', payInEntered(parsedDraft(pence, 'b').values, 'you'), 750.5);
+    const step = tryPayInTo(payInEntered(parsedDraft(pence, 'b').values, 'you'), 750.5);
     expect(step[0].value).toBe('500');
     expect(ask(step.reduce((s, a) => reduce(s, a), pence)).payIn.now).toBe(750.5);
   });
@@ -209,13 +204,14 @@ describe('the stepper and the grid cell on a split entry keep the employer\'s pa
     expect(payInTo('b', 'you', { kind: 'share', pay: 35000, ownPct: 4, employerPct: 6 }, 50)[0].value).toBe('0');
     // no pay to be a share of: the pounds into the two parts, as before
     expect(payInTo('b', 'you', { kind: 'share', employer: 175, total: 291.67, yours: 116.67, pay: 0 }, 950)).toEqual([
-      { type: 'draft/set', q: 'b', path: 'you.payIn.own', value: '775' }, { type: 'draft/set', q: 'b', path: 'you.payIn.employer', value: '175' }, { type: 'draft/set', q: 'b', path: 'you.payIn.kind', value: 'split' }
+      { type: 'draft/set', q: 'b', path: 'you.payIn.own', value: '775' }, { type: 'draft/set', q: 'b', path: 'you.payIn.employer', value: '175' },
+      { type: 'draft/set', q: 'b', path: 'you.payIn.ownFrom', value: 'lands' }, { type: 'draft/set', q: 'b', path: 'you.payIn.kind', value: 'split' }
     ]);
     expect(payInEntered({ 'you.payIn.kind': 'share', 'you.payIn.pay': 35000, 'you.payIn.ownPct': 4, 'you.payIn.employerPct': 6 }, 'you')).toEqual({ kind: 'share', employer: 175, total: 291.67, yours: 116.67, pay: 35000 });
     expect(payInEntered({ 'you.payIn.kind': 'share', 'you.payIn.pay': 35000 }, 'you')).toEqual({ kind: 'share', employer: 0, total: null, yours: 0, pay: 35000 });
     // as typed: one figure blank is null (the stepper shows nothing and offers no step); split with both boxes blank is £0
     expect(payInEntered({ 'you.payIn.kind': 'total' }, 'you')).toEqual({ kind: 'total', employer: 0, total: null, yours: 0 });
-    expect(payInEntered({ 'you.payIn.kind': 'split' }, 'you')).toEqual({ kind: 'split', employer: 0, total: 0, yours: 0 });
-    expect(payInEntered({ 'partner.payIn.kind': 'split', 'partner.payIn.own': 0, 'partner.payIn.employer': 300 }, 'partner')).toEqual({ kind: 'split', employer: 300, total: 300, yours: 0 });
+    expect(payInEntered({ 'you.payIn.kind': 'split' }, 'you')).toEqual({ kind: 'split', employer: 0, total: 0, yours: 0, ownFrom: 'lands', typed: 0 });
+    expect(payInEntered({ 'partner.payIn.kind': 'split', 'partner.payIn.own': 0, 'partner.payIn.employer': 300 }, 'partner')).toEqual({ kind: 'split', employer: 300, total: 300, yours: 0, ownFrom: 'lands', typed: 0 });
   });
 });

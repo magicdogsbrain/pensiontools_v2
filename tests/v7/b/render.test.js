@@ -121,7 +121,8 @@ describe('B, step 1: what have you saved, and what are you paying in?', () => {
     const top = [...LAYOUT_B.you, ...LAYOUT_B.partner, ...LAYOUT_B.more, ...LAYOUT_B.spend];
     expect(new Set(top).size).toBe(top.length);
     for (const f of SCHEMA_B.fields) {
-      if (f.path === 'household') continue;
+      // (a try on the answer, 7.12.0: drawn under "Try a change", not on the numbers step)
+      if (f.path === 'household' || f.group === 'try') continue;
       const parents = Object.keys(f.when || {}).filter((p) => p !== 'household');
       if (parents.length === 0) expect(top, f.path).toContain(f.path);
       else for (const p of parents) expect(top, `${f.path} under ${p}`).toContain(p);
@@ -333,11 +334,11 @@ describe('B, step 2: am I on course, and what would be enough to pay in?', () =>
       payMore: (r) => {
         const p = r.inputs.you.payIn;
         // a share of pay keeps its kind: the lever's own share is written (saving-enough-and-check-in.md 3.6)
-        if (p.kind === 'share') return [set('you.payIn.ownPct', String(r.levers.payMore.ownPct)), set('you.payIn.kind', 'share')];
+        // (7.12.0, P2.1) a try, never the boxes typed as now: the share tried, or the pounds tried in the unit typed
+        if (p.kind === 'share') return [set('try.payInPct', String(r.levers.payMore.ownPct))];
         const split = p.kind === 'split';
         return [
-          split ? set('you.payIn.own', money(r.levers.payMore.payIn - (p.employer || 0)).slice(1)) : set('you.payIn.total', money(r.levers.payMore.payIn).slice(1)),
-          set('you.payIn.kind', split ? 'split' : 'total'),
+          set('try.payIn', money(split ? r.levers.payMore.payIn - (p.employer || 0) : r.levers.payMore.payIn).slice(1)),
           ...(typeof r.levers.payMore.savingsIn === 'number' ? [set('savingsIn', money(r.levers.payMore.savingsIn).slice(1))] : [])
         ];
       },
@@ -425,7 +426,7 @@ describe('B, step 2: am I on course, and what would be enough to pay in?', () =>
     expect(first.querySelector('[data-key="enough.atLevel.totalPct"]').getAttribute('data-kind')).toBe('pct');
     expect(root.querySelector('[data-enough="share"] h2').textContent).toBe(`To be on course: ${nine.totalPct}% of your pay in all`);
     one(root, 'b.lever.payMore.try').click();
-    expect(actions).toEqual([set('you.payIn.ownPct', String(nine.ownPct)), set('you.payIn.kind', 'share')]);
+    expect(actions).toEqual([set('try.payInPct', String(nine.ownPct))]);   // (7.12.0, P2.1: a try)
   });
 
   it('no sentence is said twice on the answer: every named answer, and the Close band (where today\'s pay-in already lasts in 3 futures out of 4) at either chance', () => {
@@ -465,7 +466,7 @@ describe('B, step 2: am I on course, and what would be enough to pay in?', () =>
     const age = r.grid.ages[0].age;
     const j = r.grid.shares.length - 1;
     one(root, `b.grid.${age}.${r.grid.payIns[j]}`).click();
-    expect(actions).toEqual([set('stop.age', String(age)), set('you.payIn.ownPct', String(r.grid.shares[j] - 4)), set('you.payIn.kind', 'share')]);
+    expect(actions).toEqual([set('stop.age', String(age)), set('try.payInPct', String(r.grid.shares[j] - 4))]);   // (7.12.0, P2.1: a try)
   });
 
   it('what next carries B\'s figures: one action each, no figure in an address', () => {
@@ -500,12 +501,13 @@ describe('B, try a change', () => {
     // the figure first, then the choice it belongs to: no step in between is a draft that does not parse. B1 is entered as
     // £450 from you and £250 from the employer: £700 shown, +£50 is £500 from you (before, one figure of £750 — and the kept
     // plan then read "£0 from your employer")
-    expect(press(load('answer-B1'), 'b.try.payIn.up')).toEqual([set('you.payIn.own', '500'), set('you.payIn.kind', 'split')]);
-    expect(press(load('answer-B1'), 'b.try.payIn.down')).toEqual([set('you.payIn.own', '400'), set('you.payIn.kind', 'split')]);
+    // (7.12.0, P2.1) a try, never the box typed as now: £450 lands from you (said so), so +£50 tries £500 from you
+    expect(press(load('answer-B1'), 'b.try.payIn.up')).toEqual([set('try.payIn', '500')]);
+    expect(press(load('answer-B1'), 'b.try.payIn.down')).toEqual([set('try.payIn', '400')]);
     // one figure (B4: £400 typed as one figure) stays one figure
     expect(load('answer-B4-before-57').draft.b.values['you.payIn.total']).toBe('400');
-    expect(press(load('answer-B4-before-57'), 'b.try.payIn.up')).toEqual([set('you.payIn.total', '450'), set('you.payIn.kind', 'total')]);
-    expect(press(load('answer-B4-before-57'), 'b.try.payIn.down')).toEqual([set('you.payIn.total', '350'), set('you.payIn.kind', 'total')]);
+    expect(press(load('answer-B4-before-57'), 'b.try.payIn.up')).toEqual([set('try.payIn', '450')]);
+    expect(press(load('answer-B4-before-57'), 'b.try.payIn.down')).toEqual([set('try.payIn', '350')]);
     // nothing of yours left to take off: "− £50" is not offered (the employer's part is not yours to cut)
     const none = clone(load('answer-B1'));
     none.draft.b.values = { ...none.draft.b.values, 'you.payIn.own': '0' };
@@ -558,14 +560,14 @@ describe('B, step 3: stop later, pay in more, or both', () => {
     cell.click();
     // B1's pay-in is £450 from you and £250 from the employer: the cell's figure less the employer's part becomes yours
     expect(state.answers.b.result.inputs.you.payIn).toEqual({ kind: 'split', own: 450, employer: 250 });
-    expect(actions).toEqual([set('stop.age', String(age)), set('you.payIn.own', money(payIn - 250).slice(1)), set('you.payIn.kind', 'split')]);
+    expect(actions).toEqual([set('stop.age', String(age)), set('try.payIn', money(payIn - 250).slice(1))]);   // (7.12.0, P2.1: a try)
     expect(one(root, 'b.action.back').getAttribute('href')).toBe('#/b/answer');
     // one figure: the cell's figure as one figure, as before
     const one1 = clone(state);
     one1.answers.b.result.inputs.you.payIn = { total: 700 };
     const pressed = draw(one1);
     one(pressed.root, `b.grid.${age}.${payIn}`).click();
-    expect(pressed.actions).toEqual([set('stop.age', String(age)), set('you.payIn.total', money(payIn).slice(1)), set('you.payIn.kind', 'total')]);
+    expect(pressed.actions).toEqual([set('stop.age', String(age)), set('try.payIn', money(payIn).slice(1))]);
   });
   it('on course: it says so first', () => {
     const root = renderScreen(load('choices-on-course'));

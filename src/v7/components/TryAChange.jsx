@@ -19,7 +19,7 @@ import { Money } from './Money.jsx';
 import { Sentence } from './Sentence.jsx';
 import { Field, blank } from './Field.jsx';
 import { Button } from './Button.jsx';
-import { payInTo, payInEntered } from './payInTo.js';
+import { payInTo, payInEntered, payInTriedEntered, tryPayInTo } from './payInTo.js';
 import { C } from '../copy/c.js';
 import { LEVELS_WORDS, weighedResult } from '../copy/common.js';
 
@@ -319,15 +319,19 @@ export function SaverTryAChange({ q, state, form, result, dispatch }) {
   } else {
     // B: what goes in, £50 at a time — the whole figure (one figure as typed, or your two parts added up); a split entry
     // moves your part and keeps the employer's, so "− £50" rests once nothing of yours is left to take off.
-    const entered = payInEntered(v, 'you');
+    // (7.12.0, P2.1) one person: a try, never the box typed as now — and £50 at a time from take-home pay when your part
+    // was typed as what leaves it (£62.50 going in with the tax added back)
+    const tries = !form.couple && form.byPath.get('try.payIn');
+    const entered = tries ? payInTriedEntered(v) : payInEntered(v, 'you');
     const payIn = entered.total;
-    const payTo = (n) => send(payInTo(q, 'you', entered, n));
+    const step = entered.kind === 'split' && entered.ownFrom === 'takeHome' ? 62.5 : 50;
+    const payTo = (n) => send(tries ? tryPayInTo(entered, n) : payInTo(q, 'you', entered, n));
     // you have stopped: nothing more goes into your pension, so there is nothing of yours to try
     if (!aboutPartner) rows.push(
-      <Stepper key="payIn" q={q} id="payIn" label={form.couple ? t.tryPayInCouple : t.tryPayIn} typed="you.payIn.total" busy={busy}
+      <Stepper key="payIn" q={q} id="payIn" label={form.couple ? t.tryPayInCouple : t.tryPayIn} typed={tries ? (entered.kind === 'share' ? 'try.payInPct' : 'try.payIn') : 'you.payIn.total'} busy={busy}
         value={payIn === null ? '' : money(payIn)}
-        down={payIn !== null && entered.yours > 0 ? () => payTo(Math.max(0, payIn - 50)) : null}
-        up={payIn !== null && payIn + 50 <= form.byPath.get('you.payIn.total').max ? () => payTo(payIn + 50) : null}
+        down={payIn !== null && entered.yours > 0 ? () => payTo(Math.max(entered.employer || 0, payIn - step)) : null}
+        up={payIn !== null && payIn + step <= form.byPath.get('you.payIn.total').max ? () => payTo(payIn + step) : null}
         downLabel={t.tryPayInDown.replace('{amount}', money(50))} upLabel={t.tryPayInUp.replace('{amount}', money(50))}
         downText={`− ${money(50)}`} upText={`+ ${money(50)}`} />
     );
@@ -346,6 +350,26 @@ export function SaverTryAChange({ q, state, form, result, dispatch }) {
           downText={`− ${money(50)}`} upText={`+ ${money(50)}`} />
       );
     }
+  }
+
+  // (7.12.0, P2.1) B for one person: a one-off sum of your own, put in now — a try, the pot typed as now left as it is —
+  // and, while anything is being tried, what it is and the way back to what was typed
+  if (q === 'b' && !aboutPartner && form.byPath.get('you.lump')) {
+    const tried = result.tried || null;
+    const back = (paths) => () => send(paths.map((path) => set(path, null)));
+    if (tried && tried.payIn) rows.push(
+      <p key="trying" class="note try-trying" data-testid="b.try.trying">{t.tryingPayIn.replace('{amount}', money(result.payIn.now))}{' '}
+        <Button testid="b.try.back" kind="quiet" onClick={back(['try.payIn', 'try.payInPct'])}>{t.tryBack}</Button></p>
+    );
+    rows.push(
+      <div key="lump" class="try-lump">
+        <Field form={form} path="you.lump" dispatch={dispatch} testid="b.try.lump" label={t.tryLumpLabel} placeholder="10,000" showError={false} />
+        {tried && tried.lump > 0 && (
+          <p class="note" data-testid="b.try.lump.trying">{t.tryingLump.replace('{lump}', money(tried.lump)).replace('{lands}', money(tried.lumpLands))}{' '}
+            <Button testid="b.try.lump.back" kind="quiet" onClick={back(['you.lump'])}>{t.tryBackLump}</Button></p>
+        )}
+      </div>
+    );
   }
 
   // (a stop past a step starts on the step, so the figure typed is not this answer's start: spending-shape.md 6.3)

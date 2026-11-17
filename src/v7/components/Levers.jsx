@@ -25,7 +25,7 @@ import { Sentence } from './Sentence.jsx';
 import { Button, LinkButton } from './Button.jsx';
 import { href } from '../router/routes.js';
 import { money } from '../../answers/shared/format.js';
-import { payInTo, asTyped } from './payInTo.js';
+import { asTyped, tryPayInTo } from './payInTo.js';
 import { B } from '../copy/b.js';
 
 export const LEVERS = ['stopLater', 'payMore', 'spendLess', 'oneOff', 'moreRisk', 'accept'];
@@ -50,10 +50,14 @@ export function leverActions(id, result) {
     // below what goes in now); one figure stays one figure
     const p = (result.inputs && result.inputs.you && result.inputs.you.payIn) || null;
     // a share of pay keeps its kind: the lever's share is written (saving-enough-and-check-in.md 3.6)
-    return [...payInTo('b', 'you', p, lever.payIn, typeof lever.ownPct === 'number' ? { ownPct: lever.ownPct } : null), ...savings];
+    // (7.12.0, P2.1) a try, never the boxes typed as now
+    return [...tryPayInTo(p, lever.payIn, typeof lever.ownPct === 'number' ? { ownPct: lever.ownPct } : null), ...savings];
   }
   // A one-off sum now (3.4): the pot today that much larger — exactly what the lever tried (a couple: each pension its part)
   if (id === 'oneOff' && typeof lever.amount === 'number') {
+    // (7.12.0, P2.1) one person: a one-off sum of your own, put in now — what lands is it with the tax added back (× 1.25),
+    // so the sum is the lever's figure ÷ 1.25, to the pound up; the pot box typed as now is left as it is
+    if (!couple && !Array.isArray(lever.byPerson)) return [set('you.lump', asTyped(Math.ceil(lever.amount / 1.25)))];
     const parts = Array.isArray(lever.byPerson) ? lever.byPerson : [{ who: 'you', amount: lever.amount }];
     return parts.map(({ who, amount }) => {
       const pot = result.inputs && result.inputs[who] && typeof result.inputs[who].pot === 'number' ? result.inputs[who].pot : 0;

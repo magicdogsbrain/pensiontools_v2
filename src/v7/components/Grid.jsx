@@ -22,7 +22,7 @@ import { LinkButton } from './Button.jsx';
 import { countPlain } from './OutOfTenBar.jsx';
 import { href } from '../router/routes.js';
 import { money, ageText, outOfTen, pctText, twentiethsOfFutures } from '../../answers/shared/format.js';
-import { payInTo } from './payInTo.js';
+import { payInTo, tryPayInTo } from './payInTo.js';
 import { B } from '../copy/b.js';
 
 const set = (path, value) => ({ type: 'draft/set', q: 'b', path, value });
@@ -34,7 +34,9 @@ const set = (path, value) => ({ type: 'draft/set', q: 'b', path, value });
 export function cellActions(result, age, payIn, totalPct = null) {
   const p = (result && result.inputs && result.inputs.you && result.inputs.you.payIn) || null;
   const share = typeof totalPct === 'number' && p && p.kind === 'share' ? { ownPct: Math.round((totalPct - (p.employerPct || 0)) * 100) / 100 } : null;
-  return [set('stop.age', String(age)), ...payInTo('b', 'you', p, payIn, share)];
+  // (7.12.0, P2.1) one person: the pay-in is a try, never the box typed as now
+  const couple = !!(result && result.inputs && result.inputs.household === 'couple');
+  return [set('stop.age', String(age)), ...(couple ? payInTo('b', 'you', p, payIn, share) : tryPayInTo(p, payIn, share))];
 }
 
 /**

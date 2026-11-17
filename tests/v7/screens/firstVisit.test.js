@@ -228,10 +228,10 @@ describe('the pot over a life (D): what is left over the years ahead', () => {
 });
 
 describe('the page around an answer: the slider, the three figures, the Keep line', () => {
-  it('B: the slider moves the box the form has — what goes in a month — keyboard-reachable, labelled, its range stable from the answer held', () => {
+  it('B: the slider tries what goes in a month (7.12.0, P2.1: never the box typed as now) — keyboard-reachable, labelled, its range stable from the answer held', () => {
     const state = load('b', 'answer-B1');
     const S = answerSlider(state, 'b');
-    expect(S.path).toBe(`you.payIn.${state.answers.b.result.inputs.you.payIn.kind === 'split' ? 'own' : 'total'}`);
+    expect(S.path).toBe('try.payIn');
     expect(S.max).toBeGreaterThanOrEqual(state.answers.b.result.payIn.needed);
     const { root, actions } = draw(state);
     const input = one(root, 'b.slider.input');

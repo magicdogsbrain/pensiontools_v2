@@ -238,13 +238,13 @@ describe('the write: the check-in, the month\'s pot record, how often, an unlock
     expect(record.reading.expected).toBe(sr.expected);
     expect(record.reading.pathBand).toBe('start');
   });
-  it('the path starts at the check-in\'s pot with holdings recorded too: the holdings decide only the saving mix', () => {
+  it('the path starts at the check-in\'s pot with holdings recorded too: the holdings decide nothing until accepted as the plan', () => {
     const held = copy(plan);
     held.holdings = { version: 1, updatedAt: '2026-11-01T09:00:00.000Z', source: 'typed', lines: [{ wrapper: 'SIPP', ticker: 'VWRP', name: 'All-world shares', value: 90000 }] };
     const { plan: after } = checkIn(held, '2026-11-20', SHARE(64500));
     expect(after.accumulationTool.path.path[0].nominal.middling).toBe(64500);
     expect(after.accumulationTool.path.potSource).toBe('check-in');
-    expect(after.accumulationTool.path.mixes.fromHoldings).toBe(true);
+    expect(after.accumulationTool.path.mixes.fromHoldings).toBe(false);   // (7.12.0) not accepted as the plan: its own mix
   });
   it('a second check-in in the same month corrects the first: one check-in and one pot record for the month, the path drawn again from it', () => {
     const one = checkIn(plan, '2026-11-20', SHARE(64500)).plan;

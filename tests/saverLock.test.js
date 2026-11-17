@@ -203,12 +203,13 @@ describe('new locks (plan document version 3): the saving path on V7\'s saving-y
     expect(pathCountsIsa({ accumulation: noIsa })).toBe(false);
     expect(pathCountsIsa({ accumulation: path })).toBe(true);
   });
-  it('what you hold, when recorded, is the pension (SIPP lines), the ISA (ISA lines) and the saving mix', () => {
+  it('what you hold, when recorded, is the pension (SIPP lines) and the ISA (ISA lines); the saving mix stays the plan\'s own until accepted', () => {
     const holdings = { version: 1, updatedAt: '2026-07-10', source: 'typed', lines: [{ ticker: 'VWRP', value: 260000, wrapper: 'SIPP' }, { ticker: 'VAGP', value: 50000, wrapper: 'SIPP' }, { ticker: 'VWRP', value: 41000, wrapper: 'ISA' }] };
     const p = buildSavingPath({ settings: saver, timing, accumulation, holdings, now: NOW, lives: 50 });
     expect(p).toMatchObject({ potNow: 310000, potSource: 'holdings', isaNow: 41000, isaSource: 'holdings' });
-    expect(p.mixes.fromHoldings).toBe(true);
-    expect(p.mixes.saving.equity).toBeGreaterThan(0.8);
+    // (7.12.0, lead decision 4) what is held decides the saving mix only once it is accepted as the plan: the plan's own mix
+    expect(p.mixes.fromHoldings).toBe(false);
+    expect(p.mixes.saving).toEqual(p.mixes.drawing);
   });
   it('locked with no pension pot on record: the gap is recorded, never a path from the tested pots', () => {
     const p = buildSavingPath({ settings: saver, timing, accumulation: { netMonthly: 600, salary: 68000 }, now: NOW, lives: 50 });

@@ -75,7 +75,7 @@ test.describe('"What you spend", without an account', () => {
     await expect(page.getByTestId('plan.spend.first.legend')).toHaveText('From age 59, the plan’s first year');
     await expect(page.getByTestId('plan.spend.first.amount')).toHaveValue(String(first));
     await expect(page.locator('[data-saved-for="first.amount"]')).toHaveText(`From your plan, saved 11 September 2026 (${first})`);
-    await expect(page.locator('#plan\\.spend\\.first\\.amount\\.help')).toHaveText('£48,000 a year before tax, as the plan saves it.');
+    await expect(page.locator('#plan\\.spend\\.first\\.amount\\.help')).toHaveText('£48,000 a year before tax, as it is taken.');
     await expect(page.getByTestId('plan.spend.steps.0.fromAge')).toHaveValue('66');
     await expect(page.getByTestId('plan.spend.steps.0.amount')).toHaveValue(String(second));
     await expect(page.locator('[id="plan.spend.steps.0.then"]')).toHaveValue('glides');
@@ -94,7 +94,7 @@ test.describe('"What you spend", without an account', () => {
 
     // a new first figure; a step at 85, falling 1% a year — the derived lines follow before Save
     await page.getByTestId('plan.spend.first.amount').fill('3,000');
-    await expect(page.locator('#plan\\.spend\\.first\\.amount\\.help')).toHaveText(`${gbp(yearlyGross(3000, b))} a year before tax, as the plan saves it.`);
+    await expect(page.locator('#plan\\.spend\\.first\\.amount\\.help')).toHaveText(`${gbp(yearlyGross(3000, b))} a year before tax, as it is taken.`);
     await page.getByTestId('plan.spend.steps.add').click();
     await expect(page.locator('[data-card="steps.n1"] > legend')).toHaveText('Step 3');
     await page.getByTestId('plan.spend.steps.n1.fromAge').fill('85');

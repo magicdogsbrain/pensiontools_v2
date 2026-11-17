@@ -75,7 +75,7 @@ describe('every corpus plan at three dates: the first row, the cards, the pictur
           if (!root.querySelector('label[for="plan.spend.first.amount"]')) problems.push(`${e.plan.id}: no label for the first amount`);
           const src = root.querySelector('[data-saved-for="first.amount"]');
           if (!src || !/From your plan|As saved in the plan/.test(src.textContent)) problems.push(`${e.plan.id}: no source beside the first amount`);
-          if (!root.querySelector('#plan\\.spend\\.first\\.amount\\.help') || !/a year before tax, as the plan saves it/.test(root.querySelector('#plan\\.spend\\.first\\.amount\\.help').textContent)) problems.push(`${e.plan.id}: no before-tax figure under the first amount`);
+          if (!root.querySelector('#plan\\.spend\\.first\\.amount\\.help') || !/a year before tax, as it is taken/.test(root.querySelector('#plan\\.spend\\.first\\.amount\\.help').textContent)) problems.push(`${e.plan.id}: no before-tax figure under the first amount`);
           if (!root.querySelector('[id="plan.spend.first.then"]')) problems.push(`${e.plan.id}: no "then" box on the first row`);
           if (!root.querySelector('[data-testid="plan.spend.first.legend"]')) problems.push(`${e.plan.id}: no legend on the first row`);
           // every card: a legend, a label for each box, the saved value beside each, Remove; every list: Add; the steps: Suggest
@@ -94,7 +94,7 @@ describe('every corpus plan at three dates: the first row, the cards, the pictur
                 if (savedCard && savedCard[f.path] != null && savedCard[f.path] !== '' && !card.querySelector(`[data-saved-for="${path}"]`)) problems.push(`${e.plan.id}: no saved value beside ${path}`);
               }
               if (!card.querySelector(`[data-testid="plan.spend.${L}.remove.${id}"]`)) problems.push(`${e.plan.id}: no Remove on ${L}.${id}`);
-              if (L === 'steps' && !/a year before tax, as the plan saves it/.test(card.textContent)) problems.push(`${e.plan.id}: no before-tax figure on ${L}.${id}`);
+              if (L === 'steps' && !/a year before tax, as it is taken/.test(card.textContent)) problems.push(`${e.plan.id}: no before-tax figure on ${L}.${id}`);
             }
           }
           if (!root.querySelector('[data-testid="plan.spend.steps.suggest"]')) problems.push(`${e.plan.id}: no Suggest`);
@@ -130,14 +130,14 @@ describe('the lumpy plan (12): what the page says, and what typing does', () => 
     expect(root.querySelector('[data-testid="plan.spend.first.legend"]').textContent).toBe('From age 59, the plan’s first year');
     expect(root.querySelector('[data-testid="plan.spend.first.amount"]').value).toBe(String(s.first.monthly));
     expect(root.querySelector('[data-saved-for="first.amount"]').textContent).toBe(`From your plan, saved 11 September 2026 (${s.first.monthly})`);
-    expect(root.querySelector('#plan\\.spend\\.first\\.amount\\.help').textContent).toBe('£48,000 a year before tax, as the plan saves it.');
+    expect(root.querySelector('#plan\\.spend\\.first\\.amount\\.help').textContent).toBe('£48,000 a year before tax, as it is taken.');
     expect(root.querySelector('[id="plan.spend.first.then"]').value).toBe('level');
     expect(root.querySelector('[data-testid="plan.spend.steps.0.fromAge"]').value).toBe('66');
     expect(root.querySelector('[data-testid="plan.spend.steps.0.amount"]').value).toBe(String(s.steps[0].monthly));
     expect(root.querySelector('[id="plan.spend.steps.0.then"]').value).toBe('glides');
     expect(root.querySelector('[id="plan.spend.steps.1.then"]').value).toBe('level');
     expect([...root.querySelector('[id="plan.spend.steps.1.then"]').options].map((o) => o.value)).toEqual(['level', 'falls']);   // the last step cannot move evenly
-    expect(root.querySelector('#plan\\.spend\\.steps\\.0\\.amount\\.help').textContent).toContain('£42,000 a year before tax, as the plan saves it.');
+    expect(root.querySelector('#plan\\.spend\\.steps\\.0\\.amount\\.help').textContent).toContain('£42,000 a year before tax, as it is taken.');
     expect(root.querySelector('#plan\\.spend\\.steps\\.0\\.amount\\.help').textContent).toContain('% of the start.');
     expect(root.querySelector('[data-saved-for="steps.0.fromAge"]').textContent).toBe('From your plan, saved 11 September 2026 (66)');
     expect(root.querySelector('[data-testid="plan.spend.costs.0.label"]').value).toBe('New roof');

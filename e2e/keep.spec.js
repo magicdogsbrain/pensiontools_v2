@@ -142,10 +142,11 @@ test.describe('keep this as a plan (the published build)', () => {
     await app.click(save);
     await expect(app.id('b.keep.made')).toBeVisible({ timeout: 60_000 });
     await expect(app.id('b.keep.made')).toContainText('Your partner’s part is in ‘');
-    // a saver's plan opens on its own "What you pay in" first; the lock is a quiet link (release step R2)
+    // a saver's plan opens on its own "What you pay in" first (release step R2); your own saving plan is not offered a lock as
+    // it is kept (7.12.0, round 3)
     const made = await app.id('b.keep.made').getAttribute('data-plan-id');
     await expect(app.id('b.keep.saving')).toHaveAttribute('href', `#/plan/${made}/saving`);
-    await expect(app.id('b.keep.lock')).toHaveAttribute('href', `#/plan/${made}/lock`);
+    await expect(app.id('b.keep.lock')).toHaveCount(0);
     const plans = await storedPlans(page);
     expect(plans.length).toBe(3);
     expect(JSON.stringify(plans[0])).toBe(JSON.stringify(first[0]));                  // the first plan byte-identical

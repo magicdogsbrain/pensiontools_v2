@@ -164,3 +164,22 @@ describe('the form\'s own pieces', () => {
     expect([age, pot, date, amount, from].map(stressKindOf)).toEqual(['age', 'money', 'spDate', 'money', 'age']);
   });
 });
+
+describe('a box still being typed in when the page moves on', () => {
+  it('is saved by flush, though it has not been left yet (no change event)', async () => {
+    document.body.innerHTML = '<div id="f"><h2>Settings</h2><input type="number" id="pot" value=""></div>';
+    const saves = [];
+    const auto = createAutosave(window, document, {
+      root: () => document.getElementById('f'), heading: () => document.querySelector('#f h2'), testid: 'settings.saveState',
+      include: () => true, state: () => null, kindOf: () => 'money', canSave: async () => true, planId: async () => 'PlanA',
+      visible: () => true, byPerson: () => true, delay: 5, save: async () => { saves.push(document.getElementById('pot').value); return true; }
+    });
+    await auto.loaded();
+    const box = document.getElementById('pot');
+    box.focus(); box.value = '410000';               // typed, still in the box
+    await auto.flush();
+    expect(saves).toEqual(['410000']);
+    await auto.loaded();                              // the same plan drawn again
+    expect(document.querySelector('[data-testid="settings.saveState"]').textContent).toBe('Saved');
+  });
+});

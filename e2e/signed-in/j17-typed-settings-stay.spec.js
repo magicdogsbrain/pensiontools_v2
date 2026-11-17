@@ -29,7 +29,7 @@ test('a way of drawing pressed and figures typed on a new plan\'s Settings are s
   await wiz.getByRole('button', { name: /already drawing my pension/ }).click();
 
   // the full view shows the Stress tester: Settings pressed, a way chosen, figures typed, all before the page's own press
-  await expect(page.locator('#mainApp:not(.hidden) .tab.active[data-tab="stress"]')).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('#mainApp:not(.hidden) #stress-content.active')).toBeVisible({ timeout: 30_000 });   // the Stress tester shown (either view width)
   const shownAt = await page.evaluate(() => performance.now());
   await page.locator('.sub-tab[data-stresstab="stresssettings"]').click();
   await page.locator('button[data-strat="full-il-gilt"]').click();
@@ -109,8 +109,7 @@ test('figures typed on Settings stay after Tab and a reload, after another sub-t
   await page.locator('.sub-tab[data-stresstab="montecarlo"]').click();
   await page.locator('.sub-tab[data-stresstab="stresssettings"]').click();
   await expect(page.locator('#ssIsaBalance')).toHaveValue('40000');
-  s = (await plansOf(uid))[0].stressTool.settings;
-  expect(s.isaBalance).toBe(40000);
+  await expect.poll(async () => (await plansOf(uid))[0].stressTool.settings.isaBalance, { timeout: 15_000 }).toBe(40000);   // the write lands a moment after the screen
 
   // type, switch plan and back: there, and the other plan untouched
   const first = (await plansOf(uid))[0].id;

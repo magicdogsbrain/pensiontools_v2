@@ -203,7 +203,10 @@ export function createAutosave(win, doc, o) {
 
   /** Sends a change waiting to go (and waits for one going); nothing when nothing was changed. */
   async function flush() {
-    if (timer) { win.clearTimeout(timer); timer = null; await run(); return; }
+    // a box still being typed in (no change yet) counts as changed: a tab, a sub-tab or another plan never draws over it
+    const r = root(), ae = doc.activeElement;
+    const typing = !!(r && ae && r.contains(ae) && /^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName) && (!o.include || o.include(ae)));
+    if (timer || typing) { if (timer) win.clearTimeout(timer); timer = null; await run(); return; }
     if (running) await running;
   }
 
@@ -211,9 +214,10 @@ export function createAutosave(win, doc, o) {
   async function loaded() {
     if (timer) { win.clearTimeout(timer); timer = null; }
     base = fp();
+    const was = boundId;
     try { boundId = await o.planId(); } catch (e) { boundId = null; }
     paint([]);
-    status('');
+    if (boundId !== was) status('');   // the same plan drawn again keeps its "Saved"
   }
 
   /** Saved by the page's own button: what the form shows now is what is stored. */

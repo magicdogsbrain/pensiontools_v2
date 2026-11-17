@@ -70,8 +70,9 @@ describe('the State Pension the plan assumes when none was entered', () => {
   });
   it('the order sheet is told the plan, on both pages that draw it, and marks the "+ SP" cells', () => {
     expect(html).toContain("let h = assumedStatePensionAlertHtml(opts.p) + '<div class=\"alert alert-warning\"");
-    expect(html).toContain("h += giltOrderSheetHtml(r.plan, { p });");
-    expect(html).toContain("+ lockedNote + giltOrderSheetHtml(plan, { p })");
+    // retaken in 7.12.0: both callers still hand the sheet the plan; they also say when it is the locked ladder (no fresh sheet)
+    expect(html).toContain("h += giltOrderSheetHtml(r.plan, { p, locked: !!opts.docSheet });");
+    expect(html).toContain("+ lockedNote + giltOrderSheetHtml(plan, { p, locked: fromDoc })");
     expect(html).toContain("gbp(Math.round(y.gross - y.need)) + assumedStatePensionTag(opts.p)");
   });
 });

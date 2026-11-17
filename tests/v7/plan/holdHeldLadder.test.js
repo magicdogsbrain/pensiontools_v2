@@ -43,12 +43,23 @@ describe('the full view says the cash years once on its tab', () => {
   const plan = living(alexLivingRaw());
   it('one £47,167 on the tab, and the card points to the mix', () => {
     const div = full(plan);
-    expect(flat(visibleText(div)).split('£47,167').length - 1).toBe(1);
+    // the need said once, and the dated table's "In all" row beside what arrives (round 3)
+    expect(flat(visibleText(div)).split('£47,167').length - 1).toBe(2);
+    expect(flat(visibleText(div)).split('£47,167 still to come').length - 1).toBe(1);
+    expect(flat(visibleText(div))).toContain('In all £47,167 £108,181');
     const card = flat(visibleText(holdCard(div)));
     expect(card).not.toContain('Your cash years need');
     expect(card).not.toContain('All 14 of your plan’s gilts are held.');
     expect(card).toContain('Everything here counts as yours, as it is.');
     expect(holdCard(div).querySelector('a[href="#heldLadder"]')).toBeTruthy();
+  });
+  it('the tab opens on the reading: the summary first, What you hold (the form) below it, reached by "Change what you hold"', () => {
+    const div = full(plan);
+    const mix = div.querySelector('#heldLadder'), card = holdCard(div);
+    // walker 7: the eye landed on a 24-row form and the answer was 2,700px down
+    expect(mix.compareDocumentPosition(card) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(flat(visibleText(div)).startsWith('Your plan’s mix What you hold, beside your plan as locked.')).toBe(true);
+    expect(mix.querySelector('a[href="#holdingsCard"]').textContent).toBe('Change what you hold');
   });
 });
 
@@ -124,7 +135,8 @@ describe('(c) setting the 2029 gilt against 2028/29 saves the shape that exists 
     const after = { ...plan, holdings: w.patch.holdings };
     const h2 = heldLadder(after, { today: TODAY });
     for (const k of ['cashYears', 'money', 'state', 'more', 'less', 'timing', 'gilts']) expect(h2[k]).toEqual(before[k]);
-    expect(page(h2)).toContain('You set 0½% Treasury Gilt 2029 against 2028/29.');
+    // said in the gilt's own row of the dated table (round 3): 37,000 + five half-coupons of 92.50 = 37,462.50 → £37,463
+    expect(page(h2)).toContain('£37,463 on 31 January 2029: 0½% Treasury Gilt 2029 (you set it against 2028/29)');
     // shown on What you hold as the person's choice
     const v2 = holdOf([{ plan: after }], plan.id, { today: TODAY });
     const l2 = v2.groups.flatMap((g) => g.lines).find((x) => x.index === i);

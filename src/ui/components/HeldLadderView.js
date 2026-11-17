@@ -21,14 +21,17 @@ export function heldLadderHtml(v, { holdHref = '#holdingsCard' } = {}) {
   const C = H.giltColumns, K = H.cashColumns, A = H.alsoColumns;
   let h = '<div id="heldLadder">';
   h += v.head.map((x) => (x.key === 'agreed' ? '<p><strong>' + say(x) + '</strong></p>' : '<p class="hint">' + say(x) + (x.key === 'noRecord' ? ' <a href="' + esc(holdHref) + '">' + esc(H.holdLink) + '</a>' : '') + '</p>')).join('');
+  if (v.summary) h += '<p class="held-summary" style="font-size:16px;"><strong>' + say(v.summary) + '</strong></p>';
+  if (!v.head.some((x) => x.key === 'noRecord')) h += '<p class="hint"><a href="' + esc(holdHref) + '">' + esc(H.changeLink) + '</a></p>';
   h += title(H.giltsTitle);
-  h += v.figure.map((x, i) => (i === 0 ? '<p><strong>' + say(x) + '</strong></p>' : '<p>' + say(x) + '</p>')).join('');
+  h += v.figure.map((x) => '<p>' + say(x) + '</p>').join('');
   h += table('held-gilts', [C.gilt, C.years, C.plan, C.held, C.difference], v.gilts.map((r) => [esc(r.gilt), esc(r.years), esc(r.plan), esc(r.held), say(r.difference)]));
   h += lines(v.under, 'under');
   if (v.cash) {
-    h += title(H.cashTitle) + '<p><strong>' + say(v.cash.need) + '</strong></p>';
-    h += table('held-cash', [K.year, K.amount], v.cash.rows.map((r) => [say(r.year), say(r.amount)]));
-    h += lines(v.cash.set, 'set') + lines(v.cash.lines, 'state') + lines(v.cash.timing, 'timing');
+    h += title(H.cashTitle) + '<p>' + say(v.cash.need) + '</p>';
+    h += table('held-cash', [K.when, K.due, K.arrives], [...v.cash.rows.map((r) => [say(r.when), say(r.due), say(r.arrives)]),
+      ['<strong>' + say(v.cash.total.when) + '</strong>', '<strong>' + esc(v.cash.total.due) + '</strong>', '<strong>' + esc(v.cash.total.arrives) + '</strong>']]);
+    h += lines(v.cash.lines, 'state');
   }
   if (v.noCash || v.lines.length || v.set.length) {
     h += title(H.alsoTitle);

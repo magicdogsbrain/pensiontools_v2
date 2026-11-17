@@ -310,7 +310,9 @@ export function transitionHtml(a) {
     const years = []; for (let Y = first; Y <= last && first > 2000; Y++) years.push(Y);
     return { ladder: true, years };
   })() : null;
-  let h = holdingsCardHtml({ holdings, offer, keep });
+  // living on a ladder (7.12.0 round 3): the tab opens on the reading; What you hold, the form to change it, is below it
+  const holdCard = holdingsCardHtml({ holdings, offer, keep });
+  let h = heldLadder ? '' : holdCard;
   h += '<div class="card">';
   h += asHeld ? '<h2>' + esc(PLAN.steps.move.short) + '</h2>' : '<h2>Transition — from what you hold to the plan</h2>';
   if (!doc || !target || target.kind === 'none' || !diff || !prog) {
@@ -408,5 +410,6 @@ export function transitionHtml(a) {
     + '</ul></details>';
   if (!heldLadder) h += '<p class="hint" style="margin-top:8px;">Illustration, not advice. Nothing here places an order.</p>';
   h += '</div>';
+  if (heldLadder) h += holdCard;
   return h;
 }

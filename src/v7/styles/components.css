@@ -609,6 +609,7 @@ input[type="checkbox"] { width: 24px; height: 24px; margin: 0 10px 0 0; accent-c
   .held-table td::before { content: attr(data-label); font-weight: 650; flex: 0 0 auto; text-align: left; }
   .held-table td:first-child { font-weight: 650; text-align: left; }
   .held-table td:first-child::before { content: none; }
+  .held-table td:empty { display: none; }
 }
 @media (min-width: 744px) {
   .way-list { grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr)); }

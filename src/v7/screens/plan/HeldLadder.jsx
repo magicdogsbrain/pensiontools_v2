@@ -26,9 +26,11 @@ export function HeldLadder({ v, prefix, holdHref }) {
   const C = H.giltColumns, K = H.cashColumns, A = H.alsoColumns;
   return (
     <section class="plan-section held-ladder" data-section="heldLadder" data-testid={T}>
-      {v.head.map((x, i) => <p class={x.key === 'agreed' ? 'figure' : 'note'} key={i} data-testid={`${T}.${x.key}`}>{heldText(x)}{x.key === 'noRecord' && holdHref ? <> <a href={holdHref}>{H.holdLink}</a></> : null}</p>)}
+      {v.head.map((x, i) => <p class={x.key === 'agreed' ? 'lead' : 'note'} key={i} data-testid={`${T}.${x.key}`}>{heldText(x)}{x.key === 'noRecord' && holdHref ? <> <a href={holdHref}>{H.holdLink}</a></> : null}</p>)}
+      {v.summary && <p class="lead" data-testid={`${T}.summary`}>{heldText(v.summary)}</p>}
+      {holdHref && !v.head.some((x) => x.key === 'noRecord') && <p class="line"><a href={holdHref} data-testid={`${T}.change`}>{H.changeLink}</a></p>}
       <h2>{H.giltsTitle}</h2>
-      {v.figure.map((x, i) => <p class={i === 0 ? 'figure' : 'line'} key={i} data-testid={`${T}.figure`}>{heldText(x)}</p>)}
+      {v.figure.map((x, i) => <p class="line" key={i} data-testid={`${T}.figure`}>{heldText(x)}</p>)}
       <div class="table-wrap">
         <table class="way-table held-table" data-testid={`${T}.gilts`}>
           <thead><tr><th>{C.gilt}</th><th>{C.years}</th><th>{C.plan}</th><th>{C.held}</th><th>{C.difference}</th></tr></thead>
@@ -43,16 +45,17 @@ export function HeldLadder({ v, prefix, holdHref }) {
       {v.cash && (
         <>
           <h2>{H.cashTitle}</h2>
-          <p class="figure" data-testid={`${T}.need`}>{heldText(v.cash.need)}</p>
+          <p class="line" data-testid={`${T}.need`}>{heldText(v.cash.need)}</p>
           <div class="table-wrap">
             <table class="way-table held-table" data-testid={`${T}.cashYears`}>
-              <thead><tr><th>{K.year}</th><th>{K.amount}</th></tr></thead>
-              <tbody>{v.cash.rows.map((r) => <tr key={r.Y} data-year={r.Y}><td data-label={K.year}>{heldText(r.year)}</td><td data-label={K.amount}>{heldText(r.amount)}</td></tr>)}</tbody>
+              <thead><tr><th>{K.when}</th><th>{K.due}</th><th>{K.arrives}</th></tr></thead>
+              <tbody>
+                {v.cash.rows.map((r) => <tr key={r.id} data-when={r.id}><td data-label={K.when}>{heldText(r.when)}</td><td data-label={K.due}>{heldText(r.due)}</td><td data-label={K.arrives}>{heldText(r.arrives)}</td></tr>)}
+                <tr data-when="total"><td data-label={K.when}><strong>{heldText(v.cash.total.when)}</strong></td><td data-label={K.due}><strong>{v.cash.total.due}</strong></td><td data-label={K.arrives}><strong>{v.cash.total.arrives}</strong></td></tr>
+              </tbody>
             </table>
           </div>
-          <Lines items={v.cash.set} testid={`${T}.set`} />
           <Lines items={v.cash.lines} testid={`${T}.state`} />
-          <Lines items={v.cash.timing} testid={`${T}.timing`} />
         </>
       )}
       {(v.noCash || v.lines.length > 0 || v.set.length > 0) && (

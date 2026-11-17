@@ -133,22 +133,6 @@ export function heldLadder(plan, { today, life } = {}) {
   const giltsMoney = otherGilts.filter((r) => !r.paid).reduce((s, r) => s + num(r.value), 0);
   const fundsMoney = funds.reduce((s, r) => s + num(r.value), 0);
   const available = cash + giltsMoney + fundsMoney;
-  // with nothing recorded, the money held is not known: no verdict on the cash years
-  let state = null, more = 0, less = 0;
-  if (cashYears && !noRecord) {
-    if (cash >= N) { state = 'cash'; more = cash - N; }
-    else if (cash + giltsMoney >= N) { state = 'cashGilts'; more = cash + giltsMoney - N; }
-    else if (available >= N) { state = 'all'; more = available - N; }
-    else { state = 'less'; less = N - available; }
-  }
-
-  // this tax year's timing, a fact only: the plan pays from cash by 5 April, and the pension's cash is less than that
-  let timing = null;
-  const cur = cashRows.find((r) => r.thisYear);
-  if (!noRecord && running && cur && cur.need > 0 && cash < cur.need) {
-    const ahead = otherGilts.filter((r) => r.matures && !r.paid).sort((a, b) => String(a.matures).localeCompare(String(b.matures)));
-    timing = { dueBy: (thisTY + 1) + '-04-05', R: r0(cur.need), cash: r0(cash), next: ahead.length ? { label: ahead[0].label, matures: ahead[0].matures } : null };
-  }
 
   // what else the pension holds, line by line: when a gilt matures and what it pays then, as facts
   const forYearsOf = (at) => { const k = normaliseKeep(lineOf(at) && lineOf(at).keep); return k && k.as === 'rung' ? k.taxYears.slice() : null; };
@@ -163,6 +147,32 @@ export function heldLadder(plan, { today, life } = {}) {
     }),
     ...funds.map((r) => ({ at: r.at, label: r.label, kind: 'fund', value: r0(r.value), matures: null, pays: null, fixed: false, indexLinked: false, note: null, forYears: forYearsOf(r.at) }))
   ].sort((a, b) => num(a.at) - num(b.at));
+
+  // 7.12.0 round 3: the cash years as ONE dated reading — when the plan's cash pays out, against when money arrives in the
+  // pension (the cash there now, then each other gilt on the day it matures, with what it pays then). A gilt that may have
+  // matured already, or cannot be placed, arrives on no day and is in no total. Facts, never a move.
+  const todayISO = isoOf(now);
+  const winEnd = cashRows.length ? (cashRows[cashRows.length - 1].Y + 1) + '-04-05' : null;
+  const arrivals = noRecord || !winEnd ? [] : lines
+    .filter((l) => l.kind === 'gilt' && !l.note && l.matures && l.matures > todayISO && l.matures <= winEnd)
+    .map((l) => ({ at: l.at, label: l.label, date: l.matures, amount: l.pays != null && l.fixed ? l.pays : l.value, fixed: l.pays != null && l.fixed, forYears: l.forYears }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const inTable = new Set(arrivals.map((a) => a.at));
+  const dated = noRecord || !cashYears ? null : datedCashYears({ now: todayISO, cash, cashRows, needs, arrivals });
+  const arrives = cash + arrivals.reduce((s, a) => s + a.amount, 0);
+  // what else could pay these years, at today's value: later gilts with a known day, and shares and funds
+  const later = lines.filter((l) => l.kind === 'gilt' && !l.note && l.matures && !inTable.has(l.at)).reduce((s, l) => s + l.value, 0);
+
+  // with nothing recorded, the money held is not known: no verdict on the cash years
+  let state = null, more = 0, less = 0;
+  if (cashYears && !noRecord) {
+    if (cash >= N) { state = 'cash'; more = cash - N; }
+    else if (arrives >= N) { state = 'cashGilts'; more = arrives - N; }
+    else if (arrives + later + fundsMoney >= N) { state = 'all'; more = arrives + later + fundsMoney - N; }
+    else { state = 'less'; less = N - arrives - later - fundsMoney; }
+  }
+  // the first stretch of months the money in hand does not reach, before the next gilt pays: a difference in timing only
+  const timing = dated && dated.gaps.length && state !== 'less' ? dated.gaps[0] : null;
   const outsidePension = roles.filter((r) => r.role === 'outsidePension').map((r) => ({ label: r.label, wrapper: r.wrapper, value: r0(r.value) }));
 
   // money expected later, and the lump sums the plan itself counts in the cash years (the money expected may be one of them)
@@ -178,7 +188,79 @@ export function heldLadder(plan, { today, life } = {}) {
 
   return { kind: 'ladder', agreed: phase && phase.agreed && phase.agreed.at ? String(phase.agreed.at) : null, noRecord, running,
     gilts, cashYears, money: { cash: r0(cash), gilts: r0(giltsMoney), funds: r0(fundsMoney), available: r0(available) }, state, more: r0(more), less: r0(less),
-    timing, lines, outsidePension, expected, lumps, setYears };
+    timing, dated, lines: lines.map((l) => (inTable.has(l.at) ? { ...l, inCash: true } : l)), outsidePension, expected, lumps, setYears };
+}
+
+const pad2 = (n) => String(n).padStart(2, '0');
+const isoOf = (d) => d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+/** 'YYYY-MM' k months after `m`. */
+const monthPlus = (m, k) => { const [y, mo] = m.split('-').map(Number); const t = y * 12 + (mo - 1) + k; return Math.floor(t / 12) + '-' + pad2((t % 12) + 1); };
+/** The tax year a day 'YYYY-MM-DD' is in (it starts on 6 April). */
+const taxYearOfIso = (iso) => { const [y, m, d] = iso.split('-').map(Number); return m > 4 || (m === 4 && d >= 6) ? y : y - 1; };
+
+/**
+ * The cash years as one dated reading (7.12.0 round 3): rows in time order of what the plan pays from cash and what arrives in
+ * the pension, the totals, and every stretch of months the money in hand does not reach before the next gilt pays.
+ *   rows   { kind: 'now', arrives: [{ cash }] } — the pension's cash today
+ *          { kind: 'months', from, to: 'YYYY-MM', n, per, due } — this tax year's payments still to come, split where a gilt pays
+ *          { kind: 'day', date, arrives: [arrival] } — a gilt that pays inside this tax year (or outside every cash year)
+ *          { kind: 'year', Y, due, paidBy, thisYear, monthsLeft, arrives: [arrival] } — a later cash year, and what pays in it
+ *   due    what the cash years still need (the sum of the rows); arrives — the cash now and every arrival
+ *   gaps   [{ from, to: 'YYYY-MM', due, cash, next: arrival|null, first }] — `due` is what the stretch's months pay; `cash` what
+ *          was in hand when it began (the first stretch only; a later one begins short); `next` the gilt that pays after it
+ * Each month of a later year pays a twelfth of its need; a gilt that pays in a month is taken to arrive before that month's
+ * payment. Pure.
+ */
+export function datedCashYears({ now, cash, cashRows, needs, arrivals }) {
+  const nowMonth = now.slice(0, 7);
+  const rows = [{ kind: 'now', key: now, arrives: [{ cash: r0(cash) }] }];
+  const dueIn = new Map();
+  const placed = new Set();
+  for (const r of cashRows) {
+    const full = num(needs[r.Y] && needs[r.Y].need);
+    const inYear = arrivals.filter((a) => taxYearOfIso(a.date) === r.Y);
+    if (r.thisYear && full > 0) {
+      const per = full / 12;
+      const months = []; for (let k = 0; k < r.monthsLeft; k++) months.push(monthPlus(nowMonth, k));
+      let run = [];
+      const flush = () => { if (run.length) rows.push({ kind: 'months', key: run[0] + '-01', from: run[0], to: run[run.length - 1], n: run.length, per: r0(per), due: r0(per * run.length) }); run = []; };
+      for (const m of months) {
+        const here = inYear.filter((a) => a.date.slice(0, 7) === m);
+        if (here.length) { flush(); for (const a of here) { rows.push({ kind: 'day', key: a.date, date: a.date, arrives: [a] }); placed.add(a); } }
+        run.push(m); dueIn.set(m, per);
+      }
+      flush();
+    } else {
+      rows.push({ kind: 'year', key: r.Y + '-04-06', Y: r.Y, due: r0(r.need), paidBy: r.paidBy, thisYear: !!r.thisYear, monthsLeft: r.monthsLeft, arrives: inYear });
+      for (const a of inYear) placed.add(a);
+      const per = num(r.need) / (r.thisYear ? r.monthsLeft : 12);
+      const start = r.thisYear ? nowMonth : r.Y + '-04';
+      for (let k = 0; k < (r.thisYear ? r.monthsLeft : 12); k++) dueIn.set(monthPlus(start, k), per);
+    }
+  }
+  // a gilt that pays outside every cash year still in time: its own row, before the first row that starts after it
+  for (const a of arrivals) {
+    if (placed.has(a)) continue;
+    const i = rows.findIndex((x, j) => j > 0 && x.key > a.date);
+    rows.splice(i < 0 ? rows.length : i, 0, { kind: 'day', key: a.date, date: a.date, arrives: [a] });
+  }
+
+  // month by month, the money in hand: what arrives first, then the month's payment; a stretch below nothing is a gap
+  const gaps = [];
+  const last = [...dueIn.keys(), ...arrivals.map((a) => a.date.slice(0, 7))].sort().pop() || nowMonth;
+  let bal = num(cash), gap = null;
+  for (let m = nowMonth; m <= last; m = monthPlus(m, 1)) {
+    const here = arrivals.filter((a) => a.date.slice(0, 7) === m);
+    if (here.length && gap) { gap.next = here[0]; gaps.push(gap); gap = null; }
+    for (const a of here) bal += a.amount;
+    const d = dueIn.get(m) || 0;
+    if (!gap && d > 0 && bal - d < -0.5) gap = { from: m, to: m, due: 0, cash: r0(Math.max(0, bal)), next: null, first: gaps.length === 0 && bal >= 0 };
+    if (gap) { gap.to = m; gap.due += d; }
+    bal -= d;
+  }
+  if (gap) gaps.push(gap);
+  const due = [...dueIn.values()].reduce((s, v) => s + v, 0);
+  return { rows, due: r0(due), arrives: r0(num(cash) + arrivals.reduce((s, a) => s + a.amount, 0)), gaps: gaps.map((g) => ({ ...g, due: r0(g.due) })) };
 }
 
 const WHY = { lump: 'whyLump', lumpEarlier: 'whyLumpEarlier', sp: 'whySp', spOther: 'whySpOther', other: 'whyOther', else: 'whyElse' };
@@ -232,43 +314,57 @@ export function heldLadderView(h) {
   if (g.paid.length) under.push(S('paid', { list: g.paid.join(', ') }));
   if (g.stale.length) under.push(S('stale', { list: g.stale.join(', ') }));
 
-  const set = h.noRecord ? [] : h.setYears.map((s) => S('setYears', { label: s.label, years: yearsWords(s.years) }));
-  let cash = null;
-  if (!h.noRecord && h.cashYears) {
-    const c = h.cashYears, M = h.money;
-    const rows = c.rows.map((r) => ({ Y: r.Y,
-      year: r.thisYear ? S('yearPart', { year: taxYearLabel(r.Y), months: String(r.monthsLeft), s: r.monthsLeft === 1 ? '' : 's' }) : S('year', { year: taxYearLabel(r.Y) }),
-      amount: r.need > 0 ? P(r.need) : S('zero', { why: WHY[r.paidBy] || 'whyElse' }) }));
+  // a year set against a line in the dated table is said in its row; one set against anything else is said under the also table
+  const inCash = new Set(h.lines.filter((l) => l.inCash).map((l) => l.label));
+  const set = h.noRecord ? [] : h.setYears.filter((s) => !inCash.has(s.label)).map((s) => S('setYears', { label: s.label, years: yearsWords(s.years) }));
+  let cash = null, summary;
+  if (!h.noRecord && h.cashYears && h.dated) {
+    const c = h.cashYears, d = h.dated;
+    const when = (g) => (g.from === g.to ? S('whenOne', { month: monthWords(g.from) }) : S('whenRun', { from: monthWords(g.from), to: monthWords(g.to) }));
+    const amountOf = (a) => (a.fixed ? P(a.amount) : S('linkedAmount', { value: P(a.amount) }));
+    const setOf = (a) => (a.forYears && a.forYears.length ? S(a.forYears.every((Y) => Y + 1 + '-04-05' < a.date) ? 'setEnds' : 'setOn', { years: yearsWords(a.forYears) }) : null);
+    const arrive = (a, withDate) => ({ ...S(withDate ? 'arriveOn' : 'arrive', { amount: amountOf(a), date: dayWords(a.date), label: a.label }), bracket: setOf(a) });
+    const rows = d.rows.map((r) => {
+      if (r.kind === 'now') return { id: 'now', when: S('now'), due: S('none'), arrives: S('arriveCash', { cash: P(r.arrives[0].cash) }) };
+      if (r.kind === 'months') return { id: r.from, when: when(r), due: r.n > 1 ? S('dueMonths', { due: P(r.due), n: String(r.n), per: P(r.per) }) : P(r.due), arrives: S('none') };
+      if (r.kind === 'day') return { id: r.date, when: dayWords(r.date), due: S('none'), arrives: r.arrives.map((a) => arrive(a, false)) };
+      return { id: String(r.Y), when: r.thisYear ? S('yearPart', { year: taxYearLabel(r.Y), months: String(r.monthsLeft), s: r.monthsLeft === 1 ? '' : 's' }) : S('year', { year: taxYearLabel(r.Y) }),
+        due: r.due > 0 ? P(r.due) : S('zero', { why: WHY[r.paidBy] || 'whyElse' }), arrives: r.arrives.length ? r.arrives.map((a) => arrive(a, true)) : S('none') };
+    });
     const lines = [];
-    if (h.state === 'cash') lines.push(S('stateCash', { cash: P(M.cash), more: P(h.more) }));
-    else {
-      const parts = [M.cash > 0 ? S('partCash', { cash: P(M.cash) }) : null, M.gilts > 0 ? S('partGilts', { gilts: P(M.gilts) }) : null, M.funds > 0 ? S('partFunds', { funds: P(M.funds) }) : null].filter(Boolean);
-      lines.push(M.gilts > 0 || M.funds > 0 ? S('holds', { parts, available: P(M.available) }) : S('holdsCash', { cash: P(M.cash) }));
-      lines.push(h.state === 'cashGilts' ? S('stateCashGilts', { more: P(h.more) }) : h.state === 'all' ? S('stateAll', { more: P(h.more) }) : S('stateLess', { less: P(h.less) }));
-    }
-    const timing = [];
-    if (h.timing) {
-      timing.push(S('timing', { R: P(h.timing.R), dueBy: dayWords(h.timing.dueBy), cash: P(h.timing.cash) }));
-      if (h.timing.next) timing.push(S('next', { label: h.timing.next.label, date: dayWords(h.timing.next.matures) }));
-    }
-    cash = { need: S('need', { years: yearsWords(c.rows.map((r) => r.Y)), need: P(c.need) }), rows, set, lines, timing };
+    if (h.state === 'cash') lines.push(S('stateCash', { cash: P(h.money.cash), more: P(h.more) }));
+    else if (h.state === 'cashGilts') lines.push(S('stateArrives', { arrives: P(d.arrives), more: P(h.more) }));
+    else if (h.state === 'all') lines.push(d.rows.some((r) => r.kind !== 'now' && (r.arrives || []).length) ? S('stateAll', { arrives: P(d.arrives), more: P(h.more) }) : S('stateAllCash', { cash: P(h.money.cash), more: P(h.more) }));
+    else lines.push(S('stateLess', { less: P(h.less) }));
+    const g = h.timing;
+    if (g) lines.push(S(g.next ? 'timing' : 'timingNoNext', { due: P(g.due), when: when(g), label: g.next ? g.next.label : '', date: g.next ? dayWords(g.next.date) : '', cash: P(g.cash) }));
+    if (d.rows.some((r) => (r.arrives || []).some((a) => a.fixed))) lines.push(S('fixedRisk'));
+    cash = { need: S('need', { years: yearsWords(c.rows.map((r) => r.Y)), need: P(c.need) }), rows, total: { when: S('total'), due: P(d.due), arrives: P(d.arrives) }, lines };
+  }
+  // the page in one line, first: the gilts, the cash years, and the one difference in timing
+  {
+    const giltsPart = g.under + g.none === 0 && g.held >= g.total ? S('sumAll', { total: String(g.total) }) : S('sumSome', { held: String(g.held), total: String(g.total) });
+    const cashPart = !cash ? null : h.state === 'cash' ? S('sumCash') : h.state === 'cashGilts' ? S('sumArrives') : h.state === 'all' ? S('sumAllMoney') : S('sumLess', { less: P(h.less) });
+    summary = h.noRecord ? null : { ...S(cashPart ? 'summary' : 'summaryGilts', { gilts: giltsPart, cash: cashPart || '' }),
+      bracket: cash && h.timing && h.timing.next ? S('summaryGap', { due: P(h.timing.due), when: h.timing.from === h.timing.to ? S('whenOne', { month: monthWords(h.timing.from) }) : S('whenRun', { from: monthWords(h.timing.from), to: monthWords(h.timing.to) }), label: h.timing.next.label, date: dayWords(h.timing.next.date) }) : null };
   }
   const noCash = !h.noRecord && !h.cashYears ? S('noCashYears', { cash: P(h.money.cash) }) : null;
 
-  const lines = h.noRecord ? [] : h.lines.map((l) => ({ at: l.at, what: l.label, value: P(l.value),
+  const also = h.lines.filter((l) => !l.inCash);
+  const lines = h.noRecord ? [] : also.map((l) => ({ at: l.at, what: l.label, value: P(l.value),
     matures: l.note === 'notListed' ? S('notListedCell') : l.note === 'unknown' ? S('unknownCell') : (l.note === 'paid' || l.note === 'cashNow') ? S('maturedCell', { month: monthWords(String(l.matures || '').slice(0, 7)) }) : l.matures ? dayWords(l.matures) : '',
     pays: !l.note && l.pays != null && l.fixed ? S('paysFixed', { amount: P(l.pays) }) : !l.note && l.indexLinked && l.matures ? S('paysIndexLinked') : '' }));
   const notes = [];
   if (!h.noRecord) {
-    for (const l of h.lines) {
+    for (const l of also) {
       const month = l.matures ? monthWords(String(l.matures).slice(0, 7)) : '';
       if (l.note === 'notListed') notes.push(S('notListed', { label: l.label }));
       else if (l.note === 'unknown') notes.push(S('unknown', { label: l.label }));
       else if (l.note === 'paid') notes.push(S('paidNote', { label: l.label, month }));
       else if (l.note === 'cashNow') notes.push(S('cashNow', { label: l.label, month, pays: P(l.pays) }));
     }
-    if (h.lines.some((l) => l.kind === 'gilt' && !l.note && l.matures)) notes.push(S('riskGilts'));
-    if (h.lines.some((l) => l.kind === 'fund')) notes.push(S('riskFunds'));
+    if (also.some((l) => l.kind === 'gilt' && !l.note && l.matures)) notes.push(S('riskGilts'));
+    if (also.some((l) => l.kind === 'fund')) notes.push(S('riskFunds'));
   }
   const outside = h.noRecord ? [] : h.outsidePension.map((o) => S('outsideOne', { label: o.label, wrapper: o.wrapper, value: P(o.value) }));
   const expected = [];
@@ -276,7 +372,7 @@ export function heldLadderView(h) {
     for (const e of h.expected) expected.push(S(e.by ? 'expected' : 'expectedNoBy', { label: e.label || { key: 'expectedNoLabel', slots: {} }, amount: P(e.amount), by: e.by ? monthWords(e.by) : '' }));
     for (const l of h.lumps) expected.push(S('lumpCounted', { amount: P(l.amount), year: taxYearLabel(l.Y) }));
   }
-  return { head, figure, gilts, under, cash, noCash, set: cash ? [] : set, lines, notes, outside, expected, footer: S('footer') };
+  return { head, summary, figure, gilts, under, cash, noCash, set, lines, notes, outside, expected, footer: S('footer') };
 }
 
 /** What you hold, in the held phase on a ladder (7.12.0): the gilts' summary line(s) and the cash years' line, from the one reading. */

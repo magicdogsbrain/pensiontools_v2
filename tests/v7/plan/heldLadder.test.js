@@ -40,9 +40,44 @@ describe('Alex: living on the ladder, holding more than the plan', () => {
     expect(FUNDS).toBe(23300);
     expect(h.money).toEqual({ cash: 12, gilts: OTHER_GILTS, funds: FUNDS, available: 12 + OTHER_GILTS + FUNDS });
     expect(h.money.available).toBe(127242);
+  });
+
+  // 7.12.0 round 3 (walker 7): the cash years as one dated reading. What arrives is what each ordinary gilt pays on the day it
+  // matures, with its last interest, and the £12 of cash; the 2026 gilt that may have matured already arrives on no day.
+  //   3¾% 2027, 34,000 units, matures 7 March 2027: one half-coupon left, 34,000 × 3.75% ÷ 2 = 637.50 → 34,637.50 → £34,638
+  //   0 1/8% 2028, 36,000 units, 31 Jan 2028: three left (Jan 2027, Jul 2027, Jan 2028), 3 × 36,000 × 0.125% ÷ 2 = 67.50 → £36,068
+  //   0½% 2029, 37,000 units, 31 Jan 2029: five left, 5 × 37,000 × 0.5% ÷ 2 = 462.50 → £37,463 (37,462.50 rounds up)
+  //   in all 12 + 34,638 + 36,068 + 37,463 = 108,181; against 47,167 that is 61,014 more
+  const PAYS = [34638, 36068, 37463];
+  const ARRIVES = 12 + PAYS[0] + PAYS[1] + PAYS[2];
+  it('sets the cash years against what arrives, on the day it arrives: the cash and these gilts pay more than the years need', () => {
+    expect(ARRIVES).toBe(108181);
     expect(h.state).toBe('cashGilts');
-    expect(h.more).toBe(Math.round(12 + OTHER_GILTS - NEED_EXACT));
-    expect(h.more).toBe(56775);
+    expect(h.more).toBe(Math.round(ARRIVES - NEED_EXACT));
+    expect(h.more).toBe(61014);
+    expect(h.dated.due).toBe(NEED);
+    expect(h.dated.arrives).toBe(ARRIVES);
+  });
+
+  it('dates each row: the cash now, November to February, the 2027 gilt on 7 March, March, then each later year with what pays in it', () => {
+    const rows = h.dated.rows.map((r) => [r.kind, r.from || r.date || r.Y || null, r.due != null ? r.due : null, (r.arrives || []).map((a) => (a.cash != null ? a.cash : a.amount))]);
+    // 2,833.33 a month (34,000 ÷ 12): four months before the gilt pays, 11,333.33 → 11,333; March alone 2,833
+    expect(rows).toEqual([
+      ['now', null, null, [12]],
+      ['months', '2026-11', Math.round(4 * 34000 / 12), []],
+      ['day', '2027-03-07', null, [PAYS[0]]],
+      ['months', '2027-03', Math.round(34000 / 12), []],
+      ['year', 2027, 0, [PAYS[1]]],
+      ['year', 2028, 33000, [PAYS[2]]]
+    ]);
+    expect(rows[1][2]).toBe(11333);
+  });
+
+  it('says the one difference in timing: four months are due before the first gilt pays, and the pension holds £12 of cash', () => {
+    expect(h.timing).toMatchObject({ from: '2026-11', to: '2027-02', due: 11333, cash: 12 });
+    expect(h.timing.next).toMatchObject({ label: '3¾% Treasury Gilt 2027', date: '2027-03-07', amount: PAYS[0] });
+    // after it pays, 12 + 34,638 − 11,333 − 2,833 = 20,484 is in hand for March: nothing more falls short before 2028/29's gilt
+    expect(h.dated.gaps.length).toBe(1);
   });
 
   it('sets each plan gilt beside what is held of it, in the plan\'s order', () => {
@@ -67,10 +102,6 @@ describe('Alex: living on the ladder, holding more than the plan', () => {
     expect(h2.gilts.rows.find((r) => r.code === 'T29').years).toEqual([2029, 2030, 2031]);
   });
 
-  it('says this year\'s timing as a fact: what the plan pays from cash by 5 April, the cash there is, the next gilt to mature', () => {
-    expect(h.timing).toEqual({ dueBy: '2027-04-05', R: Math.round(34000 * 5 / 12), cash: 12, next: { label: '3¾% Treasury Gilt 2027', matures: '2027-03-07' } });
-    expect(h.timing.R).toBe(14167);
-  });
 
   it('lists what else the pension holds, with when each gilt matures and what it pays then', () => {
     const by = (label) => h.lines.find((l) => l.label === label);
@@ -116,6 +147,8 @@ describe('Jo: two gilts held below the plan\'s units, £5,000 cash, nothing else
     expect(h.state).toBe('less');
     expect(h.less).toBe(Math.round(NEED_EXACT - 5000));
     expect(h.less).toBe(42167);
+    // less in all is a shortfall, said once; it is not also a "difference in timing"
+    expect(h.timing).toBe(null);
     expect(h.lines).toEqual([]);
   });
 });
@@ -127,6 +160,7 @@ describe('Sam: exactly the plan, £70,000 cash', () => {
     expect(h.more).toBe(Math.round(70000 - NEED_EXACT));
     expect(h.more).toBe(22833);
     expect(h.timing).toBe(null);
+    expect(h.dated.gaps).toEqual([]);
     expect(h.lines).toEqual([]);
     expect(h.gilts.rows.every((r) => r.state === 'same')).toBe(true);
   });

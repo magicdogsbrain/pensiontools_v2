@@ -806,6 +806,8 @@
         padding: 0 12px;
       }
     }
+    /* a plain link inside a card reads on the dark card (7.12.0 round 3: the browser's dark blue was nearly invisible) */
+    .card a:not([class]) { color: var(--primary); }
     /* "Your plan's mix" while living on a ladder (7.12.0): under 600px each row is a card of label–value pairs, never cut off */
     @media (max-width: 599px) {
       .table-scroll-container table.held-table { min-width: 0; white-space: normal; }
@@ -817,6 +819,7 @@
       .held-table td::before { content: attr(data-label); font-weight: 600; flex: 0 0 auto; text-align: left; }
       .held-table td:first-child { font-weight: 600; text-align: left; }
       .held-table td:first-child::before { content: none; }
+      .held-table td:empty { display: none; }
     }
 
     /* Scrollable chart container */

@@ -32,11 +32,12 @@ describe('Alex: both views say the page alike', () => {
     for (const s of [
       'All 14 of your plan’s gilts are held.',
       '2 are held above the plan’s units.',
+      // the page in one line, first (walker 7's own words for it); £11,333 is 4 × 34,000 ÷ 12
+      'In one line: all 14 of your plan’s gilts are held, and what you hold pays your cash years, if you keep your gilts until they pay. One difference in timing: £11,333 is due November 2026 to February 2027, before 3¾% Treasury Gilt 2027 pays on 7 March 2027.',
       'Your plan pays 2026/27 to 2028/29 from cash: £47,167 still to come.',
-      'Beside the plan’s gilts, your pension holds £12 in cash, £103,930 in other gilts and £23,300 in shares and funds, at today’s value: £127,242 in all.',
-      'The cash and gilts are £56,775 more than these years need.',
-      'The plan pays £14,167 from cash by 5 April 2027; your pension’s cash is £12.',
-      'The next of your gilts to mature is 3¾% Treasury Gilt 2027, on 7 March 2027.',
+      // 12 + 34,638 + 36,068 + 37,463 = 108,181 arrives; 108,181 − 47,167 = 61,014
+      'Held until the day they pay, the cash and these gilts come to £108,181: £61,014 more than these years need.',
+      'One difference from the plan is the timing: £11,333 is due November 2026 to February 2027, before 3¾% Treasury Gilt 2027 pays on 7 March 2027, and your pension holds £12 in cash.',
       '0 1/8% Treasury Gilt 2026 is not on our list of gilts still to pay, so it may have matured already.',
       'Old workplace pension: £60,000, expected by July 2027. It is not counted, because it may not arrive.',
       'Your plan already counts a lump sum of £40,000 in 2027/28. If the money you expect is that money, it is not extra.',
@@ -52,11 +53,30 @@ describe('Alex: both views say the page alike', () => {
     const t29 = [...a.querySelectorAll('tr')].find((r) => /\(T29\)/.test(r.textContent));
     expect([...t29.querySelectorAll('td')].map((td) => td.textContent)).toEqual(['0 1/8% Index-linked Treasury Gilt 2029 (T29)', '2029/30 to 2031/32', '37,500', '37,500', '—']);
   });
-  it('the also table says when each gilt matures and what it pays then', () => {
-    const row = [...a.querySelectorAll('tr')].find((r) => /^3¾% Treasury Gilt 2027/.test(r.textContent));
-    expect([...row.querySelectorAll('td')].map((td) => td.textContent)).toEqual(['3¾% Treasury Gilt 2027', '£33,930', '7 March 2027', '£34,638, fixed']);
-    const tn26 = [...a.querySelectorAll('tr')].find((r) => /^0 1\/8% Treasury Gilt 2026/.test(r.textContent));
+  it('the cash years are one dated table: when money is due from the plan\'s cash, and when it arrives in the pension', () => {
+    for (const root of [a, b]) {
+      const t = [...root.querySelectorAll('table')].find((x) => /Arrives in your pension/.test(x.textContent));
+      const rows = [...t.querySelectorAll('tbody tr')].map((r) => [...r.querySelectorAll('td,th')].map((c) => c.textContent));
+      expect(rows).toEqual([
+        ['Now', '—', '£12 in cash'],
+        ['November 2026 to February 2027', '£11,333 (4 × £2,833)', '—'],
+        ['7 March 2027', '—', '£34,638: 3¾% Treasury Gilt 2027'],
+        ['March 2027', '£2,833', '—'],
+        ['2027/28', '£0: a lump sum the plan counts pays it', '£36,068 on 31 January 2028: 0 1/8% Treasury Gilt 2028'],
+        ['2028/29', '£33,000', '£37,463 on 31 January 2029: 0½% Treasury Gilt 2029'],
+        ['In all', '£47,167', '£108,181']
+      ]);
+    }
+  });
+  it('the also table holds only what the cash years table does not: the 2026 gilt and the shares and funds', () => {
+    const also = [...a.querySelectorAll('table')].find((x) => /Pays by then/.test(x.textContent));
+    expect([...also.querySelectorAll('tbody tr')].map((r) => r.querySelector('td').textContent)).toEqual(['0 1/8% Treasury Gilt 2026', 'Unilever', 'AstraZeneca', 'Legal & General', 'National Grid', 'Vanguard FTSE All-World (Acc)']);
+    const tn26 = [...also.querySelectorAll('tr')].find((r) => /^0 1\/8% Treasury Gilt 2026/.test(r.textContent));
     expect([...tn26.querySelectorAll('td')].map((td) => td.textContent)).toEqual(['0 1/8% Treasury Gilt 2026', '£2,000', 'not on our list', '']);
+  });
+  it('the summary and the headings are read as sentences, never in the one-number figure type', () => {
+    expect(a.querySelector('[data-testid="plan.move.heldLadder.summary"]').className).toBe('lead');
+    expect(a.querySelectorAll('.figure').length).toBe(0);
   });
   it('the two views\' text is the same', () => {
     expect(full).toBe(simple);
@@ -75,16 +95,18 @@ describe('Jo and Sam', () => {
     for (const s of ['12 of your plan’s 14 gilts are held.', '2 are held below the plan’s units.',
       '−13,500 (£19,240 less that year)', '−7,300 (£10,910 less that year)',
       'Where you hold fewer units than the plan has, those years pay less than the plan says.',
-      'Your pension holds £5,000 in cash.', 'That is £42,167 less than these years need.',
-      'The plan pays £14,167 from cash by 5 April 2027; your pension’s cash is £5,000.']) expect(simple, s).toContain(s);
+      'In one line: 12 of your plan’s 14 gilts are held, and what you hold is £42,167 less than your cash years need.',
+      'What you hold, at today’s value, is £42,167 less than these years need.']) expect(simple, s).toContain(s);
+    expect(simple).not.toContain('One difference');
     expect(simple).not.toContain('Also in your pension');
     expect(full).toBe(simple);
   });
   it('Sam: exactly the plan', () => {
     const { simple, full } = both(samExactRaw());
     for (const s of ['All 14 of your plan’s gilts are held, in the plan’s units.', 'Your plan pays 2026/27 to 2028/29 from cash: £47,167 still to come.',
+      'In one line: all 14 of your plan’s gilts are held, and your pension’s cash pays your cash years.',
       'Your pension holds £70,000 in cash: £22,833 more than these years need.']) expect(simple, s).toContain(s);
-    for (const s of ['Also in your pension', 'Beside the plan’s gilts', 'by 5 April', 'Money you expect']) expect(simple, s).not.toContain(s);
+    for (const s of ['Also in your pension', 'One difference', 'Money you expect']) expect(simple, s).not.toContain(s);
     expect(full).toBe(simple);
   });
 });

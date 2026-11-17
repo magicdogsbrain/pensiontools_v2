@@ -90,6 +90,16 @@ describe('Month by month, drawn', () => {
     clean(words);
   });
 
+  it('part-way through a year: what reaches the bank waits for the income already received (0 for none), then is worked out', () => {
+    const blank = at('04-buckets-running', '2027-06-10', { 'mo.month': '2027-06' });
+    expect(one(blank.root, `${T}.setUp.bankAfter`)).toBe(null);
+    expect(one(blank.root, `${T}.setUp.bankWaits`).textContent).toBe('What reaches your bank each month turns on the income you have already received this tax year: type it above (0 if none) to see it.');
+    clean(blank.words);
+    const none = at('04-buckets-running', '2027-06-10', { 'mo.month': '2027-06', 'ty.toDate': '0' });
+    expect(one(none.root, `${T}.setUp.bankAfter`).textContent).toMatch(/^£[\d,]+$/);
+    expect(one(none.root, `${T}.setUp.bankWaits`)).toBe(null);
+  });
+
   it('part-way through a year: the income and tax so far are asked; a top-up that falls short asks which', () => {
     const { root, words } = at('04-buckets-running', '2027-06-10', { 'mo.month': '2027-06', 'ty.income': '70000', 'ty.isa': '2000' });
     expect(root.querySelector('[data-field="ty.toDate"]')).not.toBe(null);

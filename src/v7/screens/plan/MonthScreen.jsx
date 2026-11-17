@@ -96,7 +96,11 @@ function SetUp({ V, dispatch, open }) {
       {tu.needsChoice && !tu.exhausted && tu.shortfall > 0 && <p class="note">{fill(W.setUp.topUp.short, { shortfall: sw.shortfall, need: sw.need })}</p>}
       {tu.needsChoice && <Choice V={V} path="ty.choice" value={V.draft.values['ty.choice'] || ''} dispatch={dispatch} words={W.fields['ty.choice']} options={tu.choices} error={E['ty.choice'] || null}
         slots={{ need: sw.need, brl: sw.brl, income: sw.incomeTyped }} />}
-      <div class="month-bank" data-testid={`${T}.setUp.bank`}>
+      {/* 7.12.0: part-way through a year, what reaches the bank turns on the income already received: worked out once that
+          box is answered (0 for none), never on a blank read as nothing */}
+      {!S.isApril && (typed['ty.toDate'] == null || String(typed['ty.toDate']).trim() === '')
+        ? <p class="note" data-testid={`${T}.setUp.bankWaits`}>{fill(W.setUp.bankWaits, { prev: S.prevMonth || '' })}</p>
+        : <div class="month-bank" data-testid={`${T}.setUp.bank`}>
         <h3>{W.setUp.bank.title}</h3>
         <div class="table-wrap">
           <table class="plan-table">
@@ -106,9 +110,9 @@ function SetUp({ V, dispatch, open }) {
           </table>
         </div>
         {S.taxFree && <p class="note" data-testid={`${T}.setUp.taxFree`}>{W.setUp.taxFree}</p>}
-        {S.reason && <p class="note" data-testid={`${T}.setUp.reason`}>{fill(W.setUp.reason, S.reason)}</p>}
+        {S.reason && <p class="note" data-testid={`${T}.setUp.reason`}>{fill(W.setUp.reason, S.reason)}{S.reason.take ? ' ' + fill(W.setUp.reasonTake, S.reason) : ''}</p>}
         <p class="note">{tu.closed ? W.setUp.closedYear : S.efficient ? W.setUp.efficient : W.setUp.inefficient}</p>
-      </div>
+      </div>}
       {V.editable && (
         <div class="actions-row">
           <Button testid={`${T}.setUp.submit`} kind="primary" disabled={!!V.saving} aria-busy={working ? 'true' : undefined} onClick={() => dispatch({ type: 'plan/taxYear', planId: V.id })} {...keepFocus}>{working ? W.setUp.working : fill(W.setUp.button, { year: S.year })}</Button>
@@ -251,6 +255,7 @@ export function MonthScreen(state, dispatch) {
                 {V.earlier && V.editable && <p class="line"><Button testid={`${T}.earlier`} kind="quiet" onClick={() => dispatch({ type: 'plan/edit', planId, path: 'mo.earlier', value: 'yes' })} {...keepFocus}>{W.earlier}</Button></p>}
                 {V.paidOffered && <Choice V={V} path="mo.paid" value={typed['mo.paid'] === 'yes' ? 'yes' : 'no'} dispatch={dispatch} words={W.fields['mo.paid']} options={['no', 'yes']} error={shownErrors['mo.paid'] || (V.errors['mo.paid'] ? V.errors['mo.paid'] : null)} />}
                 {V.cadence !== 'monthly' && W.cadence[V.cadence] && <p class="note" data-testid={`${T}.cadence`}>{W.cadence[V.cadence]}</p>}
+                {V.planMonth && <p class="line" data-testid={`${T}.planMonth`}>{fill(W.planMonth, V.planMonth)}</p>}
                 {V.yearLine && <p class="note" data-testid={`${T}.yearDone`}>{V.yearLine.income ? fill(W.yearDoneIncome, V.yearLine) : fill(W.yearDone, V.yearLine)} {W.yearEdit}</p>}
               </section>
               {V.setUp && <SetUp V={V} dispatch={dispatch} open={bandsOpen} />}

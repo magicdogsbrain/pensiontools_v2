@@ -34,6 +34,8 @@ import { dateOf, monthWords, monthName, localMonth } from './dates.js';
 import { partnerOf } from './household.js';
 import { firstPaymentMonth, monthToRecord } from '../../services/YearPlan.js';
 import { pounds } from './income.js';
+import { takenBeforeTax, targetOfTaken } from '../../services/BeforeTax.js';
+import { taxFreeFractionOf } from '../../services/FlexibleAccess.js';
 import { shownPlanNameOn } from '../../services/PlanName.js';
 
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
@@ -95,6 +97,22 @@ function monthChoices(I, mon, fp, wide = false, toRecord = null) {
   return { listed, opens, earlier };
 }
 
+/**
+ * What a locked plan takes in a month of a tax year, from its document (7.12.0): the year's row (TaxYear '2026/27'), what it
+ * draws from the pension's investments and what a ladder pays, a twelfth a month. Null without a document or a row, or when
+ * the row takes nothing from the pension.
+ */
+export function planMonthOf(plan, key, month) {
+  const doc = plan && plan.planDocument;
+  const rows = doc && Array.isArray(doc.timeline) ? doc.timeline : [];
+  const label = /^\d{2}\/\d{2}$/.test(String(key)) ? '20' + String(key) : String(key);
+  const row = rows.find((r) => r && String(r.taxYear) === label && !r.lived);
+  if (!row) return null;
+  const year = (+row.market || 0) + (+row.contract || 0);
+  if (!(year > 0)) return null;
+  return { month: monthWords(month), amount: pounds(year / 12) };
+}
+
 /** The set-up's boxes read, the top-up settled and the year as it would be stored (TaxYearSetUp, as the classic set-up runs it). */
 function setUpOf(I, plan, key, ym, typed, now) {
   const existing = I.taxYears[key] || defaultTaxYearConfig();
@@ -107,12 +125,18 @@ function setUpOf(I, plan, key, ym, typed, now) {
   const cpiTyped = blank(typed['ty.cpi']) ? null : (() => { const e = boxError('ty.cpi', typed['ty.cpi']); if (e) { errors['ty.cpi'] = e; return null; } return money(typed['ty.cpi']) / 100; })();
   const cpi = cpiTyped == null ? ctx.defaults.cpi : cpiTyped;
   const suggestion = suggestedIncomeFor(ctx, cpiTyped);
+  // the year's income before tax as it is taken (7.12.0, services/BeforeTax.js), as the full view's set-up says it: a quarter
+  // of each payment tax-free takes less for the same income after tax; the year is kept as the engines read it
+  const asTaken = (pa, brl, hrl, other) => ({ taxFreeFraction: ctx.taxFreeFraction || 0, fixed: (+other || 0) + (+(ctx.statePension && ctx.statePension.amount) || 0), pa, brl, hrl });
+  const pa0 = read('ty.pa', ctx.defaults.pa), brl0 = read('ty.brl', ctx.defaults.brl), hrl0 = read('ty.hrl', ctx.defaults.hrl), other0 = read('ty.other', ctx.defaults.other);
+  const takenOpts = asTaken(pa0, brl0, hrl0, other0);
+  const typedIncome = read('ty.income', null);
   const inputs = {
     pa: read('ty.pa', ctx.defaults.pa), brl: read('ty.brl', ctx.defaults.brl), hrl: read('ty.hrl', ctx.defaults.hrl), cpi,
     other: read('ty.other', ctx.defaults.other), cgtExemptionUsed: read('ty.cgt', 0),
     grossIncomeToDate: ctx.isApril ? 0 : read('ty.toDate', 0),
     taxPaidToDate: ctx.isApril ? null : read('ty.taxToDate', null),
-    confirmedSalary: read('ty.income', suggestion),
+    confirmedSalary: typedIncome == null ? suggestion : targetOfTaken(typedIncome, takenOpts),
     isaSavingsAllocation: null, isTaxEfficient: true, taxEfficiencyChoice: null
   };
   if (!(inputs.confirmedSalary > 0)) errors['ty.income'] = errors['ty.income'] || 'income';
@@ -133,7 +157,7 @@ function setUpOf(I, plan, key, ym, typed, now) {
   return {
     key, year: yearWords(key), month: monthWords(ym), isApril: ctx.isApril, remaining: ctx.remainingMonths, prevMonth: ctx.isApril ? null : monthWords(addMonth(ym, -1)),
     source: ctx.suggestionSource, declining: (ctx.declineRate || 0) > 0, declinePct: Math.round((ctx.declineRate || 0) * 100),
-    suggestion, cpiPct: Math.round(cpi * 1000) / 10, defaults: ctx.defaults,
+    suggestion: Math.round(takenBeforeTax(suggestion, takenOpts)), cpiPct: Math.round(cpi * 1000) / 10, defaults: ctx.defaults,
     statePension: (() => { const f = statePensionFact(sp, ym, planSpYearly(I)); return { ...f, slots: { ...f.slots, year: yearWords(key) } }; })(), statePensionLater: sp.amount > 0 && sp.startYm && sp.startYm > ym ? { monthly: pounds(sp.monthlyFull || 0), from: sp.startDate || sp.startYm } : null,
     bands: bandsAssumptionText(final),
     // 7.12.0: the same sum as the month (a quarter of each payment tax-free included), and why less reaches the bank in a part year
@@ -146,7 +170,7 @@ function setUpOf(I, plan, key, ym, typed, now) {
     },
     inputs: final, breakdown, config, errors, ok: Object.keys(errors).length === 0 && (!needsChoice || !!settled),
     // the figures as the page says them, to the pound
-    words: { suggestion: pounds(suggestion), income: pounds(final.confirmedSalary), incomeTyped: pounds(inputs.confirmedSalary), brl: pounds(final.brl), need: pounds(isaCalc.isaNeeded || 0), shortfall: pounds(validation.shortfall || 0) },
+    words: { suggestion: pounds(takenBeforeTax(suggestion, takenOpts)), income: pounds(takenBeforeTax(final.confirmedSalary, takenOpts)), incomeTyped: pounds(takenBeforeTax(inputs.confirmedSalary, takenOpts)), brl: pounds(final.brl), need: pounds(isaCalc.isaNeeded || 0), shortfall: pounds(validation.shortfall || 0) },
     bank: [
       { id: 'pension', ...bankRow(breakdown.sipp) },
       ...(breakdown.other.gross > 0 ? [{ id: 'other', ...bankRow(breakdown.other) }] : []),
@@ -334,7 +358,14 @@ export function readMonth(plan, typed0, { today, nowIso = null, entries = null }
   const cfg = I.taxYears[key];
   const setUpDone = !!(cfg && cfg.yearSetupComplete === true);
   const setUp = setUpDone ? null : setUpOf(I, plan, key, month, typed, now);
-  const yearLine = setUpDone ? { year: yearWords(key), from: monthWords(addMonth(aprilOf(key), (((Number(cfg.startMonth) || 4) + 8) % 12))), income: cfg.confirmedSalary > 0 ? pounds(cfg.confirmedSalary) : null } : null;
+  const yearTaken = setUpDone && cfg.confirmedSalary > 0
+    ? takenBeforeTax(cfg.confirmedSalary, { taxFreeFraction: taxFreeFractionOf(I.settings, I.history, 0), fixed: (+cfg.other || 0) + (+cfg.statePension || 0), pa: cfg.pa, brl: cfg.brl, hrl: cfg.hrl })
+    : null;
+  const yearLine = setUpDone ? { year: yearWords(key), from: monthWords(addMonth(aprilOf(key), (((Number(cfg.startMonth) || 4) + 8) % 12))), income: yearTaken > 0 ? pounds(yearTaken) : null } : null;
+  // before the year is set up, what the locked plan takes this month (7.12.0): its document's row for the year, a twelfth a
+  // month, from the pension (what it draws from investments, and what a ladder pays) — so the month's amount and where it
+  // comes from are on the page before anything is typed
+  const planMonth = !setUpDone ? planMonthOf(plan, key, month) : null;
   const P = potsOf(I, plan, month, typed);
   Object.assign(errors, P.errors);
   // the months missed before this one (MonthFill.fillOffer, as the classic page offers them): the nudge at the top names every
@@ -371,7 +402,7 @@ export function readMonth(plan, typed0, { today, nowIso = null, entries = null }
   const partner = entries ? partnerOf(entries, plan) : null;
   const ok = setUpDone && !!result && !problem;
   return {
-    ...base, key, year: yearWords(key), setUpDone, yearLine, setUp, pots: P, errors, problem, refused, arrival,
+    ...base, key, year: yearWords(key), setUpDone, yearLine, planMonth, setUp, pots: P, errors, problem, refused, arrival,
     gap: gap.length ? { count: gap.length, words: monthsWords(gap), from: gap[0] } : null,
     offer: offer ? {
       months: offer.months, words: offer.months.length ? fillWords(offer.months, offer.setUp.length > 0) : '', count: offer.months.length,

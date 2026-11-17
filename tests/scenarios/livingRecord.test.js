@@ -160,6 +160,9 @@ describe('Step 2: the month the plan first pays, and the year\'s plan', () => {
     expect(H.year.cells.some((c) => c.state === 'none')).toBe(false);
     expect(M.gap == null || M.gap.count === 0).toBe(true);
     expect([...H.todo.items, ...H.todo.more].map((i) => i.id)).toContain('month.taxYear');
+    // before the year is set up, the month's amount and the pot it comes from: the document's 2026/27 row takes £30,000
+    // from the pension, 30,000 ÷ 12 = 2,500 a month
+    expect(fillSlots(MONTH.planMonth, M.planMonth)).toBe('In November 2026 your plan takes £2,500 before tax from your pension.');
   });
 
   it('Jo, a real gap: set up from April, April, May and July recorded, today in August — June is the month to record', () => {
@@ -215,6 +218,7 @@ describe('Step 3: one month to record', () => {
     const M = monthOf([e], e.plan.id, { today: '2026-11-16', typed: { 'mo.month': '2026-12' } });
     expect(M.chosen).toBe('2026-12');
     expect(M.future).toEqual({ month: 'December 2026' });
+    expect(M.planMonth).toBe(null);   // the year is set up: the month is worked out from it instead
     expect(fillSlots(MONTH.future, M.future)).toBe('December 2026 has not happened yet. Record it now only if the payment has gone.');
   });
 });
@@ -226,7 +230,9 @@ describe('Step 4: what reaches your bank, one sum', () => {
     r.decisionTool.settings.accessMethod = 'ufpls'; r.decisionTool.settings.ufplsYears = null;
     return r;
   };
-  const typedKim = { 'ty.income': '32858', 'ty.toDate': '24000', 'ty.taxToDate': '2286', 'ty.isa': '0', 'mo.total': '520000', 'mo.cash': '40000', 'mo.bonds': '150000' };
+  // (7.12.0) the income box says the year before tax as it is taken, a quarter of each payment tax-free:
+  //   £2,400 a month after tax is 28,800 a year; (28,800 − 2,514) ÷ 0.85 = 30,924.71, typed as 30,925 (the plan keeps 32,858)
+  const typedKim = { 'ty.income': '30925', 'ty.toDate': '24000', 'ty.taxToDate': '2286', 'ty.isa': '0', 'mo.total': '520000', 'mo.cash': '40000', 'mo.bonds': '150000' };
 
   it('Kim: set up from November after £24,000 received — the table, the month and the reason agree', () => {
     const e = entryOf(kimUfpls('LivingKim05'), '2026-11-16');
@@ -245,6 +251,10 @@ describe('Step 4: what reaches your bank, one sum', () => {
     // a full year: 32,858 − 0.2 × (32,858 − 12,570) = 28,800.40 a year, £2,400 a month
     const full = (32858 - 0.2 * (32858 - 12570)) / 12;
     expect(fillSlots(MONTH.setUp.reason, R.setUp.reason)).toBe('In a full tax year this income is £' + Math.round(full).toLocaleString('en-GB') + ' a month after tax. This tax year £2,191 a month reaches your bank, because the money you received before November used your tax-free allowance.');
+    // and what the pension would pay for £2,400 to reach the bank this year: 2,400 ÷ 0.85 = 2,823.53
+    expect(fillSlots(MONTH.setUp.reasonTake, R.setUp.reason)).toBe('For £2,400 a month to reach your bank this tax year, the pension would pay £2,824 a month before tax.');
+    // the box and the suggestion say the year as taken
+    expect(R.setUp.words.income).toBe('£30,925');
   });
 
   it('Kim: the month records the same £2,577 with or without an ISA figure typed', () => {

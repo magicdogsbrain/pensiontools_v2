@@ -22,6 +22,8 @@ export const MONTH = {
   future: '{month} has not happened yet. Record it now only if the payment has gone.',
   sections: { month: 'This month', setUp: 'Set up {year}', pots: 'What your platform shows', advice: 'What to draw this month, and where it comes from', fill: 'The months you did not record', recent: 'Your recent months', record: 'Keep a record of each month here', later: 'Coming next to Month by month' },
   yearDone: 'Tax year {year}: set up from {from}.',
+  /** Before the year is set up, a locked plan's month from its document (7.12.0): the amount and the pot it comes from. */
+  planMonth: 'In {month} your plan takes {amount} before tax from your pension.',
   yearDoneIncome: 'Tax year {year}: set up from {from}, {income} a year before tax.',
   yearEdit: 'To change a tax year once it is set up, use the full view for now.',
   prefilled: 'Filled in from {month}, the last month recorded: change them to what your platform shows today.',
@@ -109,6 +111,10 @@ export const MONTH = {
     taxFree: 'A quarter of each pension payment is tax-free.',
     /** A part year after money was received (7.12.0): why less reaches the bank than in a full year. */
     reason: 'In a full tax year this income is {full} a month after tax. This tax year {month} a month reaches your bank, because the money you received before {before} used your tax-free allowance.',
+    /** (7.12.0) after the reason, when it is found: what the pension would pay for the full month to reach the bank. */
+    /** (7.12.0) part-way through a year, until the income already received is typed (0 for none). */
+    bankWaits: 'What reaches your bank each month turns on the income you have already received this tax year: type it above (0 if none) to see it.',
+    reasonTake: 'For {full} a month to reach your bank this tax year, the pension would pay {take} a month before tax.',
     spLater: 'The State Pension starts {from} at {monthly} a month: the months before it come from the pension.',
     bandsChange: 'Change the tax bands',
     bandsHide: 'Hide the tax bands',

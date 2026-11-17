@@ -64,6 +64,11 @@ test('s12 · Kim and Sam: Sam stops at 62 instead of 63, and the household check
     await q.step('Sam\'s About: stop at 62', () => editAndSave(page, sam, 'about', 'stopAge', SAM61.stopAgeLater));
     const p62 = await q.step('Sam\'s pot at 62, on Sam\'s plan', async () => { await planPage(page, sam, 'plan'); await settled(page).catch(() => {}); return (await fact(page, 'pot.atStop', { page: 'plan' }))?.value ?? null; });
     q.follows('Sam\'s pot at the stop, 63 against 62', p62, p63, leastMove(1, 12 * (goingIn(SAM61.fromTakeHome) + SAM61.employer)), { byHand: '(375 + 200) × 12 = 6,900 a year less going in', owner: 'COUPLE' });
+    // (7.12.0, lead decision 9; the second walk: "132.3% of your pay in all") no pay-in past all of Sam's pay is offered
+    await q.step('Sam\'s home after the stop moved to 62', async () => { await planPage(page, sam, 'home'); await settled(page).catch(() => {}); });
+    const samHome = await visibleText(page);
+    const overPay = [...samHome.matchAll(/([\d.]+)% of your pay/g)].filter((m) => Number(m[1]) > 100).map((m) => m[0]);
+    q.never('Sam\'s home', overPay, { must: 'no share of pay above all of Sam\'s pay', byHand: 'Sam\'s own part can be no more than the £38,000 a year Sam earns', owner: 'SAVER' });
     const after = await q.step('check again', () => check(page, sam));
     if (p62 !== null) {
       const start = KIM66.pot + KIM66.isa + p62;

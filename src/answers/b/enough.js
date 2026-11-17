@@ -416,14 +416,17 @@ export function oneOffSum({ row, H, ctx, least, fails }) {
  *  - A one-off sum is within reach up to four years' allowance (£240,000), for a couple each person's own part.
  *  - "More risk while saving" is within reach by the pay-in rule, at the pay-in it names.
  * `ways` are the ways that work on their own (stopping later, spending less), from the answer's own levers.
+ * `salary`: the pay a year a plan holds (env.scheme.salary) for someone who gives pounds (7.12.0, the second walk: "132.3%
+ * of your pay"): their own part is then no more than all of it either.
  * @returns {{ payIn: boolean, lump: boolean, moreRisk: boolean, ways: { stopLater: number|null, spendLess: number|null } }}
  */
-export function reachOf({ onCourse, enough, needed, levers, inp, whos, savers, now = 0 }) {
+export function reachOf({ onCourse, enough, needed, levers, inp, whos, savers, now = 0, salary = null }) {
   const people = whos.map((w, j) => ({ who: w, saves: !!savers[j], p: (inp[w] && inp[w].payIn) || {} }));
   const saving = people.filter((q) => q.saves);
   const most = RULES.annualAllowance / 12 * Math.max(1, saving.length);
   const one = saving.length === 1 ? saving[0] : null;
-  const pay = one && one.p.kind === 'share' && one.p.pay > 0 ? one.p.pay / 12 : null;
+  const pay = one && one.p.kind === 'share' && one.p.pay > 0 ? one.p.pay / 12
+    : one && typeof salary === 'number' && salary > 0 ? salary / 12 : null;
   const employer = one ? (payInParts(one.p).employer || 0) : 0;
   /** A pay-in a month (all of it, the employer's part included) that someone could pay. */
   // (no more than goes in now is always within it: the rule is about paying in more)

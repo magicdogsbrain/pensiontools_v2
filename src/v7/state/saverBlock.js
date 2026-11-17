@@ -18,6 +18,8 @@
  *
  *   saverBlockOf(verdict, run) → null | { state: 'noAim'|'working'|'failed'|'invalid'|'answer', status, reason, band, lines }
  */
+import { payInWithinReach } from '../../answers/shared/shown.js';
+
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
 /** A share of pay to one decimal place, as the answer says a share ("37.5%"; "8%"). */
@@ -49,7 +51,7 @@ export function saverBlockOf(verdict, run) {
     if (s.enoughLine) lines.push({ id: 'enoughLine', s: s.enoughLine });
     const en = isObj(r.enough) ? r.enough : null;
     const fig = en && isObj(en.atLevel) ? en.atLevel : null;
-    if (fig && en.how === 'pounds' && now && now.salary > 0 && isNum(fig.payIn) && fig.payIn > 0) lines.push({ id: 'enoughShare', slots: { pct: pctOf(fig.payIn, now.salary) } });
+    if (fig && payInWithinReach(r) && en.how === 'pounds' && now && now.salary > 0 && isNum(fig.payIn) && fig.payIn > 0) lines.push({ id: 'enoughShare', slots: { pct: pctOf(fig.payIn, now.salary) } });
   }
   return { state: 'answer', status, reason: null, band, lines };
 }

@@ -618,7 +618,7 @@ export function answerB(inputs, env) {
 
   // ---- one reach rule (7.12.0): what paying in can do, read by every card the same way ----------------------------------
   // (a pay-in, a lump or "more risk" past the reach is never offered: no card says a figure nobody could pay in)
-  const reach = status === 'guaranteed-only' ? null : reachOf({ onCourse, enough, needed, levers, inp, whos, savers, now });
+  const reach = status === 'guaranteed-only' ? null : reachOf({ onCourse, enough, needed, levers, inp, whos, savers, now, salary: env.scheme && env.scheme.salary > 0 ? env.scheme.salary : null });
   if (reach && !reach.payIn) levers.payMore = null;
   if (reach && !reach.lump) levers.oneOff = null;
   if (reach && !reach.moreRisk) levers.moreRisk = null;

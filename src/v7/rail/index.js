@@ -33,6 +33,7 @@ import { href } from '../router/routes.js';
 import { A } from '../state/actions.js';
 import { parsedDraft, isCurrent, stepStates, needsRun, appliedPaths, isRetired, SPEND_STEP, SPEND_PATHS, numbersDone, figureInUse, keepView, payInParts } from '../state/select.js';
 import { nest } from '../../answers/shared/validate.js';
+import { payInWithinReach } from '../../answers/shared/shown.js';
 
 const NO_RAIL = Object.freeze({ question: null, steps: [], position: null, next: null });
 
@@ -296,14 +297,19 @@ function agesResultA(state) {
  * the number by the age, a guide, only when there is no pay-in to name.
  */
 function answerResultB(state) {
-  const r = shownResult(state, 'b');
+  return railAnswerB(shownResult(state, 'b'));
+}
+
+/** The rail's line for B's answer `r` (the result shown). */
+export function railAnswerB(r) {
   if (!r || !r.stop || typeof r.stop.age !== 'number') return NONE;
   if (r.onCourse === true) return { result: sentence('b.rail.answer', ['On course for ', { key: 'stop.age', kind: 'age' }], r), source: r };
   // what goes into the pension is enough, and the savings for the years before it opens fall short: those are the answer
   // (7.8.0: what would be enough at the level chosen, `enough.atLevel`)
   const savings = r.enough && r.enough.savingsOnly && r.enough.atLevel && typeof r.enough.atLevel.savingsIn === 'number' ? r.enough.atLevel : null;
   if (savings) return { result: sentence('b.rail.answer', ['About ', { key: 'enough.atLevel.savingsIn', kind: 'money' }, ' a month into savings'], r), source: r };
-  const lead = r.enough && !r.enough.savingsOnly ? r.enough.atLevel : null;
+  // (7.12.0) a pay-in past the reach of paying in is never named: the answer says paying in more cannot get there
+  const lead = r.enough && !r.enough.savingsOnly && payInWithinReach(r) ? r.enough.atLevel : null;
   if (lead && typeof lead.payIn === 'number' && lead.payIn > 0) {
     return { result: sentence('b.rail.answer', typeof lead.totalPct === 'number'
       ? [{ key: 'enough.atLevel.totalPct', kind: 'pct' }, r.enough.who === 'partner' ? " of your partner's pay in" : ' of your pay in']

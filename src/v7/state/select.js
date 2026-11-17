@@ -70,6 +70,7 @@ import { yearFigures, shownShare } from './shapeModel.js';
 import { takeReading as cTakeReading } from './pictures.js';
 import { money } from '../../answers/shared/format.js';
 import { saverBlockOf } from './saverBlock.js';
+import { payInWithinReach } from '../../answers/shared/shown.js';
 /** The one reader of a pay-in, every kind (schemaParts.js), for the components and the rail, which read it only through this file. */
 export { payInParts };
 
@@ -887,9 +888,11 @@ function sameNameOf(state, q, name, taken) {
  * said: a share of pay, or pounds a month, and the savings a month too when the years before a pension opens need them.
  * null when there is no choice to make (on course, or nothing would be enough by paying in).
  */
-function keepPayInOf(q, r) {
+export function keepPayInOf(q, r) {
   const en = q === 'b' && r && r.enough;
   if (!en || !r.verdict || r.verdict.band === 'yes' || !en.atLevel || !Array.isArray(en.atLevel.parts)) return null;
+  // (7.12.0) a pay-in past the reach of paying in is never offered: paying in as now is then the one pay-in to keep
+  if (!payInWithinReach(r)) return null;
   return { how: en.how, savingsOnly: en.savingsOnly === true, savingsIn: en.atLevel.savingsIn };
 }
 

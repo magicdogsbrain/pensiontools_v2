@@ -44,6 +44,7 @@ import { firstAccessAge, addYears, RULES, LEVEL_DEFAULT } from '../shared/rules.
 import { shownOf } from '../shared/levels.js';
 import { suggestedPlanName, checkPlanName } from '../shared/planName.js';
 import { checkSheet, sheetForSeed } from './budgetSheet.js';
+import { payInWithinReach } from '../shared/shown.js';
 
 export const SEED_KEY = 'pt_v7_plan_seed';
 /**
@@ -462,7 +463,8 @@ export function atTake(result) {
 
 export function atEnough(result) {
   const en = result && result.enough;
-  const fig = en && result.verdict && result.verdict.band !== 'yes' ? en.atLevel : null;
+  // (7.12.0) never kept past the reach of paying in: the same rule every card reads
+  const fig = en && result.verdict && result.verdict.band !== 'yes' && payInWithinReach(result) ? en.atLevel : null;
   if (!fig || !Array.isArray(fig.parts) || !Array.isArray(result.saving)) return null;
   const out = JSON.parse(JSON.stringify(result));
   const inputs = out.inputs;

@@ -223,7 +223,8 @@ function Want({ V, planId, dispatch }) {
         <>
           <p class="note">{t.lead}</p>
           {wv.fields.map((f) => <EditField key={f.path} step="saving" f={f} words={t.fields[f.path]} errors={t.errors[f.path]} source={null} planId={planId} dispatch={dispatch} />)}
-          {wv.laterAge && <p class="note" data-testid={`${T}.want.later`}>{fill(t.later, { age: wv.laterAge })}</p>}
+          {wv.stepAge && <p class="note" data-testid={`${T}.want.inForce`}>{fill(t.inForce, { age: wv.stepAge })}</p>}
+          {wv.laterAge && !wv.stepAge && <p class="note" data-testid={`${T}.want.later`}>{fill(t.later, { age: wv.laterAge })}</p>}
         </>
       )}
     </section>

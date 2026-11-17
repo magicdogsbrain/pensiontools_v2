@@ -175,11 +175,18 @@ export function savedWant(plan, { today }) {
   const f = saved.facts;
   let sp = null;
   try { sp = savedSpend(plan, { today }); } catch { sp = null; }
-  const monthly = sp && sp.first && sp.first.monthly > 0 ? sp.first.monthly : null;
   const stopAge = f && f.saving && num(f.stopAge) > 0 ? Math.round(f.stopAge) : null;
   const ageNow = f && num(f.age) != null ? Math.floor(f.age) : null;
-  const later = sp && Array.isArray(sp.steps) ? sp.steps.map((s) => +s.fromAge).filter((a) => stopAge != null && a > stopAge).sort((a, b) => a - b)[0] : undefined;
-  return { open: !saved.retired && stopAge != null && monthly != null, locked: saved.locked, monthly, stopAge, ageNow, laterAge: later == null ? null : later };
+  // (7.12.0) the amount in force when you stop: the last step that starts at or before the stop (the first amount when
+  // none does), and the box that edits it on "What you spend"
+  const steps = sp && Array.isArray(sp.steps) ? sp.steps : [];
+  const atStop = stopAge == null ? null : [...steps].filter((x) => num(x.fromAge) != null && +x.fromAge <= stopAge).sort((a, b) => +a.fromAge - +b.fromAge).pop() || null;
+  const inForce = atStop || (sp && sp.first) || null;
+  const monthly = inForce && inForce.monthly > 0 ? inForce.monthly : null;
+  const path = atStop ? `steps.${atStop.id}.amount` : 'first.amount';
+  const later = steps.map((x) => +x.fromAge).filter((a) => stopAge != null && a > stopAge).sort((a, b) => a - b)[0];
+  return { open: !saved.retired && stopAge != null && monthly != null, locked: saved.locked, monthly, stopAge, ageNow, laterAge: later == null ? null : later,
+    path, stepAge: atStop ? +atStop.fromAge : null };
 }
 
 /** The want's boxes as typed (blank: as saved) → { ok, errors, monthly, stopAge, changed: { monthly, stopAge } }. */
@@ -231,8 +238,11 @@ function wantWrites(plan, typed, { today }) {
     base = applyPatch(base, a.patch);
   }
   if (w.changed.monthly) {
-    const s = spendPatch(base, { 'first.amount': String(w.monthly) }, { today });
-    if (!s.ok) return { ok: false, errors: { 'want.monthly': s.errors['first.amount'] || 'notWithSpend' }, patch: {}, plan };
+    // the amount in force at the stop (with a new stop, at that stop): the first amount, or the step that starts by then
+    const at = savedWant(base, { today });
+    const path = at.path || 'first.amount';
+    const s = spendPatch(base, { [path]: String(w.monthly) }, { today });
+    if (!s.ok) return { ok: false, errors: { 'want.monthly': s.errors[path] || 'notWithSpend' }, patch: {}, plan };
     Object.assign(patch, s.patch);
     base = applyPatch(base, s.patch);
   }
@@ -509,6 +519,7 @@ export function savingOf(entries, id, { today, typed = null, source = 'account' 
     locked: ws.locked,
     saved: { monthly: pounds(ws.monthly), stopAge: String(ws.stopAge) },
     laterAge: ws.laterAge != null ? String(ws.laterAge) : null,
+    stepAge: ws.stepAge != null ? String(ws.stepAge) : null,
     fields: SAVING_WANT_FIELDS.map((f) => ({ path: f.path, type: f.type, options: null, applies: !ws.locked, shown: wantShown(f.path, f.path === 'want.monthly' ? ws.monthly : ws.stopAge), saved: null, error: (wc.errors[f.path] || (p.errors && p.errors[f.path])) || null }))
   };
   const wantSaid = (wc.changed.monthly || wc.changed.stopAge) ? { wantMonthly: pounds(wc.monthly), wantAge: String(wc.stopAge) } : null;

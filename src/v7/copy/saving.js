@@ -49,6 +49,8 @@ export const SAVING = {
     title: 'What you want',
     lead: 'What you want to spend each month once you stop work, and when you stop. The answer below follows what you type here and under “Each month”.',
     later: 'Your spending changes from {age}. This is the amount at the start; the later steps are on “What you spend”.',
+    /** (7.12.0) A step of the spending starts at or before the stop: the box is that step's amount. */
+    inForce: 'Your spending changes before you stop: this is the amount from {age}, the one in force when you stop. The other steps are on “What you spend”.',
     locked: '{monthly} a month after tax from {stopAge}. These are part of your locked plan. To change them, unlock it from “Your plan as locked”, change them here and lock it again. What you pay in can still be changed below.',
     fields: {
       'want.monthly': { label: 'To spend a month after tax, at today’s prices, in pounds' },

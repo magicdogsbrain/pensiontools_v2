@@ -9475,9 +9475,9 @@
 
     // "Am I on course?" (7.12.0, src/ui/saverAnswerUi.js): the simple view's answer block, from the same reader and the same run
     window.runOnTrackCheck = async () => { if (window._acAutosave) await window._acAutosave.flush(); return paintSaverAnswer(document, { listScenariosAsync, getActiveScenarioId, saveWant: saveActiveWant, afterSave: () => window.loadAccumulationUI && window.loadAccumulationUI() }); };
-    window._ssAutosave = installStressSettingsAutosave(window, document, { save: (o) => saveStressSettingsUI(o), planIsLocked, isLoggedIn, getActiveScenarioId, dbStartError: () => dbStartError(document, window._ssTiming), afterSave: () => renderTiming() });   // the pots-at-stop line follows a pot just saved
+    window._ssAutosave = installStressSettingsAutosave(window, document, { save: (o) => saveStressSettingsUI(o), planIsLocked, isLoggedIn, getActiveScenarioId, dbStartError: () => dbStartError(document, window._ssTiming), afterSave: () => { renderTiming(); renderScenarioSelector().catch(() => {}); } });   // the pots-at-stop line and the plan menu's name follow what was just saved
     window._acAutosave = installAccumulationAutosave(window, document, { saveTab: (b) => saveActiveAccumulationTab(b), planIsLocked, isLoggedIn, getActiveScenarioId,
-      afterSave: () => { invalidateStressCache(); if (document.getElementById('acOnTrack')?.textContent.trim()) window.runOnTrackCheck(); } }); document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushSettings(); });   // the answer on the card follows the boxes; Settings reads the new ages; a page hidden sends what is typed
+      afterSave: () => { invalidateStressCache(); renderScenarioSelector().catch(() => {}); if (document.getElementById('acOnTrack')?.textContent.trim()) window.runOnTrackCheck(); } }); document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushSettings(); });   // the answer on the card follows the boxes; Settings reads the new ages; a page hidden sends what is typed
 
     // In-app confirm modal — replaces window.confirm(), which BLOCKS the whole renderer (and any
     // browser automation) with a native dialog. Promise<boolean>; Escape/backdrop = cancel.
@@ -9668,7 +9668,7 @@
         applyStrategyToUI(s.strategyId || 'pots-and-valves', activeParams(s));   // this strategy's own keys only (6.13.0)
         window._ssIncomeSteps = Array.isArray(s.incomeSteps) && s.incomeSteps.length ? JSON.parse(JSON.stringify(s.incomeSteps)) : (s.incomeNotSet ? [{ fromAge: s.shapeAgeNow || 57, amount: '' }] : s.baseSalary > 0 ? [{ fromAge: s.shapeAgeNow || 57, amount: s.baseSalary }] : []);   // nobody gave an income: one empty step, never the default (7.12.0)
         refreshShapeRefs().then(() => renderIncomeSteps());
-        await loadTimingUI(s);
+        await loadTimingUI(s); renderStressStartSummary(s);   // the starting balances read the settings just loaded, never the page's first ones (7.12.0)
         refreshStressLock().catch(() => {});   // …which also paints the fund and platform charges box (renderChargesField, 6.19.0)
         setIncomeShape(s.incomeShape === 'phases' ? 'phases' : 'level');
         window._ssExtraIncomes = Array.isArray(s.extraIncomes) ? JSON.parse(JSON.stringify(s.extraIncomes)) : [];

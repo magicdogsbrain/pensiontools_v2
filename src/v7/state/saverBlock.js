@@ -7,7 +7,8 @@
  *   1. what you want:       "You want £2,000 a month after tax, at today's prices, from age 60."
  *   2. what goes in now:    what leaves take-home pay, the employer's part, all of it (copy/saving.js payInNow), and, when
  *                           it is said in pounds and the pay is known, the share of pay that is
- *   3. whether it is enough, and how sure: the answer's own head and first sentence
+ *   3. whether it is enough, and how sure: the answer's own head and first sentence; what would be on course in its own
+ *      sentence; and what could be spent a month from the stop paying in as now (7.12.0), as What you pay in says it
  *   4. what would be enough, not on course: the answer's own block (a share of pay with what leaves take-home pay, or the
  *      pounds), and the share of pay when it is said in pounds and the pay is known
  *   5. the reach, when paying in alone cannot do it (enough.reach): said the one way every card says it
@@ -41,6 +42,8 @@ export function saverBlockOf(verdict, run) {
   if (s.verdictHead) lines.push({ id: 'head', s: s.verdictHead });
   if (s.verdictLine) lines.push({ id: 'line', s: s.verdictLine });
   if (s.verdictEnough) lines.push({ id: 'lineEnough', s: s.verdictEnough });
+  // (7.12.0) what could be spent a month from the stop paying in as now: the figure What you pay in gives, in its words
+  if (s.income) lines.push({ id: 'income', s: s.income });
   if (band !== 'yes') {
     if (s.enoughHead) lines.push({ id: 'enoughHead', s: s.enoughHead });
     if (s.enoughLine) lines.push({ id: 'enoughLine', s: s.enoughLine });

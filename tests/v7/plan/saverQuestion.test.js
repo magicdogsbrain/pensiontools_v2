@@ -202,6 +202,9 @@ describe('the home says the answer in the person\'s own terms, and follows every
     // and the two agree: own share + employer's 3% is the whole share; the pounds in all are the whole share of £38,000
     expect(fig.ownPct + 3).toBeCloseTo(fig.totalPct, 6);
     expect(Math.abs(ownLanded + 38000 * 0.03 / 12 - all)).toBeLessThan(0.01);
+    // (7.12.0) what Jo could spend a month from 60 paying in as now: the answer's own sentence, as What you pay in says it
+    expect(line('income')).toBe(H.result.sentences.income.text);
+    expect(line('income')).toMatch(/paying in as now, you could spend £[\d,]+ a month from 60/);
     // the block is the first thing under the plan's headline
     expect(H.first && H.first.getAttribute('data-testid')).toBe('plan.home.saver');
   }, 90000);

@@ -145,7 +145,7 @@ describe('the meter: GuestMeter.js\'s own count, ticked once a minute for a visi
 // ---- the hand-over after a sign-in --------------------------------------------------------------------------------------
 
 /** The plan source with a fake Firebase whose user can change, so a sign-in can be made with plans in the window (`first`: the user already signed in when the page opens). */
-function sourcePage({ windowPlans, docs = [], first = null }) {
+function sourcePage({ windowPlans, docs = [], first = null, session: given = null }) {
   const store = createStore(initialState({ today: TODAY, build: 'test' }), reduce);
   store.dispatch({ type: A.ROUTE_SET, route: parse('#/account') });
   let listener = null;
@@ -157,7 +157,7 @@ function sourcePage({ windowPlans, docs = [], first = null }) {
     signOut: () => Promise.resolve(), getFirestore: () => ({}), collection: (db, ...path) => ({ path: path.join('/') }),
     getDocs: (ref) => { calls.push(['getDocs', ref.path]); return Promise.resolve({ forEach: (fn) => docs.forEach((d) => fn({ id: d.id, data: () => { const { id, ...rest } = d; return rest; } })) }); }
   };
-  const session = storage({ [GUEST_PLANS_KEY]: JSON.stringify(windowPlans) });
+  const session = given || storage({ [GUEST_PLANS_KEY]: JSON.stringify(windowPlans) });
   const listeners = {};
   const win = { addEventListener: (e, fn) => { (listeners[e] ||= []).push(fn); }, removeEventListener() {}, setInterval: () => 1, clearInterval() {}, document: { visibilityState: 'visible', addEventListener() {}, removeEventListener() {} }, setTimeout: () => 1, clearTimeout() {} };
   const actions = [];
@@ -264,6 +264,22 @@ describe('the hand-over: offered on a sign-in with plans of the person\'s own in
     expect(JSON.parse(q.session.raw(GUEST_PLANS_KEY)).length).toBe(1);
     expect(q.adds).toEqual([]);
     p.stop(); q.stop();
+  });
+  it('(7.12.0) the offer comes back on a reload until it is answered: a page opened signed in with plans of the person\'s own in this window offers them; after "No, leave them here" this window is not asked again', async () => {
+    // walker 9: signed in with two plans in the window, reloaded before answering, and the offer never came back
+    const p = sourcePage({ windowPlans: [DRAFT, notActive(FRESH), EXAMPLE], first: { uid: 'u1', email: 'a@b.c', emailVerified: true } });
+    await tick();
+    expect(p.store.getState().session.kind).toBe('in');
+    expect(p.store.getState().ui.bringIn).toEqual({ count: 2, busy: false });
+    // "No, leave them here", then the page opened again in the same window (the same session storage): not asked again
+    p.store.dispatch({ type: A.GUEST_OFFER_CLOSE });
+    await tick();
+    const again = sourcePage({ windowPlans: [DRAFT, notActive(FRESH), EXAMPLE], first: { uid: 'u1', email: 'a@b.c', emailVerified: true }, session: p.session });
+    await tick();
+    expect(again.store.getState().session.kind).toBe('in');
+    expect(again.store.getState().ui.bringIn).toBe(null);
+    expect(JSON.parse(again.session.raw(GUEST_PLANS_KEY)).length).toBe(3);
+    p.stop(); again.stop();
   });
   it('a couple made in this window is brought in as a couple: the partner first, then the plan that names it, with the id the account gave (never a window id); a pair naming each other: one write of the link after', async () => {
     const yours = { ...copy(DRAFT), id: 'guest-yours001', household: { partnerScenarioId: 'guest-partner01' } };

@@ -31,6 +31,7 @@
  * the plan pages only, and the front door's shell carries none of it (your-plan.md 4.5).
  *
  *   GUEST_PLANS_KEY                     'pt_guest_scenarios' (getItem only, never setItem)
+ *   OFFER_DECLINED_KEY                  'pt_guest_offer_declined': "No, leave them here" answered in this window
  *   viewFor(state)                      the reading for a state: { today, rows, page } (page: the route's plan and step)
  *   upgradedList(raws, now)             the entries the readers take: [{ plan, newer, failed }]
  *   startPlanSource(store, { win, local, session, now, fb, fbWrite, client }) → stop()
@@ -76,6 +77,8 @@ import { startPlanWrite } from './planWrite.js';
 import { startAccount } from './account.js';
 
 export const GUEST_PLANS_KEY = 'pt_guest_scenarios';
+/** "No, leave them here" answered in this window (7.12.0): the hand-over is not offered again here. Session storage, as the plans. */
+export const OFFER_DECLINED_KEY = 'pt_guest_offer_declined';
 /**
  * The name this file's Firebase app had until 7.1.0. A Firebase app keeps its sign-in under a key that holds the app's
  * name (`firebase:authUser:<key>:<name>`), and the classic planner's app is the default one: so a sign-in made here was
@@ -384,19 +387,23 @@ export function startPlanSource(store, { win, local = null, session = null, now 
   // The account page and What's new (road-to-7.md step 11): the account effect, with the same handles.
   stops.push(startAccount(store, { win, local, session, now, fb: fbAccount, handles }));
 
-  // "Read again" / "Try again" (plans/reading), "Sign out" (session/out) — and the hand-over offer (road-to-7.md step 11) on
-  // every way the session becomes 'in' while this page is open: the listener's sign-in, or "I've confirmed" after a sign-up
-  // (account.js sets the session itself). Never on the page's first known session; the example plan never counts.
+  // "Read again" / "Try again" (plans/reading), "Sign out" (session/out) — and the hand-over offer (road-to-7.md step 11)
+  // whenever the session becomes 'in' with plans of the person's own in this window: the listener's sign-in, "I've confirmed"
+  // after a sign-up (account.js sets the session itself), and (7.12.0, the second walk) the page's first known session too,
+  // so a reload before answering asks again. "No, leave them here" is remembered for this window (OFFER_DECLINED_KEY), and
+  // it is not asked again here; "Yes" empties the window's list. The example plan never counts.
   let sessionKind = store.getState().session.kind;
+  const declined = () => { try { return !!session && session.getItem(OFFER_DECLINED_KEY) === '1'; } catch { return false; } };
   stops.push(store.subscribe((state, action) => {
     if (action.type === A.SESSION_SET) {
       const was = sessionKind;
       sessionKind = state.session.kind;
-      if (sessionKind === 'in' && (was === 'nobody' || was === 'unverified')) {
+      if (sessionKind === 'in' && was !== 'in' && !state.ui.bringIn && !declined()) {
         const own = guestOwnPlans(windowPlans(session));
         if (own.length) dispatch({ type: A.GUEST_OFFER, count: own.length });
       }
     }
+    if (action.type === A.GUEST_OFFER_CLOSE) { try { if (session) session.setItem(OFFER_DECLINED_KEY, '1'); } catch { /* asked again on the next page: no harm */ } }
     if (action.type === A.PLANS_READING) read();
     if (action.type === A.SESSION_OUT && state.session.signingOut) signOutNow();
     refresh(state);

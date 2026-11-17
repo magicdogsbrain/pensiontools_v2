@@ -66,12 +66,15 @@ test.describe('"Keep this", without an account', () => {
     });
 
     await test.step('the gilt kept to stand in for 2027/28: ONE write of the record, the settings and the document byte-identical', async () => {
-      // a gilt opens as "stands in", the tax year it matures in ticked: Keep this, Keep it — and no error before a touch
+      // 7.12.0: a gilt opens as "kept by choice", no year ticked: which year it stands in for is the person's to say, never
+      // worked out from when it matures. Keep this, "stands in", 2027/28 ticked, Keep it — and no error before a touch
       await page.getByTestId(`${T}.line.${GILT}.keep.open`).click();
       await expect(page.getByTestId(`${T}.line.${GILT}.keep.box`)).toBeVisible();
-      await expect(page.getByTestId(`${T}.line.${GILT}.keep.as.rung`)).toBeChecked();
-      await expect(page.getByTestId(`${T}.line.${GILT}.keep.year.2027`)).toBeChecked();
+      await expect(page.getByTestId(`${T}.line.${GILT}.keep.as.mine`)).toBeChecked();
       await expect(page.getByTestId(`${T}.line.${GILT}.keep.error`)).toHaveCount(0);
+      await page.getByTestId(`${T}.line.${GILT}.keep.as.rung`).check();
+      await expect(page.locator(`[data-testid^="${T}.line.${GILT}.keep.year."]:checked`)).toHaveCount(0);
+      await page.getByTestId(`${T}.line.${GILT}.keep.year.2027`).check();
       expect(await stored(page), 'choosing writes nothing').toBe(planted);
       await page.getByTestId(`${T}.line.${GILT}.keep.save`).click();
       await expect(page.getByTestId(`${T}.toast`)).toContainText('‘Example Treasury Gilt 2027’ kept.', { timeout: 60_000 });
@@ -106,10 +109,13 @@ test.describe('"Keep this", without an account', () => {
       await expect(page.getByTestId(`${T}.gaps`)).toHaveCount(0);
     });
 
-    await test.step('the share kept by choice, counted toward the gaps: no longer a sell on the move, listed as kept by you', async () => {
+    await test.step('the share kept by choice, counted toward the gaps: no longer money the move may raise from, listed as kept by you', async () => {
       await page.getByTestId(`${T}.toastClose`).click();
       await page.goto(v7('#/plan/' + ID + '/move'));
-      await expect(page.locator(`[data-testid="plan.move.sell"] tr[data-key="sell:EXMPL"]`)).toHaveCount(1, { timeout: 60_000 });
+      // 7.12.0: the move has no Sell list; what the plan does not use is listed once, and the buys say how much of it they need
+      const outside = page.getByTestId('plan.move.outside');
+      await expect(outside.locator('tr', { hasText: 'Example Shares plc' })).toHaveCount(1, { timeout: 60_000 });
+      await expect(page.getByTestId('plan.move.sell')).toHaveCount(0);
       await page.goto(v7('#/plan/' + ID + '/hold'));
       await page.getByTestId(`${T}.line.${SHARE}.keep.open`).click();
       await expect(page.getByTestId(`${T}.line.${SHARE}.keep.as.mine`)).toBeChecked();
@@ -120,7 +126,8 @@ test.describe('"Keep this", without an account', () => {
       await expect(page.getByTestId(`${T}.gaps`).locator('[data-line="canFall"]')).toBeVisible();
       await page.goto(v7('#/plan/' + ID + '/move'));
       await expect(page.getByTestId('plan.move.kept')).toContainText('Example Shares plc', { timeout: 60_000 });
-      await expect(page.locator(`[data-testid="plan.move.sell"] tr[data-key="sell:EXMPL"]`)).toHaveCount(0);
+      await expect(page.getByTestId('plan.move.outside').locator('tr', { hasText: 'Example Shares plc' })).toHaveCount(0);
+      await expect(page.getByTestId('plan.move.sell')).toHaveCount(0);
       const text = await page.locator('#app').innerText();
       expect(text).not.toMatch(BANNED);
     });
@@ -139,7 +146,7 @@ test.describe('"Keep this", without an account', () => {
     await expect(page.locator('#mainApp')).toBeVisible({ timeout: 45_000 });
     await page.evaluate(() => switchToTab('transition'));
     const box = page.locator('#transitionPage');
-    await expect(box).toContainText('Target:', { timeout: 45_000 });
+    await expect(box).toContainText('Paying for it', { timeout: 45_000 });   // (7.12.0: the move's section for what pays for the buys)
     const keepBox = box.locator(`select[data-on-change^="keepHolding(${SHARE},this.value,"]`);
     await expect(keepBox).toBeVisible();
     // in the first column: on a phone it is on screen without scrolling the table sideways

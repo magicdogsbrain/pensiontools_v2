@@ -355,17 +355,15 @@ describe('the saver\'s rule, a plan not locked, nothing recorded, shown as saved
     expect(one(root, `${T}.footer`)).not.toBe(null);
     checkWords(text, words);
   });
-  it('nothing recorded on a locked pot plan (read as Moving): "Nothing recorded yet — record what you hold first", no run; the lists read as to buy', () => {
+  it('nothing recorded on a locked pot plan (read as Moving): totals only — the plan\'s own pension is said, nothing is listed to buy, no "record what you hold first"', () => {
     const s = moving(load('move-mix'));
-    const plan = planOf(s);
     const { root, text } = draw(s, replaced((p) => { delete p.holdings; return p; }));
-    // retaken in 7.12.0: one notice, not two — "What skipping it costs" says it, with the link
+    // retaken in 7.12.0 (the moving brief S4): nothing listed, and nothing needs to be — no buys worked out against nothing
     expect(one(root, `${T}.noRecord`)).toBe(null);
-    expect(one(root, `${T}.cost.nothing`).textContent).toContain('Nothing recorded yet — record what you hold first.');
-    expect(root.querySelector(`[data-testid="${T}.cost.nothing"] a`).getAttribute('href')).toBe('#/plan/' + plan.id + '/hold');
-    expect(one(root, `${T}.cost.button`)).toBe(null);
-    expect(all(root, `[data-testid="${T}.buy"] tbody tr`).length).toBe(3);
-    expect(text).not.toMatch(/about £/);
+    expect(one(root, `${T}.status.line`).textContent).toMatch(/^You have not listed what your pension holds, and you do not need to\. Your plan has £[\d,]+ in your pension/);
+    expect(one(root, `${T}.cost.nothing`)).toBe(null);
+    expect(all(root, `[data-testid="${T}.buy"] tbody tr`).length).toBe(0);
+    expect(text).not.toMatch(/about £|Short by|record what you hold first/);
   });
   it('shown as saved (read as Moving): the ticks disabled, no run; without an account: the warning, the ticks live; the toast after a tick with Undo, "Put back as it was."; the problems', () => {
     const s = moving(load('move-mix'));

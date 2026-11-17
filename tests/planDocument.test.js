@@ -234,7 +234,7 @@ describe('holdingsAtLock — what you HELD, apart from what the strategy was tes
     const h2 = planDocumentHtml(buildPlanDocument({ settings: s2, p: planFromSettings(s2, createSimulationConfigFromSettings({}, s2), {}), now: NOW }));
     expect(h2).toContain('Funds the strategy was tested on');
     expect(h2).toContain('not a record of what you hold');
-    expect(h2).toContain('No holdings were on record when the plan was locked');
+    expect(h2).toContain('No holdings were listed when the plan was locked, and you do not need to list them');
     const legacy = JSON.parse(JSON.stringify(doc)); delete legacy.holdingsAtLock;
     expect(planDocumentHtml(legacy)).toContain('written before holdings were recorded');
   });
@@ -248,7 +248,7 @@ describe('holdingsAtLock — what you HELD, apart from what the strategy was tes
     expect(planDocumentHtml(buildPlanDocument({ settings, p, r, holdings: { ...holdings, updatedAt: '2026-09-01' }, lockedAt: '2026-09-09T10:00:00.000Z', now: NOW }))).toContain('What you held when the plan was locked');
     // the "record what you hold" pointers name the Transition tab
     const bare = planDocumentHtml(buildPlanDocument({ settings, p, r, now: NOW }));
-    expect(bare).toContain('Record what you hold on the Transition tab (What you hold — paste it from your platform or type the lines)');
+    expect(bare).toContain('If you do (What you hold, on the Transition tab), the move reads that list, never the funds the strategy was tested on');
     expect(bare).not.toContain('Accumulation planner → what you hold');
   });
 });

@@ -676,9 +676,14 @@ function verdictSentences(result, facts) {
         : [W.paying, M('payIn.now'), ' a month as now', nowDetail ? [' (', nowDetail, ')'] : (result.payIn.employer || 0) > 0 ? [' (', W.employers, ' ', M('payIn.employer'), ' included)'] : '', ', '];
   // (7.12.0, P2.1) a pay-in being tried: said as the figure tried, with what you pay now beside it — never "as now"
   const tried = result.tried && result.tried.payIn ? result.tried : null;
-  const nowSaid = tried
-    ? (en.how === 'share' && typeof tried.nowPct === 'number' ? [PCT('tried.nowPct'), ' of ', W.payShort] : [M('tried.now'), ' a month'])
-    : null;
+  // (7.12.0, the second walk) what goes in now, with whose it is: "8% goes in now: you 5%, your employer 3%" — never "you
+  // pay 8%" of a 5% and 3% scheme; in pounds, "£625 a month goes in now", the employer's part in it
+  const nowSaid = !tried ? null
+    : en.how === 'share' && typeof tried.nowPct === 'number'
+      ? (typeof tried.nowEmployerPct === 'number' && tried.nowEmployerPct > 0
+        ? [PCT('tried.nowPct'), ' goes in now: ', W.who, ' ', PCT('tried.nowOwnPct'), ', ', W.employer, ' ', PCT('tried.nowEmployerPct')]
+        : [W.who === 'you' ? 'you pay ' : W.who + ' pays ', PCT('tried.nowPct'), ' of ', W.payShort, ' now'])
+      : [M('tried.now'), ' a month goes in now'];
   if (tried && nowIn && !pair && Array.isArray(nowWords)) {
     // "Paying in 37% of your pay (…; you pay 8% of your pay now), " — the same parts, "as now" out, what is paid now in
     const flat = nowWords.flat(Infinity);
@@ -690,8 +695,8 @@ function verdictSentences(result, facts) {
       if (close >= 0) {
         const str = flat[close];
         const j = str.lastIndexOf(')');
-        flat.splice(close, 1, str.slice(0, j), '; you pay ', nowSaid, ' now', str.slice(j));
-      } else flat.splice(flat.length - 1, 1, ' (you pay ', nowSaid, ' now), ');
+        flat.splice(close, 1, str.slice(0, j), '; ', nowSaid, str.slice(j));
+      } else flat.splice(flat.length - 1, 1, ' (', nowSaid, '), ');
       nowWords.splice(0, nowWords.length, ...flat);
     }
   }

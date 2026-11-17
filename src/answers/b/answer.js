@@ -333,6 +333,8 @@ export function tryOf(inp) {
       payIn: payIn !== p,
       // what was typed as now: in all, and (a share) the share in all
       now: was.total, nowPct: p && p.kind === 'share' && num(p.ownPct) && num(p.employerPct) ? Math.round((p.ownPct + p.employerPct) * 100) / 100 : null,
+      // (7.12.0) whose parts of it: said beside the try ("8% goes in now: you 5%, your employer 3%")
+      ...(p && p.kind === 'share' && num(p.ownPct) && num(p.employerPct) ? { nowOwnPct: p.ownPct, nowEmployerPct: p.employerPct } : {}),
       lump, lumpLands: lands
     }
   };

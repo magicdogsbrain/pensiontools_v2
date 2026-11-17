@@ -32,6 +32,16 @@ describe('a try never writes over what was typed as now', () => {
     expect(all).not.toMatch(/Paying in £[\d,]+ a month as now/);
   }, 120000);
 
+  it('(7.12.0, the second walk) what goes in now beside a try names whose it is: never "you pay 8%" of a 5% and 3% scheme, never "you pay £625" of £375 and £250', () => {
+    // Jo pays 5% and the employer 3%: 8% goes in now. Trying 13%: the sentence says 8% goes in now, Jo 5%, the employer 3%
+    const jo = answerB({ ...JO, try: { payInPct: 10 } }, ENV);
+    expect(jo.sentences.verdictLine.text).toContain('; 8% goes in now: you 5%, your employer 3%)');
+    expect(jo.sentences.verdictLine.text).not.toMatch(/you pay 8%/);
+    // Sam: £300 from take-home pay is £375 going in, with the employer's £250: £625 a month goes in now
+    const sam = answerB({ ...SAM, try: { payIn: 400 } }, ENV);
+    expect(sam.sentences.verdictLine.text).toMatch(/^Paying in £750 a month \(£400 a month from your take-home pay and £250 from your employer; £625 a month goes in now\), /);
+  }, 120000);
+
   it('a try at what was typed is no try: the answer is the one for what was typed, said "as now"', () => {
     const a = answerB({ ...SAM, try: { payIn: 300 } }, ENV);
     expect(a.tried).toBeUndefined();

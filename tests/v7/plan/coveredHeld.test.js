@@ -34,6 +34,12 @@ import { ALEX_TODAY as TODAY, RAW, L, CONV, SHARES, FUND, PART, alexRaw, alex } 
 const NEED_EXACT = 34000 * 5 / 12 + 0 + 33000;
 const GILTS = 29990 + 31860 + 26380;   // the three conventional gilts at today's value
 const FUNDS = 12000 + 40000;           // the company shares and the world fund
+// what each conventional gilt pays on the day it matures, with the half-coupons still to come after 16 November 2026 (round 3):
+//   4 1/8% 2027, 30,000 units, 29 Jan 2027: one, 30,000 × 4.125% ÷ 2 = 618.75 → 30,618.75 → £30,619
+//   4¼% 2027, 32,000 units, 7 Dec 2027: three (Dec 2026, Jun 2027, Dec 2027), 3 × 680 = 2,040 → £34,040
+//   1 5/8% 2028, 28,000 units, 22 Oct 2028: four (Apr/Oct 2027, Apr/Oct 2028), 4 × 227.50 = 910 → £28,910
+const PAYS = [30619, 34040, 28910];
+const ARRIVES = 50 + PAYS[0] + PAYS[1] + PAYS[2];   // 93,619
 const pageText = (h) => { const v = heldLadderView(h); const out = []; const walk = (x) => { if (!x) return; if (Array.isArray(x)) x.forEach(walk); else if (x.key) out.push(sayHeld(x, HELD)); else if (typeof x === 'object') Object.values(x).forEach(walk); }; walk(v); return out; };
 
 describe('Alex: living on the plan', () => {
@@ -56,7 +62,9 @@ describe('what the cash years need, and what Alex\'s pension holds for them', ()
     expect(h.cashYears.need).toBe(Math.round(NEED_EXACT));
     expect(h.money).toEqual({ cash: 50, gilts: GILTS, funds: FUNDS, available: 50 + GILTS + FUNDS });
     expect(h.state).toBe('cashGilts');
-    expect(h.more).toBe(Math.round(50 + GILTS - NEED_EXACT));
+    expect(ARRIVES).toBe(93619);
+    expect(h.more).toBe(Math.round(ARRIVES - NEED_EXACT));
+    expect(h.more).toBe(46452);
     // each gilt says when it matures, as a fact: no tax year beside it
     expect(CONV.map((l) => h.lines.find((x) => x.label === l.name).matures)).toEqual(['2027-01-29', '2027-12-07', '2028-10-22']);
     for (const l of h.lines) expect(l).not.toHaveProperty('Y');
@@ -66,8 +74,9 @@ describe('what the cash years need, and what Alex\'s pension holds for them', ()
     const w = pageText(h);
     expect(w).toContain('Your plan pays 2026/27 to 2028/29 from cash: £47,167 still to come.');
     expect(w).toContain('£0: a lump sum the plan counts pays it');
-    expect(w).toContain('Beside the plan’s gilts, your pension holds £50 in cash, £88,230 in other gilts and £52,000 in shares and funds, at today’s value: £140,280 in all.');
-    expect(w).toContain(`The cash and gilts are £${Math.round(50 + GILTS - NEED_EXACT).toLocaleString('en-GB')} more than these years need.`);
+    expect(w).toContain('Held until the day they pay, the cash and these gilts come to £93,619: £46,452 more than these years need.');
+    // November and December, 2 × 34,000 ÷ 12 = 5,666.67, fall before the first of them pays
+    expect(w).toContain('One difference from the plan is the timing: £5,667 is due November to December 2026, before 4 1/8% Treasury Gilt 2027 pays on 29 January 2027, and your pension holds £50 in cash. To pay those months you can sell part of something you hold, or wait for that gilt to pay. Anything sold before it matures goes at that day’s price, which can be lower.');
     expect(w).toContain('Your plan already counts a lump sum of £40,000 in 2027/28. If the money you expect is that money, it is not extra.');
     expect(w).toContain('Pension elsewhere: £25,000, expected by June 2027. It is not counted, because it may not arrive.');
     expect(w.some((t) => /not (yet )?covered|counts? toward|runs short/.test(t))).toBe(false);
@@ -98,9 +107,11 @@ describe('what the cash years need, and what Alex\'s pension holds for them', ()
     const k = heldLadder(q, { today: TODAY });
     expect(k.money).toEqual({ cash: 50, gilts: 29990, funds: 12000, available: 50 + 29990 + 12000 });
     expect(k.state).toBe('less');
-    expect(k.less).toBe(Math.round(NEED_EXACT - (50 + 29990 + 12000)));
-    expect(pageText(k)).toContain(`That is £${Math.round(NEED_EXACT - 42040).toLocaleString('en-GB')} less than these years need.`);
-    expect(homeOf([{ plan: q }], q.id, { today: TODAY }).heldLess).toMatchObject({ less: '£' + Math.round(NEED_EXACT - 42040).toLocaleString('en-GB') });
+    // what arrives in time (50 + 30,619) and the shares at today's value (12,000) come to 42,669: 47,166.67 − 42,669 = 4,497.67
+    expect(k.less).toBe(Math.round(NEED_EXACT - (50 + PAYS[0] + 12000)));
+    expect(k.less).toBe(4498);
+    expect(pageText(k)).toContain('What you hold, at today’s value, is £4,498 less than these years need.');
+    expect(homeOf([{ plan: q }], q.id, { today: TODAY }).heldLess).toMatchObject({ less: '£4,498' });
   });
 
   it('the money expected is never counted: it may not arrive', () => {
@@ -124,7 +135,9 @@ describe('what the cash years need, and what Alex\'s pension holds for them', ()
     const k = heldLadder(alex({ lines }), { today: TODAY });
     expect([k.cashYears, k.money, k.state, k.more]).toEqual([h.cashYears, h.money, h.state, h.more]);
     expect(k.setYears).toEqual([{ label: '4¼% Treasury Gilt 2027', years: [2028] }]);
-    expect(pageText(k)).toContain('You set 4¼% Treasury Gilt 2027 against 2028/29.');
+    // said in the gilt's own row of the dated table, not echoed on a line of its own
+    expect(pageText(k)).toContain('£34,040 on 7 December 2027: 4¼% Treasury Gilt 2027 (you set it against 2028/29)');
+    expect(pageText(k).some((t) => t.startsWith('You set '))).toBe(false);
   });
 
   it('holding only the plan\'s gilts and its cash, the page still reads: the cash years against the cash', () => {
@@ -135,7 +148,8 @@ describe('what the cash years need, and what Alex\'s pension holds for them', ()
     const k = heldLadder(q, { today: TODAY });
     expect(k.lines).toEqual([]);
     expect(k.money).toEqual({ cash: 50, gilts: 0, funds: 0, available: 50 });
-    expect(pageText(k)).toContain('Your pension holds £50 in cash.');
+    // 47,166.67 − 50 = 47,116.67
+    expect(pageText(k)).toContain('What you hold, at today’s value, is £47,117 less than these years need.');
   });
 
   // the keep test reads what is kept alone, as 7.10.0 did: no gilt is that year's cash by when it matures

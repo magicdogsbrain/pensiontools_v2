@@ -92,7 +92,11 @@ describe('Living on it: "Your plan\'s mix" is what is held, never a move', () =>
     const tr31 = one(root, `${T}.heldLadder.gilts`).querySelector('tr[data-key="gilt:TR31"]');
     expect([...tr31.querySelectorAll('td')].map((td) => td.textContent).slice(0, 4)).toEqual(['0 1/8% Index-linked Treasury Gilt 2031 (TR31)', '2032/33', '15,500', '2,000']);
     const also = one(root, `${T}.heldLadder.also`).textContent;
-    expect(also).toContain('4 1/8% Treasury Gilt 2027£29,99029 January 2027');
+    // round 3: a gilt that pays inside the cash years is a row of the dated table, on its day, with what it pays then
+    // (30,000 + one half-coupon of 618.75 = £30,619), and not a second time in the also table
+    expect(also).not.toContain('4 1/8% Treasury Gilt 2027');
+    const row = one(root, `${T}.heldLadder.cashYears`).querySelector('tr[data-when="2027-01-29"]');
+    expect([...row.querySelectorAll('td')].map((td) => td.textContent)).toEqual(['29 January 2027', '—', '£30,619: 4 1/8% Treasury Gilt 2027']);
     expect(also).toContain('Example Shares plc£12,000');
     expect(also).not.toMatch(/counted toward/);
     expect(one(root, `${T}.heldLadder.footer`).textContent).toBe(HELD.footer);
@@ -111,7 +115,7 @@ describe('Living on it: "Your plan\'s mix" is what is held, never a move', () =>
     expect(html).not.toMatch(/>Sell<|>Buy<|Totals: buy|When — a schedule|toggleTransitionDone|Next: <strong>|Things the schedule assumes/);
     expect(html).toContain(HELD.lead);
     expect(html).toContain('12 of your plan’s 14 gilts are held.');
-    expect(html).toContain('<td data-label="Matures">29 January 2027</td>');
+    expect(html).toContain('<td data-label="When">29 January 2027</td>');
     expect(html).not.toMatch(/counted toward \d{4}|mature in those years/);
   });
 
@@ -216,7 +220,7 @@ describe('Living on it: what the cash years\' lines say with the gilts and witho
     expect(V.heldInfo.money).toEqual({ cash: 50, gilts: 0, funds: 52000, available: 52050 });
     const { root } = onPage(p);
     const state = [...root.querySelectorAll(`[data-testid="${T}.heldLadder.state"]`)].map((e) => e.textContent);
-    expect(state[0]).toBe('Beside the plan’s gilts, your pension holds £50 in cash and £52,000 in shares and funds, at today’s value: £52,050 in all.');
-    expect(state[1]).toBe(`Together that is £${(52050 - V.heldInfo.cashYears.need).toLocaleString('en-GB')} more than these years need. Part of it is in shares and funds.`);
+    // 50 + 52,000 = 52,050 against 47,166.67: 4,883 more, part of it in shares and funds; no gilt pays in the cash years
+    expect(state[0]).toBe('Your pension holds £50 in cash. With what else you hold, at today’s value, that is £4,883 more than these years need. Part of it is in shares and funds.');
   });
 });

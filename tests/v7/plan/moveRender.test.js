@@ -402,7 +402,10 @@ describe('Living on it (7.11.1): the named states as they are — what is held, 
     expect([...t29.querySelectorAll('td')].slice(0, 3).map((td) => td.textContent)).toEqual(['0 1/8% Index-linked Treasury Gilt 2029 (T29)', '2029/30 to 2031/32', '37,500']);
     const also = all(root, `[data-testid="${T}.heldLadder.also"] tbody tr`).map((tr) => [...tr.querySelectorAll('td')].map((td) => td.textContent));
     // Moved on purpose (7.11.1, the gilt-year guess removed): when a gilt matures is said as a fact, never a year it is for
-    expect(also).toContainEqual(['1¼% Index-linked Treasury Gilt 2027', '£35,494', '22 November 2027', 'rises with prices']);
+    // round 3: it pays inside the cash years (2027/28), so it is in that year's row of the dated table, at today's value
+    expect(also.some((r) => r[0] === '1¼% Index-linked Treasury Gilt 2027')).toBe(false);
+    const y = root.querySelector(`[data-testid="${T}.heldLadder.cashYears"] tr[data-when="2027"]`);
+    expect(y.querySelectorAll('td')[2].textContent).toBe('£35,494 at today’s value (it rises with prices) on 22 November 2027: 1¼% Index-linked Treasury Gilt 2027');
     expect(also).toContainEqual(['Vanguard FTSE All-World (Acc)', '£396,769', '', '']);
     // retaken in 7.12.0: the plan counts the ISA (it is not held aside), so the ISA's fund is beside the plan's gilts too
     expect(also).toContainEqual(['Vanguard FTSE All-World (Acc)', '£35,052', '', '']);

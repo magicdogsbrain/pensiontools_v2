@@ -324,9 +324,11 @@ describe('(11) the full view says it plainly', () => {
   it('a gilt outside the rungs says its value and when it matures — never a year it is "counted toward"', () => {
     const p = alex();
     const V = moveOf([{ plan: p }], p.id, { today: TODAY });
-    const row = V.heldView.lines.find((x) => x.what === '4¼% Treasury Gilt 2027');
-    expect([row.what, row.value, row.matures]).toEqual(['4¼% Treasury Gilt 2027', '£31,860', '7 December 2027']);
-    expect(sayHeld(row.pays, HELD)).toMatch(/^£[\d,]+, fixed$/);
+    // round 3: it pays inside the cash years, so it is a row of the dated table — the day it pays and what it pays then
+    // (32,000 + three half-coupons of 680 = 34,040), in 2027/28's row — and not a second time in the also table
+    expect(V.heldView.lines.find((x) => x.what === '4¼% Treasury Gilt 2027')).toBe(undefined);
+    const row = V.heldView.cash.rows.find((r) => r.id === '2027');
+    expect(sayHeld(row.arrives, HELD)).toBe('£34,040 on 7 December 2027: 4¼% Treasury Gilt 2027');
     for (const t of page(V.heldInfo)) expect(t).not.toMatch(/counted toward|counts toward/);
   });
 });

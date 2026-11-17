@@ -336,7 +336,7 @@ export function sentencesFor(result, facts) {
     const theirs = inShares && result.enough && result.enough.who === 'partner';
     lever.payMore = S(inShares ? 'b.lever.payMore.share' : 'b.lever.payMore', [theirs ? 'Your partner pays in ' : 'Pay in ',
       inShares ? [PCT('levers.payMore.totalPct'), employerPct > 0
-        ? [theirs ? ' of their pay in all (your partner ' : ' of your pay in all (you ', PCT('levers.payMore.ownPct'), ', ', M('levers.payMore.payIn'), ' a month)']
+        ? [theirs ? ' of their pay in all (your partner ' : ' of your pay in all (you ', PCT('levers.payMore.ownPct'), '; ', M('levers.payMore.payIn'), ' a month in all)']
         : [theirs ? ' of their pay (' : ' of your pay (', M('levers.payMore.payIn'), ' a month)']]
         : [M('levers.payMore.payIn'), ' a month'],
       lv.payMore.savingsIn ? [' and put ', M('levers.payMore.savingsIn'), ' a month into savings'] : '',
@@ -580,13 +580,13 @@ function verdictSentences(result, facts) {
   /**
    * A figure in the person's own kind. Long: "31% of your pay in all", "£980 a month in all", "£1,400 a month between you
    * (you 12% of your pay, your partner £600 a month, with your employer's part as now)". Short (beside another figure):
-   * "22% (you 18%, £697 a month)", "£690 a month". "You" is never followed by a bare amount (7.12.0): what comes from you
+   * "22% (you 18%; £697 a month in all)", "£690 a month". "You" is never followed by a bare amount (7.12.0): what comes from you
    * is said by `detail`.
    */
   const figure = (key, fig, short = false) => {
     if (en.how === 'share') {
       return employerPct > 0
-        ? (short ? [PCT(`${key}.totalPct`), ' (', W.who, ' ', PCT(`${key}.ownPct`), ', ', M(`${key}.payIn`), ' a month)'] : [PCT(`${key}.totalPct`), ' of ', W.pay, ' in all'])
+        ? (short ? [PCT(`${key}.totalPct`), ' (', W.who, ' ', PCT(`${key}.ownPct`), '; ', M(`${key}.payIn`), ' a month in all)'] : [PCT(`${key}.totalPct`), ' of ', W.pay, ' in all'])
         : (short ? [PCT(`${key}.totalPct`), ' (', M(`${key}.payIn`), ' a month)'] : [PCT(`${key}.totalPct`), ' of ', W.pay]);
     }
     if (pair) {

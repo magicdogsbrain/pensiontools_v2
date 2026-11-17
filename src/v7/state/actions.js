@@ -99,6 +99,7 @@ export const A = Object.freeze({
   PLAN_SAVE:       'plan/save',        // { planId }                         Save pressed: asked; saving: the write effect runs
   PLAN_SAVED:      'plan/saved',       // { planId, previous, line }         written: the draft goes, the Undo toast shows (previous: the values put back)
   PLAN_SAVE_FAILED: 'plan/saveFailed', // { planId, problem }                nothing written: locked | notHere | usedUp | nobody | storage | failed | problems
+  PLAN_SAVE_NONE:  'plan/saveNone',   // { planId }                         (7.12.0) a box left with nothing ready to save: nothing written, nothing said
   PLAN_CANCEL:     'plan/cancel',      // { planId }                         the draft goes
   PLAN_UNDO:       'plan/undo',        // { planId }                         Undo pressed: the write effect puts the previous values back
   PLAN_UNDO_DONE:  'plan/undoDone',    // { planId }                         put back; the toast says so

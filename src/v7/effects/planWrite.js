@@ -365,6 +365,9 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     if (step !== 'saving' && lockedPlan && !lockedAbout) { fail(planId, 'locked'); return; }
     // a draft read from an earlier start than it saved (7.4.0): its settings are written as read, with the step's (withLaterDraft)
     const p = lockedAbout ? stopAskPatch(plan, typed, { today: state.env.today }) : withLaterDraft(plan, patchOf(plan, typed, { today: state.env.today }), { now: todayOf(state) });
+    // (7.12.0) a save started by leaving a box: nothing ready (a box with a problem is said beside it, or nothing changed) — nothing written or said
+    const auto = !!(state.ui.saving && state.ui.saving.auto);
+    if (auto && (!p.ok || !Object.keys(p.patch).length)) { dispatch({ type: A.PLAN_SAVE_NONE, planId }); return; }
     if (!p.ok) { fail(planId, p.errors.plan === 'locked' || p.errors.plan === 'notLocked' ? 'locked' : 'problems'); return; }
     const about = state.plans.view && state.plans.view.page && state.plans.view.page[step] && state.plans.view.page.forId === String(planId) ? state.plans.view.page[step] : null;
     const line = lockedAbout ? p.line : about && about.savedLine ? about.savedLine : null;
@@ -374,7 +377,8 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     if (!(await send(place, planId, data))) return;
     // Undo puts the plan back as it was, its last-changed stamp included (editing-in-v7.md 3): byte-identical afterwards.
     // "What you pay in" marks its toast (op 'saving'): its Undo is judged by what was written, wherever the person is by then
-    dispatch({ type: A.PLAN_SAVED, planId, previous: { ...p.previous, lastModified: plan.lastModified }, line, ...(step === 'saving' ? { op: 'saving' } : {}) });
+    // (7.12.0) what was written, so a save started by leaving a box takes exactly these from the draft and leaves what was typed since
+    dispatch({ type: A.PLAN_SAVED, planId, previous: { ...p.previous, lastModified: plan.lastModified }, line, ...(step === 'saving' ? { op: 'saving' } : {}), ...(auto ? { sent: { ...typed } } : {}) });
     dispatch({ type: A.PLANS_READING });
     later(() => dispatch({ type: A.PLAN_TOAST_CLOSE }));
   }

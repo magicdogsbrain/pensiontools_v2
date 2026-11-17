@@ -778,8 +778,14 @@ function reduceAction(state, action) {
       const base = pd.id === planId ? pd : { ...emptyPlanDraft(), id: planId };
       // a box left (auto, 7.12.0): the same one write, remembering what it sends — what is typed meanwhile stays; the other
       // boxes are not "asked" (their problems show once each is left, as before)
-      if (action.auto === true) return withPlanDraft({ ...state, ui: { ...state.ui, saving: { planId, kind: 'save', auto: true, sent: { ...base.values } }, ...(state.ui.saveAgain ? { saveAgain: null } : {}), saveProblem: null, toast: null } }, base);
+      if (action.auto === true) return withPlanDraft({ ...state, ui: { ...state.ui, saving: { planId, kind: 'save', auto: true, sent: { ...base.values } }, ...(state.ui.saveAgain ? { saveAgain: null } : {}) } }, base);
       return withPlanDraft({ ...state, ui: { ...state.ui, saving: { planId, kind: 'save' }, ...(state.ui.saveAgain ? { saveAgain: null } : {}), saveProblem: null, toast: null } }, { ...base, asked: true });
+    }
+    case A.PLAN_SAVE_NONE: {
+      // (7.12.0) a box left with nothing ready to save (no change, or a box with a problem, said beside it): the write ends
+      // with nothing written and nothing said; what is typed stays
+      if (!state.ui.saving || state.ui.saving.kind !== 'save' || state.ui.saving.planId !== action.planId) return state;
+      return { ...state, ui: { ...state.ui, saving: null } };
     }
     case A.PLAN_STALE_LEAVE: {
       // "Leave it" on an out-of-date draft (road-to-7.md step 11b): one write of the planner's own key; the boxes are left alone
@@ -810,8 +816,9 @@ function reduceAction(state, action) {
       // recorded on the same page, stay
       const sv = state.ui.saving;
       const pd = planDraftOf(state);
-      const left = sv && sv.auto === true && sv.sent && pd.id === planId
-        ? Object.fromEntries(Object.entries(pd.values).filter(([k, v]) => k.startsWith('record.') || !(k in sv.sent) || sv.sent[k] !== v)) : null;
+      const sent = sv && sv.auto === true ? (action.sent && typeof action.sent === 'object' ? action.sent : sv.sent) : null;
+      const left = sent && pd.id === planId
+        ? Object.fromEntries(Object.entries(pd.values).filter(([k, v]) => k.startsWith('record.') || !(k in sent) || sent[k] !== v)) : null;
       const draft = left && Object.keys(left).length ? { ...pd, values: left, touched: pd.touched.filter((k) => k in left), asked: false } : emptyPlanDraft();
       return withPlanDraft({ ...state, lasts, ui: { ...state.ui, open, saving: null, saveProblem: null, toast } }, draft);
     }

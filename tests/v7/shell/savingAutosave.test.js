@@ -106,7 +106,7 @@ describe('the write: one at a time, nothing lost', () => {
 
 describe('the page: leaving a box with a change starts the save', () => {
   const draw = (state, dispatch) => { const root = document.createElement('div'); root.id = 'app'; document.body.appendChild(root); render(h(App, { state, dispatch }), root); return root; };
-  it('"What you want": a new amount, left — the save starts; left again with nothing new — nothing', () => {
+  it('"What you want": a new amount, left — the save starts (the write judges whether anything is ready, on the boxes as they are then)', () => {
     const p = page({ typed: { 'want.monthly': '2500' } });
     const sent = [];
     const root = draw(p.store.getState(), (a) => sent.push(a));
@@ -115,11 +115,23 @@ describe('the page: leaving a box with a change starts the save', () => {
     box.dispatchEvent(new Event('blur'));
     expect(sent).toContainEqual({ type: 'plan/save', planId: SAVER.id, auto: true });
     p.stop();
-    const q = page();
-    const sent2 = [];
-    const root2 = draw(q.store.getState(), (a) => sent2.push(a));
-    root2.querySelector('[data-testid="plan.saving.want.monthly"]').dispatchEvent(new Event('blur'));
-    expect(sent2.filter((a) => a.type === 'plan/save')).toEqual([]);
+  });
+  it('a box left with nothing changed, or with a problem: nothing written, no toast, no problem said, what is typed stays', async () => {
+    const fb = fakeLite();
+    const p = page({ fb });
+    p.store.dispatch(auto);
+    await tick(20);
+    expect(fb.writes).toEqual([]);
+    expect(p.store.getState().ui.toast).toBe(null);
+    expect(p.store.getState().ui.saving).toBe(null);
+    p.stop();
+    const fb2 = fakeLite();
+    const q = page({ typed: { 'want.stopAge': '20' }, fb: fb2 });   // before the age today: refused beside the box
+    q.store.dispatch(auto);
+    await tick(20);
+    expect(fb2.writes).toEqual([]);
+    expect(q.store.getState().ui.saveProblem).toBe(null);
+    expect(q.store.getState().draft.plan.values).toEqual({ 'want.stopAge': '20' });
     q.stop();
   });
   it('what goes in: a new pay-in, left — the save starts', () => {

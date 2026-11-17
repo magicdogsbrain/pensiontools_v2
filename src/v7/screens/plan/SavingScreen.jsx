@@ -267,8 +267,8 @@ export function SavingScreen(state, dispatch) {
   // (7.12.0, lead decisions 1 and 9) a box left with a change ready to save is saved then — the same one write as Save, so the
   // plan's name, the rail, the stop line and the pot table follow at once, and nothing typed is lost on leaving the page. A
   // month being recorded is its own press ("Record it"), never saved by leaving a box.
-  const ready = V.editable && V.changed && Object.keys(V.errors || {}).every((k) => k.startsWith('record.'));
-  const leave = () => { if (ready) dispatch({ type: 'plan/save', planId, auto: true }); };
+  // (whether it is ready is the write's to judge, on the boxes as they are then — this page's drawing may be a moment behind)
+  const leave = () => { if (V.editable) dispatch({ type: 'plan/save', planId, auto: true }); };
   const F = (path, more = {}) => <EditField step="saving" f={field(path)} words={W.fields[path]} errors={W.errors[path]} source={null} planId={planId} dispatch={dispatch} {...(path.startsWith('record.') ? {} : { onLeave: leave })} {...more} />;
   const problem = V.problem ? (W.problems[V.problem] || W.problems.failed) : null;
   const onSubmit = (e) => {

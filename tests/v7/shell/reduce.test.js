@@ -247,6 +247,9 @@ const anyAction = fc.oneof(
     .map(([planId, path, value]) => ({ type: A.PLAN_EDIT, planId, path, value })),
   fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom('age', 'stopped', 'stopAge', 'endAge')).map(([planId, path]) => ({ type: A.PLAN_TOUCH, planId, path })),
   fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_SAVE, planId })),
+  // (7.12.0) a box left on What you pay in: the save it starts, and its end with nothing ready
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_SAVE, planId, auto: true })),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_SAVE_NONE, planId })),
   fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom(null, {}, { 'stressTool.settings.duration': 32 })).map(([planId, previous]) => ({ type: A.PLAN_SAVED, planId, previous, line: { id: 'runsTo', slots: { endAge: 93, years: 32 } } })),
   fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom('locked', 'notHere', 'usedUp', 'nobody', 'storage', 'failed', 'problems', 'readonly', 'notLocked', 'noWorker', 'noRun')).map(([planId, problem]) => ({ type: A.PLAN_SAVE_FAILED, planId, problem })),
   fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_CANCEL, planId })),

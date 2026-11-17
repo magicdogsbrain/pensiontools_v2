@@ -38,6 +38,7 @@ import { getDefaultTaxYears, getDefaultBudget, defaultStrategyBlock as pureDefau
 import { PlanLockedError, lockedWriteRefusal, isLockedSettings, isPlanLockedError, lockedPlanWriteRefusal, phaseWriteRefusal } from '../services/LockedPlanGuard.js';
 import { taskPatch } from '../answers/plan/tasks.js';
 import { savingPatch } from '../answers/plan/saving.js';
+import { accumulationTabPatch } from '../answers/plan/accumulationTab.js';
 import { localDay } from '../answers/plan/dates.js';
 import { upgradeScenario } from '../firebase/scenarioMigration.js';
 import { getDefaultStressSettings } from './stressDefaults.js';
@@ -967,6 +968,24 @@ export async function saveActiveAccumulationInputs(inputs, now = new Date()) {
     cachedActiveScenario.accumulationTool.settings = settings;
     if (history) cachedActiveScenario.accumulationTool.history = history;
   }
+}
+
+/**
+ * The full view's Accumulation tab as its boxes stand (7.12.0, answers/plan/accumulationTab.js): the ages through About's write,
+ * what goes in and the pot today through What you pay in's, ONE write; nothing when the boxes say what is stored. A box with a
+ * problem writes nothing and comes back by its id: { ok: false, errors: { acRetireAge: 'stop-before-age' } }.
+ */
+export async function saveActiveAccumulationTab(boxes, { now = new Date() } = {}) {
+  const active = await getActiveScenarioAsync();
+  if (!active) throw new Error('No active scenario');
+  const stored = (await loadScenario(active.id)) || active;
+  const plan = upgradeScenario(JSON.parse(JSON.stringify(stored)), { now }).scenario;
+  const p = accumulationTabPatch(plan, boxes, { today: localDay(now) });
+  if (!p.ok) return { ok: false, errors: p.errors };
+  if (!Object.keys(p.patch).length) return { ok: true, errors: {}, written: false };
+  await saveScenario(active.id, p.patch);
+  invalidateScenarioCache();
+  return { ok: true, errors: {}, written: true };
 }
 
 export async function saveActiveAccumulation(settings) {

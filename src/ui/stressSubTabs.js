@@ -9,8 +9,8 @@
  *
  *   pressIfClosed(button)                       presses a tab or sub-tab only when it is not the open one; true when pressed
  *   installStressSubTabs(doc, win, deps)        the sub-tabs' presses. deps: loadStressSettings, updateStrategyNote,
- *                                               getStressSettingsAsync, and optionally beforeChange (awaited before a press
- *                                               changes anything: a save of what was typed waiting to go)
+ *                                               getStressSettingsAsync, and optionally beforeChange (awaited before the
+ *                                               sub-tab pressed loads anything: a save of what was typed waiting to go)
  */
 
 /** Presses `button` only when it is not already the open tab; returns whether it was pressed. */
@@ -26,7 +26,6 @@ export function installStressSubTabs(doc, win, deps) {
     tab.addEventListener('click', async () => {
       // pressed again while it is open: nothing to load, and what is typed stays where it is
       const wasOpen = tab.classList.contains('active');
-      if (typeof d.beforeChange === 'function') { try { await d.beforeChange(); } catch (e) { /* the save says its own fault */ } }
       doc.querySelectorAll('.sub-tab[data-stresstab]').forEach((t) => t.classList.remove('active'));
       tab.classList.add('active');
       if (win.__hideHelpTip) win.__hideHelpTip();
@@ -34,6 +33,9 @@ export function installStressSubTabs(doc, win, deps) {
       const which = tab.dataset.stresstab;
       const box = doc.getElementById('stress-' + which);
       if (box) box.classList.remove('hidden');
+      // anything typed goes first, so what this sub-tab reads is what the boxes showed; pressed on meanwhile: that press loads
+      if (typeof d.beforeChange === 'function') { try { await d.beforeChange(); } catch (e) { /* the save says its own fault */ } }
+      if (!tab.classList.contains('active')) return;
       if (which === 'montecarlo' && typeof d.updateStrategyNote === 'function') d.updateStrategyNote();
       if (which === 'stresssettings' && !wasOpen) await d.loadStressSettings();
       // Drawdown / Glidepath: start from the plan's own horizon, not a stale 35

@@ -98,7 +98,9 @@ import { resolve } from 'node:path';
 // The ladder box reads one need (7.12.0, LadderPosition.ladderCheckWords): its "parked" alert went, and the check is one line: 8,848.
 // The Stress tester's sub-tabs moved to src/ui/stressSubTabs.js (7.12.0, the race hunt): Settings pressed while open is not
 // drawn again: 8,827.
-const MAX_LINES = 8827;
+// Settings and the Accumulation tab save as they change (7.12.0, src/ui/settingsAutosave.js), and Settings' order moved to
+// src/ui/settingsLayout.js: 8,820.
+const MAX_LINES = 8820;
 
 describe('index.html\'s inline script may only get shorter', () => {
   const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');

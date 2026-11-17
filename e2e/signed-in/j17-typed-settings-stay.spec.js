@@ -49,3 +49,140 @@ test('a way of drawing pressed and figures typed on a new plan\'s Settings are s
   expect(s.strategyParams.sippTotal).toBe(485000);
   expect(s.strategyParams.cashYears).toBe(3);
 });
+
+// ---- 7.12.0, lead decision 1: on a plan not locked, Settings and the Accumulation tab save as they change ----------------
+
+/** A new plan from the full view's own wizard (fictional ages), on its first screen. */
+async function newPlan(page, { age, retired, retireAge, start }) {
+  await page.goto(PROD + CLASSIC_PATH);
+  const wiz = page.locator('#setupWizard');
+  await wiz.locator('#wizCurrentAge').fill(String(age));
+  if (retired) await wiz.locator('#wizRetired').check();
+  await wiz.locator('#wizRetireAge').fill(String(retireAge));
+  await wiz.getByRole('button', { name: 'Next' }).click();
+  await wiz.locator('[data-action="' + start + '"]').click();
+  await expect(page.locator('#mainApp:not(.hidden)')).toBeVisible({ timeout: 30_000 });
+}
+/** Stress tester → Settings, drawn from the plan as stored. */
+async function openSettings(page) {
+  await page.evaluate(() => window.switchToTab('stress'));
+  await page.locator('.sub-tab[data-stresstab="montecarlo"]').click();
+  await page.locator('.sub-tab[data-stresstab="stresssettings"]').click();
+  await expect(page.locator('#stress-stresssettings')).toBeVisible();
+}
+/** Types into a box as a person does, and leaves it with Tab. */
+async function typeIn(page, locator, text) {
+  await locator.click();
+  await locator.fill(text);
+  await page.keyboard.press('Tab');
+}
+const firstStepAmount = (page) => page.locator('#incomeStepsEditor input[type=number][step="1000"]').first();
+const saved = (page) => expect(page.getByTestId('settings.saveState')).toHaveText('Saved', { timeout: 30_000 });
+
+test('figures typed on Settings stay after Tab and a reload, after another sub-tab, and after another plan', async ({ page }) => {
+  test.setTimeout(300_000);
+  const { uid } = await makeAccount(ALEX);
+  await putSettings(uid, { lastSeenVersion: VERSION, view: 'full' });
+  await openAt(page, '#/account');
+  await signIn(page, ALEX);
+  await expect(page.getByTestId('account.signIn')).toHaveCount(0, { timeout: 30_000 });
+  await newPlan(page, { age: 66, retired: true, retireAge: 66, start: 'start-stress' });
+  await openSettings(page);
+
+  // type, press Tab, reload: the figures are there (the walker read the boxes; we read them and the store)
+  await typeIn(page, page.locator('#ssPot'), '300000');
+  await typeIn(page, firstStepAmount(page), '28000');
+  await saved(page);
+  await page.reload();
+  await expect(page.locator('#mainApp:not(.hidden)')).toBeVisible({ timeout: 30_000 });
+  await openSettings(page);
+  await expect(page.locator('#ssPot')).toHaveValue('300000');
+  await expect(firstStepAmount(page)).toHaveValue('28000');
+  let s = (await plansOf(uid))[0].stressTool.settings;
+  expect(s.equityMin + s.bondMin + s.cashTarget).toBe(300000);
+  expect(s.incomeSteps.map((x) => x.amount)).toEqual([28000]);
+
+  // type, switch sub-tab and back: there, and "Will it last?" starts from it
+  await typeIn(page, page.locator('#ssIsaBalance'), '40000');
+  await page.locator('.sub-tab[data-stresstab="montecarlo"]').click();
+  await page.locator('.sub-tab[data-stresstab="stresssettings"]').click();
+  await expect(page.locator('#ssIsaBalance')).toHaveValue('40000');
+  s = (await plansOf(uid))[0].stressTool.settings;
+  expect(s.isaBalance).toBe(40000);
+
+  // type, switch plan and back: there, and the other plan untouched
+  const first = (await plansOf(uid))[0].id;
+  await typeIn(page, page.locator('#ssPot'), '310000');
+  const openMenu = () => page.evaluate(() => document.getElementById('scenarioDropdown').classList.add('open'));   // the plan menu (its button's chip opens an explainer)
+  await openMenu();
+  await page.locator('#scenarioNewBtn').click();
+  const wiz = page.locator('#setupWizard');
+  await wiz.locator('#wizCurrentAge').fill('61');
+  await wiz.locator('#wizRetireAge').fill('63');
+  await wiz.getByRole('button', { name: 'Next' }).click();
+  await wiz.locator('[data-action="start-stress"]').click();
+  await expect(page.locator('#mainApp:not(.hidden)')).toBeVisible({ timeout: 30_000 });
+  const plans = await plansOf(uid);
+  expect(plans.length).toBe(2);
+  const a = plans.find((p) => p.id === first).stressTool.settings;
+  expect(a.equityMin + a.bondMin + a.cashTarget).toBe(310000);
+  await openMenu();
+  await page.locator('.scenario-dropdown-item[data-scenario-id="' + first + '"]').click();
+  await openSettings(page);
+  await expect(page.locator('#ssPot')).toHaveValue('310000');
+  await expect(page.locator('#ssIsaBalance')).toHaveValue('40000');
+  await page.evaluate(() => scrollTo(0, 0));
+  await page.locator('#stress-stresssettings h2').screenshot({ path: test.info().outputPath('settings-saved.png') });
+});
+
+test('a box with a problem says what beside it, the heading says "Not saved yet", and nothing of it is stored', async ({ page }) => {
+  test.setTimeout(240_000);
+  const { uid } = await makeAccount(ALEX);
+  await putSettings(uid, { lastSeenVersion: VERSION, view: 'full' });
+  await openAt(page, '#/account');
+  await signIn(page, ALEX);
+  await expect(page.getByTestId('account.signIn')).toHaveCount(0, { timeout: 30_000 });
+  await newPlan(page, { age: 66, retired: true, retireAge: 66, start: 'start-stress' });
+  await openSettings(page);
+  await typeIn(page, page.locator('#ssPot'), '-5');
+  await expect(page.locator('#ssPot + [data-testid="field.problem"]')).toHaveText('Type an amount of £0 or more. Not saved yet.');
+  await expect(page.getByTestId('settings.saveState')).toHaveText(/^Not saved yet: “.+” needs a change \(said beside it\)\.$/);
+  // the State Pension start date says which box and what to type
+  await typeIn(page, page.locator('#ssPot'), '300000');
+  await typeIn(page, page.locator('#ssSpStartDate'), '2026-08');
+  await expect(page.locator('#ssSpStartDate + [data-testid="field.problem"]')).toHaveText('We could not read “2026-08” as a date. Type the day, the month and the year, like “6 August 2040”. Not saved yet.');
+  await expect(page.getByTestId('settings.saveState')).toHaveText('Not saved yet: “State Pension start date” needs a change (said beside it).');
+  await page.locator('#ssSpStartDate').scrollIntoViewIfNeeded();
+  await page.locator('#ssSpStartDate').locator('xpath=..').screenshot({ path: test.info().outputPath('date-problem.png') });
+  await typeIn(page, page.locator('#ssSpStartDate'), '6 August 2040');
+  await saved(page);
+  const s = (await plansOf(uid))[0].stressTool.settings;
+  expect(s.equityMin + s.bondMin + s.cashTarget).toBe(300000);
+  expect(s.spStartDate).toBe('6 August 2040');
+});
+
+test('the Accumulation tab keeps what is typed: the stop age and the pot today, after a reload, and Settings says the same stop', async ({ page }) => {
+  test.setTimeout(240_000);
+  const { uid } = await makeAccount(ALEX);
+  await putSettings(uid, { lastSeenVersion: VERSION, view: 'full' });
+  await openAt(page, '#/account');
+  await signIn(page, ALEX);
+  await expect(page.getByTestId('account.signIn')).toHaveCount(0, { timeout: 30_000 });
+  await newPlan(page, { age: 61, retired: false, retireAge: 63, start: 'start-accumulation' });
+  await page.evaluate(() => window.switchToTab('accumulation'));
+  await expect(page.locator('#acRetireAge')).toHaveValue('63', { timeout: 30_000 });
+  await typeIn(page, page.locator('#acPotNow'), '120000');
+  await typeIn(page, page.locator('#acRetireAge'), '62');
+  await expect(page.getByTestId('accumulation.saveState')).toHaveText('Saved', { timeout: 30_000 });
+  await page.reload();
+  await expect(page.locator('#mainApp:not(.hidden)')).toBeVisible({ timeout: 30_000 });
+  await page.evaluate(() => window.switchToTab('accumulation'));
+  await expect(page.locator('#acRetireAge')).toHaveValue('62', { timeout: 30_000 });
+  await expect(page.locator('#acPotNow')).toHaveValue('120000');
+  const plan = (await plansOf(uid))[0];
+  expect(plan.stressTool.settings.retireAge).toBe(62);
+  expect(plan.accumulationTool.settings.potNow).toBe(120000);
+  // Stress tester → Settings stops at 62 too, without a reload of its own
+  await openSettings(page);
+  await expect(page.locator('#tmRetireAge')).toHaveValue('62');
+});

@@ -54,7 +54,24 @@ describe('the Stress tester sub-tabs', () => {
     expect(document.getElementById('ddDuration').value).toBe('29');
   });
 
-  it('a save waiting to go is awaited before the press changes anything', async () => {
+  it('pressed again during a slow save: the last sub-tab pressed is the one shown, and it alone loads', async () => {
+    let release;
+    document.body.innerHTML = '<button class="sub-tab active" data-stresstab="montecarlo"></button><button class="sub-tab" data-stresstab="stresssettings"></button><div id="stress-montecarlo" class="stress-subtab"></div><div id="stress-stresssettings" class="stress-subtab hidden"></div>';
+    const loads = [];
+    let first = true;
+    installStressSubTabs(document, window, { beforeChange: () => (first ? (first = false, new Promise((r) => { release = r; })) : Promise.resolve()), loadStressSettings: async () => loads.push('settings'), updateStrategyNote: () => loads.push('note') });
+    document.querySelector('[data-stresstab="stresssettings"]').click();   // waits on the slow save
+    await settle();
+    document.querySelector('[data-stresstab="montecarlo"]').click();       // pressed on meanwhile
+    await settle();
+    release(); await settle(); await settle();
+    expect(document.querySelector('.sub-tab.active').dataset.stresstab).toBe('montecarlo');
+    expect(document.getElementById('stress-montecarlo').classList.contains('hidden')).toBe(false);
+    expect(document.getElementById('stress-stresssettings').classList.contains('hidden')).toBe(true);
+    expect(loads).toEqual(['note']);
+  });
+
+  it('a save waiting to go is awaited before the press loads anything', async () => {
     const order = [];
     document.body.innerHTML = '<button class="sub-tab active" data-stresstab="montecarlo"></button><button class="sub-tab" data-stresstab="stresssettings"></button><div id="stress-montecarlo" class="stress-subtab"></div><div id="stress-stresssettings" class="stress-subtab hidden"></div>';
     installStressSubTabs(document, window, { beforeChange: async () => { await settle(); order.push('saved'); }, loadStressSettings: async () => order.push('load'), updateStrategyNote: () => {} });

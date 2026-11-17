@@ -15,7 +15,7 @@ import { test, expect, PROD, REPO, FIXED_NOW, V7_PATH, WORKER_DATA_MISSING } fro
 import { householdInNode } from './helpers/householdInNode.js';
 import { HOUSEHOLD_WRITES } from '../src/answers/plan/schema.js';
 import { applyPatch } from '../src/answers/plan/about.js';
-import { pctText, CHANCE_BARS } from '../src/services/OneAnswer.js';
+import { pctBesideWords } from '../src/services/OneAnswer.js';
 
 test.use({ outside: 'block' });
 
@@ -85,7 +85,7 @@ test.describe('"Your household", without an account', () => {
       await expect(result).toBeVisible({ timeout: 300_000 });
       testInfo.annotations.push({ type: 'household-ms', description: `${Date.now() - t0} ms` });
       const c = node.pooled.own.combined;
-      const pct = (share) => pctText(share * 100, 0, [...CHANCE_BARS, 70]).replace(/%$/, '');   // the page's own reading of a share (OneAnswer.pctText)
+      const pct = (share) => pctBesideWords(share).replace(/%$/, '');   // the page's own reading of a share (7.12.0: OneAnswer.pctBesideWords, a decimal kept near a line its words name)
       await expect(page.locator(`[data-testid="${T}.rows"] tr[data-row="household"]`)).toHaveAttribute('data-pct', pct(c.pooled.success));
       await expect(page.locator(`[data-testid="${T}.rows"] tr[data-row="a"]`)).toHaveAttribute('data-pct', pct(c.successA));
       await expect(page.locator(`[data-testid="${T}.rows"] tr[data-row="b"]`)).toHaveAttribute('data-pct', pct(c.successB));
@@ -112,7 +112,9 @@ test.describe('"Your household", without an account', () => {
       await expect(result).toBeVisible({ timeout: 300_000 });
       const sv = node.survivor;
       expect(sv.affordable).toBe(true);
-      await expect(page.getByTestId(`${T}.survivor.headline`)).toContainText(`If Alex’s plan died at 74, Sam’s plan’s plan lasts ${sv.middling.a.outOfTen.words} with a middling inheritance, and ${sv.bad.a.outOfTen.words} with a bad-case one (the worst 1 in 10).`);
+      // (7.12.0: the household brief's words — the age the survivor's plan is tested until, then the bad case on its own)
+      const esc = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      await expect(page.getByTestId(`${T}.survivor.headline`)).toContainText(new RegExp(esc(`If Alex’s plan died at 74, Sam’s plan’s plan lasts ${sv.middling.a.outOfTen.words}, tested until Sam’s plan is `) + '\\d+' + esc(`. With a bad-case inheritance (the worst 1 in 10): ${sv.bad.a.outOfTen.words}.`)));
       await expect(page.locator('[data-line="survivor.inherit"]')).toContainText(pounds(sv.inherited.middling.total));
       await expect(page.getByTestId(`${T}.survivor.ran`)).toHaveText(/^Tried in 3 runs \(\d+(\.\d)? s\)\.$/);
       await page.getByTestId(`${T}.survivor.close`).click();

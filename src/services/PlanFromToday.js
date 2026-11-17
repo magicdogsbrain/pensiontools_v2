@@ -173,10 +173,11 @@ export function potsAsOfFor(scenario, settings, now) {
 
 /** The settings without the position a reader put on them (potsAsOfFor): what is saved. The same object when it has none. */
 export function withoutPotsAsOf(settings) {
-  if (!isObj(settings) || !('potsAsOf' in settings || 'potsNotSet' in settings)) return settings;
+  if (!isObj(settings) || !('potsAsOf' in settings || 'potsNotSet' in settings || 'incomeNotSet' in settings)) return settings;
   const rest = { ...settings };
   delete rest.potsAsOf;
   delete rest.potsNotSet;   // 7.12.0: a plan with no pension known anywhere (PlanReading.withPensionToday), never saved
+  delete rest.incomeNotSet; // 7.12.0: nor one with no income given
   return rest;
 }
 

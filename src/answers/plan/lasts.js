@@ -26,7 +26,7 @@ import { oneAnswer, futuresOutOfTen, pctText, CHANCE_BARS, boldConsequenceOf } f
 export { boldConsequenceOf };
 import { LEVEL_FAILS20, verdictAtLevel } from '../shared/rules.js';
 import { chanceWords } from '../shared/format.js';
-import { planHasFigures, planHasSavingFigures } from '../../services/PlanFigures.js';
+import { planHasFigures } from '../../services/PlanFigures.js';
 import { switchPatch } from '../../services/PlanCommit.js';
 import { cleanParams } from '../../services/StrategyState.js';
 import { get, applyPatch, safeSettings, safeTiming, bandsOf } from './about.js';
@@ -245,7 +245,7 @@ export function lastsOf(entries, id, { today, typed = null } = {}) {
   if (!entry) return { found: false, id: String(id || '') };
   const plan = entry.plan;
   const readonly = !!(entry.newer || entry.failed);
-  const noFigures = !planHasFigures(plan) && !planHasSavingFigures(plan);
+  const noFigures = !planHasFigures(plan);   // a pension typed on the Accumulation tab is not an income (7.12.0: never the default £30,000)
   const saved = savedLasts(plan, { today });
   const editable = !saved.locked && !readonly;
   const boxes = boxesOf(plan, { today });

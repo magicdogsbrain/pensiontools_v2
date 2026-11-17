@@ -204,16 +204,20 @@ export function withDerivedPots(scenario, settings, now = new Date(), env = {}) 
   return worked && worked.source === 'worked' ? { ...s, potAtRetirement: worked } : s;
 }
 
+/** A plan's income as read when nobody has given one: none, said so (`incomeNotSet`, stripped before any save). */
+const INCOME_NOT_SET = Object.freeze({ baseSalary: 0, incomeSteps: [], targetSchedule: null, incomeNotSet: true });
+
 /**
  * A plan with no figures (PlanFigures.planHasFigures: straight from the full view's wizard, its pots the defaults) reads no
- * default as a figure (7.12.0). When a pension today is known elsewhere (services/PensionToday.js: a pot record, What you
+ * default as a figure (7.12.0): neither its income (none, `incomeNotSet`) nor its pots. When a pension today is known elsewhere (services/PensionToday.js: a pot record, What you
  * hold, the pot saved with what you pay in), its pots are that pension, split as stored; with none known, `potsNotSet`
  * says so (in memory only, stripped before any save like `potsAsOf`), so the full view shows the boxes empty. A plan with
  * figures, or locked, is read as stored.
  */
 export function withPensionToday(scenario, settings, now = new Date()) {
-  const s = settings || {};
-  if (!scenario || planHasFigures(scenario)) return s;
+  if (!scenario || planHasFigures(scenario)) return settings || {};
+  // (7.12.0, decision 2) its income is the default too: never read as the person's. In memory only, like `potsNotSet`.
+  const s = { ...(settings || {}), ...INCOME_NOT_SET };
   const known = pensionTodayOf(scenario, { now, settings: s });
   if (known.value == null) return { ...s, potsNotSet: true };
   const parts = ['bondMin', 'cashTarget', 'diversifierStart'];

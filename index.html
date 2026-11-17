@@ -3423,7 +3423,7 @@
               </div>
               <p id="ssUseTaxable" class="hint" style="display:none;margin:4px 0 0;"></p>
               <label class="hint" style="display:flex;align-items:center;gap:6px;margin-top:6px;">
-                <input type="checkbox" id="ssBedAndIsa" checked style="width:auto;">
+                <input type="checkbox" id="ssBedAndIsa" style="width:auto;">
                 Move £20,000 a year from the taxable account into the ISA (bed-and-ISA) whenever the allowance is unused
               </label>
               <p id="ssIsaHoldNote" class="hint" style="display:none;color:var(--warning);margin:4px 0 0;"></p>
@@ -3731,8 +3731,8 @@
             <div class="section-title">Am I on course?</div>
             <p style="font-size:12px;color:var(--text-muted);margin:0 0 8px;">
               The same answer as your plan's home in the simple view: what you want, what you pay in now, whether that is
-              enough and how often the money lasts, and what would be enough. What you want and when you stop are changed on
-              the simple view's “What you pay in”.
+              enough and how often the money lasts, and what would be enough. The figures above are saved as you type them;
+              what you want a month is changed in the boxes under the answer.
             </p>
             <button type="button" data-on-click="runOnTrackCheck()">Work it out</button>
             <div id="acOnTrack" style="margin-top:10px;"></div>
@@ -4193,8 +4193,8 @@
     import { splitSectionHtml, splitNoneHtml, splitDismissedHtml, splitConfirmHtml, verdictSectionHtml, timelineSectionHtml, wealthSectionHtml, whatToDoHtml, survivorCareHtml, survivorResultHtml, careResultHtml, budgetShareHtml, budgetSharedLineHtml } from './src/ui/householdView.js';
     import { shareBudgetWith, stopSharingBudget, getHouseholdSplitDismissed, setHouseholdSplitDismissed, budgetSharedFromOf } from './src/storage/ScenarioRepository.js';
     import { guestPlanRefusal, isExamplePlanError, DEMO_PLANS, EXAMPLE_PLAN_KEY, EXAMPLE_PLAN_DESCRIPTION } from './src/services/GuestPlans.js';   // three plans without an account; the read-only example (6.23.0)
-    import { refreshDraftLines, paintDraftSettingsLine, openStressSettings, blankUnsetPots } from './src/ui/draftPlanLine.js'; import { planHasFigures } from './src/services/DraftDecision.js';   // an unlocked plan's own figures (7.12.0)
-    import { installStressSubTabs } from './src/ui/stressSubTabs.js'; import { installStressSettingsAutosave, installAccumulationAutosave, SAVE_WORDS } from './src/ui/settingsAutosave.js'; import { orderStressSettingsSections } from './src/ui/settingsLayout.js';   // the Stress tester's sub-tabs (Settings pressed while open is not drawn again); Settings and the Accumulation tab save as they change; Settings' order (7.12.0)
+    import { refreshDraftLines, paintDraftSettingsLine, openStressSettings, blankUnsetPots, missingWords, bedAndIsaTicked, DRAFT_WORDS } from './src/ui/draftPlanLine.js'; window.openStressSettingsTab = () => openStressSettings(window); import { planHasFigures } from './src/services/DraftDecision.js';   // an unlocked plan's own figures (7.12.0)
+    import { installStressSubTabs } from './src/ui/stressSubTabs.js'; import { installStressSettingsAutosave, installAccumulationAutosave, accumulationInputsOf, SAVE_WORDS } from './src/ui/settingsAutosave.js'; import { orderStressSettingsSections } from './src/ui/settingsLayout.js'; import { tryFillKeyOf, tryNeedsFill, watchTryTouched } from './src/ui/tryBoxes.js';   // the Stress tester's sub-tabs (Settings pressed while open is not drawn again); Settings and the Accumulation tab save as they change; Settings' order (7.12.0)
     import { updateHomeBanner, installHomeBanner, openingTabOf, pressOpeningSub } from './src/ui/homeBannerUi.js'; import { installHouseholdTab } from './src/ui/householdTabUi.js';   // the next-step banner is the plan home's first thing due, else the life stage's sentence (7.10.0; 6.20.2); the opening tab reads the plan's phase (7.11.0)
     import { moreSheetHtml, MORE_TABS } from './src/ui/mobileMenu.js';
     import { proportions as holdingsProportions, describeMix } from './src/services/Holdings.js';
@@ -4286,7 +4286,7 @@
     function clearStressResults() {
       window._oneTest = null;
       for (const id of ['strategyRunResults', 'histResults', 'tryResults', 'scenResults', 'stressPanelRows', 'drawdownResults', 'glidepathResults', 'optimiseResultsMC']) { const el = document.getElementById(id); if (el) el.innerHTML = ''; }
-      window._cmpCache = null;
+      window._cmpCache = null; if (window.updateStrategyNote) window.updateStrategyNote();   // …and Try a strategy's boxes follow the plan now open (7.12.0)
     }
 
     /**
@@ -4752,7 +4752,7 @@
         setDbStartFields(document, stressSettings, window._ssTiming);   // the final-salary start: the year the engines read, and the age box (dbStartSetting.js)
         document.getElementById('ssDbIndexation').value = stressSettings.dbIndexation || 'lpi5';
         applyStrategyToUI(stressSettings.strategyId || 'pots-and-valves', activeParams(stressSettings));   // this strategy's own keys only (6.13.0)
-        window._ssIncomeSteps = Array.isArray(stressSettings.incomeSteps) && stressSettings.incomeSteps.length ? JSON.parse(JSON.stringify(stressSettings.incomeSteps)) : (stressSettings.baseSalary > 0 ? [{ fromAge: stressSettings.shapeAgeNow || 57, amount: stressSettings.baseSalary }] : []);
+        window._ssIncomeSteps = Array.isArray(stressSettings.incomeSteps) && stressSettings.incomeSteps.length ? JSON.parse(JSON.stringify(stressSettings.incomeSteps)) : (stressSettings.baseSalary > 0 || stressSettings.incomeNotSet ? [{ fromAge: stressSettings.shapeAgeNow || 57, amount: stressSettings.baseSalary > 0 ? stressSettings.baseSalary : '' }] : []);
         refreshShapeRefs().then(() => renderIncomeSteps());
         await loadTimingUI(stressSettings);
         refreshStressLock().catch(() => {});
@@ -5936,6 +5936,7 @@
         target.innerHTML = lockedNote + strategyResultCard(r, p, { docSheet: !!lockedNote });
         withoutCutsTwin(settings, r, p, target);
       } catch (e) {
+        if (e && e.noFigures) { target.innerHTML = '<div class="alert alert-info">' + budEsc(e.message) + ' <button type="button" class="risk-btn" data-on-click="openStressSettingsTab()">' + budEsc(DRAFT_WORDS.openSettings) + '</button></div>'; return; }
         console.error('Strategy stress error:', e);
         target.innerHTML = '<div class="alert alert-danger">Could not run the strategy: ' + budEsc(e.message) + '</div>';
       }
@@ -5943,6 +5944,7 @@
     // ONE test per plan (6.24.0): every tab reads this cached result — the plan's own strategy, its own cuts setting, its
     // full length — so the first tab, History, Scenarios, the strategy page and the plan document never disagree.
     async function oneTestFor(settings) {
+      { const missing = missingWords(settings); if (missing) throw Object.assign(new Error(missing), { noFigures: true }); }   // nothing to run on: said, never a default (7.12.0)
       const key = JSON.stringify(settings);
       if (window._oneTest && window._oneTest.key === key) return window._oneTest;
       const sid = settings.strategyId || 'pots-and-valves';
@@ -5995,11 +5997,11 @@
       document.getElementById('tryIsaPolicy').value = '';
       document.getElementById('tryIncomeMode').value = 'shape';
       document.getElementById('tryIncomeWrap').style.display = 'none';
-      document.getElementById('tryIncome').value = Math.round(s.baseSalary || 0);
+      document.getElementById('tryIncome').value = s.baseSalary > 0 ? Math.round(s.baseSalary) : '';   // none given: empty (7.12.0)
       document.getElementById('tryYears').value = s.duration || 35;
       document.getElementById('tryCuts').value = '';
       document.getElementById('tryCutPct').value = ''; document.getElementById('tryCutEsc').value = '';
-      document.getElementById('tryResults').innerHTML = '';
+      document.getElementById('tryResults').innerHTML = ''; window._tryTouched = false;
       document.getElementById('tryUseBtn').style.display = 'none';
       refreshNumberOverlays();
     };
@@ -6993,7 +6995,7 @@
       window._shapeRefs = { essentials: 0, budgetGross: 0 };   // never carry another plan's budget lines over
       try { const b = await getBudgetAsync(); if (b && (b.lines || []).some((l) => +l.annual > 0)) { const sm = summariseBudget(b); window._shapeRefs = { essentials: Math.round(grossUpAnnual(sm.essentialAnnualNet || 0)), budgetGross: Math.round(grossUpAnnual(sm.allInComfortableAnnual || 0)), retireAge: +b.retirementAge || null, budgetWords: (await planFromAnswer()) ? 'your budget (a guide)' : 'today\'s budget' }; } } catch (e) {}   // a plan from a V7 answer: its budget is a guide, not the target
     }
-    orderStressSettingsSections(document);   // Settings' order (src/ui/settingsLayout.js)
+    orderStressSettingsSections(document); watchTryTouched(document, window);   // Settings' order (src/ui/settingsLayout.js); a what-if typed into Try a strategy is kept (src/ui/tryBoxes.js)
     window.renderIncomeShapePreview = function () {
       const box = document.getElementById('incomeShapePreview'); if (!box) return;
       const ageNow = +document.getElementById('shapeAgeNow')?.value || 57;
@@ -8504,7 +8506,7 @@
       if (!el) return;
       try {
         const st = await getActiveStrategy();
-        if (document.getElementById('tryStrategy') && !document.getElementById('tryStrategy').options.length) { try { await resetTryStrategyUI(); } catch (e2) { /* settings not ready */ } }
+        { const k = tryFillKeyOf(await getActiveScenarioId(), await getStressSettingsAsync()); if (tryNeedsFill(window._tryFilledFor, k, window._tryTouched)) { try { await resetTryStrategyUI(); window._tryFilledFor = k; } catch (e2) { /* settings not ready */ } } }   // Try a strategy's boxes follow the plan open and its figures, unless a what-if was typed (src/ui/tryBoxes.js)
         const isPnv = !st.id || st.id === 'pots-and-valves';
         { const b = document.getElementById('optimiseBtnMC'); if (b) b.style.display = isPnv ? '' : 'none'; const fam = !st.id || PNV_FAMILY.includes(st.id); document.querySelectorAll('[data-stresstab="drawdown"], [data-stresstab="glidepath"]').forEach((t) => { t.style.display = fam ? '' : 'none'; }); }   // the fund boxes' schedule and glidepath mean nothing to a bought strategy (sweep 18 Oct 2026)
         if (st.id && st.id !== 'pots-and-valves') {
@@ -9117,7 +9119,7 @@
       set('TaxableMix', typeof s.taxableMix === 'string' ? s.taxableMix : (s.taxableMix ? 'balanced' : 'equity'));
       set('GiaTaxBand', s.giaTaxBand || 'basic');
       set('RelevantEarnings', s.relevantEarnings || 0);
-      const b = document.getElementById(prefix + 'BedAndIsa'); if (b) b.checked = s.bedAndIsa !== false;
+      const b = document.getElementById(prefix + 'BedAndIsa'); if (b) b.checked = bedAndIsaTicked(s);   // only with a taxable account or a lump sum to come (7.12.0)
       syncIsaHoldUI(prefix);
       // "Age today" drives where plan year 0 sits relative to the State Pension date. It lives on the
       // Budget page; it used to be applied here invisibly (a Budget left at its default mis-timed the SP).
@@ -9412,19 +9414,7 @@
     };
 
     // ---- Accumulation tab -----------------------------------------------------------------
-    function readAccumulationInputs() {
-      return {
-        currentAge: +document.getElementById('acAge').value || 0,
-        retirementAge: +document.getElementById('acRetireAge').value || 0,
-        salary: +document.getElementById('acSalary').value || 0,
-        potNow: +document.getElementById('acPotNow').value || 0,
-        netMonthly: +document.getElementById('acNetMonthly').value || 0,
-        schemeType: document.getElementById('acScheme').value || 'ras',
-        employerMonthly: +document.getElementById('acEmployerMonthly').value || 0,
-        escalationPct: +document.getElementById('acEscalation').value || 0,
-        isaMonthly: +document.getElementById('acIsaMonthly')?.value || 0   // into ISAs and savings, £ a month (6.22.0)
-      };
-    }
+    const readAccumulationInputs = () => accumulationInputsOf(document);   // the tab's nine figures (src/ui/settingsAutosave.js)
 
     window.loadAccumulationUI = async function () {
       try {
@@ -9680,7 +9670,7 @@
         document.getElementById('ssDbIndexation').value = s.dbIndexation || 'lpi5';
         window._ssStrategyState = JSON.parse(JSON.stringify(sortLegacyParams(s).strategyState || {}));   // legacy flat bag sorted per strategy (6.13.0)
         applyStrategyToUI(s.strategyId || 'pots-and-valves', activeParams(s));   // this strategy's own keys only (6.13.0)
-        window._ssIncomeSteps = Array.isArray(s.incomeSteps) && s.incomeSteps.length ? JSON.parse(JSON.stringify(s.incomeSteps)) : (s.baseSalary > 0 ? [{ fromAge: s.shapeAgeNow || 57, amount: s.baseSalary }] : []);
+        window._ssIncomeSteps = Array.isArray(s.incomeSteps) && s.incomeSteps.length ? JSON.parse(JSON.stringify(s.incomeSteps)) : (s.baseSalary > 0 || s.incomeNotSet ? [{ fromAge: s.shapeAgeNow || 57, amount: s.baseSalary > 0 ? s.baseSalary : '' }] : []);   // nobody gave an income: one empty step, never the default (7.12.0)
         refreshShapeRefs().then(() => renderIncomeSteps());
         await loadTimingUI(s);
         refreshStressLock().catch(() => {});   // …which also paints the fund and platform charges box (renderChargesField, 6.19.0)

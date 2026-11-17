@@ -12,6 +12,9 @@
  *   openStressSettings(win)                 opens Stress tester → Settings
  *   blankUnsetPots(doc, settings)           a plan with no pension known anywhere (`potsNotSet`, PlanReading.withPensionToday):
  *                                           the Stress settings' pot box empty, "Not set yet", never the default
+ *   missingFiguresOf(settings)              { pot, income }: what the plan, as read, still needs before a test can say anything
+ *   missingWords(settings)                  the line for a test that has nothing to run on, or null
+ *   bedAndIsaTicked(settings)               the bed-and-ISA box ticked only where it moves something: on, and a taxable account
  *
  * The words are plain data; the painters only set text and one button that opens Stress tester → Settings.
  */
@@ -30,7 +33,9 @@ export const DRAFT_WORDS = Object.freeze({
   settings: 'These are your plan\'s settings. Change them on Stress tester → Settings; this page follows.',
   openStress: 'Open the Stress tester',
   openSettings: 'Open Stress tester settings',
-  notSet: 'Not set yet'
+  notSet: 'Not set yet',
+  noPot: 'This plan has no pot yet, so there is nothing to test. Add your pension pot on Stress tester → Settings.',
+  noIncome: 'This plan has no income set yet, so there is nothing to test. Add what you want a year on Stress tester → Settings, under “Your income shape”.'
 });
 
 /** The plan's figures as one list: "pension £250,000, ISAs and savings £20,000, £23,858 a year before tax". */
@@ -47,7 +52,7 @@ export function figuresWords(stress) {
 export function draftLineOf(plan, { stress = null, stage = null } = {}) {
   if (!plan || planLocked(plan)) return null;
   if (stage && SAVER_STAGE_KEYS.includes(stage.key)) return null;   // still working: the Decision tool's own gate line speaks
-  if (!planHasFigures(plan)) return { kind: 'none', text: DRAFT_WORDS.none, btn: DRAFT_WORDS.openSettings };
+  if (!planHasFigures(plan)) return { kind: 'none', text: (stress && missingWords(stress)) || DRAFT_WORDS.none, btn: DRAFT_WORDS.openSettings };   // what is missing, by name (7.12.0)
   return { kind: 'figures', text: DRAFT_WORDS.figures.replace('{figures}', figuresWords(stress || (plan.stressTool && plan.stressTool.settings))), btn: DRAFT_WORDS.openStress };
 }
 
@@ -70,7 +75,7 @@ function paintBox(win, box, line, action) {
 export function paintDraftLines(win, doc, { plan, stress = null, stage = null } = {}) {
   const line = draftLineOf(plan, { stress, stage });
   paintBox(win, doc.getElementById('dsSetupBanner'), line, line && line.kind === 'figures' ? { kind: 'tab', tab: 'stress' } : { kind: 'stress-settings' });
-  const none = plan && !planLocked(plan) && !planHasFigures(plan) ? { kind: 'none', text: DRAFT_WORDS.none, btn: DRAFT_WORDS.openSettings } : null;
+  const none = plan && !planLocked(plan) && !planHasFigures(plan) ? { kind: 'none', text: (stress && missingWords(stress)) || DRAFT_WORDS.none, btn: DRAFT_WORDS.openSettings } : null;
   paintBox(win, doc.getElementById('ssSetupBanner'), none, { kind: 'stress-settings' });
   return line;
 }
@@ -109,4 +114,35 @@ export function blankUnsetPots(doc, settings) {
     if (amounts) amounts.innerHTML = '<div class="hint">' + DRAFT_WORDS.notSet + '</div>';
   }
   else if (box.placeholder === DRAFT_WORDS.notSet) box.placeholder = '';
+}
+
+/** What a plan, as read, still needs before a test can say anything (7.12.0, decision 2): a pot, and an income someone gave. */
+export function missingFiguresOf(settings) {
+  const s = isObj(settings) ? settings : {};
+  const at = isObj(s.potAtRetirement) ? (+s.potAtRetirement.sipp || 0) + (+s.potAtRetirement.isa || 0) : 0;
+  const bought = isObj(s.strategyParams) ? (+s.strategyParams.sippTotal || 0) + (+s.strategyParams.isaTotal || 0) : 0;
+  const pot = !s.potsNotSet && sippTodayOf(s) + (+s.isaBalance || 0) + (+s.taxableStart || 0) + at + bought > 0;
+  const steps = Array.isArray(s.incomeSteps) && s.incomeSteps.some((x) => x && +x.amount > 0);
+  const schedule = Array.isArray(s.targetSchedule) && s.targetSchedule.some((v) => +v > 0);
+  const income = !s.incomeNotSet && ((+s.baseSalary || 0) > 0 || steps || schedule);
+  return { pot: !pot, income: !income };
+}
+
+/** The line for a test with nothing to run on: what to add, and where; null when the plan has its figures. */
+export function missingWords(settings) {
+  const m = missingFiguresOf(settings);
+  if (m.pot && m.income) return DRAFT_WORDS.none;
+  if (m.pot) return DRAFT_WORDS.noPot;
+  if (m.income) return DRAFT_WORDS.noIncome;
+  return null;
+}
+
+/**
+ * The bed-and-ISA box (7.12.0, decision 2): ticked only where it can move something, that is on (as saved, or never set) and
+ * with a taxable account today or a lump sum still to come. With neither it moves nothing, and a ticked box would read as a
+ * choice nobody made.
+ */
+export function bedAndIsaTicked(settings) {
+  const s = isObj(settings) ? settings : {};
+  return s.bedAndIsa !== false && ((+s.taxableStart || 0) > 0 || (Array.isArray(s.windfalls) && s.windfalls.length > 0));
 }

@@ -100,7 +100,9 @@ import { resolve } from 'node:path';
 // drawn again: 8,827.
 // Settings and the Accumulation tab save as they change (7.12.0, src/ui/settingsAutosave.js), and Settings' order moved to
 // src/ui/settingsLayout.js: 8,820.
-const MAX_LINES = 8820;
+// No default figure as the person's (7.12.0): the Accumulation tab's reader moved to src/ui/settingsAutosave.js, Try a
+// strategy's refill to src/ui/tryBoxes.js: 8,810.
+const MAX_LINES = 8810;
 
 describe('index.html\'s inline script may only get shorter', () => {
   const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');

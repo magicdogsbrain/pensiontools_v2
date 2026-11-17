@@ -296,6 +296,14 @@ export function accumulationErrorWords(id, err) {
   return (set && set[err]) || (err === 'locked' ? '' : 'This figure cannot be saved as it is.');
 }
 
+/** The tab's nine figures as the planner reads them (moved from index.html readAccumulationInputs): numbers, blank as 0. */
+export function accumulationInputsOf(doc) {
+  const n = (id) => { const el = doc.getElementById(id); return el ? +el.value || 0 : 0; };
+  const scheme = doc.getElementById('acScheme');
+  return { currentAge: n('acAge'), retirementAge: n('acRetireAge'), salary: n('acSalary'), potNow: n('acPotNow'), netMonthly: n('acNetMonthly'),
+    schemeType: (scheme && scheme.value) || 'ras', employerMonthly: n('acEmployerMonthly'), escalationPct: n('acEscalation'), isaMonthly: n('acIsaMonthly') };
+}
+
 /** The boxes as typed, by id (text). */
 export function accumulationBoxesTyped(doc) {
   const out = {};

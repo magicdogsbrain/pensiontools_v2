@@ -78,7 +78,8 @@ describe('the pot is made of the same accounts as the band', () => {
     const h = strip(w);
     expect(h).not.toContain('below the plan');
     expect(h).toContain('ISA ' + '£' + inf(120000, 2).toLocaleString('en-GB'));
-    expect(h).toContain('£720,000 in prices at the start of the plan');
+    // retaken in 7.12.0: the figure the band is in first, at the prices of the plan's month (the simple view's way)
+    expect(h).toContain('Your pot: £720,000 at the prices of April 2026');
     // and the pension alone, against the all-pots band, would have read "below"
     expect(600000).toBeLessThan(w.pot.p10);
   });
@@ -107,7 +108,8 @@ describe('the pot is made of the same accounts as the band', () => {
       expect(w.pot.missing).toEqual(['isa']);
       expect(w.pot.pension).toBe(600000);
       const h = whereAmIHtml(w);
-      expect(h).toContain('Add your ISA under What you hold');
+      // retaken in 7.12.0: the simple view's words, the ISA box and What you hold
+      expect(h).toContain('Your plan counts your ISA too, and we have no figure for it. You can type it in the ISA box when you next record a month, or add it under What you hold.');
       // the walk: the tab is "Your plan's mix" once the plan runs and "Transition" before, so the words name no tab
       expect(h).not.toContain('Transition tab');
       expect(h).not.toMatch(/below the plan|1-in-10/);
@@ -150,7 +152,9 @@ describe('the same pounds: the pot is turned into the plan\'s prices before it i
     expect(w.pot.band).toBe('p50–p90');                    // on the median, inside the band
     const h = strip(w);
     expect(h).not.toContain('above the plan');
-    expect(h).toContain('Pot £753,659 (recorded April 2029), which is £670,000 in prices at the start of the plan, the prices its figures are in (prices up 12.5% since: 4% a year assumed)');
+    // retaken in 7.12.0: the same figures, the one the band is in first, and how far prices moved as its own sentence
+    expect(h).toContain('Your pot: £670,000 at the prices of April 2026 (£753,659, recorded April 2029)');
+    expect(h).toContain('Prices are up 12.5% since April 2026: 4% a year assumed.');
   });
   it('uses the CPI entered for each tax year in the Decision tool, 4% where none was entered — the Decision tool\'s own chain', () => {
     const doc = makeDoc({ isa: 0, cones: pvCones });
@@ -327,7 +331,8 @@ describe('the sentence when the band has not opened', () => {
   it('April of year 0: at the start of the plan, priced on the starting figure', () => {
     const w = whereAmI(makeDoc({ isa: 0, cones: pvCones }), { today: at(2026, 4, 20), history: [record('2026-04', 400000, 200000, 95000, { taxYear: '26/27' })] });
     expect(w.pot.verdict).toBe('start');
-    expect(strip(w)).toContain('Pot £695,000 (recorded April 2026) at the start of the plan, priced on £700,000; the band opens as the year goes on.');
+    // retaken in 7.12.0: "Your pot:", as the simple view says it (prices have not moved, so one figure)
+    expect(strip(w)).toContain('Your pot: £695,000 (recorded April 2026) at the start of the plan, priced on £700,000; the band opens as the year goes on.');
   });
   it('a plan whose year 0 is next April: the reading is "start", but the strip gives no verdict — the plan\'s to-do instead (7.3.3)', () => {
     const w = whereAmI(makeDoc({ isa: 0, cones: pvCones, firstTaxYear: 2027 }), { today: at(2026, 10, 20), history: [record('2026-10', 400000, 200000, 95000, { taxYear: '26/27' })] });

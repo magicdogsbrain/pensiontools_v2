@@ -112,6 +112,7 @@ function Card({ card, V, planId, dispatch, held = false }) {
       <p class="way-promise">{WAY.promise[id]}</p>
       {/* while the ring is held (7.3.0, the working spinner's least time) a card waits with the others: no figure pops in */}
       {card.has && !held ? <Figures card={card} /> : held || V.run.status === 'working' ? <p class="working-note" role="status">{WAY.working.one}</p> : null}
+      {card.has && !held && card.asLocked && <p class="plan-source" data-testid={`plan.way.${id}.asLocked`}>{fill(WAY.card.asLocked, { date: card.asLocked })}</p>}
       {open && card.has && !held && (
         <>
           {card.compare && <p class="note" data-testid="plan.way.compare">{fill(WAY.card.compare, { ...card.compare.slots, docWay: name(card.compare.slots.docWay), way: name(card.compare.slots.way) })}</p>}

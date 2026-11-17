@@ -32,7 +32,8 @@ import { ladderYearsFromYear0 } from '../../services/PlanFromToday.js';
 import { oneAnswer } from '../../services/OneAnswer.js';
 import { restoredParamsFor, dialParams } from '../../services/PlanCommit.js';
 import { planFor } from './lastsRun.js';
-import { dateOf } from './dates.js';
+import { dateOf, dayWords } from './dates.js';
+import { documentLadder } from '../../services/LadderPosition.js';
 import { WAY_IDS, WAY_DIALS } from './schema.js';
 import { stratDialsOf, dialUnitsOf } from './way.js';
 
@@ -143,6 +144,19 @@ export function wayResult(id, r, p, configs = null) {
 }
 
 /**
+ * A locked ladder's own way as its plan document holds it (7.12.0): { r, p, on } when the plan is locked, its document is a
+ * ladder for this way (LadderPosition.documentLadder) and keeps the plan it ran (`strategy.p`) — the very condition under which
+ * "Does it last?" reads the document instead of running again (lastsRun.runLasts) — else null. `on`: the day it was locked.
+ */
+export function lockedOwnOf(plan, strategyId) {
+  const locked = !!(plan && plan.decisionTool && plan.decisionTool.settings && plan.decisionTool.settings.locked);
+  const doc = locked && plan.planDocument && typeof plan.planDocument === 'object' ? plan.planDocument : null;
+  if (!doc || !documentLadder(doc, strategyId) || !doc.strategy.p || !doc.strategy.r) return null;
+  const at = (plan.decisionTool.settings.lockedAt) || doc.lockedAt || null;
+  return { r: doc.strategy.r, p: doc.strategy.p, on: dayWords(at) || null };
+}
+
+/**
  * The nine ways on this plan (index.html cmpRun): the plan as the one test builds it, the configs once, every way in order.
  * @param {object} plan   a saved plan, brought up to date in memory
  * @param {{ today: string, onProgress?: (done: number, total: number) => void }} o
@@ -156,7 +170,9 @@ export function runWays(plan, { today, onProgress = null } = {}) {
   const ids = Object.keys(STRATEGY_NAMES);
   const all = compareAll(p, ids, { onProgress: (i, n) => tell(i, n) });
   tell(ids.length, ids.length);
-  const ways = ids.map((id) => wayResult(id, all.strategies[id], p, all.configs));
+  // a locked gilt ladder's own way is its document's result, as "Does it last?" reads it (lastsRun.runLasts): never run again
+  const own = lockedOwnOf(plan, strategyId);
+  const ways = ids.map((id) => (own && id === strategyId ? { ...wayResult(id, own.r, own.p, all.configs), asLocked: own.on } : wayResult(id, all.strategies[id], p, all.configs)));
   return plain({ strategyId, priced: 'bundled', ways, basis: { today, engine: 'one-test', runs: ids.length } });
 }
 

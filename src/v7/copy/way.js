@@ -63,6 +63,8 @@ export const WAY = {
     cannotGilt: 'Your pot cannot buy this on this plan: no index-linked gilt reaches far enough for its last years. So there is no figure.',
     /** On a locked plan, once another way is open (2.4): the document's figure beside the tried one; never a word of unlocking. */
     compare: 'Your plan as locked lasts {docWords} on {docWay}; {way} would have lasted {words}.',
+    /** A locked gilt ladder's own card (7.12.0): its figures are the plan document's, never run again. */
+    asLocked: 'As worked out when your plan was locked on {date}.',
     /** The two ways of the Pots & Valves family (2.2, 3.1): the mix is on its own step, "The mix" (6.41.0). */
     mix: 'Its mix, the split between shares, bonds, gold and trend funds, and cash, is on ‘The mix’.',
     mixLink: 'Open ‘The mix’',

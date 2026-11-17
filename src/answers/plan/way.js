@@ -246,7 +246,9 @@ export function cardsOf(reading, W) {
       verdict, stale,
       dials, values: c.ok ? c.values : null, ok: c.ok, errors: c.errors, typed: Object.keys(typed).length > 0,
       needsRun, tried: t ? { status: t.status, reason: t.reason || null, runs: t.result && t.result.basis ? t.result.basis.runs : 1, ms: t.ms == null ? null : t.ms } : null,
-      table: tableRow(shownResult), compare
+      table: tableRow(shownResult), compare,
+      // a locked ladder's own way, read from its plan document (waysRun.lockedOwnOf): the day it was locked, said once
+      asLocked: shownResult && shownResult === ran && ran.asLocked ? ran.asLocked : null
     };
   });
   return { found: true, cards, current, open, rankBy, ran: mine && w.ran ? w.ran : null, has: !!result };

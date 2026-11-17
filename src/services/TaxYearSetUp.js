@@ -443,7 +443,19 @@ export function partYearReason(ctx, inputs, breakdown) {
   const full = grossToNet(+inputs.confirmedSalary || 0, inputs.pa, inputs.brl, inputs.hrl || undefined) / 12;
   if (!(Math.round(full) - Math.round(breakdown.totalNet) >= 1)) return null;
   const d = parseMonth(ctx.selectedMonth);
-  return { full: gbp(full), month: gbp(breakdown.totalNet), before: d.toLocaleDateString('en-GB', { month: 'long' }) };
+  // what the pension would pay a month before tax for the full year's after-tax month to reach the bank this tax year
+  // (the same breakdown, its income raised until the month's after-tax figure is the full one); null when nothing finds it
+  let take = null;
+  try {
+    const at = (T) => breakdownFor(ctx, { ...inputs, confirmedSalary: T });
+    let lo = +inputs.confirmedSalary || 0, hi = lo * 2 + 1000;
+    if (at(hi).totalNet >= full) {
+      for (let i = 0; i < 60; i++) { const mid = (lo + hi) / 2; if (at(mid).totalNet < full) lo = mid; else hi = mid; }
+      const b = at(hi);
+      if (b && b.sipp && b.sipp.gross > 0) take = gbp(b.sipp.gross);
+    }
+  } catch (e) { take = null; }
+  return { full: gbp(full), month: gbp(breakdown.totalNet), before: d.toLocaleDateString('en-GB', { month: 'long' }), take };
 }
 
 /**

@@ -9,6 +9,8 @@
  */
 import { listStrategies } from '../strategies/registry.js';
 import { LOCK } from '../v7/copy/lock.js';
+import { grossToNet } from '../services/TaxCalculator.js';
+import { takenBeforeTax, taxFreeShareOf } from '../services/BeforeTax.js';
 
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
@@ -101,4 +103,19 @@ export function lockFromStressQuestion() {
     okLabel: 'Lock the plan',
     cancelLabel: 'Not yet'
   };
+}
+
+/**
+ * The Stress settings' line under the income shape (7.12.0): the first step as the shape holds it (a year gross, counted as
+ * if every pound were taxed, the figure the engines read) and what reaches the bank a month; with a quarter of each
+ * withdrawal tax-free, also what is taken before tax for it (services/BeforeTax.js, the figure the months and the plan
+ * document take). `access`: the form's access method.
+ */
+export function firstStepNoteHtml(amount, { pa = 12570, brl = 50270, hrl = 125140, access = 'drawdown' } = {}) {
+  const gross = +amount || 0;
+  const netMo = grossToNet(gross, pa, brl, hrl) / 12;
+  const f = taxFreeShareOf({ accessMethod: access });
+  const taken = f > 0 ? takenBeforeTax(gross, { taxFreeFraction: f, pa, brl, hrl }) : null;
+  return '<strong>First step ' + gbp(gross) + '/yr gross ≈ ' + gbp(netMo) + '/mo take-home</strong> at today\'s bands. '
+    + (taken != null && Math.round(taken) !== Math.round(gross) ? 'With a quarter of each payment tax-free, you take ' + gbp(taken) + ' a year before tax for it. ' : '');
 }

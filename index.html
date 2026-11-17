@@ -4178,7 +4178,7 @@
     import { setDbStartFields, paintDbStart, dbStartFromAgeInput, dbStartError, dbStartAgeForSave } from './src/ui/dbStartSetting.js';   // the final-salary start, asked by age (audit problem 3)
     import { pnvOnlySections, paintSettingUseNotes, heldIsaNote } from './src/ui/strategySettingsUse.js';   // the settings every strategy shows, and the notes beside them (audit problem 4)
     import { ukMonth, ukDay, ukDate } from './src/ui/ukDates.js';   // dates in UK words, never ISO or US order (audit problem 3)
-    import { strategyCountWord, paintStrategyCounts, assumedStatePensionAlertHtml, assumedStatePensionTag, assumedStatePensionSettingsNote, newDocumentVersionQuestion } from './src/ui/plannerWords.js'; import { installLockFromStress } from './src/ui/lockFromStressUi.js';
+    import { strategyCountWord, firstStepNoteHtml, paintStrategyCounts, assumedStatePensionAlertHtml, assumedStatePensionTag, assumedStatePensionSettingsNote, newDocumentVersionQuestion } from './src/ui/plannerWords.js'; import { installLockFromStress } from './src/ui/lockFromStressUi.js';
     import { cadenceMonths, cadenceNote } from './src/services/DrawCadence.js';   // how often you draw: a preference at decisionTool.cadence (audit decision 4)
     import { isFilledIn, filledInLabel, filledInNote, historyForEngine, refusedMonthWords, recordsToDelete, deleteButtonWords } from './src/services/MonthFill.js';   // the History view's mark on a month filled in later and its delete; the records the engine is handed; a month Calculate refuses (3 Nov 2026)
     import { createMonthEntry } from './src/ui/monthFillEntry.js';   // why Save is off; a failed Calculate kept on the page; the missed months filled in (3 Nov 2026)
@@ -7076,9 +7076,8 @@
       const note = document.getElementById('incomeShapeNote');
       const ess = window._shapeRefs.essentials || 0; const low = ess > 0 && steps.some((st) => +st.amount < ess);
       const first = steps[0]; const pa = +document.getElementById('ssPA')?.value || 12570, brl = +document.getElementById('ssBRL')?.value || 50270, hrl = +document.getElementById('ssHRL')?.value || 125140;
-      const netMo = first ? grossToNet(+first.amount, pa, brl, hrl) / 12 : 0;
       note.innerHTML = (window._shapeFlooredFrom ? '<span style="color:var(--warning);">From age ' + window._shapeFlooredFrom + ' the shape would fall below your guaranteed income (State Pension + other income), so it is held there — the pot simply supplies nothing in those years.</span> ' : '')
-        + (low ? '<span style="color:var(--warning);">A step is below your budget\'s essentials (' + gbp(ess) + '/yr gross). That is allowed, but the floor strategies will not buy less than the bills.</span> ' : '') + (first ? '<strong>First step ' + gbp(+first.amount) + '/yr gross ≈ ' + gbp(Math.round(netMo)) + '/mo take-home</strong> at today\'s bands. ' : '') + 'Every strategy, the Stress Tester and the Decision tool read this shape. Gross, today\'s money; tax comes out of it.';
+        + (low ? '<span style="color:var(--warning);">A step is below your budget\'s essentials (' + gbp(ess) + '/yr gross). That is allowed, but the floor strategies will not buy less than the bills.</span> ' : '') + (first ? firstStepNoteHtml(+first.amount, { pa, brl, hrl, access: document.getElementById('ssAccessMethod')?.value }) : '') + 'Every strategy, the Stress Tester and the Decision tool read this shape. Gross, today\'s money; tax comes out of it.';
     };
     // Turn a lump sum into income: a step at its age raised by what it supports per year, every later
     // step raised the same. The lump-sum entry stays — it is the money that pays for the new steps.

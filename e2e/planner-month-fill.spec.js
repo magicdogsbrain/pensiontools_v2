@@ -71,6 +71,9 @@ test.describe('Month by month, without an account', () => {
     await expect(page.locator('#openPlaceNote')).toContainText('Opened from the simple view.');
     const entry = page.locator('#decision-entry');
     await expect(entry).toBeVisible({ timeout: 45_000 });
+    // 7.12.0: the box opens on the month to record, the first one missed; September is chosen, as a person records this month
+    await expect(page.locator('#entryMonth')).toHaveValue('2026-07');
+    await page.locator('#entryMonth').fill('2026-09');
     await expect(page.locator('#entryMonth')).toHaveValue('2026-09');
 
     // nothing calculated: Save off and the line says so; the offer names the two missed months, unticked
@@ -253,7 +256,8 @@ test.describe('Month by month, without an account', () => {
     });
     const before = await headline();
     const where = page.locator('#whereAmILine');
-    await expect(where).toContainText('1 month recorded this tax year (September 2026): £2,600 taken before tax, against £2,500 the plan said for that month (£2,500 a month) — £100 more than the plan said.');
+    // 7.12.0: what was taken is set against what each record's own month said, the year's plan as set up (living-record step 1)
+    await expect(where).toContainText('1 month recorded in 2026/27: £2,600 taken before tax, as your plan said.');
     await expect(where).toContainText('recorded September 2026');
 
     // the offer: nothing after the latest record to fill, so the quiet line alone, no ready tick
@@ -312,7 +316,9 @@ test.describe('Month by month, without an account', () => {
     // the strip, drawn again after Save: the seven months, named, the five from the set-up said apart, against what the
     // plan said for those months; the pension figure still dates from September (the filled-in months carry October's
     // pots by design, so they are never read as a batch saved at once)
-    await expect(where).toContainText(/7 months recorded this tax year \(April 2026 to October 2026; April 2026 to August 2026 are filled in from your tax-year set-up\): £[\d,]+ taken before tax, against £17,500 the plan said for those months \(£2,500 a month\) — /);
+    // (7.12.0: £11,000 from the set-up for April to August, then £2,600 for September and for October: £16,200, each
+    // month as the year's plan said it)
+    await expect(where).toContainText('7 months recorded in 2026/27 (April 2026 to August 2026 are filled in from your tax-year set-up): £16,200 taken before tax, as your plan said.');
     await expect(where).not.toContainText('gross so far');
     await expect(where).toContainText('recorded September 2026');
     await expect(where).not.toContainText('recorded April 2026');

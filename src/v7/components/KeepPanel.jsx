@@ -215,7 +215,9 @@ export function KeepPanel({ state, q, dispatch, heading = true }) {
                 {/* the second: the plan's first check-in (release step R3), which draws its saving path from today's figures */}
                 <LinkButton testid={`${q}.keep.checkIn`} kind="plain" href={href.plan(saverId, 'checkin')}>{saverId === made.id ? KEEP.firstCheckIn : KEEP.firstCheckInPartner}</LinkButton>
                 <LinkButton testid={`${q}.keep.plans`} kind="quiet" href={href.plans()}>{KEEP.toPlans}</LinkButton>
-                {!made.separate && <LinkButton testid={`${q}.keep.lock`} kind="quiet" href={href.plan(made.id, 'lock')}>{KEEP.lockThis}</LinkButton>}
+                {/* (7.12.0, the second walk) a plan of your own still saving is not offered a lock as it is kept: what you want and
+                    what goes in stay easy to change; the lock is on its own page for when stopping is near */}
+                {!made.separate && saverId !== made.id && <LinkButton testid={`${q}.keep.lock`} kind="quiet" href={href.plan(made.id, 'lock')}>{KEEP.lockThis}</LinkButton>}
               </p>
             )
             // the plan made, opened first; its lock beside it

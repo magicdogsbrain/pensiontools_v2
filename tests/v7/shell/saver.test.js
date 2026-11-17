@@ -109,3 +109,29 @@ describe('the runner on "What you pay in"', () => {
     stop();
   });
 });
+
+describe('(7.12.0) a run ended while the plans are read again is started again for the same figures', () => {
+  // the round-3 walk: two boxes left on What you pay in, the plans read again between the saves, and the verdict stayed
+  // "working" for ever — the runner ended the run while the reading was gone, then saw the same key still marked working
+  it('the reading goes and comes back with the same key: the run is asked again and finishes', async () => {
+    const { store, verdict } = pageOn(C['05-saver-committed'], 'SamSaver01');
+    const calls = [];
+    let hold = null;
+    const client = fakeClient((inputs, env) => { calls.push(env.futures); if (calls.length === 1) return new Promise((res) => { hold = res; }); return Promise.resolve(RESULT(env.futures)); });
+    const stop = startSaverRunner({ store, client });
+    await tick();
+    expect(store.getState().saver).toMatchObject({ key: verdict.key, status: 'working' });
+    // the plans are read again (PLANS_READING: no reading for a moment), then the same plans come back
+    store.dispatch({ type: A.PLANS_READING });
+    await tick();
+    const list = store.getState().plans && store.getState().plans.list;
+    if (list) store.dispatch({ type: A.PLANS_SET, list, source: 'account', readAt: '14:04' });
+    store.dispatch({ type: A.PLANS_VIEW, view: viewFor(store.getState()) });
+    await tick(12);
+    if (hold) hold(RESULT(100));   // the first, ended run answers late: dropped
+    await tick(12);
+    expect(store.getState().saver).toMatchObject({ key: verdict.key, status: 'final' });
+    expect(readyMark(store.getState()).ready).toBe('1');
+    stop();
+  });
+});

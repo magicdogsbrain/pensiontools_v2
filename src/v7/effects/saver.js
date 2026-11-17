@@ -70,8 +70,10 @@ export function startSaverRunner({ store, client }) {
       return;
     }
     const S = state.saver;
-    if (S && S.key === v.key && S.status !== 'idle') return;   // working, first, final or failed (until "Try again" makes it idle)
     if (underWay === v.key) return;
+    // final or failed for these figures (until "Try again" makes it idle): nothing to ask. Working or first with nothing under
+    // way (7.12.0: the run was ended while the plans were read again, then the same figures came back): asked again
+    if (S && S.key === v.key && (S.status === 'final' || S.status === 'failed')) return;
     start(v);
   }
 

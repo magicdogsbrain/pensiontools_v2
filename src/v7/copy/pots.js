@@ -76,6 +76,9 @@ export const POTS = {
   derived: {
     'pots.today': 'Pension {pension} and ISAs and savings {isa} today.',
     'pots.todayTaxable': 'Pension {pension} and ISAs and savings {isa} today; {taxable} in your ordinary account.',
+    /** (7.12.0) a locked plan: the pots it was locked with, never said as today's (the home says the pot today). */
+    'pots.locked': 'Your plan was locked on {date} with a pension of {pension} and ISAs and savings of {isa}.',
+    'pots.lockedTaxable': 'Your plan was locked on {date} with a pension of {pension}, ISAs and savings of {isa} and {taxable} in your ordinary account.',
     'pots.split': 'Split as saved: {shares} shares, {bonds} bonds, {cash} cash{div}. The split, the risk level and the funds to test are set with the way of drawing and mix (in the full view).',
     'pots.fromFunds': 'Your pension pot of {pension} comes from your list of funds to test: change it with the way of drawing and mix (in the full view).',
     'pots.pinned': 'This way of drawing is sized on its own figures: {pension} pension and {isa} ISAs, set with the way of drawing (in the full view).',

@@ -310,7 +310,10 @@ export function notUsedBy(strategyId) {
 export function derivedLines(v, s, { stopBlanked = false } = {}) {
   const lines = [];
   const pension = s.fundsMode ? s.values.pension : v.pension;
-  lines.push(v.taxable > 0 ? { id: 'pots.todayTaxable', slots: { pension: pounds(pension), isa: pounds(v.isa), taxable: pounds(v.taxable) } } : { id: 'pots.today', slots: { pension: pounds(pension), isa: pounds(v.isa) } });
+  // a locked plan's pots are the ones it was locked with (7.12.0): said so, with the day, never as today's — the pot today is
+  // the home's and Review's, from the records and What you hold
+  if (s.locked) lines.push(v.taxable > 0 ? { id: 'pots.lockedTaxable', slots: { pension: pounds(pension), isa: pounds(v.isa), taxable: pounds(v.taxable), date: s.lockedOn || '' } } : { id: 'pots.locked', slots: { pension: pounds(pension), isa: pounds(v.isa), date: s.lockedOn || '' } });
+  else lines.push(v.taxable > 0 ? { id: 'pots.todayTaxable', slots: { pension: pounds(pension), isa: pounds(v.isa), taxable: pounds(v.taxable) } } : { id: 'pots.today', slots: { pension: pounds(pension), isa: pounds(v.isa) } });
   if (s.fundsMode) lines.push({ id: 'pots.fromFunds', slots: { pension: pounds(s.values.pension) } });
   else {
     const p = pension === s.values.pension ? s.values.pots : splitTotal(pension, s.values.shares);

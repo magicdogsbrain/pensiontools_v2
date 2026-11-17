@@ -68,7 +68,9 @@ describe('every corpus plan at three dates: the boxes, the sources, the notes, t
           if ((text.match(/Fixed when you locked the plan on /g) || []).length !== 1) problems.push(`${e.plan.id}: "Fixed when" not once`);
           if (root.querySelectorAll('[data-testid="plan.unlock"]').length !== 1) problems.push(`${e.plan.id}: the unlock sentence not once`);
           if (root.querySelector('[data-testid="plan.pots.save"]')) problems.push(`${e.plan.id}: Save on a locked plan`);
-          if (!root.querySelector('[data-line="pots.pots.today"], [data-line="pots.pots.todayTaxable"]')) problems.push(`${e.plan.id}: no pots line`);
+          // (7.12.0) a locked plan's pots are the ones it was locked with, said so: never "today"
+          if (!root.querySelector('[data-line="pots.pots.locked"], [data-line="pots.pots.lockedTaxable"]')) problems.push(`${e.plan.id}: no pots line`);
+          if (root.querySelector('[data-line="pots.pots.today"], [data-line="pots.pots.todayTaxable"]')) problems.push(`${e.plan.id}: a locked plan's pots said as today's`);
           if (!root.querySelector('[data-line^="pots.tax.bands"]')) problems.push(`${e.plan.id}: no bands line`);
         } else {
           for (const f of POTS_FIELDS) {
@@ -206,7 +208,8 @@ describe('the locked plans, a plan shown as saved, the household pair, a plan no
     expect(root.querySelector('input, select, textarea')).toBe(null);
     expect((text.match(/Fixed when you locked the plan on 1 July 2026\./g) || []).length).toBe(1);
     expect(root.querySelectorAll('[data-testid="plan.unlock"]').length).toBe(1);
-    expect(text).toContain('Pension £640,000 and ISAs and savings £35,000 today.');
+    expect(text).toContain('Your plan was locked on 1 July 2026 with a pension of £640,000 and ISAs and savings of £35,000.');
+    expect(text).not.toContain('£35,000 today');
     expect(text).toContain('This way of drawing is sized on its own figures: £640,000 pension and £35,000 ISAs, set with the way of drawing (in the full view).');
     expect(text).toContain('The ISA tops up your income before you pay higher-rate tax.');
     expect(text).not.toContain('rescues the plan');

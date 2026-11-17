@@ -49,7 +49,8 @@ function oneValueEach(q, readings, skip = []) {
     q.same(FACTS[id].label, readings[id], { eq: id === 'yearsToGo' ? sameYears : undefined, owner: FACTS[id].owner });
   }
   // what is due next: the same thing, the same month, in both views
-  const due = readings['due.next'].map((r) => ({ ...r, value: String(r.value).toLowerCase().replace(/^next review is /, 'review ') }));
+  // ("next review is September 2027" and "review is September 2027" say the same thing: one reading of each)
+  const due = readings['due.next'].map((r) => ({ ...r, value: String(r.value).toLowerCase().replace(/^(?:next )?review is /, 'review ') }));
   if (due.length) q.same('what is due next', due);
 }
 

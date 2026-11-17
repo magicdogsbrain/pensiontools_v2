@@ -99,7 +99,9 @@ export function homeBannerOf(entries, activeId, { today, stage = null, budget = 
   }
   // nothing due: the onboarding chain on a plan not locked; a locked plan's stage, as information
   const step = nextStepFor({ stage, budget, stress, decision, fromAnswer: !!fromAnswer });
-  return step ? { ...step, dismiss: { kind: 'banner' }, id: null } : null;
+  // (7.12.0) and, as the home says it, the month of the next review: what is due next is the same in both views
+  const next = h && h.found && h.review && h.review.next ? ' ' + esc(fill(HOME.quiet.review, { month: h.review.next }).replace(/^Nothing due\. /, '')) : '';
+  return step ? { ...step, html: step.html + next, dismiss: { kind: 'banner' }, id: null } : null;
 }
 
 /**

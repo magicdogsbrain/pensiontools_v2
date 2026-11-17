@@ -84,11 +84,13 @@ describe('the classic banner is the new app\'s home, on the whole corpus list, a
     const entries = entriesAt(TODAY);
     const draft = C['02-pnv-draft'];
     const stage = deriveStage(draft, noon(TODAY));
-    expect(homeBannerOf(entries, draft.id, { today: TODAY, stage, budget: {}, stress: {}, decision: {} })).toEqual({ ...nextStepFor({ stage, budget: {}, stress: {}, decision: {} }), dismiss: { kind: 'banner' }, id: null });
+    // (7.12.0) the next review's month, as the home says it, follows the line when the home names one
+    const withReview = (step, id) => { const h = homeOf(entries, id, { today: TODAY }); return { ...step, html: step.html + (h.review && h.review.next ? ' Your next review is ' + h.review.next + '.' : '') }; };
+    expect(homeBannerOf(entries, draft.id, { today: TODAY, stage, budget: {}, stress: {}, decision: {} })).toEqual({ ...withReview(nextStepFor({ stage, budget: {}, stress: {}, decision: {} }), draft.id), dismiss: { kind: 'banner' }, id: null });
     const saver = C['05-saver-committed'];
     const st = deriveStage(saver, noon(TODAY));
     const b = homeBannerOf(entries, saver.id, { today: TODAY, stage: st });
-    expect(b).toEqual(st.banner ? { ...nextStepFor({ stage: st, budget: {}, stress: {}, decision: {} }), dismiss: { kind: 'banner' }, id: null } : null);
+    expect(b).toEqual(st.banner ? { ...withReview(nextStepFor({ stage: st, budget: {}, stress: {}, decision: {} }), saver.id), dismiss: { kind: 'banner' }, id: null } : null);
     const newer = entries.map((e) => (e.plan.id === C['04-buckets-running'].id ? { ...e, newer: true } : e));
     expect(homeBannerOf(newer, C['04-buckets-running'].id, { today: TODAY, stage: deriveStage(C['04-buckets-running'], noon(TODAY)) })).toBe(null);
   });
@@ -264,5 +266,19 @@ describe('the banner on the page and its ✕', () => {
     const q = page();
     expect(await showHomeBanner(q.win, q.doc, depsFor(raws, id, TODAY, { getActiveScenarioId: async () => null }))).toBe(null);
     expect(q.els.nextStepBanner.style.display).toBe('none');
+  });
+});
+
+describe('nothing due: the full view\'s banner says the month of the next review, as the home does (7.12.0)', () => {
+  it('the locked saver (05), on 16 November 2026: the stage line, then "Your next review is September 2027."', () => {
+    const today = '2026-11-16';
+    const entries = entriesAt(today);
+    const e = entries.find((x) => x.plan.id === C['05-saver-committed'].id);
+    const h = homeOf(entries, e.plan.id, { today });
+    expect(h.todo.items.length).toBe(0);
+    // the home's quiet line names the month: the same month, in the same words, ends the banner
+    expect(h.review.next).toBe('September 2027');
+    const banner = homeBannerOf(entries, e.plan.id, { today, stage: deriveStage(e.plan, noon(today)) });
+    expect(banner.html.endsWith('Your next review is September 2027.')).toBe(true);
   });
 });

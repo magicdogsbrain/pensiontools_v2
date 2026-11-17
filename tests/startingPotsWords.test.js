@@ -28,7 +28,8 @@ describe('the line above the runs', () => {
     const text = plain(startSummaryHtml(S, { fromAnswer: plan.fromAnswer }));
     expect(text).toContain(`Starting balances at retirement (age 60), as every run uses them: Equity ${fmt(cfg.equityStart)} · Bond ${fmt(cfg.bondStart)} · Cash ${fmt(cfg.cashStart)} (pension £341,000) · ISA ${fmt(cfg.isaBalance)}.`);
     expect(text).toContain('These are your Settings pots today (pension £250,000, ISA £20,000) scaled to the pots at retirement in the Timing block.');
-    expect(text).toContain('This plan was made from a quick answer, where the money lasted to 95 in 9 futures out of 10 (93%). These runs start from the middling pot at retirement and do not vary the years before it, so they can differ.');
+    // (7.12.0) a plan still saving: "Will it last?" leads with the saving chance worked out now, so the kept answer's is not said
+    expect(text).not.toContain('This plan was made from a quick answer');
     expect(text).not.toMatch(/Fund Minimums/);
   });
   it('already retired (or no pots at retirement): today\'s words, unchanged', () => {

@@ -135,7 +135,10 @@ describe('the session\'s level, and the page\'s own wiring', { timeout: 120_000 
     win.setChanceLevel('reckless');
     expect(win._chanceLevel).toBe('bold');
     expect(chanceOptsOf(r, {}, win._oneTest)).toBe(win._oneTest.chance);
-    expect(chanceOptsOf(fake('pots-and-valves', 3), {}, win._oneTest)).toEqual({});
+    // (7.12.0) the plan's own way run again, figure for figure, reads the one test's own reading; a run with other figures
+    // is judged for the same person at the same level (never the block before 7.8.0)
+    expect(chanceOptsOf(fake('pots-and-valves', 3), {}, win._oneTest)).toBe(win._oneTest.chance);
+    expect(chanceOptsOf(fake('pots-and-valves', 5), {}, win._oneTest)).toEqual({ life: LIFE, level: win._oneTest.chance.level });
   });
   it('the classic one test weighs only while weighing; a locked ladder reads its document\'s figure', () => {
     const plan = entryOf(C['03-gilt-ladder-locked']).plan;
@@ -160,7 +163,7 @@ describe('the session\'s level, and the page\'s own wiring', { timeout: 120_000 
     expect(script).not.toMatch(/verdict-heroes/);
     expect(script).not.toMatch(/ruinMc <= 5 \? 'alert-success'/);
     expect(script).toMatch(/installChanceLevel\(window, document\)/);
-    expect(script).toMatch(/chance: chanceRunOf\(/);
+    expect(script).toMatch(/ch = chanceRunOf\(sc, /);
     // the classic About suggestion: not said selected, no half-way age (both apps)
     expect(html).toMatch(/<option value="notSaid" selected>Not said<\/option>/);
     expect(html).not.toMatch(/Average life expectancy/);

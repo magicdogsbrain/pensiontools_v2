@@ -152,7 +152,7 @@ try {
   await page.waitForFunction(() => /at retirement/.test(document.getElementById('mcStartSummary')?.textContent || ''), null, { timeout: 15000 }).catch(() => {});
   const mcLine = await textOf(page, '#mcStartSummary');
   check(/^Starting balances at retirement \(age 60\), as every run uses them: .*\(pension £341,000\) · ISA £23,000\./.test(mcLine), 'Monte Carlo says the runs start from the pots at 60: ' + mcLine.slice(0, 160));
-  check(/This plan was made from a quick answer, where the money lasted to 95 in 9 futures out of 10 \(93%\)\./.test(mcLine), 'and gives the quick answer\'s own figure beside its own');
+  check(!/This plan was made from a quick answer/.test(mcLine), 'and, for a plan still saving, says no kept chance beside the one worked out now (7.12.0)');
   await shot(page, 'planner-monte-carlo-start');
   await page.locator('.tab[data-tab="budget"]').click();
   await page.waitForFunction(() => /a guide/.test(document.getElementById('budSummary')?.textContent || ''), null, { timeout: 15000 }).catch(() => {});

@@ -579,7 +579,8 @@ function verdictSentences(result, facts) {
   const ABOUT_START = en.takeHomeExact ? '' : 'About ';
   const pensionWord = pair ? 'your pensions' : theirs ? "your partner's pension" : 'your pension';
   const intoWord = pair ? 'into your pensions between you' : `into ${pensionWord}`;
-  const untilStop = both ? ['until each of you stops'] : p ? ['until your partner stops at ', A('stop.age')] : ['until you are ', A('stop.age')];
+  // (7.12.0: "until you stop at 65", the stop said as a stop, never "until you are 65" beside the age you are today)
+  const untilStop = both ? ['until each of you stops'] : p ? ['until your partner stops at ', A('stop.age')] : ['until you stop at ', A('stop.age')];
   /** " a month from 63", " a month between you from when you are 62", …: the aim's unit and when it starts. */
   const fromStop = p ? [' a month from when your partner stops at ', A('stop.age')]
     : both ? [' a month between you once you have both stopped']

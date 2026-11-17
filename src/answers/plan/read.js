@@ -478,7 +478,8 @@ function atStopLine(par, { locked, lockedAt, figures, src }) {
   if (par.source === 'worked' && par.from) {
     figures.parSipp = k1(par.sipp); figures.parIsa = k1(par.isa); figures.parFrom = r0(par.from.pot); figures.parMonthly = r0(par.from.monthly); figures.parTo = par.from.toAge;
     return line('pots.atStop', [money('parSipp'), ' pension', ...(figures.parIsa > 0 ? [' and ', money('parIsa'), ' in ISAs and savings'] : []),
-      ' in a middling case. Worked out from ', money('parFrom'), ' today and ', money('parMonthly'), ' a month going in, to age ', age('parTo')], figures, src, { kind: 'worked' });
+      // (7.12.0: "the pension you have now", so this line, whose first figure is the pot at the stop, never reads as the pot today)
+      ' in a middling case. Worked out from the pension you have now, ', money('parFrom'), ', and ', money('parMonthly'), ' a month going in, to age ', age('parTo')], figures, src, { kind: 'worked' });
   }
   figures.parSipp = r0(par.sipp); figures.parIsa = r0(par.isa);
   if (par.source === 'override') {
@@ -581,7 +582,8 @@ function planStep(C) {
   // (7.12.0) the age today: the age typed, a year older for each birthday since its day (About's box says the same)
   let ageToday = ageTyped;
   if (ageTyped != null && ageAsOf) { try { const a = ageOnDate({ currentAge: ageTyped, currentAgeAsOf: ageAsOf, spStartDate: ss.spStartDate }, now, now); if (num(a) != null) ageToday = a; } catch { ageToday = ageTyped; } }
-  if (ageToday != null) { figures.ageToday = ageToday; about.push(line('about.age', [age('ageToday')], figures, locked ? src : sourceOf('saved', ageAsOf || null, now), { asOf: ageAsOf ? dayWords(ageAsOf) : '' })); }
+  // (a rolled-on age is today's: no "as of" the day the younger age was typed)
+  if (ageToday != null) { figures.ageToday = ageToday; about.push(line('about.age', [age('ageToday')], figures, locked ? src : sourceOf('saved', ageAsOf || null, now), { asOf: ageAsOf && ageToday === ageTyped ? dayWords(ageAsOf) : '' })); }
   const retired = locked && timing ? timing.mode === 'retired' : ss.retired === true;
   const retireAge = locked && timing ? num(timing.retireAge) : num(ss.retireAge);
   if (stage.timingMode === 'future' && retireAge != null) { figures.stopAge = retireAge; about.push(line('about.stopAt', [age('stopAge')], figures, src, { month: monthWords(startMonth) })); }

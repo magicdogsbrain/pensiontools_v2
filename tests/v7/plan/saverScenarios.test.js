@@ -242,7 +242,7 @@ describe('step 3: the pots when you stop are worked out, never frozen', () => {
       const text = atStopText(plan);
       expect(text).toContain('£' + k(after.sipp).toLocaleString('en-GB') + ' pension');
       expect(text).toContain('in a middling case');
-      expect(text).toContain('Worked out from £' + Math.round(inputs.you.pot * 1.09).toLocaleString('en-GB') + ' today');
+      expect(text).toContain('Worked out from the pension you have now, £' + Math.round(inputs.you.pot * 1.09).toLocaleString('en-GB') + ',');   // (7.12.0 wording)
     }, 60000);
   }
 

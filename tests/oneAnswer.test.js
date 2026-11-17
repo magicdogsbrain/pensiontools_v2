@@ -281,7 +281,7 @@ describe('the retired paths are gone from index.html; the plan\'s own settings r
     const body = script.slice(at, script.indexOf('\n    }\n', at));
     expect(body).not.toMatch(/disableProtection/);
     // 7.12.0: "Am I on course?" is the simple view's answer block (src/ui/saverAnswerUi.js), question B on the plan's figures
-    expect(script).toMatch(/window\.runOnTrackCheck = \(\) => paintSaverAnswer\(document, /);
+    expect(script).toMatch(/window\.runOnTrackCheck = async \(\) => \{ if \(window\._acAutosave\) await window\._acAutosave\.flush\(\); return paintSaverAnswer\(document, /);
     expect(script).toMatch(/runInWorker\('household-ways'/);   // 6.25.0: both ways (as they are / drawing together) through the one test
     // 6.41.0: the what-if copy is lifted (src/answers/plan/lastsRun.js trySettingsOf): the planner hands it the boxes, and the
     // years clamp to the engines' 45 lives there

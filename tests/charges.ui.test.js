@@ -131,7 +131,7 @@ describe('index.html: the box in Stress tester → Settings', () => {
   });
   it('is filled on load from the plan (with the lock), and saved clamped — never written while locked', () => {
     expect(fnBody('async function loadStressSettings()')).toContain('refreshStressLock()');   // every load path refreshes the lock, which paints the box
-    const save = fnBody('window.saveStressSettingsUI = async function()', 9000);
+    const save = fnBody('window.saveStressSettingsUI = async function(opts)', 9000);
     expect(save).toMatch(/chargesPct: chargesForSave\(/);
     expect(save.indexOf('chargesPct: chargesForSave(')).toBeGreaterThan(save.indexOf('if (await planIsLocked())'));
     const r = fnBody('async function renderChargesField(', 2500);

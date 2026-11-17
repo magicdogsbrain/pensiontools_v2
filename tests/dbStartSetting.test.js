@@ -102,6 +102,6 @@ describe('index.html asks by age', () => {
     expect(html).toContain('<input type="hidden" id="ssDbStartYear" value="0">');
     expect(html).not.toContain('DB Starts (plan year, 0 = now)');
     expect(html).toContain("dbStartYear: +document.getElementById('ssDbStartYear').value || 0, dbStartAge: dbStartAgeForSave(document)");
-    expect(html).toContain('const dbErr = dbStartError(document, window._ssTiming); if (dbErr) { showToast(dbErr');
+    expect(html).toContain('const dbErr = dbStartError(document, window._ssTiming); if (dbErr) { fault(dbErr); return; }');   // said as a toast on Save, beside its box as it changes (7.12.0)
   });
 });

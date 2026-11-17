@@ -64,10 +64,12 @@ describe('(a) both views: three lines and a link, and nothing about keeping', ()
     for (const w of ['Keep this', 'Not kept', 'Kept by choice', 'What is covered', 'not yet tested', 'I accept this risk']) expect(text.includes(w), w).toBe(false);
   });
   it('the full view', () => {
+    // retaken in 7.12.0: the card shares its tab with "Your plan's mix", which says the gilts held and the cash years' need
+    // (£47,167); the card no longer says them a second time, only that everything counts and where to read it
     const text = flat(visibleText(holdCard(full(plan))));
-    expect(text).toContain('All 14 of your plan’s gilts are held.');
-    expect(text).toContain('Your cash years need £47,167. Beside the plan’s gilts your pension holds £127,242 at today’s value.');
+    expect(text).not.toContain('Your cash years need');
     expect(text).toContain('Everything here counts as yours, as it is.');
+    expect(text).toContain(HELD.holdLinkMix);
     for (const w of ['Keep this', 'Not kept', 'Kept by choice', 'What is covered', 'not yet tested']) expect(text.includes(w), w).toBe(false);
   });
   it('no keep test is read for a ladder in the held phase', () => {

@@ -18,13 +18,22 @@ export async function expectLevelLines(page, q, answer) {
   await expect(page.locator('#app [data-testid="lasts.fixed"]').first()).toHaveAttribute('data-fixed', 'age');
   if (s.floor) await expect(page.locator('#app [data-testid="lasts.floor"]').first()).toHaveText(s.floor.text);
   if (s.boldLine) await expect(page.locator('#app [data-testid="lasts.boldLine"]').first()).toHaveText(s.boldLine.text);
-  // every weighted sentence on the page has a fixed-age line in its block (the render rule, in the browser)
+  // 7.12.0: the body says each chance once; every count to one age is in ONE closed "More about the chance" block (the
+  // render rule, in the browser: tests/v7/render/oneChance.test.js). "Try the bad years" keeps its own rule.
   const lonely = await page.evaluate(() => {
-    const BLOCK = 'section, .block, .headline, .band, .checkin-kept, [data-chance-block], .plan-section, details';
-    return [...document.querySelectorAll('#app [data-weighted]')].filter((el) => {
-      const block = (el.parentElement && el.parentElement.closest(BLOCK)) || document.body;
-      return ![...block.querySelectorAll('[data-fixed="age"], [data-fixed="1"]')].some((f) => f !== el && /\d{2,3}/.test(f.textContent));
-    }).map((el) => el.textContent.trim().slice(0, 80));
+    const out = [];
+    const blocks = document.querySelectorAll('#app [data-testid="chance.more"]');
+    if (blocks.length > 1) out.push(`${blocks.length} "More about the chance" blocks`);
+    for (const f of document.querySelectorAll('#app [data-fixed="age"]')) {
+      if (f.closest('.answer-stress')) continue;
+      if (!f.closest('[data-testid="chance.more"]')) out.push('a count to one age in the body: ' + f.textContent.trim().slice(0, 80));
+    }
+    if ([...document.querySelectorAll('#app [data-weighted]')].some((w) => !w.closest('.answer-stress'))) {
+      const inside = blocks.length ? [...blocks[0].querySelectorAll('[data-fixed="age"]')].filter((f) => /\d{2,3}/.test(f.textContent)).length : 0;
+      if (!inside) out.push('a chance on the page, and no count to one age behind "More about the chance"');
+    }
+    for (const b of blocks) if (b.tagName.toLowerCase() !== 'details' || b.hasAttribute('open')) out.push('"More about the chance" is not a closed block to open');
+    return out;
   });
   expect(lonely).toEqual([]);
   // the strip fits at this width: no sideways scroll

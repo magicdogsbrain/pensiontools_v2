@@ -85,8 +85,8 @@ test.describe('D — "I\'m retired. Will it last?"', () => {
       await expect(app.id('d.answer.headroom')).toHaveAttribute('data-headroom', answer.headroom.kind);
       // (7.8.0: the count's middling amount left the answer; the other two levels are said instead)
       await expect(app.id('d.more')).toContainText(answer.sentences.levels.text);
-      // (7.8.0: the headroom's own count to the plan-to age beside it)
-      if (answer.sentences.headroomFixed) await expect(app.id('d.answer.headroomFixed')).toHaveText(answer.sentences.headroomFixed.text);
+      // (7.8.0: the headroom's own count to the plan-to age; 7.12.0: said behind "More about the chance", with the others)
+      if (answer.sentences.headroomFixed) await expect(page.locator('#app [data-testid="chance.more"] [data-testid="lasts.headroomFixed"]')).toHaveText(answer.sentences.headroomFixed.text);
       await expect(page.locator('[data-key="levels.balanced.monthly"]').first()).toHaveAttribute('data-value', String(answer.levels.balanced.monthly));
       await expect(page.locator('#app h1')).toHaveText(D.steps.answer.label);
       expect(await page.locator('#app').innerText()).not.toMatch(RETIRED_WORDS);

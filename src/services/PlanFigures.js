@@ -21,3 +21,13 @@ export function planHasFigures(plan) {
   if (!s) return false;
   return s.configured === true || (!!s.baseSalary && +s.baseSalary !== 30000);
 }
+
+/**
+ * Whether the Accumulation planner holds figures someone typed (7.12.0): a pension today or a pay above nothing. A saver who
+ * came in by the saver's door types there only; the full view then opens on the Accumulation planner, never on "no figures
+ * yet" (LifeStage.openingTab). Ages alone are not figures.
+ */
+export function planHasSavingFigures(plan) {
+  const a = plan && isObj(plan.accumulationTool) && isObj(plan.accumulationTool.settings) ? plan.accumulationTool.settings : null;
+  return !!a && ((+a.potNow || 0) > 0 || (+a.salary || 0) > 0);
+}

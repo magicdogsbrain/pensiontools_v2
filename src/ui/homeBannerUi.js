@@ -37,6 +37,7 @@ import { nextStepFor, nextStepAction } from '../services/NextStep.js';
 import { openingTab } from '../services/LifeStage.js';
 import { holdingsSummary, normaliseHoldings } from '../services/HoldingsRecord.js';
 import { planHasFigures } from '../services/DraftDecision.js';
+import { planHasSavingFigures } from '../services/PlanFigures.js';
 import { noteViewSwitch } from './viewSwitch.js';
 import { PLAN_ID } from '../services/OpenPlace.js';
 import { PLAN } from '../v7/copy/plan.js';
@@ -134,7 +135,7 @@ export async function openingTabOf(deps, now = new Date()) {
     phase = h && h.found && h.stage ? h.stage.key || null : null;
     const raw = Array.isArray(plans) ? plans.find((p) => p && p.id === id) : null;
     // 7.12.0: Moving opens on Transition only when What you hold has a line (a named line, as the record reads it)
-    if (raw) { held = holdingsSummary(normaliseHoldings(raw.holdings)).count > 0; figures = planHasFigures(raw); }
+    if (raw) { held = holdingsSummary(normaliseHoldings(raw.holdings)).count > 0; figures = planHasFigures(raw) || planHasSavingFigures(raw); }
   } catch (e) { phase = null; held = false; figures = true; }
   return openingTab(stage, phase, { held, figures });
 }

@@ -281,6 +281,10 @@ describe('the first screen by stage (7.12.0): each plan opens where its next thi
   const plan = (id, stress, decision = {}, extra = {}) => ({ id, planDetails: { name: id }, isActive: true, ...sc(stress, decision, extra) });
   const rows = [
     ['no figures yet', plan('p1', {}), { tab: 'stress', sub: 'stresssettings' }],
+    // a saver who came in by the saver's door and typed what they pay in and their pension on the Accumulation planner
+    // only: those are figures someone gave the plan, so it opens where they were typed, never on "no figures yet"
+    ['saving, its figures typed on the Accumulation planner only', plan('p10', {}, {}, { accumulationTool: { settings: { currentAge: 30, retirementAge: 67, salary: 31000, potNow: 9000, netMonthly: 100, schemeType: 'ras', employerMonthly: 93 } } }), { tab: 'accumulation', sub: null }],
+    ['a wizard plan with ages and the Accumulation planner\'s boxes empty', plan('p11', {}, {}, { accumulationTool: { settings: { currentAge: 30, retirementAge: 67, salary: 0, potNow: 0 } } }), { tab: 'stress', sub: 'stresssettings' }],
     ['saving, not locked', plan('p2', working(45, 62)), { tab: 'accumulation', sub: null }],
     ['inside the move window, not locked', plan('p3', working(58, 60)), { tab: 'stress', sub: null }],
     ['locked, still working, before the move window', plan('p4', working(50, 60), LOCK), { tab: 'accumulation', sub: null }],

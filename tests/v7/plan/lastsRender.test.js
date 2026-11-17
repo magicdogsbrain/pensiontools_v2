@@ -104,6 +104,13 @@ describe('every corpus plan at three dates, with a result: the band, the rows, t
         const pg = planPage(entries, e.plan.id, 'lasts', { today });
         const v = lastsOf(entries, e.plan.id, { today });
         expect(root.querySelector('main').getAttribute('data-screen')).toBe('plan.lasts');
+        // (7.12.0) a plan with no figures of its own: what to add, with its two pages, and no band
+        if (v.noFigures) {
+          const nf = root.querySelector('[data-testid="plan.lasts.noFigures"]');
+          if (!nf || nf.querySelectorAll('a').length !== 2) problems.push(`${e.plan.id}: no figures, and not said what to add`);
+          if (root.querySelector('[data-testid="plan.lasts.result"]')) problems.push(`${e.plan.id}: a band on a plan with no figures`);
+          continue;
+        }
         expect(root.querySelector('h1').textContent).toBe('Does it last?');
         const locked = !!(e.plan.decisionTool && e.plan.decisionTool.settings && e.plan.decisionTool.settings.locked);
         const region = root.querySelector('[data-region="plan-lasts"]');

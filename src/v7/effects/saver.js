@@ -26,7 +26,8 @@ const SEED = 0;   // the published seed, as every V7 answer
  */
 export function wanted(state) {
   const r = state.route;
-  if (!r || r.screen !== 'plan' || !r.planId || (r.step !== 'saving' && r.step)) return null;
+  // (7.12.0) and on "Does it last?" for a plan still saving: its chance is this run's, one figure on all three pages
+  if (!r || r.screen !== 'plan' || !r.planId || (r.step !== 'saving' && r.step !== 'lasts' && r.step)) return null;
   const plans = state.plans;
   const page = plans && plans.status === 'read' && plans.view && plans.view.page && plans.view.page.forId === r.planId ? plans.view.page : null;
   const v = !page ? null : r.step === 'saving' ? (page.saving && page.saving.found ? page.saving.verdict : null) : page.saver || null;

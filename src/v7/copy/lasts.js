@@ -51,8 +51,14 @@ export const LASTS = {
   failed: { title: 'Sorry, we could not work that out.', body: 'Nothing has been lost. Your plan is still here.', tryAgain: 'Try again',
     noWorker: 'This browser cannot run the test in the background, so it cannot be run here. The full view runs the same test.', inPlanner: 'Run it in the full view' },
   notRun: 'This plan is shown as it was saved, so it is not run here. Nothing has been lost.',
+  /** (7.12.0) a plan with no figures of its own: nothing is tested until they are added. */
+  noFigures: 'This plan has no figures of its own yet, so there is nothing to test. Add your pension pot and what you want to spend first:',
+  noFiguresPots: 'Your pots and tax',
+  noFiguresSpend: 'What you spend',
   /** A plan that starts before its pension can usually be taken (7.4.0): from 7.4.1 the run holds the pension back until then. */
   pensionAccess: 'Before {age}, this plan pays you from your other savings, not your pension.',
+  /** (7.12.0) a plan still saving: the chance is the one What you pay in works out, said once. */
+  chanceFromSaving: 'The chance is the one “What you pay in” works out, letting each future save its own pot.',
   /** … and when the other savings cannot pay those years in full (7.4.1): the run cuts them to what can be paid. The figure is
    *  the shortfall a year to the nearest £100, said without "about" (a plan page is never an estimate: banned.js about-record). */
   pensionShort: 'Before {age} your plan can’t take money from your pension. Your other savings run short by {amount} a year in {years}.',

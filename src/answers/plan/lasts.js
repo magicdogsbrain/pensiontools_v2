@@ -25,6 +25,8 @@ import { oneAnswer, futuresOutOfTen, pctText, CHANCE_BARS, boldConsequenceOf } f
 
 export { boldConsequenceOf };
 import { LEVEL_FAILS20, verdictAtLevel } from '../shared/rules.js';
+import { chanceWords } from '../shared/format.js';
+import { planHasFigures, planHasSavingFigures } from '../../services/PlanFigures.js';
 import { switchPatch } from '../../services/PlanCommit.js';
 import { cleanParams } from '../../services/StrategyState.js';
 import { get, applyPatch, safeSettings, safeTiming, bandsOf } from './about.js';
@@ -242,6 +244,7 @@ export function lastsOf(entries, id, { today, typed = null } = {}) {
   if (!entry) return { found: false, id: String(id || '') };
   const plan = entry.plan;
   const readonly = !!(entry.newer || entry.failed);
+  const noFigures = !planHasFigures(plan) && !planHasSavingFigures(plan);
   const saved = savedLasts(plan, { today });
   const editable = !saved.locked && !readonly;
   const boxes = boxesOf(plan, { today });
@@ -263,7 +266,8 @@ export function lastsOf(entries, id, { today, typed = null } = {}) {
     found: true, id: String(plan.id), name: nameOf(plan, today), locked: saved.locked, lockedOn: saved.lockedOn, readonly, editable,
     source: saved.source, strategyId: saved.strategyId, bought: saved.bought, family: saved.family, endAge: saved.endAge,
     // no run on a plan shown as saved (newer than this code, or one whose upgrade failed): its figure would not be its own
-    runKey: readonly ? null : runKeyOf(plan), document: saved.document,
+    // (7.12.0) a plan with no figures of its own is never tested on the stored defaults: it says what to add instead
+    runKey: readonly || noFigures ? null : runKeyOf(plan), noFigures, document: saved.document,
     fields, errors: c.errors, ok: c.ok, derived, notUsed: notUsedBy(saved.strategyId), partners,
     // the plan draws from a pension before it can usually be taken (7.4.0, PlanTiming.earlyPensionDrawOf): said beside the answer
     pensionAccess: (() => { try { const now = dateOf(today); const e = earlyPensionDrawOf(safeSettings(plan, now), now); return e ? { age: String(e.age) } : null; } catch { return null; } })(),
@@ -344,13 +348,31 @@ export function startRow(x) {
 }
 
 /**
+ * (7.12.0) One chance per plan: a plan still saving reads the chance its money lasts as long as you do from the one run
+ * "What you pay in" and the home use (question B on the plan's figures: each future saves its own pot, then draws), so the
+ * three pages say one figure. `chance` (0 to 1, weighted) replaces the run's own in its words, its verdict and Bold's line;
+ * the count to one age and what is left stay this run's (they say their own measure). Null `chance`, or a run that did not
+ * weigh: the run as it is.
+ */
+function withChance(a, chance) {
+  if (!a || typeof chance !== 'number' || !Number.isFinite(chance) || typeof a.weighted !== 'number') return a;
+  const was = chanceWords(a.weighted, { sumW: a.sumW, n: a.n });
+  const now = chanceWords(chance);
+  const words = a.words && typeof a.words.headline === 'string' ? { ...a.words, headline: a.words.headline.replace(was, now) } : a.words;
+  // the verdict at the run's level on this chance, as atLevel judges a weighted share
+  const t = LEVEL_FAILS20[a.level];
+  const verdict = typeof t !== 'number' ? a.verdict : chance >= 1 - t / 20 - 1e-12 ? 'yes' : chance >= 1 - (t + 1) / 20 - 1e-12 ? 'close' : 'no';
+  return { ...a, weighted: chance, sumW: null, n: null, words, verdict, lasts: verdict === 'yes', chanceFrom: 'saving' };
+}
+
+/**
  * A run's result (lastsRun.js) → what the screen draws: the band (its verdict word, the share for the bar, the headline's
  * words), the rows under it, and the history. Every figure is the planner's own reading of the one test (OneAnswer.js).
  * `saved` is lastsOf's reading of the same plan (the end age, the way of drawing, the source).
  */
-export function verdictOf(result, saved, { level = null } = {}) {
+export function verdictOf(result, saved, { level = null, chance = null } = {}) {
   if (!result || typeof result !== 'object') return null;
-  const a = atLevel(result.a, level);
+  const a = withChance(atLevel(result.a, level), chance);
   if (!a) {
     return { ok: false, id: 'lasts.unaffordable', slots: { strategy: result.strategyId || '' }, strategyId: result.strategyId || null, rows: [], history: null };
   }
@@ -387,6 +409,7 @@ export function verdictOf(result, saved, { level = null } = {}) {
     ok: true,
     verdict: verdictWord(a.share, wb ? a : null), share: a.share, chancePct: a.chancePct,
     ...(wb ? { level: wb.level, weighted: wb.weighted } : {}),
+    ...(a.chanceFrom ? { chanceFrom: a.chanceFrom } : {}),
     // the raw figures, for the tests that read them off the screen (data-* on the band) — the planner's own, to the pound
     figures: { chancePct: a.chancePct, typicalLeft: r0(a.typicalLeft), badCaseLeft: r0(a.badCaseLeft), goodCaseLeft: r0(a.goodCaseLeft), futures: a.futures, histories: a.histories, histRanOutN: a.histRanOutN, years,
       cutN: c ? c.cutN : null, cutPerYear: c ? c.typicalCutPerYear : null, cutYears: c ? c.typicalCutYears : null, cutTotal: c ? c.typicalCutTotal : null, worstCut: c ? c.worstCutTotal : null },

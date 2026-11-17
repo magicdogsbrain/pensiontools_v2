@@ -126,7 +126,7 @@ export function viewFor(state) {
     // are, then everything else — read from the same reading as the rail, so the two can never disagree
     if (!r.step && page.found) page.home = homeOf(plans.list, r.planId, { today, source: plans.source, page });
     // a plan still saving: its home says the answer to "Are you paying in enough?" (7.12.0), the run's key as on What you pay in
-    if (!r.step && page.found) page.saver = saverVerdictOf(plans.list, r.planId, { today });
+    if ((!r.step || r.step === 'lasts') && page.found) page.saver = saverVerdictOf(plans.list, r.planId, { today });
     // "Test what you keep against your plan" (7.7.0): the agreement's state, the line the home, About, What you hold and the move
     // say, and the re-test held in page memory (state.keepTest) for THIS plan as it is now — null on a plan that keeps nothing
     if (page.found) {
@@ -217,7 +217,11 @@ export function viewFor(state) {
       if (r.step === 'lasts' && page.lasts.found) {
         const pl = page.lasts;
         // (the page's own level when one was picked here — ui.level, never saved — else the plan's: the run's)
-        pl.verdict = L && L.result ? verdictOf(L.result, pl, { level: state.ui && state.ui.level }) : null;
+        // (7.12.0) a plan still saving: one chance per plan, the saver run's (What you pay in and the home say it too)
+        const Sv = state.saver;
+        const sv = page.saver && page.saver.ok && Sv && Sv.key === page.saver.key && Sv.result && Sv.result.verdict ? Sv.result.verdict : null;
+        const chance = sv && typeof sv.weighted === 'number' && Number.isFinite(sv.weighted) ? sv.weighted : null;
+        pl.verdict = L && L.result ? verdictOf(L.result, pl, { level: state.ui && state.ui.level, chance }) : null;
         // a locked plan: the document's own figure (10.5), and the one line of 6.24.0 when today's run differs
         pl.documentVerdict = pl.document ? verdictOf({ a: pl.document.a, strategyId: pl.strategyId, ran: pl.document.ran, history: null }, pl) : null;
         pl.note = L && L.result && L.key === pl.runKey && L.result.stored && typeof L.result.stored.note === 'string' && L.result.stored.note ? L.result.stored.note : null;

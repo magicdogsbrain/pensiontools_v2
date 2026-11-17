@@ -452,6 +452,12 @@ export function readyMark(state) {
     const key = page && page.forId === r.planId && page.saving && page.saving.verdict && page.saving.verdict.key ? page.saving.verdict.key : null;
     if (key && !(SV && SV.key === key && (SV.status === 'final' || SV.status === 'failed'))) busy = true;
   }
+  // (7.12.0) "Does it last?" of a plan still saving reads its chance from the same run: not ready until it is final
+  if (r && r.screen === 'plan' && r.step === 'lasts') {
+    const page = state.plans && state.plans.view && state.plans.view.page;
+    const key = page && page.forId === r.planId && page.saver && page.saver.ok && page.saver.key ? page.saver.key : null;
+    if (key && !(SV && SV.key === key && (SV.status === 'final' || SV.status === 'failed'))) busy = true;
+  }
   // a saver's check-in (saving-enough-and-check-in.md 5.4): its run and its one write under way are not ready
   if (state.ui && state.ui.saving && state.ui.saving.kind === 'checkIn') busy = true;
   // "How the money is taken" (way-and-mix.md 2.2): the nine-way run, or one way being tried, is not ready

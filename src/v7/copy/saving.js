@@ -174,7 +174,7 @@ export const SAVING = {
       more: 'This reads what you pay in as going up with prices. Your plan raises it by {pct}% a year, so what the pot could be by the stop, below, assumes more goes in later.',
       none: 'This reads what you pay in as going up with prices. Your plan keeps it the same in pounds each year, so what the pot could be by the stop, below, assumes less goes in later.'
     },
-    draws: 'This check lets each future save its own pot. “Does it last?” starts every future from the middling pot and draws the way your plan draws, so its count can differ a little.',
+    draws: 'This check lets each future save its own pot, then draw. “Does it last?” says the same chance, and what is left and when, drawing the way your plan draws.',
     drawsLink: 'Does it last?',
     couple: 'This reads your plan on its own; reading two linked plans together comes later.',
     /** A plan that draws by a way other than pots and valves or buckets (7.10.0): what the verdict is worked out on. */

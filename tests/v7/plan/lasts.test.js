@@ -85,8 +85,9 @@ describe('L1 — the reading, on every corpus plan at three dates', () => {
         expect(a.locked).toBe(isLocked(e.plan));
         expect(a.editable).toBe(!a.locked);
         expect(a.savedLine).toMatchObject({ id: expect.stringMatching(/^lasts(Off)?$/) });
-        expect(a.runKey).toBe(runKeyOf(e.plan));
-        expect(typeof a.runKey).toBe('string');
+        // (7.12.0) a plan with no figures of its own (01, the fresh default) is not run: it says what to add
+        expect(a.runKey).toBe(a.noFigures ? null : runKeyOf(e.plan));
+        expect(a.noFigures).toBe(e.plan.id === C['01-fresh-default'].id);
         expect(a.notUsed).toEqual(notUsedBy(a.strategyId));
         expect(a.family).toBe(FAMILY.includes(a.strategyId));
         // the dials are the planner's own reading: what createSimulationConfigFromSettings hands the engine
@@ -366,5 +367,46 @@ describe('L1 — the sub-step, the address and the plan page\'s links', () => {
     expect(lastsOf(es, saver.id, { today: TODAY }).partners).toEqual([{ id: 'HouseLadder01', name: 'Ladder plan' }]);
     expect(lastsOf(es, ladder.id, { today: TODAY }).partners).toEqual([{ id: 'HouseSaver02', name: 'Saving plan' }]);
     expect(lastsOf(es, 'NoSuchPlan', { today: TODAY })).toEqual({ found: false, id: 'NoSuchPlan' });
+  });
+});
+
+describe('one chance per plan (7.12.0): a plan still saving reads the chance What you pay in works out', () => {
+  // a weighted run at Balanced (it asks for 18 times in 20): its own chance 0.95, "19 times in 20"
+  const weighedRun = () => ({
+    strategyId: 'pots-and-valves', ran: {}, history: null,
+    a: { level: 'balanced', verdict: 'yes', lasts: true, weighted: 0.95, sumW: null, n: null, share: 0.96, chancePct: 96, years: 30, futures: 1000, histories: 600,
+      typicalLeft: 100000, badCaseLeft: 0, goodCaseLeft: 300000, fixedAge: 0.9, planToAge: 95,
+      words: { headline: 'Counting how long people your age live, the money lasts as long as you do 19 times in 20.', fixed: 'If you live to 95, it lasts that long in 18 of 20 futures we tried.', left: 'What is left.', assumed: [] } }
+  });
+  const saved = { endAge: 95 };
+  it('the saving run\'s 0.8 (16 times in 20): the headline says it, and at Balanced it is not on course', () => {
+    const v = verdictOf(weighedRun(), saved, { chance: 0.8 });
+    expect(v.slots.words).toBe('Counting how long people your age live, the money lasts as long as you do 16 times in 20.');
+    expect(v.weighted.chance).toBe(0.8);
+    // Balanced allows 2 in 20 to fall short: 0.8 < 1 − 2/20 = 0.9, and < 1 − 3/20 = 0.85 → not on course
+    expect(v.verdict).toBe('no');
+    expect(v.chanceFrom).toBe('saving');
+    // the count to one age is the run's own measure, said as it was
+    expect(v.sub.slots.words).toBe('If you live to 95, it lasts that long in 18 of 20 futures we tried.');
+  });
+  it('no chance handed in: the run as it is', () => {
+    const v = verdictOf(weighedRun(), saved);
+    expect(v.slots.words).toContain('19 times in 20');
+    expect(v.verdict).toBe('yes');
+    expect(v.chanceFrom).toBeUndefined();
+  });
+});
+
+describe('a plan with no figures of its own is never tested on stored defaults (7.12.0)', () => {
+  it('01, a fresh plan (nothing typed, the default £30,000 and pots): no run, what to add', () => {
+    const L = lastsOf(entriesAt(TODAY), C['01-fresh-default'].id, { today: TODAY });
+    expect(L.noFigures).toBe(true);
+    expect(L.runKey).toBe(null);
+    expect(LASTS.noFigures).toBe('This plan has no figures of its own yet, so there is nothing to test. Add your pension pot and what you want to spend first:');
+  });
+  it('a plan with figures runs as before', () => {
+    const L = lastsOf(entriesAt(TODAY), LUMPY.id, { today: TODAY });
+    expect(L.noFigures).toBe(false);
+    expect(typeof L.runKey).toBe('string');
   });
 });

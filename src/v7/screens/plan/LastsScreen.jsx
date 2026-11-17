@@ -177,6 +177,8 @@ function Years({ v, L, dispatch }) {
 function Answer({ L, onChange, dispatch, view }) {
   const run = L.run || { status: 'idle' };
   const v = L.verdict || null;
+  // (7.12.0) a plan with no figures of its own: what to add, with the pages, never a test on stored defaults
+  if (L.noFigures) return <section class="headline plan-panel lasts-answer" data-region="plan-lasts-answer" data-status="none"><p class="notice" role="status" data-testid="plan.lasts.noFigures">{LASTS.noFigures} <a href={href.plan(L.id, 'pots')}>{LASTS.noFiguresPots}</a> · <a href={href.plan(L.id, 'spend')}>{LASTS.noFiguresSpend}</a></p></section>;
   if (!L.runKey) return <section class="headline plan-panel lasts-answer" data-region="plan-lasts-answer" data-status="none"><p class="notice" role="status" data-testid="plan.lasts.notRun">{LASTS.notRun}</p></section>;
   const working = run.status === 'working' || run.status === 'idle';
   const doc = L.document;
@@ -216,6 +218,7 @@ function Answer({ L, onChange, dispatch, view }) {
       <AtLeast busy={working} working={null}>
         {v && run.fresh && <Band v={v} stale={false} testid="plan.lasts.result" dispatch={dispatch} />}
         {v && run.fresh && v.ok && <p class="plan-source" data-testid="plan.lasts.ran">{sourceLine}</p>}
+        {v && run.fresh && v.ok && v.chanceFrom === 'saving' && <p class="note" data-testid="plan.lasts.chanceFrom">{LASTS.chanceFromSaving}</p>}
         {v && run.fresh && L.note && <p class="notice" role="status" data-testid="plan.lasts.earlierTest">{L.note}</p>}
         {/* the plan starts before its pension can usually be taken (7.4.0): what it does until then, beside the answer, or
             (7.4.1) the warning when the other savings cannot pay those years in full */}

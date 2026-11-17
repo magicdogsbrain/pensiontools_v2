@@ -25,7 +25,8 @@ describe('Decision panel with a contract-strategy overlay', () => {
   it('pots & valves (no overlay) is unchanged', () => {
     const html = buildDecisionHTML(base);
     expect(html).toContain('Withdraw From');
-    expect(html).toContain('Fund Status');
-    expect(html).toContain('Cash low!');
+    // retaken in 7.12.0 round 3 (decision 6): the pots against the plan's levels, and the low-cash alert as what the month does
+    expect(html).toContain('Your pots against the plan’s levels');
+    expect(html).toContain('This month takes money from pots below the level your plan keeps them at.');
   });
 });

@@ -172,7 +172,7 @@ describe('drawn', () => {
     // retaken in 7.10.0 (each fact once on the home): a saver inside the move window — the headline and the window's line say
     // it, with no line under the headline saying it again; the plan's other pages keep the plan's line under their title
     expect(root.querySelector('[data-testid="plan.home.headline"]').textContent).toBe('Moving.');
-    expect(root.querySelector('[data-testid="plan.home.moveWindow"]').textContent).toMatch(/^In your move window: /);
+    expect(root.querySelector('[data-testid="plan.home.moveWindow"]').textContent).toMatch(/^You stop work in \w+ \d{4}, in your move window: [\w ]+ left\./);
     expect(root.querySelector('[data-testid="plan.stageLine"]')).toBe(null);
     expect(bannedHits(visibleText(root), ['all'])).toEqual([]);
     render(h(App, { state: stateWith(entries, '#/plan/' + C['19-back-to-work-saving'].id + '/about'), dispatch: () => {} }), root);

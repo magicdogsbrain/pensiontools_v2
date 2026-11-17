@@ -145,7 +145,7 @@ describe('the line under the headline says only what nothing above it says (7.10
     const moving = draw(load('home-moving')).root;
     expect(one(moving, `${T}.headline`).textContent).toBe('Moving.');
     expect(one(moving, 'plan.stageLine')).toBe(null);
-    expect(one(moving, `${T}.moveWindow`).textContent).toMatch(/^In your move window: /);
+    expect(one(moving, `${T}.moveWindow`).textContent).toMatch(/^You stop work in \w+ \d{4}, in your move window: [\w ]+ left\./);
     const draft = draw(load('home-draft-retired')).root;
     expect(one(draft, `${T}.headline`).textContent).toBe('Living on it. Not locked yet.');
     expect(one(draft, 'plan.stageLine')).toBe(null);

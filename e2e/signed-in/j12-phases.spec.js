@@ -123,7 +123,7 @@ test('Alex: saving, a choice each one write; the window opens with nothing to do
     await at(page, '2029-01-15T09:00:00.000Z', ALEX);
     await openAt(page, `#/plan/${ID}`);
     await expect(page.getByTestId(`${H}.headline`)).toHaveText('Moving.', { timeout: 30_000 });
-    await expect(page.getByTestId(`${H}.moveWindow`)).toHaveText('In your move window: 24 months left, to January 2031. You can record what you hold when you like.');
+    await expect(page.getByTestId(`${H}.moveWindow`)).toHaveText('You stop work in January 2031, in your move window: 2 years left. You can record what you hold when you like, and you do not need to.');
     await expect(page.getByTestId(`${H}.todo`).locator('.home-item')).toHaveCount(0);
     await expect(page.locator('[data-todo^="move."]')).toHaveCount(0);
     expect(same((await plansOf(uid))[0], before), 'opening writes nothing').toBe(true);

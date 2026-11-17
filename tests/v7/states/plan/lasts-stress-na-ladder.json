@@ -2520,7 +2520,7 @@
         "example": false,
         "stageKey": "running",
         "retired": true,
-        "saver": false,
+        "saver": null,
         "line": {
           "id": "running-ladder",
           "slots": {
@@ -2532,6 +2532,7 @@
         "before": null,
         "locked": true,
         "lockedOn": "1 July 2026",
+        "lockedShort": null,
         "readonly": false,
         "source": "account",
         "steps": [
@@ -2707,15 +2708,28 @@
                   "key": "drawn",
                   "kind": "money"
                 },
-                " taken before tax"
+                " taken before tax",
+                ".",
+                " ",
+                {
+                  "key": "net",
+                  "kind": "money"
+                },
+                " reached your bank."
               ],
-              "text": "3 months recorded in 2026/27: £8,500 taken before tax"
+              "text": "3 months recorded in 2026/27: £8,500 taken before tax. £7,428 reached your bank."
             },
+            "compare": null,
             "figures": {
               "months": 3,
               "drawn": 8500,
+              "cutMonths": 0,
+              "net": 7428,
               "stepNow": 34000,
-              "pot": 648852
+              "pot": 648852,
+              "potActual": 648852,
+              "potPart0": 613800,
+              "potPart1": 35052
             },
             "lines": [
               {
@@ -2789,13 +2803,42 @@
                     {
                       "key": "pot",
                       "kind": "money"
-                    }
+                    },
+                    "."
                   ],
-                  "text": "£648,852"
+                  "text": "£648,852."
                 },
                 "source": {
                   "kind": "record",
                   "at": "September 2026",
+                  "stale": false
+                }
+              },
+              {
+                "id": "where.potParts",
+                "slots": {},
+                "sentence": {
+                  "id": "where.potParts",
+                  "parts": [
+                    "Pension ",
+                    {
+                      "key": "potPart0",
+                      "kind": "money"
+                    },
+                    ", recorded September 2026.",
+                    " ",
+                    "ISA ",
+                    {
+                      "key": "potPart1",
+                      "kind": "money"
+                    },
+                    ", from What you hold, June 2026."
+                  ],
+                  "text": "Pension £613,800, recorded September 2026. ISA £35,052, from What you hold, June 2026."
+                },
+                "source": {
+                  "kind": "record",
+                  "at": null,
                   "stale": false
                 }
               }
@@ -2832,9 +2875,9 @@
                   "key": "yearly",
                   "kind": "money"
                 },
-                " a year before tax; your ladder pays from April 2027 (tax year 2027/28)"
+                " a year before tax; your plan pays from July 2026; the ladder’s first gilt from April 2029"
               ],
-              "text": "£34,000 a year before tax; your ladder pays from April 2027 (tax year 2027/28)"
+              "text": "£34,000 a year before tax; your plan pays from July 2026; the ladder’s first gilt from April 2029"
             },
             "figures": {
               "yearly": 34000,
@@ -2867,9 +2910,9 @@
               "bonds": 400000,
               "cash": 60000,
               "spWeekly": 230,
-              "dial.cashYears": 2,
-              "dial.isaTotal": 35000,
-              "dial.sippTotal": 640000
+              "dial_cashYears": 2,
+              "dial_isaTotal": 35000,
+              "dial_sippTotal": 640000
             },
             "lines": [
               {
@@ -3368,7 +3411,7 @@
                       "id": "way.dial",
                       "parts": [
                         {
-                          "key": "dial.cashYears",
+                          "key": "dial_cashYears",
                           "kind": "count"
                         }
                       ],
@@ -3389,7 +3432,7 @@
                       "id": "way.dial",
                       "parts": [
                         {
-                          "key": "dial.isaTotal",
+                          "key": "dial_isaTotal",
                           "kind": "money"
                         }
                       ],
@@ -3410,7 +3453,7 @@
                       "id": "way.dial",
                       "parts": [
                         {
-                          "key": "dial.sippTotal",
+                          "key": "dial_sippTotal",
                           "kind": "money"
                         }
                       ],
@@ -3448,10 +3491,9 @@
                     }
                   }
                 ],
-                "place": "settings",
+                "place": "allocation",
                 "sub": "mix",
-                "href": "#/plan/SamBad02/mix",
-                "lockedButton": "tryMix"
+                "href": "#/plan/SamBad02/mix"
               }
             ],
             "options": [
@@ -4024,7 +4066,7 @@
             "state": "open",
             "done": false,
             "result": {
-              "id": "move.gilts",
+              "id": "move.giltsHeld",
               "parts": [
                 {
                   "key": "bought",
@@ -4035,9 +4077,9 @@
                   "key": "rungs",
                   "kind": "count"
                 },
-                " gilts bought"
+                " gilts held"
               ],
-              "text": "0 of 14 gilts bought"
+              "text": "0 of 14 gilts held"
             },
             "figures": {
               "bought": 0,
@@ -4073,9 +4115,8 @@
                 "slots": {}
               }
             ],
-            "notes": [
-              "move.optional"
-            ]
+            "notes": [],
+            "toBuy": 0
           },
           {
             "id": "budget",
@@ -4182,7 +4223,8 @@
           },
           "a": null,
           "b": null,
-          "line": 17
+          "line": 17,
+          "readings": null
         },
         "askLinks": [
           "c"
@@ -4190,31 +4232,7 @@
         "askFill": {},
         "forId": "SamBad02",
         "forStep": "lasts",
-        "keepTest": {
-          "status": "untested",
-          "keeps": true,
-          "lockedOn": "1 July 2026",
-          "agreed": null,
-          "line": {
-            "id": "line.untested",
-            "slots": {}
-          },
-          "todo": {
-            "id": "todo",
-            "slots": {}
-          },
-          "canAccept": false,
-          "canWithdraw": false,
-          "result": null,
-          "run": {
-            "status": "idle",
-            "reason": null
-          },
-          "fingerprint": "{\"lines\":[[\"ISA:VWRP\",{\"as\":\"mine\",\"fundsGaps\":false}],[\"SIPP:VWRP\",{\"as\":\"mine\",\"fundsGaps\":false}]],\"expected\":[]}",
-          "runKey": "SamBad02|2026-09-02T18:30:00.000Z|wudskr|L",
-          "planId": "SamBad02",
-          "closed": false
-        },
+        "keepTest": null,
         "lasts": {
           "found": true,
           "id": "SamBad02",
@@ -4232,6 +4250,7 @@
           "family": false,
           "endAge": 86,
           "runKey": "SamBad02|2026-09-02T18:30:00.000Z|wudskr|L",
+          "noFigures": false,
           "document": {
             "a": {
               "strategyId": "full-il-gilt",
@@ -5015,8 +5034,8 @@
                 "type": "money",
                 "options": null,
                 "applies": true,
-                "shown": "640000",
-                "saved": "640000",
+                "shown": "613800",
+                "saved": "613800",
                 "error": null
               },
               {
@@ -5024,8 +5043,8 @@
                 "type": "money",
                 "options": null,
                 "applies": true,
-                "shown": "35000",
-                "saved": "35000",
+                "shown": "35052",
+                "saved": "35052",
                 "error": null
               },
               {
@@ -5106,8 +5125,8 @@
             "ok": true,
             "run": {
               "way": "full-il-gilt",
-              "pot": 640000,
-              "isa": 35000,
+              "pot": 613800,
+              "isa": 35052,
               "isaPolicy": "saved",
               "incomeMode": "shape",
               "income": 0,
@@ -5121,7 +5140,16 @@
             "result": null,
             "patch": {},
             "kept": null,
-            "same": false
+            "same": false,
+            "from": {
+              "id": "record",
+              "slots": {
+                "pension": "£613,800",
+                "pensionFrom": "September 2026",
+                "isa": "£35,052",
+                "isaFrom": "June 2026"
+              }
+            }
           },
           "stressPanel": {
             "key": "SamBad02|2026-09-30|51zvz2psux|1p2a89xoygr|L|13sw7v1ajew|-|-|2026-07-01T08:15:00.000Z",
@@ -5696,23 +5724,7 @@
                 "same": false,
                 "agreement": null,
                 "canAccept": false,
-                "keep": {
-                  "status": "untested",
-                  "line": {
-                    "id": "line.untested",
-                    "slots": {}
-                  },
-                  "state": {
-                    "id": "held.untested",
-                    "slots": {
-                      "date": ""
-                    }
-                  },
-                  "link": {
-                    "id": "held.accept",
-                    "slots": {}
-                  }
-                },
+                "keep": null,
                 "parts": {
                   "title": {
                     "id": "rows.asHeld.title"
@@ -5801,16 +5813,8 @@
                   ],
                   "confirm": null,
                   "accepted": null,
-                  "keepLine": {
-                    "id": "held.untested",
-                    "slots": {
-                      "date": ""
-                    }
-                  },
-                  "holdLink": {
-                    "id": "held.accept",
-                    "slots": {}
-                  }
+                  "keepLine": null,
+                  "holdLink": null
                 }
               },
               {
@@ -5882,23 +5886,7 @@
               }
             ],
             "agreements": [],
-            "keep": {
-              "status": "untested",
-              "line": {
-                "id": "line.untested",
-                "slots": {}
-              },
-              "state": {
-                "id": "held.untested",
-                "slots": {
-                  "date": ""
-                }
-              },
-              "link": {
-                "id": "held.accept",
-                "slots": {}
-              }
-            },
+            "keep": null,
             "closed": false,
             "floor": null,
             "notTried": {
@@ -6684,6 +6672,15 @@
     "key": null,
     "status": "idle",
     "result": null,
+    "reason": null
+  },
+  "review": {
+    "key": null,
+    "planId": null,
+    "status": "idle",
+    "order": [],
+    "rows": {},
+    "pots": null,
     "reason": null
   }
 }

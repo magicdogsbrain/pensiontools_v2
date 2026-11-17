@@ -297,7 +297,7 @@
               "checkInDue": false,
               "monthByMonth": true,
               "life": "drawing",
-              "todo": 1,
+              "todo": 0,
               "lastModified": "2026-08-14T10:05:00.000Z"
             }
           ]
@@ -307,15 +307,20 @@
         "found": true,
         "id": "AlexWay01",
         "name": "Alex’s plan",
+        "example": false,
         "stageKey": "draft-retired",
         "retired": true,
-        "saver": false,
+        "saver": null,
         "line": {
           "id": "draft-retired",
           "slots": {}
         },
+        "closed": null,
+        "closing": false,
+        "before": null,
         "locked": false,
         "lockedOn": null,
+        "lockedShort": null,
         "readonly": false,
         "source": "account",
         "steps": [
@@ -727,7 +732,7 @@
                     }
                   }
                 ],
-                "place": "settings",
+                "place": "allocation",
                 "sub": "mix",
                 "href": "#/plan/AlexWay01/mix",
                 "lockedButton": "tryMix"
@@ -1310,9 +1315,8 @@
                 "slots": {}
               }
             ],
-            "notes": [
-              "move.optional"
-            ]
+            "notes": [],
+            "toBuy": 0
           }
         ],
         "subSteps": [
@@ -1348,28 +1352,71 @@
         "current": "plan",
         "answerStale": null,
         "next": {
-          "id": "P.draft",
+          "id": "P.reviewAny",
           "slots": {
             "month": "September 2026",
             "monthName": "September",
             "nextMonth": "October",
             "year": "2026/27",
             "stop": "April 2026",
-            "savedYear": "",
             "closed": "",
-            "next": ""
+            "next": "",
+            "nextReview": "",
+            "nextCheck": "",
+            "reviewOften": "once a tax year",
+            "windowLeft": "0 months"
           },
           "button": {
-            "id": "lasts",
-            "href": "#/plan/AlexWay01/lasts",
+            "id": "reviewNow",
+            "href": "#/plan/AlexWay01/review",
             "slots": {}
           }
+        },
+        "due": [],
+        "soon": [],
+        "life": {
+          "key": "drawing",
+          "placing": "draft-retired",
+          "locked": false,
+          "stop": "2026-06",
+          "since": "2026-06",
+          "by": "facts",
+          "window": {
+            "years": 3,
+            "from": "2023-06",
+            "to": "2026-06",
+            "monthsLeft": 0,
+            "state": "after"
+          },
+          "agreed": null,
+          "confirmStop": false
+        },
+        "reviewDue": {
+          "next": null,
+          "due": false,
+          "occurrence": null,
+          "every": "year",
+          "href": "#/plan/AlexWay01/review"
+        },
+        "offCourse": {
+          "off": false,
+          "occurrence": null,
+          "rule": {
+            "kind": "success",
+            "floor": 0.85
+          },
+          "a": null,
+          "b": null,
+          "line": 17,
+          "readings": null
         },
         "askLinks": [
           "c"
         ],
+        "askFill": {},
         "forId": "AlexWay01",
         "forStep": "lasts",
+        "keepTest": null,
         "lasts": {
           "found": true,
           "id": "AlexWay01",
@@ -1385,8 +1432,9 @@
           "strategyId": "pots-and-valves",
           "bought": false,
           "family": true,
-          "endAge": 95,
+          "endAge": 96,
           "runKey": "AlexWay01|2026-08-14T10:05:00.000Z|13z6pso|U",
+          "noFigures": false,
           "document": null,
           "fields": [
             {
@@ -1479,6 +1527,7 @@
           ],
           "notUsed": [],
           "partners": [],
+          "pensionAccess": null,
           "changed": false,
           "patch": {},
           "previous": {},
@@ -1501,7 +1550,7 @@
               "level": "balanced",
               "chance": 0.9843780572628602,
               "fixedAge": 0.976,
-              "planToAge": 95,
+              "planToAge": 96,
               "weightToAge": 104,
               "horizonRule": "plan",
               "reason": null
@@ -1529,9 +1578,9 @@
             "sub": {
               "id": "lasts.subFixed",
               "slots": {
-                "words": "If you live to 95, the money lasts that long in more than 19 of 20 futures we tried.",
+                "words": "If you live to 96, the money lasts that long in more than 19 of 20 futures we tried.",
                 "years": "34",
-                "toAge": "95"
+                "toAge": "96"
               }
             },
             "rows": [
@@ -1544,13 +1593,13 @@
               {
                 "id": "leftW",
                 "slots": {
-                  "words": "If you live to 95, what is typically left then is £624,000 at today's prices. In the best 1 in 10 futures it is £2,922,000 or more."
+                  "words": "If you live to 96, what is typically left then is £624,000 at today's prices. In the best 1 in 10 futures it is £2,922,000 or more."
                 }
               },
               {
                 "id": "assumedW",
                 "slots": {
-                  "words": "We tested to 95, the age your plan runs to. About 2 in 10 women your age live longer than that."
+                  "words": "We tested to 96, the age your plan runs to. About 2 in 10 women your age live longer than that."
                 }
               },
               {
@@ -3113,17 +3162,225 @@
             "result": null,
             "patch": {},
             "kept": null,
-            "same": false
+            "same": false,
+            "from": null
+          },
+          "stressPanel": {
+            "key": "AlexWay01|2026-09-30|6uztbwv2jo|2cz5lqr0euf|U|1thrmv2noed|-|-|-",
+            "level": "balanced",
+            "rows": [
+              {
+                "id": "asPlanned",
+                "ref": null,
+                "kind": "confidence",
+                "status": "idle",
+                "na": null,
+                "a": null,
+                "shortfall": null,
+                "ran": null,
+                "refA": null,
+                "refShortfall": null,
+                "same": false,
+                "agreement": {
+                  "status": "none",
+                  "entry": null
+                },
+                "canAccept": false,
+                "parts": {
+                  "title": {
+                    "id": "rows.asPlanned.title"
+                  },
+                  "what": [
+                    {
+                      "id": "rows.asPlanned.what"
+                    }
+                  ],
+                  "na": null,
+                  "chance": null,
+                  "runsOut": null,
+                  "closedYear": null,
+                  "heldGap": null,
+                  "more": [],
+                  "confirm": null,
+                  "accepted": null,
+                  "keepLine": null,
+                  "holdLink": null
+                }
+              },
+              {
+                "id": "fall",
+                "ref": "asPlanned",
+                "kind": "stress",
+                "status": "idle",
+                "na": null,
+                "a": null,
+                "shortfall": null,
+                "ran": null,
+                "refA": null,
+                "refShortfall": null,
+                "same": false,
+                "agreement": {
+                  "status": "none",
+                  "entry": null
+                },
+                "canAccept": false,
+                "parts": {
+                  "title": {
+                    "id": "rows.fall.title"
+                  },
+                  "what": [
+                    {
+                      "id": "rows.fall.whatDrawing"
+                    }
+                  ],
+                  "na": null,
+                  "chance": null,
+                  "runsOut": null,
+                  "closedYear": null,
+                  "heldGap": null,
+                  "more": [],
+                  "confirm": null,
+                  "accepted": null,
+                  "keepLine": null,
+                  "holdLink": null
+                }
+              },
+              {
+                "id": "lower",
+                "ref": "asPlanned",
+                "kind": "stress",
+                "status": "idle",
+                "na": null,
+                "a": null,
+                "shortfall": null,
+                "ran": null,
+                "refA": null,
+                "refShortfall": null,
+                "same": false,
+                "agreement": {
+                  "status": "none",
+                  "entry": null
+                },
+                "canAccept": false,
+                "parts": {
+                  "title": {
+                    "id": "rows.lower.title"
+                  },
+                  "what": [
+                    {
+                      "id": "rows.lower.what"
+                    }
+                  ],
+                  "na": null,
+                  "chance": null,
+                  "runsOut": null,
+                  "closedYear": null,
+                  "heldGap": null,
+                  "more": [],
+                  "confirm": null,
+                  "accepted": null,
+                  "keepLine": null,
+                  "holdLink": null
+                }
+              },
+              {
+                "id": "spend",
+                "ref": "asPlanned",
+                "kind": "stress",
+                "status": "idle",
+                "na": null,
+                "a": null,
+                "shortfall": null,
+                "ran": null,
+                "refA": null,
+                "refShortfall": null,
+                "same": false,
+                "agreement": {
+                  "status": "none",
+                  "entry": null
+                },
+                "canAccept": false,
+                "parts": {
+                  "title": {
+                    "id": "rows.spend.title"
+                  },
+                  "what": [
+                    {
+                      "id": "rows.spend.what"
+                    }
+                  ],
+                  "na": null,
+                  "chance": null,
+                  "runsOut": null,
+                  "closedYear": null,
+                  "heldGap": null,
+                  "more": [],
+                  "confirm": null,
+                  "accepted": null,
+                  "keepLine": null,
+                  "holdLink": null
+                }
+              },
+              {
+                "id": "prices",
+                "ref": "asPlanned",
+                "kind": "stress",
+                "status": "idle",
+                "na": null,
+                "a": null,
+                "shortfall": null,
+                "ran": null,
+                "refA": null,
+                "refShortfall": null,
+                "same": false,
+                "agreement": {
+                  "status": "none",
+                  "entry": null
+                },
+                "canAccept": false,
+                "parts": {
+                  "title": {
+                    "id": "rows.prices.title"
+                  },
+                  "what": [
+                    {
+                      "id": "rows.prices.what"
+                    }
+                  ],
+                  "na": null,
+                  "chance": null,
+                  "runsOut": null,
+                  "closedYear": null,
+                  "heldGap": null,
+                  "more": [],
+                  "confirm": null,
+                  "accepted": null,
+                  "keepLine": null,
+                  "holdLink": null
+                }
+              }
+            ],
+            "agreements": [],
+            "keep": null,
+            "closed": false,
+            "floor": null,
+            "notTried": null,
+            "order": [
+              "asPlanned",
+              "fall",
+              "lower",
+              "spend",
+              "prices"
+            ],
+            "drawing": true,
+            "planId": "AlexWay01",
+            "run": {
+              "status": "idle",
+              "reason": null,
+              "done": 0,
+              "total": 0
+            }
           }
-        },
-        "life": {
-          "key": "drawing",
-          "placing": "draft-retired",
-          "locked": false,
-          "stop": "2026-06",
-          "since": "2026-06",
-          "by": "facts",
-          "invite": null
         }
       }
     }
@@ -3211,28 +3468,36 @@
       "problem": null,
       "saving": false,
       "made": null,
-      "partnerKept": null
+      "partnerKept": null,
+      "pending": null,
+      "used": null
     },
     "b": {
       "name": null,
       "problem": null,
       "saving": false,
       "made": null,
-      "partnerKept": null
+      "partnerKept": null,
+      "pending": null,
+      "used": null
     },
     "c": {
       "name": null,
       "problem": null,
       "saving": false,
       "made": null,
-      "partnerKept": null
+      "partnerKept": null,
+      "pending": null,
+      "used": null
     },
     "d": {
       "name": null,
       "problem": null,
       "saving": false,
       "made": null,
-      "partnerKept": null
+      "partnerKept": null,
+      "pending": null,
+      "used": null
     }
   },
   "lasts": {
@@ -3263,9 +3528,9 @@
         "histStrideMonths": 2,
         "histRanOutPct": 0,
         "histRanOutN": 0,
-        "typicalLeft": 623838.8074818947,
-        "badCaseLeft": 129112.720052651,
-        "goodCaseLeft": 2922127.109856862,
+        "typicalLeft": 623838.8074818986,
+        "badCaseLeft": 129112.72005265065,
+        "goodCaseLeft": 2922127.1098568686,
         "worst12": 22949.65985028873,
         "coverage": 99.58823529411765,
         "cuts": {
@@ -3285,7 +3550,7 @@
         "sumW": 16773933289,
         "n": 1000,
         "fixedAge": 0.976,
-        "planToAge": 95,
+        "planToAge": 96,
         "weightToAge": 104,
         "horizonRule": "plan",
         "reason": null,
@@ -3297,18 +3562,18 @@
           "spAge": null
         },
         "left": {
-          "age": 95,
+          "age": 96,
           "typical": 623839,
           "best": 2922127,
           "mostNone": false
         },
         "words": {
           "headline": "Counting how long people your age live, the money lasts as long as you do more than 19 times in 20.",
-          "fixed": "If you live to 95, the money lasts that long in more than 19 of 20 futures we tried.",
+          "fixed": "If you live to 96, the money lasts that long in more than 19 of 20 futures we tried.",
           "floor": "If the money ran out at 99, you would still have £11,502 a year after tax from the income you get anyway.",
-          "left": "If you live to 95, what is typically left then is £624,000 at today's prices. In the best 1 in 10 futures it is £2,922,000 or more.",
+          "left": "If you live to 96, what is typically left then is £624,000 at today's prices. In the best 1 in 10 futures it is £2,922,000 or more.",
           "assumed": [
-            "We tested to 95, the age your plan runs to. About 2 in 10 women your age live longer than that.",
+            "We tested to 96, the age your plan runs to. About 2 in 10 women your age live longer than that.",
             "We follow each future on to 104, when fewer than 1 in 50 women your age are still alive.",
             "We used the figures for women, who tend to live longer, because the plan does not say."
           ],
@@ -3337,7 +3602,7 @@
             "s": 1132,
             "failed": false,
             "failAge": null,
-            "terminal": 7563.7880251835095,
+            "terminal": 7563.7880251818115,
             "worst12": 22951.262849179948,
             "protMonths": 391,
             "cutYears": 34,
@@ -3363,8 +3628,8 @@
             "s": 1126,
             "failed": false,
             "failAge": null,
-            "terminal": 19861.761064957358,
-            "worst12": 23021.89422250372,
+            "terminal": 19861.761064957227,
+            "worst12": 23021.89422250374,
             "protMonths": 379,
             "cutYears": 32,
             "cutReal": 128431.92623091077,
@@ -3376,8 +3641,8 @@
             "s": 1138,
             "failed": false,
             "failAge": null,
-            "terminal": 21413.20427667221,
-            "worst12": 23058.976834745612,
+            "terminal": 21413.204276672026,
+            "worst12": 23058.976834745605,
             "protMonths": 390,
             "cutYears": 33,
             "cutReal": 135325.80558702396,
@@ -3405,7 +3670,7 @@
             "kind": "pnv",
             "failed": false,
             "failAge": null,
-            "terminal": 302242.6387621534,
+            "terminal": 302242.63876215334,
             "worst12": 26173.022003111353,
             "protMonths": 206,
             "cutYears": 17,
@@ -4396,6 +4661,19 @@
     },
     "pick": null
   },
+  "household": {
+    "key": null,
+    "status": "idle",
+    "limit": null,
+    "need": null,
+    "reason": null,
+    "result": null,
+    "progress": null,
+    "ms": null,
+    "survivor": null,
+    "care": null,
+    "pick": null
+  },
   "ui": {
     "railOpen": false,
     "open": [
@@ -4406,6 +4684,82 @@
     "leaveProblem": null,
     "saving": null,
     "saveProblem": null,
-    "toast": null
+    "toast": null,
+    "action": null,
+    "download": null,
+    "guest": {
+      "minutes": 0,
+      "usedUp": false,
+      "nag": null
+    },
+    "bringIn": null,
+    "account": {
+      "mode": "signIn",
+      "busy": null,
+      "problem": null,
+      "note": null,
+      "confirm": null,
+      "deleted": null
+    },
+    "profile": null,
+    "news": {
+      "popup": null,
+      "page": null,
+      "seen": null
+    },
+    "assumptions": null,
+    "several": null,
+    "severalDone": null
+  },
+  "move": {
+    "key": null,
+    "status": "idle",
+    "result": null,
+    "ms": null,
+    "reason": null,
+    "index": null
+  },
+  "saver": {
+    "key": null,
+    "status": "idle",
+    "result": null,
+    "reason": null
+  },
+  "checkIn": {
+    "planId": null,
+    "date": null,
+    "result": null
+  },
+  "keepTest": {
+    "key": null,
+    "planId": null,
+    "status": "idle",
+    "result": null,
+    "reason": null,
+    "progress": null
+  },
+  "stressPanel": {
+    "key": null,
+    "planId": null,
+    "status": "idle",
+    "order": [],
+    "rows": {},
+    "reason": null
+  },
+  "stressStrip": {
+    "q": null,
+    "key": null,
+    "status": "idle",
+    "result": null,
+    "reason": null
+  },
+  "review": {
+    "key": null,
+    "planId": null,
+    "status": "idle",
+    "order": [],
+    "rows": {},
+    "pots": null,
+    "reason": null
   }
 }

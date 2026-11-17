@@ -2636,5 +2636,14 @@
     "status": "idle",
     "result": null,
     "reason": null
+  },
+  "review": {
+    "key": null,
+    "planId": null,
+    "status": "idle",
+    "order": [],
+    "rows": {},
+    "pots": null,
+    "reason": null
   }
 }

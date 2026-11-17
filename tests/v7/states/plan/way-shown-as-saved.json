@@ -2890,7 +2890,7 @@
               "checkInDue": false,
               "monthByMonth": true,
               "life": "drawing",
-              "todo": 1,
+              "todo": 0,
               "lastModified": "2026-09-02T18:30:00.000Z"
             },
             {
@@ -2932,8 +2932,12 @@
           "id": "draft-retired",
           "slots": {}
         },
+        "closed": null,
+        "closing": false,
+        "before": null,
         "locked": false,
         "lockedOn": null,
+        "lockedShort": null,
         "readonly": true,
         "source": "account",
         "steps": [
@@ -3339,7 +3343,7 @@
                     }
                   }
                 ],
-                "place": "settings",
+                "place": "allocation",
                 "sub": "mix",
                 "href": "#/plan/AlexWay01/mix",
                 "lockedButton": "tryMix"
@@ -3922,9 +3926,8 @@
                 "slots": {}
               }
             ],
-            "notes": [
-              "move.optional"
-            ]
+            "notes": [],
+            "toBuy": 0
           },
           {
             "id": "household",
@@ -3991,17 +3994,60 @@
             "nextMonth": "October",
             "year": "2026/27",
             "stop": "April 2026",
-            "savedYear": "",
             "closed": "",
-            "next": ""
+            "next": "",
+            "nextReview": "",
+            "nextCheck": "",
+            "reviewOften": "once a tax year",
+            "windowLeft": "0 months"
           },
           "button": null
+        },
+        "due": [],
+        "soon": [],
+        "life": {
+          "key": "drawing",
+          "placing": "draft-retired",
+          "locked": false,
+          "stop": "2026-06",
+          "since": "2026-06",
+          "by": "facts",
+          "window": {
+            "years": 3,
+            "from": "2023-06",
+            "to": "2026-06",
+            "monthsLeft": 0,
+            "state": "after"
+          },
+          "agreed": null,
+          "confirmStop": false
+        },
+        "reviewDue": {
+          "next": null,
+          "due": false,
+          "occurrence": null,
+          "every": "year",
+          "href": "#/plan/AlexWay01/review"
+        },
+        "offCourse": {
+          "off": false,
+          "occurrence": null,
+          "rule": {
+            "kind": "success",
+            "floor": 0.85
+          },
+          "a": null,
+          "b": null,
+          "line": 17,
+          "readings": null
         },
         "askLinks": [
           "c"
         ],
+        "askFill": {},
         "forId": "AlexWay01",
         "forStep": "way",
+        "keepTest": null,
         "way": {
           "found": true,
           "id": "AlexWay01",
@@ -4018,7 +4064,7 @@
           "docStrategyId": "pots-and-valves",
           "bought": false,
           "family": true,
-          "endAge": 95,
+          "endAge": 96,
           "runKey": null,
           "stash": {
             "pots-and-valves": {},
@@ -4099,7 +4145,8 @@
               "needsRun": false,
               "tried": null,
               "table": null,
-              "compare": null
+              "compare": null,
+              "asLocked": null
             },
             {
               "id": "buckets-in-order",
@@ -4174,7 +4221,8 @@
               "needsRun": false,
               "tried": null,
               "table": null,
-              "compare": null
+              "compare": null,
+              "asLocked": null
             },
             {
               "id": "ladder-and-ratchet",
@@ -4249,7 +4297,8 @@
               "needsRun": false,
               "tried": null,
               "table": null,
-              "compare": null
+              "compare": null,
+              "asLocked": null
             },
             {
               "id": "bridge-and-engine",
@@ -4297,7 +4346,8 @@
               "needsRun": false,
               "tried": null,
               "table": null,
-              "compare": null
+              "compare": null,
+              "asLocked": null
             },
             {
               "id": "floor-and-flex",
@@ -4388,7 +4438,8 @@
               "needsRun": false,
               "tried": null,
               "table": null,
-              "compare": null
+              "compare": null,
+              "asLocked": null
             },
             {
               "id": "floor-the-schedule",
@@ -4410,7 +4461,8 @@
               "needsRun": false,
               "tried": null,
               "table": null,
-              "compare": null
+              "compare": null,
+              "asLocked": null
             },
             {
               "id": "floor-to-age",
@@ -4446,7 +4498,8 @@
               "needsRun": false,
               "tried": null,
               "table": null,
-              "compare": null
+              "compare": null,
+              "asLocked": null
             },
             {
               "id": "full-il-gilt",
@@ -4497,7 +4550,8 @@
               "needsRun": false,
               "tried": null,
               "table": null,
-              "compare": null
+              "compare": null,
+              "asLocked": null
             },
             {
               "id": "gilt-rotation",
@@ -4584,7 +4638,8 @@
               "needsRun": false,
               "tried": null,
               "table": null,
-              "compare": null
+              "compare": null,
+              "asLocked": null
             }
           ],
           "current": "pots-and-valves",
@@ -4592,15 +4647,6 @@
           "rankBy": "lasts",
           "ran": null,
           "has": false
-        },
-        "life": {
-          "key": "drawing",
-          "placing": "draft-retired",
-          "locked": false,
-          "stop": "2026-06",
-          "since": "2026-06",
-          "by": "facts",
-          "invite": null
         }
       }
     }
@@ -4688,28 +4734,36 @@
       "problem": null,
       "saving": false,
       "made": null,
-      "partnerKept": null
+      "partnerKept": null,
+      "pending": null,
+      "used": null
     },
     "b": {
       "name": null,
       "problem": null,
       "saving": false,
       "made": null,
-      "partnerKept": null
+      "partnerKept": null,
+      "pending": null,
+      "used": null
     },
     "c": {
       "name": null,
       "problem": null,
       "saving": false,
       "made": null,
-      "partnerKept": null
+      "partnerKept": null,
+      "pending": null,
+      "used": null
     },
     "d": {
       "name": null,
       "problem": null,
       "saving": false,
       "made": null,
-      "partnerKept": null
+      "partnerKept": null,
+      "pending": null,
+      "used": null
     }
   },
   "lasts": {
@@ -4796,7 +4850,9 @@
       "page": null,
       "seen": null
     },
-    "assumptions": null
+    "assumptions": null,
+    "several": null,
+    "severalDone": null
   },
   "move": {
     "key": null,
@@ -4805,5 +4861,48 @@
     "ms": null,
     "reason": null,
     "index": null
+  },
+  "saver": {
+    "key": null,
+    "status": "idle",
+    "result": null,
+    "reason": null
+  },
+  "checkIn": {
+    "planId": null,
+    "date": null,
+    "result": null
+  },
+  "keepTest": {
+    "key": null,
+    "planId": null,
+    "status": "idle",
+    "result": null,
+    "reason": null,
+    "progress": null
+  },
+  "stressPanel": {
+    "key": null,
+    "planId": null,
+    "status": "idle",
+    "order": [],
+    "rows": {},
+    "reason": null
+  },
+  "stressStrip": {
+    "q": null,
+    "key": null,
+    "status": "idle",
+    "result": null,
+    "reason": null
+  },
+  "review": {
+    "key": null,
+    "planId": null,
+    "status": "idle",
+    "order": [],
+    "rows": {},
+    "pots": null,
+    "reason": null
   }
 }

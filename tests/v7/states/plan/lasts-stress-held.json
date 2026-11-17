@@ -2532,7 +2532,7 @@
         "example": false,
         "stageKey": "running",
         "retired": true,
-        "saver": false,
+        "saver": null,
         "line": {
           "id": "running",
           "slots": {}
@@ -2542,6 +2542,7 @@
         "before": null,
         "locked": true,
         "lockedOn": "20 March 2026",
+        "lockedShort": null,
         "readonly": false,
         "source": "account",
         "steps": [
@@ -2718,53 +2719,48 @@
                   "kind": "money"
                 },
                 " taken before tax",
-                "; the plan says ",
+                ", as your plan said.",
+                " ",
                 {
-                  "key": "planned",
+                  "key": "net",
                   "kind": "money"
                 },
-                " for the year"
+                " reached your bank."
               ],
-              "text": "6 months recorded in 2026/27: £15,600 taken before tax; the plan says £30,000 for the year"
+              "text": "6 months recorded in 2026/27: £15,600 taken before tax, as your plan said. £13,737 reached your bank."
             },
+            "compare": "where.compareSame",
             "figures": {
               "months": 6,
               "drawn": 15600,
-              "planned": 30000,
-              "said": 15000,
-              "diff": 600,
               "cutMonths": 0,
+              "net": 13737,
+              "yearMonthly": 2600,
+              "yearTotal": 31200,
               "stepNow": 30000,
-              "pot": 612740,
+              "pot": 602808,
+              "potActual": 612740,
+              "potPart0": 587700,
+              "potPart1": 25040,
               "potMid": 614544
             },
             "lines": [
               {
-                "id": "where.compareMore",
+                "id": "where.yearPlan",
                 "slots": {
-                  "months": "6",
-                  "cutMonths": "0"
+                  "year": "2026/27"
                 },
                 "sentence": {
-                  "id": "where.compareMore",
+                  "id": "where.yearPlan",
                   "parts": [
+                    "In 2026/27 your plan takes ",
                     {
-                      "key": "drawn",
+                      "key": "yearMonthly",
                       "kind": "money"
                     },
-                    " taken; the plan said ",
-                    {
-                      "key": "said",
-                      "kind": "money"
-                    },
-                    " for those months; ",
-                    {
-                      "key": "diff",
-                      "kind": "money"
-                    },
-                    " more than the plan said"
+                    " a month before tax."
                   ],
-                  "text": "£15,600 taken; the plan said £15,000 for those months; £600 more than the plan said"
+                  "text": "In 2026/27 your plan takes £2,600 a month before tax."
                 },
                 "source": {
                   "kind": "record",
@@ -2791,27 +2787,6 @@
                   "kind": "record",
                   "at": null,
                   "stale": false
-                }
-              },
-              {
-                "id": "where.planned",
-                "slots": {
-                  "year": "2026/27"
-                },
-                "sentence": {
-                  "id": "where.planned",
-                  "parts": [
-                    {
-                      "key": "planned",
-                      "kind": "money"
-                    }
-                  ],
-                  "text": "£30,000"
-                },
-                "source": {
-                  "kind": "locked",
-                  "at": "20 March 2026",
-                  "stale": true
                 }
               },
               {
@@ -2846,9 +2821,16 @@
                     {
                       "key": "pot",
                       "kind": "money"
-                    }
+                    },
+                    " at the prices of April 2026 (",
+                    {
+                      "key": "potActual",
+                      "kind": "money"
+                    },
+                    " as recorded",
+                    ")."
                   ],
-                  "text": "£612,740"
+                  "text": "£602,808 at the prices of April 2026 (£612,740 as recorded)."
                 },
                 "source": {
                   "kind": "record",
@@ -2865,14 +2847,43 @@
                     {
                       "key": "potMid",
                       "kind": "money"
-                    }
+                    },
+                    "."
                   ],
-                  "text": "£614,544"
+                  "text": "£614,544."
                 },
                 "source": {
                   "kind": "locked",
                   "at": "20 March 2026",
                   "stale": true
+                }
+              },
+              {
+                "id": "where.potParts",
+                "slots": {},
+                "sentence": {
+                  "id": "where.potParts",
+                  "parts": [
+                    "Pension ",
+                    {
+                      "key": "potPart0",
+                      "kind": "money"
+                    },
+                    ", recorded September 2026.",
+                    " ",
+                    "ISA ",
+                    {
+                      "key": "potPart1",
+                      "kind": "money"
+                    },
+                    ", from What you hold, March 2026."
+                  ],
+                  "text": "Pension £587,700, recorded September 2026. ISA £25,040, from What you hold, March 2026."
+                },
+                "source": {
+                  "kind": "record",
+                  "at": null,
+                  "stale": false
                 }
               }
             ],
@@ -2919,9 +2930,9 @@
                   "key": "yearly",
                   "kind": "money"
                 },
-                " a year before tax; your plan pays from April 2026 (tax year 2026/27)"
+                " a year before tax; your plan pays from April 2026"
               ],
-              "text": "£30,000 a year before tax; your plan pays from April 2026 (tax year 2026/27)"
+              "text": "£30,000 a year before tax; your plan pays from April 2026"
             },
             "figures": {
               "yearly": 30000,
@@ -2949,7 +2960,7 @@
               "bonds": 150000,
               "cash": 60000,
               "spWeekly": 216,
-              "dial.bucketBand": 10,
+              "dial_bucketBand": 10,
               "mixShares": 380000,
               "mixBonds": 150000,
               "mixCash": 60000
@@ -3358,11 +3369,11 @@
                       "id": "way.dial",
                       "parts": [
                         {
-                          "key": "dial.bucketBand",
-                          "kind": "money"
+                          "key": "dial_bucketBand",
+                          "kind": "pct"
                         }
                       ],
-                      "text": "£10"
+                      "text": "10"
                     },
                     "source": {
                       "kind": "locked",
@@ -3454,7 +3465,7 @@
                     }
                   }
                 ],
-                "place": "settings",
+                "place": "allocation",
                 "sub": "mix",
                 "href": "#/plan/SamBad03/mix",
                 "lockedButton": "tryMix"
@@ -4066,9 +4077,8 @@
                 "slots": {}
               }
             ],
-            "notes": [
-              "move.optional"
-            ]
+            "notes": [],
+            "toBuy": 0
           },
           {
             "id": "budget",
@@ -4175,7 +4185,8 @@
           },
           "a": null,
           "b": null,
-          "line": 17
+          "line": 17,
+          "readings": null
         },
         "askLinks": [
           "c"
@@ -4225,6 +4236,7 @@
           "family": true,
           "endAge": 93,
           "runKey": "SamBad03|2026-09-08T09:20:00.000Z|2dxj45|L",
+          "noFigures": false,
           "document": {
             "a": {
               "strategyId": "buckets-in-order",
@@ -5183,8 +5195,8 @@
                 "type": "money",
                 "options": null,
                 "applies": true,
-                "shown": "590000",
-                "saved": "590000",
+                "shown": "587700",
+                "saved": "587700",
                 "error": null
               },
               {
@@ -5192,8 +5204,8 @@
                 "type": "money",
                 "options": null,
                 "applies": true,
-                "shown": "25000",
-                "saved": "25000",
+                "shown": "25040",
+                "saved": "25040",
                 "error": null
               },
               {
@@ -5274,8 +5286,8 @@
             "ok": true,
             "run": {
               "way": "buckets-in-order",
-              "pot": 590000,
-              "isa": 25000,
+              "pot": 587700,
+              "isa": 25040,
               "isaPolicy": "saved",
               "incomeMode": "shape",
               "income": 0,
@@ -5289,7 +5301,16 @@
             "result": null,
             "patch": {},
             "kept": null,
-            "same": false
+            "same": false,
+            "from": {
+              "id": "record",
+              "slots": {
+                "pension": "£587,700",
+                "pensionFrom": "September 2026",
+                "isa": "£25,040",
+                "isaFrom": "March 2026"
+              }
+            }
           },
           "stressPanel": {
             "key": "SamBad03|2026-09-30|17q1ue02tvi|pwrnshlcem|L|egqsnjpuj7|-|-|2026-03-20T16:25:00.000Z",
@@ -9636,6 +9657,15 @@
     "key": null,
     "status": "idle",
     "result": null,
+    "reason": null
+  },
+  "review": {
+    "key": null,
+    "planId": null,
+    "status": "idle",
+    "order": [],
+    "rows": {},
+    "pots": null,
     "reason": null
   }
 }

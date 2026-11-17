@@ -351,7 +351,7 @@
         "example": false,
         "stageKey": "draft-retired",
         "retired": true,
-        "saver": false,
+        "saver": null,
         "line": {
           "id": "draft-retired",
           "slots": {}
@@ -361,6 +361,7 @@
         "before": null,
         "locked": false,
         "lockedOn": null,
+        "lockedShort": null,
         "readonly": false,
         "source": "account",
         "steps": [
@@ -772,7 +773,7 @@
                     }
                   }
                 ],
-                "place": "settings",
+                "place": "allocation",
                 "sub": "mix",
                 "href": "#/plan/AlexBad01/mix",
                 "lockedButton": "tryMix"
@@ -1355,9 +1356,8 @@
                 "slots": {}
               }
             ],
-            "notes": [
-              "move.optional"
-            ]
+            "notes": [],
+            "toBuy": 0
           }
         ],
         "subSteps": [
@@ -1448,7 +1448,8 @@
           },
           "a": null,
           "b": null,
-          "line": 17
+          "line": 17,
+          "readings": null
         },
         "askLinks": [
           "c"
@@ -1474,6 +1475,7 @@
           "family": true,
           "endAge": 96,
           "runKey": "AlexBad01|2026-08-14T10:05:00.000Z|13z6pso|U",
+          "noFigures": false,
           "document": null,
           "fields": [
             {
@@ -3201,7 +3203,8 @@
             "result": null,
             "patch": {},
             "kept": null,
-            "same": false
+            "same": false,
+            "from": null
           },
           "stressPanel": {
             "key": "AlexBad01|2026-09-30|6uztbwv2jo|2cz5lqr0euf|U|1thrmv2noed|-|-|-",
@@ -6852,6 +6855,15 @@
     "key": null,
     "status": "idle",
     "result": null,
+    "reason": null
+  },
+  "review": {
+    "key": null,
+    "planId": null,
+    "status": "idle",
+    "order": [],
+    "rows": {},
+    "pots": null,
     "reason": null
   }
 }

@@ -448,6 +448,7 @@
         "before": null,
         "locked": false,
         "lockedOn": null,
+        "lockedShort": null,
         "readonly": false,
         "source": "account",
         "steps": [
@@ -1413,7 +1414,8 @@
                 "slots": {}
               }
             ],
-            "notes": []
+            "notes": [],
+            "toBuy": 0
           },
           {
             "id": "household",
@@ -1792,6 +1794,7 @@
           "runs": null,
           "unaffordable": null,
           "verdict": null,
+          "starts": null,
           "timeline": [],
           "left": [],
           "split": null,

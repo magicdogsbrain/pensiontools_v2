@@ -707,7 +707,7 @@
               "checkInDue": false,
               "monthByMonth": true,
               "life": "drawing",
-              "todo": 1,
+              "todo": 0,
               "lastModified": "2026-09-05T17:45:00.000Z"
             }
           ]
@@ -725,8 +725,12 @@
           "id": "draft-retired",
           "slots": {}
         },
+        "closed": null,
+        "closing": false,
+        "before": null,
         "locked": false,
         "lockedOn": null,
+        "lockedShort": null,
         "readonly": false,
         "source": "account",
         "steps": [
@@ -766,21 +770,12 @@
               "bonds": 405000,
               "cash": 65000,
               "spWeekly": 226,
-              "dial.bandThreshold": 1.2,
-              "dial.bridgeAge": 67,
-              "dial.bucketBand": 10,
-              "dial.cashYears": 3,
-              "dial.drawAnnual": 0,
-              "dial.essentialsAnnual": 18000,
-              "dial.floorToAge": 80,
-              "dial.horizonAge": 92,
-              "dial.isaTotal": 40000,
-              "dial.ladderYears": 15,
-              "dial.rotateCutAge": 80,
-              "dial.rotateDisarmYears": 5,
-              "dial.rotateTrigger": 30,
-              "dial.sippTotal": 680000,
-              "dial.sleeveRate": 0.04
+              "dial_cashYears": 3,
+              "dial_isaTotal": 40000,
+              "dial_rotateCutAge": 80,
+              "dial_rotateDisarmYears": 5,
+              "dial_rotateTrigger": 30,
+              "dial_sippTotal": 680000
             },
             "lines": [],
             "buttons": [
@@ -1094,164 +1089,17 @@
                   {
                     "id": "way.dial",
                     "slots": {
-                      "dial": "bandThreshold"
-                    },
-                    "sentence": {
-                      "id": "way.dial",
-                      "parts": [
-                        {
-                          "key": "dial.bandThreshold",
-                          "kind": "money"
-                        }
-                      ],
-                      "text": "£1"
-                    },
-                    "source": {
-                      "kind": "saved",
-                      "at": null,
-                      "stale": false
-                    }
-                  },
-                  {
-                    "id": "way.dial",
-                    "slots": {
-                      "dial": "bridgeAge"
-                    },
-                    "sentence": {
-                      "id": "way.dial",
-                      "parts": [
-                        {
-                          "key": "dial.bridgeAge",
-                          "kind": "count"
-                        }
-                      ],
-                      "text": "67"
-                    },
-                    "source": {
-                      "kind": "saved",
-                      "at": null,
-                      "stale": false
-                    }
-                  },
-                  {
-                    "id": "way.dial",
-                    "slots": {
-                      "dial": "bucketBand"
-                    },
-                    "sentence": {
-                      "id": "way.dial",
-                      "parts": [
-                        {
-                          "key": "dial.bucketBand",
-                          "kind": "money"
-                        }
-                      ],
-                      "text": "£10"
-                    },
-                    "source": {
-                      "kind": "saved",
-                      "at": null,
-                      "stale": false
-                    }
-                  },
-                  {
-                    "id": "way.dial",
-                    "slots": {
                       "dial": "cashYears"
                     },
                     "sentence": {
                       "id": "way.dial",
                       "parts": [
                         {
-                          "key": "dial.cashYears",
+                          "key": "dial_cashYears",
                           "kind": "count"
                         }
                       ],
                       "text": "3"
-                    },
-                    "source": {
-                      "kind": "saved",
-                      "at": null,
-                      "stale": false
-                    }
-                  },
-                  {
-                    "id": "way.dial",
-                    "slots": {
-                      "dial": "drawAnnual"
-                    },
-                    "sentence": {
-                      "id": "way.dial",
-                      "parts": [
-                        {
-                          "key": "dial.drawAnnual",
-                          "kind": "money"
-                        }
-                      ],
-                      "text": "£0"
-                    },
-                    "source": {
-                      "kind": "saved",
-                      "at": null,
-                      "stale": false
-                    }
-                  },
-                  {
-                    "id": "way.dial",
-                    "slots": {
-                      "dial": "essentialsAnnual"
-                    },
-                    "sentence": {
-                      "id": "way.dial",
-                      "parts": [
-                        {
-                          "key": "dial.essentialsAnnual",
-                          "kind": "money"
-                        }
-                      ],
-                      "text": "£18,000"
-                    },
-                    "source": {
-                      "kind": "saved",
-                      "at": null,
-                      "stale": false
-                    }
-                  },
-                  {
-                    "id": "way.dial",
-                    "slots": {
-                      "dial": "floorToAge"
-                    },
-                    "sentence": {
-                      "id": "way.dial",
-                      "parts": [
-                        {
-                          "key": "dial.floorToAge",
-                          "kind": "count"
-                        }
-                      ],
-                      "text": "80"
-                    },
-                    "source": {
-                      "kind": "saved",
-                      "at": null,
-                      "stale": false
-                    }
-                  },
-                  {
-                    "id": "way.dial",
-                    "slots": {
-                      "dial": "horizonAge"
-                    },
-                    "sentence": {
-                      "id": "way.dial",
-                      "parts": [
-                        {
-                          "key": "dial.horizonAge",
-                          "kind": "count"
-                        }
-                      ],
-                      "text": "92"
                     },
                     "source": {
                       "kind": "saved",
@@ -1268,32 +1116,11 @@
                       "id": "way.dial",
                       "parts": [
                         {
-                          "key": "dial.isaTotal",
+                          "key": "dial_isaTotal",
                           "kind": "money"
                         }
                       ],
                       "text": "£40,000"
-                    },
-                    "source": {
-                      "kind": "saved",
-                      "at": null,
-                      "stale": false
-                    }
-                  },
-                  {
-                    "id": "way.dial",
-                    "slots": {
-                      "dial": "ladderYears"
-                    },
-                    "sentence": {
-                      "id": "way.dial",
-                      "parts": [
-                        {
-                          "key": "dial.ladderYears",
-                          "kind": "count"
-                        }
-                      ],
-                      "text": "15"
                     },
                     "source": {
                       "kind": "saved",
@@ -1310,8 +1137,8 @@
                       "id": "way.dial",
                       "parts": [
                         {
-                          "key": "dial.rotateCutAge",
-                          "kind": "count"
+                          "key": "dial_rotateCutAge",
+                          "kind": "age"
                         }
                       ],
                       "text": "80"
@@ -1331,7 +1158,7 @@
                       "id": "way.dial",
                       "parts": [
                         {
-                          "key": "dial.rotateDisarmYears",
+                          "key": "dial_rotateDisarmYears",
                           "kind": "count"
                         }
                       ],
@@ -1352,11 +1179,11 @@
                       "id": "way.dial",
                       "parts": [
                         {
-                          "key": "dial.rotateTrigger",
-                          "kind": "money"
+                          "key": "dial_rotateTrigger",
+                          "kind": "pct"
                         }
                       ],
-                      "text": "£30"
+                      "text": "30"
                     },
                     "source": {
                       "kind": "saved",
@@ -1373,32 +1200,11 @@
                       "id": "way.dial",
                       "parts": [
                         {
-                          "key": "dial.sippTotal",
+                          "key": "dial_sippTotal",
                           "kind": "money"
                         }
                       ],
                       "text": "£680,000"
-                    },
-                    "source": {
-                      "kind": "saved",
-                      "at": null,
-                      "stale": false
-                    }
-                  },
-                  {
-                    "id": "way.dial",
-                    "slots": {
-                      "dial": "sleeveRate"
-                    },
-                    "sentence": {
-                      "id": "way.dial",
-                      "parts": [
-                        {
-                          "key": "dial.sleeveRate",
-                          "kind": "money"
-                        }
-                      ],
-                      "text": "£0"
                     },
                     "source": {
                       "kind": "saved",
@@ -1432,10 +1238,9 @@
                     }
                   }
                 ],
-                "place": "settings",
+                "place": "allocation",
                 "sub": "mix",
-                "href": "#/plan/AlexRotation05/mix",
-                "lockedButton": "tryMix"
+                "href": "#/plan/AlexRotation05/mix"
               }
             ],
             "options": [
@@ -2133,9 +1938,8 @@
                 "slots": {}
               }
             ],
-            "notes": [
-              "move.optional"
-            ]
+            "notes": [],
+            "toBuy": 0
           }
         ],
         "subSteps": [
@@ -2171,28 +1975,64 @@
         "current": "plan",
         "answerStale": null,
         "next": {
-          "id": "P.draft",
+          "id": "P.reviewAny",
           "slots": {
             "month": "September 2026",
             "monthName": "September",
             "nextMonth": "October",
             "year": "2026/27",
             "stop": "April 2026",
-            "savedYear": "",
             "closed": "",
-            "next": ""
+            "next": "",
+            "nextReview": "",
+            "nextCheck": "",
+            "reviewOften": "once a tax year"
           },
           "button": {
-            "id": "lasts",
-            "href": "#/plan/AlexRotation05/lasts",
+            "id": "reviewNow",
+            "href": "#/plan/AlexRotation05/review",
             "slots": {}
           }
+        },
+        "due": [],
+        "soon": [],
+        "life": {
+          "key": "drawing",
+          "placing": "draft-retired",
+          "locked": false,
+          "stop": null,
+          "since": "2026-04",
+          "by": "facts",
+          "window": null,
+          "agreed": null,
+          "confirmStop": false
+        },
+        "reviewDue": {
+          "next": null,
+          "due": false,
+          "occurrence": null,
+          "every": "year",
+          "href": "#/plan/AlexRotation05/review"
+        },
+        "offCourse": {
+          "off": false,
+          "occurrence": null,
+          "rule": {
+            "kind": "success",
+            "floor": 0.85
+          },
+          "a": null,
+          "b": null,
+          "line": 17,
+          "readings": null
         },
         "askLinks": [
           "c"
         ],
+        "askFill": {},
         "forId": "AlexRotation05",
         "forStep": "mix",
+        "keepTest": null,
         "mix": {
           "found": true,
           "id": "AlexRotation05",
@@ -2889,15 +2729,6 @@
             "unknown"
           ],
           "draftKey": "{}"
-        },
-        "life": {
-          "key": "drawing",
-          "placing": "draft-retired",
-          "locked": false,
-          "stop": null,
-          "since": "2026-04",
-          "by": "facts",
-          "invite": null
         }
       }
     }
@@ -2985,28 +2816,36 @@
       "problem": null,
       "saving": false,
       "made": null,
-      "partnerKept": null
+      "partnerKept": null,
+      "pending": null,
+      "used": null
     },
     "b": {
       "name": null,
       "problem": null,
       "saving": false,
       "made": null,
-      "partnerKept": null
+      "partnerKept": null,
+      "pending": null,
+      "used": null
     },
     "c": {
       "name": null,
       "problem": null,
       "saving": false,
       "made": null,
-      "partnerKept": null
+      "partnerKept": null,
+      "pending": null,
+      "used": null
     },
     "d": {
       "name": null,
       "problem": null,
       "saving": false,
       "made": null,
-      "partnerKept": null
+      "partnerKept": null,
+      "pending": null,
+      "used": null
     }
   },
   "lasts": {
@@ -3093,7 +2932,9 @@
       "page": null,
       "seen": null
     },
-    "assumptions": null
+    "assumptions": null,
+    "several": null,
+    "severalDone": null
   },
   "move": {
     "key": null,
@@ -3102,5 +2943,48 @@
     "ms": null,
     "reason": null,
     "index": null
+  },
+  "saver": {
+    "key": null,
+    "status": "idle",
+    "result": null,
+    "reason": null
+  },
+  "checkIn": {
+    "planId": null,
+    "date": null,
+    "result": null
+  },
+  "keepTest": {
+    "key": null,
+    "planId": null,
+    "status": "idle",
+    "result": null,
+    "reason": null,
+    "progress": null
+  },
+  "stressPanel": {
+    "key": null,
+    "planId": null,
+    "status": "idle",
+    "order": [],
+    "rows": {},
+    "reason": null
+  },
+  "stressStrip": {
+    "q": null,
+    "key": null,
+    "status": "idle",
+    "result": null,
+    "reason": null
+  },
+  "review": {
+    "key": null,
+    "planId": null,
+    "status": "idle",
+    "order": [],
+    "rows": {},
+    "pots": null,
+    "reason": null
   }
 }

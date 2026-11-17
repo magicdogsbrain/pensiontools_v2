@@ -297,7 +297,7 @@
               "checkInDue": false,
               "monthByMonth": true,
               "life": "drawing",
-              "todo": 1,
+              "todo": 0,
               "lastModified": "2026-08-14T10:05:00.000Z"
             }
           ]
@@ -307,6 +307,7 @@
         "found": true,
         "id": "AlexWay01",
         "name": "Alex’s plan",
+        "example": false,
         "stageKey": "draft-retired",
         "retired": true,
         "saver": false,
@@ -314,8 +315,12 @@
           "id": "draft-retired",
           "slots": {}
         },
+        "closed": null,
+        "closing": false,
+        "before": null,
         "locked": false,
         "lockedOn": null,
+        "lockedShort": null,
         "readonly": false,
         "source": "account",
         "steps": [
@@ -727,7 +732,7 @@
                     }
                   }
                 ],
-                "place": "settings",
+                "place": "allocation",
                 "sub": "mix",
                 "href": "#/plan/AlexWay01/mix",
                 "lockedButton": "tryMix"
@@ -1310,9 +1315,8 @@
                 "slots": {}
               }
             ],
-            "notes": [
-              "move.optional"
-            ]
+            "notes": [],
+            "toBuy": 0
           }
         ],
         "subSteps": [
@@ -1348,28 +1352,71 @@
         "current": "plan",
         "answerStale": null,
         "next": {
-          "id": "P.draft",
+          "id": "P.reviewAny",
           "slots": {
             "month": "September 2026",
             "monthName": "September",
             "nextMonth": "October",
             "year": "2026/27",
             "stop": "April 2026",
-            "savedYear": "",
             "closed": "",
-            "next": ""
+            "next": "",
+            "nextReview": "",
+            "nextCheck": "",
+            "reviewOften": "once a tax year",
+            "windowLeft": "0 months"
           },
           "button": {
-            "id": "lasts",
-            "href": "#/plan/AlexWay01/lasts",
+            "id": "reviewNow",
+            "href": "#/plan/AlexWay01/review",
             "slots": {}
           }
+        },
+        "due": [],
+        "soon": [],
+        "life": {
+          "key": "drawing",
+          "placing": "draft-retired",
+          "locked": false,
+          "stop": "2026-06",
+          "since": "2026-06",
+          "by": "facts",
+          "window": {
+            "years": 3,
+            "from": "2023-06",
+            "to": "2026-06",
+            "monthsLeft": 0,
+            "state": "after"
+          },
+          "agreed": null,
+          "confirmStop": false
+        },
+        "reviewDue": {
+          "next": null,
+          "due": false,
+          "occurrence": null,
+          "every": "year",
+          "href": "#/plan/AlexWay01/review"
+        },
+        "offCourse": {
+          "off": false,
+          "occurrence": null,
+          "rule": {
+            "kind": "success",
+            "floor": 0.85
+          },
+          "a": null,
+          "b": null,
+          "line": 17,
+          "readings": null
         },
         "askLinks": [
           "c"
         ],
+        "askFill": {},
         "forId": "AlexWay01",
         "forStep": "mix",
+        "keepTest": null,
         "mix": {
           "found": true,
           "id": "AlexWay01",
@@ -1979,15 +2026,6 @@
             "unknown"
           ],
           "draftKey": "{\"held\":\"funds\",\"funds.ids\":\"n1,n2\",\"funds.n1.ticker\":\"VWRP\",\"funds.n1.value\":\"300,000\",\"funds.n2.ticker\":\"ZZZZ\",\"funds.n2.value\":\"50,000\",\"funds.n2.wrapper\":\"ISA\",\"funds.n2.category\":\"gold\",\"search\":\"vang\"}"
-        },
-        "life": {
-          "key": "drawing",
-          "placing": "draft-retired",
-          "locked": false,
-          "stop": "2026-06",
-          "since": "2026-06",
-          "by": "facts",
-          "invite": null
         }
       }
     }
@@ -2085,28 +2123,36 @@
       "problem": null,
       "saving": false,
       "made": null,
-      "partnerKept": null
+      "partnerKept": null,
+      "pending": null,
+      "used": null
     },
     "b": {
       "name": null,
       "problem": null,
       "saving": false,
       "made": null,
-      "partnerKept": null
+      "partnerKept": null,
+      "pending": null,
+      "used": null
     },
     "c": {
       "name": null,
       "problem": null,
       "saving": false,
       "made": null,
-      "partnerKept": null
+      "partnerKept": null,
+      "pending": null,
+      "used": null
     },
     "d": {
       "name": null,
       "problem": null,
       "saving": false,
       "made": null,
-      "partnerKept": null
+      "partnerKept": null,
+      "pending": null,
+      "used": null
     }
   },
   "lasts": {
@@ -2149,6 +2195,19 @@
     },
     "pick": null
   },
+  "household": {
+    "key": null,
+    "status": "idle",
+    "limit": null,
+    "need": null,
+    "reason": null,
+    "result": null,
+    "progress": null,
+    "ms": null,
+    "survivor": null,
+    "care": null,
+    "pick": null
+  },
   "ui": {
     "railOpen": false,
     "open": [],
@@ -2157,6 +2216,82 @@
     "leaveProblem": null,
     "saving": null,
     "saveProblem": null,
-    "toast": null
+    "toast": null,
+    "action": null,
+    "download": null,
+    "guest": {
+      "minutes": 0,
+      "usedUp": false,
+      "nag": null
+    },
+    "bringIn": null,
+    "account": {
+      "mode": "signIn",
+      "busy": null,
+      "problem": null,
+      "note": null,
+      "confirm": null,
+      "deleted": null
+    },
+    "profile": null,
+    "news": {
+      "popup": null,
+      "page": null,
+      "seen": null
+    },
+    "assumptions": null,
+    "several": null,
+    "severalDone": null
+  },
+  "move": {
+    "key": null,
+    "status": "idle",
+    "result": null,
+    "ms": null,
+    "reason": null,
+    "index": null
+  },
+  "saver": {
+    "key": null,
+    "status": "idle",
+    "result": null,
+    "reason": null
+  },
+  "checkIn": {
+    "planId": null,
+    "date": null,
+    "result": null
+  },
+  "keepTest": {
+    "key": null,
+    "planId": null,
+    "status": "idle",
+    "result": null,
+    "reason": null,
+    "progress": null
+  },
+  "stressPanel": {
+    "key": null,
+    "planId": null,
+    "status": "idle",
+    "order": [],
+    "rows": {},
+    "reason": null
+  },
+  "stressStrip": {
+    "q": null,
+    "key": null,
+    "status": "idle",
+    "result": null,
+    "reason": null
+  },
+  "review": {
+    "key": null,
+    "planId": null,
+    "status": "idle",
+    "order": [],
+    "rows": {},
+    "pots": null,
+    "reason": null
   }
 }

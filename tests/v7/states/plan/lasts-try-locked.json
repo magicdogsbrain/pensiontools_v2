@@ -2502,7 +2502,7 @@
               "checkInDue": false,
               "monthByMonth": true,
               "life": "drawing",
-              "todo": 1,
+              "todo": 0,
               "lastModified": "2026-09-08T09:20:00.000Z"
             }
           ]
@@ -2512,15 +2512,20 @@
         "found": true,
         "id": "SamBuckets04",
         "name": "Sam’s plan",
+        "example": false,
         "stageKey": "running",
         "retired": true,
-        "saver": false,
+        "saver": null,
         "line": {
           "id": "running",
           "slots": {}
         },
+        "closed": null,
+        "closing": false,
+        "before": null,
         "locked": true,
         "lockedOn": "20 March 2026",
+        "lockedShort": null,
         "readonly": false,
         "source": "account",
         "steps": [
@@ -2697,53 +2702,48 @@
                   "kind": "money"
                 },
                 " taken before tax",
-                "; the plan says ",
+                ", as your plan said.",
+                " ",
                 {
-                  "key": "planned",
+                  "key": "net",
                   "kind": "money"
                 },
-                " for the year"
+                " reached your bank."
               ],
-              "text": "6 months recorded in 2026/27: £15,600 taken before tax; the plan says £30,000 for the year"
+              "text": "6 months recorded in 2026/27: £15,600 taken before tax, as your plan said. £13,737 reached your bank."
             },
+            "compare": "where.compareSame",
             "figures": {
               "months": 6,
               "drawn": 15600,
-              "planned": 30000,
-              "said": 15000,
-              "diff": 600,
               "cutMonths": 0,
+              "net": 13737,
+              "yearMonthly": 2600,
+              "yearTotal": 31200,
               "stepNow": 30000,
-              "pot": 612740,
+              "pot": 602808,
+              "potActual": 612740,
+              "potPart0": 587700,
+              "potPart1": 25040,
               "potMid": 614544
             },
             "lines": [
               {
-                "id": "where.compareMore",
+                "id": "where.yearPlan",
                 "slots": {
-                  "months": "6",
-                  "cutMonths": "0"
+                  "year": "2026/27"
                 },
                 "sentence": {
-                  "id": "where.compareMore",
+                  "id": "where.yearPlan",
                   "parts": [
+                    "In 2026/27 your plan takes ",
                     {
-                      "key": "drawn",
+                      "key": "yearMonthly",
                       "kind": "money"
                     },
-                    " taken; the plan said ",
-                    {
-                      "key": "said",
-                      "kind": "money"
-                    },
-                    " for those months; ",
-                    {
-                      "key": "diff",
-                      "kind": "money"
-                    },
-                    " more than the plan said"
+                    " a month before tax."
                   ],
-                  "text": "£15,600 taken; the plan said £15,000 for those months; £600 more than the plan said"
+                  "text": "In 2026/27 your plan takes £2,600 a month before tax."
                 },
                 "source": {
                   "kind": "record",
@@ -2770,27 +2770,6 @@
                   "kind": "record",
                   "at": null,
                   "stale": false
-                }
-              },
-              {
-                "id": "where.planned",
-                "slots": {
-                  "year": "2026/27"
-                },
-                "sentence": {
-                  "id": "where.planned",
-                  "parts": [
-                    {
-                      "key": "planned",
-                      "kind": "money"
-                    }
-                  ],
-                  "text": "£30,000"
-                },
-                "source": {
-                  "kind": "locked",
-                  "at": "20 March 2026",
-                  "stale": true
                 }
               },
               {
@@ -2825,9 +2804,16 @@
                     {
                       "key": "pot",
                       "kind": "money"
-                    }
+                    },
+                    " at the prices of April 2026 (",
+                    {
+                      "key": "potActual",
+                      "kind": "money"
+                    },
+                    " as recorded",
+                    ")."
                   ],
-                  "text": "£612,740"
+                  "text": "£602,808 at the prices of April 2026 (£612,740 as recorded)."
                 },
                 "source": {
                   "kind": "record",
@@ -2844,14 +2830,43 @@
                     {
                       "key": "potMid",
                       "kind": "money"
-                    }
+                    },
+                    "."
                   ],
-                  "text": "£614,544"
+                  "text": "£614,544."
                 },
                 "source": {
                   "kind": "locked",
                   "at": "20 March 2026",
                   "stale": true
+                }
+              },
+              {
+                "id": "where.potParts",
+                "slots": {},
+                "sentence": {
+                  "id": "where.potParts",
+                  "parts": [
+                    "Pension ",
+                    {
+                      "key": "potPart0",
+                      "kind": "money"
+                    },
+                    ", recorded September 2026.",
+                    " ",
+                    "ISA ",
+                    {
+                      "key": "potPart1",
+                      "kind": "money"
+                    },
+                    ", from What you hold, March 2026."
+                  ],
+                  "text": "Pension £587,700, recorded September 2026. ISA £25,040, from What you hold, March 2026."
+                },
+                "source": {
+                  "kind": "record",
+                  "at": null,
+                  "stale": false
                 }
               }
             ],
@@ -2867,7 +2882,23 @@
                 "slots": {}
               }
             ],
-            "notes": []
+            "notes": [],
+            "guardrail": {
+              "state": "within",
+              "slots": {
+                "draw": "£30,000",
+                "pct": "5.0%",
+                "startYear": "2026 to 2027",
+                "startPct": "4.9%",
+                "upperPct": "5.9%",
+                "lowerPct": "3.9%",
+                "less": "£27,000",
+                "lessPct": "4.5%",
+                "more": "£33,000",
+                "morePct": "5.5%"
+              },
+              "cuts": true
+            }
           },
           {
             "id": "plan",
@@ -2882,9 +2913,9 @@
                   "key": "yearly",
                   "kind": "money"
                 },
-                " a year before tax; your plan pays from April 2026 (tax year 2026/27)"
+                " a year before tax; your plan pays from April 2026"
               ],
-              "text": "£30,000 a year before tax; your plan pays from April 2026 (tax year 2026/27)"
+              "text": "£30,000 a year before tax; your plan pays from April 2026"
             },
             "figures": {
               "yearly": 30000,
@@ -2912,7 +2943,7 @@
               "bonds": 150000,
               "cash": 60000,
               "spWeekly": 216,
-              "dial.bucketBand": 10,
+              "dial_bucketBand": 10,
               "mixShares": 380000,
               "mixBonds": 150000,
               "mixCash": 60000
@@ -2981,7 +3012,7 @@
                 "sentence": {
                   "id": "says.bad",
                   "parts": [
-                    "Your plan lasts in more than 9 futures out of 10; when it was locked, counted to 92; not by how long you might live. Left at the end, at today’s prices: typically ",
+                    "Your plan lasts in more than 9 futures out of 10; when it was locked, counted to 93; not by how long you might live. Left at the end, at today’s prices: typically ",
                     {
                       "key": "saysTypical",
                       "kind": "money"
@@ -2992,7 +3023,7 @@
                       "kind": "money"
                     }
                   ],
-                  "text": "Your plan lasts in more than 9 futures out of 10; when it was locked, counted to 92; not by how long you might live. Left at the end, at today’s prices: typically £968,682; in a bad case (the worst 1 in 10) £157,539"
+                  "text": "Your plan lasts in more than 9 futures out of 10; when it was locked, counted to 93; not by how long you might live. Left at the end, at today’s prices: typically £968,682; in a bad case (the worst 1 in 10) £157,539"
                 },
                 "source": {
                   "kind": "locked",
@@ -3321,11 +3352,11 @@
                       "id": "way.dial",
                       "parts": [
                         {
-                          "key": "dial.bucketBand",
-                          "kind": "money"
+                          "key": "dial_bucketBand",
+                          "kind": "pct"
                         }
                       ],
-                      "text": "£10"
+                      "text": "10"
                     },
                     "source": {
                       "kind": "locked",
@@ -3417,7 +3448,7 @@
                     }
                   }
                 ],
-                "place": "settings",
+                "place": "allocation",
                 "sub": "mix",
                 "href": "#/plan/SamBuckets04/mix",
                 "lockedButton": "tryMix"
@@ -4029,9 +4060,8 @@
                 "slots": {}
               }
             ],
-            "notes": [
-              "move.optional"
-            ]
+            "notes": [],
+            "toBuy": 0
           },
           {
             "id": "budget",
@@ -4094,31 +4124,60 @@
         "current": "month",
         "answerStale": null,
         "next": {
-          "id": "P.holdStale",
+          "id": "P.idle",
           "slots": {
             "month": "September 2026",
             "monthName": "September",
             "nextMonth": "October",
             "year": "2026/27",
             "stop": "April 2026",
-            "savedYear": "",
             "closed": "",
             "next": "",
-            "n": "0",
-            "of": "0",
-            "date": "20 March 2026"
+            "nextReview": "April 2027",
+            "nextCheck": "April 2027",
+            "reviewOften": "once a tax year"
           },
-          "button": {
-            "id": "updateHold",
-            "href": "#/plan/SamBuckets04/hold",
-            "slots": {}
-          }
+          "button": null
+        },
+        "due": [],
+        "soon": [],
+        "life": {
+          "key": "drawing",
+          "placing": "running",
+          "locked": true,
+          "stop": null,
+          "since": "2026-04",
+          "by": "facts",
+          "window": null,
+          "agreed": null,
+          "confirmStop": false
+        },
+        "reviewDue": {
+          "next": "2027-04-06",
+          "due": false,
+          "occurrence": "2027/28",
+          "every": "year",
+          "href": "#/plan/SamBuckets04/review"
+        },
+        "offCourse": {
+          "off": false,
+          "occurrence": null,
+          "rule": {
+            "kind": "success",
+            "floor": 0.85
+          },
+          "a": null,
+          "b": null,
+          "line": 17,
+          "readings": null
         },
         "askLinks": [
           "c"
         ],
+        "askFill": {},
         "forId": "SamBuckets04",
         "forStep": "lasts",
+        "keepTest": null,
         "lasts": {
           "found": true,
           "id": "SamBuckets04",
@@ -4134,8 +4193,9 @@
           "strategyId": "buckets-in-order",
           "bought": false,
           "family": true,
-          "endAge": 92,
+          "endAge": 93,
           "runKey": "SamBuckets04|2026-09-08T09:20:00.000Z|2dxj45|L",
+          "noFigures": false,
           "document": {
             "a": {
               "strategyId": "buckets-in-order",
@@ -4260,6 +4320,7 @@
           ],
           "notUsed": [],
           "partners": [],
+          "pensionAccess": null,
           "changed": false,
           "patch": {},
           "previous": {},
@@ -4282,7 +4343,7 @@
               "level": "balanced",
               "chance": 0.9823688416108489,
               "fixedAge": 0.983,
-              "planToAge": 92,
+              "planToAge": 93,
               "weightToAge": 103,
               "horizonRule": "plan",
               "reason": null
@@ -4310,9 +4371,9 @@
             "sub": {
               "id": "lasts.subFixed",
               "slots": {
-                "words": "If you live to 92, the money lasts that long in more than 19 of 20 futures we tried.",
+                "words": "If you live to 93, the money lasts that long in more than 19 of 20 futures we tried.",
                 "years": "30",
-                "toAge": "92"
+                "toAge": "93"
               }
             },
             "rows": [
@@ -4325,13 +4386,13 @@
               {
                 "id": "leftW",
                 "slots": {
-                  "words": "If you live to 92, what is typically left then is £969,000 at today's prices. In the best 1 in 10 futures it is £3,968,000 or more."
+                  "words": "If you live to 93, what is typically left then is £969,000 at today's prices. In the best 1 in 10 futures it is £3,968,000 or more."
                 }
               },
               {
                 "id": "assumedW",
                 "slots": {
-                  "words": "We tested to 92, the age your plan runs to. About 4 in 10 women your age live longer than that."
+                  "words": "We tested to 93, the age your plan runs to. About 3 in 10 women your age live longer than that."
                 }
               },
               {
@@ -5005,7 +5066,7 @@
                 "futures": "1,000",
                 "histories": "735",
                 "years": "30",
-                "toAge": "92"
+                "toAge": "93"
               }
             },
             "rows": [
@@ -5093,8 +5154,8 @@
                 "type": "money",
                 "options": null,
                 "applies": true,
-                "shown": "590000",
-                "saved": "590000",
+                "shown": "587700",
+                "saved": "587700",
                 "error": null
               },
               {
@@ -5102,8 +5163,8 @@
                 "type": "money",
                 "options": null,
                 "applies": true,
-                "shown": "25000",
-                "saved": "25000",
+                "shown": "25040",
+                "saved": "25040",
                 "error": null
               },
               {
@@ -5184,8 +5245,8 @@
             "ok": true,
             "run": {
               "way": "pots-and-valves",
-              "pot": 590000,
-              "isa": 25000,
+              "pot": 587700,
+              "isa": 25040,
               "isaPolicy": "saved",
               "incomeMode": "shape",
               "income": 0,
@@ -5204,17 +5265,17 @@
                 "chancePct": 99,
                 "figures": {
                   "chancePct": 99,
-                  "typicalLeft": 713323,
-                  "badCaseLeft": 170294,
-                  "goodCaseLeft": 2608264,
+                  "typicalLeft": 705162,
+                  "badCaseLeft": 166209,
+                  "goodCaseLeft": 2590286,
                   "futures": 1000,
                   "histories": 747,
                   "histRanOutN": 0,
                   "years": 28,
                   "cutN": 627,
-                  "cutPerYear": 2359,
+                  "cutPerYear": 2348,
                   "cutYears": 4,
-                  "cutTotal": 10122,
+                  "cutTotal": 10386,
                   "worstCut": 111859
                 },
                 "id": "lasts.headline",
@@ -5228,16 +5289,16 @@
                     "futures": "1,000",
                     "histories": "747",
                     "years": "28",
-                    "toAge": "92"
+                    "toAge": "93"
                   }
                 },
                 "rows": [
                   {
                     "id": "left",
                     "slots": {
-                      "typical": "£713,323",
-                      "bad": "£170,294",
-                      "good": "£2,608,264"
+                      "typical": "£705,162",
+                      "bad": "£166,209",
+                      "good": "£2,590,286"
                     }
                   },
                   {
@@ -5246,10 +5307,10 @@
                       "n": "627",
                       "of": "1,000",
                       "ranOut": " (10 of them later ran out)",
-                      "perYear": "£2,359",
+                      "perYear": "£2,348",
                       "years": "4",
                       "s": "s",
-                      "total": "£10,122",
+                      "total": "£10,386",
                       "worst": "£111,859"
                     }
                   },
@@ -5282,6 +5343,20 @@
                   }
                 },
                 {
+                  "id": "pot",
+                  "slots": {
+                    "pot": 587700,
+                    "old": 590000
+                  }
+                },
+                {
+                  "id": "isa",
+                  "slots": {
+                    "isa": 25040,
+                    "old": 25000
+                  }
+                },
+                {
                   "id": "years",
                   "slots": {
                     "years": 28,
@@ -5298,17 +5373,233 @@
             },
             "patch": {},
             "kept": null,
-            "same": true
+            "same": true,
+            "from": {
+              "id": "record",
+              "slots": {
+                "pension": "£587,700",
+                "pensionFrom": "September 2026",
+                "isa": "£25,040",
+                "isaFrom": "March 2026"
+              }
+            }
+          },
+          "stressPanel": {
+            "key": "SamBuckets04|2026-09-30|17q1ue02tvi|pwrnshlcem|L|28be0qwgwwz|-|-|2026-03-20T16:25:00.000Z",
+            "level": "balanced",
+            "rows": [
+              {
+                "id": "asPlanned",
+                "ref": null,
+                "kind": "confidence",
+                "status": "idle",
+                "na": null,
+                "a": null,
+                "shortfall": null,
+                "ran": null,
+                "refA": null,
+                "refShortfall": null,
+                "same": false,
+                "agreement": {
+                  "status": "none",
+                  "entry": null
+                },
+                "canAccept": false,
+                "parts": {
+                  "title": {
+                    "id": "rows.asPlanned.title"
+                  },
+                  "what": [
+                    {
+                      "id": "rows.asPlanned.what"
+                    }
+                  ],
+                  "na": null,
+                  "chance": null,
+                  "runsOut": null,
+                  "closedYear": null,
+                  "heldGap": null,
+                  "more": [],
+                  "confirm": null,
+                  "accepted": null,
+                  "keepLine": null,
+                  "holdLink": null
+                }
+              },
+              {
+                "id": "fall",
+                "ref": "asPlanned",
+                "kind": "stress",
+                "status": "idle",
+                "na": null,
+                "a": null,
+                "shortfall": null,
+                "ran": null,
+                "refA": null,
+                "refShortfall": null,
+                "same": false,
+                "agreement": {
+                  "status": "none",
+                  "entry": null
+                },
+                "canAccept": false,
+                "parts": {
+                  "title": {
+                    "id": "rows.fall.title"
+                  },
+                  "what": [
+                    {
+                      "id": "rows.fall.whatDrawing"
+                    }
+                  ],
+                  "na": null,
+                  "chance": null,
+                  "runsOut": null,
+                  "closedYear": null,
+                  "heldGap": null,
+                  "more": [],
+                  "confirm": null,
+                  "accepted": null,
+                  "keepLine": null,
+                  "holdLink": null
+                }
+              },
+              {
+                "id": "lower",
+                "ref": "asPlanned",
+                "kind": "stress",
+                "status": "idle",
+                "na": null,
+                "a": null,
+                "shortfall": null,
+                "ran": null,
+                "refA": null,
+                "refShortfall": null,
+                "same": false,
+                "agreement": {
+                  "status": "none",
+                  "entry": null
+                },
+                "canAccept": false,
+                "parts": {
+                  "title": {
+                    "id": "rows.lower.title"
+                  },
+                  "what": [
+                    {
+                      "id": "rows.lower.what"
+                    }
+                  ],
+                  "na": null,
+                  "chance": null,
+                  "runsOut": null,
+                  "closedYear": null,
+                  "heldGap": null,
+                  "more": [],
+                  "confirm": null,
+                  "accepted": null,
+                  "keepLine": null,
+                  "holdLink": null
+                }
+              },
+              {
+                "id": "spend",
+                "ref": "asPlanned",
+                "kind": "stress",
+                "status": "idle",
+                "na": null,
+                "a": null,
+                "shortfall": null,
+                "ran": null,
+                "refA": null,
+                "refShortfall": null,
+                "same": false,
+                "agreement": {
+                  "status": "none",
+                  "entry": null
+                },
+                "canAccept": false,
+                "parts": {
+                  "title": {
+                    "id": "rows.spend.title"
+                  },
+                  "what": [
+                    {
+                      "id": "rows.spend.what"
+                    }
+                  ],
+                  "na": null,
+                  "chance": null,
+                  "runsOut": null,
+                  "closedYear": null,
+                  "heldGap": null,
+                  "more": [],
+                  "confirm": null,
+                  "accepted": null,
+                  "keepLine": null,
+                  "holdLink": null
+                }
+              },
+              {
+                "id": "prices",
+                "ref": "asPlanned",
+                "kind": "stress",
+                "status": "idle",
+                "na": null,
+                "a": null,
+                "shortfall": null,
+                "ran": null,
+                "refA": null,
+                "refShortfall": null,
+                "same": false,
+                "agreement": {
+                  "status": "none",
+                  "entry": null
+                },
+                "canAccept": false,
+                "parts": {
+                  "title": {
+                    "id": "rows.prices.title"
+                  },
+                  "what": [
+                    {
+                      "id": "rows.prices.what"
+                    }
+                  ],
+                  "na": null,
+                  "chance": null,
+                  "runsOut": null,
+                  "closedYear": null,
+                  "heldGap": null,
+                  "more": [],
+                  "confirm": null,
+                  "accepted": null,
+                  "keepLine": null,
+                  "holdLink": null
+                }
+              }
+            ],
+            "agreements": [],
+            "keep": null,
+            "closed": false,
+            "floor": null,
+            "notTried": null,
+            "order": [
+              "asPlanned",
+              "fall",
+              "lower",
+              "spend",
+              "prices"
+            ],
+            "drawing": true,
+            "planId": "SamBuckets04",
+            "run": {
+              "status": "idle",
+              "reason": null,
+              "done": 0,
+              "total": 0
+            }
           }
-        },
-        "life": {
-          "key": "drawing",
-          "placing": "running",
-          "locked": true,
-          "stop": null,
-          "since": "2026-04",
-          "by": "facts",
-          "invite": null
         }
       }
     }
@@ -5399,28 +5690,36 @@
       "problem": null,
       "saving": false,
       "made": null,
-      "partnerKept": null
+      "partnerKept": null,
+      "pending": null,
+      "used": null
     },
     "b": {
       "name": null,
       "problem": null,
       "saving": false,
       "made": null,
-      "partnerKept": null
+      "partnerKept": null,
+      "pending": null,
+      "used": null
     },
     "c": {
       "name": null,
       "problem": null,
       "saving": false,
       "made": null,
-      "partnerKept": null
+      "partnerKept": null,
+      "pending": null,
+      "used": null
     },
     "d": {
       "name": null,
       "problem": null,
       "saving": false,
       "made": null,
-      "partnerKept": null
+      "partnerKept": null,
+      "pending": null,
+      "used": null
     }
   },
   "lasts": {
@@ -5451,9 +5750,9 @@
         "histStrideMonths": 2,
         "histRanOutPct": 0,
         "histRanOutN": 0,
-        "typicalLeft": 968681.9236837632,
-        "badCaseLeft": 157539.14223456508,
-        "goodCaseLeft": 3967896.1555814557,
+        "typicalLeft": 968681.9236837665,
+        "badCaseLeft": 157539.1422345627,
+        "goodCaseLeft": 3967896.155581482,
         "worst12": 24000,
         "coverage": 99.74583333333334,
         "cuts": {
@@ -5473,7 +5772,7 @@
         "sumW": 18931312168,
         "n": 1000,
         "fixedAge": 0.983,
-        "planToAge": 92,
+        "planToAge": 93,
         "weightToAge": 103,
         "horizonRule": "plan",
         "reason": null,
@@ -5485,18 +5784,18 @@
           "spAge": null
         },
         "left": {
-          "age": 92,
+          "age": 93,
           "typical": 968682,
           "best": 3967896,
           "mostNone": false
         },
         "words": {
           "headline": "Counting how long people your age live, the money lasts as long as you do more than 19 times in 20.",
-          "fixed": "If you live to 92, the money lasts that long in more than 19 of 20 futures we tried.",
+          "fixed": "If you live to 93, the money lasts that long in more than 19 of 20 futures we tried.",
           "floor": "If the money ran out at 99, you would still have £11,211 a year after tax from the income you get anyway.",
-          "left": "If you live to 92, what is typically left then is £969,000 at today's prices. In the best 1 in 10 futures it is £3,968,000 or more.",
+          "left": "If you live to 93, what is typically left then is £969,000 at today's prices. In the best 1 in 10 futures it is £3,968,000 or more.",
           "assumed": [
-            "We tested to 92, the age your plan runs to. About 4 in 10 women your age live longer than that.",
+            "We tested to 93, the age your plan runs to. About 3 in 10 women your age live longer than that.",
             "We follow each future on to 103, when fewer than 1 in 50 women your age are still alive.",
             "We used the figures for women, who tend to live longer, because the plan does not say."
           ],
@@ -5512,7 +5811,7 @@
             "s": 1126,
             "failed": false,
             "failAge": null,
-            "terminal": 130135.56422948158,
+            "terminal": 130135.56422948116,
             "worst12": 24000,
             "protMonths": 263,
             "cutYears": 23,
@@ -5538,7 +5837,7 @@
             "s": 1132,
             "failed": false,
             "failAge": null,
-            "terminal": 134827.09808611852,
+            "terminal": 134827.09808611788,
             "worst12": 24000,
             "protMonths": 269,
             "cutYears": 24,
@@ -5551,7 +5850,7 @@
             "s": 1130,
             "failed": false,
             "failAge": null,
-            "terminal": 149388.1875958356,
+            "terminal": 149388.1875958363,
             "worst12": 24000,
             "protMonths": 234,
             "cutYears": 20,
@@ -5564,7 +5863,7 @@
             "s": 378,
             "failed": false,
             "failAge": null,
-            "terminal": 150535.5198376429,
+            "terminal": 150535.51983764383,
             "worst12": 24000,
             "protMonths": 180,
             "cutYears": 17,
@@ -5580,7 +5879,7 @@
             "kind": "pnv",
             "failed": false,
             "failAge": null,
-            "terminal": 578363.0328139319,
+            "terminal": 578363.0328139317,
             "worst12": 24000,
             "protMonths": 166,
             "cutYears": 16,
@@ -5896,7 +6195,7 @@
             "kind": "pnv",
             "failed": false,
             "failAge": null,
-            "terminal": 578363.0328139319,
+            "terminal": 578363.0328139317,
             "worst12": 24000,
             "protMonths": 166,
             "cutYears": 16,
@@ -5985,8 +6284,8 @@
       "status": "done",
       "boxes": {
         "way": "pots-and-valves",
-        "pot": 590000,
-        "isa": 25000,
+        "pot": 587700,
+        "isa": 25040,
         "isaPolicy": "saved",
         "incomeMode": "shape",
         "income": 0,
@@ -6018,19 +6317,19 @@
           "histStrideMonths": 2,
           "histRanOutPct": 0,
           "histRanOutN": 0,
-          "typicalLeft": 713322.6634777278,
-          "badCaseLeft": 170293.8133907717,
-          "goodCaseLeft": 2608263.5304217944,
+          "typicalLeft": 705162.2725455436,
+          "badCaseLeft": 166209.2153366084,
+          "goodCaseLeft": 2590285.944067747,
           "worst12": 24000,
-          "coverage": 99.90267857142857,
+          "coverage": 99.89880952380952,
           "cuts": {
             "futures": 1000,
             "cutN": 627,
             "cutPct": 62.7,
             "ranOutN": 10,
-            "typicalCutPerYear": 2359,
+            "typicalCutPerYear": 2348,
             "typicalCutYears": 4,
-            "typicalCutTotal": 10122,
+            "typicalCutTotal": 10386,
             "worstCutTotal": 111859
           },
           "cutLabel": null,
@@ -6041,8 +6340,8 @@
         "stored": null,
         "boxes": {
           "way": "pots-and-valves",
-          "pot": 590000,
-          "isa": 25000,
+          "pot": 587700,
+          "isa": 25040,
           "isaPolicy": "saved",
           "incomeMode": "shape",
           "income": 0,
@@ -6087,6 +6386,19 @@
     },
     "pick": null
   },
+  "household": {
+    "key": null,
+    "status": "idle",
+    "limit": null,
+    "need": null,
+    "reason": null,
+    "result": null,
+    "progress": null,
+    "ms": null,
+    "survivor": null,
+    "care": null,
+    "pick": null
+  },
   "ui": {
     "railOpen": false,
     "open": [],
@@ -6095,6 +6407,82 @@
     "leaveProblem": null,
     "saving": null,
     "saveProblem": null,
-    "toast": null
+    "toast": null,
+    "action": null,
+    "download": null,
+    "guest": {
+      "minutes": 0,
+      "usedUp": false,
+      "nag": null
+    },
+    "bringIn": null,
+    "account": {
+      "mode": "signIn",
+      "busy": null,
+      "problem": null,
+      "note": null,
+      "confirm": null,
+      "deleted": null
+    },
+    "profile": null,
+    "news": {
+      "popup": null,
+      "page": null,
+      "seen": null
+    },
+    "assumptions": null,
+    "several": null,
+    "severalDone": null
+  },
+  "move": {
+    "key": null,
+    "status": "idle",
+    "result": null,
+    "ms": null,
+    "reason": null,
+    "index": null
+  },
+  "saver": {
+    "key": null,
+    "status": "idle",
+    "result": null,
+    "reason": null
+  },
+  "checkIn": {
+    "planId": null,
+    "date": null,
+    "result": null
+  },
+  "keepTest": {
+    "key": null,
+    "planId": null,
+    "status": "idle",
+    "result": null,
+    "reason": null,
+    "progress": null
+  },
+  "stressPanel": {
+    "key": null,
+    "planId": null,
+    "status": "idle",
+    "order": [],
+    "rows": {},
+    "reason": null
+  },
+  "stressStrip": {
+    "q": null,
+    "key": null,
+    "status": "idle",
+    "result": null,
+    "reason": null
+  },
+  "review": {
+    "key": null,
+    "planId": null,
+    "status": "idle",
+    "order": [],
+    "rows": {},
+    "pots": null,
+    "reason": null
   }
 }

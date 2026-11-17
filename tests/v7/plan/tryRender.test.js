@@ -163,7 +163,9 @@ describe('the section', () => {
     expect(one(root, 'plan.lasts.try.use')).toBe(null);
     expect(one(root, 'plan.lasts.try.confirmBox')).toBe(null);
     expect(one(root, 'plan.lasts.try.keep')).not.toBe(null);
-    expect(all(root, '[data-testid="plan.lasts.try.diffs"] li').map((li) => li.getAttribute('data-diff'))).toEqual(['way', 'years']);
+    // 7.12.0: a locked plan's try starts from the pension and ISA as last recorded (September 2026: £587,700 and £25,040),
+    // not the £590,000 and £25,000 it was locked with, so the try differs from the locked plan in both as well
+    expect(all(root, '[data-testid="plan.lasts.try.diffs"] li').map((li) => li.getAttribute('data-diff'))).toEqual(['way', 'pot', 'isa', 'years']);
     expect((text.match(/Fixed when you locked the plan on /g) || []).length).toBe(1);
     expect(all(root, '[data-testid="plan.lasts.try"] .plan-source')).toHaveLength(1);
   });

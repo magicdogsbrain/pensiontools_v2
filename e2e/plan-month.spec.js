@@ -119,6 +119,11 @@ test.describe('Month by month, without an account', () => {
 
     await test.step('the months not recorded are named at the top', async () => {
       await page.goto(v7('#/plan/MonthGaps02/month'));
+      // 7.12.0: the page opens on the month to record, the first one missed, and names no gap while it is on it
+      await expect(page.getByTestId('plan.month.mo.month')).toHaveValue('2026-05');
+      await expect(page.getByTestId(`${T}.gap`)).toHaveCount(0);
+      // September chosen: the four months before it not recorded are named at the top
+      await page.getByTestId('plan.month.mo.month').selectOption('2026-09');
       await expect(page.getByTestId(`${T}.gap`)).toHaveAttribute('data-count', '4');
       await expect(page.getByTestId(`${T}.gap`)).toContainText('May 2026 to August 2026');
       await expect(page.getByTestId(`${T}.prefilled`)).toContainText('April 2026');

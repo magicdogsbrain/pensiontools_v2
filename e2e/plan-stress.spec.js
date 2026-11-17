@@ -247,7 +247,7 @@ test.describe('"Try the bad years", without an account', () => {
       await expect(more.locator('[data-line^="lines.when"]')).toBeHidden();
       await more.locator('summary').click();
       await expect(more.locator('[data-line^="lines.when"]')).toBeVisible();
-      await expect(more.locator('[data-line^="lines.when"]')).toContainText(/In the futures where the money runs out before \d+ \([\d,]+ of the 1,000; as planned: /);
+      await expect(more.locator('[data-line^="lines.when"]')).toContainText(/We follow each future on to \d+\. In the futures where the money runs out before then \([\d,]+ of the 1,000; as planned: /);
       await expect(more.locator('[data-line^="lines.howLong"]')).toContainText(/it still pays for \d+ of the \d+ years to \d+|what the plan pays is still met in/);
       await noSideways(page);
       await more.locator('summary').click();

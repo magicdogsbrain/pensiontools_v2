@@ -107,8 +107,9 @@ const setRef = (count, n, refCount) => [' (', F(commas(count)), ' of the ', F(co
 const tenthsOf = (x) => Math.floor(x * 10 + 1e-9);
 
 /**
- * "In the futures where the money runs out before 103, it typically runs out at 88. In the worst 1 in 10 of all the futures,
- * by 84." — the futures it counts named by the age they are followed on to (the "how long" line names the plan-to age).
+ * "We follow each future on to 103. In the futures where the money runs out before then, it typically runs out at 88. In the
+ * worst 1 in 10 of all the futures, by 84." — the age the futures are followed on to said for what it is, then the futures
+ * that run out before it (the "how long" line names the plan-to age).
  * `cmp` (7.9.0, a row of "Try the bad years" beside As planned): { count, n, ref } — how many futures ran out before that
  * age, of how many, and As planned's own shortfall and count: " (211 of the 1,000; as planned: 68)", "(as planned: at 88)",
  * "(as planned: by 84)". Without it the sentence is as it always was.
@@ -120,7 +121,8 @@ export function whenParts(sf, lf, cmp = null) {
   const rw = cmp && cmp.ref && cmp.ref.when ? cmp.ref.when : null;
   const refTypical = !cmp ? [] : [' (as planned: ', ...(rw ? (lf.couple ? atAge(lf, rw.typical) : [F(rw.typical)]) : ['none run out']), ')'];
   const refWorst = !cmp ? [] : [' (as planned: ', ...(rw && !rw.worstLasts ? byAge(lf, rw.worst) : ['it still lasts to ', F(lf.planToAge)]), ')'];
-  return ['In the futures where the money runs out before ', ...(lf.couple ? ['the younger of you is ', F(to)] : [F(to)]), ...(cmp ? setRef(cmp.count, cmp.n, cmp.refCount) : []), ', it typically runs out ', ...atAge(lf, w.typical), ...refTypical, '. ',
+  // the age each future is followed on to is said for what it is first (7.12.0), so it never reads as a second plan-to age
+  return ['We follow each future on to ', ...(lf.couple ? ['when the younger of you is ', F(to)] : [F(to)]), '. In the futures where the money runs out before then', ...(cmp ? setRef(cmp.count, cmp.n, cmp.refCount) : []), ', it typically runs out ', ...atAge(lf, w.typical), ...refTypical, '. ',
     ...(w.worstLasts ? ['In the worst ', F('1'), ' in ', F('10'), ' of all the futures it still lasts to ', F(lf.planToAge), ...refWorst, '.']
       : ['In the worst ', F('1'), ' in ', F('10'), ' of all the futures, ', ...byAge(lf, w.worst), ...refWorst, '.'])];
 }

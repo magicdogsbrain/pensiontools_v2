@@ -57,7 +57,7 @@ async function tryStrip(page, q, info) {
   await expect(more.locator('[data-line="when"]')).toBeHidden();
   await more.locator('summary').click();
   await expect(more.locator('[data-line="when"]')).toBeVisible();
-  await expect(more.locator('[data-line="when"]')).toContainText(/In the futures where the money runs out before .*\([\d,]+ of the 1,000; as planned: /);
+  await expect(more.locator('[data-line="when"]')).toContainText(/We follow each future on to .*In the futures where the money runs out before then \([\d,]+ of the 1,000; as planned: /);
   await noSideways(page);
   await more.locator('summary').click();
 }

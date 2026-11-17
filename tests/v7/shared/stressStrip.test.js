@@ -152,12 +152,12 @@ describe('the words', () => {
       const { strip, answer } = RUN[q + '/' + name];
       const planned = strip.rows[0];
       // As planned: the answers' own form, with no comparison (the answer's when line, the same parts)
-      if (planned.sentences.when) expect(planned.sentences.when.text).toMatch(/^In the futures where the money runs out before (the younger of you is )?\d+, it typically runs out /);
+      if (planned.sentences.when) expect(planned.sentences.when.text).toMatch(/^We follow each future on to (when the younger of you is )?\d+\. In the futures where the money runs out before then, it typically runs out /);
       for (const row of strip.rows.slice(1)) {
         if (row.same || !row.sf.when) continue;
         seen += 1;
         const w = row.sentences.when.text;
-        expect(w, `${name} ${row.id}`).toMatch(/^In the futures where the money runs out before (the younger of you is )?\d+ \([\d,]+ of the [\d,]+; as planned: ([\d,]+|none)\), it typically runs out (at|when the younger of you is) \d+ \(as planned: [^)]+\)\. In the worst 1 in 10 of all the futures/);
+        expect(w, `${name} ${row.id}`).toMatch(/^We follow each future on to (when the younger of you is )?\d+\. In the futures where the money runs out before then \([\d,]+ of the [\d,]+; as planned: ([\d,]+|none)\), it typically runs out (at|when the younger of you is) \d+ \(as planned: [^)]+\)\. In the worst 1 in 10 of all the futures/);
         expect(w).toContain('(' + row.counts.failing.toLocaleString('en-GB') + ' of the ' + row.chance.n.toLocaleString('en-GB') + '; as planned: ' + (planned.counts.failing ? planned.counts.failing.toLocaleString('en-GB') : 'none') + ')');
         if (row.sentences.howLong) {
           expect(row.sentences.howLong.text).toContain('(' + row.counts.early.toLocaleString('en-GB') + ' of the ' + row.chance.n.toLocaleString('en-GB') + '; as planned: ');

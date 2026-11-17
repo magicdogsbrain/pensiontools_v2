@@ -128,10 +128,10 @@ export const STRESS = {
   // reference's figure, so a set grown with later run-outs never reads as a better year.
   lines: {
     plain: '{words}',
-    when: 'In the futures where the money runs out before {weightAge}, it typically runs out at {typical}. In the worst 1 in 10 of all the futures, by {worst}.',
-    whenStillLasts: 'In the futures where the money runs out before {weightAge}, it typically runs out at {typical}. In the worst 1 in 10 of all the futures it still lasts to {age}.',
-    whenRef: 'In the futures where the money runs out before {weightAge} ({count} of the {n}; {refCount}), it typically runs out at {typical} ({refTypical}). In the worst 1 in 10 of all the futures, by {worst} ({refWorst}).',
-    whenStillLastsRef: 'In the futures where the money runs out before {weightAge} ({count} of the {n}; {refCount}), it typically runs out at {typical} ({refTypical}). In the worst 1 in 10 of all the futures it still lasts to {age} ({refWorst}).',
+    when: 'We follow each future on to {weightAge}. In the futures where the money runs out before then, it typically runs out at {typical}. In the worst 1 in 10 of all the futures, by {worst}.',
+    whenStillLasts: 'We follow each future on to {weightAge}. In the futures where the money runs out before then, it typically runs out at {typical}. In the worst 1 in 10 of all the futures it still lasts to {age}.',
+    whenRef: 'We follow each future on to {weightAge}. In the futures where the money runs out before then ({count} of the {n}; {refCount}), it typically runs out at {typical} ({refTypical}). In the worst 1 in 10 of all the futures, by {worst} ({refWorst}).',
+    whenStillLastsRef: 'We follow each future on to {weightAge}. In the futures where the money runs out before then ({count} of the {n}; {refCount}), it typically runs out at {typical} ({refTypical}). In the worst 1 in 10 of all the futures it still lasts to {age} ({refWorst}).',
     closedYear: 'In every future we tried, the income for {taxYear} is not paid in full.',
     howLong: 'In the futures where it runs out before {age}, it still pays for {paid} of the {of} years to {age}.',
     howLongAnyway: 'In the futures where it runs out before {age}, what the plan pays is still met in {paid} of the {of} years to {age}, with what comes in anyway.',

@@ -111,7 +111,7 @@ describe('the failure lines say what still comes in, and which futures they coun
     expect(s.floor.text).not.toMatch(/£0\b/);
     expect(s.floor.text).toMatch(/if one of you has died by then, the one left could have nothing coming in from a pension\.$/);
     // the "when" line names the age its futures are followed on to; "how long" names the plan-to age
-    expect(s.bad.text).toMatch(new RegExp(`^In the futures where the money runs out before the younger of you is ${r.chance.weightToAge}, `));
+    expect(s.bad.text).toMatch(new RegExp(`^We follow each future on to when the younger of you is ${r.chance.weightToAge}\\. In the futures where the money runs out before then, `));
   });
 
   it('the pieces: the words before, when nothing comes in anyway; a survivor with something says it', async () => {
@@ -119,7 +119,7 @@ describe('the failure lines say what still comes in, and which futures they coun
     const { partsText } = await import('../../../src/answers/shared/format.js');
     const lf = { couple: false, planToAge: 97, weightToAge: 103 };
     expect(howLongParts({ howLong: { paid: 22, of: 31 } }, lf).map((p) => (typeof p === 'string' ? p : p.fixed)).join('')).toBe('In the futures where it runs out before 97, it still pays for 22 of the 31 years to 97.');
-    expect(partsText(whenParts({ when: { typical: 88, worst: 84, worstLasts: false } }, lf), {})).toBe('In the futures where the money runs out before 103, it typically runs out at 88. In the worst 1 in 10 of all the futures, by 84.');
+    expect(partsText(whenParts({ when: { typical: 88, worst: 84, worstLasts: false } }, lf), {})).toBe('We follow each future on to 103. In the futures where the money runs out before then, it typically runs out at 88. In the worst 1 in 10 of all the futures, by 84.');
     const two = { couple: true, planToAge: 100, weightToAge: 103 };
     expect(partsText(floorParts({ floor: { age: 88, yearly: 24100, survivor: 13900, sp: 2, fs: false } }, two), {})).toMatch(/; if one of you has died by then, about £13,900 at least\.$/);
   });

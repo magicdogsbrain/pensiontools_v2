@@ -165,7 +165,7 @@ describe('the rows drawn', () => {
     expect(more.querySelector('summary').textContent).toBe(STRESS.short.more);
     // when, how long and how much name the futures each counts, how many there are, and As planned's figure beside it: a
     // later "typically" over more futures never reads as a better year — the words as they were, inside
-    expect(more.textContent).toContain('In the futures where the money runs out before 103 (211 of the 1,000; as planned: 150), it typically runs out at 90 (as planned: 88). In the worst 1 in 10 of all the futures, by 82 (as planned: by 84).');
+    expect(more.textContent).toContain('We follow each future on to 103. In the futures where the money runs out before then (211 of the 1,000; as planned: 150), it typically runs out at 90 (as planned: 88). In the worst 1 in 10 of all the futures, by 82 (as planned: by 84).');
     expect(more.textContent).toContain('In the futures where it runs out before 97 (180 of the 1,000; as planned: 120), it still pays for 21 of the 31 years to 97 (as planned: 22).');
     expect(more.textContent).toContain('Across those futures, £8 of every £10 of income the plan pays is still paid (as planned: £9).');
     expect(more.textContent).toContain('what is typically left then is £180,000');
@@ -180,7 +180,7 @@ describe('the rows drawn', () => {
     const planned = panel.querySelector('[data-row="asPlanned"]');
     expect(planned.querySelector('[data-line="chance"]').textContent).toBe('The money lasts as long as you do, 18 times in 20; if you live to 97, it lasts that long in 17 of 20 futures we tried.');
     expect(planned.querySelector('[data-line="runsOut"]').textContent).toBe('Where it runs out: typically at 88, the worst 1 in 10 by 84.');
-    expect(planned.textContent).toContain('In the futures where the money runs out before 103, it typically runs out at 88. In the worst 1 in 10 of all the futures, by 84.');
+    expect(planned.textContent).toContain('We follow each future on to 103. In the futures where the money runs out before then, it typically runs out at 88. In the worst 1 in 10 of all the futures, by 84.');
     expect(planned.textContent).toContain('In the futures where it runs out before 97, it still pays for 22 of the 31 years to 97.');
     expect(planned.textContent).toContain('Across those futures, £9 of every £10 of income the plan pays is still paid.');
     expect(planned.textContent).toContain('In the worst 1 in 10 futures, what is left at 97 is £40,000.');

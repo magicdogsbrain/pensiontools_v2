@@ -199,7 +199,7 @@ export const C = {
         'pay-in-past-75-partner': 'Your partner would be over 75 by then, and paying in can only be counted until 75: after that the government adds no tax back. Choose an earlier age, or answer No to their paying in.'
       }
     },
-    'you.statePension.kind': { label: 'State Pension', options: { full: 'The full amount', forecast: 'My forecast', none: 'None' } },
+    'you.statePension.kind': { label: 'State Pension', options: { full: 'The full amount', forecast: 'My forecast', none: 'None' }, help: 'The full amount needs 35 years of National Insurance; with fewer it is less. Your own forecast is at gov.uk/check-state-pension.' },
     'you.statePension.yearly': {
       label: 'Your forecast, a year',
       errors: { required: 'Type the yearly amount from your State Pension forecast, for example 9,000.', notANumber: 'Use figures only, for example 9,000.' }

@@ -319,7 +319,7 @@ export const B = {
         tooHigh: 'Type an age between 18 and 100.'
       }
     },
-    'you.statePension.kind': { label: 'State Pension', options: { full: 'The full amount', forecast: 'My forecast', none: 'None' } },
+    'you.statePension.kind': { label: 'State Pension', options: { full: 'The full amount', forecast: 'My forecast', none: 'None' }, help: 'The full amount needs 35 years of National Insurance; with fewer it is less. Your own forecast is at gov.uk/check-state-pension.' },
     'you.statePension.yearly': {
       label: 'Your forecast, a year',
       errors: { required: 'Type the yearly amount from your State Pension forecast, for example 9,000.', notANumber: 'Use figures only, for example 9,000.' }

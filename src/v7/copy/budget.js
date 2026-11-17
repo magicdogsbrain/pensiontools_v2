@@ -24,7 +24,7 @@ export const BUDGET = {
     budgetSame: 'This is your budget’s total.',
     use: 'Use {amount} a month',
     /** The national guide levels, beside the box: a second guide, never the figure unless the person picks one. */
-    levels: 'The national guide levels (the Retirement Living Standards) for {who}: Basic {minimum}, Moderate {moderate} and Comfortable {comfortable} a month.',
+    levels: 'The national guide levels (the Retirement Living Standards) for {who}: Basic {minimum} (the published “Minimum”), Moderate {moderate} and Comfortable {comfortable} a month, for a home owned outright, with no rent or mortgage to pay.',
     who: { single: 'one person', couple: 'a couple' }
   },
 

@@ -1,10 +1,4 @@
 {
   "note": "Questions an area chose not to answer in this release: each scenario listed runs under test.fail(). The list may only shrink from one release to the next (tests/scenarioRules.test.js compares it with the copy at the last tag).",
-  "unanswered": [
-    {
-      "scenario": "s12",
-      "owner": "COUPLE",
-      "reason": "After Sam's stop moves to 62 the household check's starting pot (Kim's £320,000 plus Sam's pot at 62) is not stated where the scenario reads it; the route to the household result and the figure's place are not settled."
-    }
-  ]
+  "unanswered": []
 }

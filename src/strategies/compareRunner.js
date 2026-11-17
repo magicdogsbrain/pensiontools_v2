@@ -286,3 +286,22 @@ export function cannedDecade(p, year, month) {
   }
   return out;
 }
+
+/**
+ * The ways ranked on a plan (index.html strategyOverviewHtml, 7.12.0), a locked contract plan's own way as its plan document
+ * holds it: { id, r, p, sc } for each way the one test could pay, `r`/`p` the document's for the own way when `own` is given
+ * ({ id, r, p }: LadderPosition.documentLadder's plan's document, `strategy.r` and `strategy.p`), else the live run's. The own
+ * way is never run again, so the ranking gives the figure "Does it last?" and the plan document give.
+ * @param {object} strategies  compareAll's `strategies`
+ * @param {object} p           the live plan every other way ran on
+ * @param {{ id: string, r: object, p: object }|null} own
+ * @param {(r: object, p: object) => object} score  the ranking's score (index.html scoreStrategy)
+ */
+export function rankedWays(strategies, p, own, score) {
+  return Object.keys(strategies || {}).map((id) => {
+    const mine = own && own.id === id && own.r ? own : null;
+    const r = mine ? mine.r : strategies[id];
+    const pp = mine ? (mine.p || p) : p;
+    return { id, r, p: pp, sc: r && r.affordable ? score(r, pp) : null, ...(mine ? { asLocked: true } : {}) };
+  }).filter((x) => x.sc);
+}

@@ -4206,7 +4206,7 @@
     import { emptyHoldings, normaliseHoldings, linesFromTaggedFunds, holdingsSummary, stampHoldings, holdingsWith } from './src/services/HoldingsRecord.js';
     import { switchStrategy, cleanParams, activeParams, sortLegacyParams } from './src/services/StrategyState.js';
     import { switchPatch, restoredParamsFor, dialParams } from './src/services/PlanCommit.js';   // the strategy switch as one pure patch (6.40.0)
-    import { compareAll, mixCells, ladderYearsOfPlan } from './src/strategies/compareRunner.js';   // the nine ways through the one test, one loop (6.40.0); the Compare allocations cells (6.41.0)
+    import { compareAll, mixCells, ladderYearsOfPlan, rankedWays } from './src/strategies/compareRunner.js';   // the nine ways through the one test, one loop (6.40.0); the Compare allocations cells (6.41.0)
     import { rotationStatus, rotationBlock, rotationMarket, sellTicketRows } from './src/services/RotationStatus.js';
     import { activeEquity, loadLiveEquity, equityDrawdown, equityProvenance, setEquityOverride } from './src/services/EquityIndex.js';
     import { enterGuestMode, isGuest, leaveGuestMode, clearGuestData } from './src/firebase/index.js';
@@ -8750,10 +8750,10 @@
         ['I want the ladder, but with one pre-agreed escape into cheap equities', ['gilt-rotation', 'floor-to-age']]
       ];
       const c = await cmpRun();
-      const S = c.all.strategies, ids = Object.keys(S);
+      const lo = await lockedPlanLadder(c.settings).catch(() => null), lockedOwn = lo && CONTRACT_IDS.includes(c.settings.strategyId) && lo.doc.strategy && lo.doc.strategy.r && lo.doc.strategy.p ? { id: c.settings.strategyId, r: lo.doc.strategy.r, p: lo.doc.strategy.p } : null, S = lockedOwn ? { ...c.all.strategies, [lockedOwn.id]: lockedOwn.r } : c.all.strategies, ids = Object.keys(S);   // a locked ladder's own way is its plan document's, never run again (7.12.0)
       const pot = c.p.pot + (c.p.isa || 0);
       // ---- 1 · Ranked on your plan: every strategy through the one test, by how many futures out of 10 it lasts ----
-      const scored = ids.map((id) => ({ id, r: S[id], sc: S[id].affordable ? scoreStrategy(S[id], c.p) : null })).filter((x) => x.sc);
+      const scored = rankedWays(S, c.p, lockedOwn, scoreStrategy);
       let h = rankingCardHtml({ scored, names: STRATEGY_NAMES, colors: STRATEGY_COLORS, rankBy: window._cmpRankBy || 'lasts', more: !!window._cmpMore, volFloorPct: VOL_FLOOR_PCT,
         unaffordable: ids.filter((id) => !S[id].affordable).map((id) => ({ id, name: STRATEGY_NAMES[id], reason: S[id].reason || '' })),
         cutsWords: 'Pots & Valves and Buckets in order ' + cutsSettingWords(c.settings, 'pots-and-valves') });
@@ -9105,7 +9105,7 @@
       let over = { ...settings, strategyId: id, strategyParams: prm, ...cutPatch };   // the what-if names its own strategy: planFromSettings reads the dials as that strategy's (6.13.5)
       if (id === 'pots-and-valves' || id === 'buckets-in-order') over = applyAllocDials(over);
       const p = strategyPlanFor(over, prm.essentialsAnnual);
-      const r = stressTestStrategy(id, p);
+      const r = stressTestStrategy(id, p); const docOwn = id === 'gilt-rotation' && settings.strategyId === id && !Object.values(d || {}).some((v) => v != null) ? await lockedPlanLadder(settings) : null;   // a locked rotation plan's own way: its sheet is the document's (7.12.0)
       let h = '<div class="card"><h2>' + budEsc(STRATEGY_NAMES[id]) + ' <span class="hint" style="font-weight:normal;font-size:13px;">— ' + budEsc(spec.tag) + '</span></h2><p style="font-size:14px;margin:0 0 4px;">' + spec.intro + '</p>';
       if (!r.affordable) {
         const short = r.shortfall || 0; const perK = 27000;
@@ -9132,7 +9132,7 @@
         + '<div class="settings-section" style="margin:0;"><div class="section-title" style="font-size:13px;color:var(--warning);">How it fails</div>' + list(spec.fails) + '</div>'
         + '<div class="settings-section" style="margin:0;"><div class="section-title" style="font-size:13px;">What you do</div>' + list(spec.doWhat) + '</div>'
         + '<div class="settings-section" style="margin:0;"><div class="section-title" style="font-size:13px;">How you get out</div>' + list(spec.exit) + '</div></div></div>';
-      h += '</div>' + strategyResultCard(r, p, { title: '5 · The honest numbers' });
+      h += '</div>' + strategyResultCard(r, p, { title: '5 · The honest numbers', docSheet: !!docOwn });
       return h;
     }
 

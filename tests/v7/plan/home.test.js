@@ -185,7 +185,7 @@ describe('one engine: the rail\'s Next is the first thing due, and the home\'s f
     // retaken in 7.10.0 (spec-7100 §5): the seven rules, the tax year before the month (a month cannot be recorded before its
     // year is set up) — then the sentences that say where things stand, the review's always last
     const due = NEXT_ORDER.filter((x) => DUE_IDS[x]);
-    expect(due).toEqual(['P.closed', 'P.noAge', 'P.agesFromSaving', 'P.confirmStop', 'P.taxyear', 'P.arrive', 'P.month', 'P.review', 'P.offCourse', 'P.householdPending']);
+    expect(due).toEqual(['P.closed', 'P.noAge', 'P.agesFromSaving', 'P.confirmStop', 'P.taxyear', 'P.arrive', 'P.month', 'P.review', 'P.offCourse', 'P.householdPending', 'P.move']);
     expect(NEXT_ORDER.slice(-5)).toEqual(['P.idle', 'P.window', 'P.onCourse', 'P.nextReview', 'P.reviewAny']);
   });
   for (const today of DATES) {
@@ -501,7 +501,7 @@ describe('the words of the home (copy/home.js)', () => {
     .replace(/\{pct\}/g, '94').replace(/\{start\}/g, 'April 2027').replace(/\{stopped\}/g, 'May 2026').replace(/\{records\}/g, 'July 2026').replace(/\{moveTo\}/g, '2026/27').replace(/\{title\}/g, 'Record October').replace(/\{question\}/g, 'Am I saving enough?').replace(/\{drawn\}/g, '£1,200').replace(/\{age\}/g, '57').replace(/\{plan\}/g, '£1,100').replace(/\{gapYear\}/g, '2027/28').replace(/\{gap\}/g, '£9,000')
     .replace(/\{amount\}/g, '£12,300').replace(/\{years\}/g, '2027/28 to 2029/30')
     // 7.10.0: the review, off course, the move window and the drift line
-    .replace(/\{reviewOften\}/g, 'once a tax year').replace(/\{(a|b)\}/g, '15').replace(/\{line\}/g, '17').replace(/\{left\}/g, '24 months').replace(/\{from\}/g, 'January 2027')
+    .replace(/\{reviewOften\}/g, 'once a tax year').replace(/\{(a|b)\}/g, '15').replace(/\{line\}/g, '17').replace(/\{left\}/g, '24 months').replace(/\{from\}/g, 'January 2027').replace(/\{windowLeft\}/g, '24 months').replace(/\{toBuy\}/g, '£102,400')
     .replace(/\{(held|mix)\}/g, '40');
   it('pass the banned list in every scope a plan page is shown in — records, retired and saver alike; no slot left unfilled', () => {
     const all = [...strings(HOME), ...strings({ WORKING })];

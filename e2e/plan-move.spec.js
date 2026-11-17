@@ -16,6 +16,10 @@ import { test, expect, PROD, REPO, FIXED_NOW, V7_PATH, WORKER_DATA_MISSING } fro
 import { holdInNode } from './helpers/holdInNode.js';
 import { MOVE_WRITES } from '../src/answers/plan/schema.js';
 import { applyPatch } from '../src/answers/plan/about.js';
+import { MOVE } from '../src/v7/copy/move.js';
+
+/** The status sentence as the page fills it (7.12.0: one wording, moveWords.moveStatusOf, read by Node). */
+const statusText = (st) => MOVE.status[st.id].replace(/\{(\w+)\}/g, (m, k) => (st.slots && st.slots[k] != null ? String(st.slots[k]) : m));
 
 test.use({ outside: 'block' });
 
@@ -74,13 +78,18 @@ test.describe('"Your plan\'s mix" living on it, without an account (7.11.1)', ()
     await expect(page.locator('#app [data-screen]')).toHaveAttribute('data-screen', 'plan.move');
     await expect(page.getByTestId('plan.step.move')).toHaveText('Your plan’s mix');
     await expect(page.locator('[data-region="plan-move"]')).toHaveAttribute('data-mode', 'held');
-    await expect(page.getByTestId(`${T}.heldInfo.rungs`)).toHaveText(`${node.move.heldInfo.rungs.held} of the ${node.move.heldInfo.rungs.total} rungs your plan still needs are held.`);
-    await expect(page.locator(`[data-testid="${T}.heldInfo.lines"] li`)).toHaveCount(node.move.heldInfo.lines.length);
-    await expect(page.getByTestId(`${T}.heldInfo.cash`)).toBeVisible();
-    for (const id of ['buy', 'sell', 'next', 'totals', 'schedule', 'cost', 'optional']) await expect(page.getByTestId(`${T}.${id}`)).toHaveCount(0);
+    // 7.12.0 (living on a ladder): one reading, heldLadder — the plan's gilts against what is held, the cash years, the money
+    // the pension holds — drawn as Node's heldView: its figure lines, a row a gilt, the cash years' need; no order sheet
+    const view = node.move.heldView;
+    expect(view).not.toBeNull();
+    const H = `${T}.heldLadder`;
+    await expect(page.getByTestId(H)).toBeVisible();
+    await expect(page.getByTestId(`${H}.figure`)).toHaveCount(view.figure.length);
+    await expect(page.locator(`[data-testid="${H}.gilts"] tbody tr`)).toHaveCount(view.gilts.length);
+    if (view.cash) await expect(page.getByTestId(`${H}.need`)).toBeVisible();
+    for (const id of ['buy', 'sell', 'next', 'totals', 'schedule', 'cost', 'optional', 'sheet.table', 'heldInfo']) await expect(page.getByTestId(`${T}.${id}`)).toHaveCount(0);
     await expect(page.locator('#app input[type="checkbox"]')).toHaveCount(0);
-    await expect(page.locator(`[data-testid="${T}.sheet.table"] tbody tr`)).toHaveCount(node.move.sheet);
-    await expect(page.getByTestId(`${T}.footer`)).toHaveText(FOOTER);
+    await expect(page.getByTestId(`${H}.footer`)).toContainText('Nothing here places an order.');
     const text = await page.locator('#app').innerText();
     expect(text).not.toMatch(BANNED);
     expect(text).not.toMatch(/what to buy and sell|Next: (buy|sell)|Totals: buy|By [A-Z][a-z]+ \d{4}: (buy|sell)/);
@@ -107,11 +116,17 @@ test.describe('"Moving to your plan\'s mix", without an account', () => {
       await expect(page.locator('#app [data-screen]')).toHaveAttribute('data-screen', 'plan.move');
       // read as Moving (7.11.1, asMoving above): the step goes by its full name, as the rail and the home name it there
       await expect(page.getByTestId('plan.step.move')).toHaveText('Moving to your plan’s mix');
-      await expect(page.getByTestId(`${T}.optional`)).toHaveText('Optional. Skipping it means what you hold may not match what the plan was tested on.');
+      // 7.12.0: the lead says "Optional" once (the separate line is gone)
+      await expect(page.getByTestId(`${T}.lead`)).toContainText('Optional');
+      await expect(page.getByTestId(`${T}.optional`)).toHaveCount(0);
       // a rung part bought is said as part bought (7.11.1, the walk), as the Node reading has it
-      await expect(page.getByTestId(`${T}.status.line`)).toHaveText(`${node.move.rungs.bought} of ${node.move.rungs.total} gilts bought${node.move.status.id === 'giltsPart' ? ' and ' + node.move.status.slots.part + ' part bought' : ''}; ${node.move.progressPct}% of the plan’s mix held.`);
+      expect(['gilts', 'giltsPart']).toContain(node.move.status.id);
+      expect(node.move.status.slots.bought).toBe(node.move.rungs.bought);
+      await expect(page.getByTestId(`${T}.status.line`)).toHaveText(statusText(node.move.status));
       await expect(page.locator(`[data-testid="${T}.buy"] tbody tr`)).toHaveCount(node.move.buy.length);
-      await expect(page.locator(`[data-testid="${T}.sell"] tbody tr`)).toHaveCount(node.move.sell.length);
+      // 7.12.0: a ladder's move has no Sell list: "Paying for it" says what of the money the plan does not use pays the buys
+      await expect(page.getByTestId(`${T}.sell`)).toHaveCount(0);
+      await expect(page.getByTestId(`${T}.paying.says`)).toBeVisible();
       // 7.4.2: the cash years are a ladder's only cash, so the table has no row for months before the start
       await expect(page.locator(`[data-testid="${T}.cash.table"] tr[data-row="cashYear"]`).first()).toBeVisible();
       await expect(page.locator(`[data-testid="${T}.cash.table"] tr[data-row="runUp"]`)).toHaveCount(0);
@@ -161,7 +176,9 @@ test.describe('"Moving to your plan\'s mix", without an account', () => {
       expect(mix.held.affordable).toBe(true);
       await page.goto(v7('#/plan/MoveMix02/move'));
       await expect(page.locator('#app [data-screen]')).toHaveAttribute('data-screen', 'plan.move');
-      await expect(page.getByTestId(`${T}.status.line`)).toHaveText(`${mix.move.progressPct}% of the plan’s mix held; ${mix.move.movesDone} of ${mix.move.moves} moves ticked off.`);
+      expect(mix.move.status.id).toBe('held');
+      await expect(page.getByTestId(`${T}.status.line`)).toHaveText(statusText(mix.move.status));
+      await expect(page.getByTestId(`${T}.status.line`)).toHaveText(`${mix.move.progressPct}% of the plan’s mix held; ${mix.move.movesDone} of ${mix.move.moves} moves done.`);
       await expect(page.locator(`[data-testid="${T}.buy"] tbody tr`)).toHaveCount(1);
       await expect(page.locator(`[data-testid="${T}.sell"] tbody tr`)).toHaveCount(1);
       const t0 = Date.now();

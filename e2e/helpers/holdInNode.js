@@ -13,7 +13,8 @@
  *     remove    for remove = { index }: holdPatch's { ok, patch, previous }
  *     paste     for paste = { text, wrapper, answers }: the paste's reading (rows, unseen, leftOut) and holdPatch's { ok, patch, previous }
  *     move      moveOf's status words, the keys of Buy and Sell, the first rung of the order sheet, whether it waits, and
- *               (7.11.1) its mode by phase and what is held as information (`heldInfo`)
+ *               (7.11.1) its mode by phase and what is held as information (`heldInfo`; 7.12.0, a ladder living on it:
+ *               heldLadder's reading, and `heldView`, the page's drawing of it)
  *     tick      for tick = { key, done }: tickPatch's { ok, patch, previous }
  *     held      runHeld's result when `held` is true (one run of the one test)
  */
@@ -49,7 +50,7 @@ if (paste) {
   out.paste = { rows: c.paste.rows.length, unrecognised: c.paste.rows.filter((r) => r.unrecognised).length, leftOut: c.paste.leftOut.length, unseen: c.paste.unseen.map((u) => u.index), merged: c.paste.merged ? { added: c.paste.merged.added.length, updated: c.paste.merged.updated.length } : null, ok: p.ok, patch: p.patch, previous: p.previous, line: p.line };
 }
 const mv = moveOf([{ plan: up }], up.id, { today });
-out.move = { kind: mv.kind, locked: mv.locked, waiting: mv.waiting, status: mv.status, progressPct: mv.progressPct, rungs: mv.rungs, moves: mv.moves, movesDone: mv.movesDone, buy: (mv.buy || []).map((b) => b.key), sell: (mv.sell || []).map((b) => b.key), sheetFirst: mv.sheet && mv.sheet.length ? mv.sheet[0] : null, sheet: mv.sheet ? mv.sheet.length : 0, own: mv.own, held: mv.held, uncovered: mv.cost ? mv.cost.uncovered.length : 0, totals: mv.totals, mode: mv.mode, heldInfo: mv.heldInfo };
+out.move = { kind: mv.kind, locked: mv.locked, waiting: mv.waiting, status: mv.status, progressPct: mv.progressPct, rungs: mv.rungs, moves: mv.moves, movesDone: mv.movesDone, buy: (mv.buy || []).map((b) => b.key), sell: (mv.sell || []).map((b) => b.key), sheetFirst: mv.sheet && mv.sheet.length ? mv.sheet[0] : null, sheet: mv.sheet ? mv.sheet.length : 0, own: mv.own, held: mv.held, uncovered: mv.cost ? mv.cost.uncovered.length : 0, totals: mv.totals, mode: mv.mode, heldInfo: mv.heldInfo, heldView: mv.heldView || null };
 if (tick) { const p = tickPatch(up, tick.key, { today, done: tick.done !== false }); out.tick = { ok: p.ok, patch: p.patch, previous: p.previous, line: p.line }; }
 if (held) { const { runHeld } = await import(${JSON.stringify(src('src/answers/plan/moveRun.js'))}); const { futuresOutOfTen } = await import(${JSON.stringify(src('src/services/OneAnswer.js'))}); const r = runHeld(up, { today }); out.held = { ...r, words: r.a ? futuresOutOfTen(r.a.share).words : null }; }
 process.stdout.write(JSON.stringify(out));

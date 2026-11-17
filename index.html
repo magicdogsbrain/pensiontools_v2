@@ -437,13 +437,6 @@
     .lock-banner > span { flex: 1 1 320px; }
     .lock-banner.amending { border-left-color: #f59e0b; background: rgba(245, 158, 11, 0.08); }
     .lock-banner button { flex: 0 0 auto; }
-    /* Save button in its locked state: looks inert (greyed) but stays clickable to explain the lock. */
-    #dsSaveBtn.btn-locked {
-      background: var(--border);
-      color: var(--text-muted);
-      cursor: not-allowed;
-      opacity: 0.8;
-    }
     /* Disabled controls inside the locked settings read clearly as inert, not broken. */
     #decision-decisionsettings input:disabled,
     #decision-decisionsettings select:disabled,
@@ -2681,7 +2674,6 @@
             </div>
 
             <div class="button-row" style="margin-top: 24px;">
-              <button id="dsSaveBtn" data-on-click="saveDecisionSettingsUI()">Save Settings</button>
               <button id="dsResetBtn" class="secondary" data-on-click="resetDecisionSettingsUI()">Reset to Defaults</button>
             </div>
           </div>
@@ -11479,31 +11471,29 @@
       }
     }
 
-    // Enable/disable every control in the Decision settings pane. The Save button is excluded — it stays
-    // clickable while locked so a click can explain the lock (it is restyled to a "Locked" pill instead).
+    // Enable/disable every control in the Decision settings pane (it has no Save since 7.12.0: an unlocked plan's settings
+    // follow Stress tester → Settings, a locked plan's are frozen by the lock).
     function setDecisionSettingsEnabled(enabled) {
       const root = document.getElementById('decision-decisionsettings');
       if (!root) return;
       root.querySelectorAll('input, select, textarea, button').forEach(el => {
         if (el.closest('#dsLockBanner')) return;   // banner controls stay live
-        if (el.id === 'dsSaveBtn') return;         // handled separately (see below)
         el.disabled = !enabled;
       });
     }
 
     async function refreshDecisionLock() {
       const banner = document.getElementById('dsLockBanner');
-      const saveBtn = document.getElementById('dsSaveBtn');
-      if (!banner || !saveBtn) return;
+      if (!banner) return;
       _dsLocked = await planIsLocked();
 
       if (!_dsLocked) {                    // unlocked: these are the plan's own settings, changed on Stress tester → Settings (7.12.0)
-        paintDraftSettingsLine(window, banner); setDecisionSettingsEnabled(false); saveBtn.disabled = true; saveBtn.classList.remove('btn-locked');
+        paintDraftSettingsLine(window, banner); setDecisionSettingsEnabled(false);
         updatePlanLockChip();
         return;
       }
 
-      // Locked: freeze the form, show the notice, and turn Save into a greyed "Locked" pill.
+      // Locked: freeze the form and show the notice.
       _dsCanUnlock = true;
       let dep = null; try { dep = await planDependents(); } catch (e) { /* facts unavailable */ }
       banner.style.display = 'flex';
@@ -11512,8 +11502,6 @@
       const verb = dep && (dep.entriesUnderCurrent + dep.taxYearsSetUp.length) === 1 ? 'was' : 'were';
       banner.innerHTML = await decisionLockBannerHtml({ what, verb });   // the words, and a closed plan's with no unlock (6.56.0): src/ui/planCloseUi.js
       setDecisionSettingsEnabled(false);
-      saveBtn.disabled = false; saveBtn.textContent = '🔒 Locked';
-      saveBtn.classList.add('btn-locked');
       updatePlanLockChip(); // keep the header cue in sync with lock changes
     }
 
@@ -11552,90 +11540,6 @@
     window.createNewPlanForSettings = function() {
       const btn = document.getElementById('scenarioNewBtn');
       if (btn) btn.click();
-    };
-
-    // Save decision settings
-    window.saveDecisionSettingsUI = async function() {
-      if (!isLoggedIn()) {
-        showToast('Please sign in to save settings', 'error');
-        return;
-      }
-
-      // Locked plan: the Save button is a "Locked" pill — clicking it just explains the lock.
-      if (_dsLocked || await planIsLocked()) {
-        showToast('These settings are locked. Use “Unlock to edit…” above to change them.', 'info');
-        return;
-      }
-
-      // Guard against entering a date of birth instead of the SP start date.
-      const dsSpCheck = validateStatePensionDate(document.getElementById('dsSpStartDate').value.trim());
-      if (!dsSpCheck.valid) {
-        showToast(dsSpCheck.error, 'error');
-        return;
-      }
-      if (dsSpCheck.warning) {
-        showToast(dsSpCheck.warning, 'warning');
-      }
-
-      // Soft plausibility guard for the fund minimums.
-      const dsAlloc = readAlloc('ds');
-      if (!await confirmFundsIfLow(dsAlloc.equityMin, dsAlloc.bondMin, dsAlloc.cashTarget)) return;
-
-      showLoading('Saving settings...');
-      try {
-        await saveDecisionSettings({
-          configured: true,  // user has been through Settings — routing can go straight to the tool
-          accessMethod: document.getElementById('dsAccessMethod').value || 'drawdown',
-          ufplsYears: +document.getElementById('dsUfplsYears').value || null,
-          ufplsThenPcls: document.getElementById('dsUfplsPcls').checked,
-          bandFillRecycle: document.getElementById('dsBandFillRecycle').checked,
-          equityMin: dsAlloc.equityMin,
-          bondMin: dsAlloc.bondMin,
-          cashTarget: dsAlloc.cashTarget,
-          duration: +document.getElementById('dsDuration').value,
-          equityGlideEnabled: document.getElementById('dsEquityGlide').checked,
-          baseSalary: +document.getElementById('dsBaseSalary').value,
-          spendingProfile: 'flat',   // the taper lives on the income steps now
-          // State Pension (new fields)
-          spStartDate: document.getElementById('dsSpStartDate').value.trim() || null,
-          spWeeklyAmount: +document.getElementById('dsSpWeeklyAmount').value || 0,
-          protectionFactor: +document.getElementById('dsProtectionFactor').value,
-          protectionEscalateMonths: Math.max(0, +document.getElementById('dsProtEscalate')?.value ?? 12),
-          recoveryBuffer: +document.getElementById('dsRecoveryBuffer').value,
-          disableProtection: document.getElementById('dsDisableProtection').checked,
-          consecutiveLimit: +document.getElementById('dsConsecutiveLimit').value,
-          isaBalance: +document.getElementById('dsIsaBalance').value || 0,
-          isaDrawdownStrategy: document.getElementById('dsIsaPolicy')?.value || 'minimiseEarlyTax',
-          // Taxable account (GIA): what it holds, bed-and-ISA reminders, earnings (the balance itself
-          // is a monthly entry). No start-balance field on this form — the Monthly Entry is the truth.
-          taxableMix: document.getElementById('dsTaxableMix')?.value || 'equity',
-          relevantEarnings: +document.getElementById('dsRelevantEarnings')?.value || 0,
-          bedAndIsa: document.getElementById('dsBedAndIsa') ? document.getElementById('dsBedAndIsa').checked : true,
-          // Diversifiers sleeve + tagged portfolio — the Decision target now reflects the chosen
-          // allocation (preset / custom / tagged) consistently with Stress.
-          diversifierStart: dsAlloc.diversifierStart || 0,
-          subAsset: dsAlloc.subAsset || null,
-          glideEndgame: dsAlloc.glideEndgame || null,   // tent endgame for a tagged plan
-          allocMode: allocMode('ds'),                   // 'risk' or 'funds'
-          taggedFunds: funds('ds').filter(f => f.ticker && f.value > 0),
-          // Saving does NOT lock. The first recorded entry / set-up tax year locks the plan; a plan
-          // that already has records re-locks on save (its yardstick is rebuilt below).
-          locked: await planHasRecords()
-        });
-        // Plan of record: the projection these settings imply — rebuilt on every save (archived on unlock).
-        try { await saveActivePlanOfRecord(await buildPlanOfRecord(await getDecisionSettingsAsync())); }
-        catch (e) { console.warn('Plan-of-record snapshot failed (non-fatal):', e); }
-        updateDraftLines();
-        updateNextStepBanner();
-        showToast((await planIsLocked()) ? 'Settings saved. The plan is locked again because entries are recorded against it.' : 'Settings saved. The plan stays a draft until you record a monthly entry or set up a tax year.', 'success', 4000);
-        // Re-read + apply the lock (freezes the form, turns Save into the "Locked" pill).
-        await refreshDecisionLock();
-      } catch (error) {
-        console.error('Error saving decision settings:', error);
-        showToast('Error saving: ' + error.message, 'error');
-      } finally {
-        hideLoading();
-      }
     };
 
     // Reset decision settings

@@ -4364,7 +4364,7 @@
       "kind": "machinery",
       "name": "Settings have been saved once",
       "what": "Marks a plan whose settings have been through Settings at least once, so the tool opens straight away.",
-      "whereV6": "saveStressSettingsUI / saveDecisionSettingsUI",
+      "whereV6": "saveStressSettingsUI (and saveDecisionSettingsUI until 7.12.0, when Decision → Settings lost its Save)",
       "who": "Nobody sees it",
       "keys": [
         "stress.configured",

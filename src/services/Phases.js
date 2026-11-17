@@ -144,7 +144,8 @@ function nearestLevel(equity) {
  */
 export function derivedLevelFrom(plan, { settings = null } = {}) {
   const lines = holdingsLines(plan && plan.holdings);
-  if (lines.length) {
+  // (7.12.0, lead decision 4) what is held is read only once it was accepted as the plan (SavingPath.savingPathMixes, the same rule)
+  if (lines.length && storedAgreementOf(plan)) {
     const prop = holdingsProportions(lines);
     if (prop && prop.total > 0) {
       const b = prop.buckets;

@@ -261,3 +261,28 @@ describe('"Your plan" for a plan still saving says the pension today the home sa
     expect(JSON.stringify(pg)).not.toMatch(/"answerStale":\{/);
   });
 });
+
+// ---- what you hold never changes a saving plan's answer unless accepted (walker 2 high 3; lead decision 4) ---------------
+import { savingPathMixes } from '../../../src/services/SavingPath.js';
+import { derivedLevelFrom } from '../../../src/services/Phases.js';
+
+describe('the saving mix is the plan\'s own unless what is held was accepted as the plan', () => {
+  // the plan's own allocation: £60,000 shares, £30,000 bonds, £10,000 cash = 60% / 30% / 10%
+  const settings = { equityMin: 60000, bondMin: 30000, cashTarget: 10000 };
+  // what is held: all of it in shares (a "default fund" marked Shares)
+  const prop = { total: 131000, buckets: { shares: 131000, bonds: 0, diversifiers: 0, cash: 0 } };
+  it('not accepted: 60% shares, the plan\'s own; marking a holding as shares changes nothing', () => {
+    const m = savingPathMixes(settings, prop, null, null);
+    expect(m.fromHoldings).toBe(false);
+    expect(Math.round(m.saving.equity * 100)).toBe(60);
+  });
+  it('accepted ("This is how I want to hold it"): what is held, 100% shares, and it says so', () => {
+    const m = savingPathMixes(settings, prop, null, { moving: { agreed: { at: '2026-11-17T12:00:00.000Z' } } });
+    expect(m.fromHoldings).toBe(true);
+    expect(Math.round(m.saving.equity * 100)).toBe(100);
+  });
+  it('the review\'s "while you save" level is read from the plan, not from what is held, until accepted', () => {
+    const plan = { holdings: { version: 1, lines: [{ wrapper: 'SIPP', ticker: 'VWRP', name: 'All-world shares', value: 131000 }] }, stressTool: { settings } };
+    expect(derivedLevelFrom(plan, { settings }).from).not.toBe('held');
+  });
+});

@@ -75,7 +75,11 @@ export function savingPathMixes(settings, prop, accumulation = null, phases = nu
   const drawing = mix3(s.equityMin, s.bondMin, s.cashTarget) || { ...RISK_PRESETS.balanced };
   const level = storedSavingLevelOf(phases);
   const chosen = level ? mix3(RISK_PRESETS[level].equity, RISK_PRESETS[level].bond, RISK_PRESETS[level].cash) : null;
-  const held = !chosen && prop && prop.total > 0 ? mix3(prop.buckets.shares, (prop.buckets.bonds || 0) + (prop.buckets.diversifiers || 0), prop.buckets.cash) : null;
+  // (7.12.0, lead decision 4) what is held decides the saving mix only once the person has accepted it as the plan ("This is
+  // how I want to hold it": phases.moving.agreed); until then the plan is tested on its own mix, as What you hold says, so
+  // marking a holding never changes the answer without a word
+  const accepted = !!(phases && typeof phases === 'object' && phases.moving && typeof phases.moving === 'object' && phases.moving.agreed);
+  const held = !chosen && accepted && prop && prop.total > 0 ? mix3(prop.buckets.shares, (prop.buckets.bonds || 0) + (prop.buckets.diversifiers || 0), prop.buckets.cash) : null;
   const kept = chosen || held ? null : savingMixOf(accumulation);
   return { saving: chosen || held || kept || drawing, drawing, fromHoldings: !!held, ...(kept ? { fromSavingMix: true } : {}), ...(chosen ? { fromLevel: level } : {}) };
 }

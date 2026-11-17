@@ -54,7 +54,8 @@ test('s10 · Alex, 64, holds ordinary gilts for the cash years: paid for, said o
     await at(page, '2026-04-10T10:00:00.000Z');
     await q.step('sign in, 10 April 2026', () => signIn(page, me));
     await q.step('the full view\'s set-up: already drawing', () => fullViewDrawing(page, { name: 'Alex', age: ALEX64.age }));
-    await q.step('Stress settings: the full index-linked gilt ladder, £485,000, three years from cash, Save', () => stressLadder(page, { pension: ALEX64.pot, cashYears: ALEX64.cashYearsDial }));
+    // the income is typed as Alex's own (7.12.0: a new plan's income box starts empty; the factory £30,000 is nobody's)
+    await q.step('Stress settings: the full index-linked gilt ladder, £485,000, £30,000 a year, three years from cash, Save', () => stressLadder(page, { pension: ALEX64.pot, cashYears: ALEX64.cashYearsDial, steps: [{ amount: ALEX64.yearly }] }));
     await q.step('lock from Stress settings', () => lockFromStressSettings(page));
     const orders = (await q.step('the plan\'s units, read off its order sheet', () => orderSheet(page))) || [];
     q.reach('the order sheet\'s gilts read off the plan document', orders.length > 0, { did: 'no gilt rows on the order sheet' });

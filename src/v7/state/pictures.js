@@ -144,22 +144,27 @@ function sliderOf(state, r, q) {
     // what one person can pay in a month, both parts together (validate.js pay-in-over-limit): the input list's own top for
     // one figure going in, SAVING.payInCeiling
     const ceiling = limitsOf('b', 'you.payIn.total').max;
+    // (7.12.0, P2.1) the slider tries a pay-in (try.payIn / try.payInPct): what you typed as now stays as you typed it
     if (p.kind === 'share') {
-      const own = typed(d['you.payIn.ownPct']) ?? p.ownPct;
+      const own = typed(d['try.payInPct']) ?? typed(d['you.payIn.ownPct']) ?? p.ownPct;
       if (!isNum(own)) return null;
       const employer = isNum(p.employerPct) ? p.employerPct : 0;
       // a share of pay lands pay × share / 12 a month: both parts together stay within what one person can pay in
       const cap = isNum(p.pay) && p.pay > 0 ? Math.floor(((ceiling * 1200) / p.pay - employer) * 2) / 2 : 100;
       const hi = Math.max(0, Math.min(limitsOf('b', 'you.payIn.ownPct').max, cap));
-      const top = Math.min(hi, Math.max(20, Math.ceil((own * 1.5) / 5) * 5));
-      return { q, path: 'you.payIn.ownPct', min: 0, max: top, step: 0.5, value: Math.max(0, Math.min(top, own)), raw: own, unit: 'pct', words: 'share',
+      // its end reaches your share that would be enough, rounded up to 5% (never past all of your pay)
+      const enoughOwn = r.enough && r.enough.atLevel && isNum(r.enough.atLevel.ownPct) ? r.enough.atLevel.ownPct : 0;
+      const top = Math.min(hi, Math.max(20, Math.ceil((own * 1.5) / 5) * 5, Math.ceil(enoughOwn / 5) * 5));
+      return { q, path: 'try.payInPct', min: 0, max: top, step: 0.5, value: Math.max(0, Math.min(top, own)), raw: own, unit: 'pct', words: 'share',
         slots: { employer }, scale: quarters(0, top) };
     }
-    const path = p.kind === 'split' ? 'you.payIn.own' : 'you.payIn.total';
-    const now = typed(d[path]) ?? (p.kind === 'split' ? p.own : p.total);
+    const box = p.kind === 'split' ? 'you.payIn.own' : 'you.payIn.total';
+    const now = typed(d['try.payIn']) ?? typed(d[box]) ?? (p.kind === 'split' ? p.own : p.total);
     const theirs = p.kind === 'split' && isNum(p.employer) ? p.employer : 0;
-    return money(path, p.kind === 'split' ? 'own' : 'total', Math.max(2 * needed, 1.25 * (isNum(now) ? now : 0), 500), now, { employer: theirs },
-      p.kind === 'split' ? Math.max(0, ceiling - theirs) : Infinity);
+    // your part as you typed it: what leaves take-home pay (× 0.8 of what lands), or what lands
+    const unit = p.kind === 'split' && p.ownFrom === 'takeHome' ? 0.8 : 1;
+    return money('try.payIn', p.kind === 'split' ? (unit < 1 ? 'ownTakeHome' : 'own') : 'total', Math.max(2 * needed * unit, 1.25 * (isNum(now) ? now : 0), 500), now, { employer: theirs },
+      p.kind === 'split' ? Math.max(0, (ceiling - theirs) * unit) : Infinity);
   }
   if (q === 'c') {
     // (7.8.0: the scale reaches past Bold's amount, the most of the three levels)
@@ -258,12 +263,14 @@ export function answerTiles(state, q) {
     const others = w ? Object.fromEntries(LEVEL_IDS.filter((k) => k !== r.level && get(r, `levels.${k}.pot`) > 0).map((k) => [k, `levels.${k}.pot`])) : {};
     const L = r.level.charAt(0).toUpperCase() + r.level.slice(1);
     if (!(get(r, `levels.${r.level}.pot`) === 0)) add({ id: 'aim', k: `levels.${r.level}.pot`, kind: 'pot', ageKey: 'stop.age', ...(w ? (Object.keys(others).length === 2 ? { words: `aim${L}W`, slots: others } : { words: `aim${L}WOne` }) : {}) });
-    add({ id: 'nowBad', k: 'potAtStop.now.careful', kind: 'pot', ageKey: 'stop.age' });
+    // (7.12.0, P2.1: a pay-in being tried is never "as now")
+    const T = r.tried && r.tried.payIn ? 'Tried' : '';
+    add({ id: 'nowBad', k: 'potAtStop.now.careful', kind: 'pot', ageKey: 'stop.age', ...(T ? { words: 'nowBadTried' } : {}) });
     // (one reach rule, 7.12.0: a pay-in past the reach of paying in is never a figure: what goes in now is said instead)
     const within = !(r.reach && r.reach.payIn === false);
     if (within && r.onCourse !== true && r.enough && r.enough.how === 'share' && has('enough.atLevel.totalPct')) add({ id: 'enoughShare', k: 'enough.atLevel.totalPct', kind: 'pct', pop: true });
     else if (within && r.onCourse !== true && has('payIn.needed') && r.payIn.needed > 0) add({ id: 'enough', k: 'payIn.needed', kind: 'money', pop: true });
-    else add({ id: 'payInNow', k: 'payIn.now', kind: 'money', pop: true });
+    else add({ id: 'payInNow', k: 'payIn.now', kind: 'money', pop: true, ...(T ? { words: 'payInTried' } : {}) });
   } else if (q === 'c') {
     if (r.status === 'none') return [];
     // the three levels (7.8.0), the one the answer stands behind first
@@ -350,7 +357,9 @@ function saverPicture(r) {
     lines.push({ id: 'enough', role: 'pop', points: rise(p0, needed.middling, a, s) });
     lines.push({ id: 'enough.drawing', role: 'pop', part: 'drawing', points: [{ age: s, value: needed.middling }, { age: enoughOut, value: 0 }] });
   }
-  lines.push({ id: 'now', role: 'now', points: rise(p0, now.middling, a, s) });
+  // (7.12.0, P2.1: a pay-in being tried is said as tried, never "as now")
+  const T = r.tried && r.tried.payIn;
+  lines.push({ id: 'now', role: 'now', points: rise(p0, now.middling, a, s), ...(T ? { legend: 'nowTried' } : {}) });
   lines.push({ id: 'now.drawing', role: 'now', part: 'drawing', points: [{ age: s, value: now.middling }, { age: nowOut, value: 0 }] });
   const band = { id: 'bad', role: 'saving', points: [...rise(p0, now.careful, a, s), { age: nowOut, value: 0 }] };
   const pot = r.levels && r.levels[r.level] ? r.levels[r.level].pot : null;
@@ -361,10 +370,10 @@ function saverPicture(r) {
   const top = roundTop(1.08 * Math.max(...values));
   const rows = [
     { id: 'today', slots: { age: a, pot: round(p0) } },
-    { id: 'now', slots: { age: s, middling: round(now.middling), bad: round(now.careful) } },
+    { id: 'now', slots: { age: s, middling: round(now.middling), bad: round(now.careful) }, ...(T ? { words: 'nowTried' } : {}) },
     ...(needed ? [{ id: 'enough', slots: { age: s, middling: round(needed.middling), bad: round(needed.careful) } }] : []),
     ...(aim ? [{ id: 'aim', slots: { age: s, pot: aim } }] : []),
-    nowOut < end ? { id: 'nowOut', slots: { age: nowOut } } : { id: 'nowLasts', slots: { age: end } }
+    nowOut < end ? { id: 'nowOut', slots: { age: nowOut }, ...(T ? { words: 'nowOutTried' } : {}) } : { id: 'nowLasts', slots: { age: end }, ...(T ? { words: 'nowLastsTried' } : {}) }
   ];
   return { q: 'b', from: a, to: end, top, ticks: [top / 2, top], ages: ageTicks(a, s, end), stop: s, lines, band, marks, rows, lasts: null };
 }

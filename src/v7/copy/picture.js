@@ -9,6 +9,7 @@ export const PICTURE = {
   slider: {
     total: 'What goes into your pension a month',
     own: 'What you pay in a month (your employer’s part stays as it is)',
+    ownTakeHome: 'What leaves your take-home pay a month (your employer’s part stays as it is)',
     share: 'Your share of pay going in (your employer adds {employer}%)',
     take: 'What if you took this a month?',
     spend: 'What you take a month',
@@ -19,6 +20,9 @@ export const PICTURE = {
     label: 'The answer in three figures',
     aim: 'pot to aim for at {age}, at today’s prices',
     nowBad: 'where paying in as now gets you by {age} in a bad case (the worst 1 in 10)',
+    /** (7.12.0) While a pay-in is being tried: the same figures, said for the try. */
+    nowBadTried: 'where paying in as tried gets you by {age} in a bad case (the worst 1 in 10)',
+    payInTried: 'a month going in, as tried',
     enough: 'a month going in that would be enough',
     enoughShare: 'of your pay going in that would be enough',
     payInNow: 'a month going in now',
@@ -61,6 +65,7 @@ export const PICTURE = {
     legend: {
       enough: 'what would be enough',
       now: 'paying in as now',
+      nowTried: 'paying in as tried',
       bad: 'a bad case (the worst 1 in 10)',
       middling: 'at Bold (a guide)',
       /**
@@ -86,6 +91,9 @@ export const PICTURE = {
       aim: 'The pot to aim for at {age}: {pot}.',
       nowOut: 'Paying in as now, in a bad case the money runs out at {age}.',
       nowLasts: 'Paying in as now, the money lasts to {age} even in a bad case.',
+      nowTried: 'At {age}, paying in as tried: {middling} in middling years, {bad} in a bad case.',
+      nowOutTried: 'Paying in as tried, in a bad case the money runs out at {age}.',
+      nowLastsTried: 'Paying in as tried, the money lasts to {age} even in a bad case.',
       dToday: 'Today, at {age}: {pot} in your pension and savings.',
       dOut: 'At what you take, in a bad case the money runs out at {age}.',
       dLasts: 'At what you take, the money lasts to {age} even in a bad case.',

@@ -78,6 +78,7 @@ function Answer({ state, dispatch, frame }) {
       </div>
       <Sentence s={s.verdictLine} source={result} class="line" data-sentence="verdict" />
           {s.verdictEnough && <Sentence s={s.verdictEnough} source={result} class="line enough-now" data-sentence="verdict-enough" />}
+      {s.tryLump && <Sentence s={s.tryLump} source={result} class="line try-lump" data-testid="b.answer.tryLump" />}
       {weighing && <LastsLines result={result} only={LASTS_TOP} />}
       {weighing && <LevelStrip q="b" result={result} dispatch={dispatch} words={B} />}
       {/* the counts to one age of every chance on the page, once, behind one press (7.12.0) */}

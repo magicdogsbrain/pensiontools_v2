@@ -404,7 +404,36 @@ export function sentencesFor(result, facts) {
   // said straight: the verdict, what would be enough, the two incomes and the gap (saving-enough-and-check-in.md 2.2, 3.5)
   Object.assign(out, verdictSentences(result, facts));
   if (WEIGH && facts.weighing && st === 'ok') weighedSentences(out, result, facts);
+  // (7.12.0, P2.1) a try: a one-off sum of your own is said once, with the tax added back; a pay-in being tried is never
+  // called "as now" anywhere on the answer (your employer's part, which a try leaves as it is, still is)
+  if (result.tried && result.tried.lump > 0) {
+    out.tryLump = S('b.try.lump', ['Counting ', M('tried.lump'), ' put in now from your own money: ', M('tried.lumpLands'), ' in your pension with the tax added back.']);
+  }
+  if (result.tried && result.tried.payIn) asTried(out);
   return out;
+}
+
+/**
+ * Every "as now" of the person's own pay-in said as "as tried" (P2.1: the figures are the try's, not what is paid now). An
+ * employer's part named just before it is left "as now": a try moves your part only.
+ */
+function asTried(node) {
+  if (Array.isArray(node)) { node.forEach(asTried); return; }
+  if (!node || typeof node !== 'object') return;
+  if (Array.isArray(node.parts)) {
+    const parts = node.parts;
+    for (let i = 0; i < parts.length; i++) {
+      if (typeof parts[i] !== 'string') continue;
+      if (/more than now\b/.test(parts[i])) parts[i] = parts[i].replace(/more than now\b/g, 'more than the figure tried');
+      if (!/\bas now\b/.test(parts[i])) continue;
+      // the words just before it, figures left out: an employer's part named there keeps its "as now"
+      const before = parts.slice(Math.max(0, i - 4), i).filter((x) => typeof x === 'string').join('') + parts[i].split(/\bas now\b/)[0];
+      if (/employer[^.;:,()]{0,12}$/.test(before.trimEnd()) || /employers?'s?\s*$/.test(before.trimEnd())) continue;
+      parts[i] = parts[i].replace(/\bas now\b/g, 'as tried');
+    }
+    return;
+  }
+  for (const v of Object.values(node)) asTried(v);
 }
 
 /**
@@ -644,6 +673,27 @@ function verdictSentences(result, facts) {
       nowDetail ? [employerPct > 0 ? ' in all' : '', ': ', nowDetail] : employerPct > 0 ? [', ', W.employers, ' ', PCT('enough.now.employerPct'), ' included'] : '', '), ']
       : pair ? ['Paying in ', M('payIn.now'), ' a month between you as now', employersIncluded(employers), ', ']
         : [W.paying, M('payIn.now'), ' a month as now', nowDetail ? [' (', nowDetail, ')'] : (result.payIn.employer || 0) > 0 ? [' (', W.employers, ' ', M('payIn.employer'), ' included)'] : '', ', '];
+  // (7.12.0, P2.1) a pay-in being tried: said as the figure tried, with what you pay now beside it — never "as now"
+  const tried = result.tried && result.tried.payIn ? result.tried : null;
+  const nowSaid = tried
+    ? (en.how === 'share' && typeof tried.nowPct === 'number' ? [PCT('tried.nowPct'), ' of ', W.payShort] : [M('tried.now'), ' a month'])
+    : null;
+  if (tried && nowIn && !pair && Array.isArray(nowWords)) {
+    // "Paying in 37% of your pay (…; you pay 8% of your pay now), " — the same parts, "as now" out, what is paid now in
+    const flat = nowWords.flat(Infinity);
+    const at = flat.findIndex((x) => typeof x === 'string' && x.includes(' as now'));
+    if (at >= 0) {
+      flat[at] = flat[at].replace(' as now', '');
+      let close = -1;
+      for (let k = flat.length - 1; k >= at; k--) if (typeof flat[k] === 'string' && flat[k].includes(')')) { close = k; break; }
+      if (close >= 0) {
+        const str = flat[close];
+        const j = str.lastIndexOf(')');
+        flat.splice(close, 1, str.slice(0, j), '; you pay ', nowSaid, ' now', str.slice(j));
+      } else flat.splice(flat.length - 1, 1, ' (you pay ', nowSaid, ' now), ');
+      nowWords.splice(0, nowWords.length, ...flat);
+    }
+  }
   // (weighing: the chance paying in as now, counted by how long people live; the fixed-age line beside it says the count)
   const asNow = weighedV(v) ? [nowWords, countingLead(c).charAt(0).toLowerCase() + countingLead(c).slice(1), ', your money ', lastsChance(v)]
     : [nowWords, 'your money lasted ', until(facts), ' ', countParts(v.lasted)];

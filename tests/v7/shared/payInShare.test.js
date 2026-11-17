@@ -59,8 +59,9 @@ const sansB = (r) => {
   const { enough, levers, grid, sentences, ...rest } = r;
   void enough; void grid;
   // (7.8.0: what would be enough and the ways to it carry their own counts to the plan-to age — the share's figure)
-  const { verdictLine, enoughHead, enoughLine, enoughFour, enoughMatch, enoughFixed, potsNeeded, lever, ...said } = sentences;
-  void verdictLine; void enoughHead; void enoughLine; void enoughFour; void enoughMatch; void enoughFixed; void potsNeeded;
+  // (7.12.0: what would be enough has a sentence of its own, verdictEnough, said in the person's own kind)
+  const { verdictLine, verdictEnough, enoughHead, enoughLine, enoughFour, enoughMatch, enoughFixed, potsNeeded, lever, ...said } = sentences;
+  void verdictLine; void verdictEnough; void enoughHead; void enoughLine; void enoughFour; void enoughMatch; void enoughFixed; void potsNeeded;
   const { payMore, oneOff, payMoreFixed, oneOffFixed, ...ways } = lever;
   void payMore; void oneOff; void payMoreFixed; void oneOffFixed;
   const { overPay, ...oneOffLever } = levers.oneOff || {};
@@ -252,28 +253,17 @@ describe('4 — the hand-overs and "Try"', () => {
   it('"Pay in more" on a share: the share is written and the kind kept — the lever\'s own share, or one that lands the pounds (3.6)', () => {
     // the lever names a share (what would be enough, saving-enough-and-check-in.md 3.5): that share, your part of it
     const result = { levers: { payMore: { payIn: 937.5, savingsIn: null, lasted: 36, ownPct: 26.5, totalPct: 32.5 } }, inputs: { household: 'single', you: { payIn: SHARE } } };
-    expect(leverActions('payMore', result)).toEqual([
-      { type: 'draft/set', q: 'b', path: 'you.payIn.ownPct', value: '26.5' },
-      { type: 'draft/set', q: 'b', path: 'you.payIn.kind', value: 'share' }
-    ]);
+    // (7.12.0, P2.1) a try, never the boxes typed as now: the lever's share
+    expect(leverActions('payMore', result)).toEqual([{ type: 'draft/set', q: 'b', path: 'try.payInPct', value: '26.5' }]);
     // pounds only (an older answer): the share that lands at least that much, to the box's 0.01% — (500 − 175) × 12 / 35,000
     const pounds = { ...result, levers: { payMore: { payIn: 500, savingsIn: null, lasted: 36 } } };
-    expect(leverActions('payMore', pounds)).toEqual([
-      { type: 'draft/set', q: 'b', path: 'you.payIn.ownPct', value: '11.15' },
-      { type: 'draft/set', q: 'b', path: 'you.payIn.kind', value: 'share' }
-    ]);
-    // a share of a pay of £0 is no share: the pounds into the two parts, as before
+    expect(leverActions('payMore', pounds)).toEqual([{ type: 'draft/set', q: 'b', path: 'try.payInPct', value: '11.15' }]);
+    // a share of a pay of £0 is no share: the pounds tried as your part (the answer reads them so: answer.js tryOf)
     const paused = { ...pounds, inputs: { household: 'single', you: { payIn: { ...SHARE, pay: 0 } } } };
-    expect(leverActions('payMore', paused)).toEqual([
-      { type: 'draft/set', q: 'b', path: 'you.payIn.own', value: '500' },
-      { type: 'draft/set', q: 'b', path: 'you.payIn.employer', value: '0' },
-      // (7.12.0) pounds that land, said so: B's step 1 never reads them as take-home pay
-      { type: 'draft/set', q: 'b', path: 'you.payIn.ownFrom', value: 'lands' },
-      { type: 'draft/set', q: 'b', path: 'you.payIn.kind', value: 'split' }
-    ]);
+    expect(leverActions('payMore', paused)).toEqual([{ type: 'draft/set', q: 'b', path: 'try.payIn', value: '500' }]);
     // one figure or two parts: as before, one figure
     const total = { ...pounds, inputs: { household: 'single', you: { payIn: { kind: 'total', total: 300 } } } };
-    expect(leverActions('payMore', total)).toEqual([{ type: 'draft/set', q: 'b', path: 'you.payIn.total', value: '500' }, { type: 'draft/set', q: 'b', path: 'you.payIn.kind', value: 'total' }]);
+    expect(leverActions('payMore', total)).toEqual([{ type: 'draft/set', q: 'b', path: 'try.payIn', value: '500' }]);
   });
 });
 

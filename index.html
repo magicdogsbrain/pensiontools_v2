@@ -5803,7 +5803,7 @@
       return h;
     }
     function giltOrderSheetHtml(plan, opts = {}) {
-      if (opts.side === 'sell') return giltSellTicketHtml(plan, opts);
+      if (opts.locked) return '<p class="hint" style="margin-top:10px;">Your ladder as locked, gilt by gilt, is in your plan document. What you hold of each gilt is on Your plan’s mix.</p>'; if (opts.side === 'sell') return giltSellTicketHtml(plan, opts);   // a locked ladder: no fresh sheet (7.12.0)
       let h = assumedStatePensionAlertHtml(opts.p) + '<div class="alert alert-warning" style="font-size:12px;margin-top:10px;"><strong>Illustration, not advice.</strong> A shopping list implied by your income schedule, priced from delayed exchange prices and DMO index ratios (settlement ' + budEsc(dataProvenance().index_ratio_settlement || '—') + '). Gilts are dealt in NOMINAL by phone; check nominal × index ratio ≈ the "pays" figure on every order. Prices and ratios move daily.</div>';
       h += '<div class="alert alert-info" style="font-size:12px;margin-top:8px;"><strong>How to give the order (AJ Bell and most platforms take either):</strong> say the <strong>number of units</strong> — that is the nominal figure below (1 unit = £1 nominal; if the screen counts £100 lots, use the bracketed number). Units are what set the income: at maturity you receive units × the index ratio then. Ordering by <em>amount to spend</em> also works, but the units you get depend on the dealing price at that moment, so the income is then only approximately the figure shown. Rule: order by units; check the quoted spend is close to the cost column (plus accrued interest and the dealing fee).</div>'
       h += '<div class="section-title" style="font-size:13px;margin-top:10px;">Order sheet</div><div class="table-scroll-container"><table><thead><tr><th>#</th><th>Buy</th><th>SEDOL</th><th>Ticker</th><th>Matures</th><th>Pays (today\'s £)</th><th>For tax years</th><th>Index ratio</th><th>Units to order <span class="hint">(nominal £)</span></th><th>Or spend <span class="hint">(approx)</span></th></tr></thead><tbody>';
@@ -5928,7 +5928,7 @@
       if (r.strategyId === 'ladder-and-ratchet' && r.configs.lr) {
         h += exampleLadderHtml(Array.from({ length: r.signature.ladderYears }, (_, i) => i + 1), r.configs.lr.drawNetOfSp || drawNetFromPlan(p), 'this shows only what the base ladder\'s rungs might cost, sized net of your State Pension.');
       }
-      if ((r.strategyId === 'full-il-gilt' || r.strategyId === 'gilt-rotation') && r.plan) h += giltOrderSheetHtml(r.plan, { p });
+      if ((r.strategyId === 'full-il-gilt' || r.strategyId === 'gilt-rotation') && r.plan) h += giltOrderSheetHtml(r.plan, { p, locked: !!opts.docSheet });
       if (r.strategyId === 'floor-to-age' && r.configs.fa) {
         h += exampleLadderHtml(Array.from({ length: r.configs.fa.A }, (_, i) => i + 1), r.configs.fa.floorDraw || drawNetFromPlan(p), 'this is the schedule to ' + r.configs.fa.floorToAge + ', one rung per year, net of your State Pension.');
       }
@@ -5952,7 +5952,7 @@
       await new Promise((r) => setTimeout(r, 30));
       try {
         const { p, r, lockedNote } = await oneTestFor(settings);
-        target.innerHTML = lockedNote + strategyResultCard(r, p);
+        target.innerHTML = lockedNote + strategyResultCard(r, p, { docSheet: !!lockedNote });
         withoutCutsTwin(settings, r, p, target);
       } catch (e) {
         console.error('Strategy stress error:', e);
@@ -8886,8 +8886,8 @@
         + '<div class="settings-section" style="margin:0;"><div class="section-title" style="font-size:13px;">How you get out</div><ul><li>Sell the remaining gilts any day at market price (gilts are liquid).</li><li>Or swap them for an RPI-linked annuity at 75 or 80 — one transaction, income for life, no admin.</li></ul></div>'
         + '</div></div>';
       // Block 5 — honest numbers
-      h += '<div class="strat-block"><div class="section-title">5 · The honest numbers</div>' + lockedNote + giltOrderSheetHtml(plan, { p })
-        + '<p class="hint" style="margin-top:8px;">' + (fromDoc ? 'This order sheet is the one in your plan document, priced on ' + budEsc(locked.pricedOn || '—') + '. For a ladder built today: prices' : 'Prices') + ' as of ' + budEsc(prov.as_of || '—') + ' (delayed exchange prices); index ratios for settlement ' + budEsc(prov.index_ratio_settlement || '—') + ' (DMO base RPI + ONS RPI); real curve ' + budEsc(prov.curve_as_of || '—') + '. Spreads 0.15% ≤5y, 0.25% ≤15y, 0.40% beyond; £20 a trade. Gross figures — tax comes out of the SIPP on the way out. An illustration from public data, not a recommendation to buy anything; a regulated adviser can check it against your circumstances.</p></div>';
+      h += '<div class="strat-block"><div class="section-title">5 · The honest numbers</div>' + lockedNote + giltOrderSheetHtml(plan, { p, locked: fromDoc })
+        + (fromDoc ? '</div>' : '<p class="hint" style="margin-top:8px;">' + 'Prices' + ' as of ' + budEsc(prov.as_of || '—') + ' (delayed exchange prices); index ratios for settlement ' + budEsc(prov.index_ratio_settlement || '—') + ' (DMO base RPI + ONS RPI); real curve ' + budEsc(prov.curve_as_of || '—') + '. Spreads 0.15% ≤5y, 0.25% ≤15y, 0.40% beyond; £20 a trade. Gross figures — tax comes out of the SIPP on the way out. An illustration from public data, not a recommendation to buy anything; a regulated adviser can check it against your circumstances.</p></div>');
       // Block 6 — the rotation watch (the same rule the Gilt ladder + rotation strategy models)
       h += '<div class="strat-block"><div class="section-title">6 · The one optional extra: a rotation watch</div><p class="hint" style="margin:0 0 6px;">You can run this ladder with one pre-agreed escape — see the <button type="button" class="risk-btn" style="padding:1px 8px;font-size:11px;" data-on-click="showStrategyPage(\'gilt-rotation\')">Gilt ladder + rotation</button> page for the modelled version.</p>' + rotationWatchHtml(plan) + '</div>';
       h += '</div>';

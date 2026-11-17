@@ -22,7 +22,7 @@ import { stageOf } from '../../services/LifeStage.js';
 import { heldPhase } from '../../services/Phases.js';
 import { normaliseHoldings, normaliseKeep, expectedOf } from '../../services/HoldingsRecord.js';
 import { taxYearLabel, taxYearStartOf } from '../../services/PlanTiming.js';
-import { dateOf, dayWords, monthWords } from './dates.js';
+import { dateOf, dayWords, monthWords, monthName } from './dates.js';
 import { pounds } from './income.js';
 
 const num = (v) => (Number.isFinite(+v) ? +v : 0);
@@ -263,6 +263,12 @@ export function datedCashYears({ now, cash, cashRows, needs, arrivals }) {
   return { rows, due: r0(due), arrives: r0(num(cash) + arrivals.reduce((s, a) => s + a.amount, 0)), gaps: gaps.map((g) => ({ ...g, due: r0(g.due) })) };
 }
 
+/** A run of months as words: "March 2027", "November to December 2026", "November 2026 to February 2027". */
+function whenWords(g) {
+  if (g.from === g.to) return { key: 'whenOne', slots: { month: monthWords(g.from) } };
+  return { key: 'whenRun', slots: { from: g.from.slice(0, 4) === g.to.slice(0, 4) ? monthName(g.from) : monthWords(g.from), to: monthWords(g.to) } };
+}
+
 const WHY = { lump: 'whyLump', lumpEarlier: 'whyLumpEarlier', sp: 'whySp', spOther: 'whySpOther', other: 'whyOther', else: 'whyElse' };
 const isAre = (n) => (n === 1 ? 'is' : 'are');
 const grouped = (v) => String(Math.round(Math.abs(num(v)))).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
@@ -320,7 +326,7 @@ export function heldLadderView(h) {
   let cash = null, summary;
   if (!h.noRecord && h.cashYears && h.dated) {
     const c = h.cashYears, d = h.dated;
-    const when = (g) => (g.from === g.to ? S('whenOne', { month: monthWords(g.from) }) : S('whenRun', { from: monthWords(g.from), to: monthWords(g.to) }));
+    const when = whenWords;
     const amountOf = (a) => (a.fixed ? P(a.amount) : S('linkedAmount', { value: P(a.amount) }));
     const setOf = (a) => (a.forYears && a.forYears.length ? S(a.forYears.every((Y) => Y + 1 + '-04-05' < a.date) ? 'setEnds' : 'setOn', { years: yearsWords(a.forYears) }) : null);
     const arrive = (a, withDate) => ({ ...S(withDate ? 'arriveOn' : 'arrive', { amount: amountOf(a), date: dayWords(a.date), label: a.label }), bracket: setOf(a) });
@@ -346,7 +352,7 @@ export function heldLadderView(h) {
     const giltsPart = g.under + g.none === 0 && g.held >= g.total ? S('sumAll', { total: String(g.total) }) : S('sumSome', { held: String(g.held), total: String(g.total) });
     const cashPart = !cash ? null : h.state === 'cash' ? S('sumCash') : h.state === 'cashGilts' ? S('sumArrives') : h.state === 'all' ? S('sumAllMoney') : S('sumLess', { less: P(h.less) });
     summary = h.noRecord ? null : { ...S(cashPart ? 'summary' : 'summaryGilts', { gilts: giltsPart, cash: cashPart || '' }),
-      bracket: cash && h.timing && h.timing.next ? S('summaryGap', { due: P(h.timing.due), when: h.timing.from === h.timing.to ? S('whenOne', { month: monthWords(h.timing.from) }) : S('whenRun', { from: monthWords(h.timing.from), to: monthWords(h.timing.to) }), label: h.timing.next.label, date: dayWords(h.timing.next.date) }) : null };
+      bracket: cash && h.timing && h.timing.next ? S('summaryGap', { due: P(h.timing.due), when: whenWords(h.timing), label: h.timing.next.label, date: dayWords(h.timing.next.date) }) : null };
   }
   const noCash = !h.noRecord && !h.cashYears ? S('noCashYears', { cash: P(h.money.cash) }) : null;
 

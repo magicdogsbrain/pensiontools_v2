@@ -25,8 +25,8 @@ export const QUESTIONS = Object.freeze([
   { id: 'S8', stage: 'saving', text: 'I had a pay rise. What changes?', asked: 'what a pay rise changes', owner: 'SAVER', screen: 'Check-in; What you pay in', sc: ['s04'], was: 'N' },
   { id: 'S9', stage: 'saving', text: 'What is my pension invested in, and does it matter ("the default fund")?', asked: 'what the pension is invested in', owner: 'HOLD', screen: 'The mix (saver\'s words)', sc: [], why: 'needs a design from its owner before there is a reading to pin', was: 'N' },
   { id: 'S10', stage: 'saving', text: 'When do I start moving to safer things, and into what?', asked: 'when the move to safer things starts, and into what', owner: 'HOLD', screen: 'Plan home; Moving page', sc: ['s19'], was: 'P' },
-  { id: 'S11', stage: 'saving', text: 'Is it too late? At what age and amount could I stop?', asked: 'whether it is too late, and at what age and amount work could stop', owner: 'SAVER', screen: '"When can I stop?" answer', sc: ['s13'], was: 'P' },
-  { id: 'S12', stage: 'saving', text: 'What are my ways forward, in pounds I could really find?', asked: 'the ways forward, in pounds that could really be found', owner: 'SAVER', screen: '"Ways to make it fit"', sc: ['s13'], was: 'P' },
+  { id: 'S11', stage: 'saving', text: 'Is it too late? At what age and amount could I stop?', asked: 'whether it is too late, and at what age and amount work could stop', owner: 'SAVER', screen: '"When can I stop?" answer', sc: [], why: 'at a level no age reaches the answer names no amount that would work: needs a design from its owner (round 3 left it)', was: 'P' },
+  { id: 'S12', stage: 'saving', text: 'What are my ways forward, in pounds I could really find?', asked: 'the ways forward, in pounds that could really be found', owner: 'SAVER', screen: '"Ways to make it fit"', sc: ['s26'], was: 'P' },
   { id: 'S13', stage: 'saving', text: 'What is the least I could live on (published levels, and what they leave out)?', asked: 'the least that could be lived on', owner: 'WORDS', screen: '"What would you spend?"', sc: ['s13'], was: 'P' },
   { id: 'S14', stage: 'saving', text: 'I am paying in after having taken taxable money. What is my limit?', asked: 'the limit on paying in after taking taxable money', owner: 'SAVER', screen: 'Saving page (the £10,000 limit)', sc: [], why: 'needs a design from its owner before there is a reading to pin', was: 'P' },
   // Moving
@@ -66,7 +66,7 @@ export const QUESTIONS = Object.freeze([
   { id: 'C5', stage: 'couples', text: 'Where do I see both of us, from either plan, in either view?', asked: 'where both of them are seen, from either plan, in either view', owner: 'COUPLE', screen: 'Home tile; Household tab', sc: ['s12'], was: 'P' },
   // Changing their mind
   { id: 'X1', stage: 'changing', text: 'What if £2,500, or stop at 58, or 65?', asked: 'what another income or stop age would do', owner: 'SAVER', screen: 'Answer "Try a change"; plan', sc: ['s02'], was: 'P' },
-  { id: 'X2', stage: 'changing', text: 'I changed the stop age or the income on one page. Does every page follow?', asked: 'whether every page follows a change of stop age or income', owner: 'FACTS', screen: 'Every plan page, both views', sc: ['s02', 's05'], was: 'P' },
+  { id: 'X2', stage: 'changing', text: 'I changed the stop age or the income on one page. Does every page follow?', asked: 'whether every page follows a change of stop age or income', owner: 'FACTS', screen: 'Every plan page, both views', sc: ['s02', 's05', 's26'], was: 'P' },
   { id: 'X3', stage: 'changing', text: 'Does the plan\'s name follow?', asked: 'whether the plan\'s name follows a change', owner: 'FACTS', screen: 'Home; plan picker', sc: ['s02'], was: 'N' },
   { id: 'X4', stage: 'changing', text: 'I picked one way of drawing, then another. What changed?', asked: 'what changed between two ways of drawing', owner: 'FACTS', screen: 'How the money is taken; Settings', sc: ['s14'], was: 'P' },
   { id: 'X5', stage: 'changing', text: 'I locked and regret it. Can I unlock, change, lock again, and see what was kept?', asked: 'whether a lock can be undone, changed, locked again and the history seen', owner: 'FACTS', screen: 'Your plan as locked', sc: ['s16'], was: 'Y' },
@@ -74,7 +74,7 @@ export const QUESTIONS = Object.freeze([
   { id: 'X8', stage: 'changing', text: 'If I type my figures into the full view, are they kept, and does every answer use them?', asked: 'whether figures typed into the full view are kept and used', owner: 'VIEWS', screen: 'Full view Stress tester → Settings; Accumulation; Will it last?; Household', sc: ['s12'], was: 'N' },
   { id: 'X7', stage: 'changing', text: 'Can I close a plan and carry on with a new one?', asked: 'whether a plan can be closed and a new one carried on', owner: 'VIEWS', screen: 'Your plans', sc: ['s23'], was: 'P' },
   // Coming back later
-  { id: 'R1', stage: 'later', text: 'Can I keep this, sign in, come back, and find it?', asked: 'whether a kept answer is found again after signing in', owner: 'VIEWS', screen: 'Keep → account → plan home', sc: ['s02'], was: 'P' },
+  { id: 'R1', stage: 'later', text: 'Can I keep this, sign in, come back, and find it?', asked: 'whether a kept answer is found again after signing in', owner: 'VIEWS', screen: 'Keep → account → plan home', sc: ['s02', 's26'], was: 'P' },
   { id: 'R2', stage: 'later', text: 'Am I where I left off, in the view I chose, on the plan I had open?', asked: 'whether the site opens where it was left, in the view chosen', owner: 'VIEWS', screen: 'Landing, both views', sc: ['s16'], was: 'P' },
   { id: 'R3', stage: 'later', text: 'Does the home tell me the answer in pounds without opening anything?', asked: 'whether the home gives the answer in pounds without a press', owner: 'SAVER', screen: 'Plan home', sc: ['s02', 's04'], was: 'N' },
   { id: 'R4', stage: 'later', text: 'What is due next, the same in both views, true for today?', asked: 'what is due next, the same in both views', owner: 'FACTS', screen: 'Home "To do"; full view "Next:"', sc: ['s06'], was: 'P' },
@@ -105,5 +105,8 @@ export const SCENARIOS = Object.freeze({
   s10: { file: 's10-alex-gilts-for-cash-years.spec.js', who: 'Alex, 64', built: true, part: 1 },
   s11: { file: 's11-sam-moving.spec.js', who: 'Sam, 59', built: true, part: 1 },
   s12: { file: 's12-couple-stops-earlier.spec.js', who: 'Kim, 66 and Sam, 61', built: true, part: 1 },
-  ...Object.fromEntries(['s13', 's14', 's15', 's16', 's17', 's18', 's19', 's20', 's21', 's22', 's23', 's24', 's25'].map((s) => [s, { file: null, who: null, built: false, part: 2 }]))
+  s13: { file: 's13-pat-late-starter.spec.js', who: 'Pat, 52', built: true, part: 2 },
+  ...Object.fromEntries(['s14', 's15', 's16', 's17', 's18', 's19', 's20', 's21', 's22', 's23', 's24', 's25'].map((s) => [s, { file: null, who: null, built: false, part: 2 }])),
+  // round 3 (7.12.0): Jo's sentence followed through, five changes of mind, both views
+  s26: { file: 's26-jo-changes-her-mind.spec.js', who: 'Jo, 33', built: true, part: 2 }
 });

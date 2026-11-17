@@ -61,3 +61,6 @@ export const CHECKER = Object.freeze({
     { key: 'ladder', file: '03-gilt-ladder-locked.json' }
   ]
 });
+
+/** Lee, 58 (round 3): £120,000, £400 a month from take-home pay and £200 from the employer, £2,200 a month from 63. */
+export const LEE58 = Object.freeze({ name: 'Lee', age: 58, pot: 120000, fromTakeHome: 400, employer: 200, stopAge: 63, wantMonthly: 2200 });

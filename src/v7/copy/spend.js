@@ -36,7 +36,7 @@ export const SPEND = {
     legendFlat: 'From age {age}, the plan’s first year (the same every year until you add a step)',
     amount: 'A month after tax, at today’s prices',
     /** Under the amount box: the before-tax figure the plan saves (shown, never asked). */
-    gross: '{gross} a year before tax, as the plan saves it.',
+    gross: '{gross} a year before tax, as it is taken.',
     floorAndFlex: 'The essentials your way of drawing (Floor & Flex) buys as a floor are set with the way of drawing, in the full view.'
   },
 
@@ -57,8 +57,8 @@ export const SPEND = {
       fallsPct: { label: 'Falls by' }
     },
     /** Under a later step's amount: the before-tax figure and its share of the start (and of the budget, a guide). */
-    gross: '{gross} a year before tax, as the plan saves it. {pct}% of the start.',
-    grossBudget: '{gross} a year before tax, as the plan saves it. {pct}% of the start, {budgetPct}% of your budget (a guide).',
+    gross: '{gross} a year before tax, as it is taken. {pct}% of the start.',
+    grossBudget: '{gross} a year before tax, as it is taken. {pct}% of the start, {budgetPct}% of your budget (a guide).',
     errors: {
       fromAge: { required: 'Type the age this step starts, for example 75.', notANumber: 'Whole years, please.', tooLow: 'An age of 18 or more.', tooHigh: 'An age up to 110, please.', beforeStart: 'This is not later than the plan’s first year, at {startAge}. Make it later, or change the figure above instead.', afterEnd: 'This is after the plan’s last year, at age {endAge}. Make it earlier, or remove it.', sameAge: 'Two steps start at this age. Each step starts at its own age.' },
       amount: { required: 'Type what you would spend a month from this age, for example 2,000.', notANumber: 'Figures only, like 2,000.', tooLow: 'At least £1 a month. To stop a step, remove it.', tooHigh: 'An amount up to £50,000 a month, please.' },

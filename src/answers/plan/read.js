@@ -28,7 +28,8 @@ import { defaultSpYear } from '../../services/IncomeSchedule.js';
 import { taskKeyOf, isPutOff } from './tasks.js';
 import { optionsFor } from './options.js';
 import { answerAge, bandsOf, netOf, safeTiming } from './about.js';
-import { stepLines } from './spend.js';
+import { stepLines, guaranteedAtYear } from './spend.js';
+import { takenOfTarget } from '../../services/BeforeTax.js';
 import { isBought } from './pots.js';
 import { WAY_DIALS } from './schema.js';
 import { savedLasts } from './lasts.js';
@@ -540,10 +541,18 @@ function planStep(C) {
   const startMonth = (timing && timing.startMonth) || stage.startMonth || null;
   const firstTaxYear = (timing && timing.firstTaxYear) || stage.firstTaxYear || null;
   const ladder = isLadderPlan(plan, ss);
-
+  // (7.12.0) "a year before tax" is what is taken (services/BeforeTax.js): a quarter of each payment tax-free counted, and
+  // the income that comes in anyway at that age taken as it is — the figure the months and the Decision tool take
+  const docSp = locked && doc && doc.layers && doc.layers.sp && num(doc.layers.sp.annual) > 0 ? doc.layers.sp : null;
+  const aNow = timing && num(timing.shapeAgeNow) != null ? timing.shapeAgeNow : num(ss.shapeAgeNow);
+  const takenAt = (amount, fromAge) => {
+    let fixed = 0;
+    try { fixed = docSp ? (fromAge != null && num(docSp.fromAge) != null && fromAge >= docSp.fromAge ? +docSp.annual : 0) : (aNow != null && fromAge != null && timing ? guaranteedAtYear(ss, timing, aNow, Math.max(0, fromAge - aNow), now) : 0); } catch { fixed = 0; }
+    return takenOfTarget(amount, ss, { fixed, bands: bandsOf(ss) });
+  };
   // the one-line result
   let result;
-  if (first) figures.yearly = first.amount;
+  if (first) figures.yearly = takenAt(first.amount, first.fromAge);
   if (locked && first) {
     result = stage.timingMode === 'future'
       // (7.12.0) someone still saving reads what they will spend, a month after tax, as they set it: never a drawing year's
@@ -567,7 +576,7 @@ function planStep(C) {
   if (locked && doc) {
     const bands = bandsOf(doc.assumptions && num(doc.assumptions.pa) != null ? { pa: doc.assumptions.pa, brl: doc.assumptions.brl, hrl: doc.assumptions.hrl } : ss);
     steps.forEach((st, i) => {
-      figures['saysGross' + i] = st.amount; figures['saysNet' + i] = Math.round(netOf(st.amount, bands) / 12);
+      figures['saysGross' + i] = takenAt(st.amount, st.fromAge); figures['saysNet' + i] = Math.round(netOf(st.amount, bands) / 12);
       const parts = [];
       if (st.fromAge != null) { figures['saysAge' + i] = st.fromAge; parts.push('From age ', age('saysAge' + i), ': '); }
       parts.push(money('saysGross' + i), ' a year before tax, ', money('saysNet' + i), ' a month after tax');
@@ -627,7 +636,7 @@ function planStep(C) {
   // What the plan pays
   const pays = [];
   steps.forEach((s, i) => {
-    figures['step' + i] = s.amount;
+    figures['step' + i] = takenAt(s.amount, s.fromAge);
     const parts = [];
     if (s.fromAge != null) { figures['stepAge' + i] = s.fromAge; parts.push('From age ', age('stepAge' + i), ': '); }
     parts.push(money('step' + i), ' a year before tax');

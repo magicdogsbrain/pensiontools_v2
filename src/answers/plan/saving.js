@@ -29,6 +29,7 @@
  * the warnings list leaves the planner's own two lines of it out (the allowance line says it); a plan without it is read by
  * its own records, as before (`warn.mpaa`).
  */
+import { takenOfTarget } from '../../services/BeforeTax.js';
 import { contributionBreakdown, contributionWarnings, projectAccumulation, FCA_RATES } from '../../services/AccumulationEngine.js';
 import { proportions, pensionPotFromHoldings } from '../../services/Holdings.js';
 import { potRecordOf, recordIsaOf } from '../../services/SaverReading.js';
@@ -432,7 +433,7 @@ function verdictOf(plan, list, today) {
   try { total = contributionBreakdown({ netMonthly: +acc.netMonthly || 0, salary: +acc.salary || 0, schemeType: acc.schemeType || 'ras', employerMonthly: +acc.employerMonthly || 0 }).totalMonthly; } catch { total = 0; }
   const now = { line, salary: +acc.salary || 0, total: Math.round(total * 100) / 100 };
   return read.ok
-    ? { ok: true, key: saverRunKey(plan.id, read), inputs: read.inputs, env: read.env, now, notes: { ...read.notes, aimYearly: pounds(read.notes.aimYearly), aimMonthly: pounds(read.notes.aimMonthly), stopAge: String(read.notes.stopAge), rise: read.notes.rise ? { pct: String(read.notes.rise.pct), path: read.notes.rise.path } : null } }
+    ? { ok: true, key: saverRunKey(plan.id, read), inputs: read.inputs, env: read.env, now, notes: { ...read.notes, aimYearly: pounds(takenOfTarget(read.notes.aimYearly, plan && plan.stressTool && plan.stressTool.settings)), aimMonthly: pounds(read.notes.aimMonthly), stopAge: String(read.notes.stopAge), rise: read.notes.rise ? { pct: String(read.notes.rise.pct), path: read.notes.rise.path } : null } }
     : { ok: false, why: read.why || 'notSaving', key: null };
 }
 

@@ -22,6 +22,7 @@
  * that figure while the box still says its month after tax (liftedGross), so the steps written are the planner's to the pound
  * and not the month's rounding grossed up again. A figure typed over the box is grossed up as ever.
  */
+import { takenOfTarget } from '../../services/BeforeTax.js';
 import { taxYearLabel } from '../../services/PlanTiming.js';
 import { amountAtAge, cleanSteps, lumpIntoSteps } from '../../services/IncomeSchedule.js';
 import { spSimConfigFromSettings } from '../../utils/StatePensionUtils.js';
@@ -497,7 +498,9 @@ export function derivedLines(rows, schedule, costs, saved) {
   const lines = [];
   const list = stepLines(rows, ageNow, duration, bands);
   list.forEach((st, i) => {
-    const slots = { age: st.fromAge, monthly: pounds(st.perMonth), yearly: pounds(st.yearly) };
+    // (7.12.0) "a year before tax" is what is taken (services/BeforeTax.js): a quarter of each payment tax-free counted, and
+    // the income that comes in anyway that year taken as it is — the figure the months and the plan document take
+    const slots = { age: st.fromAge, monthly: pounds(st.perMonth), yearly: pounds(takenOfTarget(st.yearly, ss, { fixed: guaranteedAtYear(ss, timing, ageNow, st.fromAge - ageNow, now), bands })) };
     if (st.then === 'falls') lines.push({ id: i === 0 ? 'first.falls' : 'step.falls', slots: { ...slots, pct: String(st.fallsPct), endMonthly: pounds(st.endPerMonth), endAge: st.endAge } });
     else if (st.then === 'glides') lines.push({ id: i === 0 ? 'first.glides' : 'step.glides', slots: { ...slots, toMonthly: pounds(st.endPerMonth), toAge: st.endAge } });
     else lines.push({ id: i === 0 ? 'first.level' : 'step.level', slots });
@@ -561,11 +564,13 @@ export function spendOf(entries, id, { today, typed = null } = {}) {
   const firstMonthly = c.values.first.amount != null ? c.values.first.amount : saved.first.monthly;
   const firstGross = c.values.first.gross != null ? c.values.first.gross : c.values.first.amount != null && c.values.first.amount !== saved.first.monthly ? yearlyGross(c.values.first.amount, b) : saved.first.amount;
   const share = (m, of) => (of > 0 && m != null ? Math.round((m / of) * 100) : null);
+  const takenAtAge = (gross, age) => takenOfTarget(gross, saved.ss, { fixed: guaranteedAtYear(saved.ss, saved.timing, saved.ageNow, Math.max(0, (num(age) ?? saved.ageNow) - saved.ageNow), saved.now), bands: b });
   const lists = {};
   for (const L of SPEND_LIST_IDS) {
     lists[L] = { ids: c.lists[L].ids, cards: c.lists[L].cards.map((card) => {
       const extra = {};
-      if (L === 'steps' && card.values.amount != null) extra.gross = pounds(grossOfRow(card.values, card.saved, b));
+      // (7.12.0) said as it is taken (services/BeforeTax.js), the one figure every page gives for a year before tax
+      if (L === 'steps' && card.values.amount != null) extra.gross = pounds(takenAtAge(grossOfRow(card.values, card.saved, b), card.values.fromAge));
       if (L === 'steps' && card.values.amount != null) { extra.ofStart = share(card.values.amount, firstMonthly); extra.ofBudget = saved.budget.total ? share(card.values.amount, saved.budget.total) : null; }
       if (L === 'steps') { const lastByAge = c.lists.steps.cards.filter((x) => x.values.fromAge != null).sort((x, y) => x.values.fromAge - y.values.fromAge).pop(); extra.last = !!lastByAge && lastByAge.id === card.id; }
       if (L === 'costs' && card.values.amount != null && card.values.atAge != null) {
@@ -596,7 +601,7 @@ export function spendOf(entries, id, { today, typed = null } = {}) {
   return {
     found: true, id: String(plan.id), name: nameOf(plan, today), locked: saved.locked, lockedOn: saved.lockedOn, readonly, editable,
     source: saved.source, ageNow: saved.ageNow, ageToday: saved.ageToday, endAge: saved.endAge, startAge: saved.first.fromAge, flat: saved.flat,
-    firstGross: pounds(firstGross), firstGrossSaved: pounds(saved.first.amount), firstMonthly: pounds(firstMonthly),
+    firstGross: pounds(takenAtAge(firstGross, saved.ageNow)), firstGrossSaved: pounds(saved.first.amount), firstMonthly: pounds(firstMonthly),
     budget: { workedOut: saved.budget.workedOut, total: saved.budget.total != null ? pounds(saved.budget.total) : null, totalValue: saved.budget.total, essentials: saved.budget.essentials != null ? pounds(saved.budget.essentials) : null, at: saved.budget.at },
     fields, lists, errors: c.errors, ok: c.ok, derived, chart, below: below ? { age: below.age, amount: pounds(below.amount) } : null,
     floorFrom: floorFrom ? { age: floorFrom.age, amount: pounds(floorFrom.amount) } : null,

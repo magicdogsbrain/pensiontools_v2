@@ -33,7 +33,8 @@ import { cleanParams } from '../../services/StrategyState.js';
 import { get, applyPatch, safeSettings, safeTiming, bandsOf } from './about.js';
 import { pounds } from './income.js';
 import { isBought } from './pots.js';
-import { monthlyNet, yearlyGross } from './spend.js';
+import { monthlyNet, yearlyGross, guaranteedAtYear } from './spend.js';
+import { takenOfTarget } from '../../services/BeforeTax.js';
 import { LASTS_FIELDS, LASTS_WRITES, TRY_FIELDS, TRY_WRITES, WAY_IDS } from './schema.js';
 import { dateOf, dayWords, MONTHS } from './dates.js';
 import { withoutPotsAsOf } from '../../services/PlanFromToday.js';
@@ -486,13 +487,23 @@ export function tryDifferencesOf(s, c) {
   if (Math.abs((c.isaBalance || 0) - oldIsa) > 1) diff.push({ id: 'isa', slots: { isa: r0(c.isaBalance || 0), old: r0(oldIsa) } });
   const policy = (x) => (x.isaDrawdownStrategy == null ? null : String(x.isaDrawdownStrategy));
   if (policy(c) !== policy(s)) diff.push({ id: 'isaPolicy', slots: { policy: policy(c), old: policy(s) } });
-  if (c.incomeShape === 'level' && (s.incomeShape === 'phases' || r0(c.baseSalary) !== r0(s.baseSalary))) diff.push({ id: 'income', slots: { income: r0(c.baseSalary), steps: s.incomeShape === 'phases' } });
+  // (7.12.0) the flat income said as what is taken before tax (services/BeforeTax.js): a quarter of each payment tax-free
+  // counted, the income that comes in anyway in the first year taken as it is
+  if (c.incomeShape === 'level' && (s.incomeShape === 'phases' || r0(c.baseSalary) !== r0(s.baseSalary))) diff.push({ id: 'income', slots: { income: takenOfTarget(c.baseSalary, c, { fixed: fixedAtStart(c), bands: bandsOf(c) }), steps: s.incomeShape === 'phases' } });
   if (c.duration !== (s.duration || 35)) diff.push({ id: 'years', slots: { years: c.duration, old: s.duration || 35 } });
   if (c.disableProtection !== s.disableProtection && FAMILY.includes(c.strategyId)) diff.push({ id: 'cuts', slots: { on: !c.disableProtection } });
   if (cutPctOf(c.protectionMult) !== cutPctOf(s.protectionMult)) diff.push({ id: 'cutPct', slots: { pct: cutPctOf(c.protectionMult), old: cutPctOf(s.protectionMult) } });
   const esc = (x) => (num(x.protectionEscalateMonths) ?? PROTECTION_ESCALATE_MONTHS);
   if (esc(c) !== esc(s)) diff.push({ id: 'cutEsc', slots: { months: esc(c), old: esc(s) } });
   return diff;
+}
+
+/** The income that comes in anyway in a plan's first year (spend.js guaranteedAtYear), read on its own first tax year: no clock. */
+function fixedAtStart(s) {
+  const ty = num(s.firstTaxYear);
+  const age = num(s.shapeAgeNow);
+  if (ty == null || age == null) return 0;
+  try { return guaranteedAtYear(s, { firstTaxYear: ty }, age, 0, new Date(ty, 3, 6, 12)); } catch { return 0; }
 }
 
 // ---- Try a change on a plan (way-and-mix.md 4): the boxes, the checks, the words, the write ---------------------------------

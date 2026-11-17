@@ -163,6 +163,51 @@ describe('a locked saver\'s Stress settings name the pots the plan was locked wi
   });
 });
 
+// ---- the year before tax with a quarter of each payment tax-free (walker 6 high 4, walker 9 high 6, walker 1 low) ---------
+import { takenOfTarget } from '../../../src/services/BeforeTax.js';
+import { derivedLines, savedSpend } from '../../../src/answers/plan/spend.js';
+import { tryDifferencesOf } from '../../../src/answers/plan/lasts.js';
+
+/**
+ * By hand, at the 2026/27 bands (£12,570 allowance, 20% to £50,270), with a quarter of each payment tax-free a year taken t
+ * leaves 0.25t + 12,570 + 0.8 × (0.75t − 12,570) = 0.85t + 2,514 after tax.
+ *   £2,400 a month (£28,800): t = (28,800 − 2,514) ÷ 0.85 = £30,925 (all of it taxed: 12,570 + 16,230 ÷ 0.8 = £32,858)
+ *   £2,700 a month (£32,400): t = 29,886 ÷ 0.85 = £35,160 (all taxed: £37,358)
+ *   £2,000 a month (£24,000): t = 21,486 ÷ 0.85 = £25,278 (all taxed: £26,858)
+ */
+describe('one figure for "a year before tax": what is taken, a quarter tax-free counted', () => {
+  const UFPLS = { accessMethod: 'ufpls' };
+  it('the rule, both ways round the walkers worked it', () => {
+    expect(takenOfTarget(32858, UFPLS)).toBe(30925);
+    expect(takenOfTarget(37358, UFPLS)).toBe(35160);
+    expect(takenOfTarget(26858, UFPLS)).toBe(25278);
+    expect(takenOfTarget(32858, { accessMethod: 'drawdown' })).toBe(32858);   // every pound taxed: the figure as held
+  });
+
+  it('"Your plan as locked": from 63, a step held as £30,000 is £28,235 taken (0.85t + 2,514 = 26,514)', () => {
+    const raw = JSON.parse(JSON.stringify(corpus()['04-buckets-running']));
+    raw.stressTool.settings.accessMethod = 'ufpls';
+    const pg = planPage([entryOf(raw, '2026-11-17')], raw.id, 'plan', { today: '2026-11-17' });
+    const all = JSON.stringify(pg);
+    expect(/"saysGross0":(\d+)/.exec(all)[1]).toBe('28235');
+  });
+
+  it('"What you spend": from 62, a step held as £38,000 says £35,765 a year before tax (0.85t + 2,514 = 32,914)', () => {
+    const raw = JSON.parse(JSON.stringify(corpus()['02-pnv-draft']));
+    raw.stressTool.settings.accessMethod = 'ufpls';
+    const plan = entryOf(raw, '2026-11-17').plan;
+    const saved = savedSpend(plan, { today: '2026-11-17' });
+    const lines = derivedLines(saved.plainSteps, saved.schedule, saved.costs, saved);
+    const first = lines.find((l) => l.id.startsWith('first.'));
+    expect(first.slots.yearly).toBe('£35,765');
+  });
+
+  it('a try at £2,700 a month after tax says £35,160 a year before tax, never £37,358', () => {
+    const d = tryDifferencesOf({ ...UFPLS, strategyId: 'pots-and-valves', incomeShape: 'level', baseSalary: 32858, duration: 35 }, { ...UFPLS, strategyId: 'pots-and-valves', incomeShape: 'level', baseSalary: 37358, duration: 35 });
+    expect(d.find((x) => x.id === 'income').slots.income).toBe(35160);
+  });
+});
+
 // ---- a locked plan's own figure is a record, never a second verdict (walker 6 high 3: "Not yet" above "Close") -------------
 describe('"Does it last?" on a locked plan: the figure it was locked with is said as a record, with no verdict word of its own', () => {
   const stored = { ...storedBuckets, strategyId: 'pots-and-valves', ruin: { mc: 30, hist: 5 } };   // 7 futures in 10 to a fixed age

@@ -102,7 +102,9 @@ describe('a household answer is never run on a plan\'s starting defaults (7.12.0
   it('this plan with no figures saved: refused, naming this plan', async () => {
     const { runHousehold } = await import('../../../src/answers/plan/householdRun.js');
     const { kim, sam } = kimAndSam();
-    kim.stressTool.settings.configured = false;
+    // no figures anywhere: Settings never saved and its income the factory one (7.12.0: an unsaved Settings with an income of
+    // its own counts, as do the Accumulation tab's figures, so "configured" alone no longer says "no figures")
+    kim.stressTool.settings.configured = false; kim.stressTool.settings.baseSalary = 30000;
     const list = upgradedList([kim, sam], NOW);
     const r = runHousehold(list[0].plan, list[1].plan, { today: KIM_AND_SAM_TODAY });
     expect(r).toMatchObject({ ok: false, reason: 'partnerNotSet', which: 'a' });

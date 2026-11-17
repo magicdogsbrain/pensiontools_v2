@@ -350,7 +350,8 @@ function expectedSaverInputs(state, q, name) {
   // The numbers step holds every field that applies but the spending; the spend step, the spending and its own boxes.
   if (name === `${q}.numbers`) {
     const open = moreIsOpen(state, q);
-    return idsOf(q, schema.fields.filter((f) => f.path !== 'household' && f.group !== 'spend' && f.group !== 'shape' && drawnField(state, q, f, live) && (f.group !== 'more' || open)), shown);
+    // (a try on the answer, group 'try', 7.12.0: drawn under "Try a change", never on the numbers step)
+    return idsOf(q, schema.fields.filter((f) => f.path !== 'household' && f.group !== 'spend' && f.group !== 'shape' && f.group !== 'try' && drawnField(state, q, f, live) && (f.group !== 'more' || open)), shown);
   }
   if (name === `${q}.spend`) return [...idsOf(q, schema.fields.filter((f) => f.group === 'spend' && applies(f)), shown), ...extra];
   if (name === `${q}.keep`) return extra;
@@ -364,6 +365,8 @@ function expectedSaverInputs(state, q, name) {
   }
   // part-time work under "Try a change" is yours: not offered once you have stopped and the answer is your partner's
   if (kind === 'answer' && name === 'a.answer') return [...(askedAboutValues(live.values) === 'partner' ? [] : ['a.try.partTime.yearly']), ...extra];
+  // (7.12.0, P2.1) B's one-off sum of your own under "Try a change": yours, so not once you have stopped
+  if (kind === 'answer' && name === 'b.answer') return [...(askedAboutValues(live.values) === 'partner' ? [] : ['b.try.lump']), ...extra];
   return extra;
 }
 

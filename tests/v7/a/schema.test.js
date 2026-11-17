@@ -253,7 +253,7 @@ describe('the shared parts — one declaration for A, B and C', () => {
     const only = (s, t) => s.fields.map((f) => f.path).filter((p) => !t.fields.some((g) => g.path === p));
     expect(only(SCHEMA_A, SCHEMA_B)).toEqual(['partTime.has', 'partTime.yearly', 'partTime.years']);
     // (7.12.0) B alone asks how your part in pounds is said: what leaves take-home pay, or what lands
-    expect(only(SCHEMA_B, SCHEMA_A)).toEqual(['you.payIn.ownFrom', 'partner.payIn.ownFrom']);
+    expect(only(SCHEMA_B, SCHEMA_A)).toEqual(['you.payIn.ownFrom', 'you.lump', 'try.payIn', 'try.payInPct', 'partner.payIn.ownFrom']);   // …and B's try (P2.1)
   });
 
   it('saverFields and moreFields are the brief\'s (4.1)', () => {

@@ -13,6 +13,7 @@
  * answered, it leaves no key).
  */
 import { APART } from '../shared/household.js';
+import { SAVING } from '../shared/rules.js';
 import { personFields, saverFields, moreFields, SPEND_FIELDS, gridToShow, stopKindField, partnerStopFields, untilBothStopField,
   taxFreeFields, shapeFields, isaGrowthField, savingsGrowthDefault, levelField, horizonEndAge, sexField } from '../shared/schemaParts.js';
 
@@ -25,6 +26,12 @@ export const SCHEMA_B = {
     ...personFields('you'),
     ...(STOP_KIND ? [STOP_KIND] : []),
     ...saverFields('you', { payInRequired: true, ownFrom: true }),
+    // (7.12.0, P2.1) a try on the answer, never a box of the numbers step: a one-off sum of your own put in now (it lands
+    // with the tax added back, × 1.25), and the pay-in being tried — your part as you typed it, or one figure (try.payIn),
+    // or your share of pay (try.payInPct). Not answered is no try: the answer is for what you typed as now.
+    { path: 'you.lump', type: 'money', min: 0, max: 1_000_000, group: 'try', boundaries: [0, 1, 10_000, 60_000, 1_000_000] },
+    { path: 'try.payIn', type: 'money', min: 0, max: SAVING.payInCeiling, group: 'try', boundaries: [0, 1, 500, SAVING.payInCeiling] },
+    { path: 'try.payInPct', type: 'percent', min: 0, max: 100, step: 0.01, group: 'try', boundaries: [0, 5, 50, 100] },
 
     // The age in mind: always after today's age (conflict 24). Not asked with "I've already stopped".
     { path: 'stop.age', type: 'age', min: 18, max: 75, required: true, group: 'stop',

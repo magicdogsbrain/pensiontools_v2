@@ -69,7 +69,9 @@ describe('SCHEMA_B — the declaration', () => {
     // an age), so the checked inputs of a form that never answers them are today's, key for key
     // …and the spending shape's (spending-shape.md 3.2): not answered is the same every year, today's inputs key for key
     // …and how your part in pounds was said (7.12.0): not answered is what lands, as before
-    const NO_DEFAULT = ['stop.kind', 'partner.stop.kind', 'untilBothStop', 'you.taxFreeTaken', 'partner.taxFreeTaken', 'spend.then', 'spend.steps', 'you.payIn.ownFrom', 'partner.payIn.ownFrom'];
+    const NO_DEFAULT = ['stop.kind', 'partner.stop.kind', 'untilBothStop', 'you.taxFreeTaken', 'partner.taxFreeTaken', 'spend.then', 'spend.steps', 'you.payIn.ownFrom', 'partner.payIn.ownFrom',
+      // …and a try on the answer (7.12.0, P2.1): not answered is no try
+      'you.lump', 'try.payIn', 'try.payInPct'];
     for (const f of SCHEMA_B.fields) {
       if (NO_DEFAULT.includes(f.path)) { expect(f.required, f.path).toBeUndefined(); expect('default' in f, f.path).toBe(false); continue; }
       expect(Boolean(f.required) !== ('default' in f), f.path).toBe(true);
@@ -94,7 +96,8 @@ describe('SCHEMA_B — the declaration', () => {
   it('the groups are the blocks of the form; savings and confidence are under more detail', () => {
     // the stop question comes before the pay-in block, which "I've already stopped" hides (couples-different-years.md 3.1)
     // the spending shape is its own block on the spend step (spending-shape.md 4.1)
-    expect([...new Set(SCHEMA_B.fields.map((f) => f.group))]).toEqual(['who', 'you', 'stop', 'more', 'spend', 'shape', 'partner']);
+    // (7.12.0, P2.1) a try on the answer is a group of its own, drawn under "Try a change"
+    expect([...new Set(SCHEMA_B.fields.map((f) => f.group))]).toEqual(['who', 'you', 'stop', 'more', 'try', 'spend', 'shape', 'partner']);
     expect(byPath.get('savings').group).toBe('more');
     expect(byPath.get('isaGrowth').group).toBe('more');                 // how the savings grow, with them (6.22.0)
     // "How careful?" (7.8.0): the shared level field; "9 in 10" and "3 in 4" typed before still read

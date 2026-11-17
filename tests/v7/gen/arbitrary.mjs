@@ -8,6 +8,10 @@
  * same every year, so every generator here draws exactly the households it drew before the shape existed (the same seed,
  * the same inputs). Shaped households have their own generators (tests/v7/shared/shapeGen.mjs).
  *
+ * B's try on the answer (7.12.0, group 'try': a lump of your own, a pay-in tried) and how your part in pounds was said
+ * (`payIn.ownFrom`) are left out the same way: not drawn, there is no try and a part lands as typed, so every generator
+ * draws exactly the households it drew before them. tests/v7/b/tries.test.js and ownFrom.test.js draw them.
+ *
  * How the savings grow (6.22.0, `isaGrowth`) is left out the same way unless asked for (`{ isaGrowth: true }`): not drawn,
  * it is "Mostly cash" whenever there is money in savings (its default rule), and every generator here still draws exactly
  * the households it drew before the choice existed. "Invested like my pension" is drawn by the pairs lists (gen/pairs.mjs,
@@ -28,7 +32,7 @@ export function fieldArb(f) {
 }
 
 /** Whole, valid, checked inputs (defaults filled, fields that do not apply removed). */
-const drawn = (schema, opts = {}) => schema.fields.filter((f) => f.group !== 'shape' && (f.path !== 'isaGrowth' || opts.isaGrowth === true));
+const drawn = (schema, opts = {}) => schema.fields.filter((f) => f.group !== 'shape' && f.group !== 'try' && !/\.payIn\.ownFrom$/.test(f.path) && (f.path !== 'isaGrowth' || opts.isaGrowth === true));
 
 export function arbitraryInputs(schema, env, opts = {}) {
   const record = Object.fromEntries(drawn(schema, opts).map((f) => [f.path, fieldArb(f)]));

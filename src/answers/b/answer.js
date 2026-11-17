@@ -59,7 +59,7 @@ import { stopAtPlan, createStopRunner, verdictAt, bandAt, phasesAt, savingsNeede
   lastsWithin, verdictAtPayIns, countsAtPayIns, leastPayIn, coverAt, lastsWithinWeighted, potNeededWeighted, verdictAtPot, leftAtStop,
   potRunners, leastPotsOf } from '../shared/stopAt.js';
 import { shortfallOf } from '../shared/shortfall.js';
-import { gridToShow, spendLevelAMonth, handOverToC, askedAbout, stopYearsOf } from '../shared/schemaParts.js';
+import { gridToShow, spendLevelAMonth, handOverToC, askedAbout, stopYearsOf, payInParts } from '../shared/schemaParts.js';
 import { apartOf, before2028, payKeepsPensions } from '../shared/apart.js';
 import { shapeOfAnswer, markShapeMoves } from '../shared/shapeAnswer.js';
 import { toHousehold, payInOf } from './toHousehold.js';
@@ -299,6 +299,46 @@ function ownPayIns(row, least, ctx) {
 }
 
 /**
+ * (7.12.0, P2.1) A try on B's answer: `try.payIn` (your part in pounds as you typed it, or one figure) or `try.payInPct`
+ * (your share of pay) — the slider, "Pay in ±" and "Pay in more" write these, never the boxes you typed as now — and
+ * `you.lump`, a one-off sum of your own put in now, which lands with the basic-rate tax added back (× 1.25). Returns the
+ * inputs the answer is worked out at (the try in place of what was typed, the lump in the pot; the try's own keys gone)
+ * and what was typed beside them, or `tried: null` when nothing differs from what was typed. With no try keys at all the
+ * inputs come back as they were given, key for key.
+ */
+export function tryOf(inp) {
+  const t = inp && inp.try;
+  const you = inp && inp.you;
+  const lump = you && typeof you.lump === 'number' && Number.isFinite(you.lump) && you.lump > 0 ? you.lump : 0;
+  if (!t && !(you && 'lump' in you)) return { inputs: inp, tried: null };
+  const { try: _gone, ...rest } = inp;
+  void _gone;
+  const { lump: _l, ...youRest } = you;
+  void _l;
+  const p = youRest.payIn;
+  const num = (v) => typeof v === 'number' && Number.isFinite(v);
+  let payIn = p;
+  if (p && t && p.kind === 'share' && num(t.payInPct) && t.payInPct !== p.ownPct) payIn = { ...p, ownPct: t.payInPct };
+  // a share of a pay of £0 lands nothing: a try in pounds is your part in pounds (the employer's share of £0 is £0)
+  else if (p && t && p.kind === 'share' && !(num(p.pay) && p.pay > 0) && num(t.payIn)) payIn = { kind: 'split', own: t.payIn, employer: 0 };
+  else if (p && t && p.kind === 'split' && num(t.payIn) && t.payIn !== p.own) payIn = { ...p, own: t.payIn };
+  else if (p && t && p.kind === 'total' && num(t.payIn) && t.payIn !== p.total) payIn = { ...p, total: t.payIn };
+  const lands = Math.round(lump * 125) / 100;
+  const inputs = { ...rest, you: { ...youRest, payIn, pot: (youRest.pot || 0) + lands } };
+  if (payIn === p && !lump) return { inputs, tried: null };
+  const was = payInParts(p);
+  return {
+    inputs,
+    tried: {
+      payIn: payIn !== p,
+      // what was typed as now: in all, and (a share) the share in all
+      now: was.total, nowPct: p && p.kind === 'share' && num(p.ownPct) && num(p.employerPct) ? Math.round((p.ownPct + p.employerPct) * 100) / 100 : null,
+      lump, lumpLands: lands
+    }
+  };
+}
+
+/**
  * (7.12.0) A part in pounds typed as what leaves take-home pay (payIn.js ownFrom 'takeHome'): the tax is added back at
  * source, so what leaves take-home pay is exact — the figure typed, and for any other figure × 0.8 — never "about".
  */
@@ -351,7 +391,10 @@ export function answerB(inputs, env) {
   if (problems.length) return { status: 'invalid', problems };
   const checked = checkInputs(SCHEMA_B, inputs, env);
   if (!checked.ok) return { status: 'invalid', problems: Object.entries(checked.errors).map(([field, messageId]) => ({ field, messageId })) };
-  const inp = checked.inputs;
+  // a try (7.12.0, P2.1): the pay-in being tried and a one-off sum of your own put in now are worked out as the figures
+  // tested; what was typed as now is kept beside them (result.tried), never written over
+  const tryRead = tryOf(checked.inputs);
+  const inp = tryRead.inputs;
   // the person the answer is about: you, or — "I've already stopped" — your partner, who must still be working
   const partnerAsked = askedAbout(inp) === 'partner';
   if (partnerAsked && !(inp.partner.stop && inp.partner.stop.kind === 'age')) {
@@ -645,7 +688,7 @@ export function answerB(inputs, env) {
   const firstOwn = Math.min(...whos.map((w) => own[w]));
 
   const result = {
-    status, inputs: inp, whose: plan.whose,
+    status, inputs: inp, ...(tryRead.tried ? { tried: tryRead.tried } : {}), whose: plan.whose,
     ...(partnerAsked ? { askedAbout: 'partner' } : {}),
     ...(apart ? { apart } : {}),
     spend: { perMonth: spendMonth, perYear: spendMonth * 12, kind: inp.spend.kind, level: inp.spend.kind === 'level' ? inp.spend.level : null },

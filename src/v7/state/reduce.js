@@ -178,7 +178,7 @@ function carried(state, from, to) {
   for (const who of ['you', 'partner']) {
     const own = `${who}.payIn.own`;
     // …and a part that lands, brought into B, is said to land
-    if (hasField(to, `${who}.payIn.ownFrom`) && !hasField(from, `${who}.payIn.ownFrom`) && map.some(([, t]) => t === own)) values[`${who}.payIn.ownFrom`] = 'lands';
+    if (hasField(to, `${who}.payIn.ownFrom`) && !hasField(from, `${who}.payIn.ownFrom`) && values[`${who}.payIn.kind`] === 'split' && typeof values[own] === 'string' && map.some(([, t]) => t === own)) values[`${who}.payIn.ownFrom`] = 'lands';
     if (source.values[`${who}.payIn.ownFrom`] !== 'takeHome' || !hasField(to, own) || hasField(to, `${who}.payIn.ownFrom`) || typeof values[own] !== 'string') continue;
     const n = typedNumber(values[own]);
     if (n !== null) values[own] = asTyped(Math.round(n * 125) / 100);
@@ -495,6 +495,8 @@ function reduceAction(state, action) {
       // unless the form already says (a plan's or a hand-over's figures say what lands)
       const ownFrom = /^(you|partner)\.payIn\.kind$/.test(action.path) && action.value === 'split' ? action.path.replace(/kind$/, 'ownFrom') : null;
       if (ownFrom && hasField(q, ownFrom) && !(ownFrom in values)) values[ownFrom] = 'takeHome';
+      // (7.12.0, P2.1) a pay-in being tried belongs to the pay-in typed as now: typing a new one lets the try go
+      if (/^you\.payIn\./.test(action.path) && hasField(q, 'try.payIn')) { delete values['try.payIn']; delete values['try.payInPct']; }
       // Setting household to 'single' keeps the partner's values: "Remove" then "Add" loses nothing.
       // A's and B's "we have brought your figures over" goes once any box is changed.
       const changed = values[action.path] !== draft.values[action.path] || (action.path in values) !== (action.path in draft.values);

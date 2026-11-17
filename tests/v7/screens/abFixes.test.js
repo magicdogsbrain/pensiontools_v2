@@ -319,12 +319,15 @@ describe('10 — labels', () => {
     expect(root.querySelector('[data-chart="ages"] thead th').textContent).toBe(A.answer.chartAgeCouple);
     expect(renderScreen(load('a', 'answer-A1')).querySelector('[data-chart="ages"] thead th').textContent).toBe(A.answer.chartAge);
   });
-  it('"your part, a month" says the tax the government adds back is in it — in A, B and C', () => {
-    for (const words of [A, B]) {
-      expect(words.fields['you.payIn.own'].help).toMatch(/the tax the government adds back/);
-      expect(words.fields['partner.payIn.own'].help).toMatch(/the tax the government adds back/);
-    }
+  it('"your part, a month" says the tax the government adds back is in it — in A and C; B asks which it is (7.12.0)', () => {
+    expect(A.fields['you.payIn.own'].help).toMatch(/the tax the government adds back/);
+    expect(A.fields['partner.payIn.own'].help).toMatch(/the tax the government adds back/);
     expect(C.fields['you.payIn.own'].help).toMatch(/the tax the government adds back/);
+    // B's step 1 asks whether your part is what leaves take-home pay or what lands, and the box follows that answer
+    for (const who of ['you', 'partner']) {
+      expect(B.fields[`${who}.payIn.ownFrom`].options).toMatchObject({ takeHome: expect.stringMatching(/take-home pay/), lands: expect.stringMatching(/lands in/) });
+      expect(B.fields[`${who}.payIn.own`].help).toMatch(/take-home pay, or what lands/);
+    }
   });
   it('no "a little" where the cut may be large', () => {
     for (const id of ['a.no.later', 'a.ages.none']) expect(A.next[id]).not.toMatch(/a little/);

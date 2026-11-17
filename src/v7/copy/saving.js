@@ -47,7 +47,7 @@ export const SAVING = {
    */
   want: {
     title: 'What you want',
-    lead: 'What you want to spend each month once you stop work, and when you stop. The answer below follows what you type here and under “Each month”.',
+    lead: 'What you want to spend each month once you stop work, and when you stop. Each figure here and under “Each month” is saved in your plan as you leave its box, and the answer below follows it.',
     later: 'Your spending changes from {age}. This is the amount at the start; the later steps are on “What you spend”.',
     /** (7.12.0) A step of the spending starts at or before the stop: the box is that step's amount. */
     inForce: 'Your spending changes before you stop: this is the amount from {age}, the one in force when you stop. The other steps are on “What you spend”.',
@@ -156,7 +156,7 @@ export const SAVING = {
   verdict: {
     title: 'Are you paying in enough?',
     /** Shown while what is typed differs from what is saved (7.12.0): the answer is worked out for the boxes as typed. */
-    ifSaved: 'If you save this: the answer below is for what you have typed. Nothing in your plan changes until you press Save.',
+    ifSaved: 'The answer below is for what you have typed. It is saved in your plan as you leave the box.',
     lead: 'The same test as “Am I saving enough?”, on your plan’s own figures: your pot, what you pay in now, your State Pension and what your plan says you would want to spend from when you stop.',
     aim: 'Your plan’s {aimYearly} a year before tax is {aimMonthly} a month after tax, at today’s prices: the figure tested here.',
     working: 'Working out whether what you pay in is enough…',

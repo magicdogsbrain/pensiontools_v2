@@ -772,10 +772,14 @@ function reduceAction(state, action) {
     case A.PLAN_SAVE: {
       const { planId } = action;
       if (typeof planId !== 'string' || !planId) return refuse('plan/save: needs a plan id');
-      if (state.ui.saving) return state;
+      // (7.12.0) a box left with a change while a write is under way: saved straight after it (planWrite reads saveAgain)
+      if (state.ui.saving) return action.auto === true && state.ui.saveAgain !== planId ? { ...state, ui: { ...state.ui, saveAgain: planId } } : state;
       const pd = planDraftOf(state);
       const base = pd.id === planId ? pd : { ...emptyPlanDraft(), id: planId };
-      return withPlanDraft({ ...state, ui: { ...state.ui, saving: { planId, kind: 'save' }, saveProblem: null, toast: null } }, { ...base, asked: true });
+      // a box left (auto, 7.12.0): the same one write, remembering what it sends — what is typed meanwhile stays; the other
+      // boxes are not "asked" (their problems show once each is left, as before)
+      if (action.auto === true) return withPlanDraft({ ...state, ui: { ...state.ui, saving: { planId, kind: 'save', auto: true, sent: { ...base.values } }, ...(state.ui.saveAgain ? { saveAgain: null } : {}), saveProblem: null, toast: null } }, base);
+      return withPlanDraft({ ...state, ui: { ...state.ui, saving: { planId, kind: 'save' }, ...(state.ui.saveAgain ? { saveAgain: null } : {}), saveProblem: null, toast: null } }, { ...base, asked: true });
     }
     case A.PLAN_STALE_LEAVE: {
       // "Leave it" on an out-of-date draft (road-to-7.md step 11b): one write of the planner's own key; the boxes are left alone
@@ -802,7 +806,14 @@ function reduceAction(state, action) {
       const lasts = op === 'way' || op === 'mix' || op === 'try' || op === 'split' ? { ...emptyLasts(), kept: (state.lasts && state.lasts.kept) || null } : state.lasts;
       // a tried change used: the boxes and the confirm close with it (the plan is now what was tried)
       const open = op === 'try' ? state.ui.open.filter((x) => x !== 'tryOpen' && x !== 'tryConfirm') : state.ui.open;
-      return withPlanDraft({ ...state, lasts, ui: { ...state.ui, open, saving: null, saveProblem: null, toast } }, emptyPlanDraft());
+      // (7.12.0) a save started by leaving a box: what it sent goes from the draft; what was typed meanwhile, and a month being
+      // recorded on the same page, stay
+      const sv = state.ui.saving;
+      const pd = planDraftOf(state);
+      const left = sv && sv.auto === true && sv.sent && pd.id === planId
+        ? Object.fromEntries(Object.entries(pd.values).filter(([k, v]) => k.startsWith('record.') || !(k in sv.sent) || sv.sent[k] !== v)) : null;
+      const draft = left && Object.keys(left).length ? { ...pd, values: left, touched: pd.touched.filter((k) => k in left), asked: false } : emptyPlanDraft();
+      return withPlanDraft({ ...state, lasts, ui: { ...state.ui, open, saving: null, saveProblem: null, toast } }, draft);
     }
     case A.PLAN_SAVE_FAILED: {
       const { planId, problem } = action;

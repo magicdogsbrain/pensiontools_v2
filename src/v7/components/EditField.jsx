@@ -16,7 +16,7 @@
  */
 const fill = (text, slots = {}) => String(text == null ? '' : text).replace(/\{(\w+)\}/g, (m, k) => (k in slots && slots[k] != null ? String(slots[k]) : m));
 
-export function EditField({ f, words = {}, errors = {}, source = null, savedWords = '({value})', planId, dispatch, slots = {}, nested = null, help, extra = null, step = 'about' }) {
+export function EditField({ f, words = {}, errors = {}, source = null, savedWords = '({value})', planId, dispatch, slots = {}, nested = null, help, extra = null, step = 'about', onLeave = null }) {
   if (!f || f.applies === false) return null;
   const id = `plan.${step}.${f.path}`;
   const error = f.error ? fill(errors[f.error] || errors.other || f.error, slots) : null;
@@ -26,7 +26,8 @@ export function EditField({ f, words = {}, errors = {}, source = null, savedWord
   const srcId = `${id}.source`;
   const described = [helpText && !error ? helpId : null, source ? srcId : null, error ? errId : null].filter(Boolean).join(' ') || undefined;
   const set = (value) => dispatch({ type: 'plan/edit', planId, path: f.path, value });
-  const touch = () => dispatch({ type: 'plan/touch', planId, path: f.path });
+  // (7.12.0) `onLeave`: called as the box is left (What you pay in saves then), after the box is marked touched
+  const touch = () => { dispatch({ type: 'plan/touch', planId, path: f.path }); if (typeof onLeave === 'function') onLeave(); };
   const savedLine = f.saved !== null && f.saved !== undefined && source
     ? <p id={srcId} class="plan-source edit-source" data-saved-for={f.path}>{source} {f.type === 'choice' ? fill(savedWords, { value: (words.options && fill(words.options[f.saved] || f.saved, slots)) }) : fill(savedWords, { value: f.saved })}</p>
     : source ? <p id={srcId} class="plan-source edit-source" data-saved-for={f.path}>{source}</p> : null;

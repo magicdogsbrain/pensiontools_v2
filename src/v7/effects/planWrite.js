@@ -1883,7 +1883,8 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     if (busy) return;
     const s = state.ui.saving;
     if (!s) return;
-    const run = (fn) => { busy = true; fn().catch(() => fail(s.planId, 'failed')).finally(() => { busy = false; }); };
+    // (7.12.0) a box left while a save was under way is saved straight after it (reduce.js saveAgain)
+    const run = (fn) => { busy = true; fn().catch(() => fail(s.planId, 'failed')).finally(() => { busy = false; const again = store.getState().ui.saveAgain; if (again && !stopped) dispatch({ type: A.PLAN_SAVE, planId: again, auto: true }); }); };
     if (action.type === A.PLAN_SAVE && s.kind === 'save') run(() => save(s.planId));
     else if (action.type === A.PLAN_UNDO && s.kind === 'undo') run(() => undo(s.planId, s.previous, s.op || null, s.lockedAt || null, s.others || []));
     else if (action.type === A.PLAN_LOCK && s.kind === 'lock') run(() => lock(s.planId));

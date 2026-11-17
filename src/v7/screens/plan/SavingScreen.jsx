@@ -210,7 +210,7 @@ function Records({ V, planId, dispatch, F }) {
  * "What you want" (7.12.0): the amount to spend a month after tax and the age you stop, the first thing on the page, saved
  * with what goes in by the one Save. A locked plan says them, and how they change.
  */
-function Want({ V, planId, dispatch }) {
+function Want({ V, planId, dispatch, leave }) {
   const t = W.want;
   const wv = V.want;
   if (!wv) return null;
@@ -222,7 +222,7 @@ function Want({ V, planId, dispatch }) {
       ) : (
         <>
           <p class="note">{t.lead}</p>
-          {wv.fields.map((f) => <EditField key={f.path} step="saving" f={f} words={t.fields[f.path]} errors={t.errors[f.path]} source={null} planId={planId} dispatch={dispatch} />)}
+          {wv.fields.map((f) => <EditField key={f.path} step="saving" f={f} words={t.fields[f.path]} errors={t.errors[f.path]} source={null} planId={planId} dispatch={dispatch} onLeave={leave} />)}
           {wv.stepAge && <p class="note" data-testid={`${T}.want.inForce`}>{fill(t.inForce, { age: wv.stepAge })}</p>}
           {wv.laterAge && !wv.stepAge && <p class="note" data-testid={`${T}.want.later`}>{fill(t.later, { age: wv.laterAge })}</p>}
         </>
@@ -264,7 +264,12 @@ export function SavingScreen(state, dispatch) {
   const step = view.steps.find((s) => s.id === 'saving') || null;
   const field = (path) => V.fields.find((f) => f.path === path);
   const sourceText = V.savedAt ? fill(W.source.saved, { date: V.savedAt }) : W.source.savedUndated;
-  const F = (path, more = {}) => <EditField step="saving" f={field(path)} words={W.fields[path]} errors={W.errors[path]} source={null} planId={planId} dispatch={dispatch} {...more} />;
+  // (7.12.0, lead decisions 1 and 9) a box left with a change ready to save is saved then — the same one write as Save, so the
+  // plan's name, the rail, the stop line and the pot table follow at once, and nothing typed is lost on leaving the page. A
+  // month being recorded is its own press ("Record it"), never saved by leaving a box.
+  const ready = V.editable && V.changed && Object.keys(V.errors || {}).every((k) => k.startsWith('record.'));
+  const leave = () => { if (ready) dispatch({ type: 'plan/save', planId, auto: true }); };
+  const F = (path, more = {}) => <EditField step="saving" f={field(path)} words={W.fields[path]} errors={W.errors[path]} source={null} planId={planId} dispatch={dispatch} {...(path.startsWith('record.') ? {} : { onLeave: leave })} {...more} />;
   const problem = V.problem ? (W.problems[V.problem] || W.problems.failed) : null;
   const onSubmit = (e) => {
     e.preventDefault();
@@ -290,7 +295,7 @@ export function SavingScreen(state, dispatch) {
         {V.allowance && <p class="notice" data-testid={`${T}.allowance`} data-over={V.allowance.over ? '1' : '0'}>{fill(W.allowance, V.allowance)}{V.allowance.over ? ' ' + fill(W.allowanceOver, V.allowance) : ''}</p>}
         {V.readonly && <p class="notice" role="status" data-testid={`${T}.readonly`}>{W.readonly}</p>}
         <form class="ask about-form income-form saving-form" noValidate onSubmit={onSubmit} data-region="plan-saving" data-editable={V.editable ? '1' : '0'}>
-          <Want V={V} planId={planId} dispatch={dispatch} />
+          <Want V={V} planId={planId} dispatch={dispatch} leave={leave} />
           <Verdict V={V} planId={planId} dispatch={dispatch} />
           {V.editable ? (
             <section class="income-section" data-section="payIn">

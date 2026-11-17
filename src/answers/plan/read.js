@@ -29,6 +29,7 @@ import { optionsFor } from './options.js';
 import { answerAge, bandsOf, netOf, safeTiming } from './about.js';
 import { stepLines } from './spend.js';
 import { isBought } from './pots.js';
+import { WAY_DIALS } from './schema.js';
 import { savedLasts } from './lasts.js';
 import { savedMix } from './mix.js';
 import { budgetFiguresOf } from './budget.js';
@@ -264,6 +265,9 @@ export function planRows(entries, { today, source = 'account' } = {}) {
 
 const money = (key) => ({ key, kind: 'money' });
 const count = (key) => ({ key, kind: 'count' });
+/** How a dial's figure is written, by its type in schema.js WAY_DIALS; the two pots a ladder's document is built on are money. */
+const DIAL_KINDS = Object.freeze({ count: 'count', age: 'age', money: 'money', percent: 'pct' });
+const DOCUMENT_DIALS = Object.freeze({ sippTotal: 'money', isaTotal: 'money' });
 const age = (key) => ({ key, kind: 'age' });
 const pounds = (n) => '£' + String(Math.abs(Math.round(Number(n) || 0))).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 const textOf = (p, figures) => (typeof p === 'string' ? p : 'fixed' in p ? String(p.fixed) : p.kind === 'money' ? pounds(figures[p.key]) : String(Math.round(Number(figures[p.key]) || 0)));
@@ -657,7 +661,16 @@ function planStep(C) {
   way.push(line('way.strategy', [], figures, src, { strategy: sid }));
   const params = (locked && doc && doc.strategy && doc.strategy.params) || ss.strategyParams || {};
   // An older ladder's extra cash beside its cash years (`bridgeCash`) is no dial since 7.4.2: nothing reads it, so it is not said.
-  for (const [k, v] of Object.entries(params)) { if (num(v) == null || k === 'bridgeCash') continue; figures['dial.' + k] = num(v); way.push(line('way.dial', [k === 'cashYears' || k === 'years' || /Years$|Age$/.test(k) ? count('dial.' + k) : money('dial.' + k)], figures, src, { dial: k })); }
+  // each dial with its figure, written as the way's own dial is (schema.js WAY_DIALS); the figure is filed under a key with
+  // no dot, as the screen reads a dotted key as a path. A choice, a flag or a dial with no figure kind is not said here
+  for (const [k, v] of Object.entries(params)) {
+    if (k === 'bridgeCash' || typeof v === 'boolean' || num(v) == null) continue;
+    const d = (WAY_DIALS[sid] || []).find((x) => x.key === k);
+    const kind = d ? (d.cut ? null : DIAL_KINDS[d.type]) : DOCUMENT_DIALS[k];
+    if (!kind) continue;
+    figures['dial_' + k] = num(v);
+    way.push(line('way.dial', [{ key: 'dial_' + k, kind }], figures, src, { dial: k }));
+  }
 
   // The mix (way-and-mix.md 3): how the pension is held, the amounts, the sleeve and the tent — its own section, edited inside V7
   // (the "set by risk level / from the funds to test" line moved here from "How the money is taken" in 6.41.0)

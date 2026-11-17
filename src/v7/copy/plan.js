@@ -412,7 +412,18 @@ export const PLAN = {
     growthShare: 'Share left to grow',
     ratchetStep: 'Ratchet step',
     trigger: 'Rotation trigger',
-    flexShare: 'Share that flexes'
+    flexShare: 'Share that flexes',
+    // the rest of the ways' dials with a figure (schema.js WAY_DIALS), named as "How the money is taken" names them
+    bucketBand: 'How far above the path before the cash bucket refills',
+    ladderYears: 'Years of income bought up front',
+    drawAnnual: 'Income to bolt on, a year before tax',
+    essentialsAnnual: 'The bills, a year',
+    horizonAge: 'Bills paid to age',
+    sleeveRatePct: 'What the rest pays out a year',
+    floorToAge: 'Buy the income to age',
+    rotateCutAge: 'Keep the rungs to age',
+    rotateTrigger: 'The escape, below the all-time high',
+    rotateDisarmYears: 'Years before the escape is put away'
   },
   allocModes: { risk: 'by risk level', custom: 'as a custom split', funds: 'from the funds to test' },
   /** The three levels (way-and-mix.md 3.2a), as the "Held at the {level} level" line names them. */

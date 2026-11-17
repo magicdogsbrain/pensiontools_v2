@@ -166,16 +166,18 @@ export const FACTS = Object.freeze({
       { page: 'accumulation', find: `= ${M}/mo` }
     ]
   },
+  // This tax year's income, as the year was set up (in this year's prices). Not the plan's income step, which is in the
+  // plan's own prices (the lock's, or today's on a draft) and differs from it by the price rise since: that is said on the
+  // income page's rail, the Stress settings' "First step … gross, today's money" and the plan document's "Income step N of
+  // M: … at <month> prices", and was read here as this year's until 7.12.0 (a pots plan locked at £30,000 and set up for
+  // 2026/27 at £31,200 read as two values of one fact). The income page's own pattern also caught the State Pension line.
   'income.thisYear.beforeTax': {
     label: "this year's income before tax", owner: 'MONTH', kind: 'money',
     simple: [
       { page: 'month', find: `set up from [A-Za-z]+ \\d{4}, ${M} a year before tax` },
-      { page: 'income', find: `${M} a year before tax` },
       { page: 'home', find: `the plan says ${M} for the year` }
     ],
     full: [
-      { page: 'stress settings', find: `First step ${M}/yr gross` },
-      { page: 'plan document', find: `Income step 1 of \\d+: ${M}/yr gross` },
       { page: 'tax years', find: `${M}[^\\n]*(?:a year|/yr)` }
     ]
   },

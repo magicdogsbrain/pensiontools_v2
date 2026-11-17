@@ -128,7 +128,7 @@ const FROM_WORDS = { plan: 'from your plan', checkIn: 'from your check-in', reco
  * slots: { pension, isa, from } } from the plan's own money (PlanReading.planMoneyOf, the one pension-today reader), or null
  * when the plan has no pension figure at all.
  */
-export function unlistedStatusOf(plan, { now = new Date() } = {}) {
+export function unlistedStatusOf(plan, { now } = {}) {
   let pm = null; try { pm = planMoneyOf(plan, { now }); } catch { pm = null; }
   if (!pm || !(num(pm.pension) > 0)) return null;
   return { id: num(pm.isa) > 0 ? 'unlistedIsa' : 'unlisted', slots: { pension: pounds(pm.pension), isa: pounds(pm.isa), from: FROM_WORDS[pm.from] || FROM_WORDS.plan } };

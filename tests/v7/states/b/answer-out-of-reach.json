@@ -279,6 +279,12 @@
             "weighted": 0,
             "short": 1728111,
             "monthlyIfShort": 0
+          },
+          "both": {
+            "age": 75,
+            "spend": 2640,
+            "lasted": 0.764,
+            "weighted": 0.9000897037899122
           }
         },
         "reach": {
@@ -1430,9 +1436,32 @@
           },
           "enoughLine": {
             "id": "b.enough.line.outOfReach.both",
-            "text": "Neither stopping later nor spending less does it on its own; both together, a later age and a lower amount, may.",
+            "text": "Neither stopping later nor spending less does it on its own. Both together could: stopping at 75 and spending £2,640 a month from then, paying in as now, and your money lasts as long as you do 18 times in 20.",
             "parts": [
-              "Neither stopping later nor spending less does it on its own; both together, a later age and a lower amount, may."
+              "Neither stopping later nor spending less does it on its own. Both together could: ",
+              "stopping at ",
+              {
+                "key": "levers.both.age",
+                "kind": "age"
+              },
+              " and spending ",
+              {
+                "key": "levers.both.spend",
+                "kind": "money"
+              },
+              " a month from then, paying in as now, and ",
+              "your money ",
+              "lasts ",
+              "as long as you do",
+              " ",
+              {
+                "fixed": "18"
+              },
+              " times in ",
+              {
+                "fixed": "20"
+              },
+              "."
             ]
           }
         },

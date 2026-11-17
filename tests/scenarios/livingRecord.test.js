@@ -323,7 +323,8 @@ describe('Step 5: the pot on one basis, the ISA remembered', () => {
     expect(lineText(W, 'where.potNoIsa')).toBe(null);
     // the ISA typed with the month is said back on the home, with the pension, both from December's record
     //   pension 302,500 + 150,000 + 60,000 = 512,500; ISA 60,000 as typed
-    expect(lineText(W, 'where.potParts')).toBe('Pension £512,500 and ISA £60,000, recorded December 2026.');
+    expect(lineText(W, 'where.pot')).toMatch(/\(£572,500 as recorded: pension £512,500, ISA £60,000\)\.$/);
+    expect(lineText(W, 'where.potParts')).toBe(null);   // one month, one place: said in the pot's own line
     const M = monthOf([e], e.plan.id, { today: '2027-01-05' });
     expect(M.pots.fields.find((f) => f.path === 'mo.isa').shown).toBe('60000');
   });

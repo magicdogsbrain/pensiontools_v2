@@ -425,20 +425,22 @@ function whereStep(C) {
     if (P && P.real != null && P.actual != null) {
       figures.pot = r0(P.real); figures.potActual = r0(P.actual);
       const moved = P.prices && Number.isFinite(+P.prices.factor) && Math.abs(+P.prices.factor - 1) >= 0.0005;
-      lines.push(line('where.pot', moved ? [money('pot'), ' at the prices of ' + pricesMonthOf(plan.planDocument) + ' (', money('potActual'), ' as recorded).'] : [money('pot'), '.'], figures, sourceOf(P.source === 'holdings' ? 'hold' : 'record', P.asOf, now)));
-      if (P.p50 != null && !older) { figures.potMid = r0(P.p50); lines.push(line('where.potMid', [money('potMid'), '.'], figures, sourceOf('locked', lockedAt, now))); }
+      // its parts as typed (7.12.0): the pension and the ISA said in the same line when they come from the same month and
+      // the same place (so the ISA typed with each month is said back on the home); else their own line, each with its date
       const parts = (Array.isArray(P.parts) ? P.parts : []).filter((x) => x && x.asOf && (x.key === 'pension' || x.key === 'isa'));
+      const whence = (x) => (x.source === 'holdings' ? 'from What you hold, ' + monthWords(x.asOf) : 'recorded ' + monthWords(x.asOf));
+      parts.forEach((x, i) => { figures['potPart' + i] = r0(x.value); });
+      const partName = (x) => (x.key === 'isa' ? 'ISA ' : 'pension ');
+      const together = parts.length > 1 && whence(parts[0]) === whence(parts[1]);
+      const inLine = together ? parts.flatMap((x, i) => [i ? ', ' : '', partName(x), money('potPart' + i)]) : [];
+      lines.push(line('where.pot', moved
+        ? [money('pot'), ' at the prices of ' + pricesMonthOf(plan.planDocument) + ' (', money('potActual'), ' as recorded', ...(together ? [': ', ...inLine] : []), ').']
+        : [money('pot'), ...(together ? [' (', ...inLine, ')'] : []), '.'], figures, sourceOf(P.source === 'holdings' ? 'hold' : 'record', P.asOf, now)));
+      if (P.p50 != null && !older) { figures.potMid = r0(P.p50); lines.push(line('where.potMid', [money('potMid'), '.'], figures, sourceOf('locked', lockedAt, now))); }
       const ms = parts.map((x) => ym(x.asOf)).filter(Boolean);
-      // its parts, each as typed (7.12.0: always when there are two, so the ISA typed with each month is said back); one date
-      // when both come from the same month and the same place
-      if (parts.length > 1 && ms.length === parts.length) {
-        const whence = (x) => (x.source === 'holdings' ? 'from What you hold, ' + monthWords(x.asOf) : 'recorded ' + monthWords(x.asOf));
-        parts.forEach((x, i) => { figures['potPart' + i] = r0(x.value); });
-        const name = (x) => (x.key === 'isa' ? 'ISA ' : 'Pension ');
-        const words = whence(parts[0]) === whence(parts[1])
-          ? [name(parts[0]), money('potPart0'), ' and ', name(parts[1]).replace('Pension', 'pension'), money('potPart1'), ', ' + whence(parts[0]) + '.']
-          : parts.map((x, i) => [name(x), money('potPart' + i), ', ' + whence(x) + '.']).reduce((a, b, i) => a.concat(i ? [' '] : [], b), []);
-        lines.push(line('where.potParts', words, figures, sourceOf('record', null, now)));
+      if (parts.length > 1 && !together && ms.length === parts.length && Math.abs(monthsBetween(ms[0], ms[1])) > 1) {
+        const words = parts.map((x, i) => [(x.key === 'isa' ? 'ISA ' : 'Pension '), money('potPart' + i), ', ' + whence(x) + '.']);
+        lines.push(line('where.potParts', words.reduce((a, b, i) => a.concat(i ? [' '] : [], b), []), figures, sourceOf('record', null, now)));
       }
     } else if (P && Array.isArray(P.missing) && P.missing.includes('isa') && !P.missing.includes('pension')) {
       lines.push(line('where.potNoIsa', ['Your plan counts your ISA too, and we have no figure for it. You can type it in the ISA box when you next record a month, or add it under What you hold.'], figures, sourceOf('record', null, now)));
@@ -530,7 +532,9 @@ function planStep(C) {
   if (first) figures.yearly = first.amount;
   if (locked && first) {
     result = stage.timingMode === 'future'
-      ? sentence('plan.lockedSaver', [money('yearly'), ' a year before tax from ' + (monthWords(startMonth) || taxYearLabel(firstTaxYear)) + ' (tax year ' + taxYearLabel(firstTaxYear) + ')'], figures)
+      // (7.12.0) someone still saving reads what they will spend, a month after tax, as they set it: never a drawing year's
+      // figure before tax ahead of the stop
+      ? sentence('plan.lockedSaver', [money('monthlyNet'), ' a month after tax from ' + (monthWords(startMonth) || taxYearLabel(firstTaxYear)) + ' (tax year ' + taxYearLabel(firstTaxYear) + ')'], Object.assign(figures, { monthlyNet: Math.round(netOf(first.amount, bandsOf(ss)) / 12) }))
       // the first month it paid, never April by assumption (7.12.0); a ladder's own first year from the document (6.51.0)
       : sentence(ladder ? 'plan.lockedLadder' : 'plan.lockedPlan', [money('yearly'), paysFromWords(firstPaymentMonth(plan, { now, settings: ss }).month, firstTaxYear, ladder ? lockedLadderOf(plan, ss) : null, ladder)], figures);
   } else if (stage.timingMode === 'future' && num(ss.retireAge)) {

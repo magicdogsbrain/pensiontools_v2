@@ -68,6 +68,17 @@ describe('"This is how I want to hold it": one press, no test first', () => {
     expect(homeOf([{ plan }], plan.id, { today: TODAY }).change.map((c) => c.id)).not.toContain('tryMix');
   });
 
+  it('a gilt-ladder plan\'s own page offers no "Try another mix" either; a locked pot plan still does', () => {
+    // the home and the plan page give one list of tries: a ladder's way of drawing is gilts and cash years, it has no mix
+    const planPage = (p) => { const root = document.createElement('div'); root.id = 'app'; render(h(App, { state: stateWith([{ plan: p }], '#/plan/' + p.id + '/plan', { today: TODAY }), dispatch: () => {} }), root); return visibleText(root).replace(/\s+/g, ' '); };
+    const t = planPage(plan);
+    expect(t).toContain('Try another way (nothing changes)');
+    expect(t).not.toContain('Try another mix');
+    const pots = entryOf(corpus()['04-buckets-running'], TODAY).plan;
+    expect(pots.planDocument.strategy.id).toBe('buckets-in-order');
+    expect(planPage(pots)).toContain('Try another mix (nothing changes)');
+  });
+
   it('the full view offers the same press, and says the same once it is said', () => {
     const full = (p) => { const mi = moveInputs(p, { now: noon(TODAY) }); return transitionHtml({ doc: p.planDocument, target: mi.target, diff: mi.diff, seq: null, prog: mi.prog, holdings: p.holdings, held: transitionHeld(p, p.holdings, noon(TODAY)) }); };
     expect(full(plan)).toContain('data-on-click="askSayHeld()">This is how I want to hold it</button>');

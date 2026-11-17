@@ -29,6 +29,11 @@ function couple() {
   const a = alex.stressTool.settings; a.equityMin *= 4; a.bondMin *= 4; a.cashTarget *= 4; a.baseSalary = 70000;
   const b = sam.stressTool.settings; b.equityMin = Math.round(b.equityMin / 2); b.bondMin = Math.round(b.bondMin / 2); b.cashTarget = Math.round(b.cashTarget / 2);
   if (b.potAtRetirement) b.potAtRetirement = { ...b.potAtRetirement, sipp: Math.round(b.potAtRetirement.sipp / 2), isa: Math.round(b.potAtRetirement.isa / 2) };   // the pots at the stop, projected: halved with them
+  // (7.12.0: a saver's pot at the stop is worked out on read from the pension today, not read from the projection stored,
+  // so the pension today is cut too: to a third, which brings the pot at Sam's stop near the halved projection it replaces,
+  // and the default limit binds again; half leaves the pot large enough that it does not)
+  const acc = sam.accumulationTool && sam.accumulationTool.settings;
+  if (acc && typeof acc.potNow === 'number') acc.potNow = Math.round(acc.potNow / 3);
   return { alex, sam };
 }
 async function plant(page, plans) {

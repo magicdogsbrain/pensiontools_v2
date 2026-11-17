@@ -155,7 +155,7 @@ describe('a rung held below its target is never a sale', () => {
     const m = moveOf([{ plan: p }], p.id, { today: TODAY });
     expect(m.sell.map((s) => s.label)).not.toContain('0 1/8% Index-linked Treasury Gilt 2031');
     expect(m.sell.map((s) => s.label)).not.toContain('0 1/8% Index-linked Treasury Gilt 2041');
-    expect(m.buy.map((b) => [b.ticker, b.units])).toEqual([['TR31', '13500'], ['T41', '7300']]);
+    expect(m.buy.map((b) => [b.ticker, b.units])).toEqual([['TR31', '13,500'], ['T41', '7,300']]);
     expect(m.sheet.filter((r) => r.bought === 'part').map((r) => r.tidm)).toEqual(['TR31', 'T41']);
   });
 

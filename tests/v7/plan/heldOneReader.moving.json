@@ -185,7 +185,7 @@
      "sedol": "BNNGP55",
      "units": "700",
      "amount": "£954",
-     "heldUnits": "16200",
+     "heldUnits": "16,200",
      "heldValue": null,
      "why": {
       "id": "moreThanRung",
@@ -204,7 +204,7 @@
      "sedol": "BGDYHF4",
      "units": "300",
      "amount": "£330",
-     "heldUnits": "8100",
+     "heldUnits": "8,100",
      "heldValue": null,
      "why": {
       "id": "moreThanRung",
@@ -222,11 +222,11 @@
      "label": "0 1/8% Index-linked Treasury Gilt 2029",
      "ticker": "T29",
      "held": {
-      "units": "37500"
+      "units": "37,500"
      },
      "spare": null,
      "target": {
-      "units": "37500"
+      "units": "37,500"
      }
     },
     {
@@ -234,11 +234,11 @@
      "label": "1¼% Index-linked Treasury Gilt 2032",
      "ticker": "T32",
      "held": {
-      "units": "8900"
+      "units": "8,900"
      },
      "spare": null,
      "target": {
-      "units": "8900"
+      "units": "8,900"
      }
     },
     {
@@ -246,11 +246,11 @@
      "label": "0¾% Index-linked Treasury Gilt 2034",
      "ticker": "TRTQ",
      "held": {
-      "units": "18900"
+      "units": "18,900"
      },
      "spare": null,
      "target": {
-      "units": "18900"
+      "units": "18,900"
      }
     },
     {
@@ -258,11 +258,11 @@
      "label": "1 1/8% Index-linked Treasury Gilt 2035",
      "ticker": "TR35",
      "held": {
-      "units": "16000"
+      "units": "16,000"
      },
      "spare": null,
      "target": {
-      "units": "16000"
+      "units": "16,000"
      }
     },
     {
@@ -270,11 +270,11 @@
      "label": "0 1/8% Index-linked Treasury Gilt 2036",
      "ticker": "TG36",
      "held": {
-      "units": "10600"
+      "units": "10,600"
      },
      "spare": null,
      "target": {
-      "units": "10600"
+      "units": "10,600"
      }
     },
     {
@@ -282,11 +282,11 @@
      "label": "1 1/8% Index-linked Treasury Gilt 2037",
      "ticker": "TR37",
      "held": {
-      "units": "8300"
+      "units": "8,300"
      },
      "spare": null,
      "target": {
-      "units": "8300"
+      "units": "8,300"
      }
     },
     {
@@ -294,11 +294,11 @@
      "label": "0 1/8% Index-linked Treasury Gilt 2039",
      "ticker": "TG39",
      "held": {
-      "units": "12100"
+      "units": "12,100"
      },
      "spare": null,
      "target": {
-      "units": "12100"
+      "units": "12,100"
      }
     },
     {
@@ -306,11 +306,11 @@
      "label": "0 5/8% Index-linked Treasury Gilt 2040",
      "ticker": "TR40",
      "held": {
-      "units": "12400"
+      "units": "12,400"
      },
      "spare": null,
      "target": {
-      "units": "12400"
+      "units": "12,400"
      }
     },
     {
@@ -318,11 +318,11 @@
      "label": "0 5/8% Index-linked Treasury Gilt 2042",
      "ticker": "T42A",
      "held": {
-      "units": "5800"
+      "units": "5,800"
      },
      "spare": null,
      "target": {
-      "units": "5800"
+      "units": "5,800"
      }
     },
     {
@@ -330,11 +330,11 @@
      "label": "0 1/8% Index-linked Treasury Gilt 2044",
      "ticker": "T44",
      "held": {
-      "units": "6500"
+      "units": "6,500"
      },
      "spare": null,
      "target": {
-      "units": "6500"
+      "units": "6,500"
      }
     },
     {
@@ -342,11 +342,11 @@
      "label": "0 5/8% Index-linked Treasury Gilt 2045",
      "ticker": "TR45",
      "held": {
-      "units": "9500"
+      "units": "9,500"
      },
      "spare": null,
      "target": {
-      "units": "9500"
+      "units": "9,500"
      }
     },
     {
@@ -354,11 +354,11 @@
      "label": "0 1/8% Index-linked Treasury Gilt 2046",
      "ticker": "TR46",
      "held": {
-      "units": "6600"
+      "units": "6,600"
      },
      "spare": null,
      "target": {
-      "units": "6600"
+      "units": "6,600"
      }
     }
    ],
@@ -812,7 +812,7 @@
      "sedol": "BNNGP55",
      "units": "700",
      "amount": "£954",
-     "heldUnits": "16200",
+     "heldUnits": "16,200",
      "heldValue": null,
      "why": {
       "id": "moreThanRung",
@@ -831,7 +831,7 @@
      "sedol": "BGDYHF4",
      "units": "300",
      "amount": "£330",
-     "heldUnits": "8100",
+     "heldUnits": "8,100",
      "heldValue": null,
      "why": {
       "id": "moreThanRung",
@@ -849,11 +849,11 @@
      "label": "0 1/8% Index-linked Treasury Gilt 2029",
      "ticker": "T29",
      "held": {
-      "units": "37500"
+      "units": "37,500"
      },
      "spare": null,
      "target": {
-      "units": "37500"
+      "units": "37,500"
      }
     },
     {
@@ -861,11 +861,11 @@
      "label": "1¼% Index-linked Treasury Gilt 2032",
      "ticker": "T32",
      "held": {
-      "units": "8900"
+      "units": "8,900"
      },
      "spare": null,
      "target": {
-      "units": "8900"
+      "units": "8,900"
      }
     },
     {
@@ -873,11 +873,11 @@
      "label": "0¾% Index-linked Treasury Gilt 2034",
      "ticker": "TRTQ",
      "held": {
-      "units": "18900"
+      "units": "18,900"
      },
      "spare": null,
      "target": {
-      "units": "18900"
+      "units": "18,900"
      }
     },
     {
@@ -885,11 +885,11 @@
      "label": "1 1/8% Index-linked Treasury Gilt 2035",
      "ticker": "TR35",
      "held": {
-      "units": "16000"
+      "units": "16,000"
      },
      "spare": null,
      "target": {
-      "units": "16000"
+      "units": "16,000"
      }
     },
     {
@@ -897,11 +897,11 @@
      "label": "0 1/8% Index-linked Treasury Gilt 2036",
      "ticker": "TG36",
      "held": {
-      "units": "10600"
+      "units": "10,600"
      },
      "spare": null,
      "target": {
-      "units": "10600"
+      "units": "10,600"
      }
     },
     {
@@ -909,11 +909,11 @@
      "label": "1 1/8% Index-linked Treasury Gilt 2037",
      "ticker": "TR37",
      "held": {
-      "units": "8300"
+      "units": "8,300"
      },
      "spare": null,
      "target": {
-      "units": "8300"
+      "units": "8,300"
      }
     },
     {
@@ -921,11 +921,11 @@
      "label": "0 1/8% Index-linked Treasury Gilt 2039",
      "ticker": "TG39",
      "held": {
-      "units": "12100"
+      "units": "12,100"
      },
      "spare": null,
      "target": {
-      "units": "12100"
+      "units": "12,100"
      }
     },
     {
@@ -933,11 +933,11 @@
      "label": "0 5/8% Index-linked Treasury Gilt 2040",
      "ticker": "TR40",
      "held": {
-      "units": "12400"
+      "units": "12,400"
      },
      "spare": null,
      "target": {
-      "units": "12400"
+      "units": "12,400"
      }
     },
     {
@@ -945,11 +945,11 @@
      "label": "0 5/8% Index-linked Treasury Gilt 2042",
      "ticker": "T42A",
      "held": {
-      "units": "5800"
+      "units": "5,800"
      },
      "spare": null,
      "target": {
-      "units": "5800"
+      "units": "5,800"
      }
     },
     {
@@ -957,11 +957,11 @@
      "label": "0 1/8% Index-linked Treasury Gilt 2044",
      "ticker": "T44",
      "held": {
-      "units": "6500"
+      "units": "6,500"
      },
      "spare": null,
      "target": {
-      "units": "6500"
+      "units": "6,500"
      }
     },
     {
@@ -969,11 +969,11 @@
      "label": "0 5/8% Index-linked Treasury Gilt 2045",
      "ticker": "TR45",
      "held": {
-      "units": "9500"
+      "units": "9,500"
      },
      "spare": null,
      "target": {
-      "units": "9500"
+      "units": "9,500"
      }
     },
     {
@@ -981,11 +981,11 @@
      "label": "0 1/8% Index-linked Treasury Gilt 2046",
      "ticker": "TR46",
      "held": {
-      "units": "6600"
+      "units": "6,600"
      },
      "spare": null,
      "target": {
-      "units": "6600"
+      "units": "6,600"
      }
     }
    ],
@@ -1301,9 +1301,9 @@
      "label": "0 1/8% Index-linked Treasury Gilt 2029",
      "ticker": "T29",
      "sedol": "B3Y1JG8",
-     "units": "15500",
+     "units": "15,500",
      "amount": "£26,835",
-     "heldUnits": "22000",
+     "heldUnits": "22,000",
      "heldValue": null,
      "why": {
       "id": "rung",
@@ -1324,7 +1324,7 @@
      "label": "0 1/8% Index-linked Treasury Gilt 2031",
      "ticker": "TR31",
      "sedol": "BNNGP55",
-     "units": "15500",
+     "units": "15,500",
      "amount": "£21,134",
      "heldUnits": "0",
      "heldValue": null,
@@ -1345,7 +1345,7 @@
      "label": "1¼% Index-linked Treasury Gilt 2032",
      "ticker": "T32",
      "sedol": "B3D4VD9",
-     "units": "8900",
+     "units": "8,900",
      "amount": "£17,099",
      "heldUnits": "0",
      "heldValue": null,
@@ -1366,7 +1366,7 @@
      "label": "0¾% Index-linked Treasury Gilt 2034",
      "ticker": "TRTQ",
      "sedol": "B46CGH6",
-     "units": "18900",
+     "units": "18,900",
      "amount": "£31,992",
      "heldUnits": "0",
      "heldValue": null,
@@ -1388,7 +1388,7 @@
      "label": "1 1/8% Index-linked Treasury Gilt 2035",
      "ticker": "TR35",
      "sedol": "BT7HZZ6",
-     "units": "16000",
+     "units": "16,000",
      "amount": "£16,229",
      "heldUnits": "0",
      "heldValue": null,
@@ -1409,7 +1409,7 @@
      "label": "0 1/8% Index-linked Treasury Gilt 2036",
      "ticker": "TG36",
      "sedol": "BYZW3J8",
-     "units": "10600",
+     "units": "10,600",
      "amount": "£14,276",
      "heldUnits": "0",
      "heldValue": null,
@@ -1430,7 +1430,7 @@
      "label": "1 1/8% Index-linked Treasury Gilt 2037",
      "ticker": "TR37",
      "sedol": "B1L6W96",
-     "units": "8300",
+     "units": "8,300",
      "amount": "£15,687",
      "heldUnits": "0",
      "heldValue": null,
@@ -1451,7 +1451,7 @@
      "label": "0 1/8% Index-linked Treasury Gilt 2039",
      "ticker": "TG39",
      "sedol": "BLH3826",
-     "units": "12100",
+     "units": "12,100",
      "amount": "£13,299",
      "heldUnits": "0",
      "heldValue": null,
@@ -1472,7 +1472,7 @@
      "label": "0 5/8% Index-linked Treasury Gilt 2040",
      "ticker": "TR40",
      "sedol": "B3LZBF6",
-     "units": "12400",
+     "units": "12,400",
      "amount": "£19,593",
      "heldUnits": "0",
      "heldValue": null,
@@ -1494,7 +1494,7 @@
      "label": "0 1/8% Index-linked Treasury Gilt 2041",
      "ticker": "T41",
      "sedol": "BGDYHF4",
-     "units": "7800",
+     "units": "7,800",
      "amount": "£8,582",
      "heldUnits": "0",
      "heldValue": null,
@@ -1515,7 +1515,7 @@
      "label": "0 5/8% Index-linked Treasury Gilt 2042",
      "ticker": "T42A",
      "sedol": "B3MYD34",
-     "units": "5800",
+     "units": "5,800",
      "amount": "£8,892",
      "heldUnits": "0",
      "heldValue": null,
@@ -1536,7 +1536,7 @@
      "label": "0 1/8% Index-linked Treasury Gilt 2044",
      "ticker": "T44",
      "sedol": "B7RN0G6",
-     "units": "6500",
+     "units": "6,500",
      "amount": "£7,630",
      "heldUnits": "0",
      "heldValue": null,
@@ -1557,7 +1557,7 @@
      "label": "0 5/8% Index-linked Treasury Gilt 2045",
      "ticker": "TR45",
      "sedol": "BMF9LH9",
-     "units": "9500",
+     "units": "9,500",
      "amount": "£8,077",
      "heldUnits": "0",
      "heldValue": null,
@@ -1578,7 +1578,7 @@
      "label": "0 1/8% Index-linked Treasury Gilt 2046",
      "ticker": "TR46",
      "sedol": "BYMWG36",
-     "units": "6600",
+     "units": "6,600",
      "amount": "£6,927",
      "heldUnits": "0",
      "heldValue": null,
@@ -1777,9 +1777,9 @@
      "label": "0 1/8% Index-linked Treasury Gilt 2029",
      "ticker": "T29",
      "sedol": "B3Y1JG8",
-     "units": "15500",
+     "units": "15,500",
      "amount": "£26,835",
-     "heldUnits": "22000",
+     "heldUnits": "22,000",
      "heldValue": null,
      "why": {
       "id": "rung",
@@ -1800,7 +1800,7 @@
      "label": "0 1/8% Index-linked Treasury Gilt 2031",
      "ticker": "TR31",
      "sedol": "BNNGP55",
-     "units": "15500",
+     "units": "15,500",
      "amount": "£21,134",
      "heldUnits": "0",
      "heldValue": null,
@@ -1821,7 +1821,7 @@
      "label": "1¼% Index-linked Treasury Gilt 2032",
      "ticker": "T32",
      "sedol": "B3D4VD9",
-     "units": "8900",
+     "units": "8,900",
      "amount": "£17,099",
      "heldUnits": "0",
      "heldValue": null,
@@ -1842,7 +1842,7 @@
      "label": "0¾% Index-linked Treasury Gilt 2034",
      "ticker": "TRTQ",
      "sedol": "B46CGH6",
-     "units": "18900",
+     "units": "18,900",
      "amount": "£31,992",
      "heldUnits": "0",
      "heldValue": null,
@@ -1864,7 +1864,7 @@
      "label": "1 1/8% Index-linked Treasury Gilt 2035",
      "ticker": "TR35",
      "sedol": "BT7HZZ6",
-     "units": "16000",
+     "units": "16,000",
      "amount": "£16,229",
      "heldUnits": "0",
      "heldValue": null,
@@ -1885,7 +1885,7 @@
      "label": "0 1/8% Index-linked Treasury Gilt 2036",
      "ticker": "TG36",
      "sedol": "BYZW3J8",
-     "units": "10600",
+     "units": "10,600",
      "amount": "£14,276",
      "heldUnits": "0",
      "heldValue": null,
@@ -1906,7 +1906,7 @@
      "label": "1 1/8% Index-linked Treasury Gilt 2037",
      "ticker": "TR37",
      "sedol": "B1L6W96",
-     "units": "8300",
+     "units": "8,300",
      "amount": "£15,687",
      "heldUnits": "0",
      "heldValue": null,
@@ -1927,7 +1927,7 @@
      "label": "0 1/8% Index-linked Treasury Gilt 2039",
      "ticker": "TG39",
      "sedol": "BLH3826",
-     "units": "12100",
+     "units": "12,100",
      "amount": "£13,299",
      "heldUnits": "0",
      "heldValue": null,
@@ -1948,7 +1948,7 @@
      "label": "0 5/8% Index-linked Treasury Gilt 2040",
      "ticker": "TR40",
      "sedol": "B3LZBF6",
-     "units": "12400",
+     "units": "12,400",
      "amount": "£19,593",
      "heldUnits": "0",
      "heldValue": null,
@@ -1970,7 +1970,7 @@
      "label": "0 1/8% Index-linked Treasury Gilt 2041",
      "ticker": "T41",
      "sedol": "BGDYHF4",
-     "units": "7800",
+     "units": "7,800",
      "amount": "£8,582",
      "heldUnits": "0",
      "heldValue": null,
@@ -1991,7 +1991,7 @@
      "label": "0 5/8% Index-linked Treasury Gilt 2042",
      "ticker": "T42A",
      "sedol": "B3MYD34",
-     "units": "5800",
+     "units": "5,800",
      "amount": "£8,892",
      "heldUnits": "0",
      "heldValue": null,
@@ -2012,7 +2012,7 @@
      "label": "0 1/8% Index-linked Treasury Gilt 2044",
      "ticker": "T44",
      "sedol": "B7RN0G6",
-     "units": "6500",
+     "units": "6,500",
      "amount": "£7,630",
      "heldUnits": "0",
      "heldValue": null,
@@ -2033,7 +2033,7 @@
      "label": "0 5/8% Index-linked Treasury Gilt 2045",
      "ticker": "TR45",
      "sedol": "BMF9LH9",
-     "units": "9500",
+     "units": "9,500",
      "amount": "£8,077",
      "heldUnits": "0",
      "heldValue": null,
@@ -2054,7 +2054,7 @@
      "label": "0 1/8% Index-linked Treasury Gilt 2046",
      "ticker": "TR46",
      "sedol": "BYMWG36",
-     "units": "6600",
+     "units": "6,600",
      "amount": "£6,927",
      "heldUnits": "0",
      "heldValue": null,

@@ -244,7 +244,7 @@ describe('Step 4: what reaches your bank, one sum', () => {
     expect(R.advice.raw.sippDraw).toBe(Math.round(gross));
     // a full year: 32,858 − 0.2 × (32,858 − 12,570) = 28,800.40 a year, £2,400 a month
     const full = (32858 - 0.2 * (32858 - 12570)) / 12;
-    expect(fillSlots(MONTH.setUp.reason, R.setUp.reason)).toBe('In a full tax year this income is about £' + Math.round(full).toLocaleString('en-GB') + ' a month after tax. This tax year about £2,191 a month reaches your bank, because the money you received before November used your tax-free allowance.');
+    expect(fillSlots(MONTH.setUp.reason, R.setUp.reason)).toBe('In a full tax year this income is £' + Math.round(full).toLocaleString('en-GB') + ' a month after tax. This tax year £2,191 a month reaches your bank, because the money you received before November used your tax-free allowance.');
   });
 
   it('Kim: the month records the same £2,577 with or without an ISA figure typed', () => {

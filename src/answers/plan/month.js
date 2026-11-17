@@ -30,6 +30,7 @@ import { cadenceOf, monthsWanted } from '../../services/DrawCadence.js';
 import { isClosedPlan } from '../../services/PlanClosed.js';
 import { isExamplePlan } from '../../services/GuestPlans.js';
 import { MONTH_FIELDS } from './schema.js';
+import { SAVER_STAGES } from './steps.js';
 import { dateOf, monthWords, monthName, localMonth } from './dates.js';
 import { partnerOf } from './household.js';
 import { firstPaymentMonth, monthToRecord } from '../../services/YearPlan.js';
@@ -352,6 +353,11 @@ export function readMonth(plan, typed0, { today, nowIso = null, entries = null }
     // ahead) and the month that opens next, due from its own 1st — said by name only, the year being plain
     idle: idleOf(I.history, mon)
   };
+  // (7.12.0) someone still saving: Month by month is for living on the plan, from the stop. One sentence says so; nothing
+  // is set up or worked out for a drawing year that has not come (a saver's month would be drawn from ISAs at today's ages)
+  if (SAVER_STAGES.includes(stage.key) && stage.timingMode === 'future' && !I.history.length) {
+    return { ...base, forLater: { from: monthWords(stage.startMonth) || '' }, nothing: true, errors: {}, ok: false };
+  }
   if (!month) return { ...base, nothing: true, errors, ok: false };
   if (paidAhead && I.history.some((h) => monthOfRecord(h) === month)) errors['mo.paid'] = 'recorded';
   const key = getTaxYearFromDate(month);

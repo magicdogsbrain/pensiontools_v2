@@ -22,6 +22,9 @@ export const MONTH = {
   future: '{month} has not happened yet. Record it now only if the payment has gone.',
   sections: { month: 'This month', setUp: 'Set up {year}', pots: 'What your platform shows', advice: 'What to draw this month, and where it comes from', fill: 'The months you did not record', recent: 'Your recent months', record: 'Keep a record of each month here', later: 'Coming next to Month by month' },
   yearDone: 'Tax year {year}: set up from {from}.',
+  /** (7.12.0) someone still saving: Month by month is for living on the plan. */
+  forLater: 'Month by month is for when you live on your plan, from {from}. Until then, your check-in once a year keeps it up to date.',
+  forLaterNoMonth: 'Month by month is for when you live on your plan, once you stop work. Until then, your check-in once a year keeps it up to date.',
   /** Before the year is set up, a locked plan's month from its document (7.12.0): the amount and the pot it comes from. */
   planMonth: 'In {month} your plan takes {amount} before tax from your pension.',
   yearDoneIncome: 'Tax year {year}: set up from {from}, {income} a year before tax.',

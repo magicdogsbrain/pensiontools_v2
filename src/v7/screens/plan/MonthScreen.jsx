@@ -207,6 +207,20 @@ export function MonthScreen(state, dispatch) {
   // a tool, not a form (7.3.0): the form only when a month is due (the rail's own reading: a month missed, or this month not
   // recorded), when a month was chosen (the tax year's "Set up" to-do chooses April), or after "Record a different month"
   const showForm = !step || !step.recorded || typeof typed['mo.month'] === 'string' || state.ui.open.includes('monthOther') || !V.idle;
+  // (7.12.0) someone still saving: one sentence that this is for living on the plan, from the stop; nothing worked out
+  if (V.forLater) {
+    return {
+      question: null, rail, full: false,
+      content: (
+        <>
+          <Head view={view} />
+          <h1 tabIndex={-1} data-testid="plan.step.month">{W.title}</h1>
+          <p class="lead" data-testid={`${T}.forLater`}>{fill(V.forLater.from ? W.forLater : W.forLaterNoMonth, V.forLater)}</p>
+          <div class="actions-row"><LinkButton testid={`${T}.back`} kind="quiet" href={href.plan(view.id)}>{W.buttons.back}</LinkButton></div>
+        </>
+      )
+    };
+  }
   return {
     question: null, rail, full: false,
     content: (

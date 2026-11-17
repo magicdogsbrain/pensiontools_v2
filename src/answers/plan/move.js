@@ -26,7 +26,7 @@
  * it can be tested. The reading still carries the lists, the totals and the schedule (as it does for a saver waiting), but no
  * view draws them there. Moving otherwise (`mode` 'move'), and a saver waiting (`mode` 'waiting'), as before.
  */
-import { planStage, effectiveStressSettings, moveInputs } from '../../services/PlanReading.js';
+import { planStage, effectiveStressSettings, moveInputs, planMoneyOf } from '../../services/PlanReading.js';
 import { sequence, tickMove, untickMove } from '../../services/TransitionPlanner.js';
 import { normaliseHoldings } from '../../services/HoldingsRecord.js';
 import { proportions } from '../../services/Holdings.js';
@@ -45,7 +45,7 @@ import { isClosedPlan, closedReading } from '../../services/PlanClosed.js';
 import { gapsOf, gapsView } from './gaps.js';
 import { heldLadder, heldLadderView } from './held.js';
 import { planPage, reviewHrefOf } from './read.js';
-import { moveStatusOf, payingOf, outsideRowsOf, moveTotalsOf, paceOf, cashRowsOf } from './moveWords.js';
+import { moveStatusOf, payingOf, outsideRowsOf, moveTotalsOf, paceOf, cashRowsOf, unlistedStatusOf } from './moveWords.js';
 import { shownPlanNameOn } from '../../services/PlanName.js';
 
 export { runKeyOf, APPROACHING_YEARS, moveStatusOf };
@@ -205,10 +205,14 @@ export function moveOf(entries, id, { today, index = null, M = null, source = 'a
   // bought": its years are left out of the uncovered ones, and it is said with the units held of the units it needs
   const partRungs = T.kind === 'ladder' ? D.buy.filter((b) => b.kind === 'gilt' && num(b.heldUnits) > 0) : [];
   // the one wording of progress (7.12.0, moveWords.moveStatusOf): the home tile and the full view say the same
-  const status = moveStatusOf(T, D, P);
-  // the pace (7.12.0): Moving, with buys still to make and the stop ahead — the buying a month that finishes by then
   const mode0 = heldMode(life) ? 'held' : s.waiting ? 'waiting' : 'move';
-  const pace = mode0 === 'move' && !D.complete && !T.running ? paceOf(D.totals.buyCost, { today: s.now, stopMonth: s.stage.startMonth }) : null;
+  // totals only (7.12.0, the moving brief S4): nothing listed under What you hold — the plan's own pension, where it came
+  // from, and (a pot plan) no buys, sales or shortfall worked out against nothing; a ladder keeps what it buys
+  const unlisted = mode0 === 'move' && !base.recorded && !D.complete ? unlistedStatusOf(plan, { now: s.now }) : null;
+  const totalsOnly = !!unlisted && T.kind !== 'ladder';
+  const status = unlisted || moveStatusOf(T, D, P);
+  // the pace (7.12.0): Moving, with buys still to make and the stop ahead — the buying a month that finishes by then
+  const pace = mode0 === 'move' && !D.complete && !T.running && !totalsOnly ? paceOf(D.totals.buyCost, { today: s.now, stopMonth: s.stage.startMonth }) : null;
   // what skipping it costs (§3.3): for a ladder the tax years whose rung is not bought at all; for a pot plan the one run on the held mix
   const uncovered = T.kind === 'ladder' ? [...new Set(D.buy.filter((b) => b.kind === 'gilt' && !partRungs.includes(b)).flatMap((b) => (b.taxYears || []).map((y) => +y)))].sort((a, b) => a - b) : [];
   const parts = partRungs.map((b) => ({ label: b.label || b.ticker || '', years: (b.taxYears || []).map((y) => taxYearLabel(+y)).join(', '), held: grouped(b.heldUnits), units: grouped(num(b.units) + num(b.heldUnits)) }));
@@ -241,13 +245,13 @@ export function moveOf(entries, id, { today, index = null, M = null, source = 'a
     cash: cashRowsOf(T, D),
     cashInfo: D.cashInfo ? { held: pounds(D.cashInfo.held), target: pounds(D.cashInfo.target), years: D.cashInfo.yearsLeft.map((y) => taxYearLabel(+y)) } : null,
     paid: (T.paid || []).map((p) => ({ label: p.label, ticker: p.ticker || '' })), matured: D.matured.map((x) => moveRow(x, done)), sold: D.sold.map((x) => moveRow(x, done)), rotated: !!T.rotated,
-    buy: D.buy.map((x) => moveRow(x, done)), sell: D.sell.map((x) => moveRow(x, done)),
+    totalsOnly, buy: totalsOnly ? [] : D.buy.map((x) => moveRow(x, done)), sell: totalsOnly ? [] : D.sell.map((x) => moveRow(x, done)),
     hold: D.hold.map((x) => ({ key: x.key, label: x.label || x.ticker || '', ticker: x.ticker || '', held: x.heldUnits != null ? { units: units(x.heldUnits) } : { value: pounds(x.heldValue) }, spare: x.spare > 0 ? pounds(x.spare) : null, target: x.units ? { units: units(x.units) } : { value: pounds(x.value) } })),
     keep: D.keep.map((x) => ({ label: x.ticker || x.name || '', wrapper: x.wrapper, value: pounds(x.value), why: whyOf(x) })),
-    totals: { buy: pounds(D.totals.buyCost), sell: pounds(D.totals.sellValue), short: D.totals.shortfall > 0 ? pounds(D.totals.shortfall) : null },
+    totals: { buy: pounds(D.totals.buyCost), sell: pounds(D.totals.sellValue), short: D.totals.shortfall > 0 && !totalsOnly ? pounds(D.totals.shortfall) : null },
     // a ladder (7.12.0): what pays for the buys, what is held that the plan does not use, and the totals of both — one reading
-    paying: payingOf(D, { newMoney: seq ? seq.totals.contributions : 0 }), outside: outsideRowsOf(D), ladderTotals: moveTotalsOf(D), pace,
-    schedule: seq ? { steps: seq.steps.map((st) => ({ when: ym(st.when), action: st.action, label: st.label, ticker: st.ticker || '', units: units(st.units), amount: pounds(st.amount) })), tranches: String(seq.tranches), months: String(seq.months), funded: !!seq.funded, startPassed: !!seq.startPassed, newMoney: seq.totals.contributions > 0 ? pounds(seq.totals.contributions) : null } : null,
+    paying: payingOf(D, { newMoney: seq ? seq.totals.contributions : 0, said: !!unlisted }), outside: outsideRowsOf(D), ladderTotals: moveTotalsOf(D), pace,
+    schedule: seq && !totalsOnly ? { steps: seq.steps.map((st) => ({ when: ym(st.when), action: st.action, label: st.label, ticker: st.ticker || '', units: units(st.units), amount: pounds(st.amount) })), tranches: String(seq.tranches), months: String(seq.months), funded: !!seq.funded, startPassed: !!seq.startPassed, newMoney: seq.totals.contributions > 0 ? pounds(seq.totals.contributions) : null } : null,
     start, isa: s.isa,
     sheet, example, spGate: s.spGate ? { annual: pounds(s.spGate.annual), atAge: String(s.spGate.atAge) } : null, pricedOn: s.lockedOn,
     watch,

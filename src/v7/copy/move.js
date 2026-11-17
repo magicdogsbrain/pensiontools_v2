@@ -24,6 +24,9 @@ export const MOVE = {
     doneLadder: 'Done — every rung the plan still needs is held.',
     doneKept: 'Done — every rung is held, or covered by what you chose to keep.',
     held: '{held}% of the plan’s mix held; {done} of {moves} moves done.',
+    // totals only (7.12.0, the moving brief S4): nothing listed under What you hold, and nothing needs to be
+    unlisted: 'You have not listed what your pension holds, and you do not need to. Your plan has {pension} in your pension ({from}).',
+    unlistedIsa: 'You have not listed what your pension holds, and you do not need to. Your plan has {pension} in your pension and {isa} in your ISA ({from}).',
     gilts: '{bought} of {rungs} gilts bought. {held}% of your plan’s mix is held.',
     giltsPart: '{bought} of {rungs} gilts bought, and {part} part bought. {held}% of your plan’s mix is held.',
     // (never "about £" on this page, and never "before you stop work": the page is also read by people who have stopped)

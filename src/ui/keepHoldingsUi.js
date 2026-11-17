@@ -90,7 +90,7 @@ export function transitionHeld(scenario, rec, today = new Date()) {
     // 7.12.0: and the move's readings both views word the same way — the one status, the pace, what pays for the buys, what is
     // held that the plan does not use, the totals and the cash to hold now (answers/plan/moveWords.js through moveOf)
     return v && v.found ? { mode: v.mode || null, heldInfo: v.heldInfo || null, heldView: v.heldView || null, phase: v.phase || null,
-      status: v.status || null, pace: v.pace || null, paying: v.paying || null, outside: v.outside || [], ladderTotals: v.ladderTotals || null, cash: v.cash || null, isa: v.isa || null,
+      status: v.status || null, totalsOnly: !!v.totalsOnly, pace: v.pace || null, paying: v.paying || null, outside: v.outside || [], ladderTotals: v.ladderTotals || null, cash: v.cash || null, isa: v.isa || null,
       sayHeld: v.sayHeld || null, saidHeld: v.saidHeld || null, sayHeldOpen: sayHeldMemory.open && sayHeldMemory.planId === String(plan.id) } : null;
   } catch { return null; }
 }

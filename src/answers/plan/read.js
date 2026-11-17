@@ -13,7 +13,7 @@
  * Words with {slots} are filled by the screen from copy/plan.js; the ids here match that file. A sentence's figures
  * are `parts` ({ key, kind }) into the step's `figures`, so the screen draws each through Money (data-key, data-value).
  */
-import { planStage, effectiveStressSettings, whereAmIFor, whereAmIInputs, moveInputs, thisMonth, historyAscending } from '../../services/PlanReading.js';
+import { planStage, effectiveStressSettings, whereAmIFor, whereAmIInputs, moveInputs, thisMonth, historyAscending, planMoneyOf } from '../../services/PlanReading.js';
 import { CONTRACT_STRATEGIES, planToAgeOfDefinition, guardrailOf, pricesMonthKeyOf } from '../../services/PlanDocument.js';
 import { taxYearLabel, taxYearStartOf, taxYearKey, ageOnDate } from '../../services/PlanTiming.js';
 import { documentLadder, firstRungOf } from '../../services/LadderPosition.js';
@@ -63,7 +63,7 @@ import { checkInState, checkInsOf } from './checkInDue.js';
 import { saverInputsOf } from './saverInputs.js';
 import { MONTHS, dateOf, ym, monthWords, monthName, dayWords, monthsBetween, localDay, timeLeftWords } from './dates.js';
 import { heldLadder } from './held.js';
-import { moveStatusOf } from './moveWords.js';
+import { moveStatusOf, unlistedStatusOf } from './moveWords.js';
 import { isClosedPlan, closedReading, beforeReading, closedAtOf, monthRefusalWords } from '../../services/PlanClosed.js';
 import { closeQuestionOf, successorName } from '../../services/PlanClose.js';
 import { startLaterOf, laterDraftLeftOf } from '../../services/PlanMove.js';
@@ -377,7 +377,18 @@ function whereStep(C) {
   let compare = null;
   if (w.saving) {
     const s = w.saving;
-    if (s.pathMissing || s.actual == null || s.expected == null) result = sentence('where.saverNone', ['No pot recorded against the plan’s path yet'], figures);
+    // no pot to set against the path (7.12.0, the moving brief S4/S6): what the pension is today when something says it —
+    // What you hold, a record, or (nothing listed, and nothing needs to be) the plan's own pension — never "No pot recorded"
+    let un = null; try { un = s.actual == null && !normaliseHoldings(plan.holdings).lines.length ? planMoneyOf(plan, { now }) : null; } catch { un = null; }
+    if (un && un.pension > 0) {
+      figures.pension = r0(un.pension); figures.isa = r0(un.isa || 0);
+      result = sentence('where.saverUnlisted', ['You have not listed what your pension holds, and you do not need to. Your plan has ', money('pension'), ' in your pension',
+        ...(figures.isa > 0 ? [' and ', money('isa'), ' in your ISA'] : []), ' (' + ({ checkIn: 'from your check-in', record: 'from your last record' }[un.from] || 'from your plan') + ').'], figures);
+    }
+    else if (s.actual != null && (s.pathMissing || s.expected == null)) {
+      figures.actual = r0(s.actual);
+      result = sentence('where.saverNoPath', ['Your pension today: ', money('actual'), s.actualSource === 'holdings' ? ', from What you hold' : '', '. Your plan was locked with no saving path to set it against.'], figures);
+    } else if (s.pathMissing || s.actual == null || s.expected == null) result = sentence('where.saverNone', ['No pot recorded against the plan’s path yet'], figures);
     else {
       figures.actual = r0(s.actual); figures.expected = r0(s.expected);
       // one basis (7.12.0): the figure the path is in first, as recorded in brackets, when prices have moved
@@ -897,7 +908,7 @@ function moveStep(C) {
   let m = null; try { m = moveInputs(plan, { now }); } catch { m = null; }
   // Living on it, or Moving once what is held was accepted (7.11.1, Phases.heldPhase): what is held, never moves to make
   const asHeld = heldPhase(life);
-  let result, done = false;
+  let result, done = false, unlisted = false;
   // living on a ladder (7.12.0): the gilts held, as "Your plan's mix" counts them (held.js, the one reading)
   let hl = null; if (asHeld && m && m.target && m.target.kind === 'ladder') { try { hl = heldLadder(plan, { today: localDay(now), life }); } catch { hl = null; } }
   if (!m || !m.target || m.target.kind === 'none') result = sentence('move.notSet', ['Set when the plan is locked'], figures);
@@ -905,6 +916,8 @@ function moveStep(C) {
   else if (asHeld && life && life.key === 'moving' && life.agreed && life.agreed.at) { result = sentence('move.ownWay', ['You hold it your own way (said ', { fixed: dayWords(life.agreed.at) }, ').'], figures); }
   else if (hl) { figures.bought = hl.gilts.held; figures.rungs = hl.gilts.total; result = sentence('move.giltsHeld', [count('bought'), ' of ', count('rungs'), ' gilts held'], figures); done = !!m.diff.complete; }
   else if (m.diff.complete) { result = sentence('move.done', ['Done'], figures); done = true; }
+  // nothing listed under What you hold (7.12.0, the moving brief S4): no share held is said, and nothing needs listing
+  else if (!asHeld && !normaliseHoldings(plan.holdings).lines.length && unlistedStatusOf(plan, { now })) { unlisted = true; result = sentence('move.unlisted', ['Not listed, and you do not need to'], figures); }
   else if (m.target.kind === 'ladder') {
     // the move's one status (7.12.0, moveWords.moveStatusOf), in the words of src/v7/copy/move.js MOVE.status.gilts and
     // giltsPart: the move page and the full view say the same sentence (tests/v7/plan/moveSays.test.js holds them equal)
@@ -921,9 +934,9 @@ function moveStep(C) {
     result = sentence('move.moves', [count('movesDone'), ' of ', count('moves'), ' moves done'], figures);
   }
   // the share held, once: a ladder's status sentence already says it (7.12.0)
-  if (m && m.diff && typeof m.diff.progressPct === 'number' && !(result.id === 'move.gilts' || result.id === 'move.giltsPart')) { figures.heldPct = m.diff.progressPct; lines.push(line('move.held', [count('heldPct'), '% of the plan’s mix held'], figures, sourceOf('hold', normaliseHoldings(plan.holdings).updatedAt || null, now))); }
+  if (!unlisted && m && m.diff && typeof m.diff.progressPct === 'number' && !(result.id === 'move.gilts' || result.id === 'move.giltsPart')) { figures.heldPct = m.diff.progressPct; lines.push(line('move.held', [count('heldPct'), '% of the plan’s mix held'], figures, sourceOf('hold', normaliseHoldings(plan.holdings).updatedAt || null, now))); }
   // what is still to buy while the move is under way (7.12.0, the moving brief S4: the home's to-do says it)
-  const toBuy = !asHeld && m && m.target && m.target.kind !== 'none' && m.diff && !m.diff.complete && m.diff.totals ? Math.round(num(m.diff.totals.buyCost) || 0) : 0;
+  const toBuy = !asHeld && !(unlisted && m.target.kind !== 'ladder') && m && m.target && m.target.kind !== 'none' && m.diff && !m.diff.complete && m.diff.totals ? Math.round(num(m.diff.totals.buyCost) || 0) : 0;
   // "Open it": the move is drawn inside V7 (road-to-7.md step 10; holdings-and-move.md §4)
   return { done, result, figures, lines, buttons: [link('openMove', '#/plan/' + plan.id + '/move')], notes: asHeld ? [] : ['move.optional'], toBuy };
 }

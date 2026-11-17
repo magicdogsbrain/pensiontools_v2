@@ -162,7 +162,7 @@ describe('each stage\'s home', () => {
     expect(one(root, `${T}.headline`).textContent).toMatch(/^Moving\.$/);
     // 7.10.0: the window line, no to-do (the first check-in is not one), the review whenever they like
     expect(root.querySelectorAll(`[data-testid="${T}.todo"] .home-item`)).toHaveLength(0);
-    expect(one(root, `${T}.moveWindow`).textContent).toBe('You stop work in January 2030, in your move window: 3 years 4 months left. You can record what you hold when you like, and you do not need to.');
+    expect(one(root, `${T}.moveWindow`).textContent).toBe('You stop work in January 2030, in your move window: 3 years and 4 months left. You can record what you hold when you like, and you do not need to.');
     expect(one(root, `${T}.quiet`).textContent).toBe('Nothing due. You can review your plan whenever you like.');
     expect(one(root, `${T}.review`)).toBe(null);
     expect(one(root, `${T}.review.now`).getAttribute('href')).toBe('#/plan/AlexMoving03/review');
@@ -291,7 +291,7 @@ describe('each stage\'s home', () => {
     const { root } = draw(step);
     const rail = root.querySelector('[data-region="rail"]');
     expect(one(rail, 'rail.home').getAttribute('href')).toBe('#/plan/AlexMoving03');
-    expect(one(rail, 'rail.next').textContent).toContain('You stop work in January 2030, in your move window: 3 years 4 months left.');
+    expect(one(rail, 'rail.next').textContent).toContain('You stop work in January 2030, in your move window: 3 years and 4 months left.');
     const { root: home } = draw(stored);
     expect(home.querySelectorAll(`[data-testid="${T}.todo"] .home-item`)).toHaveLength(0);
     expect(rail.querySelector('[data-testid^="rail.ask."]')).toBe(null);

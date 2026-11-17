@@ -450,8 +450,9 @@ export function MoveScreen(state, dispatch) {
           ) : <>
           <Status V={V} />
           <SayHeld V={V} dispatch={dispatch} />
-          <Cost V={V} dispatch={dispatch} />
-          {V.waiting ? <Waiting V={V} /> : (
+          {/* totals only on a pot plan (7.12.0): nothing listed, so nothing is worked out against it */}
+          {!V.totalsOnly && <Cost V={V} dispatch={dispatch} />}
+          {V.totalsOnly ? null : V.waiting ? <Waiting V={V} /> : (
             <>
               <Cash V={V} />
               <Lists V={V} dispatch={dispatch} planId={planId} KT={planKeepTestView(state)} />

@@ -7,6 +7,7 @@
  */
 import { taxYearLabel } from '../../services/PlanTiming.js';
 import { isRungRow } from '../../services/TransitionPlanner.js';
+import { planMoneyOf } from '../../services/PlanReading.js';
 
 const num = (v) => (Number.isFinite(+v) ? +v : 0);
 const pounds = (n) => '£' + String(Math.abs(Math.round(num(n)))).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
@@ -41,7 +42,7 @@ export const sayMoveStatus = (st, W) => fillMove(W.status[st.id], st.slots);
  * nothing to buy. `newMoney` is the new money expected before the stop (the schedule's), `from` where the plan's own money
  * was read ('plan' | 'checkIn' | 'record') when nothing is listed and the caller gave it.
  */
-export function payingOf(diff, { newMoney = 0, planMoney = null } = {}) {
+export function payingOf(diff, { newMoney = 0, planMoney = null, said = false } = {}) {
   const F = diff && diff.funding;
   if (!F || !(F.need > 0)) return null;
   const slots = { need: pounds(F.need), available: pounds(F.available), toRaise: pounds(F.toRaise), leftOver: pounds(F.leftOver), short: pounds(F.short), newMoney: newMoney > 0 ? pounds(newMoney) : null };
@@ -50,10 +51,11 @@ export function payingOf(diff, { newMoney = 0, planMoney = null } = {}) {
   if (F.toRaise <= 0) return { ids: ['need', 'cash'], slots };
   if (F.fromPlan) {
     const pm = planMoney || F.planMoney || {};
-    return { ids: ['unlisted', num(pm.isa) > 0 ? 'planHasIsa' : 'planHas', 'need', ...(F.short > 0 ? ['planShort', ...(newMoney > 0 ? ['newMoney'] : []), 'shortRest'] : ['planEnough'])],
+    // `said`: the status above already said nothing is listed and the plan's own pension (unlistedStatusOf): said once
+    return { ids: [...(said ? [] : ['unlisted', num(pm.isa) > 0 ? 'planHasIsa' : 'planHas']), 'need', ...(F.short > 0 ? ['planShort', ...(newMoney > 0 ? ['newMoney'] : []), 'shortRest'] : ['planEnough'])],
       slots: { ...slots, pension: pounds(pm.pension), isa: pounds(pm.isa), from: pm.from || 'plan' } };
   }
-  if (F.listed === false) return { ids: ['unlisted', 'need'], slots };
+  if (F.listed === false) return { ids: [...(said ? [] : ['unlisted']), 'need'], slots };
   return { ids: ['need', 'youHold', ...rest], slots };
 }
 
@@ -118,4 +120,16 @@ export function cashRowsOf(target, diff) {
   }
   const target0 = num(left.value), held = num(D.totals && D.totals.cashHeld);
   return { rows, over: rows.some((r) => r.over), target: pounds(target0), held: pounds(held), spare: held >= target0 ? pounds(held - target0) : null, short: held < target0 ? pounds(target0 - held) : null };
+}
+
+const FROM_WORDS = { plan: 'from your plan', checkIn: 'from your check-in', record: 'from your last record' };
+/**
+ * The move's status with nothing listed under What you hold (7.12.0, the moving brief S4): { id: 'unlisted' | 'unlistedIsa',
+ * slots: { pension, isa, from } } from the plan's own money (PlanReading.planMoneyOf, the one pension-today reader), or null
+ * when the plan has no pension figure at all.
+ */
+export function unlistedStatusOf(plan, { now = new Date() } = {}) {
+  let pm = null; try { pm = planMoneyOf(plan, { now }); } catch { pm = null; }
+  if (!pm || !(num(pm.pension) > 0)) return null;
+  return { id: num(pm.isa) > 0 ? 'unlistedIsa' : 'unlisted', slots: { pension: pounds(pm.pension), isa: pounds(pm.isa), from: FROM_WORDS[pm.from] || FROM_WORDS.plan } };
 }

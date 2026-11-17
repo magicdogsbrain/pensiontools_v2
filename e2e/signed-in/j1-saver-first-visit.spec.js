@@ -56,7 +56,7 @@ test('the front page speaks to a saver; "Am I saving enough?" gives the ballpark
   await expect(page.locator('#app main')).toContainText(/Paying in 8% of your pay as now/);
   await expect(page.locator('#app main')).toContainText(/your pension at 62: £[\d,]+ in a bad case/);
   await expect(page.locator('#enough-title')).toContainText(/To be on course: [\d.]+% of your pay/);
-  await expect(page.getByTestId('b.enough.line')).toContainText(/£[\d,]+ a month going into your pension/);
+  await expect(page.getByTestId('b.enough.line')).toContainText(/£[\d,]+ a month in all going into your pension/);
 });
 
 /**

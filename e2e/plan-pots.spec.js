@@ -182,7 +182,9 @@ test.describe('"Your pots and tax", without an account', () => {
     await expect(page.getByTestId('plan.step.pots')).toBeVisible();
     expect(await page.locator('#app input, #app select, #app textarea').count()).toBe(0);
     await expect(page.getByTestId('plan.pots.fixed')).toHaveText('Fixed when you locked the plan on 1 July 2026.');
-    await expect(page.locator('[data-region="plan-pots"]')).toContainText('Pension £640,000 and ISAs and savings £35,000 today.');
+    // 7.12.0: a locked plan's pots are the ones it was locked with, and the day, never said as today's (the home says today's)
+    await expect(page.locator('[data-region="plan-pots"]')).toContainText('Your plan was locked on 1 July 2026 with a pension of £640,000 and ISAs and savings of £35,000.');
+    await expect(page.locator('[data-region="plan-pots"]')).not.toContainText('today.');
     expect(await page.evaluate((k) => sessionStorage.getItem(k), GUEST_KEY)).toBe(stored);
   });
 });

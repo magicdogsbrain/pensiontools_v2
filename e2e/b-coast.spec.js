@@ -86,7 +86,9 @@ test.describe('J6 — could I pay in less? (question B)', () => {
       await app.click('b.try.payIn.down');
       await app.ready(120_000);
       app.typed = await app.draftValues('b');
-      expect(num(app.typed['you.payIn.total'])).toBe(Math.max(0, was - 50));
+      // 7.12.0: a press is a try: it never overwrites what was typed as now, and the answer is worked out for the try
+      expect(num(app.typed['try.payIn'])).toBe(Math.max(0, was - 50));
+      expect(num(app.typed['you.payIn.total'])).toBe(was);
       await expectHeadlinesB(page, app.engine(ANSWER));
     }, { answer: () => app.engine(ANSWER) });
 
@@ -100,7 +102,7 @@ test.describe('J6 — could I pay in less? (question B)', () => {
       const want = grid.ages.flatMap((row) => row.cells.map((c) => `${row.age}:${c.payIn}`));
       expect(cells).toEqual(want);
       // Press one that differs from today's figures, as a person trying a change would.
-      const pick = want.find((c) => c !== `${num(app.typed['stop.age'])}:${num(app.typed['you.payIn.total'])}`) || want[0];
+      const pick = want.find((c) => c !== `${num(app.typed['stop.age'])}:${num(app.typed['try.payIn'] || app.typed['you.payIn.total'])}`) || want[0];
       await page.locator(`#app [data-grid] [data-cell="${pick}"]`).click();
       app.counts.clicks += 1;
       await app.at('b.answer');
@@ -108,7 +110,9 @@ test.describe('J6 — could I pay in less? (question B)', () => {
       app.typed = await app.draftValues('b');
       const [age, payIn] = pick.split(':').map(Number);
       expect(num(app.typed['stop.age'])).toBe(age);
-      expect(num(app.typed['you.payIn.total'])).toBe(payIn);
+      // 7.12.0: the cell's pay-in is a try; what was typed as now stays
+      expect(num(app.typed['try.payIn'])).toBe(payIn);
+      expect(num(app.typed['you.payIn.total'])).toBe(num(typing['you.payIn.total']));
     }, { answer: () => app.engine(ANSWER) });
 
     await app.step('"When could I stop?" carries the household to A', async () => {

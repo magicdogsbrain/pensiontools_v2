@@ -131,11 +131,16 @@ test.describe('J4 — what\'s my number? (A, then B with the figures carried acr
       const head = page.locator('#app [data-headline="verdict"]');
       await expect(head.locator('#answer-figure')).toHaveText('Not enough for £1,810 a month from 63');
       const first = head.locator('[data-sentence="verdict"]');
-      await expect(first).toContainText('Paying in 10% of your pay as now (£317 a month, your employer\'s 4% included)');
+      // 7.12.0: what leaves take-home pay now and the employer's part now (£317 in all: 6% of £3,170 is £190 before the
+      // tax relief, £152 from take-home pay; 4% is £127 from the employer)
+      await expect(first).toContainText('Paying in 10% of your pay as now (£317 a month in all: about £152 a month from your take-home pay and £127 from your employer)');
       // (7.8.0: one figure for what would be enough, at the level — the 3-in-4 and middling figures left the answer; the
       // words are the engine's own)
       await expect(first).toHaveText(b.sentences.verdictLine.text);
-      await expect(first).toContainText('would put you on course, which is Balanced: 18 times in 20.');
+      // 7.12.0: what would be enough is a sentence of its own, under the as-now one
+      const enoughNow = head.locator('[data-sentence="verdict-enough"]');
+      await expect(enoughNow).toHaveText(b.sentences.verdictEnough.text);
+      await expect(enoughNow).toContainText('would put you on course, which is Balanced: 18 times in 20.');
       const income = page.locator('#app [data-testid="b.verdict.income"]');
       await expect(income).toHaveText(b.sentences.income.text);
       await expect(income).toContainText('with your State Pension from 68 (the full amount, as assumed)');

@@ -18,13 +18,33 @@ export function taxYearOf(d) {
   return (m > 3 || (m === 3 && day >= 6)) ? d.getFullYear() : d.getFullYear() - 1;
 }
 
-/** Months remaining in tax year `Y` from date `d` (1..12, counting the current month). */
+/**
+ * Months remaining in tax year `Y` from date `d` (1..12, counting the current month): calendar months, from this one to
+ * March (7.12.0: late in a month still counts that month, as "Your plan's mix" counts them; 1–5 April is the last, 1).
+ */
 export function monthsLeftInTaxYear(Y, d) {
-  const end = new Date(Y + 1, 3, 6);
-  if (d >= end) return 0;
-  const start = new Date(Y, 3, 6);
-  const from = d < start ? start : d;
-  return Math.max(1, Math.min(12, Math.round((end - from) / (30.44 * 24 * 3600 * 1000))));
+  if (d >= new Date(Y + 1, 3, 6)) return 0;
+  if (d < new Date(Y, 3, 6)) return 12;
+  return Math.max(1, Math.min(12, (Y + 1) * 12 + 3 - (d.getFullYear() * 12 + d.getMonth())));
+}
+
+const ymOf = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+const inYear = (Y, month) => (h) => {
+  const m = String((h && h.date) || '').slice(0, 7);
+  const a = /^(\d{4})-(\d{2})$/.exec(m);
+  return !!a && m < month && (+a[2] >= 4 ? +a[1] : +a[1] - 1) === Y;
+};
+/** How many months of tax year `Y` before `month` are recorded (each month once). */
+export function recordedMonthsBefore(records, Y, month) {
+  return new Set((Array.isArray(records) ? records : []).filter(inYear(Y, month)).map((h) => String(h.date).slice(0, 7))).size;
+}
+/**
+ * What the recorded months of tax year `Y` before `month` ('YYYY-MM') took from the pension, before tax: the records'
+ * `sipp`, summed in pence and rounded once. The month itself and later months are not counted.
+ */
+export function drawnFromRecords(records, Y, month) {
+  const p = (Array.isArray(records) ? records : []).filter(inYear(Y, month)).reduce((t, h) => t + Math.round((Number.isFinite(+h.sipp) ? +h.sipp : 0) * 100), 0);
+  return Math.round(p / 100);
 }
 
 /**
@@ -32,7 +52,9 @@ export function monthsLeftInTaxYear(Y, d) {
  * @param {object} [o]
  * @param {Date}   [o.today]
  * @param {number} [o.cashBalance]  actual SIPP cash + money-market balance, if known
- * @param {number} [o.drawnThisYear] amount already withdrawn in this tax year, if known
+ * @param {number} [o.drawnThisYear] amount already withdrawn in this tax year, if known (typed: it wins over the records)
+ * @param {Array}  [o.records]  the Decision history: with no drawnThisYear, what its months of this tax year before today's
+ *   month took (drawnFromRecords), so the month's figure is what is still to pay over the months still to come
  * @param {Date|string} [o.potsDay]  the day the run's pots belong to, when they belong to a plan year already begun
  *   (PlanFromToday.potsDayOf). The engines run the year that day falls in as the twelve months from it, at that year's
  *   figures (PlanFromToday.js, "The run's years"), so the ladder's first year, begun before it, is paid at its need over
@@ -54,8 +76,13 @@ export function ladderPosition(plan, o = {}) {
   const gross = cur ? cur.gross : 0;
   const sp = Math.max(0, gross - need);
   const monthsLeft = monthsLeftInTaxYear(Y, today);
-  const drawn = o.drawnThisYear || 0;
-  const remaining = Math.max(0, need - drawn);
+  // What is still to pay: a figure typed for what was drawn, taken off the need; else the months recorded this tax year
+  // before this one, each counted as a month the plan paid (the records are in pounds of their day and the need in today's
+  // money, so the count, not their sum, says what share of the year is paid); with neither, the whole need.
+  const typed = o.drawnThisYear != null && Number.isFinite(+o.drawnThisYear) ? +o.drawnThisYear : null;
+  const drawn = typed != null ? typed : drawnFromRecords(o.records, Y, ymOf(today));
+  const paidMonths = typed != null ? 0 : recordedMonthsBefore(o.records, Y, ymOf(today));
+  const remaining = typed != null ? Math.max(0, need - typed) : need * monthsLeft / Math.max(monthsLeft, Math.min(12, monthsLeft + paidMonths));
   const potsDay = o.potsDay ? new Date(o.potsDay) : null;
   const spread = !!cur && Y === first && !!potsDay && Number.isFinite(potsDay.getTime()) && taxYearOf(potsDay) === Y;
   const monthly = spread ? need / 12 : monthsLeft > 0 ? remaining / monthsLeft : 0;
@@ -151,7 +178,7 @@ export function ladderMonthAdvice(lp, rung, total, planYearSigned) {
   // (7.12.0: the note never says the money is already in cash — only the month's own cash figure can say that, DecisionOverlay)
   if (!lp) return { floorMonthly: total, floorLabel: 'this year\'s matured rung', note: 'Every year is bought by contract. Nothing is sold.' };
   return { floorMonthly: lp.monthly, floorLabel: lp.source === 'cash' ? 'the cash years bucket' : 'rung ' + lp.source + ' (already cash)',
-    note: 'Tax year ' + lp.taxYearLabel + ', age ' + lp.age + '. ' + lp.instruction + (lp.source === 'cash' && rung ? ' Your cash pays until the ladder\'s first gilt, from ' + rung.label + '.' : '') + ' Nothing is sold.' };
+    note: 'Tax year ' + lp.taxYearLabel + ', age ' + lp.age + '. ' + lp.instruction + (lp.source === 'cash' && rung ? ' The plan\'s cash years pay until the ladder\'s first gilt, from ' + rung.label + '.' : '') + ' Nothing is sold.' };
 }
 
 /**

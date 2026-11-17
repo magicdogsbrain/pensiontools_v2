@@ -288,7 +288,7 @@ export function whereAmIInputs(scenario, { now = new Date() } = {}) {
     const plan = documentLadder(doc, doc.strategy.id || null);
     // a first year begun before the pots' day is paid over twelve months from it, as the planner's reading does (6.51.0)
     const potsDay = potsDayOf({ potsAsOf: lockedPotsAsOf(sc) }, { lockedAt: doc.lockedAt || null, now });
-    ladderPos = plan ? ladderPosition(plan, { today: now, potsDay }) : null;
+    ladderPos = plan ? ladderPosition(plan, { today: now, potsDay, records: history }) : null;   // the months recorded this tax year (7.12.0)
   }
   const accHistory = doc && doc.accumulation && Array.isArray(sc.accumulationTool && sc.accumulationTool.history) ? sc.accumulationTool.history : [];
   const holdings = normaliseHoldings(sc.holdings);

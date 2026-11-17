@@ -101,7 +101,7 @@ async function classicCalc(dateStr, pots) {
     if (CONTRACT_IDS.includes(sst.id)) {
       const doc = await getActivePlanDocument();
       const plan = documentLadder(doc, ss.strategyId);
-      const lp = plan ? ladderPosition(plan, { today: new Date(dateStr + '-15'), potsDay: potsDayOf(ss, { lockedAt: doc.lockedAt, now: new Date() }), cashBalance: null, drawnThisYear: 0 }) : null;
+      const lp = plan ? ladderPosition(plan, { today: new Date(dateStr + '-15'), potsDay: potsDayOf(ss, { lockedAt: doc.lockedAt, now: new Date() }), cashBalance: null, drawnThisYear: null, records: await getHistoryAsync({ sortDesc: false, limit: 500 }).catch(() => []) }) : null;   // 7.12.0: the months recorded this tax year, as the page reads them
       ladder = { lp, firstRung: lp ? firstRungOf(plan) : null };
     }
     decision.strategyOverlay = sst.id && sst.id !== 'pots-and-valves' ? strategyOverlayOf(decision, dateStr, { strategy: sst, stressSettings: ss, name: getStrategy(sst.id).describe().name, ladder }) : null;

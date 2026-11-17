@@ -270,7 +270,7 @@ describe('the ladder\'s month in the Decision tool is placed by the ladder\'s ow
     expect(before.note).toContain('your ladder\'s first gilt pays from 2028/29');
     const cashYear = ladderMonthAdvice({ phase: 'running', monthly: 2200, source: 'cash', taxYearLabel: '2026/27', age: 63, instruction: 'Instruct the broker.' }, rung, 2100, 2);
     expect([cashYear.floorMonthly, cashYear.floorLabel]).toEqual([2200, 'the cash years bucket']);
-    expect(cashYear.note).toContain('Your cash pays until the ladder\'s first gilt, from 2028/29.');
+    expect(cashYear.note).toContain('The plan\'s cash years pay until the ladder\'s first gilt, from 2028/29.');
     expect(cashYear.note).not.toMatch(/run-up|SIPP cash/);
     expect(ladderMonthAdvice(null, null, 1800, -1).floorLabel).toBe('cash, until the first gilt pays');   // no ladder, before the start
     expect(ladderMonthAdvice(null, null, 1800, 1).floorLabel).toBe('this year\'s matured rung');

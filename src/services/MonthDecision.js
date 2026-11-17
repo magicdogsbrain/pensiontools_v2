@@ -186,7 +186,7 @@ export function decideMonth(I, ym, pots, { history = I.history, taxYears = I.tax
   const deps = engineDeps(setup, { history, taxYears, spInfo, potsYear: I.potsYear, pots });
   const d = calcDecision(ym, +pots.equity || 0, +pots.bond || 0, +pots.cash || 0, deps);
   try {
-    const ladder = I.contract ? ladderFromDocument(I.plan.planDocument, I.stressSettings, ym, I.now) : null;
+    const ladder = I.contract ? ladderFromDocument(I.plan.planDocument, I.stressSettings, ym, I.now, history) : null;
     d.strategyOverlay = strategyOverlayOf(d, ym, { strategy: I.strategy, stressSettings: I.stressSettings, name: STRATEGY_NAME[I.strategy.id] || I.strategy.id, ladder });
   } catch { /* the overlay is words; the month stands without it, as on the classic page */ }
   d.cadenceMonths = 1;

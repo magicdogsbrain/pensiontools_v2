@@ -65,13 +65,14 @@ export function strategyOverlayOf(decision, dateStr, { strategy, stressSettings,
  * @param {object} stressSettings  the effective Stress settings (strategyId, potsAsOf)
  * @param {string} dateStr  'YYYY-MM'
  * @param {Date} now
+ * @param {Array} [records]  the Decision history: what this tax year's months before this one took (7.12.0)
  */
-export function ladderFromDocument(planDocument, stressSettings, dateStr, now) {
+export function ladderFromDocument(planDocument, stressSettings, dateStr, now, records = []) {
   try {
     const plan = documentLadder(planDocument, stressSettings && stressSettings.strategyId);
     if (!plan) return null;
     const today = new Date(dateStr + (dateStr.length === 7 ? '-15' : ''));
-    const lp = ladderPosition(plan, { today, potsDay: potsDayOf(stressSettings, { lockedAt: planDocument.lockedAt, now }), cashBalance: null, drawnThisYear: 0 });
+    const lp = ladderPosition(plan, { today, potsDay: potsDayOf(stressSettings, { lockedAt: planDocument.lockedAt, now }), cashBalance: null, records });
     return { lp, firstRung: lp ? firstRungOf(plan) : null };
   } catch { return null; }
 }

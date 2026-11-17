@@ -1812,7 +1812,7 @@
             },
             "payMore": {
               "id": "b.lever.payMore.share",
-              "text": "Pay in 28% of your pay in all (you 24%, £887 a month): your money lasts as long as you do 18 times in 20.",
+              "text": "Pay in 28% of your pay in all (you 24%; £887 a month in all): your money lasts as long as you do 18 times in 20.",
               "parts": [
                 "Pay in ",
                 {
@@ -1824,12 +1824,12 @@
                   "key": "levers.payMore.ownPct",
                   "kind": "pct"
                 },
-                ", ",
+                "; ",
                 {
                   "key": "levers.payMore.payIn",
                   "kind": "money"
                 },
-                " a month)",
+                " a month in all)",
                 ": your money ",
                 "lasts ",
                 "as long as you do",

@@ -240,7 +240,7 @@ describe('the words, state by state (saving-enough-and-check-in.md 2.2 and 3.5; 
     expect(s.enoughMatch.text).toContain("If your partner's employer adds more when they pay more");
     const verdict = [s.verdictLine, s.enoughHead, s.enoughLine, s.enoughFour].filter(Boolean).map((x) => x.text).join(' ');
     expect(verdict).not.toMatch(/\byour pay\b|\byou \d|your employer|into your pension\b/);
-    if (a.levers.payMore) expect(s.lever.payMore.text).toMatch(/^Your partner pays in [\d.]+% of their pay in all \(your partner [\d.]+%, /);
+    if (a.levers.payMore) expect(s.lever.payMore.text).toMatch(/^Your partner pays in [\d.]+% of their pay in all \(your partner [\d.]+%; £[\d,]+ a month in all\)/);
     // on course: they could stop paying in themselves, with their employer's part going in
     const easy = already(20, 1200);
     const b = ok(answerB(easy, ENV), easy);

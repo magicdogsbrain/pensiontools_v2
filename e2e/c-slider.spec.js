@@ -90,8 +90,10 @@ test.describe('the slider moves the answer it sits on', () => {
     await expect(app.id('c.answer.solved').locator('[data-key="levels.balanced.monthly"]').first()).toHaveAttribute('data-value', String(solved));
     // the three tiles stay the most at each level
     await expect(page.locator('#app [data-testid="c.tiles"] [data-tile="balanced"] [data-key="levels.balanced.monthly"]')).toHaveAttribute('data-value', String(solved));
-    // Keep says it keeps the level's amount
-    await expect(app.id('c.keep.trying')).toContainText('not the amount you are trying');
+    // Keep asks which amount the plan keeps (7.12.0): the one tried, or the level's; neither is chosen for you
+    await expect(app.id('c.keep.trying')).toHaveCount(0);
+    await expect(app.id('c.action.save.level').locator('[data-key="levels.balanced.monthly"]').first()).toHaveAttribute('data-value', String(solved));
+    await expect(app.id('c.action.save.tried')).toContainText('(the amount you are trying)');
     expect(await checkScreenOnPage(page)).toEqual([]);
     await noSideways(page);
 

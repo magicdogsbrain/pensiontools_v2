@@ -37,6 +37,9 @@ import { getDefaultDecisionSettings, seedDecisionFromStress, chargesPatchOnUnloc
 import { getDefaultTaxYears, getDefaultBudget, defaultStrategyBlock as pureDefaultStrategyBlock, getDefaultScenario as pureGetDefaultScenario, strategyOf as pureStrategyOf } from '../services/PlanFromSeed.js';
 import { PlanLockedError, lockedWriteRefusal, isLockedSettings, isPlanLockedError, lockedPlanWriteRefusal, phaseWriteRefusal } from '../services/LockedPlanGuard.js';
 import { taskPatch } from '../answers/plan/tasks.js';
+import { savingPatch } from '../answers/plan/saving.js';
+import { localDay } from '../answers/plan/dates.js';
+import { upgradeScenario } from '../firebase/scenarioMigration.js';
 import { getDefaultStressSettings } from './stressDefaults.js';
 import { onPlanCopyStale, dropStalePlanCopies } from './planCopies.js';
 import { cadenceOf, normaliseCadence } from '../services/DrawCadence.js';
@@ -811,6 +814,26 @@ export async function saveActivePhases(phases, { now = new Date() } = {}) {
   await saveScenario(active.id, { phases: clean });
   if (cachedActiveScenario && cachedActiveScenario.id === active.id) cachedActiveScenario.phases = JSON.parse(JSON.stringify(clean));
   return clean;
+}
+
+/**
+ * "What you want" from the full view's Accumulation tab (7.12.0): the amount to spend a month from the stop and the age you
+ * stop, written as the simple view's What you pay in writes them — answers/plan/saving.js savingPatch on the stored plan,
+ * ONE write of its paths with the stamp. Only `want.monthly` and `want.stopAge` are read from `typed`. Returns
+ * { ok, errors }; nothing is written when a box has a problem or nothing changed. A locked plan's want is never boxed.
+ */
+export async function saveActiveWant(typed, { now = new Date() } = {}) {
+  const active = await getActiveScenarioAsync();
+  if (!active) throw new Error('No active scenario');
+  const stored = (await loadScenario(active.id)) || active;
+  const plan = upgradeScenario(JSON.parse(JSON.stringify(stored)), { now }).scenario;
+  const t = typed || {};
+  const p = savingPatch(plan, { 'want.monthly': t['want.monthly'] ?? '', 'want.stopAge': t['want.stopAge'] ?? '' }, { today: localDay(now) });
+  if (!p.ok) return { ok: false, errors: p.errors };
+  if (!Object.keys(p.patch).length) return { ok: true, errors: {}, written: false };
+  await saveScenario(active.id, p.patch);
+  invalidateScenarioCache();
+  return { ok: true, errors: {}, written: true };
 }
 
 /**

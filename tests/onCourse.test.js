@@ -73,7 +73,8 @@ describe('"Am I on course?" on the Accumulation planner', () => {
     const at = script.indexOf('window.runOnTrackCheck');
     expect(at).toBeGreaterThan(-1);
     const body = script.slice(at, script.indexOf('\n', at));
-    expect(body).toBe("window.runOnTrackCheck = () => paintSaverAnswer(document, { listScenariosAsync, getActiveScenarioId });");
+    // (7.12.0: what you want is changed on the tab too, through the same one write as What you pay in)
+    expect(body).toBe("window.runOnTrackCheck = () => paintSaverAnswer(document, { listScenariosAsync, getActiveScenarioId, saveWant: saveActiveWant, afterSave: () => window.loadAccumulationUI && window.loadAccumulationUI() });");
     expect(script).not.toMatch(/onCourseCheckHtml|requiredPotForSuccess/);
     expect(read('src/ui/saverAnswerUi.js')).toMatch(/import \{ saverBlockOf \} from '\.\.\/v7\/state\/saverBlock\.js';/);
   });

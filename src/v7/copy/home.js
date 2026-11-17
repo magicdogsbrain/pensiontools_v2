@@ -16,6 +16,8 @@ export const HOME = {
     noWorker: 'This browser cannot work this out here.',
     failed: 'Sorry, this could not be worked out. Nothing was changed.',
     change: 'Change what you want or what you pay in',
+    /** (7.12.0) The full view's Accumulation tab: what you want, changed there. */
+    wantSave: 'Save what you want',
     ways: 'See the ways to make it fit',
     /** The block's own lines (answers/plan/saverBlock.js): what you want, and a share of pay beside pounds. */
     lines: {

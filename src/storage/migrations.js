@@ -22,8 +22,8 @@
  *
  * Deliberately NOT in step 1 (each stays the lazy reader it is today):
  *  - the plan's start / timing pin (PlanTiming.pinTiming): it is derived from today's date and from the
- *    Budget's age, so it cannot be a pure step whose result is the same either side of 6 April. The 6.14.0
- *    write-back in StressRepository.loadStressDBAsync remains the one place it is written;
+ *    Budget's age, so it cannot be a pure step whose result is the same either side of 6 April. It is read in
+ *    memory on load (StressRepository.loadStressDBAsync) and stored with the person's next save of the settings (7.12.0);
  *  - the "Declining with age" spending bake (Stress and Decision copies): it is computed on the settings
  *    merged over defaults with Math.pow, and the Decision copy is checksummed;
  *  - the merge of default Stress settings: a default is not something the person saved.

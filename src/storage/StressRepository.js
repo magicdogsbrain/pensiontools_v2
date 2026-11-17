@@ -30,10 +30,11 @@ import { isPlanLockedError } from '../services/LockedPlanGuard.js';
 // In-memory cache
 // Cache is valid until explicitly invalidated (login/logout/wipe/scenario switch)
 let cachedStressDB = null;
-// The one-off write of a plan's derived start (see loadStressDBAsync). Resolved when there is none in flight.
-let timingPinWrite = Promise.resolve();
-/** Resolves once a pending write of the plan's start has settled (tests; nothing in the app needs to wait). */
-export function timingPinSettled() { return timingPinWrite; }
+/**
+ * Kept for the tests that waited on the old write of a plan's derived start: opening a plan writes nothing since 7.12.0
+ * (loadStressDBAsync), so there is never a write to wait for.
+ */
+export function timingPinSettled() { return Promise.resolve(); }
 
 /**
  * Default stress database structure — the pure one (services/PlanReading.js), merged UNDER every stored plan on load.
@@ -148,17 +149,9 @@ export async function loadStressDBAsync() {
       try { if (open) plain = withDerivedPots(open, plain, new Date()); } catch (e) { /* read as saved */ }
       try { potsAsOf = open ? potsAsOfFor(open, plain, new Date()) : null; } catch (e) { /* no plan open */ }
       if (potsAsOf || plain !== cachedStressDB.settings) cachedStressDB = { ...cachedStressDB, settings: potsAsOf ? { ...plain, potsAsOf } : plain };
-      // 6.13.5: the plan's start is written into the saved plan the first time it is derived, and only then —
-      // for drafts AND locked plans (a locked plan cannot be re-saved from its form, so "persisted on the next
-      // save" never came and its start moved a year every 6 April). Only the timing fields are added to what is
-      // stored (never the Budget's age — that stays the Budget's); the Decision settings, and so a locked plan's
-      // checksum, are not touched. Not awaited: a slow connection must not hold up the page; if the write fails
-      // the next load tries again.
-      const pin = timingPinPatch(stored, cachedStressDB.settings);
-      if (pin) {
-        timingPinWrite = saveActiveStressSettings({ ...stored, ...pin })
-          .catch((e) => { console.warn('Could not save the plan start (will retry on the next load):', e); });
-      }
+      // The plan's start (6.13.5 / 6.14.0, the timing pin) is derived here and kept on the copy in memory only: opening a
+      // plan writes nothing (7.12.0). It is stored with the person's own next save of these settings (saveStressSettings:
+      // a draft saves this copy whole; a locked plan's save adds the pin keys its stored settings lack, timingPinPatch).
       return cachedStressDB;
     }
   } catch (error) {
@@ -246,7 +239,9 @@ export async function saveStressSettings(settings) {
   // stored — never the defaults and derived fields this loaded copy carries — and ScenarioRepository lets through only
   // a named bookkeeping key. Anything else is refused with PlanLockedError and nothing is written.
   try {
-    await saveActiveStressSettings({ ...((await storedActiveSettings('stress')) || getDefaultStressSettings()), ...settings });
+    const asStored = (await storedActiveSettings('stress')) || getDefaultStressSettings();
+    // the plan's start read on opening (in memory only, loadStressDBAsync) goes with this save: only keys not yet stored
+    await saveActiveStressSettings({ ...asStored, ...(timingPinPatch(asStored, db.settings) || {}), ...settings });
   } catch (error) {
     if (error && (error.code === 'plan-newer-than-app' || isPlanLockedError(error))) throw error;
     console.error('Error saving stress data:', error);

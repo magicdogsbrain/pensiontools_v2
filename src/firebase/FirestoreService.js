@@ -80,52 +80,35 @@ export function scenarioUpgradeError(scenarioId) { return upgradeErrors.get(scen
 const onlyActiveFlag = (data) => { const k = Object.keys(data || {}); return k.length === 1 && k[0] === 'isActive'; };
 
 /**
- * Upgrade a raw scenario doc — normalise it (phantom dot-notation / legacy fields) and move it up the schema
- * chain (src/storage/migrations.js) — and, if anything changed, rewrite the document once.
- *
- * The rewrite is a FULL replace (no merge): that is what purges phantom top-level fields. Nothing is dropped
- * by it because both normalizeScenario and the chain keep every key they do not know (tested).
- *
- * No write at all when a migration step failed (the stored plan stays exactly as it is and opens as it is;
- * the next load tries again) or when the plan is newer than this code.
+ * Upgrade a raw scenario doc — normalise it (phantom dot-notation / legacy fields) and move it up the schema chain
+ * (src/storage/migrations.js) — in memory. Opening a plan writes nothing (7.12.0): the upgraded document is stored with
+ * the person's own next save of the plan (saveScenario writes it whole then, which also purges phantom top-level fields).
+ * Every step is pure and idempotent, so a plan read again before then is upgraded again to the same thing.
  * @param {object} raw - Raw scenario data including `id`
- * @returns {Promise<object>} The scenario the app should use (with id)
+ * @returns {object} The scenario the app should use (with id)
  */
-async function migrateAndPersistScenario(raw) {
-  const u = upgradeScenario(raw);
-  const scenario = noteUpgrade(raw.id, u);
-  if (u.write) {
-    const user = getCurrentUser();
-    if (user && db) {
-      try {
-        const { id, ...clean } = scenario;
-        await setDoc(doc(db, 'users', user.uid, 'scenarios', id), clean);
-      } catch (error) {
-        // The write is best-effort; the upgraded data is still returned so the app works, and the next
-        // load upgrades and writes again (every step is idempotent).
-        console.error('Scenario migration write failed:', error);
-      }
-    }
-  }
-  return scenario;
+function upgradedForReading(raw) {
+  return noteUpgrade(raw.id, upgradeScenario(raw));
+}
+
+/** The guest store, upgraded in memory as a signed-in read is (nothing written back: 7.12.0). */
+function guestUpgraded() {
+  return guestList().map((raw) => (!raw || typeof raw !== 'object' ? raw : upgradedForReading(raw)));
 }
 
 /**
- * The guest store, upgraded: the same normalise + chain as a signed-in read (until 6.15.0 guest reads skipped
- * both), written back to the tab's store when something changed.
+ * The document a save writes when the stored plan still needs its upgrade (7.12.0): the stored plan upgraded, with the
+ * save's own fields folded on (dotted keys as nested paths, normalizeScenario), as one whole document. Null when the
+ * stored plan needs nothing, cannot be upgraded or is newer than this code: the save then writes only its own fields.
  */
-function guestUpgraded() {
-  const list = guestList();
-  let dirty = false;
-  const out = list.map((raw) => {
-    if (!raw || typeof raw !== 'object') return raw;
-    const u = upgradeScenario(raw);
-    noteUpgrade(raw.id, u);
-    if (u.write) dirty = true;
-    return u.write ? u.scenario : raw;
-  });
-  if (dirty) guestSave(out);
-  return dirty ? out : list;
+export function upgradedForSave(storedRaw, data, stampAt = null) {
+  if (!storedRaw || typeof storedRaw !== 'object') return null;
+  const u = upgradeScenario(storedRaw);
+  if (!u.write) return null;
+  const { id, ...up } = u.scenario;
+  const whole = normalizeScenario({ ...up, ...data, ...(stampAt ? { lastModified: stampAt } : {}) }).scenario;
+  delete whole.id;
+  return whole;
 }
 
 /**
@@ -193,7 +176,7 @@ export async function loadAllScenarios() {
       rawScenarios.push({ id: docSnap.id, ...docSnap.data() });
     });
     // Normalise (and repair in Firestore) any phantom/legacy documents.
-    return Promise.all(rawScenarios.map((raw) => migrateAndPersistScenario(raw)));
+    return rawScenarios.map((raw) => upgradedForReading(raw));
   } catch (error) {
     console.error('Error loading scenarios:', error);
     return [];
@@ -215,7 +198,7 @@ export async function loadScenario(scenarioId) {
   try {
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
-      return migrateAndPersistScenario({ id: docSnap.id, ...docSnap.data() });
+      return upgradedForReading({ id: docSnap.id, ...docSnap.data() });
     }
     return null;
   } catch (error) {
@@ -258,7 +241,7 @@ export async function saveScenario(scenarioId, data, { stamp = true } = {}) {
   if (guarded && newerPlanIds.has(scenarioId)) throw new PlanNewerThanAppError(scenarioId);
   // Guest: the same dot-notation keys updateDoc would read as NESTED paths are folded onto them (normalizeScenario), so a
   // guest plan never grows literal "decisionTool.settings" fields that hide the real edits (6.13.0).
-  if (isGuest()) { const list = guestList(); const i = list.findIndex((y) => y.id === scenarioId); if (i >= 0) { if (guarded && isNewerSchema(list[i])) { flagNewer(scenarioId); throw new PlanNewerThanAppError(scenarioId); } if (examplePlanWriteRefusal(list[i], data)) throw new ExamplePlanError(); refuseIfStoredLocked(list[i], data); list[i] = normalizeScenario({ ...list[i], ...data, ...(stamp ? { lastModified: new Date().toISOString() } : {}) }).scenario; guestSave(list); } return; }
+  if (isGuest()) { const list = guestList(); const i = list.findIndex((y) => y.id === scenarioId); if (i >= 0) { if (guarded && isNewerSchema(list[i])) { flagNewer(scenarioId); throw new PlanNewerThanAppError(scenarioId); } if (examplePlanWriteRefusal(list[i], data)) throw new ExamplePlanError(); refuseIfStoredLocked(list[i], data); const at = stamp ? new Date().toISOString() : null; const whole = upgradedForSave(list[i], data, at); list[i] = whole ? { id: scenarioId, ...whole } : normalizeScenario({ ...list[i], ...data, ...(at ? { lastModified: at } : {}) }).scenario; guestSave(list); } return; }
   if (!isFirebaseConfigured()) return;
 
   const docRef = getUserDoc('scenarios', scenarioId);
@@ -273,6 +256,9 @@ export async function saveScenario(scenarioId, data, { stamp = true } = {}) {
       let stored = null; try { stored = await getDoc(docRef); } catch (e) { stored = null; }
       if (stored && stored.exists() && isNewerSchema(stored.data())) { flagNewer(scenarioId); throw new PlanNewerThanAppError(scenarioId); }
       if (stored && stored.exists()) refuseIfStoredLocked(stored.data(), data);
+      // the plan as stored still needs its upgrade (nothing is written on opening, 7.12.0): this save writes it whole
+      const whole = stored && stored.exists() ? upgradedForSave(stored.data(), data, stamp ? new Date().toISOString() : null) : null;
+      if (whole) return setDoc(docRef, whole);
     }
     return updateDoc(docRef, stamp ? { ...data, lastModified: new Date().toISOString() } : { ...data });
   };

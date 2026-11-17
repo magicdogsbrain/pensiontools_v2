@@ -70,7 +70,9 @@ const fixture = (name) => { const { id, ...p } = JSON.parse(readFileSync('tests/
 const fresh = () => { invalidateScenarioCache(); invalidateStressCache(); invalidateDecisionCache(); };
 const stored = () => fs.clone(fs.state.docs.get(PATH));
 const sortKeys = (v) => (Array.isArray(v) ? v.map(sortKeys) : v && typeof v === 'object' ? Object.keys(v).sort().reduce((o, k) => { if (v[k] !== undefined) o[k] = sortKeys(v[k]); return o; }, {}) : v);
-const bytes = (v) => { const { lastModified, ...rest } = v || {}; return JSON.stringify(sortKeys(rest)); };
+// Read as every load reads it (the upgrade, in memory): since 7.12.0 opening writes nothing, so the classic save writes the
+// stored plan's upgrade with the record (FirestoreService.saveScenario) and the new app's write leaves it for the next load.
+const bytes = (v) => { const { lastModified, ...rest } = upgradeScenario(v || {}, { now: new Date('2026-10-02T12:00:00') }).scenario; return JSON.stringify(sortKeys(rest)); };
 const NOW_ISO = '2026-10-02T11:00:00.000Z';
 const noon = (today) => { const [y, m, d] = today.split('-').map(Number); return new Date(y, m - 1, d, 12); };
 

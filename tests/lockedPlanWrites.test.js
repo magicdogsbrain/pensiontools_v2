@@ -183,7 +183,7 @@ describe('a locked plan: the named bookkeeping writes still go through', () => {
     expect(stored().holdings.lines.length).toBe(1);
   });
 
-  it('the plan\'s start is pinned on load (6.13.5) — those keys only', async () => {
+  it('the plan\'s start read on load is stored with the next save (7.12.0; written on load from 6.13.5) — those keys only', async () => {
     const strip = (s) => { const o = { ...s }; for (const k of TIMING_PIN_KEYS) delete o[k]; return o; };
     await openLocked('20-locked-start-after-stop');
     const asOpened = stored().stressTool.settings;   // the same plan with its start already saved: nothing to pin
@@ -193,8 +193,10 @@ describe('a locked plan: the named bookkeeping writes still go through', () => {
     sessionStorage.setItem(GUEST_KEY, JSON.stringify([{ ...plan, isActive: true, stressTool: { settings: noPin } }]));
     fresh();
     await getStressSettingsAsync(); await timingPinSettled();
+    expect(stored().stressTool.settings).toEqual(noPin);   // opening writes nothing
+    await saveStressSettings({});                    // the person's next save of the settings
     const saved = stored().stressTool.settings;
-    expect(typeof saved.retired).toBe('boolean');   // written by the first load, no Save button involved
+    expect(typeof saved.retired).toBe('boolean');
     expect(strip(saved)).toEqual(strip(asOpened));
     expect(stored().decisionTool.settings.locked).toBe(true);
   });

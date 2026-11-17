@@ -22,7 +22,7 @@ import { ladderPosition, documentLadder, ladderForDisplay, repriceComparisonText
 import { repriceLadder } from '../../src/strategies/GiltLadderPlan.js';
 import { planFromSettings, stressTestStrategy } from '../../src/strategies/stressTest.js';
 import { realYieldForYear, setLinkersOverride, activeLinkers } from '../../src/services/LinkerUniverse.js';
-import { getStressSettingsAsync, createSimulationConfigFromSettings, timingPinSettled, invalidateStressCache } from '../../src/storage/StressRepository.js';
+import { getStressSettingsAsync, createSimulationConfigFromSettings, timingPinSettled, invalidateStressCache, saveStressSettings } from '../../src/storage/StressRepository.js';
 import { invalidateScenarioCache, getActiveScenarioAsync } from '../../src/storage/ScenarioRepository.js';
 import { loadDecisionDBAsync, invalidateCache as invalidateDecisionCache, decisionSettingsChecksum } from '../../src/storage/DecisionRepository.js';
 import { seedGuestStore, authSettled, GUEST_KEY } from '../fixtures/plans/checks.mjs';
@@ -56,10 +56,14 @@ const scenarioWith = (stress, decision = DECISION) => ({
   createdAt: '2026-03-01T10:00:00.000Z', lastModified: '2026-03-01T10:00:00.000Z',
   stressTool: { settings: stress }, decisionTool: { settings: decision, history: [], taxYears: {} }
 });
-/** One cold load of the active plan's Stress settings on `day`, waiting for the one-off write to land. */
+/** One cold load of the active plan's Stress settings on `day` (since 7.12.0 a load writes nothing). */
 async function openOn(day) {
   dropCaches();
   return frozenAt(day, async () => { const s = await getStressSettingsAsync(); await timingPinSettled(); return s; });
+}
+/** The person's own next save of the Stress settings on `day`, changing nothing they typed: the start read on load goes with it. */
+async function saveOn(day) {
+  return frozenAt(day, async () => { await getStressSettingsAsync(); await saveStressSettings({}); });
 }
 
 afterAll(() => { setLinkersOverride(null); dropCaches(); vi.useRealTimers(); });
@@ -85,13 +89,16 @@ describe('A — the April slide: a plan\'s start year is written into the plan o
 
       const first = await openOn(APR_4);
       expect(first.firstTaxYear).toBe(Y);
-      // Written into the saved plan by that first load — no Save button involved (a locked plan has none).
+      // 7.12.0: opening writes nothing; the start read on load is stored with the person's own next save (here, on the same day)
+      expect(storedScenario().stressTool.settings).toEqual(PRE_6_4);
+      await saveOn(APR_4);
       const saved = storedScenario().stressTool.settings;
       expect(saved).toMatchObject({ firstTaxYear: Y, retired: true });
       expect(saved.baseSalary).toBe(40000);                                  // the rest of the plan is as it was
-      // Only the timing fields were added — and, on the draft only, the default fund and platform charge (6.19.0, the
-      // schema-2 migration on load). A locked plan is given no charge: it keeps its figures until it is unlocked.
-      expect(Object.keys(saved).sort()).toEqual([...Object.keys(PRE_6_4), 'firstTaxYear', 'retired', ...(locked ? [] : ['chargesPct', 'isaGrowth'])].sort());
+      // A locked plan: only the timing fields were added. A draft's save writes its whole settings form, so it carries what
+      // was typed as it was, and the default fund and platform charge (6.19.0, 6.22.0).
+      if (locked) expect(Object.keys(saved).sort()).toEqual([...Object.keys(PRE_6_4), 'firstTaxYear', 'retired'].sort());
+      else expect(saved).toMatchObject(PRE_6_4);
       if (!locked) { expect(saved.chargesPct).toBe(0.5); expect(saved.isaGrowth).toBe('cash'); }   // 6.19.0, 6.22.0: an unlocked plan's defaults
       const ladderBefore = frozenAt(APR_4, () => ladderOn(first, APR_4));
 
@@ -137,6 +144,8 @@ describe('A — the April slide: a plan\'s start year is written into the plan o
     seedGuestStore(scenarioWith(noAge));
     const first = await openOn(at(2026, 12, 30));
     expect(deriveTiming(first, at(2026, 12, 30))).toMatchObject({ mode: 'legacy', firstTaxYear: 2026 });
+    expect(storedScenario().stressTool.settings.legacyFirstTaxYear ?? null).toBeNull();   // 7.12.0: opening writes nothing…
+    await saveOn(at(2026, 12, 30));                                                        // …the person's next save stores it
     expect(storedScenario().stressTool.settings.legacyFirstTaxYear).toBe(2026);
     expect(storedScenario().stressTool.settings.firstTaxYear ?? null).toBeNull();   // pinned under its own name…
     const second = await openOn(at(2027, 4, 8));

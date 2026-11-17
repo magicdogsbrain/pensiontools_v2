@@ -12,7 +12,6 @@ import { getStressSettingsAsync, invalidateStressCache, timingPinSettled, create
 import { loadDecisionDBAsync, invalidateCache as invalidateDecisionCache } from '../../src/storage/DecisionRepository.js';
 import { confirmAndCreate, SEED_KEY } from '../../src/services/PlanSeed.js';
 import { authSettled, GUEST_KEY } from '../fixtures/plans/checks.mjs';
-import { SCHEMA_VERSION } from '../../src/storage/schema.js';
 import { seedA, seedBCouple, memoryStorage } from './fixtures/planSeeds.js';
 
 const SAVED_ON = new Date(2026, 9, 1, 15, 0);
@@ -48,9 +47,9 @@ describe('a plan from a seed, without an account', () => {
     expect(isGuest()).toBe(true);
     const list = tab();
     expect(list.length).toBe(2);
-    // 6.19.0: read by today's chain, the version-1 locked plan moves to the current version and NOTHING else moves —
-    // a locked plan gets no charge (rule 3); its settings, history and plan document are byte-identical.
-    expect(withoutActive(list.find((p) => p.id === 'guest-locked'))).toEqual({ ...withoutActive(LOCKED), schemaVersion: SCHEMA_VERSION });
+    // 7.12.0: reading a plan writes nothing, so the version-1 locked plan is stored exactly as it was (it is read by today's
+    // chain in memory; a locked plan gets no charge, rule 3 of 6.19.0, so its settings, history and document never move).
+    expect(withoutActive(list.find((p) => p.id === 'guest-locked'))).toEqual(withoutActive(LOCKED));
     const made = list.find((p) => p.id === r.made.yours.id);
     expect(made.id.startsWith('guest-')).toBe(true);
     expect(made.isActive).toBe(true);

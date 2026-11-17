@@ -182,51 +182,60 @@ const fullPlan = () => ({
   somethingFromTheFuture: { keep: ['me'] }
 });
 
-describe('the read path stamps and writes back, and drops nothing (6.15.0)', () => {
+describe('the read path upgrades in memory and writes nothing; the next save writes the upgrade whole (7.12.0)', () => {
   beforeEach(() => { fs.state.docs.clear(); fs.state.calls.length = 0; fs.state.failSetDoc = false; });
 
-  it('a version-0 plan is rewritten ONCE as a full replace, with every root key and sub-key it had', async () => {
+  it('a version-0 plan opens upgraded, nothing written; the next save is ONE full replace with every root key and sub-key it had', async () => {
     const plan = fullPlan(); put('a', plan);
     const [loaded] = await loadAllScenarios();
     expect(loaded.id).toBe('a');
     expect(loaded.schemaVersion).toBe(SCHEMA_VERSION);
+    expect(callsOf('setDoc').length).toBe(0);              // opening writes nothing
+    expect(stored('a')).toEqual(plan);
+    const again = await loadScenario('a');
+    expect(again).toEqual(loaded);                        // read again: upgraded again to the same thing
+    // the person's own next save: the upgrade goes with it, as one full replace (no merge)
+    await saveScenario('a', { 'planDetails.name': 'Mine' });
     const writes = callsOf('setDoc');
     expect(writes.length).toBe(1);
     expect(writes[0].path).toBe(PATH('a'));
-    expect(writes[0].options).toBeUndefined();            // no merge: a full replace
+    expect(writes[0].options).toBeUndefined();
     const after = stored('a');
     expect('id' in after).toBe(false);                    // the doc id is never written into the document
-    expect(after).toEqual({ ...plan, schemaVersion: SCHEMA_VERSION });   // nothing dropped, nothing else changed
+    const { lastModified, ...rest } = after;
+    expect(rest).toEqual({ ...plan, lastModified: undefined, schemaVersion: SCHEMA_VERSION, planDetails: { ...plan.planDetails, name: 'Mine' } });
     expect(JSON.stringify(after.planDocument)).toBe(JSON.stringify(plan.planDocument));
-    expect(after.lastModified).toBe(plan.lastModified);   // an upgrade is not an edit by the person
-    // every later load: nothing to do, nothing written
+    // every later save: nothing to upgrade, an ordinary update of its own fields
     fs.state.calls.length = 0;
-    const again = await loadScenario('a');
-    expect(again).toEqual({ id: 'a', ...after });
+    await saveScenario('a', { 'planDetails.name': 'Mine again' });
     expect(callsOf('setDoc').length).toBe(0);
+    expect(stored('a').planDetails.name).toBe('Mine again');
   });
 
-  it('a plan with phantom dotted fields is repaired and stamped in the same single write', async () => {
+  it('a plan with phantom dotted fields opens repaired in memory; the next save writes the repair and its own change in one write', async () => {
     put('b', { ...fullPlan(), 'stressTool.settings': { equityMin: 999 }, 'household.partnerScenarioId': 'p2' });
     const loaded = await loadScenario('b');
+    expect(callsOf('setDoc').length).toBe(0);
+    expect(loaded.stressTool.settings.equityMin).toBe(999);
+    await saveScenario('b', { 'planDetails.name': 'Mine' });   // (a locked plan: its settings cannot be the change)
     expect(callsOf('setDoc').length).toBe(1);
     const after = stored('b');
     expect(Object.keys(after).some((k) => k.includes('.'))).toBe(false);
     expect(after.schemaVersion).toBe(SCHEMA_VERSION);
+    expect(after.planDetails.name).toBe('Mine');
     expect(after.stressTool.settings).toEqual({ equityMin: 999 });
     expect(after.household.partnerScenarioId).toBe('p2');
     for (const k of ['strategy', 'planDocument', 'planDocumentArchive', 'journey', 'transition', 'holdings', 'budgetTool', 'accumulationTool', 'decisionTool', 'somethingFromTheFuture']) expect(after[k], k).toEqual(fullPlan()[k]);
-    expect(loaded.stressTool.settings.equityMin).toBe(999);
   });
 
-  it('a failed write-back still opens the upgraded plan; the stored one is as it was and the next load tries again', async () => {
+  it('a failed save leaves the stored plan as it was; the next save writes the upgrade', async () => {
     const plan = fullPlan(); put('c', plan);
+    await loadScenario('c');
     fs.state.failSetDoc = true;
-    const loaded = await loadScenario('c');
-    expect(loaded.schemaVersion).toBe(SCHEMA_VERSION);
+    await expect(saveScenario('c', { 'planDetails.name': 'Mine' })).rejects.toBeTruthy();
     expect(stored('c')).toEqual(plan);
     fs.state.failSetDoc = false;
-    await loadScenario('c');
+    await saveScenario('c', { 'planDetails.name': 'Mine' });
     expect(stored('c').schemaVersion).toBe(SCHEMA_VERSION);
   });
 
@@ -240,7 +249,7 @@ describe('the read path stamps and writes back, and drops nothing (6.15.0)', () 
       expect(all.length).toBe(2);
       expect(callsOf('setDoc').length).toBe(0);
       expect(stored('d')).toEqual(plan);
-      expect(stored('e')).toEqual(dotted);                 // not even the phantom-field repair is written
+      expect(stored('e')).toEqual(dotted);
       const d = all.find((x) => x.id === 'd');
       expect(d).toEqual({ id: 'd', ...plan });
       expect('schemaVersion' in d).toBe(false);
@@ -250,11 +259,11 @@ describe('the read path stamps and writes back, and drops nothing (6.15.0)', () 
       // it can still be saved as an ordinary version-0 plan
       await saveScenario('d', { 'planDetails.name': 'Still mine' });
       expect(stored('d').planDetails.name).toBe('Still mine');
+      expect('schemaVersion' in stored('d')).toBe(false);
     } finally { MIGRATIONS[0].up = orig; }
-    await loadAllScenarios();                                // the fixed code upgrades it on the next load
+    await loadAllScenarios();                                // the fixed code upgrades it on the next load, in memory
     expect(scenarioUpgradeError('d')).toBeNull();
-    expect(stored('d').schemaVersion).toBe(SCHEMA_VERSION);
-    expect(stored('e').schemaVersion).toBe(SCHEMA_VERSION);
+    expect(callsOf('setDoc').length).toBe(0);
   });
 });
 

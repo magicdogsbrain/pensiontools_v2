@@ -165,10 +165,12 @@ describe('signed in: a closed plan (6.56.0) keeps its plan document and plan vs 
 });
 
 describe('signed in: the bookkeeping a locked plan still makes passes the stored plan\'s check', () => {
-  it('the plan\'s start pinned on load, on a locked plan with no Stress settings saved (it reads the defaults)', async () => {
+  it('the plan\'s start read on load (nothing written: 7.12.0) passes the stored plan\'s check with the next save, on a locked plan with no Stress settings saved (it reads the defaults)', async () => {
     const plan = fixture('05-saver-committed');
     delete plan.stressTool;
     await open(plan);
+    expect(storedPlan().stressTool).toBeUndefined();             // opening wrote nothing
+    await saveStressSettings({});                                // the person's next save of the settings
     const saved = storedPlan().stressTool && storedPlan().stressTool.settings;
     expect(saved && typeof saved.retired).toBe('boolean');
     expect(storedPlan().decisionTool.settings.locked).toBe(true);

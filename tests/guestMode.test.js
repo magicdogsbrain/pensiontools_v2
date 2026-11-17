@@ -131,7 +131,7 @@ describe('guest plans carry the schema version and go through the same upgrade (
     leaveGuestMode(); clearGuestData();
   });
 
-  it('a guest READ now normalises and upgrades an old plan, and writes it back to the tab\'s store with nothing dropped', async () => {
+  it('a guest READ normalises and upgrades an old plan in memory, nothing dropped; it is written only with the next save (7.12.0)', async () => {
     enterGuestMode();
     const old = {
       id: 'guest-old', isActive: true, createdAt: '2026-05-01T00:00:00.000Z', lastModified: '2026-05-02T00:00:00.000Z', enabledTools: ['stress'],
@@ -151,10 +151,14 @@ describe('guest plans carry the schema version and go through the same upgrade (
     expect(s.stressTool.settings.strategyParams).toEqual({ rotateCutAge: 75, floorToAge: 80 });
     expect(s.decisionTool).toEqual(old.decisionTool);
     for (const k of ['budgetTool', 'journey', 'somethingFromTheFuture', 'planDetails', 'createdAt', 'lastModified', 'enabledTools', 'id', 'isActive']) expect(s[k], k).toEqual(old[k]);
-    expect(guestStored()).toEqual([s]);                           // written back
     const stamp = sessionStorage.getItem(GUEST_KEY);
-    expect(await loadScenario('guest-old')).toEqual(s);
-    expect(sessionStorage.getItem(GUEST_KEY)).toBe(stamp);        // and only once
+    expect(guestStored()).toEqual([old]);                         // opening writes nothing (7.12.0)
+    expect(await loadScenario('guest-old')).toEqual(s);           // read again: the same upgrade
+    expect(sessionStorage.getItem(GUEST_KEY)).toBe(stamp);
+    await saveScenario('guest-old', { 'planDetails.name': 'Mine' });
+    const [after] = guestStored();                                // the next save writes the upgrade with its own change
+    const { lastModified, ...rest } = after;
+    expect(rest).toEqual({ ...s, lastModified: undefined, planDetails: { ...s.planDetails, name: 'Mine' } });
     leaveGuestMode(); clearGuestData();
   });
 

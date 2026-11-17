@@ -192,7 +192,9 @@ describe('a ladder plan in its run-up (03): the lists, the cash, the sheet, gilt
     expect(rows[0].textContent).toContain('22 March 2029');
     expect(rows[0].textContent).toContain('£66,081');
     expect(rows[0].textContent).toContain('37,500');
-    expect(rows[0].textContent).toContain('(375 if the screen counts £100 lots)');
+    // retaken in 7.12.0 round 3 (walker 5): part bought, the units to order are what is still to buy, 37,500 − 22,000 = 15,500
+    expect(rows[0].textContent).toContain('15,500(155 if the screen counts £100 lots)');
+    expect(rows[0].textContent).toContain('You hold 22,000 of the 37,500.');
     expect(rows[0].textContent).toContain('98.22');
     expect(rows[0].textContent).toContain('£65,022');
     expect(rows[0].textContent).toContain('part bought');

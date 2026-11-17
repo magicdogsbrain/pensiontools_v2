@@ -220,6 +220,7 @@ export const A = Object.freeze({
   SAVER_FINAL:     'saver/final',         // { key, result }                  the final figure (1,000 futures); ignored if the key is stale
   SAVER_FAILED:    'saver/failed',        // { key, reason? }                 the run failed ('noWorker': no worker)
   SAVER_RETRY:     'saver/retry',         // {}                               after a failure: idle again, so the runner starts over
+  SAVER_ENDED:     'saver/ended',         // { key }                          (7.12.0) the run for key ended as its page was left: idle, its last figures kept
 
   // the budget on a saved plan (research/v7/road-to-7.md step 11b): ONE change of the whole budget, the spreadsheet read, the download
   PLAN_BUDGET:     'plan/budget',         // { planId, change }               one change (budget.js budgetPatch's kinds): saving { kind: 'budget', change }

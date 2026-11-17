@@ -1440,6 +1440,12 @@ function reduceAction(state, action) {
       if (action.key !== V.key || !(V.status === 'working' || V.status === 'first')) return state;   // stale
       return { ...state, saver: { ...V, status: 'failed', reason: action.reason === 'noWorker' ? 'noWorker' : null } };
     }
+    case A.SAVER_ENDED: {
+      // (7.12.0) ended as its page was left: no longer under way (nothing else waits on it), asked again when it is wanted
+      const V = state.saver || emptySaver();
+      if (V.key !== action.key || !(V.status === 'working' || V.status === 'first')) return state;
+      return { ...state, saver: { ...V, status: 'idle' } };
+    }
     case A.SAVER_RETRY: {
       const V = state.saver || emptySaver();
       if (V.status !== 'failed') return state;

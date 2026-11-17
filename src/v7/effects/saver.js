@@ -66,7 +66,8 @@ export function startSaverRunner({ store, client }) {
     const v = wanted(state);
     if (!v) {
       // the page left the step, or the plan's figures no longer make a question: the run under way is ended
-      if (underWay) { run++; client.stop('saver'); underWay = null; }
+      // (7.12.0) and said so: a run marked working with nothing under way would hold every page as busy
+      if (underWay) { const k = underWay; run++; client.stop('saver'); underWay = null; store.dispatch({ type: A.SAVER_ENDED, key: k }); }
       return;
     }
     const S = state.saver;

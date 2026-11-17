@@ -135,3 +135,21 @@ describe('(7.12.0) a run ended while the plans are read again is started again f
     stop();
   });
 });
+
+describe('(7.12.0) leaving the page ends the run and says so: nothing else waits on it', () => {
+  // the round-3 walk: from a plan's home to "See the ways to make it fit", every "Try a change" button stayed greyed —
+  // the plan's verdict, ended as the page was left, was still marked "working", so the whole site counted as busy
+  it('the run is ended, its figures marked as not under way, and the page that is open is ready', async () => {
+    const { store, verdict } = pageOn(C['05-saver-committed'], 'SamSaver01');
+    const client = fakeClient(() => new Promise(() => {}));   // never answers while the page is open
+    const stop = startSaverRunner({ store, client });
+    await tick();
+    expect(store.getState().saver).toMatchObject({ key: verdict.key, status: 'working' });
+    store.dispatch({ type: A.ROUTE_SET, route: parse('#/b/numbers') });
+    await tick();
+    expect(client.stops).toContain('saver');
+    expect(store.getState().saver.status).toBe('idle');
+    expect(readyMark(store.getState()).ready).toBe('1');
+    stop();
+  });
+});

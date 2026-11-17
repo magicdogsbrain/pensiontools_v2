@@ -235,6 +235,7 @@ const anyAction = fc.oneof(
   fc.tuple(fc.constantFrom('saver:p1:a', 'saver:p2:a'), fc.constantFrom(A.SAVER_FIRST, A.SAVER_FINAL)).map(([key, type]) => ({ type, key, result: { status: 'ok', verdict: { band: 'close' }, sentences: {} } })),
   fc.tuple(fc.constantFrom('saver:p1:a', 'saver:p2:a'), fc.constantFrom(null, 'noWorker')).map(([key, reason]) => ({ type: A.SAVER_FAILED, key, reason })),
   fc.constant({ type: A.SAVER_RETRY }),
+  fc.constantFrom('saver:p1:a', 'saver:p2:a').map((key) => ({ type: A.SAVER_ENDED, key })),
   // a saver's check-in (research/saving-enough-and-check-in.md 5; release step R3): the press, its answer held, the two writes after it, the calendar file
   fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_CHECK_IN, planId })),
   fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom(null, { status: 'ok', verdict: { band: 'no' }, sentences: {} })).map(([planId, result]) => ({ type: A.CHECKIN_SHOWN, planId, date: '2026-10-02', result })),

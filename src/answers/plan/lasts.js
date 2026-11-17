@@ -392,7 +392,8 @@ export function verdictOf(result, saved, { level = null, chance = null } = {}) {
     if (c.cutN > 0 && !realCut) rows.push({ id: 'cuts.untilOut', slots: {} });
     else if (c.cutN > 0) rows.push({ id: 'cuts.some', slots: { n: n0(c.cutN), of: n0(c.futures), ranOut: c.ranOutN > 0 ? ' (' + n0(c.ranOutN) + ' of them later ran out)' : '', perYear: pounds(c.typicalCutPerYear), years: n0(c.typicalCutYears), s: c.typicalCutYears === 1 ? '' : 's', total: pounds(c.typicalCutTotal), worst: pounds(c.worstCutTotal) } });
     else rows.push({ id: 'cuts.none', slots: { of: n0(c.futures) } });
-  } else rows.push({ id: result.strategyId === 'floor-and-flex' ? 'cuts.flex' : 'cuts.bought', slots: {} });
+  // (7.12.0) a stored figure with no count of cuts, on a way of drawing that cuts, says so: never "none" (it was, whatever the way)
+  } else rows.push({ id: result.strategyId === 'floor-and-flex' ? 'cuts.flex' : FAMILY.includes(result.strategyId) ? 'cuts.notCounted' : 'cuts.bought', slots: {} });
   const ran = result.ran && typeof result.ran === 'object' ? result.ran : {};
   if (ran.cutsOn) rows.push({ id: 'ran.cuts', slots: { pct: String(ran.cutPct), months: String(ran.months), s: ran.months === 1 ? '' : 's' } });
   else if (ran.family) rows.push({ id: 'ran.cutsOff', slots: {} });

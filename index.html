@@ -5920,7 +5920,7 @@
         const yrsF = Math.min(r.signature.horizonAge - p.startAge, p.durationYears, 45);
         h += exampleLadderHtml(Array.from({ length: yrsF }, (_, i) => i + 1), r.configs.ff.floorDraw || essentialsDrawFromPlan(p), 'this shows only what the essentials floor might cost, sized net of your State Pension.');
       }
-      h += '<p class="hint" style="margin-top:8px;">The one test: the same real-terms market history (Shiller 1871–2023, adjusted to WORLD equity: US history less 1.5%/yr), every ' + yrsN + '-year window and ' + r.n.mc.toLocaleString() + ' futures stitched from random 5-year blocks of it, ' + budEsc(cutsSettingWords(p.pnvCfg || {}, r.strategyId)) + '. ' + (PNV_FAMILY.includes(r.strategyId) ? 'Each history\'s own inflation, your tax mode, your cash and bond models, with the results shown in today\'s money.' : 'Ladder rungs are priced on the Bank of England real spot yield curve (daily).') + '</p>';
+      h += '<p class="hint" style="margin-top:8px;">The one test: the same real-terms market history (Shiller 1871–2023, adjusted to WORLD equity: US history less 1.5%/yr), every ' + yrsN + '-year window and ' + r.n.mc.toLocaleString() + ' futures stitched from random 5-year blocks of it, ' + budEsc(cutsSettingWords(p.pnvCfg, r.strategyId, r)) + '. ' + (PNV_FAMILY.includes(r.strategyId) ? 'Each history\'s own inflation, your tax mode, your cash and bond models, with the results shown in today\'s money.' : 'Ladder rungs are priced on the Bank of England real spot yield curve (daily).') + '</p>';
       h += '</div>';
       return h;
     }

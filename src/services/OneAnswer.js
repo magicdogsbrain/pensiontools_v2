@@ -480,12 +480,19 @@ export function rankByLasting(rows) {
   return out;
 }
 
-/** What the plan's cuts setting is, in words — the one line every screen says about the cuts it ran with. */
-export function cutsSettingWords(settings, strategyId) {
-  const s = settings || {};
+/**
+ * What the plan's cuts setting is, in words — the one line every screen says about the cuts it ran with. `r` (7.12.0): the
+ * run itself, whose signature records the cuts it ran with (stressTest.js: protection { enabled, cutPct, limit }), read when
+ * the settings carry none — a plan document keeps no engine config, and the defaults (20% after 3 months) were said in
+ * its place, beside a cuts row saying "never cut".
+ */
+export function cutsSettingWords(settings, strategyId, r = null) {
+  const pr = r && r.signature && r.signature.protection;
+  const s = settings && settings.disableProtection !== undefined ? settings
+    : pr && typeof pr === 'object' ? { disableProtection: pr.enabled === false, protectionMult: 1 - (+pr.cutPct || 0) / 100, consecutiveLimit: pr.limit } : (settings || {});
   const family = !strategyId || strategyId === 'pots-and-valves' || strategyId === 'buckets-in-order';
   if (!family) return 'no spending cuts — ' + (strategyId === 'floor-and-flex' ? 'the treats flex instead' : 'this strategy pays the plan in full until it cannot');
-  if (s.disableProtection) return 'with spending cuts in a slump switched OFF (as you set it): the plan is paid in full until the money runs out';
+  if (s.disableProtection) return 'with spending cuts in a slump switched off in this plan’s settings: the plan is paid in full until the money runs out';
   const cut = Math.round((1 - (s.protectionMult ?? 0.8)) * 100);
   const months = s.consecutiveLimit ?? 3;
   return 'with the spending cuts you set (up to ' + cut + '% after ' + months + ' month' + (months === 1 ? '' : 's') + ' in a row below the glidepath)';

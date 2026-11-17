@@ -33,8 +33,10 @@ export const LASTS = {
     'cuts.untilOut': 'Income cuts: none — the plan is paid in full until the money runs out.',
     'cuts.bought': 'Income cuts: none — this way of drawing pays the plan in full until it cannot.',
     'cuts.flex': 'Income cuts: none — the treats flex instead; the honest risk is a lean year, not running out.',
+    /** (7.12.0) a stored figure from before cuts were counted, on a way of drawing that cuts: never "none" */
+    'cuts.notCounted': 'Income cuts: not counted in this figure; today’s test below counts them.',
     'ran.cuts': 'Run with the spending cuts you set: up to {pct}% after {months} month{s} in a row below the plan’s line.',
-    'ran.cutsOff': 'Run with the spending cuts switched off, as you set it: the plan is paid in full until the money runs out.',
+    'ran.cutsOff': 'Run with the spending cuts switched off in this plan’s settings: the plan is paid in full until the money runs out.',
     'ran.bundled': 'Gilts priced on the bundled yield curve here; the full view prices them on the day’s live figures when it has them, so a ladder’s cost can differ there.',
     /** 7.8.0: the floor, what is left at the plan's age, and what we assumed (OneAnswer.js weightedWordsOf) */
     floorW: '{words}',

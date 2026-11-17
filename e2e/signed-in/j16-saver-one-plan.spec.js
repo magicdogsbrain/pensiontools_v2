@@ -48,9 +48,10 @@ test('B asked again in a new tab: "Use these in ‘…’" leads, updates the pl
   const use = page.getByTestId('b.use');
   await expect(use).toBeVisible({ timeout: 60_000 });
   await expect(use).toHaveAttribute('data-plan-id', planId);
-  // 7.12.0: a name the person did not type is shown from the plan's present figures, without the pay-in (PlanName.js)
+  // 7.12.0: a name the person did not type is shown from the plan's present figures, without the pay-in (PlanName.js); a
+  // name kept from B carries none either (round 3), so the two are the same
   const shown = name.replace(/ · paying £[\d,]+$/, '');
-  expect(shown).not.toBe(name);
+  expect(shown).toBe(name);
   await expect(page.getByTestId('b.use.own')).toContainText(`‘${shown}’`);
   // "Use these in ‘…’" leads (B not on course: its two pay-in buttons); "Keep as a new plan" is second
   const onCourse = await page.getByTestId('b.action.use').isVisible();

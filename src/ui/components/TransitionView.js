@@ -41,11 +41,14 @@ const SOURCE_TEXT = { typed: 'typed in', paste: 'pasted from your platform', imp
 const valued = (l) => l && ((+l.value || 0) > 0 || (+l.units || 0) > 0);
 const numAttr = (v) => (v == null || v === '' || !Number.isFinite(+v) ? '' : String(+v));
 
-/** What a placed line is, in a word or two; or the "What is this?" dropdown for a line the tool cannot place (6.23). */
+/**
+ * What a placed line is, in a word or two. A line nothing places counts as shares as it is (7.12.0 round 3, Holdings.placedLines):
+ * its choice says so and can change it, and is never needed for it to count.
+ */
 function whatItIsHtml(i, L) {
   if (needsCategory(L)) {
-    return '<select data-on-change="updHolding(' + i + ',\'subClass\',this.value)" style="width:auto;" title="What is this?"><option value="" selected>What is this?</option>'
-      + CATEGORY_CHOICES.map((c) => '<option value="' + (c.subClass || '') + '">' + esc(c.label) + '</option>').join('') + '</select>';
+    return '<select data-on-change="updHolding(' + i + ',\'subClass\',this.value)" style="width:auto;" title="What is it? (optional)" aria-label="What is it? (optional)"><option value="" selected>Shares, as counted now</option>'
+      + CATEGORY_CHOICES.filter((c) => c.subClass).map((c) => '<option value="' + c.subClass + '">' + esc(c.label) + '</option>').join('') + '</select>';
   }
   if (String(L.wrapper || '').toUpperCase() === 'CASH') return '<span class="hint">Bank cash</span>';
   if (L.kind === 'gilt' || (!L.subClass && isGiltCode(L.ticker))) return '<span class="hint">Gilt</span>';
@@ -258,8 +261,8 @@ export function holdingsCardHtml({ holdings = null, offer = null, keep = null } 
     h += table(['Wrapper', 'Ticker / gilt code', 'Name', 'Units', 'Value', 'What it is', ''], rows);
     const byW = {}; for (const l of lines) { const w = String((l && l.wrapper) || 'SIPP').toUpperCase(); byW[w] = (byW[w] || 0) + (+(l && l.value) || 0); }
     h += '<p class="hint" style="margin-top:6px;">Total ' + gbp(Object.values(byW).reduce((t, v) => t + v, 0)) + ' — ' + HOLDING_WRAPPERS.filter((w) => byW[w] > 0).map((w) => w + ' ' + gbp(byW[w])).join(' · ') + '. Units matter for gilts (the nominal); value is enough for a fund.</p>';
-    // Every line counts in the total; a line the tool cannot place is said, not dropped from the mix in silence (6.23)
-    // 7.12.0: on a ladder the move counts the money whatever it is, so nothing is said; a pot plan's mix figures leave it out
+    // What you hold counts every line, as it is (7.12.0 round 3); a pot plan's move still leaves a line nothing places out of
+    // its figures until the person says what it is, and says so (6.23); on a ladder the move counts the money whatever it is
     const unplaced = keep && (keep.ladder || keep.held) ? [] : lines.filter((l) => l && needsCategory(l) && (+l.value || 0) > 0);
     const n = unplaced.length;
     if (n) h += '<p class="hint" style="color:var(--warning);">' + esc('We could not tell what ' + n + ' line' + (n === 1 ? ' holds' : 's hold') + ' (' + gbp(unplaced.reduce((t, l) => t + (+l.value || 0), 0)) + '), so ' + (n === 1 ? 'it is' : 'they are') + ' left out of the mix figures until you say what ' + (n === 1 ? 'it' : 'each') + ' is.') + '</p>';
@@ -302,7 +305,7 @@ export function transitionHtml(a) {
   // (i) What you hold — the record, always editable, whether or not there is a plan document yet; "Keep this" (7.6.0) once
   // there is a plan document to keep against
   // the tax years "stands in" can name: from this one (or the plan's first) for twelve years at most — as V7 offers them
-  const keep = heldLadder ? { held: true, at: new Set((held.heldInfo.lines || []).map((x) => x.at)), summary: heldSummaryView(held.heldInfo) } : doc && target && target.kind !== 'none' ? (() => {
+  const keep = heldLadder ? { held: true, at: new Set((held.heldInfo.lines || []).filter((x) => x.kind === 'gilt').map((x) => x.at)), summary: heldSummaryView(held.heldInfo) } : doc && target && target.kind !== 'none' ? (() => {
     if (target.kind !== 'ladder') return { ladder: false, years: [] };
     const p = doc.strategy && doc.strategy.r && doc.strategy.r.plan;
     const first = Math.max(+target.thisTaxYear || 0, +(p && p.firstTaxYear) || +target.firstTaxYear || 0);

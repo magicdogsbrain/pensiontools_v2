@@ -116,7 +116,7 @@ export const HELD = {
   holdLinkMix: 'Your plan’s mix',
   // the one optional field on a pension line that is neither one of the plan's gilts nor cash
   forYearsLabel: 'For which tax years? (optional)',
-  forYearsPlaceholder: 'like 2028/29',
+  forYearsPlaceholder: 'e.g. 2028/29',
   forYearsHelp: 'Only you can say. We never work it out from when it matures.',
   forYears: 'For {years} (your choice)',
 

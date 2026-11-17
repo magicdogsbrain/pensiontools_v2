@@ -102,7 +102,7 @@ export const MIX = {
       whys: { total: 'a total line, not a fund', cashHeading: 'a cash heading with no value', noName: 'no name or ticker on the line', noValue: 'no value on the line', other: 'the page could not read it' },
       summary: '{read} line{s} read, {total} in all.',
       summaryRecognised: '{recognised} recognised ({recognisedTotal}).',
-      summaryUnrecognised: '{unrecognised} not recognised ({unrecognisedTotal}): say what each is under “What is this?” and they count.',
+      summaryUnrecognised: '{unrecognised} not known to us ({unrecognisedTotal}): counted as shares until you say what each is.',
       summaryUnknown: '{unknown} marked “don’t know” ({unknownTotal}): on the list, in the total, not in the mix until you say what they are.',
       add: 'Add these lines to the list',
       cancel: 'Clear the paste'

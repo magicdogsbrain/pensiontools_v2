@@ -46,19 +46,19 @@ function Line({ l, group, V, dispatch, planId, KT }) {
   const base = `${T}.line.${l.index}`;
   const field = (f, words) => <EditField step="hold" f={{ path: f.path, type: 'money', applies: true, shown: f.shown, saved: null, error: f.error }} words={words} errors={W.errors} source={null} planId={planId} dispatch={dispatch} />;
   const onBlur = (f) => () => { dispatch({ type: 'plan/touch', planId, path: f.path }); if (f.change) dispatch({ type: 'plan/hold', planId, change: f.change }); };
-  const ask = l.counted.kind === 'ask';
+  const ask = !!l.counted.assumed;
   const removing = V.remove && V.remove.index === l.index;
   return (
     <fieldset class="income-card hold-line" data-card={`line.${l.index}`} data-index={l.index} data-testid={base}>
       <legend>{l.name || l.ticker || l.sedol}{l.ticker ? <> <span class="note">{fill(W.line.code, { code: l.ticker })}</span></> : null}{l.sedol ? <> <span class="note">{fill(W.line.sedol, { sedol: l.sedol })}</span></> : null}</legend>
-      <p class="note" data-testid={`${base}.counted`}>{W.line.counted}: {ask ? W.counted.ask : countedText(l.counted)}{l.asOf ? ' · ' + fill(W.line.asOf, { date: l.asOf }) : ''}</p>
+      <p class="note" data-testid={`${base}.counted`}>{W.line.counted}: {ask ? W.counted.assumed : countedText(l.counted)}{l.asOf ? ' · ' + fill(W.line.asOf, { date: l.asOf }) : ''}</p>
       {ask && V.editable && (
         <div class="field field-choice" data-field={`line.${l.index}.subClass`}>
-          <label for={`${base}.what`}>{W.paste.whatIsThis}</label>
+          <label for={`${base}.what`}>{W.change.label}</label>
           <div class="box">
             <select id={`${base}.what`} data-testid={`${base}.what`} value={l.fields.subClass.shown} onChange={(e) => { const value = e.currentTarget.value; dispatch({ type: 'plan/edit', planId, path: l.fields.subClass.path, value }); const c = V.whats.includes(value) ? { kind: 'edit', index: l.index, field: 'subClass', value: value === 'shares' ? 'worldGrowth' : value === 'bonds' ? 'globalAggHedged' : value === 'cash' ? 'moneyMarket' : value === 'diversifiers' ? 'gold' : '' } : null; if (c) dispatch({ type: 'plan/hold', planId, change: c }); }}>
-              <option value="">{W.paste.whatIsThis}</option>
-              {V.whats.map((k) => <option key={k} value={k}>{W.whats[k]}</option>)}
+              <option value="">{W.change.asCounted}</option>
+              {V.whats.filter((k) => k !== 'unknown').map((k) => <option key={k} value={k}>{W.whats[k]}</option>)}
             </select>
           </div>
         </div>

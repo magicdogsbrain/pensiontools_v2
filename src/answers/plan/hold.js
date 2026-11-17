@@ -58,10 +58,12 @@ const BUCKET_WORDS = { shares: 'shares', bonds: 'bonds', cash: 'cash', diversifi
 /** The record as the planner reads it: normalised, every field present, null not undefined. */
 export const holdRecordOf = (plan) => normaliseHoldings(plan && plan.holdings);
 
-/** What a line is counted as (TransitionView.whatItIsHtml, as data): a bucket, a gilt, bank cash, cash, a fund, or 'ask' for a line the page cannot place. */
+/** What a line is counted as (TransitionView.whatItIsHtml, as data): a bucket, a gilt, bank cash, cash or a fund; a line nothing places is shares, `assumed`. */
 export function countedAs(line) {
   const L = line || {};
-  if (needsCategory(L)) return { kind: 'ask', bucket: null };
+  // nothing has to be answered for a line to count (7.12.0 round 3): one nothing places counts as shares until the person says
+  // what it is, as Holdings.proportions counts it (placedLines)
+  if (needsCategory(L)) return { kind: 'bucket', bucket: 'shares', assumed: true };
   if (up(L.wrapper) === 'CASH') return { kind: 'bankCash', bucket: 'cash' };
   if (L.kind === 'gilt' || (!L.subClass && isGiltCode(L.ticker))) return { kind: 'gilt', bucket: 'bonds', code: up(L.ticker) || null };
   if (L.kind === 'cash' && !L.subClass) return { kind: 'cash', bucket: 'cash' };
@@ -410,7 +412,8 @@ export function holdOf(entries, id, { today, typed = null, source = 'account' } 
   }));
   // living on a ladder (7.12.0): everything held counts as it is — the one reading (held.js), no "Keep this"
   let held = null; try { held = !closed ? heldLadder(plan, { today }) : null; } catch { held = null; }
-  const forYearsAt = held ? new Set(held.lines.map((x) => x.at)) : null;
+  // the tax-years box is offered on a gilt only: shares and funds never mature (7.12.0 round 3, walker 7)
+  const forYearsAt = held ? new Set(held.lines.filter((x) => x.kind === 'gilt').map((x) => x.at)) : null;
   // "Keep this" (7.6.0): only on a locked plan with a plan document, and only where the record can be changed here
   const K = !readonly && !closed && !held ? keepChoices(plan, { today }) : null;
   const groups = s.groups.map((g) => ({ wrapper: g.wrapper, total: pounds(g.lines.reduce((t, l) => t + (+l.value || 0), 0)), lines: g.lines.map((l) => ({

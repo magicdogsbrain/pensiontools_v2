@@ -198,7 +198,7 @@ export function pasteSummary({ parsed, matched }) {
   const leftOut = (parsed && parsed.leftOut) || [];
   const parts = [plural(rows.length, 'line', 'lines') + ' read, ' + gbpWhole(sum(rows)) + ' in all.'];
   if (recognised.length && (unrecognised.length || unknown.length)) parts.push(plural(recognised.length, 'line', 'lines') + ' recognised (' + gbpWhole(sum(recognised)) + ').');
-  if (unrecognised.length) parts.push(plural(unrecognised.length, 'line', 'lines') + ' (' + gbpWhole(sum(unrecognised)) + ') ' + (unrecognised.length === 1 ? 'is' : 'are') + ' not recognised — say what each is under "What is this?" and they count.');
+  if (unrecognised.length) parts.push(plural(unrecognised.length, 'line', 'lines') + ' (' + gbpWhole(sum(unrecognised)) + ') ' + (unrecognised.length === 1 ? 'is' : 'are') + ' not known to us. ' + (unrecognised.length === 1 ? 'It counts' : 'They count') + ' as shares as ' + (unrecognised.length === 1 ? 'it is' : 'they are') + '; you can say what each is under "What is this?".');
   if (unknown.length) parts.push(plural(unknown.length, 'line', 'lines') + ' (' + gbpWhole(sum(unknown)) + ') ' + (unknown.length === 1 ? 'is' : 'are') + ' marked "don\'t know": ' + (unknown.length === 1 ? 'it stays' : 'they stay') + ' on your record and ' + (unknown.length === 1 ? 'counts' : 'count') + ' in the total, but not in the mix until you say what ' + (unknown.length === 1 ? 'it is' : 'they are') + '.');
   if (leftOut.length) parts.push('Left out: ' + leftOut.map((x) => 'line ' + x.line + (x.text ? ' "' + x.text + '"' : '') + ' (' + x.why + ')').join('; ') + '.');
   return {

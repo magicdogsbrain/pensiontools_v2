@@ -14,6 +14,7 @@
 import { tagPortfolio } from './PortfolioTagger.js';
 import { SUB_ASSET_PROFILES, BUCKETS } from './SubAssetModel.js';
 import { holdingsLines } from './HoldingsRecord.js';
+import { needsCategory } from './HoldingsPaste.js';
 
 export const ASSUMED_CPI = 0.025;   // long-run CPI used to state expected returns in real terms (FCA-style)
 
@@ -26,6 +27,20 @@ const num = (v) => (Number.isFinite(+v) ? +v : 0);
  * ladder's rungs are; a line with its own sub-class is left as it is.
  */
 export const giltsAsBonds = (lines) => lines.map((h) => (h && h.kind === 'gilt' && !h.subClass ? { ...h, subClass: 'indexLinked' } : h));
+
+/**
+ * Every line counts, as it is (7.12.0 round 3, decision 4): nothing has to be answered for a holding to count. A gilt is bonds
+ * (giltsAsBonds); a pension's cash line with no sub-class of its own is cash; money in the bank stays outside; a line nothing places — a company's
+ * shares pasted with their code, a fund the list does not know — counts as shares until the person says what it is
+ * (`assumed: true` beside it). A line with its own sub-class, a known fund code or a gilt code is left as it is.
+ */
+export const placedLines = (lines) => giltsAsBonds(lines).map((h) => {
+  if (!h || h.subClass) return h;
+  // money in the bank (a CASH account) is outside the pension and its mix, as before
+  if (String(h.wrapper || '').toUpperCase() === 'CASH') return h;
+  if (h.kind === 'cash') return { ...h, subClass: 'moneyMarket' };
+  return needsCategory(h) ? { ...h, subClass: 'worldGrowth', assumed: true } : h;
+});
 
 /** Split multi-asset holdings the way the tagger does, returning one row per sub-class slice. */
 export function slices(holdings) {
@@ -40,7 +55,7 @@ export function slices(holdings) {
  *   contributions: { monthly, byBucket: {…fractions}, byWrapper }, untagged: [] }}
  */
 export function proportions(holdings) {
-  const list = giltsAsBonds(holdingsLines(holdings).filter((h) => h && (num(h.value) > 0 || num(h.contribution) > 0)));
+  const list = placedLines(holdingsLines(holdings).filter((h) => h && (num(h.value) > 0 || num(h.contribution) > 0)));
   const t = tagPortfolio(list.map((h) => ({ ...h, value: num(h.value) })));
   const byWrapper = { SIPP: 0, ISA: 0, GIA: 0, CASH: 0 };
   const bucketValues = { shares: 0, bonds: 0, diversifiers: 0, cash: 0 };

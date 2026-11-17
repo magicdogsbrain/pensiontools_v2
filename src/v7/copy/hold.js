@@ -43,7 +43,9 @@ export const HOLD = {
     removeYes: 'Remove it',
     removeNo: 'Keep it'
   },
-  counted: { shares: 'shares', bonds: 'bonds', cash: 'cash', diversifiers: 'gold and trend', gilt: 'a gilt ({code})', giltNoCode: 'a gilt', bankCash: 'cash in the bank', fund: 'a fund', ask: 'What is this?' },
+  counted: { shares: 'shares', bonds: 'bonds', cash: 'cash', diversifiers: 'gold and trend', gilt: 'a gilt ({code})', giltNoCode: 'a gilt', bankCash: 'cash in the bank', fund: 'a fund', assumed: 'shares (you can change this)' },
+  // a line counted as shares because nothing else places it: the choice that changes it, never needed for it to count
+  change: { label: 'What is it? (optional)', asCounted: 'Shares, as counted now' },
   whats: { shares: 'Shares', bonds: 'Bonds', cash: 'Cash', diversifiers: 'Gold and trend', unknown: 'Don’t know' },
   errors: {
     notANumber: 'Figures only, like 50,000.',
@@ -84,7 +86,7 @@ export const HOLD = {
     columns: { pasted: 'Pasted', value: 'Value', what: 'What is this?' },
     summary: '{read} line{s} read, {total} in all.',
     summaryRecognised: '{recognised} recognised ({recognisedTotal}).',
-    summaryUnrecognised: '{unrecognised} not recognised ({unrecognisedTotal}): say what each is under “What is this?” and they count.',
+    summaryUnrecognised: '{unrecognised} not known to us ({unrecognisedTotal}): counted as shares until you say what each is.',
     summaryUnknown: '{unknown} marked “don’t know” ({unknownTotal}): on the record, in the total, not in the mix until you say what they are.',
     leftOutTitle: 'Left out, and why',
     leftOut: 'Line {line} “{text}”: {why}.',

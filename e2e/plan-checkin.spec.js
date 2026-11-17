@@ -168,7 +168,10 @@ test.describe('a saver\'s check-in, without an account', () => {
       expect(JSON.stringify(after.planDocument)).toBe(JSON.stringify(before.planDocument));
       expect(JSON.stringify(after.stressTool)).toBe(JSON.stringify(before.stressTool));
       const changed = Object.keys(after.accumulationTool).filter((k) => JSON.stringify(after.accumulationTool[k]) !== JSON.stringify(before.accumulationTool[k])).map((k) => 'accumulationTool.' + k).sort();
-      expect(changed).toEqual([...CHECK_IN_KEYS.locked].sort());
+      // (7.12.0: the check-in also writes the pay and what goes in into the plan's saving settings, only when they differ
+      // from what the plan has; here they are as the plan has them, so the three record keys move and the settings do not)
+      expect(changed.every((k) => CHECK_IN_KEYS.locked.includes(k))).toBe(true);
+      expect(changed).toEqual(['accumulationTool.checkInEvery', 'accumulationTool.checkIns', 'accumulationTool.history']);
       await wordsOk(page);
     });
   });

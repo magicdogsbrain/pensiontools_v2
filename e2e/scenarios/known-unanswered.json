@@ -2,26 +2,6 @@
   "note": "Questions an area chose not to answer in this release: each scenario listed runs under test.fail(). The list may only shrink from one release to the next (tests/scenarioRules.test.js compares it with the copy at the last tag).",
   "unanswered": [
     {
-      "scenario": "s05",
-      "owner": "MEASURE",
-      "reason": "What you pay in and 'Does it last?' give the chance from two different runs (16 and 17 in 20 here); one shared reading of the chance is not built."
-    },
-    {
-      "scenario": "s06",
-      "owner": "FACTS, MONTH, SAVER",
-      "reason": "'Your pots and tax' gives the plan's pots, not the pot today the home gives (the register reads both as one fact); the income page gives the plan's £30,000 while Month by month gives the year as set up (£31,200); the saver's home and full view do not say the month the move window opens or the next review in the full view; Month by month shows a drawing sum to someone still saving. The saver's home says the month the move window opens only within five years of the stop (the lead's rule for 7.12.0); this scenario reads it eleven years out."
-    },
-    {
-      "scenario": "s07",
-      "owner": "MONTH, FACTS",
-      "reason": "Kim's plan (kept from 'Will it last?', a quarter of each payment tax-free) shows £32,858 a year before tax in the full view's Stress settings and the tax-year set-up, but £30,925 in the plan document: the gross-up of £2,400 a month in two places does not agree on the tax-free quarter. Not traced to its cause in this release; the home also does not show the ISA typed each month."
-    },
-    {
-      "scenario": "s08",
-      "owner": "MONTH",
-      "reason": "From Kim's home, the month's amount before tax (£2,577) and the pots it comes from with a figure each are not reached within two presses, and the press that opens the full view's Monthly Entry for November is not found by the route."
-    },
-    {
       "scenario": "s09",
       "owner": "HOLD, SAVER",
       "reason": "The scenario types £410,000 and £40,000 into the full view's \"SIPP at retirement\" and ISA override boxes (the only totals boxes on Stress settings), so the plan holds no pension today and Accumulation and What you pay in rightly show none; whether the route is wrong or the full view needs a pension-today total is not settled. The home still says '0% of the plan's mix held' and the full view 'Record what you hold' to a totals-only plan (the moving brief's S4, not built), and the two views name the stage differently (one stage vocabulary)."

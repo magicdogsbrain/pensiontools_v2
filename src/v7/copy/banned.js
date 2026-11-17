@@ -185,6 +185,10 @@ export const BANNED = [
   // 7.12.0: not in a question's title either ("what should I pay in?"): the site says what would be enough
   { id: 'what-should-i',   re: /\b(what|which|how much) should (I|we)\b/i,   scope: 'all',
     say: '"what would be enough"' },
+  // 7.12.0 (lead decision 9): never an invitation to pay in less — in most workplace schemes the employer's part stops
+  // with yours, a loss the answer does not count
+  { id: 'pay-in-less',     re: /\b(could|can) (stop paying in|pay in as little as)\b/i, scope: 'all',
+    say: '"There is room: you would still be on course paying in less."' },
   { id: 'best-for-you',    re: /\b(best|right|ideal|optimal|optimum) (option|choice|strategy|way|answer|plan)( for you)?\b/i, scope: 'all',
     say: 'describe what each does; do not rank for the person' },
   { id: 'safe',            re: /\b(safe(ly)?|safest|guaranteed?|certain(ly)?|risk[\s-]free|secure)\b/i, scope: 'result',

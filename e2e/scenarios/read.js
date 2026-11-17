@@ -135,7 +135,9 @@ export async function fact(page, id, { view = 'simple', page: pageName, timeout 
  */
 export const NEVER_ANY_PAGE = Object.freeze([
   'you should', 'we recommend', 'recommendation', 'maximise tax efficiency', 'what should I', '(from this window)', 'still the defaults',
-  'undefined', 'NaN'
+  'undefined', 'NaN',
+  // 7.12.0 (lead decision 9): never an invitation to pay in less
+  'could stop paying in', 'as little as'
 ]);
 export const NEVER_ON_SCREEN = Object.freeze(['bridge', 'FIRE', 'years to go', 'countdown', 'contribution', 'on track', 'run-up', 'run up', 'before your plan starts', 'before the plan starts', 'before the plan’s income starts', "before the plan's income starts", 'before your plan’s income starts', 'next 6 April', 'Next April']);
 

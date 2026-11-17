@@ -266,6 +266,21 @@ describe('the words, state by state (saving-enough-and-check-in.md 2.2 and 3.5; 
     if (a.enough.atLevel) expect(a.sentences.enoughLine.text).toMatch(/^£[\d,]+ from your partner with the tax added back \(about £[\d,]+ from their take-home pay\) and their employer's £150 as now/);
   });
 
+  it('on course with room (7.12.0, lead decision 9): only that there is room — never "stop paying in", never "as little as"', () => {
+    // Alex, £500 from take-home pay and £300 from the employer: the employer's £300 alone is enough (the pinned case
+    // below), and the £400 payer: £380 is enough. Neither sentence may invite paying in less; one says only that there is room.
+    const room = '. There is room: you would still be on course paying in less.';
+    const alex = { household: 'single', you: { age: 48, pot: 600000, payIn: { kind: 'split', own: 500, employer: 300 } }, stop: { age: 60 }, spend: { kind: 'amount', amount: 2000 } };
+    const a = ok(answerB(alex, ENV), alex);
+    expect(a.verdict.band).toBe('yes');
+    expect(a.sentences.verdictLine.text.endsWith(room)).toBe(true);
+    const fixed = { household: 'single', you: { age: 38, pot: 30000, payIn: { kind: 'total', total: 400 } }, stop: { age: 66 }, spend: { kind: 'amount', amount: 1500 } };
+    const f = ok(answerB(fixed, MEASURED), fixed);
+    expect(f.verdict.band).toBe('yes');
+    expect(f.sentences.verdictLine.text).toBe('Paying in £400 a month as now, your money lasted until you are 95 in 9 futures out of 10' + room);
+    for (const x of [a, f]) expect(text(x)).not.toMatch(/stop paying in|as little as/i);
+  }, 60_000);
+
   it('on course, your employer\'s part alone enough: "You could stop paying in yourself", in pounds as in shares', () => {
     const alex = { household: 'single', you: { age: 48, pot: 600000, payIn: { kind: 'split', own: 500, employer: 300 } }, stop: { age: 60 }, spend: { kind: 'amount', amount: 2000 } };
     const a = ok(answerB(alex, ENV), alex);

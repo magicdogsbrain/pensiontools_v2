@@ -702,14 +702,11 @@ function verdictSentences(result, facts) {
   // (7.12.0) what would be on course is a sentence of its own, under the as-now one, and says what leaves take-home pay
   let enoughAlone = null;
   if (band === 'yes') {
-    // on course: how little would still be (only when less than now, and no more into savings)
+    // on course with less than now enough (and no more into savings): only that there is room (7.12.0, lead decision 9).
+    // Never how little, nor "you could stop paying in yourself": in most workplace schemes the employer's part stops with
+    // yours, so a figure to cut to invites a loss the answer does not count.
     const less = nine && nine.savingsIn === null && nine.payIn < result.payIn.now - 0.005;
-    // the employer's part alone is enough: said the same way for a share and for pounds
-    const employerOnly = less && nine.payIn > 0 && ((en.how === 'share' && nine.ownPct === 0) || (en.how === 'pounds' && nine.own === 0 && nine.employer > 0));
-    enoughWords = !less ? '.'
-      : nine.payIn <= 0 ? ['. ', W.couldStop, ' and still be on course.']
-        : employerOnly ? ['. ', W.couldStopOwn, W.employers, ' ', en.how === 'share' ? PCT(`${NINE}.employerPct`) : M(`${NINE}.employer`), ' going in, and still be on course.']
-          : ['. ', W.asLittle, figure(NINE, nine), ' and still be on course', detail(NINE, nine) ? [': ', detail(NINE, nine)] : '', '.'];
+    enoughWords = !less ? '.' : ['. There is room: you would still be on course paying in less.'];
   } else if (en.savingsOnly && nine) {
     enoughWords = '.';
     enoughAlone = ['What goes into ', pensionWord, ' is enough; ', M(`${NINE}.savingsIn`), ' a month into ISAs or savings ', untilStop, ' would put you on course, which is ', nineInTen, '.'];
@@ -844,9 +841,9 @@ function verdictSentences(result, facts) {
 function whoWords(theirs) {
   return theirs
     ? { who: 'your partner', Who: 'Your partner', pay: "your partner's pay", payShort: 'their pay', allPay: "all of your partner's pay", employer: 'their employer', employers: "their employer's", fromWho: 'from your partner', takeHome: 'their take-home pay',
-      paying: 'With your partner paying in ', couldStop: 'Your partner could stop paying in', couldStopOwn: 'Your partner could stop paying in themselves, with ', asLittle: 'Your partner could pay in as little as ' }
+      paying: 'With your partner paying in ' }
     : { who: 'you', Who: 'You', pay: 'your pay', payShort: 'your pay', allPay: 'all of your pay', employer: 'your employer', employers: "your employer's", fromWho: 'from you', takeHome: 'your take-home pay',
-      paying: 'Paying in ', couldStop: 'You could stop paying in', couldStopOwn: 'You could stop paying in yourself, with ', asLittle: 'You could pay in as little as ' };
+      paying: 'Paying in ' };
 }
 
 /** " (your employers' parts included)" / " (your employer's part included)" / " (your partner's employer's part included)". */

@@ -14,7 +14,7 @@
  * are `parts` ({ key, kind }) into the step's `figures`, so the screen draws each through Money (data-key, data-value).
  */
 import { planStage, effectiveStressSettings, whereAmIFor, whereAmIInputs, moveInputs, thisMonth, historyAscending } from '../../services/PlanReading.js';
-import { CONTRACT_STRATEGIES, planToAgeOfDefinition, guardrailOf } from '../../services/PlanDocument.js';
+import { CONTRACT_STRATEGIES, planToAgeOfDefinition, guardrailOf, pricesMonthKeyOf } from '../../services/PlanDocument.js';
 import { taxYearLabel, taxYearStartOf, taxYearKey } from '../../services/PlanTiming.js';
 import { documentLadder, firstRungOf } from '../../services/LadderPosition.js';
 import { saverPotOf } from '../../services/SaverReading.js';
@@ -356,9 +356,8 @@ function monthStep(C) {
  * plan year (its pots `asOfPlanYear` > 0), the month it was locked.
  */
 function pricesMonthOf(doc) {
-  const later = doc && doc.pots && +doc.pots.asOfPlanYear > 0;
-  if (later && doc.lockedAt) return monthWords(String(doc.lockedAt).slice(0, 7));
-  return 'April ' + (+(doc && doc.timing && doc.timing.firstTaxYear) || '');
+  // the one rule both views say it by (PlanDocument.pricesMonthKeyOf, whereAmI's pot.prices.since)
+  return monthWords(pricesMonthKeyOf(doc)) || 'the start of the plan';
 }
 
 /** Where you are (2.3 `where`): whereAmI on the plan document, never the countdown. */

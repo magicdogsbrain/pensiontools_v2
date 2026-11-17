@@ -303,15 +303,16 @@ function sourceText(x) {
 }
 const pctText = (v) => (Math.round(v * 1000) / 10).toLocaleString('en-GB', { maximumFractionDigits: 1 }) + '%';
 /**
- * ", which is £Y in prices at the start of the plan, the prices its figures are in (prices up Z% since: …)" — the plan's
- * figures are in prices at its start; the pot is in the pounds of its month (6.20.1). '' when prices have not moved.
+ * " Prices are up Z% since April 2026: 4% a year assumed." — the plan's figures are in the prices of that month; the pot as
+ * recorded is in the pounds of its own month (6.20.1; said after the pot from 7.12.0). '' when prices have not moved.
  */
+const movedPrices = (P) => !!(P && P.prices && P.real != null && Math.abs(P.prices.factor - 1) >= 0.0005);
 function pricesText(P) {
   const pr = P.prices;
-  if (!pr || P.real == null || !(Math.abs(pr.factor - 1) >= 0.0005)) return '';
+  if (!movedPrices(P)) return '';
   const a = pctText(pr.assumed || 0.04) + ' a year';
   const basis = !pr.entered ? a + ' assumed' : pr.entered >= pr.years ? 'the CPI entered in the Decision tool' : 'the CPI entered in the Decision tool, ' + a + ' where none was entered';
-  return ', which is ' + gbp(P.real) + ' in prices at the start of the plan, the prices its figures are in (prices ' + (pr.factor >= 1 ? 'up ' : 'down ') + pctText(Math.abs(pr.factor - 1)) + ' since: ' + basis + ')';
+  return ' Prices are ' + (pr.factor >= 1 ? 'up ' : 'down ') + pctText(Math.abs(pr.factor - 1)) + ' since ' + (pr.since ? whenText(pr.since) : 'the plan began') + ': ' + basis + '.';
 }
 /** "Your pension figure is from April 2028: enter this month's values in the Decision tool for a closer reading." */
 function staleText(stale) {
@@ -344,15 +345,22 @@ export function whereAmIPotText(pot) {
     const head = pension ? 'Pension pot ' + gbp(pension.value) + ' (' + esc(sourceText(pension)) + '). ' : '';
     if (missing.includes('diversifiers')) return head + 'The plan\'s band counts your diversifiers as well, and the monthly record does not keep their value, so the pot is not set against the band. Record what you hold, diversifiers included, under What you hold, to compare.';
     const names = missing.filter((k) => ADD_NAME[k]);
+    // the ISA alone (7.12.0): the simple view's words, the box it can be typed in and the page it can be added on
+    if (names.length === 1 && names[0] === 'isa') return head + 'Your plan counts your ISA too, and we have no figure for it. You can type it in the ISA box when you next record a month, or add it under What you hold.';
     return head + 'The plan\'s band counts ' + names.map((k) => (k === 'isa' ? 'your ISA' : 'your taxable account')).join(' and ') + ' as well, and there is no figure on record for ' + (names.length > 1 ? 'either' : 'it') + ', so the pot is not set against the band. Add ' + names.map((k) => ADD_NAME[k]).join(' and ') + ' under What you hold, to compare.';
   }
   if (P.actual == null || P.p50 == null) return '';
-  // "Pot £X (recorded September 2026)", or with more than one account
-  // "Pot £X (pension £A recorded September 2026; ISA £B from What you hold as of 5 January 2027)".
-  let pt = 'Pot ' + gbp(P.actual);
-  if (parts.length > 1) pt += ' (' + parts.map((x) => PART_NAME[x.key] + ' ' + gbp(x.value) + (sourceText(x) ? ' ' + esc(sourceText(x)) : '')).join('; ') + ')';
-  else if (parts[0] && parts[0].source !== 'today' && sourceText(parts[0])) pt += ' (' + esc(sourceText(parts[0])) + ')';
-  pt += pricesText(P);
+  // 7.12.0, as the simple view says it (read.js where.pot): the figure the band is in first, at the prices of the month the
+  // plan's figures are in, and the figure as recorded in brackets with where it came from —
+  // "Your pot: £670,000 at the prices of April 2026 (£753,659, recorded April 2029)"; prices not moved: "Your pot: £695,000
+  // (recorded April 2026)"; more than one account: "(…; pension £A recorded September 2026; ISA £B from What you hold as of
+  // 5 January 2027)". How far prices moved, and on what, follows as a sentence of its own.
+  const moved = movedPrices(P);
+  const from = parts.length > 1 ? parts.map((x) => PART_NAME[x.key] + ' ' + gbp(x.value) + (sourceText(x) ? ' ' + esc(sourceText(x)) : '')).join('; ')
+    : parts[0] && parts[0].source !== 'today' && sourceText(parts[0]) ? esc(sourceText(parts[0])) : '';
+  const month = moved && P.prices.since ? whenText(P.prices.since) : '';
+  let pt = 'Your pot: ' + (moved ? gbp(P.real) + (month ? ' at the prices of ' + month : ' in the prices the plan’s figures are in') + ' (' + gbp(P.actual) + (from ? ', ' + from : ' as recorded') + ')'
+    : gbp(P.actual) + (from ? ' (' + from + ')' : ''));
   const expects = ' against ' + gbp(P.p50) + ' the plan expects by then';
   const verdict = P.verdict || (P.band ? 'band' : null);
   let s;
@@ -369,7 +377,7 @@ export function whereAmIPotText(pot) {
   } else if (verdict === 'band' && VERDICT[P.band]) {
     s = pt + ' — ' + VERDICT[P.band](P) + '.';
   } else return '';
-  return s + leftOut + staleText(P.stale);
+  return s + pricesText(P) + leftOut + staleText(P.stale);
 }
 
 const SAVER_V3_BAND = {

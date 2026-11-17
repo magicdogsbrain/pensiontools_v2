@@ -400,6 +400,13 @@ const monthsIntoTaxYear = (at) => (at.m + 8) % 12;
  * @param {object} taxYears  the Decision tool's tax-year set-ups ({ 'YY/YY': { cpi } }), or null
  * @returns {{ factor, assumed, years: [{ taxYear, cpi, entered, share }] }}
  */
+/** The month ('YYYY-MM') the plan's figures are in: the lock's month for a document locked in a later plan year, else April of its first tax year; null when unknown. */
+export function pricesMonthKeyOf(doc) {
+  if (doc && doc.pots && +doc.pots.asOfPlanYear > 0 && doc.lockedAt && /^\d{4}-\d{2}/.test(String(doc.lockedAt))) return String(doc.lockedAt).slice(0, 7);
+  const fty = +(doc && doc.timing && doc.timing.firstTaxYear);
+  return Number.isFinite(fty) && fty > 2000 ? fty + '-04' : null;
+}
+
 export function pricesSinceStart(doc, at, taxYears = null) {
   const assumed = +doc?.assumptions?.cpiDecision > 0 ? +doc.assumptions.cpiDecision : DECISION_ASSUMED_CPI_FOR_RECORD;
   const fty = +doc?.timing?.firstTaxYear;
@@ -610,7 +617,9 @@ function potReading(doc, wc, { today, history, potsToday, holdings, taxYears }) 
     actual: r0(actual), real: r0(real), pension: P.pension, parts: P.parts.map((x) => ({ ...x, value: Math.round(x.value) })), missing: P.missing,
     // Months into the pot's tax year (in a document run from a day inside a later plan year, `frac` counts from that day).
     source: P.source, asOf: P.asOf, planYear: pY, monthsIn: pY < 0 ? 0 : monthsIntoTaxYear(P.at),
-    prices: { factor: prices.factor, assumed: prices.assumed, years: prices.years.length, entered: prices.years.filter((x) => x.entered).length },
+    // `since`: the month the plan's figures are in, as both views say it ("at the prices of April 2026", 7.12.0): April of the
+    // first tax year, or the month a document locked in a later plan year was locked (pricesSinceStart counts from there)
+    prices: { factor: prices.factor, assumed: prices.assumed, years: prices.years.length, entered: prices.years.filter((x) => x.entered).length, since: pricesMonthKeyOf(doc) },
     p10: r0(p10), p50: r0(p50), p90: r0(p90),
     verdict, band, flat: flatAll, atCost, isaLeftOut: P.measure.isaLeftOut, stale
   };

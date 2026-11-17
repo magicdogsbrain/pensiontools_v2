@@ -35,8 +35,16 @@ export const KIM62 = Object.freeze({
 });
 
 export const ALEX64 = Object.freeze({
-  name: 'Alex', age: 64, lockedOn: '2026-04-10', yearly: 30000, taxFreeTaken: true,
-  cashYears: ['2026/27', '2027/28', '2028/29'], ordinaryGiltsToday: 86000, cash: 500, today: '2026-06-20', recorded: ['2026-04', '2026-05']
+  name: 'Alex', age: 64, lockedOn: '2026-04-10', yearly: 30000, taxFreeTaken: true, pot: 485000, cashYearsDial: 3,
+  cashYears: ['2026/27', '2027/28', '2028/29'], ordinaryGiltsToday: 86000, cash: 500, today: '2026-06-20', recorded: ['2026-04', '2026-05'],
+  // the three ordinary gilts bought instead of the plan's cash, as Alex's platform lists them (name, units, value today)
+  ordinaryGilts: [
+    { name: '3¾% Treasury Gilt 2027', units: 28056, value: 28000 },
+    { name: '0 1/8% Treasury Gilt 2028', units: 30459, value: 29000 },
+    { name: '0½% Treasury Gilt 2029', units: 31823, value: 29000 }
+  ],
+  // two of the plan's gilts held a little above its units
+  above: { TR31: 700, T41: 300 }
 });
 
 export const KIM66 = Object.freeze({ name: 'Kim', age: 66, pot: 280000, isa: 40000, finalSalary: 6000, survivorShare: 0.5, statePensionWeekly: 221.20 });

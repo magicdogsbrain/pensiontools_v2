@@ -4,7 +4,7 @@
  */
 import { expect } from '@playwright/test';
 import { confirmEmail } from './account.js';
-import { at, openSimple, answer, keep, signUp, editAndSave, planAddress, settled, fullPage, closeNews, openFull } from './routes.js';
+import { at, openSimple, answer, keep, signUp, editAndSave, planAddress, settled, fullPage, closeNews, openFull, planPage } from './routes.js';
 import { SAM_B, KIM_D } from './typed.js';
 import { SAM45 } from './people.js';
 
@@ -52,10 +52,12 @@ export async function lockFromStressSettings(page) {
  * platform shows them, then Calculate. The tax-year set-up opens the first time in a tax year; `setUp(page)` fills it.
  * Returns what the person read on the way: each step of the set-up, then the page after the recommendation is drawn.
  */
-export async function monthlyEntry(page, { month, pension, isa, setUp = null }) {
+export async function monthlyEntry(page, { month, pension, isa, cash = null, setUp = null }) {
   await fullPage(page, 'monthly entry');
   await page.locator('#entryMonth').fill(month);
-  await page.locator('#entryPlatTotal').fill(String(pension));
+  // the form fills itself from the last month a moment after the month is chosen: "of which cash" is typed over that
+  if (cash != null) await typeUntilItHolds(page, [['#entryPlatTotal', pension], ['#entryPlatCash', cash]]);
+  else await page.locator('#entryPlatTotal').fill(String(pension));
   await page.locator('#entryIsa').fill(String(isa));
   await page.locator('#decisionForm button[type=submit]').click();
   const seen = [];
@@ -79,9 +81,25 @@ export async function monthlyEntry(page, { month, pension, isa, setUp = null }) 
   return [...seen, await page.locator('body').innerText()].join('\n');
 }
 
+/**
+ * Boxes typed as a person types them, then looked at again: a form that fills itself a moment later (from the last month,
+ * or from the store) can write over what was typed, and then it is typed again. Waits until the boxes have held their
+ * figures at two looks in a row.
+ */
+export async function typeUntilItHolds(page, boxes) {
+  let held = 0;
+  await expect.poll(async () => {
+    let same = true;
+    for (const [sel, v] of boxes) if ((await page.locator(sel).inputValue()) !== String(v)) { same = false; await page.locator(sel).fill(String(v)); }
+    held = same ? held + 1 : 0;
+    return held >= 2;
+  }, { timeout: 30_000, intervals: [750] }).toBe(true);
+}
+
 /** "Save to History" for the month on the entry form. */
 export async function saveMonth(page) {
   await page.locator('#saveBtn').click();
+  await expect(page.getByText(/saved to history|^Saved, with|^Batch saved/i).first()).toBeVisible({ timeout: 30_000 });
 }
 
 /**
@@ -106,4 +124,72 @@ export async function stressTotals(page, { pension, isa }) {
   await page.locator('#tmPotSipp').fill(String(pension));
   await page.locator('#tmPotIsa').fill(String(isa));
   await page.locator('#ssSaveBtn').click();
+}
+
+/**
+ * A new account's first plan made in the full view's set-up by someone already drawing: its name, age, "Already retired"
+ * at that age, then "I'm already drawing my pension — pick up from here". Leaves the full view open on the Stress tester.
+ */
+export async function fullViewDrawing(page, { name, age }) {
+  await openFull(page).catch(() => {});
+  const wiz = page.locator('#setupWizard');
+  await expect(wiz.locator('#wizScenarioName')).toBeVisible({ timeout: 45_000 });
+  await wiz.locator('#wizScenarioName').fill(name);
+  await wiz.locator('#wizCurrentAge').fill(String(age));
+  await wiz.locator('#wizRetired').check();
+  await wiz.locator('#wizRetireAge').fill(String(age));
+  await wiz.getByRole('button', { name: 'Next' }).click();
+  await wiz.getByRole('button', { name: /already drawing my pension/ }).click();
+  await expect(wiz).toBeHidden({ timeout: 30_000 });
+  // the new plan opens on Stress tester > Settings, where its figures are added: a person starts once it is there
+  await expect(page.locator('#scenarioSelector')).toContainText(name, { timeout: 30_000 });
+  await expect(page.locator('.sub-tab[data-stresstab="stresssettings"].active')).toBeVisible({ timeout: 30_000 });
+}
+
+/**
+ * Stress Tester > Settings: "Full index-linked gilt ladder", the pension it is bought from, the years paid from cash
+ * first, then Save Settings.
+ */
+export async function stressLadder(page, { pension, cashYears }) {
+  await fullPage(page, 'stress settings');
+  await closeNews(page);
+  // the way's boxes are drawn and filled from the plan a moment after the press ("Buys with …" under them); a new plan's
+  // settings can be drawn again from the store a moment later, over what was typed (reported in the round's notes): the
+  // way is pressed and the figures typed until they hold
+  await page.locator('button[data-strat="full-il-gilt"]').click();
+  await expect(page.locator('#miniPotNote')).toContainText('Buys with', { timeout: 15_000 });
+  let held = 0;
+  await expect.poll(async () => {
+    if (!(await page.locator('button[data-strat="full-il-gilt"].active').isVisible())) { await page.locator('button[data-strat="full-il-gilt"]').click(); held = 0; return false; }
+    let same = true;
+    for (const [sel, v] of [['#miniSipp', pension], ['#giltCashYears', cashYears]]) if ((await page.locator(sel).inputValue()) !== String(v)) { same = false; await page.locator(sel).fill(String(v)); await page.locator(sel).dispatchEvent('change'); }
+    held = same ? held + 1 : 0;
+    return held >= 2;
+  }, { timeout: 30_000, intervals: [750] }).toBe(true);
+  await page.locator('#ssSaveBtn').click();
+  await expect(page.getByText(/Settings saved/).first()).toBeVisible({ timeout: 30_000 });   // a person waits for the save to be said
+}
+
+/**
+ * The plan document's order sheet, as a person reads it off the page: every gilt row's name, SEDOL, code and units to
+ * order (the "Units to order" column).
+ */
+export async function orderSheet(page) {
+  await fullPage(page, 'plan document');
+  await expect(page.getByRole('heading', { name: /^Plan document/ }).first()).toBeVisible({ timeout: 30_000 });
+  // the document's sections are folded; a person opens them (all of them, as they are drawn)
+  await expect.poll(async () => { await page.locator('details').evaluateAll((ds) => ds.forEach((d) => { d.open = true; })); return page.getByText('Order sheet', { exact: true }).first().isVisible().catch(() => false); }, { timeout: 30_000 }).toBe(true);
+  const t = await page.locator('body').innerText();
+  return [...t.matchAll(/^\d+\t([^\t]+)\t([A-Z0-9]{7})\t([A-Z0-9.]+)\t[^\n]*?([\d,]+) units/gm)].map((m) => ({ name: m[1], sedol: m[2], code: m[3], units: Number(m[4].replace(/,/g, '')) }));
+}
+
+/** What you hold > "Paste a table": the table pasted into the pension, then "Add these lines". */
+export async function pasteHoldings(page, planId, text) {
+  await planPage(page, planId, 'hold');
+  await page.getByTestId('plan.hold.paste.open').click();
+  await page.getByTestId('plan.hold.paste.text').fill(text);
+  await expect(page.getByTestId('plan.hold.paste.summary')).toBeVisible({ timeout: 15_000 });
+  await page.getByTestId('plan.hold.paste.add').click();
+  await expect(page.getByTestId('plan.hold.paste.add')).toHaveCount(0, { timeout: 30_000 });
+  await settled(page).catch(() => {});
 }

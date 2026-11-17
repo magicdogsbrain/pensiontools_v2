@@ -384,6 +384,8 @@ describe('one placing from the Accumulation tab\'s ages (4.6)', () => {
     const p = copy(C['01-fresh-default']);
     p.id = 'AlexSaving01';
     p.accumulationTool = { settings: { currentAge: 30, retirementAge: 67, salary: 31000, potNow: 9000, netMonthly: 100, schemeType: 'ras', employerMonthly: 93, escalationPct: 0, isaMonthly: 0 } };
+    // an income of Alex's own (7.12.0: the factory £30,000 on a plan nobody gave figures is read as no income, so no aim)
+    p.stressTool.settings = { ...p.stressTool.settings, configured: true, equityMin: 9000, bondMin: 0, cashTarget: 0, baseSalary: 21000 };
     return p;
   }
   it('V7 places it as the planner does — saving — opens on What you pay in, and asks once to confirm the ages', () => {

@@ -28,6 +28,7 @@ import { guestSnapshot } from '../../firebase/FirestoreService.js';
 import { isLoggedIn as authIsLoggedIn, onAuthStateChange as authOnAuthStateChange } from '../../firebase/index.js';
 import { hideLandingPage as hideLanding, showLandingPage as showLanding } from './LandingPage.js';
 import { storageOf } from './NewPlanFromSeed.js';
+import { shownPlanName } from '../../services/PlanName.js';
 import { LAYOUT } from '../../appLayout.js';
 
 export const NOTE_ID = 'openPlaceNote';
@@ -103,10 +104,10 @@ export function startOpenPlace(win = window) {
       addNote({ lead: W.notHere, back: backHref(r.back), backLabel: W.back });
       return;
     }
-    const name = (mine.planDetails && mine.planDetails.name) || mine.name || '';
+    const name = shownPlanName(mine) || (mine.planDetails && mine.planDetails.name) || mine.name || '';   // the name every page shows (7.12.0)
     const accountOpen = plans.find((p) => p.isActive) || null;
     const extra = accountOpen && accountOpen.id !== mine.id
-      ? W.thisWindow.replace('{name}', name).replace('{other}', (accountOpen.planDetails && accountOpen.planDetails.name) || accountOpen.name || '')
+      ? W.thisWindow.replace('{name}', name).replace('{other}', shownPlanName(accountOpen) || (accountOpen.planDetails && accountOpen.planDetails.name) || accountOpen.name || '')
       : null;
     // The page is hidden for this plan (its tools, or its stage): say so instead of opening it.
     const tab = place.tab && doc.querySelector('.tab[data-tab="' + place.tab + '"]');

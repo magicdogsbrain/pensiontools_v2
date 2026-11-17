@@ -13,8 +13,9 @@
  *   C, starting later with money still going in  Stop at {your age at the start} · £{careful} a month
  *   C, starting later with nothing going in    From {your age at the start} · £{careful} a month
  *   A                                          Stop at {shown age} · £{spend} a month   ("From {age}" in the retired view)
- *   B                                          Stop at {age} · £{spend} a month · paying £{pay-in now}  (the last part
- *                                              left out when nothing goes in, or when the name would pass 50 characters)
+ *   B                                          Stop at {age} · £{spend} a month  (7.12.0: no pay-in — the box is filled
+ *                                              before a Keep button says which pay-in is kept, and the name a plan is
+ *                                              shown by has none; 6.19.0 to 7.11 added " · paying £{pay-in now}")
  *   D                                          From {you.age} · £{spend} a month (· working to {age} when work is tried and it fits)
  *   A couple                                   "Stop at {you} and {partner}" / "From {you} and {partner}", the partner's
  *                                              age on the same date
@@ -121,26 +122,18 @@ function suggestA(inputs, result) {
   return `${lead} ${agesText(youAge, partnerAge)}${tail}`;
 }
 
-/** " · paying £…" after a B name, when something goes in and it fits in 50 characters. */
-function withPaying(base, result) {
-  const now = result.payIn && isNum(result.payIn.now) ? result.payIn.now : 0;
-  if (!(now > 0)) return base;
-  const full = `${base}${PLAN_NAME.sep}paying ${tenner(now)}`;
-  return chars(full) > PLAN_NAME.suggestMax ? base : full;
-}
-
 function suggestB(inputs, result) {
   const stop = result.stop;
   if (!stop || !isNum(stop.age) || !result.spend || !isNum(result.spend.perMonth)) return '';
   const couple = coupleOf(inputs);
   const tail = `${PLAN_NAME.sep}${tenner(result.spend.perMonth)} a month`;
   // "I've already stopped": the age in mind is your partner's
-  if (youStopped(inputs)) return withPaying(`Partner stops at ${whole(stop.age)}${tail}`, result);
+  if (youStopped(inputs)) return `Partner stops at ${whole(stop.age)}${tail}`;
   const ages = result.ages || {};
   const youAge = isNum(ages.you) ? ages.you : stop.age;
   const partnerAge = couple ? (isNum(ages.partner) ? ages.partner : inputs.partner.age + (youAge - inputs.you.age)) : null;
   const apart = couple ? apartName(inputs, { you: youAge, partner: partnerAge }, 'Stop at', tail, false) : '';
-  return withPaying(apart || `Stop at ${agesText(youAge, partnerAge)}${tail}`, result);
+  return apart || `Stop at ${agesText(youAge, partnerAge)}${tail}`;
 }
 
 /**

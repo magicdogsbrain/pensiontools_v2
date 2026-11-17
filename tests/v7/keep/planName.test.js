@@ -279,3 +279,16 @@ describe('the named state of a couple stopping apart (C\'s answer-apart: you fro
     expect(name('c', 'answer-apart')).toBe(`Partner stops at 56 · £${load('c', 'answer-apart').levels.balanced.monthly.toLocaleString('en-GB')} a month`);
   });
 });
+
+describe('B names no pay-in (7.12.0, lead decision 9; the second walk: "· paying £600 (2)" on a plan kept paying £5,820)', () => {
+  // the name box is filled before a Keep button is pressed, and the two buttons keep two pay-ins: a pay-in in the name is
+  // one of them, so the name of the other contradicts its own plan. The name a plan is shown by has none either.
+  it('Jo, 33, £2,000 a month from 60, paying 8% (£253.33 a month): "Stop at 60 · £2,000 a month"', () => {
+    const r = copy(load('b', 'answer-B1'));
+    r.inputs.you.age = 33; r.stop.age = 60; r.ages = { you: 60 }; r.spend.perMonth = 2000; r.payIn.now = 253.33;
+    expect(suggestedPlanName('b', r.inputs, r)).toBe('Stop at 60 · £2,000 a month');
+  });
+  it('a couple: both ages and the amount, no pay-in', () => {
+    expect(name('b', 'answer-B5-couple')).toBe('Stop at 60 and 58 · £3,200 a month');
+  });
+});

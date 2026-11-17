@@ -202,6 +202,7 @@ import { budgetPatch } from '../../answers/plan/budget.js';
 import { savingPatch, recordPatch } from '../../answers/plan/saving.js';
 import { checkInDraft, checkInPatch, restartPathPatch, CHECKIN_FUTURES, CHECKIN_SEED } from '../../answers/plan/checkIn.js';
 import { answerInPlanPatch } from '../../answers/plan/useAnswer.js';
+import { shownPlanNameOn } from '../../services/PlanName.js';
 import { monthRecordPatch, taxYearPatch } from '../../answers/plan/month.js';
 import { taskPatch, DISMISS } from '../../answers/plan/tasks.js';
 import { reviewSavePatch, phaseChoicePatch } from '../../answers/plan/review.js';
@@ -266,6 +267,12 @@ export function startPlanWrite(store, { win = null, session = null, local = null
   let busy = false;
   let timer = null;
   const dispatch = (a) => { if (!stopped) store.dispatch(a); };
+  /**
+   * The name a plan is told by (7.12.0, the second walk: a copy, "… is now your main plan" and "Kept as …" said the stored
+   * name while every list and page showed another): the one every page shows (services/PlanName.js), on the page's day.
+   * A copy is named from it too. The stored name stays what a rename edits and what a download holds.
+   */
+  const saidNameOf = (plan) => { try { return shownPlanNameOn(plan, store.getState().env && store.getState().env.today) || nameOf(plan); } catch { return nameOf(plan); } };
   const fail = (planId, problem, detail = null) => dispatch({ type: A.PLAN_SAVE_FAILED, planId, problem, ...(detail ? { detail } : {}) });
   const later = (fn) => { if (!win || typeof win.setTimeout !== 'function') return; if (timer) win.clearTimeout(timer); timer = win.setTimeout(() => { timer = null; fn(); }, TOAST_MS); };
   /** The day the screens read the plan on (state.env.today), as a date; the clock when it cannot be read. */
@@ -536,7 +543,7 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     try {
       const copy = tryCopyOf(plan, boxes, state.env.today);
       const { id, createdAt, lastModified, ...rest } = copy; void id; void createdAt; void lastModified;
-      const name = uniqueName((nameOf(plan) || 'Plan') + ' · tried', plans.map(nameOf).filter(Boolean));
+      const name = uniqueName((saidNameOf(plan) || 'Plan') + ' · tried', plans.map(nameOf).filter(Boolean));
       rest.planDetails = { ...(rest.planDetails || {}), name };
       rest.isActive = false;
       // never locked, nothing recorded against it: the lock's record, the document and the archives stay with the original
@@ -1084,7 +1091,7 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     const a = state.answers[q];
     const p = answerInPlanPatch(plan, a && a.result, { today: state.env.today, payIn });
     if (!p.ok) { fail(planId, p.problem === 'notSaving' ? 'notSaving' : 'problems'); return; }
-    const told = () => dispatch({ type: A.KEEP_USED, q, planId: String(planId), name: nameOf(plan), line: p.line });
+    const told = () => dispatch({ type: A.KEEP_USED, q, planId: String(planId), name: saidNameOf(plan), line: p.line });
     if (!Object.keys(p.patch).length) { told(); dispatch({ type: A.PLAN_SAVED, planId, previous: {}, line: p.line, op: 'saving' }); later(() => dispatch({ type: A.PLAN_TOAST_CLOSE })); return; }
     const data = declaredOnly({ ...p.patch, lastModified: now().toISOString() });
     if (lockedRefusal(plan, data)) { fail(planId, 'locked'); return; }
@@ -1342,7 +1349,7 @@ export function startPlanWrite(store, { win = null, session = null, local = null
       dispatch({ type: A.KEEP_MADE, q, id: String(yours.id), name: yours.name, where, partnerId: partner ? String(partner.id) : null, partnerName: partner ? partner.name : null, separate: view.separate === true, ...(saverId ? { saverId } : {}), ...(yours.earlier ? { earlier: true } : {}) });
       dispatch({ type: A.PLANS_READING });
     };
-    const named = (p) => (p ? { id: p.id, name: nameOf(p) } : null);
+    const named = (p) => (p ? { id: p.id, name: saidNameOf(p) } : null);
     // the plan an earlier try made is the plan kept: told as made, never made again — and, when the figures on screen are no
     // longer the ones it was made from, told so (a keep of these is another press, under "Keep as another new plan")
     if (before && before.yours) {
@@ -1362,7 +1369,7 @@ export function startPlanWrite(store, { win = null, session = null, local = null
       if (!after) { keepFail(q, 'unsure'); return; }
       const found = keptAt(after.plans.list.map((e) => e.plan), at.toISOString());
       if (found && found.yours) { told(named(found.yours), named(found.partner), 'account'); return; }
-      if (found && found.partner) { keepFail(q, 'partial', nameOf(found.partner)); return; }
+      if (found && found.partner) { keepFail(q, 'partial', saidNameOf(found.partner)); return; }
     }
     if (done.problem) { keepFail(q, done.problem, done.name || null); return; }
     told({ id: done.id, name: made.names.yours }, done.partnerId ? { id: done.partnerId, name: done.partnerName || made.names.partner } : null, place.kind);
@@ -1399,7 +1406,7 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     let name;
     let locked = false;
     try {
-      name = uniqueName((nameOf(plan) || 'Plan') + ' (copy)', planNames(state));
+      name = uniqueName((saidNameOf(plan) || 'Plan') + ' (copy)', planNames(state));
       const stamp = at.toISOString();
       const copy = readyPlan({ ...copyOf(plan, name, { carryHistory: carry === true, now: at }), createdAt: stamp, lastModified: stamp }, at, { mayBeLocked: true });
       locked = isLockedSettings(copy.decisionTool && copy.decisionTool.settings);
@@ -1447,7 +1454,7 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     const earlier = successorMadeFor(pool, planId, s.month, reason);
     // that try's close landed: this plan is closed onto it — what was left is done now, and nothing is made
     if (earlier && plan.closedAt && String(plan.nextPlanId) === String(earlier.id)) {
-      await afterMove(place, plan, planId, { id: String(earlier.id), name: nameOf(earlier), partner: s.partner === true ? linkedPartnerOf(plan, pool) : null, reason, month: s.month });
+      await afterMove(place, plan, planId, { id: String(earlier.id), name: saidNameOf(earlier), partner: s.partner === true ? linkedPartnerOf(plan, pool) : null, reason, month: s.month });
       return;
     }
     if (!earlier && place.kind === 'window' && guestOwnPlans(pool).length + 1 > GUEST_MAX_PLANS) { fail(planId, 'full'); return; }
@@ -1473,7 +1480,7 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     }
     let made, name;
     let id = earlier ? String(earlier.id) : null;
-    if (earlier) name = nameOf(earlier);
+    if (earlier) name = saidNameOf(earlier);
     else {
       const stamp = at.toISOString();
       try {
@@ -1534,7 +1541,7 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     // the closed plan was the main plan: the plan that carries it on is now (the planner's close opens it, which makes it so)
     if (plan.isActive === true && !(await moveMainTo(place, store.getState(), id, planId))) return;
     if (stopped) return;
-    finished(planId, reason === 'working' ? 'closedWorking' : 'closed', { name, id, old: nameOf(plan), month: monthWordsOf(month) });
+    finished(planId, reason === 'working' ? 'closedWorking' : 'closed', { name, id, old: saidNameOf(plan), month: monthWordsOf(month) });
   }
 
   /**
@@ -1574,11 +1581,11 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     if (!got) return;
     const { place, plan, state } = got;
     const olds = state.plans.list.map((e) => e.plan).filter((p) => p.isActive === true && String(p.id) !== String(planId));
-    if (plan.isActive === true && !olds.length) { finished(planId, 'main', { name: nameOf(plan) }); return; }
+    if (plan.isActive === true && !olds.length) { finished(planId, 'main', { name: saidNameOf(plan) }); return; }
     if (lockedRefusal(plan, declaredOnly({ isActive: true }))) { fail(planId, 'locked'); return; }
     if (!(await moveMainTo(place, state, planId))) return;
     if (stopped) return;
-    finished(planId, 'main', { name: nameOf(plan) });
+    finished(planId, 'main', { name: saidNameOf(plan) });
   }
 
   /**
@@ -1592,7 +1599,7 @@ export function startPlanWrite(store, { win = null, session = null, local = null
    */
   async function removeOne(planId, { gone = new Set(), ticked = new Set() } = {}) {
     let state = store.getState();
-    const nameIn = (st) => { const e = st.plans && Array.isArray(st.plans.list) ? st.plans.list.find((x) => x && x.plan && String(x.plan.id) === String(planId)) : null; return e ? nameOf(e.plan) : ''; };
+    const nameIn = (st) => { const e = st.plans && Array.isArray(st.plans.list) ? st.plans.list.find((x) => x && x.plan && String(x.plan.id) === String(planId)) : null; return e ? saidNameOf(e.plan) : ''; };
     const exampleIn = (st) => { const e = st.plans && Array.isArray(st.plans.list) ? st.plans.list.find((x) => x && x.plan && String(x.plan.id) === String(planId)) : null; return !!(e && isExamplePlan(e.plan)); };
     let place = placeOf(state, planId, { allowExample: true });
     if (place.problem) return { problem: place.problem, name: nameIn(state), example: exampleIn(state) };
@@ -1609,7 +1616,7 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     if (place.kind === 'window' && !stored) return { problem: 'storage', name: nameIn(state), example: exampleIn(state) };
     const pool = stored || state.plans.list.map((e) => e.plan);
     const plan = (stored && stored.find((p) => p && String(p.id) === String(planId))) || place.entry.plan;
-    const name = nameOf(plan);
+    const name = saidNameOf(plan);
     const example = isExamplePlan(plan);
     const others = pool.filter((p) => p && String(p.id) !== String(planId) && !gone.has(String(p.id)));
     if (!others.length) return { problem: 'lastPlan', name, example };

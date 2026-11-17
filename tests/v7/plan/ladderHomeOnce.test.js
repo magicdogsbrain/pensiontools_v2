@@ -28,3 +28,12 @@ describe('a locked ladder\'s "Where you are"', () => {
     expect(PLAN.lines['where.ladderMonthly']).toBe('Your plan pays');
   });
 });
+
+import { HELD } from '../../../src/v7/copy/held.js';
+describe('"Also in your pension": what a gilt pays by the day it matures', () => {
+  it('the column says the sum includes the interest still to come, so it is not read as paid on the day', () => {
+    // a 3¾% gilt of 28,056 units on 20 June 2026, maturing 7 March 2027: 28,056 on the day, and two coupons of
+    // 28,056 × 3.75 ÷ 200 = 526.05 (September and March): 29,108 by then, not on the day
+    expect(HELD.alsoColumns.pays).toBe('Pays by then, with interest');
+  });
+});

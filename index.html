@@ -4135,7 +4135,7 @@
 
     // Simulation access for optimisation — THROUGH the strategy registry (Phase B rule:
     // no tool reaches around the interface). The optimiser runs the plan's own strategy.
-    import { getStrategy } from './src/strategies/registry.js'; import { strategyOverlayOf } from './src/services/DecisionOverlay.js'; import { engineSetup, engineDeps } from './src/services/MonthDecision.js';   // where a month is paid from, beside the pot advice (7.2.0)
+    import { getStrategy } from './src/strategies/registry.js'; import { decisionOverlayFor } from './src/ui/decisionOverlayUi.js'; import { engineSetup, engineDeps } from './src/services/MonthDecision.js';   // where a month is paid from, beside the pot advice (7.2.0)
     import { tagPortfolio, allocationFromTags, mixFromFunds } from './src/services/PortfolioTagger.js';   // the mix a funds list makes, lifted pure (6.41.0)
     import { searchFunds as searchFundsIn } from './src/services/FundCatalogue.js';   // the fuzzy fund search, lifted pure (6.41.0)
     import { trySettingsOf, documentSuccessOf, chanceRunOf } from './src/answers/plan/lastsRun.js';   // "Try a strategy": the what-if copy of the settings, lifted pure (6.41.0)
@@ -7871,13 +7871,7 @@
     // isn't "which pot pays" — it's "the rung pays; is the sleeve above its line, and should a
     // boom lock more on?" This panel answers THAT, from the same trigger maths the sims run.
     // The words and the figures are services/DecisionOverlay.js (7.2.0: the new app's Month by month says the same); the ladder is found here.
-    async function decisionStrategyOverlay(decision, dateStr) {
-      const st = await getActiveStrategy();
-      if (!st.id || st.id === 'pots-and-valves') return null;
-      const settings = await getStressSettingsAsync();
-      const lp = CONTRACT_IDS.includes(st.id) ? await ladderPositionForPlan(settings, dateStr) : null;
-      return strategyOverlayOf(decision, dateStr, { strategy: st, stressSettings: settings, name: getStrategy(st.id).describe().name, ladder: { lp, firstRung: lp && _ladderPosCache ? firstRungOf(_ladderPosCache.plan) : null } });
-    }
+    function decisionStrategyOverlay(decision, dateStr) { return decisionOverlayFor(decision, dateStr, { strategy: getActiveStrategy, settings: getStressSettingsAsync, ladderPos: ladderPositionForPlan, scenario: getActiveScenarioAsync, name: (id) => getStrategy(id).describe().name, firstRung: () => (_ladderPosCache ? firstRungOf(_ladderPosCache.plan) : null)  }); }
 
 
     // 6.13.5 — a LOCKED plan's ladder is the one in its plan document: the orders, units and costs fixed when the
@@ -8140,7 +8134,7 @@
           'floor-and-flex': 'The essentials rung pays the bills; the treats are a fixed share of the flex sleeve, set once a year. Check the draw below.',
           'floor-the-schedule': 'This year\'s matured rung pays the whole month; the reserve is never drawn. Nothing to sell.',
           'floor-to-age': 'Until the chosen age the matured rung pays; at that age the reserve buys the rest. Nothing to sell before then.',
-          'full-il-gilt': 'The cash-years bucket, then each year\'s matured gilt, pays the standing monthly withdrawal. Nothing to sell, nothing to decide.',
+          'full-il-gilt': 'The plan\'s cash years, then each year\'s matured gilt, pay the standing monthly withdrawal.',
           'gilt-rotation': 'Runs exactly as the full gilt ladder — the cash bucket, then each year\'s matured gilt, pays the standing monthly withdrawal. The one extra job is the rotation watch below: nothing to do unless the market is 30% below its all-time high.'
         };
         const banner = '<div class="alert alert-info" style="margin-bottom:10px;"><strong>This plan\'s strategy: ' + budEsc(STRATEGY_NAMES[sid] || sid) + '.</strong> ' + budEsc(HOW[sid] || '') + ' <span class="hint">Set in the Stress Tester settings or on its Strategies page — <button type="button" class="risk-btn" style="padding:1px 8px;font-size:11px;" data-on-click="switchToTab(\'strategies\'); setTimeout(() => showStrategyPage(\'' + sid + '\'), 300);">read it</button> <button type="button" class="risk-btn" style="padding:1px 8px;font-size:11px;" data-on-click="switchToTab(\'stress\'); setTimeout(() => openToolSettingsTab(\'stress\'), 300);">change it</button></span></div>';

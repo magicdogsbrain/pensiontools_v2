@@ -31,11 +31,12 @@ import { isClosedPlan } from '../../services/PlanClosed.js';
 import { isExamplePlan } from '../../services/GuestPlans.js';
 import { MONTH_FIELDS } from './schema.js';
 import { SAVER_STAGES } from './steps.js';
-import { dateOf, monthWords, monthName, localMonth } from './dates.js';
+import { dateOf, monthWords, monthName, localMonth, dayWords } from './dates.js';
 import { partnerOf } from './household.js';
 import { firstPaymentMonth, monthToRecord } from '../../services/YearPlan.js';
 import { pounds } from './income.js';
 import { takenBeforeTax, targetOfTaken } from '../../services/BeforeTax.js';
+import { CASH_SHORT_LABEL } from '../../services/DecisionOverlay.js';
 import { taxFreeFractionOf } from '../../services/FlexibleAccess.js';
 import { shownPlanNameOn } from '../../services/PlanName.js';
 
@@ -251,6 +252,7 @@ function adviceOf(d) {
     const rung = /^rung (.+) \(already cash\)$/.exec(label);
     const where = rung ? { id: 'rung', slots: { year: rung[1] } }
       : label === 'the cash years bucket' ? { id: 'cashYears', slots: {} }
+        : label === CASH_SHORT_LABEL ? { id: 'cashShort', slots: {} }
         : /^cash, (before|until)/.test(label) ? { id: 'cashBefore', slots: {} }   // its label until 7.4.2, and since
           : label === 'the essentials rung' ? { id: 'essentials', slots: {} }
             : label === 'the engine' ? { id: 'invested', slots: {} }
@@ -273,7 +275,7 @@ function adviceOf(d) {
     cut: !!d.inProtection, efficient: d.isTaxEfficientYear !== false,
     contract: !!(ov && ov.hidePots), from, moves,
     // 7.12.0: the money is said to be in cash only when the cash entered covers the month
-    cashShort: ov && ov.cashShort ? { cash: pounds(ov.cashShort.cash), month: pounds(ov.cashShort.month) } : null, cashKnown: typeof d.cash === 'number' && Number.isFinite(d.cash),
+    cashShort: ov && ov.cashShort ? { cash: pounds(ov.cashShort.cash), month: pounds(ov.cashShort.month), ...(ov.cashShort.next ? { label: ov.cashShort.next.label, amount: pounds(ov.cashShort.next.amount), date: dayWords(ov.cashShort.next.date) } : {}) } : null, cashKnown: typeof d.cash === 'number' && Number.isFinite(d.cash),
     raw: { sippDraw: r(d.sippDraw), monthlyTax: r(d.monthlyTax), totalMonthlyNet: r(d.totalMonthlyNet), isaDraw: r(d.isaDraw) }
   };
 }

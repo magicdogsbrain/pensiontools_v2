@@ -26,7 +26,7 @@ export const CONTRACT_IDS = Object.freeze(['full-il-gilt', 'gilt-rotation', 'flo
  *   strategy: the plan's strategy block (ScenarioRepository.strategyOf); stressSettings: its effective Stress settings; name: the
  *   strategy's name (the registry's describe().name); ladder: for a contract strategy, where this month sits in the ladder
  */
-export function strategyOverlayOf(decision, dateStr, { strategy, stressSettings, name, ladder = null }) {
+export function strategyOverlayOf(decision, dateStr, { strategy, stressSettings, name, ladder = null, nextIn = null }) {
   const st = strategy || {};
   if (!st.id || st.id === 'pots-and-valves') return null;
   const settings = stressSettings || {};
@@ -53,8 +53,34 @@ export function strategyOverlayOf(decision, dateStr, { strategy, stressSettings,
   // a bought ladder's month paid from cash or a matured gilt (7.12.0): the cash entered on the same form, when it is less than
   // the month's payment — the page then says so, and never that the money is already in cash
   const cashShort = CONTRACT_IDS.includes(st.id) && floorMonthly > 0 && typeof decision.cash === 'number' && Number.isFinite(decision.cash) && Math.round(decision.cash) < Math.round(floorMonthly)
-    ? { cash: Math.round(decision.cash), month: Math.round(floorMonthly) } : null;
+    ? { cash: Math.round(decision.cash), month: Math.round(floorMonthly), next: nextIn && nextIn.date ? { label: nextIn.label, date: nextIn.date, amount: Math.round(+nextIn.amount || 0) } : null } : null;
+  // 7.12.0 round 3 (decision 6): with less cash than the month, the month is not "from the cash years bucket" and nothing says
+  // "Nothing is sold": the page says the cash there is, the next money in (when we know it), and what the person can do
+  if (cashShort) { floorLabel = CASH_SHORT_LABEL; note = cashShortWords(cashShort); }
   return { id: st.id, name, floorMonthly: Math.round(floorMonthly), sleeveMonthly: Math.round(Math.max(0, total - floorMonthly)), floorLabel, note, hidePots: (st.id !== 'floor-to-age' && st.id !== 'bridge-and-engine') || floorMonthly > 0, cashShort };
+}
+
+/** The day a month's figures are read on: today in today's month, else the month's first day ('YYYY-MM-DD'). */
+export function monthDayOf(ym, now = new Date()) {
+  const d = now instanceof Date && !Number.isNaN(now.getTime()) ? now : new Date();
+  const iso = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  const first = String(ym).slice(0, 7) + '-01';
+  return first > iso ? first : iso;
+}
+
+/** The label of the month's source when the cash entered is less than the month (decision 6). */
+export const CASH_SHORT_LABEL = 'what your pension holds (its cash is less than this month)';
+const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const dayWords = (iso) => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || '')); return m ? +m[3] + ' ' + MONTHS[+m[2] - 1] + ' ' + m[1] : ''; };
+/**
+ * The month's words when the cash entered is less than its payment (7.12.0 round 3, walker 7): facts, then what the person can
+ * do, in "you can" words; never "Nothing is sold". Both views say these words (the full view's Decision tool, Month by month).
+ */
+export function cashShortWords(c) {
+  const head = 'Your pension’s cash is ' + gbp(c.cash) + ', so this month’s ' + gbp(c.month) + ' is not in cash.';
+  if (c.next) return head + ' The next money into your pension is ' + c.next.label + ': ' + gbp(c.next.amount) + ' on ' + dayWords(c.next.date) + '. Until then you can sell part of something you hold, at that day’s price, or wait for it.';
+  return head + ' You can sell part of something you hold to pay it, at that day’s price.';
 }
 
 /**

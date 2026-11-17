@@ -269,6 +269,18 @@ function whenWords(g) {
   return { key: 'whenRun', slots: { from: g.from.slice(0, 4) === g.to.slice(0, 4) ? monthName(g.from) : monthWords(g.from), to: monthWords(g.to) } };
 }
 
+/**
+ * The next money into the pension while living on a ladder (7.12.0 round 3, decision 6): the first gilt, beside the plan's own,
+ * that pays on or after `today`, as { label, date: 'YYYY-MM-DD', amount } — from the one dated reading of the cash years. Null
+ * outside the held phase, or when nothing pays inside the cash years. Pure.
+ */
+export function nextMoneyIn(plan, { today, life } = {}) {
+  let h = null; try { h = heldLadder(plan, { today, life }); } catch { h = null; }
+  if (!h || !h.dated) return null;
+  for (const r of h.dated.rows) for (const a of r.arrives || []) if (a.date && a.date >= today) return { label: a.label, date: a.date, amount: a.amount };
+  return null;
+}
+
 const WHY = { lump: 'whyLump', lumpEarlier: 'whyLumpEarlier', sp: 'whySp', spOther: 'whySpOther', other: 'whyOther', else: 'whyElse' };
 const isAre = (n) => (n === 1 ? 'is' : 'are');
 const grouped = (v) => String(Math.round(Math.abs(num(v)))).replace(/\B(?=(\d{3})+(?!\d))/g, ',');

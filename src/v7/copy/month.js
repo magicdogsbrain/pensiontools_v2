@@ -155,11 +155,13 @@ export const MONTH = {
     from: {
       cash: 'Cash', bonds: 'Bonds', shares: 'Shares', diversifiers: 'Gold and trend',
       rung: 'Your gilt {year}', thisYear: 'This year’s gilt', cashYears: 'The plan’s cash years',
-      cashBefore: 'Your cash, until the first gilt pays', essentials: 'The gilt that pays for essentials', invested: 'Your invested money', investedRest: 'Your invested money, for the rest'
+      cashBefore: 'Your cash, until the first gilt pays', cashShort: 'What your pension holds (its cash is less than this month)', essentials: 'The gilt that pays for essentials', invested: 'Your invested money', investedRest: 'Your invested money, for the rest'
     },
     // said only when the cash entered covers the month (7.12.0); short, or with no cash figure, the other two
     bought: 'Nothing is sold: the money is already in cash. The tax is the same, as it is still taken from your pension.',
-    boughtShort: 'Your plan pays this month from cash. The cash you entered is {cash}, less than this month’s {month}. The tax is the same, as it is still taken from your pension.',
+    // the cash entered is less than the month (7.12.0 round 3, decision 6): the full view says the same (DecisionOverlay.cashShortWords)
+    boughtShort: 'Your pension’s cash is {cash}, so this month’s {month} is not in cash. The next money into your pension is {label}: {amount} on {date}. Until then you can sell part of something you hold, at that day’s price, or wait for it. The tax is the same, as it is still taken from your pension.',
+    boughtShortNoNext: 'Your pension’s cash is {cash}, so this month’s {month} is not in cash. You can sell part of something you hold to pay it, at that day’s price. The tax is the same, as it is still taken from your pension.',
     boughtPlain: 'Your plan pays this month from cash. The tax is the same, as it is still taken from your pension.',
     movesTitle: 'Moves to make',
     moves: {

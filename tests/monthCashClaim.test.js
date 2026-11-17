@@ -37,18 +37,32 @@ function simpleText(cash) {
 }
 
 describe('the cash entered is less than the month', () => {
-  it('the overlay says so, with both figures', () => {
+  // round 3 (walker 7, decision 6): the next money in is the 3¾% 2027 gilt: 34,000 units + one half-coupon of 637.50, on
+  // 7 March 2027 = £34,638; "Nothing is sold" and "the cash years bucket" are never said beside £12 of cash
+  const NEXT = { label: '3¾% Treasury Gilt 2027', date: '2027-03-07', amount: Math.round(34000 + 34000 * 0.0375 / 2) };
+  const SAID = 'Your pension’s cash is £12, so this month’s £2,833 is not in cash. The next money into your pension is 3¾% Treasury Gilt 2027: £34,638 on 7 March 2027. Until then you can sell part of something you hold, at that day’s price, or wait for it.';
+  it('the overlay says so, with both figures and the next money in', () => {
     const d = month(12);
     expect(MONTHLY).toBe(2833);
+    expect(NEXT.amount).toBe(34638);
     expect(d.strategyOverlay.floorMonthly).toBe(MONTHLY);
-    expect(d.strategyOverlay.cashShort).toEqual({ cash: 12, month: MONTHLY });
+    expect(d.strategyOverlay.cashShort).toEqual({ cash: 12, month: MONTHLY, next: NEXT });
   });
-  it('the full view\'s source card and the simple view\'s "Where it comes from" say it, and never "already in cash"', () => {
+  it('the full view\'s source card and the simple view\'s "Where it comes from" say the same facts, and never "Nothing is sold"', () => {
     const full = fullText(month(12));
-    expect(full).toContain('The cash you entered is £12, less than this month’s £2,833');
+    expect(full).toContain(SAID);
     const simple = simpleText(12);
-    expect(simple).toContain('The cash you entered is £12, less than this month’s £2,833');
-    for (const t of [full, simple]) { expect(t).not.toContain('already in cash'); expect(t).not.toContain('already cash'); }
+    expect(simple).toContain(SAID);
+    for (const t of [full, simple]) {
+      for (const w of ['already in cash', 'already cash', 'Nothing is sold', 'cash years bucket', 'The plan’s cash years']) expect(t, w).not.toContain(w);
+    }
+  });
+  it('the full view\'s own reader (the shell hands in its readers) finds the same next money in', async () => {
+    const { decisionOverlayFor } = await import('../src/ui/decisionOverlayUi.js');
+    const d = month(12);
+    const I = monthInputsOf(plan, { now: noon(TODAY) });
+    const ov = await decisionOverlayFor({ ...d, strategyOverlay: undefined }, '2026-11', { strategy: async () => I.strategy, settings: async () => I.stressSettings, ladderPos: async () => ({ phase: 'cash', monthly: MONTHLY }), scenario: async () => plan, name: () => 'Full index-linked gilt ladder', firstRung: () => null });
+    expect(ov.cashShort.next).toEqual(NEXT);
   });
 });
 

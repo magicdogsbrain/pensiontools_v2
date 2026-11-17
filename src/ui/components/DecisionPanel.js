@@ -339,7 +339,6 @@ export function buildDecisionHTML(decision) {
     // 7.12.0: never "already cash" on screen (old records' labels carry it; it is not drawn); the cash entered, when short, said
     if (ov.floorMonthly > 0) html += `<div class="source-item"><strong>${formatCurrency(ov.floorMonthly)}</strong> from ${String(ov.floorLabel || '').replace(/ \(already cash\)$/, '')}</div>`;
     if (ov.sleeveMonthly > 0) html += `<div class="source-item"><strong>${formatCurrency(ov.sleeveMonthly)}</strong> from the invested sleeve</div>`;
-    if (ov.cashShort) html += `<p class="hint" style="margin-top:6px;">The plan pays this month from cash. The cash you entered is £${Math.round(ov.cashShort.cash).toLocaleString('en-GB')}, less than this month’s £${Math.round(ov.cashShort.month).toLocaleString('en-GB')}.</p>`;
     html += `<p class="hint" style="margin-top:6px;">${ov.note} The tax above is unchanged — it is still a pension withdrawal.</p>`;
     html += '</div>';
     return html + closeAfterSource(d);

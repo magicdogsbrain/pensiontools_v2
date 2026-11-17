@@ -34,7 +34,8 @@ import { strategyOf } from './PlanFromSeed.js';
 import { spendingSmileFactor } from './SpendingModel.js';
 import { effectiveStressSettings } from './PlanReading.js';
 import { decisionSettingsAsRead } from './DraftDecision.js';
-import { strategyOverlayOf, ladderFromDocument, CONTRACT_IDS } from './DecisionOverlay.js';
+import { strategyOverlayOf, ladderFromDocument, CONTRACT_IDS, monthDayOf } from './DecisionOverlay.js';
+import { nextMoneyIn } from '../answers/plan/held.js';
 import { beforeOf, closedAtOf, BEFORE_KINDS } from './PlanClosed.js';
 import { pensionLockOf } from './PensionLock.js';
 
@@ -187,7 +188,9 @@ export function decideMonth(I, ym, pots, { history = I.history, taxYears = I.tax
   const d = calcDecision(ym, +pots.equity || 0, +pots.bond || 0, +pots.cash || 0, deps);
   try {
     const ladder = I.contract ? ladderFromDocument(I.plan.planDocument, I.stressSettings, ym, I.now, history) : null;
-    d.strategyOverlay = strategyOverlayOf(d, ym, { strategy: I.strategy, stressSettings: I.stressSettings, name: STRATEGY_NAME[I.strategy.id] || I.strategy.id, ladder });
+    // the next money into the pension (7.12.0 round 3): from "Your plan's mix"'s one dated reading, as the full view reads it
+    let nextIn = null; if (ladder && I.plan) { try { nextIn = nextMoneyIn(I.plan, { today: monthDayOf(ym, I.now) }); } catch { nextIn = null; } }
+    d.strategyOverlay = strategyOverlayOf(d, ym, { strategy: I.strategy, stressSettings: I.stressSettings, name: STRATEGY_NAME[I.strategy.id] || I.strategy.id, ladder, nextIn });
   } catch { /* the overlay is words; the month stands without it, as on the classic page */ }
   d.cadenceMonths = 1;
   if (entered) d.entered = entered;

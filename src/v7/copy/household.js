@@ -40,6 +40,9 @@ export const HOUSEHOLD = {
     linkConfirm: 'Link ‘{name}’ as your partner’s plan? The link is written on this plan only; the other plan is not changed.',
     noOthers: 'There is no other plan here to link. Make one from a question first.',
     notSet: '‘{name}’ has no figures saved yet. Open it, fill in its pots and spending, and come back.',
+    /** (7.12.0) A plan with some figures, one thing missing: named. */
+    notSetIncome: '‘{name}’ has no income set yet. Open it, say what it is to pay a year, and come back.',
+    notSetPot: '‘{name}’ has no pot yet. Open it, add its pension, and come back.',
     store: { account: 'account', 'window': 'window' }
   },
   /** The pooled verdict first (2.10), then each plan alone. */

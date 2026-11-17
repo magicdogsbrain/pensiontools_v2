@@ -32,12 +32,12 @@ import { planFor } from './lastsRun.js';
 import { ageNowOf } from './household.js';
 import { dateOf } from './dates.js';
 import { shownPlanNameOn } from '../../services/PlanName.js';
+import { testReadyOf } from '../../services/PlanFigures.js';
 
 const plain = (v) => JSON.parse(JSON.stringify(v, (k, x) => (typeof x === 'function' ? undefined : (typeof x === 'number' && !Number.isFinite(x)) ? null : x)));
 /** The name a plan is shown by (services/PlanName.js, 7.12.0). */
 const nameOf = (plan, when) => shownPlanNameOn(plan, when);
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
-const configured = (plan) => !!(plan && plan.stressTool && isObj(plan.stressTool.settings) && plan.stressTool.settings.configured);
 
 /** One plan through its own way's one test (what the planner's engine worker hands HouseholdService): { r, p }. */
 const testOf = (now) => (settings, cfg, strategyId) => { void cfg; const p = planFor(settings, now); return { r: stressTestStrategy(strategyId, p), p }; };
@@ -64,10 +64,12 @@ export function runHousehold(plan, partner, { today, limit = null, need = null, 
   const now = dateOf(today);
   const tell = (done, total) => { if (typeof onProgress === 'function') onProgress(done, total); };
   const names = namesOf(plan, partner, now);
-  // a household answer is never run on a plan's starting defaults: either plan with no figures saved is refused, by name (7.12.0)
-  const unset = !configured(plan) ? 'a' : !configured(partner) ? 'b' : null;
-  if (unset) return plain({ ok: false, reason: 'partnerNotSet', which: unset, names, basis: { today, engine: 'one-test', runs: 0 } });
+  // a household answer is never run on a plan's starting defaults: a plan with no figures (Settings or the Accumulation tab), or
+  // with no pot or no income as read, is refused by name, saying which is missing (7.12.0)
   const s = settingsOf(plan, partner, now);
+  const ready = { a: testReadyOf(plan, s.a), b: testReadyOf(partner, s.b) };
+  const unset = !ready.a.ready ? 'a' : !ready.b.ready ? 'b' : null;
+  if (unset) return plain({ ok: false, reason: 'partnerNotSet', which: unset, missing: ready[unset].missing, names, basis: { today, engine: 'one-test', runs: 0 } });
   const offsets = { a: startOffset(s.a, now), b: startOffset(s.b, now) };
   const split = householdDrawSplit({ settings: s.a, name: names.a }, { settings: s.b, name: names.b }, { limit: limit || null, need: need == null ? null : need, now });
   const cfgOf = (st) => simulationConfigFromSettings({}, st, now);

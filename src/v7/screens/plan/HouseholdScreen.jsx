@@ -17,6 +17,9 @@ import { PLAN } from '../../copy/plan.js';
 import { HOUSEHOLD as W } from '../../copy/household.js';
 import { WAY } from '../../copy/way.js';
 
+/** The not-set words for what is missing (7.12.0): the income, the pot, or both. */
+const notSetWords = (P, missing) => (missing === 'income' ? P.notSetIncome : missing === 'pot' ? P.notSetPot : P.notSet);
+
 const w = PLAN.page;
 const keepFocus = { onMouseDown: (e) => e.preventDefault() };
 const seconds = (ms) => (Math.round((ms || 0) / 100) / 10).toFixed(1);
@@ -62,7 +65,7 @@ function Partner({ V, dispatch, planId }) {
         <h2>{W.sections.partner}</h2>
         <p class="line" data-testid={`${T}.with`}>{fill(P.with, { name: p.name, line })}</p>
         <p class="note" data-testid={`${T}.linkedBy`}>{by}{p.locked ? ' ' + fill(W.locked.partner, { name: p.name }) : ''}</p>
-        {!p.configured && <p class="notice" role="status" data-testid={`${T}.partnerNotSet`}>{fill(P.notSet, { name: p.name })}</p>}
+        {!p.configured && <p class="notice" role="status" data-testid={`${T}.partnerNotSet`}>{fill(notSetWords(P, p.missing), { name: p.name })}</p>}
         <div class="actions-row">
           <LinkButton testid={`${T}.openPartner`} kind="plain" href={href.plan(p.id)}>{fill(P.open, { name: p.name })}</LinkButton>
           {V.editable && p.linkedBy !== 'theirs' && V.pick !== 'unlink' && <Button testid={`${T}.unlink`} kind="quiet" onClick={() => pick('unlink')} {...keepFocus}>{P.unlink}</Button>}
@@ -147,7 +150,7 @@ function Verdict({ V, dispatch }) {
   return (
     <section class="plan-section" data-section="verdict" data-status={status} data-testid={`${T}.verdict`}>
       <h2>{W.sections.verdict}</h2>
-      {!V.partner.configured && <p class="note">{fill(W.partner.notSet, { name: V.partner.name })}</p>}
+      {!V.partner.configured && <p class="note">{fill(notSetWords(W.partner, V.partner.missing), { name: V.partner.name })}</p>}
       {(status === 'idle' || status === 'done' || status === 'failed') && V.partner.configured && (
         <div class="actions-row"><Button testid={`${T}.check`} kind={V.status === 'idle' ? 'primary' : 'quiet'} onClick={run} {...keepFocus}>{V.status === 'idle' ? C.button : V.stale ? C.rerun : C.again}</Button></div>
       )}
@@ -158,7 +161,7 @@ function Verdict({ V, dispatch }) {
         </div>
       )}
       {status === 'failed' && <div class="notice" role="alert" data-testid={`${T}.failed`}><p>{V.reason === 'noWorker' ? C.noWorker : C.failed}</p></div>}
-      {status === 'done' && V.unaffordable && <div class="notice" role="alert" data-testid={`${T}.unaffordable`}><p>{V.unaffordable.kind === 'partnerNotSet' ? fill(W.partner.notSet, { name: V.unaffordable.which }) : fill(C.unaffordable, { name: V.unaffordable.which, reason: V.unaffordable.reason ? fill(C.reasonWas, { reason: V.unaffordable.reason }) : '' })}</p></div>}
+      {status === 'done' && V.unaffordable && <div class="notice" role="alert" data-testid={`${T}.unaffordable`}><p>{V.unaffordable.kind === 'partnerNotSet' ? fill(notSetWords(W.partner, V.unaffordable.missing), { name: V.unaffordable.which }) : fill(C.unaffordable, { name: V.unaffordable.which, reason: V.unaffordable.reason ? fill(C.reasonWas, { reason: V.unaffordable.reason }) : '' })}</p></div>}
       {status === 'done' && v && (
         <div class="lever-result" data-testid={`${T}.result`} data-head={v.head}>
           <p class="figure" data-testid={`${T}.headline`}>{C.head[v.head]}. {fill(C.headline, { words: v.words })}</p>

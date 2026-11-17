@@ -85,3 +85,24 @@ describe('Try a strategy\'s boxes follow the plan open', () => {
     expect(tryNeedsFill(undefined, tryFillKeyOf('Sam', sam), false)).toBe(true);
   });
 });
+
+describe('the household check counts the Accumulation tab\'s figures, and names what is missing (decision 12)', async () => {
+  const { testReadyOf } = await import('../src/services/PlanFigures.js');
+  const { householdNotSetWords } = await import('../src/ui/householdView.js');
+  const read = (plan) => testReadyOf(plan, effectiveStressSettings(plan, { now: NOW }));
+  const saver = { currentAge: 61, retirementAge: 63, salary: 38000, potNow: 120000, netMonthly: 300, schemeType: 'ras', employerMonthly: 200, escalationPct: 0, isaMonthly: 0 };
+
+  it('no figures anywhere: not ready, both missing (before: the same, read from "configured" alone)', () => {
+    expect(read(fresh('Kim'))).toEqual({ ready: false, missing: 'both' });
+  });
+  it('Sam, £120,000 on the Accumulation tab and no income: not ready, the income missing (before: "no figures saved")', () => {
+    expect(read(fresh('Sam', saver))).toEqual({ ready: false, missing: 'income' });
+    expect(householdNotSetWords('Sam', 'income')).toBe('‘Sam’ has no income set yet. Open it, say what it is to pay a year, and come back.');
+  });
+  it('Sam with £1,300 a month wanted (an income of £16,358 a year before tax), Settings never saved: ready (before: refused)', () => {
+    const plan = fresh('Sam', saver);
+    plan.stressTool.settings = { ...plan.stressTool.settings, baseSalary: 16358, retired: false, retireAge: 63, currentAge: 61, currentAgeAsOf: '2026-11-17' };
+    expect(plan.stressTool.settings.configured).not.toBe(true);
+    expect(read(plan)).toEqual({ ready: true, missing: null });
+  });
+});

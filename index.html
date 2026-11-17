@@ -4190,10 +4190,10 @@
     import { householdDrawSplit, comparisonFigures, limitFrom } from './src/services/HouseholdDraw.js';
     import { splitWriteMode, splitChanges, applySplit, dismissalFor, isSplitDismissed } from './src/services/HouseholdSplitApply.js';
     import { runHouseholdWays } from './src/services/HouseholdService.js'; import { effectiveStressSettings, planMoneyOf } from './src/services/PlanReading.js';   // the partner's plan read as its own tools read it (6.42.0)
-    import { splitSectionHtml, splitNoneHtml, splitDismissedHtml, splitConfirmHtml, verdictSectionHtml, timelineSectionHtml, wealthSectionHtml, whatToDoHtml, survivorCareHtml, survivorResultHtml, careResultHtml, budgetShareHtml, budgetSharedLineHtml } from './src/ui/householdView.js';
+    import { splitSectionHtml, splitNoneHtml, splitDismissedHtml, splitConfirmHtml, verdictSectionHtml, timelineSectionHtml, wealthSectionHtml, whatToDoHtml, survivorCareHtml, survivorResultHtml, careResultHtml, budgetShareHtml, budgetSharedLineHtml, householdNotSetWords } from './src/ui/householdView.js';
     import { shareBudgetWith, stopSharingBudget, getHouseholdSplitDismissed, setHouseholdSplitDismissed, budgetSharedFromOf } from './src/storage/ScenarioRepository.js';
     import { guestPlanRefusal, isExamplePlanError, DEMO_PLANS, EXAMPLE_PLAN_KEY, EXAMPLE_PLAN_DESCRIPTION } from './src/services/GuestPlans.js';   // three plans without an account; the read-only example (6.23.0)
-    import { refreshDraftLines, paintDraftSettingsLine, openStressSettings, blankUnsetPots, missingWords, bedAndIsaTicked, DRAFT_WORDS } from './src/ui/draftPlanLine.js'; window.openStressSettingsTab = () => openStressSettings(window); import { planHasFigures } from './src/services/DraftDecision.js';   // an unlocked plan's own figures (7.12.0)
+    import { refreshDraftLines, paintDraftSettingsLine, openStressSettings, blankUnsetPots, missingWords, bedAndIsaTicked, DRAFT_WORDS } from './src/ui/draftPlanLine.js'; window.openStressSettingsTab = () => openStressSettings(window); import { planHasFigures } from './src/services/DraftDecision.js'; import { testReadyOf } from './src/services/PlanFigures.js';   // an unlocked plan's own figures (7.12.0)
     import { installStressSubTabs } from './src/ui/stressSubTabs.js'; import { installStressSettingsAutosave, installAccumulationAutosave, accumulationInputsOf, SAVE_WORDS } from './src/ui/settingsAutosave.js'; import { orderStressSettingsSections } from './src/ui/settingsLayout.js'; import { tryFillKeyOf, tryNeedsFill, watchTryTouched } from './src/ui/tryBoxes.js';   // the Stress tester's sub-tabs (Settings pressed while open is not drawn again); Settings and the Accumulation tab save as they change; Settings' order (7.12.0)
     import { updateHomeBanner, installHomeBanner, openingTabOf, pressOpeningSub } from './src/ui/homeBannerUi.js'; import { installHouseholdTab } from './src/ui/householdTabUi.js';   // the next-step banner is the plan home's first thing due, else the life stage's sentence (7.10.0; 6.20.2); the opening tab reads the plan's phase (7.11.0)
     import { moreSheetHtml, MORE_TABS } from './src/ui/mobileMenu.js';
@@ -9250,11 +9250,8 @@
         const [scenarios, stored, activeId] = await Promise.all([listScenariosAsync(), getStressSettingsAsync(), getActiveScenarioId()]);
         const own = scenarios.find((sc) => sc.id === activeId), partner = scenarios.find((sc) => sc.id === partnerId), ownSettings = own ? effectiveStressSettings(own) : stored;
         // Both plans as their own tools read them (6.42.0; this plan's too from 7.12.0, as the simple view reads it): the Budget's age folded in, brought up to date
-        const unset = [own, partner].find((p) => !p?.stressTool?.settings?.configured), partnerSettings = unset ? null : effectiveStressSettings(partner);   // never run on a plan's starting defaults (7.12.0)
-        if (unset || !partnerSettings) {
-          out.innerHTML = '<div class="alert alert-warning">‘' + budEsc(unset?.planDetails?.name || 'Your partner’s plan') + '’ has no figures saved yet. Open it, fill in its pots and spending, and come back.</div>';
-          return;
-        }
+        const partnerSettings = partner ? effectiveStressSettings(partner) : null, unset = [[own, ownSettings], [partner, partnerSettings]].map(([p, st]) => ({ p, r: testReadyOf(p, st) })).find((x) => !x.r.ready);   // never run on defaults; the Accumulation tab's figures count, and what is missing is named (7.12.0)
+        if (unset) { out.innerHTML = '<div class="alert alert-warning">' + budEsc(householdNotSetWords(unset.p ? shownPlanName(unset.p) || unset.p.planDetails?.name : '', unset.r.missing)) + '</div>'; return; }
         const ownName = document.getElementById('hhOwnPlan').value, pName = partner.planDetails?.name || 'Partner';
         const offsets = { a: startOffset(ownSettings), b: startOffset(partnerSettings) };
         const idA = ownSettings.strategyId || 'pots-and-valves', idB = partnerSettings.strategyId || 'pots-and-valves';

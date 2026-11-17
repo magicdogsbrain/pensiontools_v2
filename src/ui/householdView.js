@@ -309,3 +309,10 @@ export function splitConfirmHtml(changes, mode) {
     : 'Write the split into both plans as their income shape? You can undo this straight afterwards.';
   return head + '<ul style="margin:8px 0 0 18px;padding:0;font-size:13px;line-height:1.6;">' + lines + '</ul>';
 }
+
+/** A plan the household check cannot test yet (7.12.0): by name, with what is missing (the simple view's own words). */
+export function householdNotSetWords(name, missing) {
+  const P = HOUSEHOLD.partner;
+  const t = missing === 'income' ? P.notSetIncome : missing === 'pot' ? P.notSetPot : P.notSet;
+  return t.replace('{name}', name || 'Your partner’s plan');
+}

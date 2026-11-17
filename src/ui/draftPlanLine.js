@@ -19,6 +19,7 @@
  * The words are plain data; the painters only set text and one button that opens Stress tester → Settings.
  */
 import { planHasFigures, planLocked } from '../services/DraftDecision.js';
+import { figuresMissingOf } from '../services/PlanFigures.js';
 import { sippTodayOf } from '../services/PotsAtRetirement.js';
 import { SAVER_STAGE_KEYS } from '../services/LifeStage.js';
 import { nextStepAction } from '../services/NextStep.js';
@@ -116,17 +117,8 @@ export function blankUnsetPots(doc, settings) {
   else if (box.placeholder === DRAFT_WORDS.notSet) box.placeholder = '';
 }
 
-/** What a plan, as read, still needs before a test can say anything (7.12.0, decision 2): a pot, and an income someone gave. */
-export function missingFiguresOf(settings) {
-  const s = isObj(settings) ? settings : {};
-  const at = isObj(s.potAtRetirement) ? (+s.potAtRetirement.sipp || 0) + (+s.potAtRetirement.isa || 0) : 0;
-  const bought = isObj(s.strategyParams) ? (+s.strategyParams.sippTotal || 0) + (+s.strategyParams.isaTotal || 0) : 0;
-  const pot = !s.potsNotSet && sippTodayOf(s) + (+s.isaBalance || 0) + (+s.taxableStart || 0) + at + bought > 0;
-  const steps = Array.isArray(s.incomeSteps) && s.incomeSteps.some((x) => x && +x.amount > 0);
-  const schedule = Array.isArray(s.targetSchedule) && s.targetSchedule.some((v) => +v > 0);
-  const income = !s.incomeNotSet && ((+s.baseSalary || 0) > 0 || steps || schedule);
-  return { pot: !pot, income: !income };
-}
+/** What a plan, as read, still needs before a test can say anything: PlanFigures.figuresMissingOf. */
+export const missingFiguresOf = figuresMissingOf;
 
 /** The line for a test with nothing to run on: what to add, and where; null when the plan has its figures. */
 export function missingWords(settings) {

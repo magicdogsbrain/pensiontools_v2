@@ -24,6 +24,7 @@
  */
 import { householdStartsOf, startsWords } from '../../services/HouseholdStarts.js';
 import { effectiveStressSettings } from '../../services/PlanReading.js';
+import { testReadyOf } from '../../services/PlanFigures.js';
 import { personProfile, splitFingerprint, SPLIT_HEADLINE_MIN, settingsWithSchedule, noSplitWords } from '../../services/HouseholdDraw.js';
 import { isLockedPlan, splitWriteMode, shapeWords, splitCopyNames, SPLIT_KEYS } from '../../services/HouseholdSplitApply.js';
 import { budgetSharedFromOf, shareBudgetWrite, stopSharingWrite, sharedBudgetView, ownSideOf } from '../../services/PlanCommit.js';
@@ -514,7 +515,8 @@ export function householdOf(entries, id, { today, typed = null, H = null, source
   const partnerView = partner ? {
     id: String(partner.id), name: names.b, locked: saved.partnerLocked, lockedOn: saved.partnerLockedOn, readonly: !!(pe.newer || pe.failed),
     // their line by their plan's phase (7.10.0, read.js theirLineOf), never a placing it has left
-    line: theirLineOf(partner, now, saved.ssB), configured: !!(partner.stressTool && isObj(partner.stressTool.settings) && partner.stressTool.settings.configured),
+    // can be tested (7.12.0: figures on the Accumulation tab count; a missing pot or income is named)
+    line: theirLineOf(partner, now, saved.ssB), configured: testReadyOf(partner, saved.ssB).ready, missing: testReadyOf(partner, saved.ssB).missing,
     linkedBy: linkedByOf(plan, partner)
   } : null;
   const budgetRead = c.read;
@@ -532,7 +534,7 @@ export function householdOf(entries, id, { today, typed = null, H = null, source
     fields, errors: c.errors, ok: c.ok, run: c.run,
     status: h ? h.status : 'idle', reason: h && h.status === 'failed' ? h.reason || null : null, ms: h && h.ms != null ? h.ms : null, progress: h ? h.progress : null, stale,
     runs: result && result.basis ? String(result.basis.runs) : null,
-    unaffordable: result && !result.ok ? { which: result.which === 'b' ? names.b : names.a, reason: result.reason === 'partnerNotSet' ? null : (result.why || ''), kind: result.reason } : null,
+    unaffordable: result && !result.ok ? { which: result.which === 'b' ? names.b : names.a, reason: result.reason === 'partnerNotSet' ? null : (result.why || ''), kind: result.reason, missing: result.missing || null } : null,
     verdict: ok ? verdictView(result.own, names, result.offsets, { a: endAgeOf(saved.ssA, now), b: endAgeOf(saved.ssB, now) }) : null,
     // what the check starts from (7.12.0, services/HouseholdStarts.js): each plan's pension and ISA at its own start, and the sum
     starts: ok && saved.ssA && saved.ssB ? startsWords(householdStartsOf(saved.ssA, saved.ssB, names, result.offsets || {}, now)) : null,

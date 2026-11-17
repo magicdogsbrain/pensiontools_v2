@@ -102,7 +102,8 @@ import { resolve } from 'node:path';
 // src/ui/settingsLayout.js: 8,820.
 // No default figure as the person's (7.12.0): the Accumulation tab's reader moved to src/ui/settingsAutosave.js, Try a
 // strategy's refill to src/ui/tryBoxes.js: 8,810.
-const MAX_LINES = 8810;
+// The household check reads one rule for "can be tested" (7.12.0, PlanFigures.testReadyOf), naming what is missing: 8,807.
+const MAX_LINES = 8807;
 
 describe('index.html\'s inline script may only get shorter', () => {
   const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');

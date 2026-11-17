@@ -628,7 +628,7 @@ function planStep(C) {
   const income = [];
   const spWeekly = locked && doc && doc.assumptions ? num(doc.assumptions.spWeeklyAmount) : num(ss.spWeeklyAmount);
   const spDate = locked && doc && doc.assumptions ? doc.assumptions.spStartDate : ss.spStartDate;
-  if (spWeekly > 0) { figures.spWeekly = r0(spWeekly); income.push(line('pots.statePension', [money('spWeekly'), ' a week'], figures, src, { from: spDate ? String(spDate) : '' })); }
+  if (spWeekly > 0) { figures.spWeekly = r0(spWeekly); income.push(line('pots.statePension', [money('spWeekly'), ' a week'], figures, src, { from: spDate ? (/^\d{4}-\d{2}-\d{2}$/.test(String(spDate)) ? dayWords(spDate) : String(spDate)) : '' })); }   // (a start date kept from an answer as a date is said in words)
   else if (num(ss.statePension) > 0) { figures.spYearly = r0(ss.statePension); const fromYear = firstTaxYear && num(ss.statePensionYear) != null ? taxYearLabel(firstTaxYear + r0(ss.statePensionYear)) : ''; income.push(line('pots.statePensionOld', [money('spYearly'), ' a year'], figures, src, { year: fromYear })); }
   else income.push(line('pots.noStatePension', [], figures, src));
   // the planner's rows are plan years; an age is the plan's start age plus the year (PlanDocument.shapeLayersFromSettings;

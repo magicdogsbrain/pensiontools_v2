@@ -425,6 +425,19 @@ describe('I1 — the sub-step, the address and the plan page\'s section', () => 
     expect(lumpy.lines[5].slots).toEqual({ label: 'Inherited pension', age: '64', what: 'pension' });
     expect(lumpy.lines[1].slots).toEqual({ from: 'age 65' });
   });
+  it('a State Pension start stored as a date (a plan kept from an answer) is said as words, never "2061-11-16"', () => {
+    const p = JSON.parse(JSON.stringify(LUMPY));
+    p.id = 'SpDateWords01';
+    p.stressTool.settings.spWeeklyAmount = 241.3;
+    p.stressTool.settings.spStartDate = '2061-11-16';
+    const sec = planPage([{ plan: p }], p.id, 'plan', { today: TODAY }).steps.find((s) => s.id === 'plan').sections.find((s) => s.id === 'income');
+    const sp = sec.lines.find((l) => l.id === 'pots.statePension');
+    expect(sp.slots.from).toBe('16 November 2061');
+    // a start typed as words in the full view stays as typed
+    p.stressTool.settings.spStartDate = '6 May 2040';
+    const typed = planPage([{ plan: p }], p.id, 'plan', { today: TODAY }).steps.find((s) => s.id === 'plan').sections.find((s) => s.id === 'income');
+    expect(typed.lines.find((l) => l.id === 'pots.statePension').slots.from).toBe('6 May 2040');
+  });
   it('the fields, the cards and their words line up; the draft paths; the declared writes are the planner\'s income keys', () => {
     for (const f of INCOME_FIELDS) { expect(INCOME.fields[f.path].label).toBeTypeOf('string'); if (f.type === 'choice') for (const o of f.options) expect(INCOME.fields[f.path].options[o], `${f.path}.${o}`).toBeTypeOf('string'); }
     for (const [L, spec] of Object.entries(INCOME_LISTS)) for (const f of spec.fields) { expect(INCOME.lists[L].fields[f.path].label, `${L}.${f.path}`).toBeTypeOf('string'); if (f.type === 'choice') for (const o of f.options) expect(INCOME.lists[L].fields[f.path].options[o]).toBeTypeOf('string'); }

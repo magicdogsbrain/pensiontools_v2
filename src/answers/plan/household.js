@@ -22,6 +22,7 @@
  *
  * Every path written is in schema.js HOUSEHOLD_WRITES (tested), or, on a draft read from an earlier start, LATER_DRAFT_WRITES.
  */
+import { householdStartsOf, startsWords } from '../../services/HouseholdStarts.js';
 import { effectiveStressSettings } from '../../services/PlanReading.js';
 import { personProfile, splitFingerprint, SPLIT_HEADLINE_MIN, settingsWithSchedule, noSplitWords } from '../../services/HouseholdDraw.js';
 import { isLockedPlan, splitWriteMode, shapeWords, splitCopyNames, SPLIT_KEYS } from '../../services/HouseholdSplitApply.js';
@@ -533,6 +534,8 @@ export function householdOf(entries, id, { today, typed = null, H = null, source
     runs: result && result.basis ? String(result.basis.runs) : null,
     unaffordable: result && !result.ok ? { which: result.which === 'b' ? names.b : names.a, reason: result.reason === 'partnerNotSet' ? null : (result.why || ''), kind: result.reason } : null,
     verdict: ok ? verdictView(result.own, names, result.offsets, { a: endAgeOf(saved.ssA, now), b: endAgeOf(saved.ssB, now) }) : null,
+    // what the check starts from (7.12.0, services/HouseholdStarts.js): each plan's pension and ISA at its own start, and the sum
+    starts: ok && saved.ssA && saved.ssB ? startsWords(householdStartsOf(saved.ssA, saved.ssB, names, result.offsets || {}, now)) : null,
     // the years are calendar years (7.12.0), never a row's count from today; a plan past its last age is said to have ended
     timeline: ok && Array.isArray(result.timeline) ? result.timeline.map((r) => ({ year: String(r.calendarYear != null ? r.calendarYear : now.getFullYear() + r.year), beforeStatePension: !!r.beforeStatePension, workingA: !!r.workingA, workingB: !!r.workingB, endedA: !!r.endedA, endedB: !!r.endedB, needA: pounds(r.needA), needB: pounds(r.needB), sp: pounds(r.spA + r.spB), other: pounds(r.db + r.other), draw: pounds(r.drawNeed) })) : [],
     left: ok && result.own && result.own.combined ? r5(result.own.combined.potFan).map((f) => ({ year: String(now.getFullYear() + f.year), p10: pounds(f.p10), p50: pounds(f.p50), p90: pounds(f.p90) })) : [],

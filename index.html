@@ -9308,7 +9308,7 @@
         const stratNote = '<p class="hint" style="margin:6px 0 0;">Run with each plan\'s own strategy: <strong>' + budEsc(STRATEGY_NAMES[idA]) + '</strong> for ' + budEsc(ownName) + ', <strong>' + budEsc(STRATEGY_NAMES[idB]) + '</strong> for ' + budEsc(pName) + ' — paired future for future on the same markets' + ((offsets.a > 0 || offsets.b > 0) ? '; note that a partner who is still working is not year-shifted under a contract strategy, so the joint figure is approximate for the years before the State Pensions' : '') + '. "Lasts" means paid in full (for Floor to an age and Gilt ladder + rotation: never cut; for Floor &amp; flex: no lean year).</p>';
         const startsNote = householdStartWords({ offset: offsets.a, firstTaxYear: deriveTiming(ownSettings).firstTaxYear }, { offset: offsets.b, firstTaxYear: deriveTiming(partnerSettings).firstTaxYear });   // one plan begins later than the other (couples-different-years.md 7)
         const thisYear = new Date().getFullYear();
-        out.innerHTML = verdictSectionHtml({ r, ownName, pName, stratNote, startsNote, setA: ownSettings, setB: partnerSettings })
+        out.innerHTML = verdictSectionHtml({ r, ownName, pName, stratNote, startsNote, setA: ownSettings, setB: partnerSettings, offsets })
           + timelineSectionHtml(householdIncomeTimeline(ownSettings, partnerSettings), ownName, pName, thisYear)
           + wealthSectionHtml(r.potFan, thisYear)
           + whatToDoHtml(r, ownName, pName)

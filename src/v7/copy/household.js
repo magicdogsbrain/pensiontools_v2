@@ -58,6 +58,8 @@ export const HOUSEHOLD = {
     headline: 'The household’s money lasts {words}.',
     tested: 'Each plan is tested until its owner is {age}.',
     testedTwo: '{a}’s plan is tested until {a} is {ageA}; {b}’s until {b} is {ageB}.',
+    /** What the check starts from (7.12.0, services/HouseholdStarts.js): each plan's pension and ISA at its own start, and the sum. */
+    starts: { line: 'The check starts from {total} in pensions and ISAs: {potA} in ‘{a}’ {whenA}, and {potB} in ‘{b}’ {whenB}.', now: 'now', later: 'from the month work stops' },
     pooled: 'When one plan falls short, the other pays that share; the household falls short only when both have.',
     covered: 'In {n} of {of} futures {short}’s plan fell short and {payer}’s paid, typically from when {short} is {from}.',
     coveredEarliest: 'In {n} of {of} futures {short}’s plan fell short and {payer}’s paid, typically from when {short} is {from} ({earliest} at the earliest).',

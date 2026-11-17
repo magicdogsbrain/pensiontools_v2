@@ -343,6 +343,7 @@ describe('the words in src/v7/copy/', () => {
       .replace(/\{tested\}/g, ', tested until Alex’s plan is 95').replace(/\{(ageA|ageB|toAge)\}/g, '95')
       .replace(/\{(name|a|b|small|big|deceased|survivor|names|wayA|wayB|way|store|where|value|line|from|to|reason|badReason|short|payer)\}/g, 'Alex’s plan')
       .replace(/\{(year|until|whole|over|allowance|band|together|own|amount|cost|total|totalGross|gross|net|inherit|heldIsa|written|pays|moved|more|stops)\}/g, '£12,800')
+      .replace(/\{(potA|potB)\}/g, '£40,000').replace(/\{(whenA|whenB)\}/g, 'from the month work stops')
       .replace(/\{(untilAge|atAge|fromAge|from|earliest|ages|age|n|of|runs|years)\}/g, '67').replace(/\{pct\}/g, '92').replace(/\{ms\}/g, '4.6').replace(/\{s\}/g, 's')
       .replace(/\{(better|is|held|steps)\}/g, 'better off').replace(/\{(share|shared)\}/g, 'yes');
     const hits = [];

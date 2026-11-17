@@ -178,17 +178,18 @@ export async function stressLadder(page, { pension, cashYears, steps = null }) {
       let got = await typedSteps();
       if (got.length !== want.length || got[0][1] !== want[0][1]) {
         same = false;
-        await page.locator('#shapeStartNumber').fill(want[0][1]);
-        await page.getByRole('button', { name: 'Use it' }).click();
-        for (let i = 1; i < want.length; i++) await page.getByRole('button', { name: '+ Add a step' }).click();
+        // (each press tried briefly: if the form is drawn again under it, the next look types it again)
+        await page.locator('#shapeStartNumber').fill(want[0][1], { timeout: 3_000 }).catch(() => {});
+        await page.getByRole('button', { name: 'Use it' }).click({ timeout: 3_000 }).catch(() => {});
+        for (let i = 1; i < want.length; i++) await page.getByRole('button', { name: '+ Add a step' }).click({ timeout: 3_000 }).catch(() => {});
         got = await typedSteps();
       }
       for (let i = 1; i < want.length && got.length === want.length; i++) {
-        if (got[i][0] !== want[i][0]) { same = false; await nums.nth(2 * i).fill(want[i][0]); }
-        if (got[i][1] !== want[i][1]) { same = false; await nums.nth(2 * i + 1).fill(want[i][1]); }
+        if (got[i][0] !== want[i][0]) { same = false; await nums.nth(2 * i).fill(want[i][0], { timeout: 3_000 }).catch(() => {}); }
+        if (got[i][1] !== want[i][1]) { same = false; await nums.nth(2 * i + 1).fill(want[i][1], { timeout: 3_000 }).catch(() => {}); }
       }
     }
-    for (const [sel, v] of [['#miniSipp', pension], ['#giltCashYears', cashYears]]) if (v != null && (await page.locator(sel).inputValue()) !== String(v)) { same = false; await page.locator(sel).fill(String(v)); await page.locator(sel).dispatchEvent('change'); }
+    for (const [sel, v] of [['#miniSipp', pension], ['#giltCashYears', cashYears]]) if (v != null && (await page.locator(sel).inputValue({ timeout: 3_000 }).catch(() => '')) !== String(v)) { same = false; await page.locator(sel).fill(String(v), { timeout: 3_000 }).catch(() => {}); await page.locator(sel).dispatchEvent('change', {}, { timeout: 3_000 }).catch(() => {}); }
     held = same ? held + 1 : 0;
     return held >= 2;
   }, { timeout: 45_000, intervals: [750] }).toBe(true);
@@ -198,7 +199,7 @@ export async function stressLadder(page, { pension, cashYears, steps = null }) {
 
 /**
  * The plan document's order sheet, as a person reads it off the page: every gilt row's name, SEDOL, code and units to
- * order (the "Units to order" column).
+ * order (the "Units to order" column), and (`.cash`) the cash for the cash years, the money-market row's amount.
  */
 export async function orderSheet(page) {
   await fullPage(page, 'plan document');
@@ -206,7 +207,8 @@ export async function orderSheet(page) {
   // the document's sections are folded; a person opens them (all of them, as they are drawn)
   await expect.poll(async () => { await page.locator('details').evaluateAll((ds) => ds.forEach((d) => { d.open = true; })); return page.getByText('Order sheet', { exact: true }).first().isVisible().catch(() => false); }, { timeout: 30_000 }).toBe(true);
   const t = await page.locator('body').innerText();
-  return [...t.matchAll(/^\d+\t([^\t]+)\t([A-Z0-9]{7})\t([A-Z0-9.]+)\t[^\n]*?([\d,]+) units/gm)].map((m) => ({ name: m[1], sedol: m[2], code: m[3], units: Number(m[4].replace(/,/g, '')) }));
+  const cash = /^\d+\tMoney-market fund\t[^\n]*?£([\d,]+)\s*$/m.exec(t);
+  return Object.assign([...t.matchAll(/^\d+\t([^\t]+)\t([A-Z0-9]{7})\t([A-Z0-9.]+)\t[^\n]*?([\d,]+) units/gm)].map((m) => ({ name: m[1], sedol: m[2], code: m[3], units: Number(m[4].replace(/,/g, '')) })), { cash: cash ? Number(cash[1].replace(/,/g, '')) : null });
 }
 
 /** What you hold > "Paste a table": the table pasted into the pension, then "Add these lines". */

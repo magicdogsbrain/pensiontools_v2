@@ -666,7 +666,7 @@ function verdictSentences(result, facts) {
   // what goes in now in the person's own parts (7.12.0): what leaves their take-home pay, and their employer's part
   const np = en.nowParts;
   const nowDetail = !np ? null
-    : np.takeHome > 0 ? [ABOUT, M('enough.nowParts.takeHome'), ' from ', W.takeHome, np.employer > 0 ? [' and ', M('enough.nowParts.employer'), ' from ', W.employer] : '']
+    : np.takeHome > 0 ? [ABOUT, M('enough.nowParts.takeHome'), ' a month from ', W.takeHome, np.employer > 0 ? [' and ', M('enough.nowParts.employer'), ' from ', W.employer] : '']
       : np.employer > 0 ? [M('enough.nowParts.employer'), ' from ', W.employer] : null;
   const nowWords = !nowIn ? [theirs ? 'With your partner paying nothing more in, ' : 'Paying nothing more in, ']
     : en.how === 'share' ? [W.paying, PCT('enough.now.totalPct'), ' of ', W.payShort, ' as now (', M('payIn.now'), ' a month',

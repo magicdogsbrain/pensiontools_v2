@@ -19,12 +19,12 @@ const money = (t) => Number(String(t).replace(/[£,]/g, ''));
 describe('the answer says what goes in now, in the person\'s own parts', () => {
   it('Jo: 8% of pay as now is £253 a month in all, about £127 from take-home pay and £95 from the employer', () => {
     const a = answerB(JO, ENV);
-    expect(a.sentences.verdictLine.text).toMatch(/^Paying in 8% of your pay as now \(£253 a month in all: about £127 from your take-home pay and £95 from your employer\), /);
+    expect(a.sentences.verdictLine.text).toMatch(/^Paying in 8% of your pay as now \(£253 a month in all: about £127 a month from your take-home pay and £95 from your employer\), /);
   }, 120000);
 
   it('Sam: £625 a month as now, £300 from take-home pay and £250 from the employer; never "not on course" in the head', () => {
     const a = answerB(SAM, ENV);
-    expect(a.sentences.verdictLine.text).toMatch(/^Paying in £625 a month as now \(£300 from your take-home pay and £250 from your employer\), /);
+    expect(a.sentences.verdictLine.text).toMatch(/^Paying in £625 a month as now \(£300 a month from your take-home pay and £250 from your employer\), /);
     expect(a.sentences.verdictHead.text).toBe('Not enough for £2,400 a month from 65');
   }, 120000);
 

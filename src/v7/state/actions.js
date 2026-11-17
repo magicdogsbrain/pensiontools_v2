@@ -332,4 +332,4 @@ export const OPENABLE = Object.freeze(['partner', 'more', 'assumed', 'madeOf', '
   // the budget on a saved plan (step 11b): the confirm of "Start again"; "What you pay in": the relief block
   'budgetReset', 'savingRelief',
   // "Your review" (7.10.0): each choice's options, shown on "Change"; and the agreement's confirm on the Moving review
-  'reviewChange.rule', 'reviewChange.every', 'reviewChange.window', 'reviewChange.level', 'agreeConfirm']);
+  'reviewChange.rule', 'reviewChange.every', 'reviewChange.window', 'reviewChange.level', 'agreeConfirm', 'sayHeldConfirm']);

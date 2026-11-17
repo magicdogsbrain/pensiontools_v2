@@ -18,6 +18,7 @@ import { CONTRACT_STRATEGIES, planToAgeOfDefinition, guardrailOf, pricesMonthKey
 import { taxYearLabel, taxYearStartOf, taxYearKey, ageOnDate } from '../../services/PlanTiming.js';
 import { documentLadder, firstRungOf } from '../../services/LadderPosition.js';
 import { saverPotOf } from '../../services/SaverReading.js';
+import { pensionTodayOf } from '../../services/PensionToday.js';
 import { payInShareOf } from '../../services/SaverPayIn.js';
 import { holdingsSummary, normaliseHoldings } from '../../services/HoldingsRecord.js';
 import { stepsFor, subStepsFor, ALL_STEPS, NEXT_ORDER, NEXT_INFO, DUE_IDS, RETIRED_STAGES, SAVER_STAGES } from './steps.js';
@@ -650,12 +651,19 @@ function planStep(C) {
 
   // Pots and other income
   const pots = [];
-  const potSipp = locked && doc && doc.pots ? r0(doc.pots.sipp) : (num(ss.strategyParams && ss.strategyParams.sippTotal) > 0 ? r0(ss.strategyParams.sippTotal) : r0(ss.equityMin) + r0(ss.bondMin) + r0(ss.cashTarget) + r0(ss.diversifierStart));
+  const potStored = num(ss.strategyParams && ss.strategyParams.sippTotal) > 0 ? r0(ss.strategyParams.sippTotal) : r0(ss.equityMin) + r0(ss.bondMin) + r0(ss.cashTarget) + r0(ss.diversifierStart);
+  // (7.12.0) a plan still saving names the pension today every page names (services/PensionToday.js: the newest record, a
+  // check-in, what you hold …), never the figure its settings were saved with a year ago
+  let today = null;
+  if (!locked && ss.retired === false) { try { const t = pensionTodayOf(plan, { now, settings: ss }); today = t && num(t.value) != null ? r0(t.value) : null; } catch { today = null; } }
+  const potSipp = locked && doc && doc.pots ? r0(doc.pots.sipp) : today != null ? today : potStored;
   const potIsa = locked && doc && doc.pots ? r0(doc.pots.isa) : r0(ss.isaBalance);
   const potGia = locked && doc && doc.pots ? r0(doc.pots.gia) : r0(ss.taxableStart);
   figures.sipp = potSipp; figures.isa = potIsa; figures.gia = potGia;
   pots.push(line('pots.pension', [money('sipp')], figures, src));
-  if (!locked) { figures.shares = r0(ss.equityMin); figures.bonds = r0(ss.bondMin); figures.cash = r0(ss.cashTarget); pots.push(line('pots.split', [money('shares'), ' shares, ', money('bonds'), ' bonds, ', money('cash'), ' cash'], figures, src)); }
+  // (the split the plan draws on, scaled to the pension named above when that is today's)
+  const k = today != null && potStored > 0 ? today / potStored : 1;
+  if (!locked) { figures.shares = r0(ss.equityMin * k); figures.bonds = r0(ss.bondMin * k); figures.cash = r0(ss.cashTarget * k); pots.push(line('pots.split', [money('shares'), ' shares, ', money('bonds'), ' bonds, ', money('cash'), ' cash'], figures, src)); }
   else if (doc && doc.pots && doc.pots.allocation) { const a = doc.pots.allocation; figures.shares = r0(a.equityMin); figures.bonds = r0(a.bondMin); figures.cash = r0(a.cashTarget); pots.push(line('pots.split', [money('shares'), ' shares, ', money('bonds'), ' bonds, ', money('cash'), ' cash'], figures, src)); }
   pots.push(line('pots.isa', [money('isa')], figures, src));
   if (potGia > 0) pots.push(line('pots.gia', [money('gia')], figures, src));
@@ -1015,7 +1023,8 @@ function rulesFor(C, built) {
   const toRecord = month && month.toRecord ? month.toRecord : mon;
   // the stored "will it last" answer is older than its inputs (editing-in-v7.md 4) — never on a locked plan, whose answer is
   // its document's. Said on "Does it last?" and About; no longer a to-do (7.10.0)
-  const answerStale = !locked ? answerAge(plan, ss) : null;
+  // (7.12.0) a plan still saving works its chance out now on every page (one chance per plan): no kept answer is called stale
+  const answerStale = !locked && ss.retired !== false ? answerAge(plan, ss) : null;
   const saverStage = SAVER_STAGES.includes(key);
   const closed = key === 'closed' ? closedReading(plan, C.entries) : null;
   // a plan lived on until a close still to come: its reviews carry on with the plan that carries it on

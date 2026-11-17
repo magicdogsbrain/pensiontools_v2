@@ -15,6 +15,7 @@ import { test, expect, PROD, REPO, FIXED_NOW, saverWording, V7_PATH, CLASSIC_PAT
 import { savingInNode } from './helpers/budgetInNode.js';
 import { SAVING_WRITES } from '../src/answers/plan/schema.js';
 import { applyPatch } from '../src/answers/plan/about.js';
+import { SAVING } from '../src/v7/copy/saving.js';
 import { saverInputsOf, saverDraftOf } from '../src/answers/plan/saverInputs.js';
 import { answerB } from '../src/answers/b/answer.js';
 import { upgradeScenario } from '../src/firebase/scenarioMigration.js';
@@ -69,7 +70,11 @@ test.describe('"What you pay in", without an account', () => {
         if (path === 'schemeType') await expect(page.getByTestId(`${T}.schemeType.${shown}`)).toBeChecked();
         else await expect(page.getByTestId(`${T}.${path}`)).toHaveValue(shown);
       }
-      await expect(page.getByTestId(`${T}.ages`)).toHaveText(`From age ${node.saving.ages.currentAge} to age ${node.saving.ages.retirementAge}: ${node.saving.ages.years} years of saving. The ages are on “About you and when”.`);
+      // 7.12.0 (one saver, one set of facts): the stop month and the saving years to it, whole years of the months left
+      const ages = node.saving.ages.line;
+      expect(ages.slots.from).toBe(String(node.saving.ages.currentAge));
+      expect(ages.slots.to).toBe(String(node.saving.ages.retirementAge));
+      await expect(page.getByTestId(`${T}.ages`)).toHaveText(SAVING.ages[ages.id].replace(/\{(\w+)\}/g, (m, k) => ages.slots[k]));
       await expect(page.getByTestId(`${T}.notFrozen`)).toBeVisible();
       await expect(page.getByTestId(`${T}.relief.box`)).toHaveCount(0);
       await page.getByTestId(`${T}.relief.open`).click();
@@ -208,10 +213,12 @@ test.describe('the planner opens a saver on their own page, and has a door for t
     ['locked while saving', () => fixture('05-saver-committed'), 'accumulation'],
     ['still saving, unlocked', () => unlocked(fixture('05-saver-committed')), 'accumulation'],
     ['ages only on the Accumulation tab', () => agesOnly(fixture('01-fresh-default')), 'accumulation'],
-    ['inside the move window (four years chosen)', () => { const p = fixture('10-couple-b'); p.phases = { of: p.createdAt, moving: { window: { years: 4, at: '2026-09-01T12:00:00.000Z' } } }; return p; }, 'transition'],
+    // 7.12.0 (the first screen by stage): a plan in its move window and not locked opens on the Stress tester, where the
+    // plan is set before it is locked; a retired draft on the Stress tester; a plan with no figures on its settings
+    ['inside the move window (four years chosen), not locked', () => { const p = fixture('10-couple-b'); p.phases = { of: p.createdAt, moving: { window: { years: 4, at: '2026-09-01T12:00:00.000Z' } } }; return p; }, 'stress'],
     ['retired, locked and recording', () => fixture('04-buckets-running'), 'decision'],
-    ['a draft', () => fixture('02-pnv-draft'), 'decision'],
-    ['no age at all', () => fixture('01-fresh-default'), 'decision']
+    ['a retired draft', () => fixture('02-pnv-draft'), 'stress'],
+    ['no age and no figures at all', () => fixture('01-fresh-default'), 'stress']
   ];
   test('each plan opens on the tab its stage leads with; a plan in its move window opens on Transition', async ({ page, watch }) => {
     test.setTimeout(300_000);

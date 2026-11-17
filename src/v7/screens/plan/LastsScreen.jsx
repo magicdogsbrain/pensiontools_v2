@@ -74,7 +74,7 @@ function Band({ v, stale = false, testid, dispatch = null }) {
       data-cut-n={f.cutN == null ? undefined : f.cutN} data-cut-per-year={f.cutPerYear == null ? undefined : f.cutPerYear} data-cut-years={f.cutYears == null ? undefined : f.cutYears}>
       <p class="figure" data-testid={testid + '.headline'} {...(v.id === 'lasts.headlineW' ? { 'data-weighted': '1' } : v.id === 'lasts.headlineFixed' ? { 'data-fixed': 'age' } : {})}>{fill(LASTS.verdict[v.id], v.slots)}</p>
       <p class="lasts-bar">{v.level && v.weighted && <span class="lasts-level" data-testid={testid + '.level'}>{fill(LASTS.verdict.atLevel, { level: LEVELS_WORDS.names[v.level] })} </span>}<span class={`verdict-word is-${v.verdict}`} data-verdict={v.verdict}>{LASTS.verdict.word[v.verdict]}</span> <OutOfTenBar source={v} k="share" of={v.weighted ? 20 : 10} /></p>
-      <p class="figure-sub" data-testid={testid + '.sub'} {...(v.sub.id === 'lasts.subFixed' ? { 'data-fixed': 'age' } : {})}>{fill(LASTS.verdict[v.sub.id], v.sub.slots)}</p>
+      <p class="figure-sub" data-testid={testid + '.sub'} {...(v.sub.id === 'lasts.subFixed' || v.sub.id.startsWith('lasts.subFromStop') ? { 'data-fixed': 'age' } : {})}{...(v.chanceFrom === 'saving' ? { 'data-from-stop': '1' } : {})}>{fill(LASTS.verdict[v.sub.id], v.sub.slots)}</p>
       <ul class="plan-lines">
         {v.rows.map((r, i) => <li key={i} class="plan-line" data-line={'lasts.' + r.id} {...factOf('lasts.' + r.id)} {...(r.id === 'fixedW' ? { 'data-fixed': 'age' } : {})}>{fill(LASTS.rows[r.id] || '', r.slots)}</li>)}
       </ul>

@@ -118,7 +118,9 @@ export function startSummaryHtml(settings, { fromAnswer = null, locked = null } 
   // How the ISA grows (6.22.0): "Mostly cash", "Invested like my pension", the ISA funds, or a locked plan's fixed 3%.
   const isaLine = isaGrowthRunLine(s, { locked });
   if (isaLine) text += ' ' + isaLine;
-  const lasted = fromAnswer ? answerLastedWords(fromAnswer) : '';
+  // (7.12.0) a plan still saving: "Will it last?" leads with the saving chance worked out now (one chance per plan), so the
+  // answer's figure from the day it was kept is not said beside it as a third
+  const lasted = fromAnswer && s.retired !== false ? answerLastedWords(fromAnswer) : '';
   if (lasted) {
     text += ` <span class="hint">This plan was made from a quick answer, where ${lasted}. ${fromAnswer.stop && fromAnswer.stop.kind === 'later'
       ? 'These runs start from the middling pot at retirement and do not vary the years before it, so they can differ.'

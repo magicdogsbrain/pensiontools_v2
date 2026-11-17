@@ -11,6 +11,7 @@ import { LIFE_TABLE, HORIZON } from '../services/LongevityModel.js';
 import { chanceWords, fixedAgeWords } from '../answers/shared/format.js';
 import { LEVEL_IDS } from '../answers/shared/shown.js';
 import { SUCCESS, planToAgeOf } from '../answers/shared/rules.js';
+import { withSavingChance } from '../answers/shared/savingChance.js';
 
 const futuresWords = (share) => futuresOutOfTen(share).words;
 
@@ -251,8 +252,14 @@ export function chanceVerdictOf(r, p, o = {}) {
     return c >= lines.yes - 1e-12 ? 'yes' : c >= lines.close - 1e-12 ? 'close' : 'no';
   }
   if (def || !o.life) return null;
-  const a = oneAnswer(r, p, o);
+  const a = liveAnswerOf(r, p, o);
   return a ? a.verdict : null;
+}
+
+/** A live block's answer: the run weighed, and (7.12.0) a plan still saving read on its saving chance (o.savingChance). */
+function liveAnswerOf(r, p, o) {
+  const a = oneAnswer(r, p, o);
+  return o && typeof o.savingChance === 'number' ? withSavingChance(a, o.savingChance) : a;
 }
 
 /**
@@ -268,9 +275,17 @@ export function cardToneOf(r, p, o = {}) {
 /** The options a card's block reads: a document's definition, else the one test's weighted run when the card is that result. */
 export function chanceOptsOf(r, opts = {}, oneTest = null) {
   if (opts && opts.definition) return { definition: opts.definition };
-  if (oneTest && oneTest.r === r && oneTest.chance) return oneTest.chance;
-  return {};
+  if (!oneTest || !oneTest.chance || !r) return {};
+  // the plan's own way (its card, or its strategy page's run of the same plan, figure for figure): the one test's own reading
+  if (oneTest.r === r || sameRun(oneTest.r, r)) return oneTest.chance;
+  // (7.12.0) another way on the same plan: the same person and level, so its block speaks the same verdict words in the
+  // same colours as the plan's own (never the block before 7.8.0's green "Likely to last" beside a red "Not on course")
+  return oneTest.chance.life ? { life: oneTest.chance.life, level: oneTest.chance.level } : {};
 }
+
+/** Two runs of the same plan the same way (the Strategies tab runs the plan's own way again, seed for seed): the same figures. */
+const sameRun = (a, b) => !!a && !!b && a.strategyId === b.strategyId && !!a.ruin && !!b.ruin && a.ruin.mc === b.ruin.mc && a.ruin.hist === b.ruin.hist
+  && !!a.n && !!b.n && a.n.mc === b.n.mc && !!a.terminal && !!b.terminal && a.terminal.p50 === b.terminal.p50;
 
 /** The fixed-age line under a card's opening (a count, always with its age): "If you live to 97, the money lasts that long in …". */
 export function countAgeHtml(r, p) {
@@ -298,25 +313,36 @@ export function verdictBlockView(r, p, o = {}) {
   const def = o && o.definition;
   if (def && def !== LEGACY_DEFINITION && def.weighted && typeof def.weighted === 'object') return documentBlockHtml(r, p, def);
   if (def || !o || !o.life) return legacyVerdictBlockHtml(r, p);
-  const a = oneAnswer(r, p, o);
+  const a = liveAnswerOf(r, p, o);
   if (!a || !a.words) return legacyVerdictBlockHtml(r, p);
+  const saving = a.chanceFrom === 'saving';
   const w = a.words;
   const tone = a.verdict === 'yes' ? 'success' : a.verdict === 'close' ? 'warning' : 'danger';
   const name = LEVEL_NAMES[a.level];
   const bold = a.level === 'bold' ? ' ' + boldConsequenceOf(a) : '';
   const hero = a.weighted !== null
-    ? '<div data-weighted="' + a.weighted + '"><span class="hero" style="font-size:30px;">' + esc(chanceWords(a.weighted, { sumW: a.sumW, n: a.n })) + '</span><span class="hero-sub">' + esc(w.headline) + esc(bold) + '</span></div>'
+    ? '<div data-weighted="' + a.weighted + '"' + (saving ? ' data-chance-from="saving"' : '') + '><span class="hero" style="font-size:30px;">' + esc(chanceWords(a.weighted, typeof a.sumW === 'number' ? { sumW: a.sumW, n: a.n } : {})) + '</span><span class="hero-sub">' + esc(w.headline) + esc(bold) + '</span></div>'
     : '<div><span class="hero" style="font-size:30px;">' + esc(fixedShort(a.fixedAge)) + '</span><span class="hero-sub">' + esc(w.fixed) + esc(bold) + '</span></div>';
   const cov = r.coverage != null ? r.coverage : (r.failAges && r.failAges.length === 0 ? 100 : 100 - (r.ruin.mc || 0));
   // ("How careful?" straight under the title, beside the figure it changes)
   return '<div class="verdict verdict-' + tone + '" data-chance-block="1" data-level="' + a.level + '"><div class="verdict-title">' + (r.ruinLabel ? 'Will you get what you planned? — ' : 'Will your money last? — ') + VERDICT_TITLE[a.verdict] + ' at ' + name + '</div>'
     + levelSelectHtml(a.level)
+    // (7.12.0) a plan still saving: the one chance (What you pay in's, the home's, Accumulation's) leads alone; every figure
+    // under it is this run's, from the middling pot when work stops, and is said to be
     + '<div class="verdict-heroes">' + hero
-    + '<div><span class="hero" style="font-size:30px;">' + pctText(cov) + '</span><span class="hero-sub">of the plan\'s years covered — the share of your planned income the money actually paid, averaged over every future</span></div>'
-    + '<div><span class="hero" style="font-size:30px;">' + gbpC(Math.round(r.worst12.min)) + '</span><span class="hero-sub">worst 12 months lived, today\'s money</span></div></div>'
+    + (saving ? '' : '<div><span class="hero" style="font-size:30px;">' + pctText(cov) + '</span><span class="hero-sub">of the plan\'s years covered — the share of your planned income the money actually paid, averaged over every future</span></div>'
+    + '<div><span class="hero" style="font-size:30px;">' + gbpC(Math.round(r.worst12.min)) + '</span><span class="hero-sub">worst 12 months lived, today\'s money</span></div>') + '</div>'
+    + (saving ? '<p class="hint" data-from-stop="1">' + esc(fromStopWords(p)) + '</p>' : '')
     + '<p class="verdict-fixed" data-fixed="1">' + esc(a.weighted !== null ? w.fixed : (w.why || '')) + '</p>'
     + (w.floor ? '<p class="hint">' + esc(w.floor) + '</p>' : '') + '<p class="hint">' + esc(w.left) + '</p>'
     + '<div class="verdict-basis">' + esc(w.assumed.join(' ')) + '</div></div>';
+}
+
+/** (7.12.0) The line that says a saving plan's run starts from the middling pot when work stops (the run's own `p.pot`). */
+export function fromStopWords(p) {
+  const pot = p && Number.isFinite(+p.pot) && +p.pot > 0 ? gbpC(+p.pot) : null;
+  return 'The chance above counts the saving years: each future saves its own pot, then draws from it, as on the Accumulation tab and the simple view. '
+    + 'Everything below starts from ' + (pot ? pot + ' in your pension' : 'the middling pot') + ' when you stop work (the middling case) and leaves out the saving years, so it can differ.';
 }
 
 /** A fixed-age share as a hero figure: "16 in 20". */

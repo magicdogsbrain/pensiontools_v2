@@ -25,6 +25,7 @@ import { oneAnswer, futuresOutOfTen, pctText, CHANCE_BARS, boldConsequenceOf } f
 
 export { boldConsequenceOf };
 import { LEVEL_FAILS20, verdictAtLevel } from '../shared/rules.js';
+import { withSavingChance } from '../shared/savingChance.js';
 import { chanceWords } from '../shared/format.js';
 import { planHasFigures } from '../../services/PlanFigures.js';
 import { switchPatch } from '../../services/PlanCommit.js';
@@ -269,6 +270,9 @@ export function lastsOf(entries, id, { today, typed = null } = {}) {
     // no run on a plan shown as saved (newer than this code, or one whose upgrade failed): its figure would not be its own
     // (7.12.0) a plan with no figures of its own is never tested on the stored defaults: it says what to add instead
     runKey: readonly || noFigures ? null : runKeyOf(plan), noFigures, document: saved.document,
+    // (7.12.0) the pension when work stops, in the middling case, that the plan's own test starts from (PlanReading.withDerivedPots):
+    // said under a saving plan's headline, whose chance counts the saving years too
+    atStop: saved.ss && saved.ss.retired === false && saved.ss.potAtRetirement && num(saved.ss.potAtRetirement.sipp) > 0 ? r0(saved.ss.potAtRetirement.sipp) : null,
     fields, errors: c.errors, ok: c.ok, derived, notUsed: notUsedBy(saved.strategyId), partners,
     // the plan draws from a pension before it can usually be taken (7.4.0, PlanTiming.earlyPensionDrawOf): said beside the answer
     pensionAccess: (() => { try { const now = dateOf(today); const e = earlyPensionDrawOf(safeSettings(plan, now), now); return e ? { age: String(e.age) } : null; } catch { return null; } })(),
@@ -348,23 +352,8 @@ export function startRow(x) {
   return { ...row, id: 'hist.lasted', slots: {} };
 }
 
-/**
- * (7.12.0) One chance per plan: a plan still saving reads the chance its money lasts as long as you do from the one run
- * "What you pay in" and the home use (question B on the plan's figures: each future saves its own pot, then draws), so the
- * three pages say one figure. `chance` (0 to 1, weighted) replaces the run's own in its words, its verdict and Bold's line;
- * the count to one age and what is left stay this run's (they say their own measure). Null `chance`, or a run that did not
- * weigh: the run as it is.
- */
-function withChance(a, chance) {
-  if (!a || typeof chance !== 'number' || !Number.isFinite(chance) || typeof a.weighted !== 'number') return a;
-  const was = chanceWords(a.weighted, { sumW: a.sumW, n: a.n });
-  const now = chanceWords(chance);
-  const words = a.words && typeof a.words.headline === 'string' ? { ...a.words, headline: a.words.headline.replace(was, now) } : a.words;
-  // the verdict at the run's level on this chance, as atLevel judges a weighted share
-  const t = LEVEL_FAILS20[a.level];
-  const verdict = typeof t !== 'number' ? a.verdict : chance >= 1 - t / 20 - 1e-12 ? 'yes' : chance >= 1 - (t + 1) / 20 - 1e-12 ? 'close' : 'no';
-  return { ...a, weighted: chance, sumW: null, n: null, words, verdict, lasts: verdict === 'yes', chanceFrom: 'saving' };
-}
+/** (7.12.0) One chance per plan while it is still saving: answers/shared/savingChance.js, which both views read. */
+const withChance = withSavingChance;
 
 /**
  * A run's result (lastsRun.js) → what the screen draws: the band (its verdict word, the share for the bar, the headline's
@@ -417,7 +406,9 @@ export function verdictOf(result, saved, { level = null, chance = null } = {}) {
       cutN: c ? c.cutN : null, cutPerYear: c ? c.typicalCutPerYear : null, cutYears: c ? c.typicalCutYears : null, cutTotal: c ? c.typicalCutTotal : null, worstCut: c ? c.worstCutTotal : null },
     ...(wb ? wb.head : { id: 'lasts.headline', slots: { words: futuresOutOfTen(a.share).words } }),
     // a contract strategy runs no futures: every year is bought (the test counts one window), so its line says that
-    sub: contract ? { id: 'lasts.subContract', slots: { years: String(years), toAge } } : wb ? wb.sub
+    // (7.12.0) a plan still saving: the headline is the saving chance; the line under it says every figure below starts from
+    // the middling pot when work stops (`saved.atStop`), so the two measures are never read as one
+    sub: contract ? { id: 'lasts.subContract', slots: { years: String(years), toAge } } : wb && a.chanceFrom === 'saving' ? { id: saved && saved.atStop ? 'lasts.subFromStop' : 'lasts.subFromStopNoPot', slots: { words: wb.sub.slots.words, pot: saved && saved.atStop ? pounds(saved.atStop) : '' } } : wb ? wb.sub
       : { id: 'lasts.sub', slots: { pct: pctText(a.chancePct, 1, CHANCE_BARS).replace(/%$/, ''), futures: n0(a.futures), histories: n0(a.histories), years: String(years), toAge } },
     rows, strategyId: result.strategyId || null,
     ...(closedShort ? { closedShort } : {}),

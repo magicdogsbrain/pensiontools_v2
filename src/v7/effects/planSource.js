@@ -56,7 +56,7 @@ import { aboutOf } from '../../answers/plan/about.js';
 import { incomeOf } from '../../answers/plan/income.js';
 import { spendOf } from '../../answers/plan/spend.js';
 import { potsOf } from '../../answers/plan/pots.js';
-import { lastsOf, verdictOf, leverViews, tryViews, runKeyOf } from '../../answers/plan/lasts.js';
+import { lastsOf, verdictOf, leverViews, tryViews, runKeyOf, FAMILY } from '../../answers/plan/lasts.js';
 import { wayOf, cardsOf } from '../../answers/plan/way.js';
 import { mixOf } from '../../answers/plan/mix.js';
 import { householdOf } from '../../answers/plan/household.js';
@@ -220,7 +220,8 @@ export function viewFor(state) {
         // (7.12.0) a plan still saving: one chance per plan, the saver run's (What you pay in and the home say it too)
         const Sv = state.saver;
         const sv = page.saver && page.saver.ok && Sv && Sv.key === page.saver.key && Sv.result && Sv.result.verdict ? Sv.result.verdict : null;
-        const chance = sv && typeof sv.weighted === 'number' && Number.isFinite(sv.weighted) ? sv.weighted : null;
+        // (the saver run draws from pots: a plan whose own way buys its income, a ladder, is read on its own test — lead decision 3)
+        const chance = sv && FAMILY.includes(pl.strategyId) && typeof sv.weighted === 'number' && Number.isFinite(sv.weighted) ? sv.weighted : null;
         pl.verdict = L && L.result ? verdictOf(L.result, pl, { level: state.ui && state.ui.level, chance }) : null;
         // a locked plan: the document's own figure (10.5), and the one line of 6.24.0 when today's run differs
         pl.documentVerdict = pl.document ? verdictOf({ a: pl.document.a, strategyId: pl.strategyId, ran: pl.document.ran, history: null }, pl) : null;

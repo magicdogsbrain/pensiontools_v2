@@ -7,7 +7,7 @@ export const LASTS = {
   title: 'Does it last?',
   /** 7.3.0: on a locked plan the tries are folded away under this, never pushed on someone carrying the plan out. */
   trySomething: 'Try something (nothing changes in your locked plan)',
-  lead: 'The one test every screen of the full view shows: your plan, its own way of drawing, its own cuts, its full length, through every real stretch of markets since 1871 and 1,000 possible futures.',
+  lead: 'The test: your plan, its own way of drawing, its own cuts, its full length, through every real stretch of markets since 1871 and 1,000 possible futures. The full view’s “Will it last?” gives the same answer.',
   savedValue: '({value})',
   source: { saved: 'From your plan, saved {date}', savedUndated: 'As saved in the plan', locked: 'Fixed when you locked the plan on {date}.' },
   /** The band and the rows under it, by id. */
@@ -22,6 +22,9 @@ export const LASTS = {
     'lasts.headlineFixed': '{words}{bold}',
     'lasts.subFixed': '{words}',
     'lasts.subWhy': '{words}',
+    /** (7.12.0) a plan still saving: the headline counts the saving years; everything under it starts from the pot at the stop */
+    'lasts.subFromStop': 'Everything below starts from {pot} in your pension when you stop work (the middling case) and leaves out the saving years, so it can differ from the chance above. {words}',
+    'lasts.subFromStopNoPot': 'Everything below starts from the middling pot when you stop work and leaves out the saving years, so it can differ from the chance above. {words}',
     word: { yes: 'On course', close: 'Close', no: 'Not yet' },
     /** 7.8.0: the level the band is judged at, before its word ("At Balanced: On course"). */
     atLevel: 'At {level}:'

@@ -24,6 +24,40 @@ const fill = (text, slots) => String(text || '').replace(/\{(\w+)\}/g, (m, k) =>
 /** The run the simple view's runner makes (v7/effects/saver.js): 1,000 futures, the published seed, the answer's detail. */
 export const SAVER_ENV = Object.freeze({ futures: 1000, seed: 0, trace: false, detail: 'answer' });
 
+/**
+ * (7.12.0) One run per plan as it stands: question B's answer on the plan's figures, kept for the page's life by what it
+ * was run on, so the Accumulation tab's answer and the Stress tester's "Will it last?" read the same run (one chance).
+ */
+const RUNS = new Map();
+function keptAnswer(answer) {
+  return (inputs, env) => {
+    const key = JSON.stringify([inputs, env]);
+    if (RUNS.has(key)) return RUNS.get(key);
+    const out = answer(inputs, env);
+    if (RUNS.size >= 8) RUNS.delete(RUNS.keys().next().value);
+    RUNS.set(key, out);
+    return out;
+  };
+}
+
+/**
+ * (7.12.0, lead decision 3) The chance a plan still saving lasts as long as you do — the one What you pay in, the home and
+ * the Accumulation tab say — for the full view's "Will it last?" to lead with. Null for a plan not saving, one that cannot
+ * be read, or one whose own way of drawing buys its income (`family`: the run draws from pots, as the plan's way must).
+ */
+export async function savingChanceFor(plans, id, now, { family = true } = {}) {
+  if (!family) return null;
+  try {
+    const entries = entriesOf(plans, now);
+    const v = saverVerdictOf(entries, id, { today: dayOf(now) });
+    if (!v || !v.ok) return null;
+    const { answerB } = await import('../answers/b/answer.js');
+    const res = keptAnswer(answerB)(v.inputs, { today: dayOf(now), ...SAVER_ENV, ...(v.env || {}) });
+    const w = res && res.verdict && res.verdict.weighted;
+    return typeof w === 'number' && Number.isFinite(w) ? w : null;
+  } catch { return null; }
+}
+
 /** The block for a plan: its verdict reading and, when given, the answer function run on it. Null for a plan not saving. */
 export function saverAnswerBlock(entries, planId, { today, answer = null }) {
   const v = saverVerdictOf(entries, planId, { today });
@@ -109,7 +143,7 @@ export async function paintSaverAnswer(doc, deps, problem = null) {
     if (first.state !== 'working') return first;
     await new Promise((r) => setTimeout(r, 30));   // let "Working…" paint
     const { answerB } = await import('../answers/b/answer.js');
-    const block = saverAnswerBlock(entries, id, { today, answer: answerB });
+    const block = saverAnswerBlock(entries, id, { today, answer: keptAnswer(answerB) });
     el.innerHTML = saverBlockHtml(block, id, form); wire();
     return block;
   } catch (e) {

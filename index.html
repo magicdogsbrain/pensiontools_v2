@@ -4127,7 +4127,7 @@
     import { chargesFieldState, chargesForSave, paintChargesField, chargesPctOf, DEFAULT_CHARGES_PCT } from './src/ui/chargesSetting.js';   // fund and platform charges (6.19.0)
     import { isaGrowthFieldState, isaGrowthForSave, readIsaGrowthChoice, paintIsaGrowthField, unlockNotesHtml, isaAssumptionsRow, drawdownIsaNoteHtml } from './src/ui/isaGrowthSetting.js';   // how the ISA and savings grow (6.22.0)
     import { ON_COURSE_SHARE, ON_COURSE_PCT, onCourseAlertClass, jointVerdictHtml, isOnCourse } from './src/services/OnCourse.js';   // one bar: "on course" = lasts in 9 futures out of 10 (6.22.0)
-    import { accumulationTableHtml, mpaaOf, accumulationBoxes } from './src/ui/accumulationProjection.js'; import { paintSaverAnswer } from './src/ui/saverAnswerUi.js';   // 7.12.0: "Am I on course?" is the simple view's answer block
+    import { accumulationTableHtml, mpaaOf, accumulationBoxes } from './src/ui/accumulationProjection.js'; import { paintSaverAnswer, savingChanceFor } from './src/ui/saverAnswerUi.js';   // 7.12.0: "Am I on course?" is the simple view's answer block
     import { savingPathForLock } from './src/ui/savingPathForLock.js';   // a saver's lock draws its path on V7's saving-years engine (6.22.0)
 
     // Simulation access for optimisation — THROUGH the strategy registry (Phase B rule:
@@ -5966,7 +5966,7 @@
         }
       }
       window._latestStrategyStress = r;
-      window._oneTest = { key, p, r, lockedNote, chance: chanceRunOf(await getActiveScenarioAsync().catch(() => null), { settings, strategyId: sid, p, r, now: new Date(), level: window._chanceLevel || null, locked }) };   // 7.8.0: the chance the money lasts as long as you do (none while not weighing)
+      const sc = await getActiveScenarioAsync().catch(() => null), ch = chanceRunOf(sc, { settings, strategyId: sid, p, r, now: new Date(), level: window._chanceLevel || null, locked }); window._oneTest = { key, p, r, lockedNote, chance: ch && { ...ch, savingChance: await savingChanceFor(await listScenariosAsync(), sc && sc.id, new Date(), { family: PNV_FAMILY.includes(sid) }) } };   // 7.8.0 weighed; 7.12.0 a saving plan leads with the saver run's chance
       return window._oneTest;
     }
     // The "without the cuts" twin: the same futures with the cuts off, as one line of explanation under the one figure.

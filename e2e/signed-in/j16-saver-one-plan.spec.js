@@ -48,12 +48,15 @@ test('B asked again in a new tab: "Use these in ‘…’" leads, updates the pl
   const use = page.getByTestId('b.use');
   await expect(use).toBeVisible({ timeout: 60_000 });
   await expect(use).toHaveAttribute('data-plan-id', planId);
-  await expect(page.getByTestId('b.use.own')).toContainText(`‘${name}’`);
+  // 7.12.0: a name the person did not type is shown from the plan's present figures, without the pay-in (PlanName.js)
+  const shown = name.replace(/ · paying £[\d,]+$/, '');
+  expect(shown).not.toBe(name);
+  await expect(page.getByTestId('b.use.own')).toContainText(`‘${shown}’`);
   // "Use these in ‘…’" leads (B not on course: its two pay-in buttons); "Keep as a new plan" is second
   const onCourse = await page.getByTestId('b.action.use').isVisible();
   const press = onCourse ? page.getByTestId('b.action.use') : page.getByTestId('b.action.use.now');
   await expect(press).toHaveClass(/primary/);
-  if (onCourse) await expect(press).toHaveText(`Use these in ‘${name}’`);
+  if (onCourse) await expect(press).toHaveText(`Use these in ‘${shown}’`);
   const second = onCourse ? page.getByTestId('b.action.save') : page.getByTestId('b.action.save.now');
   await expect(second).not.toHaveClass(/primary/);
   await expect(page.getByTestId('b.keep.name')).not.toHaveValue(name);

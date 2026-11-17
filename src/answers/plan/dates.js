@@ -19,6 +19,12 @@ export const monthWords = (s) => { const p = ym(s); return p && p.m >= 1 && p.m 
 export const monthName = (s) => { const p = ym(s); return p && p.m >= 1 && p.m <= 12 ? MONTHS[p.m - 1] : ''; };
 export const dayWords = (s) => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(s || '')); return m && +m[2] >= 1 && +m[2] <= 12 ? +m[3] + ' ' + MONTHS[+m[2] - 1] + ' ' + m[1] : monthWords(s); };
 export const monthsBetween = (a, b) => (b.y - a.y) * 12 + (b.m - a.m);
+/** A wait in months as a person says it (7.12.0): "1 month", "11 months", "2 years", "2 years 2 months". '' for no figure. */
+export function timeLeftWords(n) {
+  if (!Number.isFinite(n)) return '';
+  const y = Math.floor(n / 12), m = n % 12;
+  return [y ? y + (y === 1 ? ' year' : ' years') : '', m || !y ? m + (m === 1 ? ' month' : ' months') : ''].filter(Boolean).join(' ');
+}
 const pad = (n) => String(n).padStart(2, '0');
 export const localDay = (d) => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
 export const localMonth = (d) => d.getFullYear() + '-' + pad(d.getMonth() + 1);

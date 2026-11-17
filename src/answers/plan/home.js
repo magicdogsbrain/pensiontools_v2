@@ -29,7 +29,7 @@ import { isFilledIn } from '../../services/MonthFill.js';
 import { holdingsSummary, normaliseHoldings } from '../../services/HoldingsRecord.js';
 import { moveWindowOf } from '../../services/Phases.js';
 import { asHeldStateOf } from './agree.js';
-import { ym, dayWords } from './dates.js';
+import { ym, dayWords, timeLeftWords } from './dates.js';
 import { takenAgainstPlan, yearPlanOf, firstPaymentMonth } from '../../services/YearPlan.js';
 import { startLaterOf } from '../../services/PlanMove.js';
 import { pensionLockForSettings } from '../../services/PlanNeed.js';
@@ -169,7 +169,7 @@ function driftLineOf(plan, now, href, { phase = 'drawing' } = {}) {
 function windowLineOf(life, { held, agreed, now = null }) {
   const w = moveWindowOf(life);
   if (!w || !w.to || life.confirmStop) return null;
-  const left = Number.isFinite(w.monthsLeft) ? (w.monthsLeft === 1 ? '1 month' : w.monthsLeft + ' months') : '';
+  const left = timeLeftWords(w.monthsLeft);   // "11 months", "2 years 2 months" (7.12.0)
   if (life.key === 'moving') {
     // of what is held, or (no pension record to read) of the plan as it stands
     if (agreed) return { id: agreed.how === 'nothing' ? 'agreedAsItStands' : 'agreed', slots: { date: dayWords(agreed.at), stop: monthWords(w.to) } };

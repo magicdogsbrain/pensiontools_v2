@@ -544,7 +544,7 @@ export const PLAN = {
     'P.householdPending': 'Your partner’s plan is not in this account. Next: link one, or leave it.',
     'P.move': 'Moving to your plan’s mix: {toBuy} still to buy, {windowLeft} left.',
     'P.idle': '{month} is recorded. Nothing to do until {nextMonth}.',
-    'P.window': 'In your move window: {windowLeft} left, to {stop}.',
+    'P.window': 'You stop work in {stop}, in your move window: {windowLeft} left.',
     'P.onCourse': 'On course at your last check-in ({last}). Your next review: {nextCheck}.',
     'P.nextReview': 'Nothing due. Your next review is {nextReview}.',
     'P.reviewAny': 'Nothing due. You can review your plan whenever you like.'

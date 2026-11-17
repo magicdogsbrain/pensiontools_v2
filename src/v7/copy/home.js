@@ -121,8 +121,8 @@ export const HOME = {
   },
   /** The move window (7.10.0): the one clock between saving and living on it. */
   moveWindow: {
-    moving: 'In your move window: {left} left, to {stop}.',
-    movingNoRecord: 'In your move window: {left} left, to {stop}. You can record what you hold when you like.',
+    moving: 'You stop work in {stop}, in your move window: {left} left.',
+    movingNoRecord: 'You stop work in {stop}, in your move window: {left} left. You can record what you hold when you like, and you do not need to.',
     agreed: 'You accepted what you hold on {date}. You stop work in {stop}.',
     agreedAsItStands: 'You accepted your plan as it stands on {date}. You stop work in {stop}.',
     saving: 'Your move window opens in {from}.'

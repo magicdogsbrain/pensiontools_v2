@@ -61,7 +61,7 @@ const planToAgeOfDoc = (dp) => planToAgeOf(+(dp && dp.startAge) || 0, +(dp && dp
 import { unlockPatchesOf, lockedShortOf } from '../../services/PlanCommit.js';
 import { checkInState, checkInsOf } from './checkInDue.js';
 import { saverInputsOf } from './saverInputs.js';
-import { MONTHS, dateOf, ym, monthWords, monthName, dayWords, monthsBetween, localDay } from './dates.js';
+import { MONTHS, dateOf, ym, monthWords, monthName, dayWords, monthsBetween, localDay, timeLeftWords } from './dates.js';
 import { heldLadder } from './held.js';
 import { moveStatusOf } from './moveWords.js';
 import { isClosedPlan, closedReading, beforeReading, closedAtOf, monthRefusalWords } from '../../services/PlanClosed.js';
@@ -1039,7 +1039,7 @@ function rulesFor(C, built) {
   const slots = { month: monthWords(toRecord), monthName: monthName(toRecord), nextMonth, year: taxYearLabel(ty), stop: stopWords, closed: closed ? closed.month : '', next: closed && closed.next ? closed.next.name : '',
     nextReview, nextCheck: nextReview || (ci && ci.chosen && ci.next ? monthWords(ci.next) : ''), reviewOften: reviewOftenOf(phase, reviewDue ? reviewDue.every : 'year'),
     ...(ci && ci.lastCheckIn ? { last: monthWords(ci.lastCheckIn.month) } : {}),
-    ...(left != null ? { windowLeft: left === 1 ? '1 month' : left + ' months' } : {}),
+    ...(left != null ? { windowLeft: timeLeftWords(left) } : {}),
     ...(toBuy > 0 ? { toBuy: pounds(toBuy) } : {}),
     ...(offCourse && offCourse.off ? { ...offCourseWordsOf(offCourse), offKind: offCourse.rule.kind } : {}) };
   // what each to-do is put away for (answers/plan/tasks.js): its month, tax year, review date, partner's plan or stop

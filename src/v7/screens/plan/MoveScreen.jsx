@@ -110,9 +110,9 @@ function Paying({ V, holdHref }) {
         <>
           <h3>{O.title}</h3>
           <div class="table-wrap">
-            <table class="way-table" data-testid={`${T}.outside`}>
+            <table class="way-table stack-table" data-testid={`${T}.outside`}>
               <thead><tr><th>{O.columns.what}</th><th>{O.columns.value}</th><th>{O.columns.note}</th></tr></thead>
-              <tbody>{V.outside.map((r) => <tr key={r.key} data-key={r.key}><td>{r.label}{r.ticker ? <> <span class="note">{r.ticker}</span></> : null}</td><td>{r.value}</td><td>{note(r.note)}</td></tr>)}</tbody>
+              <tbody>{V.outside.map((r) => <tr key={r.key} data-key={r.key}><td data-label={O.columns.what}>{r.label}{r.ticker ? <> <span class="note">{r.ticker}</span></> : null}</td><td data-label={O.columns.value}>{r.value}</td><td data-label={O.columns.note}>{note(r.note)}</td></tr>)}</tbody>
             </table>
           </div>
         </>
@@ -179,13 +179,13 @@ function Cash({ V }) {
       <h2>{C.title}</h2>
       <p class="note">{C.lead}</p>
       <div class="table-wrap">
-        <table class="way-table" data-testid={`${T}.cash.table`}>
+        <table class="way-table stack-table" data-testid={`${T}.cash.table`}>
           <thead><tr><th>{C.columns.what}</th><th>{C.columns.need}</th><th>{C.columns.amount}</th></tr></thead>
           <tbody>
-            {V.cash.rows.map((r, i) => <tr key={i} data-row={r.id}><td>{fill(C.rows[r.id], r)}</td><td>{r.gap ? fill(C.besideNeed, r) : r.need || '—'}</td><td>{r.amount || '—'}</td></tr>)}
-            <tr data-row="total"><th scope="row">{C.total}</th><td></td><td>{V.cash.target}</td></tr>
-            <tr data-row="held"><td>{C.held}</td><td></td><td>{V.cash.held}</td></tr>
-            <tr data-row={V.cash.spare != null ? 'spare' : 'short'}><td>{V.cash.spare != null ? C.spare : C.short}</td><td></td><td>{V.cash.spare != null ? V.cash.spare : V.cash.short}</td></tr>
+            {V.cash.rows.map((r, i) => <tr key={i} data-row={r.id}><td data-label={C.columns.what}>{fill(C.rows[r.id], r)}</td><td data-label={C.columns.need}>{r.gap ? fill(C.besideNeed, r) : r.need || '—'}</td><td data-label={C.columns.amount}>{r.amount || '—'}</td></tr>)}
+            <tr data-row="total"><th scope="row">{C.total}</th><td></td><td data-label={C.columns.amount}>{V.cash.target}</td></tr>
+            <tr data-row="held"><td data-label={C.columns.what}>{C.held}</td><td></td><td data-label={C.columns.amount}>{V.cash.held}</td></tr>
+            <tr data-row={V.cash.spare != null ? 'spare' : 'short'}><td data-label={C.columns.what}>{V.cash.spare != null ? C.spare : C.short}</td><td></td><td data-label={C.columns.amount}>{V.cash.spare != null ? V.cash.spare : V.cash.short}</td></tr>
           </tbody>
         </table>
       </div>
@@ -223,13 +223,13 @@ function Lists({ V, dispatch, planId, KT }) {
   );
   const table = (id, rows, action) => (
     <div class="table-wrap">
-      <table class="way-table" data-testid={`${T}.${id}`}>
+      <table class="way-table stack-table" data-testid={`${T}.${id}`}>
         <thead><tr><th>{L.columns.done}</th><th>{L.columns.what}</th><th>{L.columns.units}</th><th>{L.columns.amount}</th><th>{L.columns.why}</th></tr></thead>
         <tbody>{rows.map((r) => (
           <tr key={r.key} data-key={r.key} data-done={r.done ? '1' : '0'}>
-            <td>{tick(r, action)}{r.done ? <><br /><span class="note">{fill(L.ticked, { date: r.done })}</span></> : null}</td>
-            <td>{r.label}{r.ticker ? <> <span class="note">{r.ticker}{r.sedol ? ' · ' + r.sedol : ''}</span></> : null}</td>
-            <td>{r.units || '—'}</td><td>{r.amount || '—'}</td><td>{whyText(r.why)}</td>
+            <td data-label={L.columns.done}>{tick(r, action)}{r.done ? <><br /><span class="note">{fill(L.ticked, { date: r.done })}</span></> : null}</td>
+            <td data-label={L.columns.what}>{r.label}{r.ticker ? <> <span class="note">{r.ticker}{r.sedol ? ' · ' + r.sedol : ''}</span></> : null}</td>
+            <td data-label={L.columns.units}>{r.units || '—'}</td><td data-label={L.columns.amount}>{r.amount || '—'}</td><td data-label={L.columns.why}>{whyText(r.why)}</td>
           </tr>
         ))}</tbody>
       </table>
@@ -247,9 +247,9 @@ function Lists({ V, dispatch, planId, KT }) {
         <>
           <h2>{L.held}</h2>
           <div class="table-wrap">
-            <table class="way-table" data-testid={`${T}.held`}>
+            <table class="way-table stack-table" data-testid={`${T}.held`}>
               <thead><tr><th>{L.columns.what}</th><th>{L.columns.held}</th><th>{L.columns.target}</th></tr></thead>
-              <tbody>{V.hold.map((x) => <tr key={x.key} data-key={x.key}><td>{x.label}{x.ticker ? <> <span class="note">{x.ticker}</span></> : null}</td><td>{x.held.units ? fill(L.heldUnits, { units: x.held.units }) : x.held.value}{x.spare ? ' ' + fill(L.spare, { spare: x.spare }) : ''}</td><td>{x.target.units ? fill(L.heldUnits, { units: x.target.units }) : x.target.value}</td></tr>)}</tbody>
+              <tbody>{V.hold.map((x) => <tr key={x.key} data-key={x.key}><td data-label={L.columns.what}>{x.label}{x.ticker ? <> <span class="note">{x.ticker}</span></> : null}</td><td data-label={L.columns.held}>{x.held.units ? fill(L.heldUnits, { units: x.held.units }) : x.held.value}{x.spare ? ' ' + fill(L.spare, { spare: x.spare }) : ''}</td><td data-label={L.columns.target}>{x.target.units ? fill(L.heldUnits, { units: x.target.units }) : x.target.value}</td></tr>)}</tbody>
             </table>
           </div>
         </>

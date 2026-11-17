@@ -593,7 +593,15 @@ input[type="checkbox"] { width: 24px; height: 24px; margin: 0 10px 0 0; accent-c
   .gaps-table td:first-child::before { content: none; }
 }
 /* "Your plan's mix" while living on a ladder (7.12.0): under 600px each gilt, year or line is a card of label–value pairs */
+/* The move page's tables (7.12.0, .stack-table) the same way: what to buy, what the plan does not use, what is held, the cash */
 @media (max-width: 599px) {
+  .stack-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .stack-table, .stack-table tbody, .stack-table tr, .stack-table td { display: block; width: 100%; }
+  .stack-table tr { border-top: 1px solid var(--line); padding: 6px 0; }
+  .stack-table tbody th { display: block; border-top: 0; padding: 2px 0; }
+  .stack-table td { border-top: 0; padding: 2px 0; white-space: normal; display: flex; gap: 8px; justify-content: space-between; text-align: right; }
+  .stack-table td:empty { display: none; }
+  .stack-table td::before { content: attr(data-label); font-weight: 650; flex: 0 0 auto; text-align: left; }
   .held-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   .held-table, .held-table tbody, .held-table tr, .held-table td { display: block; width: 100%; }
   .held-table tr { border-top: 1px solid var(--line); padding: 6px 0; }

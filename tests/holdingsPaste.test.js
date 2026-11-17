@@ -192,7 +192,8 @@ describe('every pasted line counts (6.23)', () => {
     expect(s.unrecognised.map((u) => u.name)).toEqual(['Acme Workplace Growth Fund Series 4', 'Zenith Managed Balanced Portfolio', 'Northstar Cautious Fund']);
     expect(s.unrecognisedTotal).toBe(185250);
     expect(s.text).toContain('6 lines read, £282,550 in all.');
-    expect(s.text).toContain('3 lines (£185,250) are not recognised — say what each is under "What is this?" and they count.');
+    // retaken in 7.12.0 round 3: they count as shares as they are; saying what each is is a choice
+    expect(s.text).toContain('3 lines (£185,250) are not known to us. They count as shares as they are; you can say what each is under "What is this?".');
     expect(s.text).toContain('Left out: line 7 "Total" (a total line, not a holding).');
   });
   it('once each line has an answer the summary says so, and the ledger carries the choice', () => {

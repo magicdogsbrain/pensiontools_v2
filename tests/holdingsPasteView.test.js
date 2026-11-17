@@ -30,7 +30,7 @@ describe('pastePreviewHtml', () => {
   it('the summary says what was read, what is unrecognised and what was left out', () => {
     const html = pastePreviewHtml({ parsed, matched, merged, wrapper: 'SIPP', target: 'hold' });
     expect(html).toContain('2 lines read, £172,600 in all.');
-    expect(html).toContain('1 line (£120,000) is not recognised');
+    expect(html).toContain('1 line (£120,000) is not known to us. It counts as shares as it is');
     expect(html).toContain('Left out: line 3 &quot;Total&quot; (a total line, not a holding).');
     expect(html).toContain('data-on-click="applyPasteHoldings()"');
     expect(html).toContain('Apply to what I hold');

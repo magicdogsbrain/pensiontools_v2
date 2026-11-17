@@ -248,7 +248,8 @@ describe('the paste, where every line counts (§2.1)', () => {
     const row = odd.root.querySelector(`[data-testid="${T}.paste.rows"] tbody tr`);
     expect(row.getAttribute('data-unrecognised')).toBe('1');
     expect(row.textContent).toContain(HOLD.paste.unrecognised);
-    expect(one(odd.root, `${T}.paste.summary`).textContent).toContain('1 not recognised (£1,000): say what each is under “What is this?” and they count.');
+    // retaken in 7.12.0 round 3: it counts as shares as it is; saying what it is is a choice
+    expect(one(odd.root, `${T}.paste.summary`).textContent).toContain('1 not known to us (£1,000): counted as shares until you say what each is.');
     expect(one(odd.root, `${T}.paste.add`)).not.toBe(null);
   });
 });

@@ -198,7 +198,9 @@ describe('What you hold — "What is this?" for lines the tool cannot place (6.2
     expect(html).toContain('data-on-change="updHolding(1,\'subClass\',this.value)"');
     expect(html).not.toContain('updHolding(0,\'subClass\'');
     expect(html).not.toContain('updHolding(2,\'subClass\'');
-    expect(html).toContain('What is this?');
+    // retaken in 7.12.0 round 3 (decision 4): the line counts as shares as it is; its choice says so and is optional
+    expect(html).toContain('>Shares, as counted now<');
+    expect(html).toContain('What is it? (optional)');
     expect(html).toContain('>Gold and trend<');
     expect(html).toContain('Shares');
     expect(html).toContain('Bonds');

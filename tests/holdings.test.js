@@ -60,10 +60,12 @@ describe('proportions — tickers in, proportions modelled', () => {
     expect(pensionPotFromHoldings(ledger)).toBe(320000);
     expect(describeMix(proportions([]))).toBe('No holdings entered yet.');
   });
-  it('untagged tickers are reported, not silently dropped', () => {
+  // retaken in 7.12.0 round 3 (decision 4): a line nothing places counts as shares until the person says what it is
+  it('a ticker nothing places counts as shares, not dropped', () => {
     const q = proportions([{ ticker: 'ZZZZ', value: 100 }]);
-    expect(q.total).toBe(0);
-    expect(q.untagged[0].ticker).toBe('ZZZZ');
+    expect(q.total).toBe(100);
+    expect(q.buckets.shares).toBe(1);
+    expect(q.untagged).toEqual([]);
   });
 });
 

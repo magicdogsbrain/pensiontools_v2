@@ -36,6 +36,8 @@ const page = (hl) => { const out = []; const walk = (x) => { if (!x) return; if 
 const PLAN_TICKERS = new Set(ORDERS.map((o) => o.tidm));
 // the pension lines that are neither one of the plan's gilts nor cash: three ordinary gilts, the 2026 gilt, four shares and a fund
 const OTHER = ['TS27', 'TN28', 'TG29', 'TN26', 'ULVR', 'AZN', 'LGEN', 'NG.', 'VWRP'];
+// the year field is on the gilts among them only (round 3: shares and funds never mature)
+const OTHER_GILTS = ['TS27', 'TN28', 'TG29', 'TN26'];
 
 describe('the full view says the cash years once on its tab', () => {
   // What you hold and "Your plan's mix" share the full view's tab: the need (34,000 × 5/12 + 0 + 33,000 = £47,167) is said
@@ -98,13 +100,13 @@ describe('(b) the year field: only on a pension line that is neither one of the 
     const v = holdOf([{ plan }], plan.id, { today: TODAY });
     const all = v.groups.flatMap((g) => g.lines);
     const withField = all.filter((l) => l.forYears).map((l) => l.ticker);
-    expect(withField.sort()).toEqual(OTHER.slice().sort());
+    expect(withField.sort()).toEqual(OTHER_GILTS.slice().sort());
     for (const l of all.filter((x) => x.forYears)) expect(l.forYears.shown).toBe('');
     for (const l of all) expect(l).not.toHaveProperty('keep');
     const root = simple(plan);
     for (const [i, l] of lines.entries()) {
       const box = root.querySelector(`[data-testid="plan.hold.line.${i}.forYears"]`);
-      if (OTHER.includes(l.ticker)) { expect(box, l.ticker).not.toBe(null); expect(box.value).toBe(''); expect(box.getAttribute('placeholder')).toBe(HELD.forYearsPlaceholder); }
+      if (OTHER_GILTS.includes(l.ticker)) { expect(box, l.ticker).not.toBe(null); expect(box.value).toBe(''); expect(box.getAttribute('placeholder')).toBe(HELD.forYearsPlaceholder); }
       else expect(box, l.ticker).toBe(null);
     }
     expect(flat(visibleText(root))).toContain(HELD.forYearsHelp);
@@ -113,7 +115,7 @@ describe('(b) the year field: only on a pension line that is neither one of the 
     const card = holdCard(full(plan));
     for (const [i, l] of lines.entries()) {
       const box = card.querySelector(`input[data-on-change="keepHoldingFor(${i},this.value)"]`);
-      if (OTHER.includes(l.ticker)) { expect(box, l.ticker).not.toBe(null); expect(box.getAttribute('value')).toBe(''); }
+      if (OTHER_GILTS.includes(l.ticker)) { expect(box, l.ticker).not.toBe(null); expect(box.getAttribute('value')).toBe(''); }
       else expect(box, l.ticker).toBe(null);
       expect(PLAN_TICKERS.has(l.ticker) || l.ticker === 'XSTR' || OTHER.includes(l.ticker)).toBe(true);
     }

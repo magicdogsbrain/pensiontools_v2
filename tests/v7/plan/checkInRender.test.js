@@ -155,7 +155,7 @@ describe('"Check in", drawn', () => {
     const changed = one(root, `${T}.result.changed`).textContent;
     expect(changed).toContain('Since your last check-in (November 2026)');
     expect(changed).toContain('Your pension went from £64,500 to £74,600.');
-    expect(changed).toContain('£317 a month for 1 month and £633 a month for 11 months, £7,280 in all.');
+    expect(changed).toContain('You paid in £7,280 into your pension: £317 a month for 1 month and £633 a month for 11 months.');   // (7.12.0: the total first)
     expect(one(root, `${T}.result.rest`).textContent).toMatch(/^Markets, charges and anything not recorded: [+−]£[\d,]+\.$/);
     // (7.8.0: readings of the level, said as chances)
     expect(one(root, `${T}.result.thenNow`).textContent).toMatch(/^Then: lasted .+ times in 20\. Now: .+ times in 20\./);

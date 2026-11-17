@@ -415,7 +415,8 @@ describe('the words in src/v7/copy/', () => {
     const slot = (s) => s.replace(/\{level\}/g, 'Balanced').replace(/\{atLevel\}/g, '£1,200').replace(/\{(month|since|last|from|to|words)\}/g, 'November 2026').replace(/\{(value|amount|now|plan|drawn|actual|expected|low|high|bad|middling|aim|gap|pension|isa|own|employer|total|perMonth|rest|yearly|pay|takeHome)\}/g, '£1,200')
       .replace(/\{pct\}/g, '12').replace(/\{band\}/g, 'Close').replace(/\{what\}/g, 'pot').replace(/\{months\}/g, '11').replace(/\{s\}/g, 's').replace(/\{runs\}/g, '£317 a month for 1 month')
       .replace(/\{sign\}/g, '+').replace(/\{why\}/g, 'the lock').replace(/\{(then)\}/g, 'in only 3 futures out of 10').replace(/\{(nowWords)\}/g, '')
-      .replace(/\{way\}/g, 'full gilt ladder');   // 7.10.0: the way a plan draws, when the verdict is worked out as pots
+      .replace(/\{way\}/g, 'full gilt ladder')   // 7.10.0: the way a plan draws, when the verdict is worked out as pots
+      .replace(/\{(salary|above|claim)\}/g, '£4,730');   // 7.12.0: the relief to claim back, at the pay the plan uses
     const hits = [];
     const all = strings(CHECKIN).map(([, s]) => slot(s)).join('\n');
     const drawing = (where) => /^(notSaving|savingYears|noAge|aboutLink|history\.|buttons\.|title)/.test(where);

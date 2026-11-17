@@ -130,7 +130,7 @@ function Changed({ L, paused }) {
   const savings = c.savings ? c.savings.filter((x) => x.perMonth !== '£0') : null;
   return (
     <section class="plan-section checkin-changed" data-section="changed" data-testid={`${T}.result.changed`}>
-      <h3>{fill(W.result.changedTitle, { month: c.since })}</h3>
+      <h3>{fill(c.first ? W.result.changedTitleFirst : W.result.changedTitle, { month: c.since })}</h3>
       <p>{fill(R.pot, { what, from: c.from, to: c.to })}</p>
       <p>{pension.length ? fill(R.paid, { runs: runsText(pension), total: c.paidPension }) : R.paidNothing}{' '}
         {c.isaCounted ? (savings && savings.length ? fill(R.savings, { runs: runsText(savings), total: c.paidSavings }) : R.savingsNothing) : ''}</p>
@@ -166,6 +166,7 @@ function Result({ V, dispatch, planId }) {
       <Changed L={L} paused={latestRow && latestRow.paused} />
       {/* the check-in wrote your pay and what goes in into the plan (7.12.0): said once, after what changed */}
       {V.uses && <p data-testid={`${T}.result.uses`} data-uses={V.uses.id}>{fill(R.uses[V.uses.id], V.uses.slots)}</p>}
+      {V.claim && <p data-testid={`${T}.result.claim`}>{fill(R.claim, V.claim)}</p>}
       {tn && (
         <p data-testid={`${T}.result.thenNow`}>{fill(R.thenNow, tn)}{tn.enoughThen && tn.enoughNow ? ' ' + fill(R.thenNowEnough, { then: enoughText(tn.enoughThen, R.enoughShort), now: enoughText(tn.enoughNow, R.enoughShort) }) : ''}</p>
       )}

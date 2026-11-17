@@ -91,6 +91,10 @@ export const CHECKIN = {
     enoughTitle: 'To be on course from here',
     pathTitle: 'Against your saving path',
     changedTitle: 'Since your last check-in ({month})',
+    /** (7.12.0) A first check-in: since the month the plan last had your pot. */
+    changedTitleFirst: 'Since {month}, when your plan last had your pot',
+    /** (7.12.0) The tax relief to claim back, at the pay the plan now uses (What you pay in says the same). */
+    claim: 'At {salary} you pay higher-rate tax on {above} of your pay. On what you pay in you can claim {claim} a year back from HMRC, through a tax return or by asking HMRC. It is not added by itself.',
     /** The frozen reading (a check-in read again later): said from what was kept, the band first. */
     band: { yes: 'On course', close: 'Close', no: 'Not on course' },
     lasted: '{band}: paying in as you did then, your money lasted {words}.',
@@ -143,8 +147,8 @@ export const CHECKIN = {
     },
     changed: {
       pot: 'Your {what} went from {from} to {to}.',
-      paid: 'Paid in, as recorded: into your pension {runs}, {total} in all.',
-      paidNothing: 'Paid in, as recorded: nothing into your pension.',
+      paid: 'You paid in {total} into your pension: {runs}.',
+      paidNothing: 'You paid nothing into your pension.',
       savings: 'Into ISAs and savings {runs}, {total} in all.',
       savingsNothing: 'Into ISAs and savings, nothing.',
       run: '{perMonth} a month for {months} month{s}',

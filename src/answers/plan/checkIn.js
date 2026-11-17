@@ -64,6 +64,7 @@ import { get, parseMonth as readMonth } from './about.js';
 import { pounds } from './income.js';
 import { dateOf, ym, monthWords, monthsBetween, localMonth } from './dates.js';
 import { shownPlanName } from '../../services/PlanName.js';
+import { pensionTodayOf } from '../../services/PensionToday.js';
 
 /** At most this many check-ins (5.11): 120 years yearly, 30 quarterly, 10 monthly. */
 export const CHECKINS_KEPT = 120;
@@ -276,6 +277,19 @@ function recordOf(c, { today, now, last }) {
   };
 }
 
+/**
+ * Where a plan with no check-in yet stood (7.12.0): the pension today it holds and the month it was had (PensionToday.js —
+ * a pot record, or the day an answer was kept with it), with what the plan pays in a month; null when the plan does not
+ * say when it had that pot.
+ */
+function beforeOf(plan, now) {
+  let t = null;
+  try { t = pensionTodayOf(plan, { now }); } catch { t = null; }
+  if (!t || !isNum(t.value) || typeof t.asOf !== 'string' || !ym(t.asOf)) return null;
+  const said = planSays(plan);
+  return { date: t.asOf.slice(0, 10), pot: { pension: t.value, isa: null }, payIn: { total: isNum(said.total) ? said.total : 0, savingsIn: said.savingsIn || 0 } };
+}
+
 /** What lands in the pension a month now: nothing while a pause runs. */
 const landsNow = (r) => (isObj(r.paused) && r.paused.to == null ? 0 : (isNum(r.payIn && r.payIn.total) ? r.payIn.total : 0));
 const savingsNow = (r) => (isObj(r.paused) && r.paused.to == null ? 0 : (isNum(r.payIn && r.payIn.savingsIn) ? r.payIn.savingsIn : 0));
@@ -296,6 +310,10 @@ export function checkInDraft(plan, typed, { today, now = null, plans = [] }) {
   const prior = checkInsOf(plan).filter((x) => monthOfDate(x.date) !== monthOfDate(today));
   const last = prior.length ? prior[prior.length - 1] : null;
   const record = recordOf(c, { today, now: at, last });
+  // (7.12.0) a first check-in keeps where the plan stood before it — its pot and the month it was had, what it paid in —
+  // so the result can say what was paid in since and what markets added, as every later one does from the one before
+  const before = last ? null : beforeOf(plan, at);
+  if (before) record.before = before;
   const read = saverInputsOf(plan, { today, checkIn: record, plans });
   return { ok: true, record, read, values: c.values, stage };
 }
@@ -700,7 +718,9 @@ function rowOf(ci, before) {
 function latestOf(list, { pathDoc }) {
   if (!list.length) return null;
   const ci = list[list.length - 1];
-  const prev = list.length > 1 ? list[list.length - 2] : null;
+  // (7.12.0) the first check-in reads from where the plan stood before it (recordOf's `before`)
+  const first = list.length === 1 && isObj(ci.before) && isObj(ci.before.pot) && isNum(ci.before.pot.pension) && ym(ci.before.date) ? ci.before : null;
+  const prev = list.length > 1 ? list[list.length - 2] : first;
   const r = ci.reading || {};
   const month = monthOfDate(ci.date);
   // the lines either side of the middle figure, from the path itself while it is still the one the check-in was read
@@ -729,7 +749,7 @@ function latestOf(list, { pathDoc }) {
     enough: enoughWords(r, 'nine'), four: r.enough && r.enough.fourNow ? { id: 'fourNow', slots: {} } : enoughWords(r, 'four'),
     path: r.pathBand ? { band: PATH_BANDS[r.pathBand] || 'start', expected: isNum(r.expected) ? pounds(r.expected) : null, ...(lines || {}), pension: !(pathDoc && pathCountsIsa(pathDoc.doc)) } : null,
     changed: ch ? {
-      since: monthWords(monthOfDate(prev.date)), from: pounds(ch.from), to: pounds(ch.to), isaCounted: ch.isaCounted,
+      since: monthWords(monthOfDate(prev.date)), first: !!first, from: pounds(ch.from), to: pounds(ch.to), isaCounted: ch.isaCounted,
       pension: ch.pension.map((x) => ({ perMonth: pounds(x.perMonth), months: x.months })), paidPension: pounds(ch.paidPension),
       savings: ch.savings ? ch.savings.map((x) => ({ perMonth: pounds(x.perMonth), months: x.months })) : null, paidSavings: ch.paidSavings != null ? pounds(ch.paidSavings) : null,
       rest: pounds(ch.rest), restSign: ch.rest < 0 ? '−' : '+', raw: ch,
@@ -786,6 +806,15 @@ export function checkInOf(entries, id, { today, typed = null, source = 'account'
       }
     }
   }
+  // (7.12.0) the tax relief to claim back from HMRC on what is paid in, at the pay the plan now uses (What you pay in's line)
+  let claim = null;
+  if (last && !readonly && allowed) {
+    const a = isObj(accOf(plan).settings) ? accOf(plan).settings : {};
+    try {
+      const b = contributionBreakdown({ netMonthly: num(a.netMonthly) || 0, salary: num(a.salary) || 0, schemeType: a.schemeType || 'ras', employerMonthly: num(a.employerMonthly) || 0 });
+      if (b.hrClaimMonthly > 0.5) claim = { salary: pounds(a.salary), above: pounds(Math.max(0, a.salary - 50270)), claim: pounds(Math.round(b.hrClaimMonthly * 12)) };
+    } catch { claim = null; }
+  }
   // "The path was drawn paying in £317 a month; you now pay in £380" (5.6)
   const head = pathDoc && isObj(pathDoc.doc.accumulation) ? pathDoc.doc.accumulation : null;
   const pathPaid = head && isNum(head.totalMonthly) ? head.totalMonthly : null;
@@ -809,7 +838,7 @@ export function checkInOf(entries, id, { today, typed = null, source = 'account'
     path: pathDoc ? { source: pathDoc.source, from: pathStartAt ? monthWords(keyOf(pathStartAt)) : null, isa: pathCountsIsa(pathDoc.doc) } : null,
     // only from a check-in of this month (restartPathPatch): the path it draws starts this month, from that check-in's pot
     restartable: !readonly && allowed && !locked && !!pathDoc && pathDoc.source === 'saving' && !!last && monthOfDate(last.date) === monthOfDate(today),
-    uses, pathDiffers,
+    uses, claim, pathDiffers,
     // the calendar file (5.2): once a check-in has said how often, for the month the next falls due
     calendar: due.chosen && due.next ? { month: due.next, words: monthWords(due.next), text: calendarText({ month: due.next, today, planId: plan.id }), name: calendarFileName(due.next) } : null,
     dropWarning: list.length >= CHECKINS_WARN_FROM,

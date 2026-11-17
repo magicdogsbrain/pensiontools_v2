@@ -298,8 +298,12 @@ describe('L11 — the short results', () => {
     expect(step.result.text).toBe('£180,000, age 45, £700 a month in, stop at 60');
     expect(text(step)).toBe(step.result.text);
     // whichever way what goes in was typed, the total it lands (6.46.0): the two parts added up; a share of pay in pounds
+    // (7.12.0) choosing the two parts reads yours as what leaves take-home pay: £500 is 500 × 1.25 = £625 going in, + £200
     const split = railFor(at(run(typedB(fresh(), { payIn: '' }), set('b', 'you.payIn.kind', 'split'), set('b', 'you.payIn.own', '500'), set('b', 'you.payIn.employer', '200')), 'b', 'answer')).steps[0];
-    expect(split.result.text).toBe('£180,000, age 45, £700 a month in, stop at 60');
+    expect(split.result.text).toBe('£180,000, age 45, £825 a month in, stop at 60');
+    // …and as what lands, said so: 500 + 200 = £700
+    const lands = railFor(at(run(typedB(fresh(), { payIn: '' }), set('b', 'you.payIn.kind', 'split'), set('b', 'you.payIn.ownFrom', 'lands'), set('b', 'you.payIn.own', '500'), set('b', 'you.payIn.employer', '200')), 'b', 'answer')).steps[0];
+    expect(lands.result.text).toBe('£180,000, age 45, £700 a month in, stop at 60');
     const share = railFor(at(run(typedB(fresh(), { payIn: '' }), set('b', 'you.payIn.kind', 'share'), set('b', 'you.payIn.pay', '40,000'), set('b', 'you.payIn.ownPct', '5'), set('b', 'you.payIn.employerPct', '3')), 'b', 'answer')).steps[0];
     expect(share.result.text).toBe('£180,000, age 45, £267 a month in, stop at 60');
   });

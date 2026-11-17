@@ -137,7 +137,11 @@ export function createAutosave(win, doc, o) {
         n.style.cssText = 'display:block; font-size:12px; margin-top:4px; color:var(--warning, #d97706);';
         el.insertAdjacentElement('afterend', n);
       }
-      if (p.blocks) { el.setAttribute('aria-invalid', 'true'); n.setAttribute('role', 'alert'); } else { el.removeAttribute('aria-invalid'); n.removeAttribute('role'); }
+      if (p.blocks) {
+        el.setAttribute('aria-invalid', 'true'); n.setAttribute('role', 'alert');
+        const closed = el.closest && el.closest('details:not([open])');   // a box under "More detail" with a problem is shown
+        if (closed) closed.open = true;
+      } else { el.removeAttribute('aria-invalid'); n.removeAttribute('role'); }
       n.textContent = p.words + (p.blocks ? ' ' + FIELD_WORDS.notSaved : '');
       if (p.ask) {
         const b = doc.createElement('button');

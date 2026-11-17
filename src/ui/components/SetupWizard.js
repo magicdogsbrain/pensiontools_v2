@@ -301,7 +301,7 @@ function renderScenarioStep2() {
         <button type="button" class="wizard-tool-option" data-action="start-budget" style="text-align:left; width:100%; cursor:pointer;">
           <div class="wizard-tool-info">
             <strong>Work out my budget</strong>
-            <p>"What will I actually spend?" Build your monthly take-home need from your real expenses. The best place to begin — it drives everything else. <em>(Recommended)</em></p>
+            <p>"What will I actually spend?" Build your monthly take-home need from your real expenses. Every other tool can start from it.</p>
           </div>
         </button>
 
@@ -322,7 +322,7 @@ function renderScenarioStep2() {
         <button type="button" class="wizard-tool-option" data-action="start-decision" style="text-align:left; width:100%; cursor:pointer;">
           <div class="wizard-tool-info">
             <strong>Decide this month's withdrawal</strong>
-            <p>"Where should I take money from this month?" Works out which pot this month's money can come from, and the tax.</p>
+            <p>"Where could this month's money come from?" Works out which pot this month's money can come from, and the tax.</p>
           </div>
         </button>
 
@@ -511,7 +511,7 @@ function renderStressStep(step) {
     case 5:
       return `
         <div class="wizard-step">
-          <div class="wizard-step-title">How long should your money last?</div>
+          <div class="wizard-step-title">How long does your money need to last?</div>
           <div class="wizard-step-desc">
             How many years of retirement do you want to plan for?
           </div>
@@ -673,7 +673,7 @@ function renderDecisionStep(step) {
     case 3:
       return `
         <div class="wizard-step">
-          <div class="wizard-step-title">How long should your money last?</div>
+          <div class="wizard-step-title">How long does your money need to last?</div>
           <div class="wizard-step-desc">
             The fund minimums will gradually reduce to zero over this period. This is your "depletion curve."
           </div>

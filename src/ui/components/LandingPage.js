@@ -70,8 +70,8 @@ function renderLandingPage({ onGetStarted, onSignIn, onTryGuest, onLookAround })
             <div class="landing-step-badge">Step 3</div>
             <div class="landing-tool-icon">&#x1F4B7;</div>
             <h3>Monthly Decisions</h3>
-            <p class="landing-tool-question">"Where should I take money from?"</p>
-            <p>Each month, get a clear recommendation on which fund to draw from — equity, bonds, or cash — to maximise tax efficiency and protect your portfolio.</p>
+            <p class="landing-tool-question">"Which pot could this month's money come from?"</p>
+            <p>Each month, see what taking it from shares, bonds or cash does to your tax and your pots.</p>
           </div>
         </div>
 

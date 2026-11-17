@@ -111,7 +111,7 @@ function KeepLine({ l, V, dispatch, planId, KT }) {
     <div class="hold-keep" data-testid={base} data-kept={k.saved ? k.saved.as : ''}>
       {saved && <p class="note" data-testid={`${base}.saved`}>{saved}</p>}
       {/* 7.7.0: a kept line not yet tested against the plan (or changed since the agreement) says so */}
-      {saved && KT && KT.status !== 'agreed' && <p class="note" data-testid={`${base}.untested`}>{KEEPTEST.keptUntested}</p>}
+      {saved && KT && KT.status !== 'agreed' && <p class="note" data-testid={`${base}.untested`}>{KT.result ? KEEPTEST.keptTested : KEEPTEST.keptUntested}</p>}
       {asking && (
         <fieldset class="field field-choice notice" data-testid={`${base}.box`}>
           <legend>{K.asked}</legend>

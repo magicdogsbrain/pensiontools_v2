@@ -38,11 +38,13 @@ export const KEEPTEST = {
   // the one line on the plan's home and About, and on each kept line
   line: {
     untested: 'You keep something your plan did not have; it is not yet tested against your plan.',
+    tested: 'Tested today: with what you keep, your plan lasts {words}. You have not yet said you accept this.',
     agreedLasts: 'Your plan, as locked on {locked}, with what you chose to keep (agreed {agreed}): lasts to {age} in a bad case, the worst 1 in 10 (was {was}).',
     agreedShort: 'Your plan, as locked on {locked}, with what you chose to keep (agreed {agreed}): runs short at {age} in a bad case, the worst 1 in 10 (was {was}).',
     stale: 'What you hold has changed since you agreed to it on {agreed}, so that agreement is out of date: test it again.',
     lapsed: 'You no longer keep what you agreed to on {agreed}, so that agreement is out of date; you can withdraw it.'
   },
   keptUntested: 'Kept — not yet tested against your plan.',
+  keptTested: 'Kept — tested today; you have not yet said you accept it.',
   todo: 'Test what you keep against your plan'
 };

@@ -331,7 +331,8 @@ export function keepTestOf(plan, { result = null, run = null, today = null } = {
   const line = st.status === 'agreed' && agreed && agreed.held && agreed.locked
     ? { id: agreed.held.short ? 'line.agreedShort' : 'line.agreedLasts', slots: { locked: lockedOn, agreed: agreed.on, age: agreed.held.age, was: agreed.locked.age } }
     : st.status === 'stale' ? { id: st.keeps ? 'line.stale' : 'line.lapsed', slots: { agreed: agreed ? agreed.on : '' } }
-      : st.status === 'untested' ? { id: 'line.untested', slots: {} } : null;
+      // tested in this visit but not agreed (7.12.0 round 3, walker 5): "tested" and "agreed" are two things, said apart
+      : st.status === 'untested' ? (view && view.held ? { id: 'line.tested', slots: { words: view.held.words } } : { id: 'line.untested', slots: {} }) : null;
   return {
     status: st.status, keeps: st.keeps, lockedOn, agreed, line,
     // one to-do while something is kept and not agreed as it is now

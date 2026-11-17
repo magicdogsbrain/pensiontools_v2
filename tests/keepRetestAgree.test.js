@@ -169,8 +169,12 @@ describe('"I accept this risk": one write, withdraw, out of date, the guard', ()
   const agreed = () => { const a = amendPatch(p, r, { at: AT }); return { ...p, planAmendments: a.patch.planAmendments }; };
 
   it('before: untested, one to-do, the line says so; the result read only while it is for what is kept now', () => {
+    expect(keepTestOf(p, {})).toMatchObject({ status: 'untested', line: { id: 'line.untested' } });
     const v = keepTestOf(p, { result: r });
-    expect(v).toMatchObject({ status: 'untested', keeps: true, canAccept: true, canWithdraw: false, todo: { id: 'todo' }, line: { id: 'line.untested' } });
+    // round 3 (walker 5): with the test's result in hand the line says it was tested, and not yet agreed — never "not yet tested"
+    expect(v).toMatchObject({ status: 'untested', keeps: true, canAccept: true, canWithdraw: false, todo: { id: 'todo' }, line: { id: 'line.tested', slots: { words: v.result.held.words } } });
+    expect(sayKeep(v.line, KEEPTEST)).toBe('Tested today: with what you keep, your plan lasts ' + v.result.held.words + '. You have not yet said you accept this.');
+    expect(keepTestHtml(v)).not.toContain('not yet tested');
     expect(v.result.held.bad.id).toBe('badShort');
     expect(keepTestOf(p, { result: { ...r, fingerprint: 'other' } }).result).toBe(null);
   });

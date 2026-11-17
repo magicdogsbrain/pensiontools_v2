@@ -295,6 +295,7 @@ function TryChange({ L, planId, dispatch, sourceText }) {
   const diffLine = (d) => {
     const s = d.slots;
     if (d.id === 'way') return fill(T.diffs.way, { way: wayName(s.way), old: wayName(s.old) });
+    if (d.id === 'pot' && s.old == null) return fill(T.diffs.potNotSet, { pot: pounds(s.pot) });
     if (d.id === 'pot' || d.id === 'isa') return fill(T.diffs[d.id], { pot: pounds(s.pot), isa: pounds(s.isa), old: pounds(s.old) });
     if (d.id === 'isaPolicy') return fill(T.diffs.isaPolicy, { policy: policy(s.policy), old: policy(s.old) });
     if (d.id === 'income') return fill(T.diffs.income, { income: pounds(s.income), steps: s.steps ? T.diffs.incomeSteps : '' });

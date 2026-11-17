@@ -102,6 +102,11 @@ export async function refreshDraftLines(win, doc, deps) {
 export function blankUnsetPots(doc, settings) {
   const box = doc && doc.getElementById('ssPot');
   if (!box) return;
-  if (settings && settings.potsNotSet) { box.value = ''; box.placeholder = DRAFT_WORDS.notSet; }
+  if (settings && settings.potsNotSet) {
+    box.value = ''; box.placeholder = DRAFT_WORDS.notSet;
+    // the shares, bonds and cash under it (#ssAllocAmounts) were worked from the stored default split: not a figure either
+    const amounts = doc.getElementById('ssAllocAmounts');
+    if (amounts) amounts.innerHTML = '<div class="hint">' + DRAFT_WORDS.notSet + '</div>';
+  }
   else if (box.placeholder === DRAFT_WORDS.notSet) box.placeholder = '';
 }

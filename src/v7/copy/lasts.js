@@ -215,6 +215,7 @@ export const LASTS = {
     diffs: {
       way: 'The way the money is taken: {way} (the plan: {old}).',
       pot: 'The pension pot: {pot} (the plan: {old}).',
+      potNotSet: 'The pension pot: {pot} (the plan has none set yet).',
       isa: 'The ISA: {isa} (the plan: {old}).',
       isaPolicy: 'The ISA: {policy} (the plan: {old}).',
       income: 'A flat income of {income} a year before tax{steps}.',

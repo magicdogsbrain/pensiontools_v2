@@ -449,7 +449,9 @@ export function tryDifferencesOf(s, c) {
   if (c.strategyId !== sid) diff.push({ id: 'way', slots: { way: c.strategyId, old: sid } });
   const oldPot = (s.strategyParams && s.strategyParams.sippTotal) || ((s.equityMin || 0) + (s.bondMin || 0) + (s.cashTarget || 0));
   const newPot = (c.strategyParams && c.strategyParams.sippTotal) || 0;
-  if (Math.abs(newPot - oldPot) > 1) diff.push({ id: 'pot', slots: { pot: r0(newPot), old: r0(oldPot) } });
+  // a plan with no pension known anywhere (PlanReading.withPensionToday's `potsNotSet`) has no pot to set beside it (7.12.0)
+  if (s.potsNotSet) diff.push({ id: 'pot', slots: { pot: r0(newPot), old: null } });
+  else if (Math.abs(newPot - oldPot) > 1) diff.push({ id: 'pot', slots: { pot: r0(newPot), old: r0(oldPot) } });
   const oldIsa = (s.strategyParams && s.strategyParams.isaTotal != null) ? s.strategyParams.isaTotal : (s.isaBalance != null ? s.isaBalance : 0);
   if (Math.abs((c.isaBalance || 0) - oldIsa) > 1) diff.push({ id: 'isa', slots: { isa: r0(c.isaBalance || 0), old: r0(oldIsa) } });
   const policy = (x) => (x.isaDrawdownStrategy == null ? null : String(x.isaDrawdownStrategy));
@@ -505,7 +507,8 @@ export function tryBoxesOf(plan, { today }) {
   const first = Array.isArray(ss.targetSchedule) && ss.targetSchedule.length ? r0(ss.targetSchedule[0]) : r0(ss.baseSalary);
   return {
     'try.way': WAY_IDS.includes(ss.strategyId) ? ss.strategyId : 'pots-and-valves',
-    'try.pot': String(tryPotOf(ss)), 'try.isa': String(tryIsaOf(ss)), 'try.isaPolicy': 'saved',
+    // no pension known anywhere (7.12.0): the box starts empty, never the stored default
+    'try.pot': ss.potsNotSet ? '' : String(tryPotOf(ss)), 'try.isa': String(tryIsaOf(ss)), 'try.isaPolicy': 'saved',
     'try.incomeMode': 'shape', 'try.income': String(monthlyNet(first, bands)),
     'try.years': String(num(ss.duration) || 35), 'try.cuts': 'saved', 'try.cutPct': '', 'try.cutEsc': ''
   };

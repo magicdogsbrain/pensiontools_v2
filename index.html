@@ -6009,7 +6009,7 @@
       // the pot box starts at the figure the what-if rescales the pots by and "What's different" reads (the pension's shares,
       // bonds and cash; a diversifiers sleeve is left as it is) — until 6.41.0 it started at the sum WITH the sleeve, so an
       // untouched what-if on a plan with a sleeve moved the pots and said the pot differed
-      document.getElementById('tryPot').value = Math.round(sp.sippTotal || ((s.equityMin || 0) + (s.bondMin || 0) + (s.cashTarget || 0)));
+      document.getElementById('tryPot').value = s.potsNotSet ? '' : Math.round(sp.sippTotal || ((s.equityMin || 0) + (s.bondMin || 0) + (s.cashTarget || 0)));   // no pension known: empty (7.12.0)
       document.getElementById('tryIsa').value = Math.round(sp.isaTotal ?? (s.isaBalance || 0));
       document.getElementById('tryIsaPolicy').value = '';
       document.getElementById('tryIncomeMode').value = 'shape';
@@ -6047,7 +6047,7 @@
     // the six it always said, and the three it left out until 6.41.0 — the ISA policy, the cut depth, the escalation months.
     const TRY_DIFF_WORDS = {
       way: (d) => 'strategy ' + STRATEGY_NAMES[d.slots.way] + ' (plan: ' + STRATEGY_NAMES[d.slots.old] + ')',
-      pot: (d) => 'pot ' + gbp(d.slots.pot) + ' (plan: ' + gbp(d.slots.old) + ')',
+      pot: (d) => 'pot ' + gbp(d.slots.pot) + (d.slots.old == null ? ' (plan: not set yet)' : ' (plan: ' + gbp(d.slots.old) + ')'),
       isa: (d) => 'ISA ' + gbp(d.slots.isa),
       isaPolicy: (d) => 'ISA ' + (d.slots.policy === 'hold' ? 'held (powder dry)' : (d.slots.policy === 'bridge' || d.slots.policy === 'minimiseEarlyTax') ? 'drawn as configured' : (d.slots.policy || 'as saved')) + ' (plan: ' + (d.slots.old === 'hold' ? 'held' : d.slots.old || 'drawn') + ')',
       income: (d) => 'flat income ' + gbp(d.slots.income) + (d.slots.steps ? ' instead of your steps' : ''),

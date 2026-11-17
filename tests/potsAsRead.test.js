@@ -13,6 +13,9 @@ import { getDefaultScenario } from '../src/storage/ScenarioRepository.js';
 import { blankUnsetPots } from '../src/ui/draftPlanLine.js';
 import { seedToScenario } from '../src/services/PlanSeed.js';
 import { aboutOf } from '../src/answers/plan/about.js';
+import { tryBoxesOf, checkTry, tryDifferencesOf } from '../src/answers/plan/lasts.js';
+import { LASTS } from '../src/v7/copy/lasts.js';
+const fill = (t, s) => String(t).replace(/\{(\w+)\}/g, (m, k) => (k in s ? s[k] : m));
 import { ABOUT } from '../src/v7/copy/about.js';
 import { seedA } from './integration/fixtures/planSeeds.js';
 
@@ -57,6 +60,29 @@ describe('a plan with no figures reads no default as a figure', () => {
     box.value = '150000';
     blankUnsetPots(doc, { equityMin: 75000 });
     expect(box).toEqual({ value: '150000', placeholder: '' });
+  });
+
+  it('the full view: the shares, bonds and cash under the empty pot box are not the defaults either', () => {
+    // 7.12.0: before, the amounts under the box still read the stored £250,000 / £200,000 / £50,000 until a pot was typed
+    const box = { value: '500000', placeholder: '' };
+    const amounts = { innerHTML: '<div>Shares £250,000 · Bonds £200,000 · Cash £50,000</div>', textContent: '' };
+    const doc = { getElementById: (id) => (id === 'ssPot' ? box : id === 'ssAllocAmounts' ? amounts : null) };
+    blankUnsetPots(doc, { potsNotSet: true });
+    expect(amounts.innerHTML).not.toMatch(/£/);
+    expect(amounts.innerHTML).toContain('Not set yet');
+  });
+
+  it('"Try a change of your own" starts with the pot box empty when no pension is known, and says the plan has none', () => {
+    // 7.12.0: the box read the stored £500,000 default as the plan's pot, and "What's different" said "(the plan: £500,000)"
+    const plan = sam(null);
+    expect(tryBoxesOf(plan, { today: '2026-11-16' })['try.pot']).toBe('');
+    expect(checkTry(plan, {}, { today: '2026-11-16' }).errors['try.pot']).toBe('required');
+    const ss = effectiveStressSettings(plan, { now: NOW });
+    const d = tryDifferencesOf(ss, { ...ss, strategyParams: { sippTotal: 300000 }, isaBalance: ss.isaBalance || 0 });
+    expect(d.find((x) => x.id === 'pot')).toEqual({ id: 'pot', slots: { pot: 300000, old: null } });
+    expect(fill(LASTS.try.diffs.potNotSet, { pot: '£300,000' })).toBe('The pension pot: £300,000 (the plan has none set yet).');
+    // a plan with a pension known keeps its figure in the box
+    expect(tryBoxesOf(sam(), { today: '2026-11-16' })['try.pot']).toBe('150000');
   });
 
   it('a plan with figures is read as stored', () => {

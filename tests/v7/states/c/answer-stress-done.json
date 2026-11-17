@@ -511,12 +511,13 @@
           },
           "bad": {
             "id": "c.when",
-            "text": "In the futures where the money runs out before 104, it typically runs out at 91. In the worst 1 in 10 of all the futures, by 90.",
+            "text": "We follow each future on to 104. In the futures where the money runs out before then, it typically runs out at 91. In the worst 1 in 10 of all the futures, by 90.",
             "parts": [
-              "In the futures where the money runs out before ",
+              "We follow each future on to ",
               {
                 "fixed": "104"
               },
+              ". In the futures where the money runs out before then",
               ", it typically runs out ",
               "at ",
               {
@@ -938,12 +939,13 @@
           "sentences": {
             "when": {
               "id": "strip.asPlanned.when",
-              "text": "In the futures where the money runs out before 104, it typically runs out at 91. In the worst 1 in 10 of all the futures, by 90.",
+              "text": "We follow each future on to 104. In the futures where the money runs out before then, it typically runs out at 91. In the worst 1 in 10 of all the futures, by 90.",
               "parts": [
-                "In the futures where the money runs out before ",
+                "We follow each future on to ",
                 {
                   "fixed": "104"
                 },
+                ". In the futures where the money runs out before then",
                 ", it typically runs out ",
                 "at ",
                 {
@@ -1128,12 +1130,13 @@
           "sentences": {
             "when": {
               "id": "strip.fall.when",
-              "text": "In the futures where the money runs out before 104 (529 of the 1,000; as planned: 236), it typically runs out at 86 (as planned: 91). In the worst 1 in 10 of all the futures, by 78 (as planned: by 90).",
+              "text": "We follow each future on to 104. In the futures where the money runs out before then (529 of the 1,000; as planned: 236), it typically runs out at 86 (as planned: 91). In the worst 1 in 10 of all the futures, by 78 (as planned: by 90).",
               "parts": [
-                "In the futures where the money runs out before ",
+                "We follow each future on to ",
                 {
                   "fixed": "104"
                 },
+                ". In the futures where the money runs out before then",
                 " (",
                 {
                   "fixed": "529"
@@ -1364,12 +1367,13 @@
           "sentences": {
             "when": {
               "id": "strip.lower.when",
-              "text": "In the futures where the money runs out before 104 (419 of the 1,000; as planned: 236), it typically runs out at 90 (as planned: 91). In the worst 1 in 10 of all the futures, by 83 (as planned: by 90).",
+              "text": "We follow each future on to 104. In the futures where the money runs out before then (419 of the 1,000; as planned: 236), it typically runs out at 90 (as planned: 91). In the worst 1 in 10 of all the futures, by 83 (as planned: by 90).",
               "parts": [
-                "In the futures where the money runs out before ",
+                "We follow each future on to ",
                 {
                   "fixed": "104"
                 },
+                ". In the futures where the money runs out before then",
                 " (",
                 {
                   "fixed": "419"
@@ -1600,12 +1604,13 @@
           "sentences": {
             "when": {
               "id": "strip.spend.when",
-              "text": "In the futures where the money runs out before 104 (555 of the 1,000; as planned: 236), it typically runs out at 85 (as planned: 91). In the worst 1 in 10 of all the futures, by 78 (as planned: by 90).",
+              "text": "We follow each future on to 104. In the futures where the money runs out before then (555 of the 1,000; as planned: 236), it typically runs out at 85 (as planned: 91). In the worst 1 in 10 of all the futures, by 78 (as planned: by 90).",
               "parts": [
-                "In the futures where the money runs out before ",
+                "We follow each future on to ",
                 {
                   "fixed": "104"
                 },
+                ". In the futures where the money runs out before then",
                 " (",
                 {
                   "fixed": "555"
@@ -1852,12 +1857,13 @@
           "sentences": {
             "when": {
               "id": "strip.prices.when",
-              "text": "In the futures where the money runs out before 104 (287 of the 1,000; as planned: 236), it typically runs out at 91 (as planned: 91). In the worst 1 in 10 of all the futures, by 88 (as planned: by 90).",
+              "text": "We follow each future on to 104. In the futures where the money runs out before then (287 of the 1,000; as planned: 236), it typically runs out at 91 (as planned: 91). In the worst 1 in 10 of all the futures, by 88 (as planned: by 90).",
               "parts": [
-                "In the futures where the money runs out before ",
+                "We follow each future on to ",
                 {
                   "fixed": "104"
                 },
+                ". In the futures where the money runs out before then",
                 " (",
                 {
                   "fixed": "287"

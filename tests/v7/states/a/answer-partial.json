@@ -1315,12 +1315,13 @@
           },
           "bad": {
             "id": "a.when",
-            "text": "In the futures where the money runs out before 104, it typically runs out at 90. In the worst 1 in 10 of all the futures, by 85. Stopping at 62 instead is within Balanced.",
+            "text": "We follow each future on to 104. In the futures where the money runs out before then, it typically runs out at 90. In the worst 1 in 10 of all the futures, by 85. Stopping at 62 instead is within Balanced.",
             "parts": [
-              "In the futures where the money runs out before ",
+              "We follow each future on to ",
               {
                 "fixed": "104"
               },
+              ". In the futures where the money runs out before then",
               ", it typically runs out ",
               "at ",
               {

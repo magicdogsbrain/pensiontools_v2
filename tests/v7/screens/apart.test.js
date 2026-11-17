@@ -724,6 +724,8 @@ describe('7 — today, byte for byte', () => {
   // heads "Not enough for …", and its "Try a change" tries a pay-in and a one-off sum of your own without writing over what
   // was typed (the slider's box, the stepper's typed attribute and the lump box). Every B answer and every C state that
   // draws "What next?" moved (V7_PIN_TODAY=1, V7_PIN_SCREENS=1); no figure of any answer moved but B's new sentences'
+  // …and the "when it runs out" line (7.12.0): "We follow each future on to 104. In the futures where the money runs out
+  // before then, …" — every answer that says it moved (V7_PIN_TODAY=1, V7_PIN_SCREENS=1); no count or age moved
   const NEW = ['[data-field="partner.stop.kind"]', '[data-field="you.taxFreeTaken"]', '[data-field="partner.taxFreeTaken"]', '[data-region="shape"]',
     '[data-warning-id="drawdown-2028"]', '[data-field="isaGrowth"]', '[data-testid="nav.plans"]', '[data-testid="nav.account"]', '[data-testid="nav.whatsNew"]', '[data-testid="nav.assumptions"]', '[data-testid="front.exampleLine"]',
     // 7.9.0: "Try the bad years" under C's and D's final answers — a button only until pressed; no figure of the answer moves

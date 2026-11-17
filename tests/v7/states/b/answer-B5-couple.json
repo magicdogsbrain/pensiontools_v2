@@ -1966,13 +1966,14 @@
           },
           "atAim": {
             "id": "b.when",
-            "text": "In the futures where the money runs out before the younger of you is 105, it typically runs out when the younger of you is 85. In the worst 1 in 10 of all the futures, by the time the younger of you is 79.",
+            "text": "We follow each future on to when the younger of you is 105. In the futures where the money runs out before then, it typically runs out when the younger of you is 85. In the worst 1 in 10 of all the futures, by the time the younger of you is 79.",
             "parts": [
-              "In the futures where the money runs out before ",
-              "the younger of you is ",
+              "We follow each future on to ",
+              "when the younger of you is ",
               {
                 "fixed": "105"
               },
+              ". In the futures where the money runs out before then",
               ", it typically runs out ",
               "when the younger of you is ",
               {

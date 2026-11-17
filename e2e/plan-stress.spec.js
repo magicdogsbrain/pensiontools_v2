@@ -31,8 +31,20 @@ const v7 = (hash) => PROD + V7_PATH + hash;
 const T = 'plan.hold.keepTest';
 const BANNED = /\bstrategy\b|\bscenario\b|\bwrappers?\b|\bholdings\b|\btransition\b|\bportfolio\b|\bnominal\b|run-?up|you should|\brecommend|Monte Carlo|\bMC\b|\bp10\b|percentile|about £/i;
 
+/**
+ * 7.12.0: living on a ladder there is no keep test (what is held simply counts, "Your plan's mix" says how), and the stored
+ * ladder records months, so it reads Living on it. The keep test is tried on it read as Moving, in place (as
+ * e2e/plan-keep.spec.js does): still saving, work stopping in April 2027, inside the move window, no month recorded.
+ */
+function asMoving(raw) {
+  const s = raw.stressTool.settings;
+  s.retired = false; s.retireAge = 66; s.stoppedWork = '2027-04';
+  delete s.firstTaxYear;
+  raw.decisionTool.history = [];
+  return raw;
+}
 function plan() {
-  const p = JSON.parse(readFileSync(join(REPO, 'tests', 'fixtures', 'plans', '20-locked-start-after-stop.json'), 'utf8'));
+  const p = asMoving(JSON.parse(readFileSync(join(REPO, 'tests', 'fixtures', 'plans', '20-locked-start-after-stop.json'), 'utf8')));
   p.id = ID; p.planDetails.name = 'Sam’s plan'; p.isActive = true; delete p.household;
   p.holdings.lines = p.holdings.lines.filter((l) => !/^(T29|T30I)$/.test(l.ticker || '')).map((l) => (l.ticker === 'VWRP' ? { ...l, keep: { as: 'mine', fundsGaps: false } } : l));
   p.holdings.expected = [{ id: 'e1', label: 'Pension elsewhere', wrapper: 'SIPP', amount: 30000, by: '2028-06' }];

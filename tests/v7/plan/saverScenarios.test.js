@@ -341,7 +341,7 @@ describe('step 5: the home says the answer', () => {
     const held = reduce(reduce(home, { type: A.SAVER_WORKING, key: v.key }), { type: A.SAVER_FINAL, key: v.key, result });
     const text = drawn(held).querySelector('[data-testid="plan.home.saver"]').textContent;
     expect(text).toContain('Are you paying in enough?');
-    expect(text).toContain('Not on course for £2,000 a month from 60');
+    expect(text).toContain('Not enough for £2,000 a month from 60');
     // what would be enough, said with what leaves take-home pay: the share's own part of £38,000 a year, × 0.8, a month
     const fig = result.enough.atLevel;
     expect(text).toContain(`${fig.totalPct}% of your pay in all`);

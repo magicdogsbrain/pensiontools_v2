@@ -166,6 +166,9 @@ export function enoughOf({ row, H, ctx, solved, inp, whos, savers, band, allowed
     // who has an employer's part going in (the words say "your employer's" or "your employers'")
     employers: people.filter((q) => q.saves && q.employer > 0).map((q) => q.who),
     now: how === 'share' ? { totalPct: round2(one.ownPctNow + one.employerPct), ownPct: one.ownPctNow, employerPct: one.employerPct, payIn: now } : null,
+    // (7.12.0) what goes in now, in the person's own parts: what leaves their take-home pay for their part, and their
+    // employer's part — said beside "as now" (one person who gave their part: a share, or their part in pounds)
+    nowParts: one && one.kind !== 'total' ? { own: round2(one.now - one.employer), employer: one.employer, takeHome: homeOf(round2(one.now - one.employer)) } : null,
     employerKept: people.some((q) => q.saves && q.employer > 0),
     paused: people.some((q) => q.saves && q.kind === 'paused'),
     pausedWho: people.filter((q) => q.saves && q.kind === 'paused').map((q) => q.who),

@@ -385,10 +385,10 @@ describe('the panel: "Use these in ‘…’" first, "Keep as a new plan" second
     const name = named.planDetails.name;
     if (keepView(st, 'b').payIn) {
       // not on course: which pay-in the plan uses, two buttons, neither chosen — and the same choice, second, for a new plan
-      expect(one(root, 'b.use.payIn').querySelector('legend').textContent).toBe('Which pay-in should ‘' + name + '’ use?');
+      expect(one(root, 'b.use.payIn').querySelector('legend').textContent).toBe('Which pay-in do you want ‘' + name + '’ to use?');
       expect(one(root, 'b.action.use.now').textContent).toMatch(/^Use: paying in as now/);
       expect(one(root, 'b.action.use.now').className).toContain('primary');
-      expect(one(root, 'b.action.use.enough').textContent).toMatch(/^Use: paying in .* \(on course\)$/);
+      expect(one(root, 'b.action.use.enough').textContent).toMatch(/^Use: paying in .* \(what would be enough\)$/);
       expect(one(root, 'b.action.save.now').className).not.toContain('primary');
     } else {
       expect(one(root, 'b.action.use').textContent).toBe('Use these in ‘' + name + '’');

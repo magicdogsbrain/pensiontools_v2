@@ -40,6 +40,7 @@ export function saverBlockOf(verdict, run) {
   const band = r.verdict && r.verdict.band ? r.verdict.band : null;
   if (s.verdictHead) lines.push({ id: 'head', s: s.verdictHead });
   if (s.verdictLine) lines.push({ id: 'line', s: s.verdictLine });
+  if (s.verdictEnough) lines.push({ id: 'lineEnough', s: s.verdictEnough });
   if (band !== 'yes') {
     if (s.enoughHead) lines.push({ id: 'enoughHead', s: s.enoughHead });
     if (s.enoughLine) lines.push({ id: 'enoughLine', s: s.enoughLine });

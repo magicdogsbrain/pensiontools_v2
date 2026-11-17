@@ -189,7 +189,7 @@ describe('the home says the answer in the person\'s own terms, and follows every
     // with the employer's 3%: 38,000 × 0.08 ÷ 12 = £253.33 a month in all
     expect(line('now.share')).toBe('You pay in 5% of your pay and your employer 3%: £127 a month from your take-home pay, £253 a month into your pension in all.');
     const band = H.result.verdict.band;
-    expect(line('head')).toBe((band === 'yes' ? 'On course for ' : band === 'close' ? 'Close — ' : 'Not on course for ') + '£2,000 a month from 60' + (band === 'close' ? ' is tight' : ''));
+    expect(line('head')).toBe((band === 'yes' ? 'On course for ' : band === 'close' ? 'Close — ' : 'Not enough for ') + '£2,000 a month from 60' + (band === 'close' ? ' is tight' : ''));
     // how sure: the chance, in the answer's own first sentence
     expect(line('line')).toMatch(/your money lasts as long as you do \d+ times in 20/);
     expect(band).not.toBe('yes');

@@ -52,6 +52,7 @@ function LiveVerdict({ result }) {
             <Sentence s={s.verdictHead} source={result} class="figure" />
           </div>
           <Sentence s={s.verdictLine} source={result} class="line" data-sentence="verdict" />
+          {s.verdictEnough && <Sentence s={s.verdictEnough} source={result} class="line enough-now" data-sentence="verdict-enough" />}
           {s.verdictFour && <Sentence s={s.verdictFour} source={result} class="four" />}
           {s.income && <Sentence s={s.income} source={result} class="income" />}
           {s.atAim && <Sentence s={s.atAim} source={result} class="bad" />}

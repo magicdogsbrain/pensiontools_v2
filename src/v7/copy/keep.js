@@ -29,14 +29,14 @@ export const KEEP = {
    * of pay, or pounds a month (and the savings a month for the years before a pension can be touched).
    */
   payIn: {
-    ask: 'Which pay-in should the plan keep?',
+    ask: 'Which pay-in do you want the plan to keep?',
     now: 'Keep: paying in as now ({now})',
     nowNothing: 'Keep: paying nothing in, as now',
-    enough: 'Keep: paying in {enough} (on course)',
+    enough: 'Keep: paying in {enough} (what would be enough)',
     aMonth: '{amount} a month',
     between: '{amount} a month between you',
     withSavings: '{pension}, and {savings} a month into savings',
-    savingsOnly: 'Keep: paying in as now, and {savings} a month into savings (on course)',
+    savingsOnly: 'Keep: paying in as now, and {savings} a month into savings (what would be enough)',
     note: 'Neither is chosen for you. You can change what goes in later, in the plan.'
   },
   saving: 'Keeping…',
@@ -144,11 +144,11 @@ export const KEEP = {
     button: 'Use these in ‘{name}’',
     working: 'Putting these in ‘{name}’…',
     /** B not on course: which pay-in the plan takes, two buttons, neither chosen (as Keep asks it). */
-    ask: 'Which pay-in should ‘{name}’ use?',
+    ask: 'Which pay-in do you want ‘{name}’ to use?',
     now: 'Use: paying in as now ({now})',
     nowNothing: 'Use: paying nothing in, as now',
-    enough: 'Use: paying in {enough} (on course)',
-    savingsOnly: 'Use: paying in as now, and {savings} a month into savings (on course)',
+    enough: 'Use: paying in {enough} (what would be enough)',
+    savingsOnly: 'Use: paying in as now, and {savings} a month into savings (what would be enough)',
     what: 'Only what goes in changes in ‘{name}’: what goes into your pension each month, and into ISAs and savings. Its ages, its pot and what you spend stay as they are.',
     /** What changed, on the answer page (useAnswer.js line ids). */
     done: {

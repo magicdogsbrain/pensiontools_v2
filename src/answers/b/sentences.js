@@ -514,7 +514,7 @@ const lower = (parts) => parts.map((x, i) => (i === 0 && typeof x === 'string' ?
  * R1). The first sentence answers both questions at once — how it stands paying in as now, and the share of pay (or the
  * pounds) that would put you on course — because that was what was hard to find.
  *
- *   verdictHead   "On course for £1,500 a month from 66" / "Close — £1,810 a month from 63 is tight" / "Not on course for …"
+ *   verdictHead   "On course for £1,500 a month from 66" / "Close — £1,810 a month from 63 is tight" / "Not enough for …"
  *                 (legacyVerdictOf's bands: on course at 9 futures in 10, close from 3 in 4)
  *   verdictLine   paying in as now: the count; then what would be on course (and, not on course, for 3 futures out of 4),
  *                 or "even all of your pay going in would not be on course"; on course, how little would still be
@@ -626,22 +626,30 @@ function verdictSentences(result, facts) {
   const pastReach = !!(result.reach && !result.reach.payIn);
 
   // ---- the headline: the band, in the unit the aim was given in ----------------------------------------------------
+  // (7.12.0: "Not enough for …" answers "Am I saving enough?" in its own words)
   out.verdictHead = band === 'yes' ? S('b.verdict.head.yes', ['On course for ', aim])
     : band === 'close' ? S('b.verdict.head.close', ['Close — ', aim, ' is tight'])
-      : S('b.verdict.head.no', ['Not on course for ', aim]);
+      : S('b.verdict.head.no', ['Not enough for ', aim]);
 
   // ---- the first sentence: as now, then what would be enough --------------------------------------------------------
   // (one person saving: whoever it is — "With your partner paying in …" when it is your partner; two: between you)
   const nowIn = result.payIn.now > 0;
+  // what goes in now in the person's own parts (7.12.0): what leaves their take-home pay, and their employer's part
+  const np = en.nowParts;
+  const nowDetail = !np ? null
+    : np.takeHome > 0 ? [ABOUT, M('enough.nowParts.takeHome'), ' from ', W.takeHome, np.employer > 0 ? [' and ', M('enough.nowParts.employer'), ' from ', W.employer] : '']
+      : np.employer > 0 ? [M('enough.nowParts.employer'), ' from ', W.employer] : null;
   const nowWords = !nowIn ? [theirs ? 'With your partner paying nothing more in, ' : 'Paying nothing more in, ']
     : en.how === 'share' ? [W.paying, PCT('enough.now.totalPct'), ' of ', W.payShort, ' as now (', M('payIn.now'), ' a month',
-      employerPct > 0 ? [', ', W.employers, ' ', PCT('enough.now.employerPct'), ' included'] : '', '), ']
+      nowDetail ? [employerPct > 0 ? ' in all' : '', ': ', nowDetail] : employerPct > 0 ? [', ', W.employers, ' ', PCT('enough.now.employerPct'), ' included'] : '', '), ']
       : pair ? ['Paying in ', M('payIn.now'), ' a month between you as now', employersIncluded(employers), ', ']
-        : [W.paying, M('payIn.now'), ' a month as now', (result.payIn.employer || 0) > 0 ? [' (', W.employers, ' ', M('payIn.employer'), ' included)'] : '', ', '];
+        : [W.paying, M('payIn.now'), ' a month as now', nowDetail ? [' (', nowDetail, ')'] : (result.payIn.employer || 0) > 0 ? [' (', W.employers, ' ', M('payIn.employer'), ' included)'] : '', ', '];
   // (weighing: the chance paying in as now, counted by how long people live; the fixed-age line beside it says the count)
   const asNow = weighedV(v) ? [nowWords, countingLead(c).charAt(0).toLowerCase() + countingLead(c).slice(1), ', your money ', lastsChance(v)]
     : [nowWords, 'your money lasted ', until(facts), ' ', countParts(v.lasted)];
   let enoughWords;
+  // (7.12.0) what would be on course is a sentence of its own, under the as-now one, and says what leaves take-home pay
+  let enoughAlone = null;
   if (band === 'yes') {
     // on course: how little would still be (only when less than now, and no more into savings)
     const less = nine && nine.savingsIn === null && nine.payIn < result.payIn.now - 0.005;
@@ -652,18 +660,25 @@ function verdictSentences(result, facts) {
         : employerOnly ? ['. ', W.couldStopOwn, W.employers, ' ', en.how === 'share' ? PCT(`${NINE}.employerPct`) : M(`${NINE}.employer`), ' going in, and still be on course.']
           : ['. ', W.asLittle, figure(NINE, nine), ' and still be on course', detail(NINE, nine) ? [': ', detail(NINE, nine)] : '', '.'];
   } else if (en.savingsOnly && nine) {
-    enoughWords = ['. What goes into ', pensionWord, ' is enough; ', M(`${NINE}.savingsIn`), ' a month into ISAs or savings ', untilStop, ' would put you on course, which is ', nineInTen, '.'];
+    enoughWords = '.';
+    enoughAlone = ['What goes into ', pensionWord, ' is enough; ', M(`${NINE}.savingsIn`), ' a month into ISAs or savings ', untilStop, ' would put you on course, which is ', nineInTen, '.'];
   } else if (nine && !pastReach) {
-    const parts = nine.savingsIn !== null
-      ? [figure(NINE, nine), en.how === 'share' ? [' into ', pensionWord] : '', ' and ', M(`${NINE}.savingsIn`), ' a month into ISAs or savings ', untilStop]
-      : figure(NINE, nine);
-    // what it means for the person is said once, in the block below (enoughLine)
-    enoughWords = ['. ', parts, ' would put you on course, which is ', nineInTen, '.'];
+    // one person: the figure, what goes into the pension a month, and what leaves take-home pay for it
+    const home = typeof nine.takeHome === 'number' && !pair ? [ABOUT, M(`${NINE}.takeHome`), ' from ', W.takeHome] : null;
+    const fig = pair ? figure(NINE, nine)
+      : en.how === 'share'
+        ? [PCT(`${NINE}.totalPct`), ' of ', W.pay, employerPct > 0 ? ' in all' : '', ' (', employerPct > 0 ? [W.who, ' ', PCT(`${NINE}.ownPct`), '; '] : '',
+          M(`${NINE}.payIn`), ' a month', employerPct > 0 ? ' in all' : '', ' going ', intoWord, home ? [', ', home] : '', ')']
+        : [M(`${NINE}.payIn`), ' a month going ', intoWord, home ? [' (', home, ')'] : ''];
+    const parts = nine.savingsIn !== null ? [fig, ' and ', M(`${NINE}.savingsIn`), ' a month into ISAs or savings ', untilStop] : fig;
+    enoughWords = '.';
+    enoughAlone = [parts, ' would put you on course, which is ', nineInTen, '.'];
   } else {
     // out of reach by paying in (one reach rule, 7.12.0): said one way, the other ways lead (3.3)
     enoughWords = ['; paying in more on its own cannot get there.'];
   }
   out.verdictLine = S(`b.verdict.line.${band}`, [asNow, enoughWords]);
+  if (enoughAlone) out.verdictEnough = S(`b.verdict.enough.${band}`, enoughAlone);
 
   // ---- what you could spend from the stop paying in as now, what it includes, and the gap ----------------------------
   const includes = includesParts(facts);
@@ -722,7 +737,9 @@ function verdictSentences(result, facts) {
   const headFigure = en.how === 'share'
     ? [PCT(`${LEAD}.totalPct`), ' of ', W.pay, employerPct > 0 ? ' in all' : '', leadFig.savingsIn !== null ? [' into ', pensionWord] : '']
     : [M(`${LEAD}.payIn`), ' a month ', intoWord];
-  out.enoughHead = S('b.enough.head', ['To be on course: ', headFigure, savingsPart]);
+  // (7.12.0) one person: what leaves take-home pay for it, beside the figure
+  const headHome = !pair && typeof leadFig.takeHome === 'number' && leadFig.takeHome > 0 ? [' (', ABOUT, M(`${LEAD}.takeHome`), ' a month from ', W.takeHome, ')'] : '';
+  out.enoughHead = S('b.enough.head', ['To be on course: ', headFigure, headHome, savingsPart]);
   let line;
   if (en.how === 'share') {
     line = employerPct > 0

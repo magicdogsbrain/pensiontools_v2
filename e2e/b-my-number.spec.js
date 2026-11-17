@@ -129,7 +129,7 @@ test.describe('J4 — what\'s my number? (A, then B with the figures carried acr
       expect(b.verdict.band).toBe('no');
       await expectHeadlinesB(page, b);
       const head = page.locator('#app [data-headline="verdict"]');
-      await expect(head.locator('#answer-figure')).toHaveText('Not on course for £1,810 a month from 63');
+      await expect(head.locator('#answer-figure')).toHaveText('Not enough for £1,810 a month from 63');
       const first = head.locator('[data-sentence="verdict"]');
       await expect(first).toContainText('Paying in 10% of your pay as now (£317 a month, your employer\'s 4% included)');
       // (7.8.0: one figure for what would be enough, at the level — the 3-in-4 and middling figures left the answer; the
@@ -160,13 +160,13 @@ test.describe('J4 — what\'s my number? (A, then B with the figures carried acr
       await app.ready(120_000);
     });
 
-    await app.step('Keep asks which pay-in, neither chosen: "as now (10%)" or "31% (on course)"; on course keeps it', async () => {
+    await app.step('Keep asks which pay-in, neither chosen: "as now (10%)" or "31% (what would be enough)"; enough keeps it', async () => {
       const now = app.id('b.action.save.now');
       const enough = app.id('b.action.save.enough');
       await enough.scrollIntoViewIfNeeded();
       await expect(app.id('b.keep.payIn').locator('legend')).toHaveText(KEEP.payIn.ask);
       await expect(now).toHaveText('Keep: paying in as now (10%)');
-      await expect(enough).toHaveText(/^Keep: paying in [\d.]+% \(on course\)$/);
+      await expect(enough).toHaveText(/^Keep: paying in [\d.]+% \(what would be enough\)$/);
       await expect(app.id('b.action.save')).toHaveCount(0);
       await app.click('b.action.save.enough');
       await expect(app.id('b.keep.made')).toBeVisible({ timeout: 60_000 });

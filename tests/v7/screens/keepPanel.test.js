@@ -91,7 +91,7 @@ describe('at the foot of every answer', () => {
     const { root, actions } = draw(s);
     expect(one(root, 'b.keep.payIn').querySelector('legend').textContent).toBe(KEEP.payIn.ask);
     expect(one(root, 'b.action.save.now').textContent).toBe(`Keep: paying in as now (${money(r.payIn.now)} a month)`);
-    expect(one(root, 'b.action.save.enough').textContent).toBe(`Keep: paying in ${money(r.enough.atLevel.payIn)} a month (on course)`);
+    expect(one(root, 'b.action.save.enough').textContent).toBe(`Keep: paying in ${money(r.enough.atLevel.payIn)} a month (what would be enough)`);
     expect(one(root, 'b.action.save.enough').querySelector('[data-key="enough.atLevel.payIn"]').getAttribute('data-value')).toBe(String(r.enough.atLevel.payIn));
     fire(one(root, 'b.keep.name').closest('form'), 'submit');
     expect(actions).toEqual([]);
@@ -104,7 +104,7 @@ describe('at the foot of every answer', () => {
     sr.enough = { ...sr.enough, how: 'share', now: { totalPct: 10, ownPct: 6, employerPct: 4, payIn: sr.payIn.now }, atLevel: { ...sr.enough.atLevel, totalPct: 31, ownPct: 27, employerPct: 4 } };
     const sroot = renderScreen(share);
     expect(one(sroot, 'b.action.save.now').textContent).toBe('Keep: paying in as now (10%)');
-    expect(one(sroot, 'b.action.save.enough').textContent).toBe('Keep: paying in 31% (on course)');
+    expect(one(sroot, 'b.action.save.enough').textContent).toBe('Keep: paying in 31% (what would be enough)');
     // each label is one run of text in its button (the button sets its children apart with a gap): one child, a span
     for (const id of ['b.action.save.now', 'b.action.save.enough']) {
       const kids = [...one(sroot, id).childNodes].filter((n) => n.nodeType === 1 || (n.nodeType === 3 && n.textContent.trim()));

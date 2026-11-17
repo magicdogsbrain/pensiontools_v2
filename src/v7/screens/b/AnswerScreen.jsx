@@ -2,7 +2,7 @@
  * Question B, step 2 — "Am I on course, and what would be enough to pay in?" (screens-A-B.md 4.2, 4.4, 6; step 4 brief 4.8,
  * 4.13; one test everywhere, brief section 10), said straight (research/saving-enough-and-check-in.md 2–3, release R1).
  *
- * The order is the answer's: first the verdict — its band in words ("Not on course for £1,810 a month from 63"), the
+ * The order is the answer's: first the verdict — its band in words ("Not enough for £1,810 a month from 63"), the
  * first sentence that says how it stands paying in as now AND what share of pay (or pounds) would put you on course,
  * the 3-in-4 line in the Close band, what you could spend from the stop with the State Pension and how far that falls
  * short of the aim, and the bad case at the aim; then "what would be enough" (the figure, what lands a month and until
@@ -77,6 +77,7 @@ function Answer({ state, dispatch, frame }) {
         <Sentence s={s.verdictHead} source={result} class="figure" id="answer-figure" />
       </div>
       <Sentence s={s.verdictLine} source={result} class="line" data-sentence="verdict" />
+          {s.verdictEnough && <Sentence s={s.verdictEnough} source={result} class="line enough-now" data-sentence="verdict-enough" />}
       {weighing && <LastsLines result={result} only={LASTS_TOP} />}
       {weighing && <LevelStrip q="b" result={result} dispatch={dispatch} words={B} />}
       {/* the counts to one age of every chance on the page, once, behind one press (7.12.0) */}

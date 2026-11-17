@@ -373,3 +373,29 @@ describe('Step 6: the full view before the lock', () => {
     expect(entry).not.toMatch(/Set up this plan first/);
   });
 });
+
+import { tryBoxesOf, tryViews, savedLasts } from '../../src/answers/plan/lasts.js';
+import { LASTS } from '../../src/v7/copy/lasts.js';
+
+describe('Try a change on a locked plan starts from the pot as last recorded (7.12.0, G)', () => {
+  it('Kim, December recorded: the boxes open on the pension and ISA as recorded, said with their month', () => {
+    const kim = lockedOn('2026-11-16T10:00:00.000Z', { id: 'LivingKim20', name: 'Kim', taxYear: setUpFrom(11, 5, 2577),
+      records: [rec('2026-11', { sipp: 2577, stdSipp: 2577, monthlyNet: 2191 }), rec('2026-12', { sipp: 2577, stdSipp: 2577, monthlyNet: 2191, equity: 302500, bond: 150000, cash: 60000, isaBalance: 60000, isa: 0 })] });
+    kim.holdings = null;
+    const e = entryOf(kim, '2027-01-05');
+    const b = tryBoxesOf(e.plan, { today: '2027-01-05' });
+    // the pension as recorded in December: 302,500 + 150,000 + 60,000 = 512,500; the ISA typed with it, 60,000
+    expect(b['try.pot']).toBe('512500');
+    expect(b['try.isa']).toBe('60000');
+    const t = tryViews(e.plan, {}, null, null, { today: '2027-01-05', editable: false, saved: savedLasts(e.plan, { today: '2027-01-05' }) });
+    expect(fillSlots(LASTS.try.from[t.from.id], t.from.slots)).toBe('Pension £512,500, recorded December 2026. ISA £60,000, recorded December 2026.');
+  });
+  it('nothing recorded since the lock: the plan as locked, said so', () => {
+    const kim = lockedOn('2026-11-16T10:00:00.000Z', { id: 'LivingKim21', name: 'Kim' });
+    kim.holdings = null;
+    const e = entryOf(kim, '2026-11-20');
+    const t = tryViews(e.plan, {}, null, null, { today: '2026-11-20', editable: false, saved: savedLasts(e.plan, { today: '2026-11-20' }) });
+    expect(t.from.id).toBe('locked');
+    expect(fillSlots(LASTS.try.from.locked, t.from.slots)).toBe('As your plan was locked on 16 November 2026.');
+  });
+});

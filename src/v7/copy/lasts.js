@@ -182,6 +182,12 @@ export const LASTS = {
     lead: 'Change any of these and try it: the same one test on a copy of your plan, over its full length. Nothing is kept until you press “Use this” or keep it as a separate plan.',
     /** A locked plan (7.12.0): no "Use this" there; the way to make a try the plan is to unlock, change and lock again. */
     leadLocked: 'Change any of these and try it: the same one test, on a copy of your plan. Your locked plan is not changed.',
+    /** (7.12.0) where a locked plan's pot boxes start from. */
+    from: {
+      record: 'Pension {pension}, recorded {pensionFrom}. ISA {isa}, recorded {isaFrom}.',
+      recordPension: 'Pension {pension}, recorded {pensionFrom}.',
+      locked: 'As your plan was locked on {date}.'
+    },
     makeItThePlan: 'To make this your plan: unlock it, change it and lock it again. Your recorded months stay as they are.',
     unlockLink: 'Unlock the plan',
     fields: {

@@ -36,6 +36,7 @@ import { monthlyNet, yearlyGross } from './spend.js';
 import { LASTS_FIELDS, LASTS_WRITES, TRY_FIELDS, TRY_WRITES, WAY_IDS } from './schema.js';
 import { dateOf, dayWords, MONTHS } from './dates.js';
 import { withoutPotsAsOf } from '../../services/PlanFromToday.js';
+import { whereAmIFor } from '../../services/PlanReading.js';
 import { earlyPensionDrawOf } from '../../services/PlanTiming.js';
 import { partnersOf } from '../../services/HouseholdLink.js';
 import { shownPlanNameOn } from '../../services/PlanName.js';
@@ -523,15 +524,39 @@ export const tryPotOf = (ss) => r0((ss.strategyParams && ss.strategyParams.sippT
 export const tryIsaOf = (ss) => r0(ss.strategyParams && ss.strategyParams.isaTotal != null ? ss.strategyParams.isaTotal : (ss.isaBalance || 0));
 
 /** The boxes' starting text (4): the plan as saved — the income box a month after tax, as the spend step shows the first step. */
+/**
+ * (7.12.0, the record brief's G) On a locked plan, the pot a try starts from: the pension and the ISA as last recorded
+ * (PlanReading.whereAmIFor's pot parts: a month's record, or What you hold), each with where it came from; null with nothing
+ * recorded since the lock (the try then starts from the plan as locked, and says so).
+ */
+export function tryPotFromRecord(plan, { today }) {
+  if (!isLocked(plan)) return null;
+  let w = null;
+  try { w = whereAmIFor(plan, { now: dateOf(today) }); } catch { w = null; }
+  const parts = w && w.pot && Array.isArray(w.pot.parts) ? w.pot.parts : [];
+  const pension = parts.find((x) => x && x.key === 'pension' && Number.isFinite(+x.value) && x.asOf);
+  if (!pension) return null;
+  const isa = parts.find((x) => x && x.key === 'isa' && Number.isFinite(+x.value) && x.asOf) || null;
+  const whence = (x) => ({ source: x.source === 'holdings' ? 'hold' : 'record', month: monthWordsOf(x.asOf) });
+  return { pension: { value: r0(+pension.value), ...whence(pension) }, isa: isa ? { value: r0(+isa.value), ...whence(isa) } : null };
+}
+const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+function monthWordsOf(at) {
+  const m = /^(\d{4})-(\d{2})/.exec(String(at || ''));
+  return m ? MONTH_NAMES[+m[2] - 1] + ' ' + m[1] : '';
+}
+
 export function tryBoxesOf(plan, { today }) {
   const saved = savedLasts(plan, { today });
   const ss = saved.ss;
   const bands = bandsOf(ss);
   const first = Array.isArray(ss.targetSchedule) && ss.targetSchedule.length ? r0(ss.targetSchedule[0]) : r0(ss.baseSalary);
+  const rec = tryPotFromRecord(plan, { today });
   return {
     'try.way': WAY_IDS.includes(ss.strategyId) ? ss.strategyId : 'pots-and-valves',
-    // no pension known anywhere (7.12.0): the box starts empty, never the stored default
-    'try.pot': ss.potsNotSet ? '' : String(tryPotOf(ss)), 'try.isa': String(tryIsaOf(ss)), 'try.isaPolicy': 'saved',
+    // no pension known anywhere (7.12.0): the box starts empty, never the stored default; a locked plan's from its last record
+    'try.pot': rec ? String(rec.pension.value) : ss.potsNotSet ? '' : String(tryPotOf(ss)),
+    'try.isa': rec && rec.isa ? String(rec.isa.value) : String(tryIsaOf(ss)), 'try.isaPolicy': 'saved',
     'try.incomeMode': 'shape', 'try.income': String(monthlyNet(first, bands)),
     'try.years': String(num(ss.duration) || 35), 'try.cuts': 'saved', 'try.cutPct': '', 'try.cutEsc': ''
   };
@@ -659,7 +684,12 @@ export function tryViews(plan, typed, tried, kept, { today, editable, saved }) {
     result = { verdict: v, diffs, none: diffs.length === 0, way: t.result.strategyId, runs: t.result.basis && t.result.basis.runs ? t.result.basis.runs : 1, ms: t.ms == null ? null : t.ms, stale: !same, canUse: editable && diffs.length > 0 };
   }
   const p = editable && t && t.status === 'done' ? tryPatch(plan, t.boxes, { today }) : null;
-  return { fields, errors: c.errors, ok: c.ok, run: c.run, status: t ? t.status : 'off', reason: t && t.status === 'failed' ? t.reason || null : null, result, patch: p ? p.patch : {}, kept: kept || null, same };
+  // (7.12.0) where a locked plan's pot boxes start from: the last record, or the plan as locked
+  const rec = tryPotFromRecord(plan, { today });
+  const from = !isLocked(plan) ? null : rec
+    ? { id: rec.isa ? 'record' : 'recordPension', slots: { pension: pounds(rec.pension.value), pensionFrom: rec.pension.month, isa: rec.isa ? pounds(rec.isa.value) : '', isaFrom: rec.isa ? rec.isa.month : '' } }
+    : { id: 'locked', slots: { date: saved && saved.lockedOn ? saved.lockedOn : '' } };
+  return { fields, errors: c.errors, ok: c.ok, run: c.run, status: t ? t.status : 'off', reason: t && t.status === 'failed' ? t.reason || null : null, result, patch: p ? p.patch : {}, kept: kept || null, same, from };
 }
 
 // ---- the three levers (research/v7/answer-D.md 3.5–3.7, 3.9; road-to-7.md step 7) -----------------------------------------

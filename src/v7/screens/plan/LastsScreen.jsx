@@ -318,6 +318,7 @@ function TryChange({ L, planId, dispatch, sourceText }) {
             {F('try.way')}
             {F('try.pot')}
             {F('try.isa')}
+            {t.from && T.from[t.from.id] && <p class="note" data-testid="plan.lasts.try.from">{fill(T.from[t.from.id], t.from.slots)}</p>}
             {F('try.isaPolicy')}
             {F('try.incomeMode', { nested: { flat: F('try.income') } })}
             {F('try.years')}

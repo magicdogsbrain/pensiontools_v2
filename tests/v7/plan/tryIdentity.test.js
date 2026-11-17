@@ -17,7 +17,7 @@ import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { runTry, trySettings, trySettingsOf } from '../../../src/answers/plan/lastsRun.js';
-import { tryDifferencesOf, tryBoxesOf, checkTry } from '../../../src/answers/plan/lasts.js';
+import { tryDifferencesOf, tryBoxesOf, tryPotFromRecord, checkTry } from '../../../src/answers/plan/lasts.js';
 import { effectiveStressSettings } from '../../../src/services/PlanReading.js';
 import { createSimulationConfigFromSettings } from '../../../src/storage/StressRepository.js';
 import { planFromSettings, stressTestStrategy } from '../../../src/strategies/stressTest.js';
@@ -129,7 +129,10 @@ describe('gate 8b — Try a change equals the planner\'s what-if on every fixtur
       const mine = checkTry(plan, tryBoxesOf(plan, { today: TODAY }), { today: TODAY });
       if (s.potsNotSet) { expect(tryBoxesOf(plan, { today: TODAY })['try.pot']).toBe(''); expect(mine.errors['try.pot']).toBe('required'); return; }
       expect(mine.ok).toBe(true);
-      expect({ ...mine.run, income: 0 }).toEqual(savedBoxes(s));
+      // (7.12.0, the record brief's G) a locked plan with a pot recorded since the lock starts from it: the pension and the
+      // ISA as last recorded; every other box is the planner's saved one
+      const rec = tryPotFromRecord(plan, { today: TODAY });
+      expect({ ...mine.run, income: 0 }).toEqual(rec ? { ...savedBoxes(s), pot: rec.pension.value, ...(rec.isa ? { isa: rec.isa.value } : {}) } : savedBoxes(s));
     });
   }
   it('the pins exist (written once from the same function) and cover every fixture and row', () => {

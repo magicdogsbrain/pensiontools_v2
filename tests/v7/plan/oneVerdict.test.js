@@ -121,3 +121,25 @@ describe('the kept answer\'s chance is not said beside a saving plan\'s own (wal
     expect(startSummaryHtml({ ...drawing.stressTool.settings, spWeeklyAmount: 241.3, spStartDate: '2031-10-01' }, { fromAnswer: drawing.fromAnswer })).toMatch(/made from a quick answer/);
   });
 });
+
+// ---- a locked plan's own figure is a record, never a second verdict (walker 6 high 3: "Not yet" above "Close") -------------
+describe('"Does it last?" on a locked plan: the figure it was locked with is said as a record, with no verdict word of its own', () => {
+  const stored = { ...storedBuckets, strategyId: 'pots-and-valves', ruin: { mc: 30, hist: 5 } };   // 7 futures in 10 to a fixed age
+  it('locked with a weighted figure (0.85, 17 in 20): "When it was locked … 17 times in 20", a record', () => {
+    const a = oneAnswer(stored, P);
+    const success = { level: 'balanced', lines: { yes: 0.9, close: 0.85 }, planTo: { age: 99 }, weighted: { chance: 0.85, fixedAge: 0.7 } };
+    const v = verdictOf({ a, strategyId: 'pots-and-valves', ran: { family: true, cutsOn: false }, history: null, document: true, success }, { endAge: 99 });
+    expect(v.record).toBe(true);
+    expect(v.id).toBe('lasts.headlineDocW');
+    expect(v.slots.words).toContain('17 times in 20');
+    expect(LASTS.verdict['lasts.headlineDocW']).toMatch(/When it was locked/);
+  });
+  it('locked before the weighted figure (a count to 99): said with its age, as a record — never "Not yet" beside today\'s "Close"', () => {
+    const a = oneAnswer(stored, P);
+    const v = verdictOf({ a, strategyId: 'pots-and-valves', ran: { family: true, cutsOn: false }, history: null, document: true }, { endAge: 99 });
+    expect(v.record).toBe(true);
+    expect(v.id).toBe('lasts.headlineDoc');
+    expect(v.slots.toAge).toBe('99');
+    expect(LASTS.verdict['lasts.headlineDoc']).toMatch(/not by how long you might live/);
+  });
+});

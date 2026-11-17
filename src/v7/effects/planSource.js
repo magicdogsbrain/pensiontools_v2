@@ -224,7 +224,7 @@ export function viewFor(state) {
         const chance = sv && FAMILY.includes(pl.strategyId) && typeof sv.weighted === 'number' && Number.isFinite(sv.weighted) ? sv.weighted : null;
         pl.verdict = L && L.result ? verdictOf(L.result, pl, { level: state.ui && state.ui.level, chance }) : null;
         // a locked plan: the document's own figure (10.5), and the one line of 6.24.0 when today's run differs
-        pl.documentVerdict = pl.document ? verdictOf({ a: pl.document.a, strategyId: pl.strategyId, ran: pl.document.ran, history: null }, pl) : null;
+        pl.documentVerdict = pl.document ? verdictOf({ a: pl.document.a, strategyId: pl.strategyId, ran: pl.document.ran, history: null, document: true, success: pl.document.success }, pl) : null;
         pl.note = L && L.result && L.key === pl.runKey && L.result.stored && typeof L.result.stored.note === 'string' && L.result.stored.note ? L.result.stored.note : null;
         // the three levers tried on this plan (road-to-7.md step 7), in words — only for the run held for THIS plan's key
         pl.levers = leverViews(L && L.key === pl.runKey ? L.levers : null, { verdict: pl.verdict, documentVerdict: pl.documentVerdict, lockedOn: pl.lockedOn, workDraft: L ? L.workDraft : null });

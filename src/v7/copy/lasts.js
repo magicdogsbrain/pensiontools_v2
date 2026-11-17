@@ -13,6 +13,9 @@ export const LASTS = {
   /** The band and the rows under it, by id. */
   verdict: {
     'lasts.headline': 'Your plan lasts {words}.',
+    /** (7.12.0) a locked plan's own figure, a record of the lock: what it measured, never a verdict of its own */
+    'lasts.headlineDocW': 'When it was locked, counting how long people your age live, {words}.',
+    'lasts.headlineDoc': 'When it was locked, counted to {toAge} and not by how long you might live, your plan lasted {words}.',
     'lasts.sub': '{pct}% of {futures} futures; {histories} real starts since 1871; {years} years, to {toAge}.',
     'lasts.subContract': 'Every year is bought by contract, so no future and no start year can run it out; {years} years, to {toAge}.',
     'lasts.unaffordable': 'This way of drawing cannot be bought with this plan’s pots, so there is no figure. Change the pots, the spending or the way of drawing.',

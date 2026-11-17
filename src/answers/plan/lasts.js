@@ -119,6 +119,7 @@ export function savedLasts(plan, { today }) {
     endAge: (num(timing.shapeAgeNow) || 57) + (num(ss.duration) || 35),   // "to 97" = to the 97th birthday (rules.js planToAgeOf)
     // the document's figure as a result verdictOf can word: the same shape lastsRun.js returns, without a history
     document: docA ? { a: docA, lockedOn: dayWords(doc.lockedAt || lockedAtOf(plan)), ladder: !!(docR.plan && Array.isArray(docR.plan.years) && docR.plan.years.length),
+      success: isObj(doc.assumptions) && isObj(doc.assumptions.success) ? doc.assumptions.success : null,
       ran: { family: FAMILY.includes(strategyId), cutsOn: FAMILY.includes(strategyId) && values.cutsOn === 'yes', cutPct: values.cutPct, months: values.cutAfterMonths } } : null,
     source, values, now
   };
@@ -405,6 +406,9 @@ export function verdictOf(result, saved, { level = null, chance = null } = {}) {
     figures: { chancePct: a.chancePct, typicalLeft: r0(a.typicalLeft), badCaseLeft: r0(a.badCaseLeft), goodCaseLeft: r0(a.goodCaseLeft), futures: a.futures, histories: a.histories, histRanOutN: a.histRanOutN, years,
       cutN: c ? c.cutN : null, cutPerYear: c ? c.typicalCutPerYear : null, cutYears: c ? c.typicalCutYears : null, cutTotal: c ? c.typicalCutTotal : null, worstCut: c ? c.worstCutTotal : null },
     ...(wb ? wb.head : { id: 'lasts.headline', slots: { words: futuresOutOfTen(a.share).words } }),
+    // (7.12.0) a locked plan's own figure is a record of the lock, said with what it measured and no verdict word of its own:
+    // today's test, under it, is the plan's one verdict (never "Not yet" above "Close" on one page)
+    ...(result.document ? documentHead(a, result.success, toAge) : {}),
     // a contract strategy runs no futures: every year is bought (the test counts one window), so its line says that
     // (7.12.0) a plan still saving: the headline is the saving chance; the line under it says every figure below starts from
     // the middling pot when work stops (`saved.atStop`), so the two measures are never read as one
@@ -416,6 +420,16 @@ export function verdictOf(result, saved, { level = null, chance = null } = {}) {
     // the year-by-year tables and the named stresses (road-to-7.md step 11b), when the run carried them
     extras: extrasView(result.extras)
   };
+}
+
+/** The document's record (7.12.0): its weighted figure when it was locked with one, else its count with the age it was counted to. */
+function documentHead(a, success, toAge) {
+  const w = success && success.weighted && typeof success.weighted.chance === 'number' ? success.weighted.chance : null;
+  const as = a && a.failKind === 'cut' ? 'your income was paid in full as long as you live' : a && a.failKind === 'lean' ? 'you had no lean year while you are alive' : 'the money lasted as long as you do';
+  const age = success && success.planTo && success.planTo.age != null ? String(success.planTo.age) : toAge;
+  return w !== null
+    ? { record: true, id: 'lasts.headlineDocW', slots: { words: as + ' ' + chanceWords(w), bold: '' } }
+    : { record: true, id: 'lasts.headlineDoc', slots: { words: futuresOutOfTen(a.share).words, toAge: age } };
 }
 
 /** A fraction as a direction and whole-percent words' slots: −0.45 → { dir: 'down', pct: '45' }. */

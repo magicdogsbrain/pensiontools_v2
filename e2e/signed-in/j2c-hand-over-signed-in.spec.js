@@ -83,7 +83,10 @@ test.beforeEach(async ({ watch }) => {
 test('Month by month\'s "Open them in the classic planner" opens the classic planner signed in, on the plan\'s records by tax year', async ({ page }) => {
   await signedInWith(page, [drawingPlan()]);
   await page.goto(PROD + V7_PATH + `#/plan/${DRAW_ID}/month`);
-  await expect(page.getByTestId('plan.month.submit')).toHaveText('Record September 2026');   // this month; July and August named as missed
+  // 7.12.0: the page opens on the month to record, July, the first missed; September chosen, July and August are named
+  await expect(page.getByTestId('plan.month.submit')).toHaveText('Record July 2026');
+  await page.getByTestId('plan.month.mo.month').selectOption('2026-09');
+  await expect(page.getByTestId('plan.month.submit')).toHaveText('Record September 2026');
   await expect(page.getByTestId('plan.month.gap')).toContainText('July 2026 and August 2026');
   await page.getByTestId('plan.month.classic').click();
   await classicSignedIn(page);
@@ -177,12 +180,15 @@ async function roundTrip(page, id) {
 }
 
 test.describe('the full view as the usual view', () => {
-  test('T1: chosen on Your account, the site\'s root opens the full view on the main plan, writing nothing; "Back to the simple view" stays there and keeps the choice', async ({ page }) => {
+  // 7.12.0 (the lead's landing decision): both views open on the plan last open in either, the main plan only when none is
+  // known — here Alex's plan, the one the account was last on, while Alex's other plan is the main one; and the link at the
+  // top of the page is a choice in both directions, so "Back to the simple view" chooses the simple view
+  test('T1: chosen on Your account, the site\'s root opens the full view on the plan last open, writing nothing; "Back to the simple view" stays there and is a choice', async ({ page }) => {
     // plans saved in today's format, so the full view's own bringing of an older plan up to date is not what is counted
     const current = (p) => ({ ...p, schemaVersion: SCHEMA_VERSION });
-    const uid = await signedInWith(page, [current(drawingPlan()), current(freshPlan())], { lastLocation: { planId: FRESH_ID, step: null } });
+    const uid = await signedInWith(page, [current({ ...drawingPlan(), isActive: false }), current({ ...freshPlan(), isActive: true })], { lastLocation: { planId: DRAW_ID, step: null } });
     // the sign-in on Your account goes on to the plan the account was last on (effects/place.js followSignIn)
-    await page.waitForURL((u) => new URL(u.href).hash === `#/plan/${FRESH_ID}`);
+    await page.waitForURL((u) => new URL(u.href).hash === `#/plan/${DRAW_ID}`);
     await expect(screen(page)).toHaveAttribute('data-screen', /^plan/, { timeout: 30_000 });
     await choose(page, uid, 'full');
     const s0 = await settingsOf(uid);
@@ -224,24 +230,19 @@ test.describe('the full view as the usual view', () => {
     await simpleHome(page, DRAW_ID);
     await staysInSimple(page);
     await expect(page.getByTestId('view.strip')).toHaveCount(0);
-    expect(((await settingsOf(uid)) || {}).view).toBe('full');
-
-    await page.goto(PROD + V7_PATH);
-    await page.waitForURL((u) => atClassic(u.href));
-
-    // back to the simple view, and on to Your account from there, to choose the simple view again
-    await page.locator('#classicToSimple').click();
-    await simpleHome(page, DRAW_ID);
-    await choose(page, uid, 'simple');
+    await expect.poll(async () => ((await settingsOf(uid)) || {}).view, { timeout: 15_000 }).toBe('simple');
     expect(((await settingsOf(uid)) || {}).lastLocation.planId).toBe(DRAW_ID);
+
+    // the root now opens the simple view, on the same plan
     await page.goto(PROD + V7_PATH);
     await simpleHome(page, DRAW_ID);
     await staysInSimple(page);
   });
 
   // 7.11.1: someone signed in who never chose a view opens in the full view; nothing is written to the account for it, and
-  // the strip that asked whether to open there from now on is retired (it had nothing left to ask)
-  test('T2: someone who never chose: the site\'s root opens the full view, writing nothing; "Back to the simple view" stays there and asks nothing', async ({ page }) => {
+  // the strip that asked whether to open there from now on is retired (it had nothing left to ask). 7.12.0: the link at the
+  // top of the page is a choice in both directions, so each press of it saves the view it leads to; opening writes nothing
+  test('T2: someone who never chose: the site\'s root opens the full view, writing nothing; "Back to the simple view" stays there, asks nothing and is a choice', async ({ page }) => {
     const uid = await signedInWith(page, [drawingPlan(), freshPlan()]);
     // the settings read: this browser's copy says the full view; the account holds no choice
     await expect.poll(() => stored(page, 'pt_view'), { timeout: 30_000 }).toBe('full');
@@ -255,14 +256,17 @@ test.describe('the full view as the usual view', () => {
     await page.goto(PROD + V7_PATH);
     await classicSignedIn(page);
     await expect(page.locator('#classicToFront')).toHaveText('This is the full view. Back to the simple view.');
+    // nothing written for the view by opening the full view
+    expect(((await settingsOf(uid)) || {}).view).toBe(undefined);
     await page.locator('#classicToSimple').click();
     await simpleHome(page, DRAW_ID);
     await staysInSimple(page);
     await expect(page.locator('[data-testid^="view.strip"]')).toHaveCount(0);
+    await expect.poll(async () => ((await settingsOf(uid)) || {}).view, { timeout: 15_000 }).toBe('simple');
+    // "Show everything" chooses the full view; the full view's note's way back is not the link, and chooses nothing
     await roundTrip(page, DRAW_ID);
     await expect(page.locator('[data-testid^="view.strip"]')).toHaveCount(0);
-    // nothing written for the view by opening either page
-    expect(((await settingsOf(uid)) || {}).view).toBe(undefined);
+    await expect.poll(async () => ((await settingsOf(uid)) || {}).view, { timeout: 15_000 }).toBe('full');
   });
 
   test('T3: signing out in the simple view takes this browser\'s copy and the signed-in note away; the root is the front door', async ({ page }) => {

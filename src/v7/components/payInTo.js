@@ -53,11 +53,15 @@ export function payInTo(q, who, entry, n, share = null) {
       const ownPct = share && num(share.ownPct) ? share.ownPct : Math.min(100, Math.max(0, Math.ceil(((n - employer) * 1200 / pay) * 100 - 1e-6) / 100));
       return [set(q, `${who}.payIn.ownPct`, pctTyped(ownPct)), set(q, `${who}.payIn.kind`, 'share')];
     }
-    return [set(q, `${who}.payIn.own`, asTyped(Math.max(0, n - employer))), set(q, `${who}.payIn.employer`, asTyped(employer)), set(q, `${who}.payIn.kind`, 'split')];
+    // (pounds that land: said so, so the form never reads them as take-home pay)
+    return [set(q, `${who}.payIn.own`, asTyped(Math.max(0, n - employer))), set(q, `${who}.payIn.employer`, asTyped(employer)),
+      ...(q === 'b' ? [set(q, `${who}.payIn.ownFrom`, 'lands')] : []), set(q, `${who}.payIn.kind`, 'split')];
   }
   if (entry && entry.kind === 'split') {
     const employer = num(entry.employer) ? entry.employer : 0;
-    return [set(q, `${who}.payIn.own`, asTyped(Math.max(0, n - employer))), set(q, `${who}.payIn.kind`, 'split')];
+    // your part typed as what leaves take-home pay (7.12.0): written back in that unit, the tax added back taken off
+    const own = Math.max(0, n - employer) * (entry.ownFrom === 'takeHome' ? 0.8 : 1);
+    return [set(q, `${who}.payIn.own`, asTyped(own)), set(q, `${who}.payIn.kind`, 'split')];
   }
   return [set(q, `${who}.payIn.total`, asTyped(n)), set(q, `${who}.payIn.kind`, 'total')];
 }
@@ -77,9 +81,12 @@ export function payInEntered(v, who) {
     return { kind, employer: lands.employer, total: Math.round((lands.own + lands.employer) * 100) / 100, yours: lands.own, pay };
   }
   if (kind === 'split') {
-    const own = num(v[`${who}.payIn.own`]) ? v[`${who}.payIn.own`] : 0;
+    const typedOwn = num(v[`${who}.payIn.own`]) ? v[`${who}.payIn.own`] : 0;
     const employer = num(v[`${who}.payIn.employer`]) ? v[`${who}.payIn.employer`] : 0;
-    return { kind, employer, total: own + employer, yours: own };
+    // what your part lands (payInParts' rule: a take-home figure × 1.25), and how it was typed
+    const ownFrom = v[`${who}.payIn.ownFrom`] === 'takeHome' ? 'takeHome' : 'lands';
+    const own = payInParts({ kind, own: typedOwn, employer, ownFrom }).own;
+    return { kind, employer, total: Math.round((own + employer) * 100) / 100, yours: own, ownFrom, typed: typedOwn };
   }
   const total = num(v[`${who}.payIn.total`]) ? v[`${who}.payIn.total`] : null;
   return { kind, employer: 0, total, yours: total === null ? 0 : total };

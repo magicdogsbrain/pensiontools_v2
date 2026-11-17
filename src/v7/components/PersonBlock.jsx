@@ -25,7 +25,7 @@ import { Field, FIELDS } from './Field.jsx';
 import { LinkButton } from './Button.jsx';
 import { href } from '../router/routes.js';
 import { payingIn } from '../../answers/c/schema.js';
-import { shareLandsOf } from '../state/select.js';
+import { shareLandsOf, splitLandsOf } from '../state/select.js';
 import { C } from '../copy/c.js';
 import { ageText, money } from '../../answers/shared/format.js';
 
@@ -79,6 +79,19 @@ function ShareLands({ form, who }) {
 }
 
 /**
+ * (7.12.0) Under the two boxes of "your part and your employer's", once both are figures: what goes in from you — with the
+ * tax added back when your part was typed as what leaves take-home pay — and in all, read by select.js splitLandsOf.
+ */
+function SplitLands({ form, who }) {
+  const lands = splitLandsOf(form.parsed.values, who);
+  const words = form.copy.numbers && form.copy.numbers.splitLands;
+  if (!lands || !words) return null;
+  const text = words[who === 'partner' ? 'partner' : 'you'][lands.takeHome ? 'takeHome' : 'lands']
+    .replace('{own}', money(lands.own)).replace('{employer}', money(lands.employer)).replace('{total}', money(lands.total));
+  return <p class="help split-lands" data-testid={`${form.q}.${who}.payIn.splitLands`}>{text}</p>;
+}
+
+/**
  * One field, with the fields that depend on it drawn inside the option they belong to (only those that apply), and the
  * lines that hang on it under it. `skip` leaves some nested fields out (drawn elsewhere); `inside` ({ option: [paths] })
  * draws more inside an option; `help` and `extra` pass through to Field.
@@ -101,6 +114,7 @@ export function FieldGroup({ form, path, dispatch, help, extra, skip = [], insid
   }
   // the pay-in's "A share of your pay": what it lands, under its three boxes
   if (/\.payIn\.kind$/.test(f.path) && nested.share) nested.share = <>{nested.share}<ShareLands form={form} who={f.path.split('.')[0]} /></>;
+  if (/\.payIn\.kind$/.test(f.path) && nested.split) nested.split = <>{nested.split}<SplitLands form={form} who={f.path.split('.')[0]} /></>;
   const field = <Field form={form} path={f.path} dispatch={dispatch} nested={nested} extra={extra} help={help} />;
   const lines = linesUnder(form, f.path).filter((x) => form.applies(x));
   if (!lines.length) return field;

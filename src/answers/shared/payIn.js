@@ -17,6 +17,11 @@
  *
  * own and employer are null for one figure; pay is null unless a share was given. C's "still paying in?" not answered
  * yes, or nothing given: nothing goes in. Pure.
+ *
+ * Your part in pounds ('split') can be said two ways (7.12.0, question B's step 1): `ownFrom: 'takeHome'` — what leaves
+ * take-home pay, to which the provider adds the basic-rate tax back, so what lands is that × 1.25 to the penny — or
+ * 'lands' (and, for everything saved before 7.12.0, no `ownFrom` at all): what lands, as before. `own` is always what
+ * lands; `ownTyped` is the figure as given and `ownFrom` how it was given.
  */
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
 const round2 = (n) => Math.round(n * 100) / 100;
@@ -32,9 +37,13 @@ export function payInParts(p) {
     return { kind: 'share', total: round2(own + employer), own, employer, pay };
   }
   if (p.kind === 'split') {
-    const own = isNum(p.own) ? p.own : 0;
+    const typed = isNum(p.own) ? p.own : 0;
     const employer = isNum(p.employer) ? p.employer : 0;
-    return { kind: 'split', total: round2(own + employer), own, employer, pay: null };
+    if (p.ownFrom === 'takeHome') {
+      const own = round2(typed * 1.25);
+      return { kind: 'split', total: round2(own + employer), own, employer, pay: null, ownTyped: typed, ownFrom: 'takeHome' };
+    }
+    return { kind: 'split', total: round2(typed + employer), own: typed, employer, pay: null };
   }
   if (p.kind === 'total') return { kind: 'total', total: isNum(p.total) ? p.total : 0, own: null, employer: null, pay: null };
   // no kind: the household model's { total, own, employer } — the total as given, else the parts added up; the parts as given

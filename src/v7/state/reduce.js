@@ -173,6 +173,16 @@ function carried(state, from, to) {
     } else continue;
     mark(toPath);
   }
+  // (7.12.0) your part typed as what leaves take-home pay (B's step 1) goes where a part is what lands (A, C) as what
+  // lands: × 1.25, the tax added back (payIn.js) — never the take-home figure read as landing
+  for (const who of ['you', 'partner']) {
+    const own = `${who}.payIn.own`;
+    // …and a part that lands, brought into B, is said to land
+    if (hasField(to, `${who}.payIn.ownFrom`) && !hasField(from, `${who}.payIn.ownFrom`) && map.some(([, t]) => t === own)) values[`${who}.payIn.ownFrom`] = 'lands';
+    if (source.values[`${who}.payIn.ownFrom`] !== 'takeHome' || !hasField(to, own) || hasField(to, `${who}.payIn.ownFrom`) || typeof values[own] !== 'string') continue;
+    const n = typedNumber(values[own]);
+    if (n !== null) values[own] = asTyped(Math.round(n * 125) / 100);
+  }
   // The spending shape goes with the household's figures (spending-shape.md 4.5; carry.js carriedSteps): measured against
   // the figure the target's box now holds (C → A, B: C's amount to take, else its careful start, which the box then takes
   // too), or the figure the source uses (A, B → C).
@@ -481,6 +491,10 @@ function reduceAction(state, action) {
       // Text is held exactly as typed; yes/no as a boolean. Anything else empties the box.
       if (typeof action.value === 'string' || typeof action.value === 'boolean') values[action.path] = action.value;
       else delete values[action.path];
+      // (7.12.0) choosing "your part and your employer's" answers how your part is said: what leaves your take-home pay,
+      // unless the form already says (a plan's or a hand-over's figures say what lands)
+      const ownFrom = /^(you|partner)\.payIn\.kind$/.test(action.path) && action.value === 'split' ? action.path.replace(/kind$/, 'ownFrom') : null;
+      if (ownFrom && hasField(q, ownFrom) && !(ownFrom in values)) values[ownFrom] = 'takeHome';
       // Setting household to 'single' keeps the partner's values: "Remove" then "Add" loses nothing.
       // A's and B's "we have brought your figures over" goes once any box is changed.
       const changed = values[action.path] !== draft.values[action.path] || (action.path in values) !== (action.path in draft.values);

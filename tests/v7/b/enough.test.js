@@ -419,7 +419,8 @@ describe('the solver: shares of pay on the 0.5% grid, every count the one test\'
       if (a.levels[a.level].payIn !== null) expect(a.enough.outOfReach, 'B found a figure').not.toBe('ceiling');
       if (a.enough.outOfReach === 'pay') {
         expect(a.enough.caps.length).toBe(2);
-        expect(a.sentences.verdictLine.text).toMatch(/; even all of (your|your partner's) pay( and .*)? going in would not be on course/);
+        // (7.12.0, one reach rule: paying in past the reach is said one way on every card, enough.js reachOf)
+        expect(a.sentences.verdictLine.text).toMatch(/paying in more on its own cannot get there/);
       }
       for (const part of (a.enough.atLevel || { parts: [] }).parts) if (typeof part.ownPct === 'number') expect(part.ownPct).toBeLessThanOrEqual(100);
     }), opts(12));

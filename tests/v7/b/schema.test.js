@@ -68,7 +68,8 @@ describe('SCHEMA_B — the declaration', () => {
     // couples-different-years.md 3.1: none of the new questions has a default (B's new stop question too: not answered is
     // an age), so the checked inputs of a form that never answers them are today's, key for key
     // …and the spending shape's (spending-shape.md 3.2): not answered is the same every year, today's inputs key for key
-    const NO_DEFAULT = ['stop.kind', 'partner.stop.kind', 'untilBothStop', 'you.taxFreeTaken', 'partner.taxFreeTaken', 'spend.then', 'spend.steps'];
+    // …and how your part in pounds was said (7.12.0): not answered is what lands, as before
+    const NO_DEFAULT = ['stop.kind', 'partner.stop.kind', 'untilBothStop', 'you.taxFreeTaken', 'partner.taxFreeTaken', 'spend.then', 'spend.steps', 'you.payIn.ownFrom', 'partner.payIn.ownFrom'];
     for (const f of SCHEMA_B.fields) {
       if (NO_DEFAULT.includes(f.path)) { expect(f.required, f.path).toBeUndefined(); expect('default' in f, f.path).toBe(false); continue; }
       expect(Boolean(f.required) !== ('default' in f), f.path).toBe(true);

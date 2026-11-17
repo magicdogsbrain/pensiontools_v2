@@ -61,8 +61,8 @@ function strings(obj, path = '', out = []) {
   else if (obj && typeof obj === 'object') for (const [k, v] of Object.entries(obj)) strings(v, path ? `${path}.${k}` : k, out);
   return out;
 }
-/** A string as a person would see it: each {slot} filled with a figure of the right kind ({own} and {employer}: the two parts of a share of pay, 6.46.0; {ask}: a question's words). */
-const filled = (s) => s.replace(/\{(amount|min|max|own|employer)\}/g, '£25,000').replace(/\{(age|n|of|earliest)\}/g, '57')
+/** A string as a person would see it: each {slot} filled with a figure of the right kind ({own} and {employer}: the two parts of a share of pay, 6.46.0, and {total} what they come to, 7.12.0; {ask}: a question's words). */
+const filled = (s) => s.replace(/\{(amount|min|max|own|employer|total)\}/g, '£25,000').replace(/\{(age|n|of|earliest)\}/g, '57')
   .replace(/\{level\}/g, 'Moderate').replace(/\{who\}/g, 'one person').replace(/\{name\}/g, 'Stop later').replace(/\{words\}/g, 'in 9 futures out of 10')
   .replace(/\{version\}/g, '6.44.0').replace(/\{share\}/g, '31%').replace(/\{ask\}/g, 'When can I afford to stop work?');
 
@@ -480,7 +480,8 @@ describe('the words in src/v7/copy/', () => {
   it.each([['a', A], ['b', B], ['d', D]])('question %s: no slot the screen does not fill; no "error", "failed" or "calculate"', (q, words) => {
     const slots = new Set();
     for (const [, s] of strings(words)) for (const m of s.matchAll(/\{([a-zA-Z]+)\}/g)) slots.add(m[1]);
-    for (const slot of slots) expect(['age', 'amount', 'max', 'min', 'n', 'of', 'earliest', 'level', 'who', 'name', 'words', 'own', 'employer', 'share'], slot).toContain(slot);
+    // (total: what your part and your employer's come to, under the two boxes — PersonBlock's SplitLands, 7.12.0)
+    for (const slot of slots) expect(['age', 'amount', 'max', 'min', 'n', 'of', 'earliest', 'level', 'who', 'name', 'words', 'own', 'employer', 'share', 'total'], slot).toContain(slot);
     for (const [where, s] of strings(words)) expect(s, where).not.toMatch(/\b(error|failed|invalid|submit|calculate|simulate)\b/i);
     for (const [where, s] of strings(words.buttons)) expect(s, where).not.toMatch(/^run\b/i);
   });

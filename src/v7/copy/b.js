@@ -98,7 +98,18 @@ export const B = {
     levelIs: '{level}: {amount} a month for {who} (Retirement Living Standards).',
     levelWho: { single: 'one person', couple: 'a couple' },
     /** Under the three boxes of "A share of your pay" (6.46.0): what lands each month, from the figures typed. */
-    shareLands: { you: '{own} a month from you and {employer} from your employer.', partner: '{own} a month from your partner and {employer} from their employer.' }
+    shareLands: { you: '{own} a month from you and {employer} from your employer.', partner: '{own} a month from your partner and {employer} from their employer.' },
+    /** (7.12.0) Under "your part and your employer's": what goes in, read the way the part was typed. */
+    splitLands: {
+      you: {
+        takeHome: 'With the tax added back, that is {own} a month going in from you and {employer} from your employer: {total} a month in all.',
+        lands: 'That is {own} a month going in from you and {employer} from your employer: {total} a month in all.'
+      },
+      partner: {
+        takeHome: 'With the tax added back, that is {own} a month going in from your partner and {employer} from their employer: {total} a month in all.',
+        lands: 'That is {own} a month going in from your partner and {employer} from their employer: {total} a month in all.'
+      }
+    }
   },
 
   /** The Retirement Living Standards levels as a month, to the pound (RULES.plsa ÷ 12; checked by the render test). */
@@ -322,9 +333,14 @@ export const B = {
         notANumber: 'Use figures only, for example 700. Type 0 if nothing goes in.'
       }
     },
+    'you.payIn.ownFrom': {
+      label: 'Your part, as you type it',
+      options: { takeHome: 'What leaves your take-home pay', lands: 'What lands in your pension' },
+      help: 'If £300 leaves your take-home pay and your provider adds the tax back, £375 goes in: type 300 here. If your payslip or pension app shows what lands, choose that and type it.'
+    },
     'you.payIn.own': {
       label: 'Your part, a month',
-      help: 'What lands in your pension from your pay, with the tax the government adds back included.',
+      help: 'As you said above: what leaves your take-home pay, or what lands in your pension.',
       errors: { required: 'Type what you pay in each month, for example 450. Type 0 if you pay nothing.', notANumber: 'Use figures only, for example 450.' }
     },
     'you.payIn.employer': {
@@ -339,7 +355,7 @@ export const B = {
     },
     'you.payIn.ownPct': {
       label: 'Your part, % of your pay',
-      help: 'The percentage of your pay that goes into your pension, with the tax the government adds back included. Salary sacrifice, taken before tax, or added back by the provider: the figure on your payslip is the one.',
+      help: 'Type the % that goes into your pension. With salary sacrifice or pay taken before tax, that is the % on your payslip. If your provider adds the tax back afterwards, the payslip shows less: 4% there is 5% going in.',
       errors: { required: 'Type your part as a percentage of your pay, for example 5. Type 0 if you pay nothing.', notANumber: 'Use figures only, for example 5.' }
     },
     'you.payIn.employerPct': {
@@ -491,9 +507,14 @@ export const B = {
       help: 'Including their employer’s part. Leave it blank if nothing goes in.',
       errors: { notANumber: 'Use figures only, for example 300. Leave it blank if nothing goes in.' }
     },
+    'partner.payIn.ownFrom': {
+      label: 'Their part, as you type it',
+      options: { takeHome: 'What leaves their take-home pay', lands: 'What lands in their pension' },
+      help: 'If £300 leaves their take-home pay and their provider adds the tax back, £375 goes in: type 300 here.'
+    },
     'partner.payIn.own': {
       label: 'Their part, a month',
-      help: 'What lands in their pension from their pay, with the tax the government adds back included.',
+      help: 'As you said above: what leaves their take-home pay, or what lands in their pension.',
       errors: { required: 'Type what your partner pays in each month. Type 0 if nothing.', notANumber: 'Use figures only, for example 200.' }
     },
     'partner.payIn.employer': {

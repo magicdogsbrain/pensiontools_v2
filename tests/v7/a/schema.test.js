@@ -252,7 +252,8 @@ describe('the shared parts — one declaration for A, B and C', () => {
   it('A alone has the part-time block; both have the level, "How careful?" (7.8.0), and the stop question (B\'s gained "I\'ve already stopped")', () => {
     const only = (s, t) => s.fields.map((f) => f.path).filter((p) => !t.fields.some((g) => g.path === p));
     expect(only(SCHEMA_A, SCHEMA_B)).toEqual(['partTime.has', 'partTime.yearly', 'partTime.years']);
-    expect(only(SCHEMA_B, SCHEMA_A)).toEqual([]);
+    // (7.12.0) B alone asks how your part in pounds is said: what leaves take-home pay, or what lands
+    expect(only(SCHEMA_B, SCHEMA_A)).toEqual(['you.payIn.ownFrom', 'partner.payIn.ownFrom']);
   });
 
   it('saverFields and moreFields are the brief\'s (4.1)', () => {

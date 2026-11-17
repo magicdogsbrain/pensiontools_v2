@@ -24,7 +24,7 @@ export const SCHEMA_B = {
     { path: 'household', type: 'choice', options: ['single', 'couple'], default: 'single', group: 'who' },
     ...personFields('you'),
     ...(STOP_KIND ? [STOP_KIND] : []),
-    ...saverFields('you', { payInRequired: true }),
+    ...saverFields('you', { payInRequired: true, ownFrom: true }),
 
     // The age in mind: always after today's age (conflict 24). Not asked with "I've already stopped".
     { path: 'stop.age', type: 'age', min: 18, max: 75, required: true, group: 'stop',
@@ -39,7 +39,7 @@ export const SCHEMA_B = {
     ...personFields('partner'),
     ...partnerStopFields('b'),
     untilBothStopField('b'),
-    ...saverFields('partner'),
+    ...saverFields('partner', { ownFrom: true }),
 
     // "Add more detail" — all optional, each with a default that is listed under what was assumed (the tax-free part of
     // someone who has stopped has none: not answered is not taken).

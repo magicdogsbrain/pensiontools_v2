@@ -299,6 +299,15 @@ function ownPayIns(row, least, ctx) {
 }
 
 /**
+ * (7.12.0) A part in pounds typed as what leaves take-home pay (payIn.js ownFrom 'takeHome'): the tax is added back at
+ * source, so what leaves take-home pay is exact — the figure typed, and for any other figure × 0.8 — never "about".
+ */
+function typedScheme(inp) {
+  const p = inp && inp.you && inp.you.payIn;
+  return p && p.kind === 'split' && p.ownFrom === 'takeHome' ? { kind: 'ras', salary: 0 } : null;
+}
+
+/**
  * The pay-ins that get there at one stop age and saving risk: what goes into savings each month for the closed years
  * (when the pension is closed at the stop), and the least whole £10 into the pension at which the whole life lasts at the
  * level chosen (7.8.0: one solve; the "3 in 4" pass is gone) — at most `ctx.allowed.level` lives failing.
@@ -488,7 +497,7 @@ export function answerB(inputs, env) {
   // what would be enough (3.1–3.3): the least share of pay (or pounds) on course and for 3 futures out of 4, each count
   // asked again at the figure said; none when the State Pension alone covers it
   const enough = status === 'guaranteed-only' ? null
-    : enoughOf({ row: base, H, ctx, solved, inp, whos, savers, band, allowed, level, reachable: number !== null, only, closedYears: outside !== null, scheme: env.scheme || null });
+    : enoughOf({ row: base, H, ctx, solved, inp, whos, savers, band, allowed, level, reachable: number !== null, only, closedYears: outside !== null, scheme: env.scheme || typedScheme(inp) });
   /** The figure that leads: what would be enough at the level chosen. */
   const enoughLead = enough ? enough.atLevel : null;
 

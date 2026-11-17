@@ -107,7 +107,7 @@ const hidden = (f, whenNot) => (Object.keys(whenNot).length ? { ...f, whenNot } 
  * working know where they do not know what lands (a payslip usually shows the percentages). What a share lands is payInParts' rule. `alreadyDrawing` feeds the £10,000 warning only. B passes
  * { payInRequired: true }. Hidden once the person has stopped (stoppedNot): the list must declare the stop question first.
  */
-export function saverFields(who, { payInRequired = false } = {}) {
+export function saverFields(who, { payInRequired = false, ownFrom = false } = {}) {
   const w = who === 'partner' ? { household: 'couple' } : {};
   const not = stoppedNot(who);
   const share = { ...w, [`${who}.payIn.kind`]: 'share' };
@@ -115,6 +115,10 @@ export function saverFields(who, { payInRequired = false } = {}) {
     field({ path: `${who}.payIn.kind`, type: 'choice', options: ['total', 'split', 'share'], default: 'total', group: who }, w),
     field({ path: `${who}.payIn.total`, type: 'money', min: 0, max: SAVING.payInCeiling, ...(payInRequired ? { required: true } : { default: 0 }),
       group: who, boundaries: [0, 1, 100, 500, 700, 1_500, 5_000, 10_000] }, { ...w, [`${who}.payIn.kind`]: 'total' }),
+    // (7.12.0, B only) how your part in pounds is said: what leaves take-home pay, or what lands (payIn.js). No default:
+    // not answered is what lands, as every split given before 7.12.0 was; the form answers it "take-home" when the split
+    // is chosen (state/reduce.js), so a new form reads £300 typed as £375 going in
+    ...(ownFrom ? [field({ path: `${who}.payIn.ownFrom`, type: 'choice', options: ['takeHome', 'lands'], group: who }, { ...w, [`${who}.payIn.kind`]: 'split' })] : []),
     field({ path: `${who}.payIn.own`, type: 'money', min: 0, max: SAVING.payInCeiling, required: true, group: who,
       boundaries: [0, 1, 250, 5_000, 10_000] }, { ...w, [`${who}.payIn.kind`]: 'split' }),
     field({ path: `${who}.payIn.employer`, type: 'money', min: 0, max: SAVING.payInCeiling, required: true, group: who,

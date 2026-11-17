@@ -267,6 +267,8 @@ describe('4 — the hand-overs and "Try"', () => {
     expect(leverActions('payMore', paused)).toEqual([
       { type: 'draft/set', q: 'b', path: 'you.payIn.own', value: '500' },
       { type: 'draft/set', q: 'b', path: 'you.payIn.employer', value: '0' },
+      // (7.12.0) pounds that land, said so: B's step 1 never reads them as take-home pay
+      { type: 'draft/set', q: 'b', path: 'you.payIn.ownFrom', value: 'lands' },
       { type: 'draft/set', q: 'b', path: 'you.payIn.kind', value: 'split' }
     ]);
     // one figure or two parts: as before, one figure

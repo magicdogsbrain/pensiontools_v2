@@ -43,6 +43,8 @@
  *   payInParts(p)                    → schemaParts.js's one reader, exported on for the components and the rail
  *   payInTypedOf(values, who)        → the total as typed on a form, from flat values, or null while a box it needs is blank
  *   shareLandsOf(values, who)        → a share of pay as typed: what lands from the person and the employer, or null
+ *   splitLandsOf(values, who)        → (7.12.0) your part and your employer's in pounds as typed: what lands from each and
+ *                                      in all (a take-home figure × 1.25), or null while a box is blank
  */
 import { shownOf } from '../../answers/shared/shown.js';
 import { SCHEMA_C } from '../../answers/c/schema.js';
@@ -325,7 +327,7 @@ export function payInTypedOf(values, who = 'you') {
     return isFigure(at('pay')) && isFigure(at('ownPct')) && isFigure(at('employerPct'))
       ? payInParts({ kind, pay: at('pay'), ownPct: at('ownPct'), employerPct: at('employerPct') }).total : null;
   }
-  if (kind === 'split') return isFigure(at('own')) || isFigure(at('employer')) ? payInParts({ kind, own: at('own'), employer: at('employer') }).total : null;
+  if (kind === 'split') return isFigure(at('own')) || isFigure(at('employer')) ? payInParts({ kind, own: at('own'), employer: at('employer'), ownFrom: at('ownFrom') }).total : null;
   return isFigure(at('total')) ? at('total') : null;
 }
 
@@ -333,6 +335,14 @@ export function payInTypedOf(values, who = 'you') {
  * A share of pay as typed (6.46.0): what lands from the person and from the employer a month — the line under the three
  * boxes — or null while any of them is blank, or the pay-in is said another way.
  */
+export function splitLandsOf(values, who = 'you') {
+  const v = values || {};
+  const at = (k) => v[`${who}.payIn.${k}`];
+  if (at('kind') !== 'split' || !isFigure(at('own')) || !isFigure(at('employer'))) return null;
+  const p = payInParts({ kind: 'split', own: at('own'), employer: at('employer'), ownFrom: at('ownFrom') });
+  return { own: p.own, employer: p.employer, total: p.total, typed: at('own'), takeHome: p.ownFrom === 'takeHome' };
+}
+
 export function shareLandsOf(values, who = 'you') {
   const v = values || {};
   const at = (k) => v[`${who}.payIn.${k}`];

@@ -225,6 +225,11 @@
             "employerPct": 4,
             "payIn": 316.67
           },
+          "nowParts": {
+            "own": 190,
+            "employer": 126.67,
+            "takeHome": 152
+          },
           "employerKept": true,
           "paused": false,
           "pausedWho": [],
@@ -1590,9 +1595,9 @@
           },
           "verdictHead": {
             "id": "b.verdict.head.no",
-            "text": "Not on course for £1,810 a month from 63",
+            "text": "Not enough for £1,810 a month from 63",
             "parts": [
-              "Not on course for ",
+              "Not enough for ",
               {
                 "key": "spend.perMonth",
                 "kind": "money"
@@ -1606,7 +1611,7 @@
           },
           "verdictLine": {
             "id": "b.verdict.line.no",
-            "text": "Paying in 10% of your pay as now (£317 a month, your employer's 4% included), counting how long people your age live, your money lasts as long as you do 9 times in 20. 28% of your pay in all would put you on course, which is Balanced: 18 times in 20.",
+            "text": "Paying in 10% of your pay as now (£317 a month in all: about £152 a month from your take-home pay and £127 from your employer), counting how long people your age live, your money lasts as long as you do 9 times in 20.",
             "parts": [
               "Paying in ",
               {
@@ -1621,14 +1626,22 @@
                 "kind": "money"
               },
               " a month",
-              ", ",
-              "your employer's",
-              " ",
+              " in all",
+              ": ",
+              "about ",
               {
-                "key": "enough.now.employerPct",
-                "kind": "pct"
+                "key": "enough.nowParts.takeHome",
+                "kind": "money"
               },
-              " included",
+              " a month from ",
+              "your take-home pay",
+              " and ",
+              {
+                "key": "enough.nowParts.employer",
+                "kind": "money"
+              },
+              " from ",
+              "your employer",
               "), ",
               "counting how long people your age live",
               ", your money ",
@@ -1642,7 +1655,14 @@
               {
                 "fixed": "20"
               },
-              ". ",
+              "."
+            ],
+            "mark": "weighted"
+          },
+          "verdictEnough": {
+            "id": "b.verdict.enough.no",
+            "text": "28% of your pay in all (you 24%; £887 a month in all going into your pension, about £608 from your take-home pay) would put you on course, which is Balanced: 18 times in 20.",
+            "parts": [
               {
                 "key": "enough.atLevel.totalPct",
                 "kind": "pct"
@@ -1650,6 +1670,31 @@
               " of ",
               "your pay",
               " in all",
+              " (",
+              "you",
+              " ",
+              {
+                "key": "enough.atLevel.ownPct",
+                "kind": "pct"
+              },
+              "; ",
+              {
+                "key": "enough.atLevel.payIn",
+                "kind": "money"
+              },
+              " a month",
+              " in all",
+              " going ",
+              "into your pension",
+              ", ",
+              "about ",
+              {
+                "key": "enough.atLevel.takeHome",
+                "kind": "money"
+              },
+              " from ",
+              "your take-home pay",
+              ")",
               " would put you on course, which is ",
               "Balanced",
               ": ",
@@ -1661,8 +1706,7 @@
                 "fixed": "20"
               },
               "."
-            ],
-            "mark": "weighted"
+            ]
           },
           "income": {
             "id": "b.verdict.income",
@@ -1743,7 +1787,7 @@
           },
           "enoughHead": {
             "id": "b.enough.head",
-            "text": "To be on course: 28% of your pay in all",
+            "text": "To be on course: 28% of your pay in all (about £608 a month from your take-home pay)",
             "parts": [
               "To be on course: ",
               {
@@ -1752,12 +1796,21 @@
               },
               " of ",
               "your pay",
-              " in all"
+              " in all",
+              " (",
+              "about ",
+              {
+                "key": "enough.atLevel.takeHome",
+                "kind": "money"
+              },
+              " a month from ",
+              "your take-home pay",
+              ")"
             ]
           },
           "enoughLine": {
             "id": "b.enough.line",
-            "text": "You 24% (about £608 a month from your take-home pay) and your employer 4% as now: £887 a month in all going into your pension from now until you are 63, going up with prices. Counting how long people your age live, your money lasts as long as you do 18 times in 20.",
+            "text": "You 24% (about £608 a month from your take-home pay) and your employer 4% as now: £887 a month in all going into your pension from now until you stop at 63, going up with prices. Counting how long people your age live, your money lasts as long as you do 18 times in 20.",
             "parts": [
               "You",
               " ",
@@ -1790,7 +1843,7 @@
               "into your pension",
               " ",
               "from now ",
-              "until you are ",
+              "until you stop at ",
               {
                 "key": "stop.age",
                 "kind": "age"

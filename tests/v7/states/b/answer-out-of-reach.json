@@ -218,6 +218,11 @@
             "you"
           ],
           "now": null,
+          "nowParts": {
+            "own": 450,
+            "employer": 250,
+            "takeHome": 360
+          },
           "employerKept": true,
           "paused": false,
           "pausedWho": [],
@@ -1287,9 +1292,9 @@
           },
           "verdictHead": {
             "id": "b.verdict.head.no",
-            "text": "Not on course for £5,000 a month from 52",
+            "text": "Not enough for £5,000 a month from 52",
             "parts": [
-              "Not on course for ",
+              "Not enough for ",
               {
                 "key": "spend.perMonth",
                 "kind": "money"
@@ -1303,7 +1308,7 @@
           },
           "verdictLine": {
             "id": "b.verdict.line.no",
-            "text": "Paying in £700 a month as now (your employer's £250 included), counting how long people your age live, your money lasts as long as you do in none of the futures we tried; paying in more on its own cannot get there.",
+            "text": "Paying in £700 a month as now (about £360 a month from your take-home pay and £250 from your employer), counting how long people your age live, your money lasts as long as you do in none of the futures we tried; paying in more on its own cannot get there.",
             "parts": [
               "Paying in ",
               {
@@ -1312,13 +1317,21 @@
               },
               " a month as now",
               " (",
-              "your employer's",
-              " ",
+              "about ",
               {
-                "key": "payIn.employer",
+                "key": "enough.nowParts.takeHome",
                 "kind": "money"
               },
-              " included)",
+              " a month from ",
+              "your take-home pay",
+              " and ",
+              {
+                "key": "enough.nowParts.employer",
+                "kind": "money"
+              },
+              " from ",
+              "your employer",
+              ")",
               ", ",
               "counting how long people your age live",
               ", your money ",

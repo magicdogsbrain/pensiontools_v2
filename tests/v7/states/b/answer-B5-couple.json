@@ -280,6 +280,7 @@
           "who": null,
           "employers": [],
           "now": null,
+          "nowParts": null,
           "employerKept": false,
           "paused": false,
           "pausedWho": [],
@@ -1836,9 +1837,9 @@
           },
           "verdictHead": {
             "id": "b.verdict.head.no",
-            "text": "Not on course for £3,200 a month between you from when you are 60",
+            "text": "Not enough for £3,200 a month between you from when you are 60",
             "parts": [
-              "Not on course for ",
+              "Not enough for ",
               {
                 "key": "spend.perMonth",
                 "kind": "money"
@@ -1852,7 +1853,7 @@
           },
           "verdictLine": {
             "id": "b.verdict.line.no",
-            "text": "Paying in £1,000 a month between you as now, counting how long people your ages live, your money lasts as long as one of you is alive 15 times in 20. £2,190 a month between you (you £1,533 a month, your partner £657 a month) would put you on course, which is Balanced: 18 times in 20.",
+            "text": "Paying in £1,000 a month between you as now, counting how long people your ages live, your money lasts as long as one of you is alive 15 times in 20.",
             "parts": [
               "Paying in ",
               {
@@ -1873,7 +1874,14 @@
               {
                 "fixed": "20"
               },
-              ". ",
+              "."
+            ],
+            "mark": "weighted"
+          },
+          "verdictEnough": {
+            "id": "b.verdict.enough.no",
+            "text": "£2,190 a month between you (you £1,533 a month, your partner £657 a month) would put you on course, which is Balanced: 18 times in 20.",
+            "parts": [
               {
                 "key": "enough.atLevel.payIn",
                 "kind": "money"
@@ -1905,8 +1913,7 @@
                 "fixed": "20"
               },
               "."
-            ],
-            "mark": "weighted"
+            ]
           },
           "income": {
             "id": "b.verdict.income",
@@ -2003,7 +2010,7 @@
           },
           "enoughLine": {
             "id": "b.enough.line",
-            "text": "You £1,533 a month and your partner £657 a month, from now until you are 60, going up with prices. Counting how long people your ages live, your money lasts as long as one of you is alive 18 times in 20. That is £1,190 a month more than now.",
+            "text": "You £1,533 a month and your partner £657 a month, from now until you stop at 60, going up with prices. Counting how long people your ages live, your money lasts as long as one of you is alive 18 times in 20. That is £1,190 a month more than now.",
             "parts": [
               "You",
               " ",
@@ -2022,7 +2029,7 @@
               " a month",
               ", ",
               "from now ",
-              "until you are ",
+              "until you stop at ",
               {
                 "key": "stop.age",
                 "kind": "age"

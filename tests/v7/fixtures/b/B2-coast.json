@@ -197,6 +197,7 @@
       "who": "you",
       "employers": [],
       "now": null,
+      "nowParts": null,
       "employerKept": false,
       "paused": false,
       "pausedWho": [],

@@ -218,6 +218,11 @@
             "you"
           ],
           "now": null,
+          "nowParts": {
+            "own": 450,
+            "employer": 250,
+            "takeHome": 360
+          },
           "employerKept": true,
           "paused": false,
           "pausedWho": [],
@@ -1121,7 +1126,7 @@
           },
           "verdictLine": {
             "id": "b.verdict.line.yes",
-            "text": "Paying in £700 a month as now (your employer's £250 included), counting how long people your age live, your money lasts as long as you do more than 19 times in 20. You could stop paying in yourself, with your employer's £250 going in, and still be on course.",
+            "text": "Paying in £700 a month as now (about £360 a month from your take-home pay and £250 from your employer), counting how long people your age live, your money lasts as long as you do more than 19 times in 20. You could stop paying in yourself, with your employer's £250 going in, and still be on course.",
             "parts": [
               "Paying in ",
               {
@@ -1130,13 +1135,21 @@
               },
               " a month as now",
               " (",
-              "your employer's",
-              " ",
+              "about ",
               {
-                "key": "payIn.employer",
+                "key": "enough.nowParts.takeHome",
                 "kind": "money"
               },
-              " included)",
+              " a month from ",
+              "your take-home pay",
+              " and ",
+              {
+                "key": "enough.nowParts.employer",
+                "kind": "money"
+              },
+              " from ",
+              "your employer",
+              ")",
               ", ",
               "counting how long people your age live",
               ", your money ",

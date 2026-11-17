@@ -279,13 +279,14 @@ describe('B, step 2: am I on course, and what would be enough to pay in?', () =>
     const root = renderScreen(state);
     const v = root.querySelector('[data-headline="verdict"]');
     expect(r.verdict.band).toBe('no');
-    expect(v.querySelector('#answer-figure').textContent).toBe(`Not on course for ${money(r.spend.perMonth)} a month from ${r.stop.age}`);
-    // the first sentence: as now (the employer's part named), then the figure that would be on course, and for 3 in 4
+    expect(v.querySelector('#answer-figure').textContent).toBe(`Not enough for ${money(r.spend.perMonth)} a month from ${r.stop.age}`);
+    // the first sentence: as now, in B1's own parts (£450 lands from you, × 0.8 = about £360 from take-home pay; the
+    // employer's £250); then (7.12.0) the figure that would be on course in a sentence of its own, with what leaves take-home pay
     const first = v.querySelector('[data-sentence="verdict"]');
-    expect(first.textContent).toContain(`Paying in ${money(r.payIn.now)} a month as now (your employer's ${money(r.payIn.employer)} included)`);
-    // 7.12.0: what comes from you is said once, in the block below, never "you £…"
-    expect(first.textContent).toContain(`${money(r.enough.atLevel.payIn)} a month in all would put you on course, which is Balanced: 18 times in 20`);
-    expect(first.querySelector('[data-key="enough.atLevel.payIn"]').getAttribute('data-value')).toBe(String(r.enough.atLevel.payIn));
+    expect(first.textContent).toContain(`Paying in ${money(r.payIn.now)} a month as now (about £360 a month from your take-home pay and ${money(r.payIn.employer)} from your employer)`);
+    const then = v.querySelector('[data-sentence="verdict-enough"]');
+    expect(then.textContent).toContain(`${money(r.enough.atLevel.payIn)} a month going into your pension (about ${money(Math.round((r.enough.atLevel.payIn - 250) * 0.8))} from your take-home pay) would put you on course, which is Balanced: 18 times in 20`);
+    expect(then.querySelector('[data-key="enough.atLevel.payIn"]').getAttribute('data-value')).toBe(String(r.enough.atLevel.payIn));
     // the two incomes and the gap a year, with the State Pension named
     const income = v.querySelector('[data-testid="b.verdict.income"]');
     expect(income.textContent).toContain(`you could spend ${money(r.income.bad)} a month from ${r.stop.age}, with`);   // (7.8.0: the middling income left)
@@ -421,10 +422,13 @@ describe('B, step 2: am I on course, and what would be enough to pay in?', () =>
     const nine = r.enough.atLevel;
     expect(r.enough.how).toBe('share');
     const first = root.querySelector('[data-sentence="verdict"]');
-    expect(first.textContent).toContain(`Paying in ${r.enough.now.totalPct}% of your pay as now (${money(r.payIn.now)} a month, your employer's 4% included)`);
-    expect(first.textContent).toContain(`${nine.totalPct}% of your pay in all would put you on course, which is Balanced: 18 times in 20`);   // 7.12.0: the parts said once, in the block below
-    expect(first.querySelector('[data-key="enough.atLevel.totalPct"]').getAttribute('data-kind')).toBe('pct');
-    expect(root.querySelector('[data-enough="share"] h2').textContent).toBe(`To be on course: ${nine.totalPct}% of your pay in all`);
+    // (Sam's 6% of £38,000: 190 going in, × 0.8 = about £152 from take-home pay; the employer's 4% is £127)
+    expect(first.textContent).toContain(`Paying in ${r.enough.now.totalPct}% of your pay as now (${money(r.payIn.now)} a month in all: about £152 a month from your take-home pay and £127 from your employer)`);
+    const then = root.querySelector('[data-sentence="verdict-enough"]');
+    expect(then.textContent).toContain(`${nine.totalPct}% of your pay in all (you ${nine.ownPct}%; `);
+    expect(then.textContent).toContain('would put you on course, which is Balanced: 18 times in 20');
+    expect(then.querySelector('[data-key="enough.atLevel.totalPct"]').getAttribute('data-kind')).toBe('pct');
+    expect(root.querySelector('[data-enough="share"] h2').textContent).toMatch(new RegExp(`^To be on course: ${nine.totalPct}% of your pay in all \\(about £[\\d,]+ a month from your take-home pay\\)$`));
     one(root, 'b.lever.payMore.try').click();
     expect(actions).toEqual([set('try.payInPct', String(nine.ownPct))]);   // (7.12.0, P2.1: a try)
   });

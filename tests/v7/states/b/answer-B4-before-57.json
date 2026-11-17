@@ -216,6 +216,7 @@
           "who": "you",
           "employers": [],
           "now": null,
+          "nowParts": null,
           "employerKept": false,
           "paused": false,
           "pausedWho": [],
@@ -1614,9 +1615,9 @@
           },
           "verdictHead": {
             "id": "b.verdict.head.no",
-            "text": "Not on course for £2,000 a month from 55",
+            "text": "Not enough for £2,000 a month from 55",
             "parts": [
-              "Not on course for ",
+              "Not enough for ",
               {
                 "key": "spend.perMonth",
                 "kind": "money"
@@ -1630,7 +1631,7 @@
           },
           "verdictLine": {
             "id": "b.verdict.line.no",
-            "text": "Paying in £400 a month as now, counting how long people your age live, your money lasts as long as you do 4 times in 20. £1,660 a month would put you on course, which is Balanced: 18 times in 20.",
+            "text": "Paying in £400 a month as now, counting how long people your age live, your money lasts as long as you do 4 times in 20.",
             "parts": [
               "Paying in ",
               {
@@ -1651,12 +1652,29 @@
               {
                 "fixed": "20"
               },
-              ". ",
+              "."
+            ],
+            "mark": "weighted"
+          },
+          "verdictEnough": {
+            "id": "b.verdict.enough.no",
+            "text": "£1,660 a month going into your pension (about £1,328 from your take-home pay) would put you on course, which is Balanced: 18 times in 20.",
+            "parts": [
               {
                 "key": "enough.atLevel.payIn",
                 "kind": "money"
               },
-              " a month",
+              " a month going ",
+              "into your pension",
+              " (",
+              "about ",
+              {
+                "key": "enough.atLevel.takeHome",
+                "kind": "money"
+              },
+              " from ",
+              "your take-home pay",
+              ")",
               " would put you on course, which is ",
               "Balanced",
               ": ",
@@ -1668,8 +1686,7 @@
                 "fixed": "20"
               },
               "."
-            ],
-            "mark": "weighted"
+            ]
           },
           "income": {
             "id": "b.verdict.income",
@@ -1752,7 +1769,7 @@
           },
           "enoughHead": {
             "id": "b.enough.head",
-            "text": "To be on course: £1,660 a month into your pension",
+            "text": "To be on course: £1,660 a month into your pension (about £1,328 a month from your take-home pay)",
             "parts": [
               "To be on course: ",
               {
@@ -1760,12 +1777,21 @@
                 "kind": "money"
               },
               " a month ",
-              "into your pension"
+              "into your pension",
+              " (",
+              "about ",
+              {
+                "key": "enough.atLevel.takeHome",
+                "kind": "money"
+              },
+              " a month from ",
+              "your take-home pay",
+              ")"
             ]
           },
           "enoughLine": {
             "id": "b.enough.line",
-            "text": "About £1,328 a month from your take-home pay, from now until you are 55, going up with prices. Counting how long people your age live, your money lasts as long as you do 18 times in 20. That is £1,260 a month more than now.",
+            "text": "About £1,328 a month from your take-home pay, from now until you stop at 55, going up with prices. Counting how long people your age live, your money lasts as long as you do 18 times in 20. That is £1,260 a month more than now.",
             "parts": [
               "About ",
               {
@@ -1775,7 +1801,7 @@
               " a month from ",
               "your take-home pay",
               ", from now ",
-              "until you are ",
+              "until you stop at ",
               {
                 "key": "stop.age",
                 "kind": "age"

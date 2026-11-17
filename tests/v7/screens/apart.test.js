@@ -719,6 +719,11 @@ describe('7 — today, byte for byte', () => {
   // years' allowance, "more risk" with no pay-in that makes it last — and past the reach the enough block says "Paying in
   // more on its own cannot get there" with the ways that work. Only the two B states the rule touches moved:
   // b/answer-B4-before-57 (its £246,000 one-off sum) and b/answer-out-of-reach (V7_PIN_SCREENS=1); no other drawing moved
+  // …and the saver's round 2 (7.12.0): "Am I saving enough?" never asks what you should pay in (its title, on B's states and
+  // in C's "What next?"); B's answer says what leaves take-home pay now, says what would be enough in a sentence of its own,
+  // heads "Not enough for …", and its "Try a change" tries a pay-in and a one-off sum of your own without writing over what
+  // was typed (the slider's box, the stepper's typed attribute and the lump box). Every B answer and every C state that
+  // draws "What next?" moved (V7_PIN_TODAY=1, V7_PIN_SCREENS=1); no figure of any answer moved but B's new sentences'
   const NEW = ['[data-field="partner.stop.kind"]', '[data-field="you.taxFreeTaken"]', '[data-field="partner.taxFreeTaken"]', '[data-region="shape"]',
     '[data-warning-id="drawdown-2028"]', '[data-field="isaGrowth"]', '[data-testid="nav.plans"]', '[data-testid="nav.account"]', '[data-testid="nav.whatsNew"]', '[data-testid="nav.assumptions"]', '[data-testid="front.exampleLine"]',
     // 7.9.0: "Try the bad years" under C's and D's final answers — a button only until pressed; no figure of the answer moves

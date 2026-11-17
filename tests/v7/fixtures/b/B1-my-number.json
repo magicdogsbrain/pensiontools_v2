@@ -206,6 +206,11 @@
         "you"
       ],
       "now": null,
+      "nowParts": {
+        "own": 450,
+        "employer": 250,
+        "takeHome": 360
+      },
       "employerKept": true,
       "paused": false,
       "pausedWho": [],
@@ -1543,9 +1548,9 @@
       },
       "verdictHead": {
         "id": "b.verdict.head.no",
-        "text": "Not on course for £2,000 a month from 60",
+        "text": "Not enough for £2,000 a month from 60",
         "parts": [
-          "Not on course for ",
+          "Not enough for ",
           {
             "key": "spend.perMonth",
             "kind": "money"
@@ -1559,7 +1564,7 @@
       },
       "verdictLine": {
         "id": "b.verdict.line.no",
-        "text": "Paying in £700 a month as now (your employer's £250 included), counting how long people your age live, your money lasts as long as you do 5 times in 20. £2,380 a month in all would put you on course, which is Balanced: 18 times in 20.",
+        "text": "Paying in £700 a month as now (about £360 a month from your take-home pay and £250 from your employer), counting how long people your age live, your money lasts as long as you do 5 times in 20.",
         "parts": [
           "Paying in ",
           {
@@ -1568,13 +1573,21 @@
           },
           " a month as now",
           " (",
-          "your employer's",
-          " ",
+          "about ",
           {
-            "key": "payIn.employer",
+            "key": "enough.nowParts.takeHome",
             "kind": "money"
           },
-          " included)",
+          " a month from ",
+          "your take-home pay",
+          " and ",
+          {
+            "key": "enough.nowParts.employer",
+            "kind": "money"
+          },
+          " from ",
+          "your employer",
+          ")",
           ", ",
           "counting how long people your age live",
           ", your money ",
@@ -1588,12 +1601,29 @@
           {
             "fixed": "20"
           },
-          ". ",
+          "."
+        ],
+        "mark": "weighted"
+      },
+      "verdictEnough": {
+        "id": "b.verdict.enough.no",
+        "text": "£2,380 a month going into your pension (about £1,704 from your take-home pay) would put you on course, which is Balanced: 18 times in 20.",
+        "parts": [
           {
             "key": "enough.atLevel.payIn",
             "kind": "money"
           },
-          " a month in all",
+          " a month going ",
+          "into your pension",
+          " (",
+          "about ",
+          {
+            "key": "enough.atLevel.takeHome",
+            "kind": "money"
+          },
+          " from ",
+          "your take-home pay",
+          ")",
           " would put you on course, which is ",
           "Balanced",
           ": ",
@@ -1605,8 +1635,7 @@
             "fixed": "20"
           },
           "."
-        ],
-        "mark": "weighted"
+        ]
       },
       "income": {
         "id": "b.verdict.income",
@@ -1687,7 +1716,7 @@
       },
       "enoughHead": {
         "id": "b.enough.head",
-        "text": "To be on course: £2,380 a month into your pension",
+        "text": "To be on course: £2,380 a month into your pension (about £1,704 a month from your take-home pay)",
         "parts": [
           "To be on course: ",
           {
@@ -1695,12 +1724,21 @@
             "kind": "money"
           },
           " a month ",
-          "into your pension"
+          "into your pension",
+          " (",
+          "about ",
+          {
+            "key": "enough.atLevel.takeHome",
+            "kind": "money"
+          },
+          " a month from ",
+          "your take-home pay",
+          ")"
         ]
       },
       "enoughLine": {
         "id": "b.enough.line",
-        "text": "£2,130 from you with the tax added back (about £1,704 from your take-home pay) and your employer's £250 as now, from now until you are 60, going up with prices. Counting how long people your age live, your money lasts as long as you do 18 times in 20. That is £1,680 a month more than now.",
+        "text": "£2,130 from you with the tax added back (about £1,704 from your take-home pay) and your employer's £250 as now, from now until you stop at 60, going up with prices. Counting how long people your age live, your money lasts as long as you do 18 times in 20. That is £1,680 a month more than now.",
         "parts": [
           {
             "key": "enough.atLevel.own",
@@ -1725,7 +1763,7 @@
           },
           " as now, ",
           "from now ",
-          "until you are ",
+          "until you stop at ",
           {
             "key": "stop.age",
             "kind": "age"

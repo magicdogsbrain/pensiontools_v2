@@ -317,7 +317,7 @@ export const PLAN = {
     'where.potParts': '',
     /** The band counts the ISA and no figure for it exists anywhere (7.12.0). */
     'where.potNoIsa': '',
-    'where.ladderMonthly': 'Your ladder pays',
+    'where.ladderMonthly': 'Your plan pays',
     'says.pays': '',
     'says.sp': '',
     'says.spAssumed': '',

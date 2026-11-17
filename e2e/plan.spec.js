@@ -233,9 +233,10 @@ test.describe('the saved plans, without an account', () => {
     await expect(page.getByTestId('rail.next.button')).toHaveAttribute('href', '#/plan/GapBuckets04/month');
     await page.evaluate(() => { window.location.hash = '#/plan/GapBuckets04/month'; });   // where it leads (on a phone the rail is folded)
     await expect(page.locator('#app [data-screen]')).toHaveAttribute('data-screen', 'plan.month');
-    await expect(page.getByTestId('plan.month.gap')).toContainText('August 2026');
-    // August chosen: the boxes hold July's figures — the balances going into August — not September's
-    await page.getByTestId('plan.month.mo.month').selectOption('2026-08');
+    // 7.12.0: the page opens on the month missed itself (so no gap is named above it): the boxes hold July's figures — the
+    // balances going into August — not September's
+    await expect(page.getByTestId('plan.month.mo.month')).toHaveValue('2026-08');
+    await expect(page.getByTestId('plan.month.gap')).toHaveCount(0);
     await expect(page.getByTestId('plan.month.mo.total')).toHaveValue(String(july.equity + july.bond + july.cash));
     await expect(page.getByTestId('plan.month.mo.cash')).toHaveValue(String(july.cash));
     await expect(page.getByTestId('plan.month.mo.bonds')).toHaveValue(String(july.bond));

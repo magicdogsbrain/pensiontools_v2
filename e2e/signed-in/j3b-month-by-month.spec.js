@@ -85,12 +85,17 @@ test('a locked plan: lands on its home, whose first to-do opens Month by month; 
   });
 
   await test.step('this month recorded, the five months since April filled in with one press', async () => {
+    // 7.12.0: the page opens on the month to record (the first one missed); this month, September, is chosen
+    await page.getByTestId(`${T}.mo.month`).selectOption('2026-09');
     await type(page, 'mo.total', '590000');
     await type(page, 'mo.cash', '48000');
     await type(page, 'mo.bonds', '150000');
-    await expect(page.getByTestId(`${T}.gap`)).toHaveAttribute('data-count', '5');
-    await expect(page.getByTestId(`${T}.gap`)).toContainText('April 2026 to August 2026');
-    await page.getByTestId(`${T}.gap.fill`).click();
+    // 7.12.0: the year set up from September pays from September, so April to August are not named as missed; they are
+    // filled in from the set-up by choosing where to start, under "The months you did not record"
+    await expect(page.getByTestId(`${T}.gap`)).toHaveCount(0);
+    await page.getByTestId(`${T}.mo.from`).selectOption('2026-04');
+    const tick = page.getByTestId(`${T}.mo.fill.yes`);
+    if (await tick.isVisible().catch(() => false)) await tick.click();
     await expect(page.getByTestId(`${T}.submit`)).toHaveText('Record September 2026 and fill in 5 months');
     await page.getByTestId(`${T}.submit`).click();
     await expect(page.getByTestId(`${T}.toast`)).toContainText('with 5 months filled in');

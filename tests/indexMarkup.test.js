@@ -58,7 +58,7 @@ describe('the Household tab: a line when one plan begins later than the other (H
     const check = raw.slice(raw.indexOf('window.runHouseholdCheck = async function'), raw.indexOf('window.rerunHouseholdSplit = function'));
     expect(check).toMatch(/householdStartWords\(\{ offset: offsets\.a, firstTaxYear: deriveTiming\(ownSettings\)\.firstTaxYear \}, \{ offset: offsets\.b, firstTaxYear: deriveTiming\(partnerSettings\)\.firstTaxYear \}\)/);
     // 6.25.0: the verdict's HTML is built by src/ui/householdView.js (verdictSectionHtml), which shows the line beside the result
-    expect(check).toMatch(/verdictSectionHtml\(\{ r, ownName, pName, stratNote, startsNote, setA: ownSettings, setB: partnerSettings \}\)/);
+    expect(check).toMatch(/verdictSectionHtml\(\{ r, ownName, pName, stratNote, startsNote, setA: ownSettings, setB: partnerSettings, offsets \}\)/);
     const view = readFileSync(resolve(process.cwd(), 'src/ui/householdView.js'), 'utf8');
     expect(view).toMatch(/startsNote \? '<p class="hint" id="hhStartsNote"[^']*>' \+ esc\(startsNote\) \+ '<\/p>' : ''/);
   });

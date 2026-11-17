@@ -71,6 +71,7 @@ function SaverBlock({ V, planId, view, dispatch }) {
         : <p key={l.id} class="line" data-line={l.id}>{saverLineText(l)}</p>))}
       {B.state === 'failed' && <p class="notice" role="alert">{run.reason === 'noWorker' ? W.noWorker : W.failed}</p>}
       {B.state === 'working' && <p class="working-note" role="status" data-testid={`${T}.saver.working`}>{W.working}</p>}
+      {B.state === 'answer' && run.status === 'first' && <p class="working-note" role="status" data-testid={`${T}.saver.first`}>{W.first}</p>}
       {B.state === 'invalid' && <p class="note">{W.invalid}</p>}
       <div class="actions-row">
         <LinkButton testid={`${T}.saver.change`} kind="quiet" href={href.plan(planId, 'saving')}>{W.change}</LinkButton>

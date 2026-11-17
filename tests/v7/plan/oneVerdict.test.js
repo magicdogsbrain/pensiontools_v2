@@ -268,7 +268,7 @@ describe('the saving mix is the plan\'s own unless what is held was accepted as 
     expect(Math.round(m.saving.equity * 100)).toBe(60);
   });
   it('accepted ("This is how I want to hold it"): what is held, 100% shares, and it says so', () => {
-    const m = savingPathMixes(settings, prop, null, { moving: { agreed: { at: '2026-11-17T12:00:00.000Z' } } });
+    const m = savingPathMixes(settings, prop, null, { moving: { agreed: { strategyId: 'pots-and-valves', how: 'asHeld', at: '2026-11-17T12:00:00.000Z' } } });
     expect(m.fromHoldings).toBe(true);
     expect(Math.round(m.saving.equity * 100)).toBe(100);
   });

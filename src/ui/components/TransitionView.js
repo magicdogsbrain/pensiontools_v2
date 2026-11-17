@@ -69,8 +69,8 @@ const taxYearWords = (Y) => Y + '/' + String(+Y + 1).slice(2);
 /**
  * "Keep this" on one line (7.6.0): not kept, standing in for some tax years (typed as "2027/28, 2028/29"), or kept by
  * choice (counted toward the gaps, or not). Each change is one save of the record (the shell's keepHolding / keepHoldingYears).
- * It sits under the line's wrapper, in the first column, so a phone finds it without scrolling the table sideways. "Stands in" saves the
- * plan's first open year until the years box is typed in — never a year worked out from when a gilt matures (7.12.0).
+ * It sits under the line's wrapper, in the first column, so a phone finds it without scrolling the table sideways. "Stands in" saves
+ * nothing until a year is typed in its box — never a year the page picks, never one worked out from when a gilt matures.
  * Living on a ladder (7.12.0, `keep.held`): no "Keep this" — on a pension line that is neither one of the plan's gilts nor cash
  * (`keep.at`), one optional box for the tax years the person sets it against, empty unless they set some (keepHoldingFor).
  */
@@ -86,11 +86,11 @@ function keepCellHtml(i, L, keep) {
   const k = L && L.keep;
   const cur = !k ? '' : k.as === 'rung' ? 'rung' : k.fundsGaps ? 'mineGaps' : 'mine';
   const opts = [['', 'Not kept'], ...(keep.ladder ? [['rung', 'Stands in for some years']] : []), ['mine', 'Kept by choice'], ['mineGaps', keep.ladder ? GAPS.keep.byChoiceGaps.replace(/\.$/, '') : GAPS.keep.byChoicePlan.replace(/\.$/, '')]];
-  const years = Array.isArray(keep.years) ? keep.years : [];
-  const first = keep.ladder ? (years[0] || 0) : 0;
-  let h = '<label class="hint" style="display:block;margin-top:4px;">Keep this <select data-on-change="keepHolding(' + i + ',this.value,' + first + ')" style="width:auto;" aria-label="Keep this">' + opts.map((o) => '<option value="' + o[0] + '"' + (o[0] === cur ? ' selected' : '') + '>' + esc(o[1]) + '</option>').join('') + '</select></label>';
-  if (cur === 'rung') h += '<label class="hint" style="display:block;margin-top:4px;">' + esc(GAPS.keep.yearsTyped) + '<br><input type="text" value="' + esc((k.taxYears || []).map(taxYearWords).join(', ')) + '" placeholder="2027/28, 2028/29" style="width:150px;" aria-label="' + esc(GAPS.keep.years) + '" data-on-change="keepHoldingYears(' + i + ',this.value)"></label>';
-  return h;
+  // 7.12.0 round 3 (walker 5, decision 8): "Stands in" never fills a year by itself — the choice saves nothing, and the years box
+  // (shown beside the choice by CSS, .keep-cell:has(option[value=rung]:checked)) starts empty until the person types a year
+  let h = '<span class="keep-cell"><label class="hint" style="display:block;margin-top:4px;">Keep this <select data-on-change="keepHolding(' + i + ',this.value,0)" style="width:auto;" aria-label="Keep this">' + opts.map((o) => '<option value="' + o[0] + '"' + (o[0] === cur ? ' selected' : '') + '>' + esc(o[1]) + '</option>').join('') + '</select></label>';
+  if (keep.ladder) h += '<label class="hint keep-years" style="margin-top:4px;">' + esc(GAPS.keep.yearsTyped) + '<br><input type="text" value="' + esc(cur === 'rung' ? (k.taxYears || []).map(taxYearWords).join(', ') : '') + '" placeholder="e.g. 2028/29" style="width:150px;" aria-label="' + esc(GAPS.keep.years) + '" data-on-change="keepHoldingYears(' + i + ',this.value)"></label>';
+  return h + '</span>';
 }
 
 /** Money expected later (7.6.0): each item with Remove, and the add row (the shell's addExpected / removeExpected). */

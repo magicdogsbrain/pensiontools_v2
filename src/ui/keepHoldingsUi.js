@@ -5,6 +5,7 @@
  * same thing.
  */
 import { holdingsWith } from '../services/HoldingsRecord.js';
+import { standInPays } from '../services/TransitionPlanner.js';
 import { gapsOf, gapsView, lifeOf } from '../answers/plan/gaps.js';
 import { heldPhase } from '../services/Phases.js';
 import { PLAN } from '../v7/copy/plan.js';
@@ -96,6 +97,22 @@ export function transitionHeld(scenario, rec, today = new Date()) {
 }
 
 /**
+ * Why a gilt cannot stand in for the years typed (7.12.0 round 3): when every year typed ends before the gilt matures, the words
+ * that say so ("This gilt pays on 7 June 2028, after 2027/28 ends, so it cannot pay for 2027/28."); else null. Its maturity is
+ * the bundled list's, or its name's (TransitionPlanner.standInPays); a line with none is never refused.
+ */
+export function tooEarlyWords(line, years) {
+  let m = null; try { m = standInPays(line, { today: new Date() }).matures; } catch { m = null; }
+  if (!m || !years.length) return null;
+  const early = years.filter((Y) => (Y + 1) + '-04-05' < m);
+  if (early.length < years.length) return null;
+  const [y, mo, d] = m.split('-').map(Number);
+  const day = d + ' ' + ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][mo - 1] + ' ' + y;
+  const ys = early.map((Y) => Y + '/' + String(Y + 1).slice(2)).join(', ');
+  return 'This gilt pays on ' + day + ', after ' + ys + ' end' + (early.length === 1 ? 's' : '') + ', so it cannot pay for ' + ys + '.';
+}
+
+/**
  * The handlers the Transition tab's markup names (TransitionView.js): keepHolding, keepHoldingYears, keepHoldingFor,
  * addExpected, removeExpected. `draft()` is the record on screen, `persist(record)` the shell's one save, `toast(text, kind)` its
  * message. Saves are queued (7.12.0): each change is applied to the record as the previous change left it, and each save waits
@@ -112,10 +129,17 @@ export function installKeepHandlers(w, { draft, persist, toast }) {
   w.keepHolding = (i, v, firstYear) => {
     const d = draft(); if (!d || !d.lines || !d.lines[i]) return;
     const keep = keepOfChoice(v, d.lines[i].keep, firstYear);
-    if (keep && keep.wait) { toast('Type the tax years it stands in for, like 2027/28.', 'error'); return; }
+    // nothing is saved until a year is typed in the box beside the choice (7.12.0 round 3): no message, nothing changes
+    if (keep && keep.wait) return;
     save({ kind: 'keep', index: i, keep });
   };
-  w.keepHoldingYears = (i, text) => { const ys = parseTaxYears(text); if (!ys.length) { toast('Type at least one tax year, like 2027/28.', 'error'); return; } save({ kind: 'keep', index: i, keep: { as: 'rung', taxYears: ys } }); };
+  w.keepHoldingYears = (i, text) => {
+    const ys = parseTaxYears(text); if (!ys.length) { toast('Type at least one tax year, like 2027/28.', 'error'); return; }
+    // a gilt cannot pay for a year that ends before it matures (7.12.0 round 3, walker 5): said beside the choice, not saved
+    const d = pending || draft(); const why = d && d.lines && d.lines[i] ? tooEarlyWords(d.lines[i], ys) : null;
+    if (why) { toast(why, 'error'); return; }
+    save({ kind: 'keep', index: i, keep: { as: 'rung', taxYears: ys } });
+  };
   // living on a ladder (7.12.0): the one optional box — the years typed are the person's label; emptied, the keep comes off
   w.keepHoldingFor = (i, text) => {
     const d = pending || draft(); if (!d || !d.lines || !d.lines[i]) return;

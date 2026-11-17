@@ -807,6 +807,9 @@
       }
     }
     /* a plain link inside a card reads on the dark card (7.12.0 round 3: the browser's dark blue was nearly invisible) */
+    /* "Keep this": the years box shows only while "Stands in for some years" is chosen (7.12.0 round 3) */
+    .keep-cell .keep-years { display: none; }
+    .keep-cell:has(option[value="rung"]:checked) .keep-years { display: block; }
     .card a:not([class]) { color: var(--primary); }
     /* "Your plan's mix" while living on a ladder (7.12.0): under 600px each row is a card of label–value pairs, never cut off */
     @media (max-width: 599px) {

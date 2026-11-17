@@ -230,7 +230,8 @@ describe('"Keep this" never suggests a year', () => {
     const p = withLines(sam(), [{ wrapper: 'SIPP', ticker: 'TR27', name: 'Treasury 4.25% 07/12/2027', kind: 'gilt', units: 20000, value: 19950 }]);
     const mi = moveInputs(p, { now: noon(BEFORE) });
     const html = transitionHtml({ doc: p.planDocument, target: mi.target, diff: mi.diff, seq: null, prog: mi.prog, holdings: p.holdings });
-    expect(html).toContain('keepHolding(0,this.value,2027)');
+    // retaken in 7.12.0 round 3 (decision 8): the full view passes no year; the years box beside the choice starts empty
+    expect(html).toContain('keepHolding(0,this.value,0)');
     expect(html).toContain('aria-label="Keep this"');
   });
 });

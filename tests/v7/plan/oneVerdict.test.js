@@ -139,6 +139,10 @@ describe('the State Pension with no date: from the age the runs use, never the s
     const slots = JSON.parse(m[1]);
     expect(slots.year).toBe('2031/32');
     expect(slots.age).toBe('67');
+    // "Everything else this plan uses" lists the year the runs use, 67 − 62 = 5, never the stored 12
+    const f = /"id":"inc\.state-pension-old","set":true,"facts":(\[[^\]]*\])/.exec(all);
+    expect(f, 'the listing').not.toBe(null);
+    expect(JSON.parse(f[1]).find((x) => x.k === 'fromYear').v).toBe(5);
   });
 });
 

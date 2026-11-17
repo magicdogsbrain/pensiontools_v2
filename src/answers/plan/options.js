@@ -14,6 +14,7 @@
  *
  * `ss` is the plan's effective Stress settings, `ds` its Decision settings (as saved). Pure.
  */
+import { defaultSpYear } from '../../services/IncomeSchedule.js';
 import { DRAWDOWN_DEFAULTS, SIMULATION_DEFAULTS, TAX_DEFAULTS, ISA_DEFAULTS } from '../../constants.js';
 
 /** The keys the five sections show, by section (the ledger's names: 'stress.x', 'decision.x'). */
@@ -61,7 +62,8 @@ export const OPTIONS = Object.freeze([
     facts: (ss) => [choice('rises', ss.dbIndexation || 'cpi')] },
   { id: 'inc.state-pension-old', keys: ['stress.statePension', 'stress.statePensionYear', 'decision.statePension', 'decision.statePensionYear'],
     set: (ss) => !ss.spStartDate && num(ss.statePension) > 0,
-    facts: (ss) => [money('yearly', ss.statePension), count('fromYear', ss.statePensionYear)] },
+    // (7.12.0) the plan year the runs start it in (IncomeSchedule.defaultSpYear: the stored 12 is the old default, age 67)
+    facts: (ss) => [money('yearly', ss.statePension), count('fromYear', defaultSpYear(ss))] },
   { id: 'tax.bands', keys: ['stress.pa', 'stress.brl', 'stress.hrl'],
     set: (ss) => (num(ss.pa) ?? TAX_DEFAULTS.PERSONAL_ALLOWANCE) !== TAX_DEFAULTS.PERSONAL_ALLOWANCE || (num(ss.brl) ?? TAX_DEFAULTS.BASIC_RATE_LIMIT) !== TAX_DEFAULTS.BASIC_RATE_LIMIT || (num(ss.hrl) ?? TAX_DEFAULTS.HIGHER_RATE_LIMIT) !== TAX_DEFAULTS.HIGHER_RATE_LIMIT,
     facts: (ss) => [money('pa', ss.pa ?? TAX_DEFAULTS.PERSONAL_ALLOWANCE), money('brl', ss.brl ?? TAX_DEFAULTS.BASIC_RATE_LIMIT), money('hrl', ss.hrl ?? TAX_DEFAULTS.HIGHER_RATE_LIMIT)] },

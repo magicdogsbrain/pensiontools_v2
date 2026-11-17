@@ -12,9 +12,6 @@ export const HOME = {
     title: 'Are you paying in enough?',
     working: 'Working out whether what you pay in is enough…',
     noAim: 'Your plan has no income set for when you stop, so there is nothing yet to test what you pay in against.',
-    /** (7.12.0) The full view's Accumulation tab: where an income is added there. */
-    noAimFull: 'Add what you want a year on Stress tester → Settings, under “Your income shape”.',
-    noAimOpen: 'Open Stress tester settings',
     noAimLink: 'What you spend',
     noWorker: 'This browser cannot work this out here.',
     failed: 'Sorry, this could not be worked out. Nothing was changed.',

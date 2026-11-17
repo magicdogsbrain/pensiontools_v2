@@ -435,6 +435,7 @@ export const TRY_CUTS = Object.freeze(['saved', 'on', 'off']);
 export function trySettingsOf(s, boxes) {
   const b = boxes || {};
   const c = JSON.parse(JSON.stringify(s));
+  delete c.incomeNotSet;   // the plan's mark (7.12.0), read by the screens before a what-if runs; never part of the copy
   const id = b.way || 'pots-and-valves';
   const pot = +b.pot || 0;
   const isa = +b.isa || 0;

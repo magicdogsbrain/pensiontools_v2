@@ -204,8 +204,12 @@ export function withDerivedPots(scenario, settings, now = new Date(), env = {}) 
   return worked && worked.source === 'worked' ? { ...s, potAtRetirement: worked } : s;
 }
 
-/** A plan's income as read when nobody has given one: none, said so (`incomeNotSet`, stripped before any save). */
-const INCOME_NOT_SET = Object.freeze({ baseSalary: 0, incomeSteps: [], targetSchedule: null, incomeNotSet: true });
+/**
+ * A plan's income when nobody has given one: said so (`incomeNotSet`, stripped before any save). The stored figure is left as
+ * it is; every reader that must never use it as the person's reads the mark (the full view's form, Try a strategy, the
+ * saver's aim, the tests' "nothing to run on", the household check).
+ */
+const INCOME_NOT_SET = Object.freeze({ incomeNotSet: true });
 
 /**
  * A plan with no figures (PlanFigures.planHasFigures: straight from the full view's wizard, its pots the defaults) reads no
@@ -216,7 +220,7 @@ const INCOME_NOT_SET = Object.freeze({ baseSalary: 0, incomeSteps: [], targetSch
  */
 export function withPensionToday(scenario, settings, now = new Date()) {
   if (!scenario || planHasFigures(scenario)) return settings || {};
-  // (7.12.0, decision 2) its income is the default too: never read as the person's. In memory only, like `potsNotSet`.
+  // (7.12.0, decision 2) its income is the default too: marked, never read as the person's. In memory only, like `potsNotSet`.
   const s = { ...(settings || {}), ...INCOME_NOT_SET };
   const known = pensionTodayOf(scenario, { now, settings: s });
   if (known.value == null) return { ...s, potsNotSet: true };

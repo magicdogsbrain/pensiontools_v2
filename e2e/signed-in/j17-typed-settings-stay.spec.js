@@ -30,13 +30,15 @@ test('a way of drawing pressed and figures typed on a new plan\'s Settings are s
 
   // the full view shows the Stress tester: Settings pressed, a way chosen, figures typed, all before the page's own press
   await expect(page.locator('#mainApp:not(.hidden) .tab.active[data-tab="stress"]')).toBeVisible({ timeout: 30_000 });
+  const shownAt = await page.evaluate(() => performance.now());
   await page.locator('.sub-tab[data-stresstab="stresssettings"]').click();
   await page.locator('button[data-strat="full-il-gilt"]').click();
   await page.locator('#miniSipp').fill('485000');
   await page.locator('#giltCashYears').fill('3');
-  // the page's delayed presses of the open Settings tab (made certain here, whatever the machine's speed), then a moment
+  // the page's delayed presses of the open Settings tab (made certain here, whatever the machine's speed)…
   await page.evaluate(() => document.querySelector('.sub-tab[data-stresstab="stresssettings"]').click());
-  await page.waitForTimeout(1500);
+  // …and the page's own presses, 400 ms after it opened, are past: what is under test is what they do
+  await expect.poll(() => page.evaluate(() => performance.now()), { timeout: 10_000 }).toBeGreaterThan(shownAt + 1500);
 
   await expect(page.locator('button[data-strat="full-il-gilt"].active')).toBeVisible();
   await expect(page.locator('#miniSipp')).toHaveValue('485000');

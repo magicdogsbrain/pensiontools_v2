@@ -41,6 +41,12 @@ export function saverBlockText(l) {
   return fill(HOME.saver.lines[l.id], l.slots);
 }
 
+/** (7.12.0) The full view's own words for a plan with no income yet: where it is added there. */
+export const FULL_VIEW = Object.freeze({
+  addIncome: 'Add what you want a year on Stress tester → Settings, under “Your income shape”.',
+  openSettings: 'Open Stress tester settings'
+});
+
 /**
  * (7.12.0) What you want, changed here: the amount a month from the stop and the age you stop, in two boxes with Save —
  * the same one write as What you pay in (ScenarioRepository.saveActiveWant). `want` is savedWant's; nothing when the plan
@@ -63,7 +69,7 @@ export function saverBlockHtml(block, planId, form = '') {
   const link = form + '<p style="margin:8px 0 0;"><a href="' + esc(simpleLinkHref(planId).replace(/#\/plan\/([^/]+)$/, '#/plan/$1/saving')) + '" data-testid="ac.saver.change">' + esc(W.change) + '</a></p>';
   if (!block) return '';
   // no income yet: said, and the full view's own place to add one (7.12.0; the want boxes need a want to change)
-  if (block.state === 'noAim') return '<div data-testid="ac.saver" data-why="noAim"><p>' + esc(W.noAim) + '</p><p>' + esc(W.noAimFull) + ' <button type="button" class="risk-btn" data-testid="ac.saver.addIncome" data-on-click="openStressSettingsTab()">' + esc(W.noAimOpen) + '</button></p></div>';
+  if (block.state === 'noAim') return '<div data-testid="ac.saver" data-why="noAim"><p>' + esc(W.noAim) + '</p><p>' + esc(FULL_VIEW.addIncome) + ' <button type="button" class="risk-btn" data-testid="ac.saver.addIncome" data-on-click="openStressSettingsTab()">' + esc(FULL_VIEW.openSettings) + '</button></p></div>';
   const lines = block.lines.map((l) => '<p data-line="' + esc(l.id) + '"' + (l.id === 'head' ? ' style="font-weight:600;font-size:15px;"' : '') + '>' + esc(saverBlockText(l)) + '</p>').join('');
   const tail = block.state === 'working' ? '<p role="status">' + esc(W.working) + '</p>'
     : block.state === 'failed' ? '<div class="alert alert-warning">' + esc(W.failed) + '</div>'

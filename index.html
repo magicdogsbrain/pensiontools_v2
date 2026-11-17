@@ -4732,7 +4732,7 @@
         renderStressStartSummary(stressSettings);
 
         // Pre-fill Stress Settings tab
-        document.getElementById('ssBaseSalary').value = stressSettings.baseSalary;
+        document.getElementById('ssBaseSalary').value = stressSettings.incomeNotSet ? 0 : stressSettings.baseSalary;
         syncNetFromGross('ss');
         writeAlloc('ss', stressSettings.equityMin, stressSettings.bondMin, stressSettings.cashTarget, stressSettings.diversifierStart || 0); blankUnsetPots(document, stressSettings);
         restoreCustomAllocFromSettings('ss', stressSettings);   // rebuild a from-funds split if one was saved
@@ -4752,7 +4752,7 @@
         setDbStartFields(document, stressSettings, window._ssTiming);   // the final-salary start: the year the engines read, and the age box (dbStartSetting.js)
         document.getElementById('ssDbIndexation').value = stressSettings.dbIndexation || 'lpi5';
         applyStrategyToUI(stressSettings.strategyId || 'pots-and-valves', activeParams(stressSettings));   // this strategy's own keys only (6.13.0)
-        window._ssIncomeSteps = Array.isArray(stressSettings.incomeSteps) && stressSettings.incomeSteps.length ? JSON.parse(JSON.stringify(stressSettings.incomeSteps)) : (stressSettings.baseSalary > 0 || stressSettings.incomeNotSet ? [{ fromAge: stressSettings.shapeAgeNow || 57, amount: stressSettings.baseSalary > 0 ? stressSettings.baseSalary : '' }] : []);
+        window._ssIncomeSteps = Array.isArray(stressSettings.incomeSteps) && stressSettings.incomeSteps.length ? JSON.parse(JSON.stringify(stressSettings.incomeSteps)) : (stressSettings.incomeNotSet ? [{ fromAge: stressSettings.shapeAgeNow || 57, amount: '' }] : stressSettings.baseSalary > 0 ? [{ fromAge: stressSettings.shapeAgeNow || 57, amount: stressSettings.baseSalary }] : []);
         refreshShapeRefs().then(() => renderIncomeSteps());
         await loadTimingUI(stressSettings);
         refreshStressLock().catch(() => {});
@@ -5997,7 +5997,7 @@
       document.getElementById('tryIsaPolicy').value = '';
       document.getElementById('tryIncomeMode').value = 'shape';
       document.getElementById('tryIncomeWrap').style.display = 'none';
-      document.getElementById('tryIncome').value = s.baseSalary > 0 ? Math.round(s.baseSalary) : '';   // none given: empty (7.12.0)
+      document.getElementById('tryIncome').value = s.baseSalary > 0 && !s.incomeNotSet ? Math.round(s.baseSalary) : '';   // none given: empty (7.12.0)
       document.getElementById('tryYears').value = s.duration || 35;
       document.getElementById('tryCuts').value = '';
       document.getElementById('tryCutPct').value = ''; document.getElementById('tryCutEsc').value = '';
@@ -6041,8 +6041,8 @@
     };
     window.runTryStrategyUI = async function () {
       const out = document.getElementById('tryResults');
-      const s = await getStressSettingsAsync();
-      const c = tryStrategySettings(s);
+      await flushSettings(); const s = await getStressSettingsAsync();
+      const c = tryStrategySettings(s); { const miss = missingWords({ ...c, potsNotSet: false, incomeNotSet: !!s.incomeNotSet && readTryBoxes().incomeMode !== 'flat' }); if (miss) { out.innerHTML = '<div class="alert alert-info">' + budEsc(miss) + '</div>'; return; } }   // a what-if on figures nobody gave: said, never run (7.12.0)
       // Hold the height while running: swapping a long result for a spinner shrinks the page and the
       // browser clamps the scroll position to the top — the reader would lose their place.
       out.style.minHeight = (out.offsetHeight || 0) + 'px';
@@ -6081,14 +6081,14 @@
     };
     const PNV_FAMILY = ['pots-and-valves', 'buckets-in-order'];   // both run the Pots & Valves engine (buckets: ordered sourcing)
     window.runMonteCarloUI = async function () {
-      const s = await getStressSettingsAsync();
+      await flushSettings(); const s = await getStressSettingsAsync();   // what is typed is saved first, so the test reads what the boxes show (7.12.0)
       const grid = document.getElementById('optimiseResultsMC'); if (grid) grid.innerHTML = '';   // the allocation grid belongs to the previous run
       await runStrategyWindowsUI(s);
     };
     // History: the one test's own real start years (src/services/NamedStarts.js), explained — no second figure.
     window.runHistoricalUI = async function () {
       const box = document.getElementById('histResults');
-      const s = await getStressSettingsAsync();
+      await flushSettings(); const s = await getStressSettingsAsync();
       const sid = s.strategyId || 'pots-and-valves';
       box.innerHTML = '<div class="loading"><div class="spinner"></div>Reading the one test\'s histories…</div>';
       await new Promise((r) => setTimeout(r, 30));
@@ -6102,7 +6102,7 @@
     // Scenarios: the named stresses, explained from the same histories.
     window.runScenariosUI = async function (rowsShown = false) {
       const box = document.getElementById('scenResults');
-      const s = await getStressSettingsAsync();
+      await flushSettings(); const s = await getStressSettingsAsync();
       const sid = s.strategyId || 'pots-and-valves';
       box.innerHTML = '<div class="loading"><div class="spinner"></div>Reading the named stresses from the one test…</div>';
       await new Promise((r) => setTimeout(r, 30));
@@ -7605,7 +7605,7 @@
       // Retiring later: project today's pots to retirement from the Accumulation planner's inputs.
       if (t.mode === 'future') {
         // Pots from the FORM as it stands (a new plan's saved settings are the £1m defaults — 6.10.2), else the saved ones.
-        let potsNow = null; try { const a = readAlloc('ss'); if (a && (+a.equityMin + +a.bondMin + +a.cashTarget) > 0) potsNow = a; } catch (e) { potsNow = null; }
+        let potsNow = null; try { const a = readAlloc('ss'); if (a && (+a.equityMin + +a.bondMin + +a.cashTarget) > 0) potsNow = a; } catch (e) { potsNow = null; } if (potsNow) s = { ...s, configured: true };   // the pension the form holds is the plan's own figure (7.12.0)
         const base = window._ssTimingBase || {};
         window._tmProjection = timingPotsAtStop(await getActiveScenarioAsync().catch(() => null), { ...s, equityMin: potsNow ? +potsNow.equityMin : base.equityMin, bondMin: potsNow ? +potsNow.bondMin : base.bondMin, cashTarget: potsNow ? +potsNow.cashTarget : base.cashTarget, diversifierStart: potsNow ? (+potsNow.diversifierStart || 0) : base.diversifierStart, isaBalance: +document.getElementById('ssIsaBalance')?.value || base.isaBalance || 0, taggedFunds: (window._taggedFunds && window._taggedFunds.ss && window._taggedFunds.ss.length) ? window._taggedFunds.ss : base.taggedFunds }, new Date());   // worked out from the saver's facts, as every run reads it (7.12.0)
         s = timingSettingsFromForm(); t = deriveTiming(s);
@@ -9475,7 +9475,7 @@
 
     // "Am I on course?" (7.12.0, src/ui/saverAnswerUi.js): the simple view's answer block, from the same reader and the same run
     window.runOnTrackCheck = async () => { if (window._acAutosave) await window._acAutosave.flush(); return paintSaverAnswer(document, { listScenariosAsync, getActiveScenarioId, saveWant: saveActiveWant, afterSave: () => window.loadAccumulationUI && window.loadAccumulationUI() }); };
-    window._ssAutosave = installStressSettingsAutosave(window, document, { save: (o) => saveStressSettingsUI(o), planIsLocked, isLoggedIn, getActiveScenarioId, dbStartError: () => dbStartError(document, window._ssTiming) });
+    window._ssAutosave = installStressSettingsAutosave(window, document, { save: (o) => saveStressSettingsUI(o), planIsLocked, isLoggedIn, getActiveScenarioId, dbStartError: () => dbStartError(document, window._ssTiming), afterSave: () => renderTiming() });   // the pots-at-stop line follows a pot just saved
     window._acAutosave = installAccumulationAutosave(window, document, { saveTab: (b) => saveActiveAccumulationTab(b), planIsLocked, isLoggedIn, getActiveScenarioId,
       afterSave: () => { invalidateStressCache(); if (document.getElementById('acOnTrack')?.textContent.trim()) window.runOnTrackCheck(); } }); document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushSettings(); });   // the answer on the card follows the boxes; Settings reads the new ages; a page hidden sends what is typed
 
@@ -9646,7 +9646,7 @@
       showLoading('Loading settings...');
       try {
         const s = await getStressSettingsAsync();
-        document.getElementById('ssBaseSalary').value = s.baseSalary;
+        document.getElementById('ssBaseSalary').value = s.incomeNotSet ? 0 : s.baseSalary;   // none given: none (7.12.0)
         syncNetFromGross('ss');
         // FULL allocation restore (mirrors initializeAllInputsFromSettings / loadDecisionSettings) —
         // restore the tagged funds, custom split, and mode so a saved "My funds" plan doesn't revert to
@@ -9666,7 +9666,7 @@
         document.getElementById('ssDbIndexation').value = s.dbIndexation || 'lpi5';
         window._ssStrategyState = JSON.parse(JSON.stringify(sortLegacyParams(s).strategyState || {}));   // legacy flat bag sorted per strategy (6.13.0)
         applyStrategyToUI(s.strategyId || 'pots-and-valves', activeParams(s));   // this strategy's own keys only (6.13.0)
-        window._ssIncomeSteps = Array.isArray(s.incomeSteps) && s.incomeSteps.length ? JSON.parse(JSON.stringify(s.incomeSteps)) : (s.baseSalary > 0 || s.incomeNotSet ? [{ fromAge: s.shapeAgeNow || 57, amount: s.baseSalary > 0 ? s.baseSalary : '' }] : []);   // nobody gave an income: one empty step, never the default (7.12.0)
+        window._ssIncomeSteps = Array.isArray(s.incomeSteps) && s.incomeSteps.length ? JSON.parse(JSON.stringify(s.incomeSteps)) : (s.incomeNotSet ? [{ fromAge: s.shapeAgeNow || 57, amount: '' }] : s.baseSalary > 0 ? [{ fromAge: s.shapeAgeNow || 57, amount: s.baseSalary }] : []);   // nobody gave an income: one empty step, never the default (7.12.0)
         refreshShapeRefs().then(() => renderIncomeSteps());
         await loadTimingUI(s);
         refreshStressLock().catch(() => {});   // …which also paints the fund and platform charges box (renderChargesField, 6.19.0)

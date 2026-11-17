@@ -220,7 +220,7 @@ export function saverInputsOf(plan, { today, checkIn = null, plans = [] } = {}) 
   const bands = bandsOf(ss);
   const duration = num(ss.duration) || 0;
   const endAge = clamp(Math.round(clockAge + duration), 75, 105);
-  const aim = spendOf(aimOf(ss, headAge), bands, stopAge, endAge);
+  const aim = ss.incomeNotSet ? null : spendOf(aimOf(ss, headAge), bands, stopAge, endAge);   // no income given: no aim, never the default (7.12.0)
   if (!aim) return { ok: false, why: 'noAim' };
 
   const lines = holdingsLines(plan && plan.holdings);

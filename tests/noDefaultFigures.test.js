@@ -24,7 +24,8 @@ describe('a plan from the full view\'s wizard reads no income nobody gave', () =
     expect(plan.stressTool.settings.baseSalary).toBe(30000);   // the stored default
     const before = JSON.stringify(plan);
     const s = effectiveStressSettings(plan, { now: NOW });
-    expect([s.baseSalary, s.incomeSteps, s.targetSchedule, s.incomeNotSet]).toEqual([0, [], null, true]);
+    expect(s.incomeNotSet).toBe(true);                       // marked: the figure there is nobody's
+    expect(missingFiguresOf(s)).toEqual({ pot: true, income: true });
     expect(JSON.stringify(plan)).toBe(before);
     expect('incomeNotSet' in withoutPotsAsOf(s)).toBe(false);   // never saved
   });

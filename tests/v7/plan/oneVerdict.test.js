@@ -235,7 +235,7 @@ describe('"Does it last?" on a locked plan: the figure it was locked with is sai
 });
 
 // ---- "Your plan" on a plan still saving: the pension today, and no year-old note (walker 2 high 5) -------------------------
-describe('"Your plan" for a plan still saving says the pension today the home says, and no kept answer is called stale', () => {
+describe('"Your plan" for a plan still saving says the pension today the home says', () => {
   /** Fixture 05 unlocked, as a person still saving would have it: the newest pot record is September 2026, £319,800. */
   const open = () => {
     const raw = JSON.parse(JSON.stringify(corpus()['05-saver-committed']));
@@ -250,15 +250,6 @@ describe('"Your plan" for a plan still saving says the pension today the home sa
     const pg = planPage([entryOf(raw, '2026-11-17')], raw.id, 'plan', { today: '2026-11-17' });
     const all = JSON.stringify(pg);
     expect(/"sipp":(\d+)/.exec(all)[1]).toBe('319800');
-  });
-  it('no "Your ‘will it last’ answer was worked out on …" on a saving plan: its chance is worked out now on every page', async () => {
-    const { seedToScenario } = await import('../../../src/services/PlanSeed.js');
-    const { seedA } = await import('../../integration/fixtures/planSeeds.js');
-    const plan = seedToScenario(seedA(), new Date(2026, 9, 1, 15)).yours;
-    plan.id = 'SaverKept01';
-    plan.stressTool.settings.retireAge = (plan.stressTool.settings.retireAge || 60) + 2;   // the stop moved since it was kept
-    const pg = planPage([entryOf(plan, '2026-11-17')], plan.id, 'plan', { today: '2026-11-17' });
-    expect(JSON.stringify(pg)).not.toMatch(/"answerStale":\{/);
   });
 });
 

@@ -1023,8 +1023,7 @@ function rulesFor(C, built) {
   const toRecord = month && month.toRecord ? month.toRecord : mon;
   // the stored "will it last" answer is older than its inputs (editing-in-v7.md 4) — never on a locked plan, whose answer is
   // its document's. Said on "Does it last?" and About; no longer a to-do (7.10.0)
-  // (7.12.0) a plan still saving works its chance out now on every page (one chance per plan): no kept answer is called stale
-  const answerStale = !locked && ss.retired !== false ? answerAge(plan, ss) : null;
+  const answerStale = !locked ? answerAge(plan, ss) : null;
   const saverStage = SAVER_STAGES.includes(key);
   const closed = key === 'closed' ? closedReading(plan, C.entries) : null;
   // a plan lived on until a close still to come: its reviews carry on with the plan that carries it on

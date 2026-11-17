@@ -66,6 +66,9 @@ export async function monthlyEntry(page, { month, pension, isa, setUp = null }) 
   if (await open()) {
     if (setUp) await setUp(page);
     for (let i = 0; i < 5 && (await open()); i++) {
+      // a person waits while the last press is saving ("Saving…" on its button), then reads the step that follows
+      await expect.poll(async () => !/Saving…/.test(await wizard.innerText().catch(() => '')), { timeout: 30_000 }).toBe(true);
+      if (!(await open())) break;
       const step = await wizard.innerText().catch(() => '');
       seen.push(step);
       await wizard.getByRole('button', { name: /^(Next|Confirm|Finish|Done|Save|Set up|Start)/ }).last().click();

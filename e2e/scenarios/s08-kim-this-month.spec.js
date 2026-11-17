@@ -17,7 +17,8 @@ import { KIM62 } from './people.js';
 import { grossQuarterFree, monthly, pounds } from './hand/money.js';
 
 const ROUTE = { path: 'Kim\'s locked plan > the simple home > this month (at most two presses) > the full view\'s Monthly Entry', who: 'signed in', asked: 'what to take this month, and from which pot' };
-const POTS = /\b(pension|SIPP|ISA|cash|savings)\b[^£\n]{0,30}£([\d,]+)|£([\d,]+)[^\n£]{0,20}\bfrom (?:your )?(pension|SIPP|ISA|cash|savings)\b/gi;
+// a pot named with its figure; "State Pension: £12,548 a year" names an income, not a pot, so it is never read as one
+const POTS = /(?<!State )\b(pension|SIPP|ISA|cash|savings)\b[^£\n]{0,30}£([\d,]+)|£([\d,]+)[^\n£]{0,20}\bfrom (?:your )?(pension|SIPP|ISA|cash|savings)\b/gi;
 const split = (text) => [...String(text).matchAll(POTS)].map((m) => ({ pot: (m[1] || m[4]).toLowerCase(), amount: Number(String(m[2] || m[3]).replace(/,/g, '')) }));
 
 test('s08 · Kim asks what to take this month, and from which pot @phone', async ({ page }) => {

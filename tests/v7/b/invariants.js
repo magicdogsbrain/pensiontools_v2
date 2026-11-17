@@ -277,7 +277,10 @@ export function checkAnswerB(answer, given) {
 
   // B8 the levers: the fixed five in order, each null or its shape; honest about what it claims
   const lv = answer.levers;
-  if (JSON.stringify(Object.keys(lv)) !== JSON.stringify(LEVERS)) fail('B8', `levers ${Object.keys(lv)}`);
+  // (7.12.0) "both together" follows the fixed set only when neither a later stop nor spending less works on its own
+  const keys = Object.keys(lv);
+  if (JSON.stringify(keys) !== JSON.stringify(LEVERS) && JSON.stringify(keys) !== JSON.stringify([...LEVERS, 'both'])) fail('B8', `levers ${keys}`);
+  if (lv.both && (lv.stopLater !== null || lv.spendLess !== null || !(lv.both.spend > 0) || !(lv.both.age > 0))) fail('B8', 'levers.both is set while a way works on its own, or without an age and an amount');
   if (JSON.stringify(lv.accept) !== JSON.stringify({ lasted: ch.lasted, ...(W ? { weighted: ch.weighted } : {}), short: answer.short, monthlyIfShort: answer.monthlyIfShort })) fail('B8', 'levers.accept is not the answer as it stands');
   if (answer.onCourse) for (const k of ['stopLater', 'payMore', 'spendLess', 'moreRisk']) if (lv[k] !== null) fail('B8', `on course but levers.${k} is set`);
   if (inputs.savingRisk === 'adventurous' && lv.moreRisk !== null) fail('B8', 'moreRisk with the saving risk already adventurous');

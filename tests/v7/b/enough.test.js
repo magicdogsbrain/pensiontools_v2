@@ -320,7 +320,11 @@ describe('the warnings and the ways are about what the words state', () => {
       expect(/[Ss]topping later could: at |So could stopping later, at /.test(line), 'stopping later').toBe(Boolean(lv.stopLater));
       if (lv.stopLater) expect(line).toContain('at ' + lv.stopLater.age + ', paying in as now');
       expect(line).not.toMatch(/one-off|below/);
-      if (!lv.stopLater && !lv.spendLess && a.enough.outOfReach !== 'pot') expect(line).toBe('Neither stopping later nor spending less does it on its own; both together, a later age and a lower amount, may.');
+      // (7.12.0) neither on its own: both together, as figures, when a later age with an amount is found (both.test.js)
+      if (!lv.stopLater && !lv.spendLess && a.enough.outOfReach !== 'pot') {
+        if (lv.both) expect(line).toMatch(new RegExp(`^Neither stopping later nor spending less does it on its own\\. Both together could: (your partner )?stopping at ${lv.both.age} and spending £${Math.round(lv.both.spend).toLocaleString('en-GB')} a month from then, paying in as now, and your money .+\\.$`));
+        else expect(line).toBe('Neither stopping later nor spending less does it on its own; both together, a later age and a lower amount, may.');
+      }
     }), opts(12));
     // Alex, 30, aiming far beyond any pot: no other way was found, so none is pointed to
     const far = { household: 'single', you: { age: 30, pot: 10000, payIn: { kind: 'total', total: 500 } }, stop: { age: 40 }, spend: { kind: 'amount', amount: 20000 } };

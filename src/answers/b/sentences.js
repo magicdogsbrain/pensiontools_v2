@@ -781,6 +781,9 @@ function verdictSentences(result, facts) {
     const stop = lv.stopLater ? [spend ? [' So could ', later, ', at '] : [later.charAt(0).toUpperCase() + later.slice(1), ' could: at '], A('levers.stopLater.age'), ', paying in as now, ', ...lasts(lv.stopLater), '.'] : null;
     // (no pot at all would pay it, en.outOfReach 'pot': nothing more is pointed to)
     if (spend || stop) out.enoughLine = S('b.enough.line.outOfReach', [spend || '', stop || '']);
+    // (7.12.0) neither on its own: both together, worked out — the latest age tried and what could be spent from then
+    else if (lv.both) out.enoughLine = S('b.enough.line.outOfReach.both', ['Neither stopping later nor spending less does it on its own. Both together could: ',
+      p ? 'your partner stopping at ' : 'stopping at ', A('levers.both.age'), ' and spending ', M('levers.both.spend'), ' a month from then, paying in as now, and ', ...lasts(lv.both), '.']);
     else if (en.outOfReach !== 'pot') out.enoughLine = S('b.enough.line.outOfReach.both', ['Neither stopping later nor spending less does it on its own; both together, a later age and a lower amount, may.']);
     return out;
   }

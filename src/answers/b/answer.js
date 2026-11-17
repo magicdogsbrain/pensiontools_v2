@@ -576,6 +576,14 @@ export function answerB(inputs, env) {
     if (monthlyIfShort > 0 && monthlyIfShort < spendMonth) {
       levers.spendLess = { spend: monthlyIfShort, lasted: careNow.chance.fixedAge, ...W(careNow.chance) };
     }
+    // both together (7.12.0): neither a later stop alone (to the latest age tried) nor spending less from this stop lasts —
+    // at the latest age tried, what could be spent a month paying in as now, at the level (the same test as spend less)
+    // (not when no pot at all would pay what is wanted: nothing more is pointed to then)
+    if (!levers.stopLater && !levers.spendLess && stopLaterSearched && number !== null) {
+      const row = ages(stopLaterSearched);
+      const lv = row && row.bandNow ? row.bandNow().levels[level] : null;
+      if (lv && lv.monthly > 0 && lv.monthly < spendMonth) levers.both = { age: stopLaterSearched, spend: lv.monthly, lasted: lv.chance.fixedAge, ...W(lv.chance) };
+    }
     // a one-off sum now (3.4): the least whole £1,000 into the pension (a couple's pensions, split as the number is),
     // paying in as now — the test at a pot today that much larger. Checked a person at a time, with a year of what goes in
     // now beside it, as both count in the same tax year: against the annual allowance (carrying forward is not modelled:

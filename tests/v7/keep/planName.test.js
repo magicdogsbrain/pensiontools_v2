@@ -16,7 +16,10 @@ import * as frozenCopy from './seed.v1/planName.js';
  * `shapeAt.careful`). The level keys (7.8.0) hold the same figure at levels.balanced; the copy is handed it where it reads it.
  */
 const asBefore = (r) => (!r || !r.levels ? r : { ...r, monthly: { careful: r.levels[r.level || 'balanced'].monthly }, ...(r.shapeAt ? { shapeAt: { careful: r.shapeAt[r.level || 'balanced'] } } : {}) });
-const frozen = { suggestedPlanName: (q, inputs, r) => frozenCopy.suggestedPlanName(q, inputs, asBefore(r)) };
+// (7.12.0) B names no pay-in: 6.19.0's B name less its " · paying £…" (the only part that moved; a shape tail the pay-in
+// had pushed past 50 characters may now fit, so it is put where 6.19.0 puts one)
+const unpaid = (q, n) => (q === 'b' ? String(n).replace(/ · paying £[\d,]+/, '') : n);
+const frozen = { suggestedPlanName: (q, inputs, r) => unpaid(q, frozenCopy.suggestedPlanName(q, inputs, asBefore(r))) };
 import { aPartnerAlready, aYouAlready, bYouAlready, bBothLater, cYouNow } from './apartAnswers.mjs';
 
 const load = (q, name) => JSON.parse(readFileSync(join(process.cwd(), 'tests/v7/states', q, `${name}.json`), 'utf8')).answers[q].result;
@@ -61,7 +64,7 @@ describe('stopping in the same year: every suggestion is 6.19.0\'s, word for wor
 
 describe('stopping in different years (couples-different-years.md 2.4, "Plan name suggested")', () => {
   it('both still working: each person\'s own stop — "Stop at 60 and 62"', () => {
-    expect(suggestedPlanName('b', null, bBothLater())).toBe('Stop at 60 and 62 · £3,200 a month · paying £1,000');
+    expect(suggestedPlanName('b', null, bBothLater())).toBe('Stop at 60 and 62 · £3,200 a month');
     const a = aPartnerAlready();
     a.inputs.partner = { ...a.inputs.partner, age: 54, stop: { kind: 'age', age: 58 } };
     delete a.inputs.partner.taxFreeTaken;
@@ -75,11 +78,11 @@ describe('stopping in different years (couples-different-years.md 2.4, "Plan nam
     b.inputs.partner = { ...b.inputs.partner, stop: { kind: 'already' } };
     delete b.inputs.partner.payIn; delete b.inputs.partner.alreadyDrawing;
     b.ages = { you: 60, partner: 48 };
-    expect(suggestedPlanName('b', null, b)).toBe('Stop at 60 · £3,200 a month · paying £1,000');
+    expect(suggestedPlanName('b', null, b)).toBe('Stop at 60 · £3,200 a month');
   });
   it('you have stopped (A and B: "I\'ve already stopped"; C: from now): the answer is your partner\'s — "Partner stops at 56"', () => {
     expect(suggestedPlanName('a', null, aYouAlready())).toBe('Partner stops at 56 · £3,200 a month');
-    expect(suggestedPlanName('b', null, bYouAlready())).toBe('Partner stops at 60 · £3,000 a month · paying £700');
+    expect(suggestedPlanName('b', null, bYouAlready())).toBe('Partner stops at 60 · £3,000 a month');
     expect(suggestedPlanName('c', null, cYouNow())).toBe('Partner stops at 63 · £3,500 a month');
   });
   it('stopping today at an age is still your own stop — both ages, not "Partner stops at"', () => {
@@ -155,12 +158,12 @@ describe('the suggestion, pattern by pattern (from the pinned answers)', () => {
     r.shown.phases[0].byPerson[0].statePension = 1045.63;
     expect(suggestedPlanName('a', r.inputs, r)).toBe('From 60 · £2,000 a month');
   });
-  it('B: "Stop at {age} · £{spend} a month · paying £{pay-in now}"', () => {
-    expect(name('b', 'answer-B1')).toBe('Stop at 60 · £2,000 a month · paying £700');
-    expect(name('b', 'answer-B2-on-course')).toBe('Stop at 60 · £2,000 a month · paying £1,400');
+  it('B: "Stop at {age} · £{spend} a month" (7.12.0: no pay-in)', () => {
+    expect(name('b', 'answer-B1')).toBe('Stop at 60 · £2,000 a month');
+    expect(name('b', 'answer-B2-on-course')).toBe('Stop at 60 · £2,000 a month');
   });
-  it('B, a couple: both ages, and the household\'s pay-in', () => {
-    expect(name('b', 'answer-B5-couple')).toBe('Stop at 60 and 58 · £3,200 a month · paying £1,000');
+  it('B, a couple: both ages (7.12.0: no pay-in)', () => {
+    expect(name('b', 'answer-B5-couple')).toBe('Stop at 60 and 58 · £3,200 a month');
   });
   it('B with nothing going in: the last part is left out', () => {
     const r = copy(load('b', 'answer-B1'));
@@ -218,7 +221,7 @@ describe('rounding, length and what is never suggested', () => {
         if (q === 'b') { r.stop.age = you + wait; r.ages = { you: you + wait, partner: partner + wait }; r.spend.perMonth = spend; r.payIn.now = payIn; }
         if (q === 'c') { r.whose = 'you'; r.basis.startAge = you + wait; r.levels.balanced.monthly = Math.round(spend / 10) * 10; }
         const s = suggestedPlanName(q, r.inputs, r);
-        expect(s).toMatch(/^(Stop at|From) \d+ and \d+ · £[\d,]+ a month( · paying £[\d,]+)?$/);
+        expect(s).toMatch(/^(Stop at|From) \d+ and \d+ · £[\d,]+ a month$/);
         expect([...s].length).toBeLessThanOrEqual(PLAN_NAME.suggestMax);
         expect(checkPlanName(s).ok).toBe(true);
       }

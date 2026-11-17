@@ -1126,7 +1126,7 @@
           },
           "verdictLine": {
             "id": "b.verdict.line.yes",
-            "text": "Paying in £700 a month as now (about £360 a month from your take-home pay and £250 from your employer), counting how long people your age live, your money lasts as long as you do more than 19 times in 20. You could stop paying in yourself, with your employer's £250 going in, and still be on course.",
+            "text": "Paying in £700 a month as now (about £360 a month from your take-home pay and £250 from your employer), counting how long people your age live, your money lasts as long as you do more than 19 times in 20. There is room: you would still be on course paying in less.",
             "parts": [
               "Paying in ",
               {
@@ -1164,15 +1164,7 @@
               {
                 "fixed": "20"
               },
-              ". ",
-              "You could stop paying in yourself, with ",
-              "your employer's",
-              " ",
-              {
-                "key": "enough.atLevel.employer",
-                "kind": "money"
-              },
-              " going in, and still be on course."
+              ". There is room: you would still be on course paying in less."
             ],
             "mark": "weighted"
           },

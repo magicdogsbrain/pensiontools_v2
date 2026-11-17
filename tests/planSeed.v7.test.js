@@ -79,6 +79,8 @@ describe.skipIf(!READY)('stopping in the same year: V7\'s version 2 seed makes t
     const args = { source: q, result, env: ENV, name: { chosen: 'My try' }, createdAt: AT };
     // (7.8.0: the frozen copy is handed the answer as it read it before; the seed's answer row is compared apart)
     const v2 = buildPlanSeed(args), v1 = frozenV7.buildPlanSeed({ ...args, result: asBefore(q, result) });
+    // (7.12.0) a name B suggests carries no pay-in: 6.19.0's suggestion less its " · paying £…" (the only part that moved)
+    if (q === 'b' && v1 && v1.name) for (const k of ['suggested', 'chosen']) if (typeof v1.name[k] === 'string') v1.name[k] = v1.name[k].replace(/ · paying £[\d,]+/, '');
     const day = new Date(2026, 8, 30, 15, 0);
     const now = seedToScenario(v2, day), then = frozenPlanner.seedToScenario(v1, day);
     for (const k of ['yours', 'partner']) {

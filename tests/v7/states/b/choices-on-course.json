@@ -1631,7 +1631,7 @@
           },
           "verdictLine": {
             "id": "b.verdict.line.yes",
-            "text": "Paying in £1,400 a month as now, counting how long people your age live, your money lasts as long as you do 19 times in 20. You could pay in as little as £430 a month and still be on course: about £344 a month from your take-home pay.",
+            "text": "Paying in £1,400 a month as now, counting how long people your age live, your money lasts as long as you do 19 times in 20. There is room: you would still be on course paying in less.",
             "parts": [
               "Paying in ",
               {
@@ -1652,23 +1652,7 @@
               {
                 "fixed": "20"
               },
-              ". ",
-              "You could pay in as little as ",
-              {
-                "key": "enough.atLevel.payIn",
-                "kind": "money"
-              },
-              " a month",
-              " and still be on course",
-              ": ",
-              "about ",
-              {
-                "key": "enough.atLevel.takeHome",
-                "kind": "money"
-              },
-              " a month from ",
-              "your take-home pay",
-              "."
+              ". There is room: you would still be on course paying in less."
             ],
             "mark": "weighted"
           },

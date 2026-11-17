@@ -172,7 +172,8 @@ describe('an account: one addDoc of the planner\'s own document, after a fresh r
     expect(ac.netMonthly).toBe(Math.round(nine.own * 0.8 * 100) / 100);
     // (seed version 4, 7.8.0: the level's answer row, the count at the figure that would be on course)
     expect(written.fromAnswer.answer).toMatchObject({ level: 'balanced', chance: { fixedAge: nine.lasted } });
-    expect(written.planDetails.name).toContain('paying £' + (Math.round(nine.payIn / 10) * 10).toLocaleString('en-GB'));
+    // (7.12.0) a name kept from B carries no pay-in: the box is filled before the button says which pay-in is kept
+    expect(written.planDetails.name).not.toContain('paying £');
     // the choice is spent with the keep: the next one asks again
     expect('payIn' in p.store.getState().keep.b).toBe(false);
     // keeping "as now" is the plan it always was

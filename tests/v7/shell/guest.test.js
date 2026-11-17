@@ -192,7 +192,7 @@ describe('the hand-over: offered on a sign-in with plans of the person\'s own in
     expect(q.store.getState().ui.bringIn).toBe(null);
     p.stop(); q.stop();
   });
-  it('a sign-up on this page: nobody → unverified (no offer) → "I\'ve confirmed" → in: the offer counts the two plans of the person\'s own (the listener is not called again for the same user, so the offer follows the session); a page opened already signed in: no offer', async () => {
+  it('a sign-up on this page: nobody → unverified (no offer) → "I\'ve confirmed" → in: the offer counts the two plans of the person\'s own (the listener is not called again for the same user, so the offer follows the session); a page opened already signed in: offered until answered (7.12.0)', async () => {
     const p = sourcePage({ windowPlans: [DRAFT, notActive(FRESH), EXAMPLE] });
     await tick();
     expect(p.store.getState().session.kind).toBe('nobody');
@@ -214,11 +214,11 @@ describe('the hand-over: offered on a sign-in with plans of the person\'s own in
     await tick(12);
     expect(r.store.getState().session.kind).toBe('unverified');
     expect(r.store.getState().ui.bringIn).toBe(null);
-    // the page's first known session is a sign-in made before it opened: nothing is offered (as before)
+    // the page's first known session is a sign-in made before it opened (a reload): offered until answered (7.12.0)
     const q = sourcePage({ windowPlans: [DRAFT], first: { uid: 'u1', email: 'a@b.c', emailVerified: true } });
     await tick();
     expect(q.store.getState().session.kind).toBe('in');
-    expect(q.store.getState().ui.bringIn).toBe(null);
+    expect(q.store.getState().ui.bringIn).toEqual({ count: 1, busy: false });
     p.stop(); q.stop(); r.stop();
   });
   it('"Yes, bring them in": ONE addDoc per plan of their own as handoffPayload packages them — the example never (the planner\'s bug, fixed in GuestMeter.js) — isActive for the first only when the account is empty; then the window\'s list without them (the example stays); the toast counts them', async () => {

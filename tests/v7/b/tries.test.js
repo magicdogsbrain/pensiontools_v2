@@ -27,7 +27,7 @@ describe('a try never writes over what was typed as now', () => {
     const a = answerB({ ...SAM, try: { payIn: 400 } }, ENV);
     expect(a.payIn.now).toBe(750);
     expect(a.tried.now).toBe(625);
-    expect(a.sentences.verdictLine.text).toMatch(/^Paying in £750 a month \(£400 a month from your take-home pay and £250 from your employer; you pay £625 a month now\), /);
+    expect(a.sentences.verdictLine.text).toMatch(/^Paying in £750 a month \(£400 a month from your take-home pay and £250 from your employer; £625 a month goes in now\), /);
     const all = JSON.stringify(a.sentences);
     expect(all).not.toMatch(/Paying in £[\d,]+ a month as now/);
   }, 120000);

@@ -726,6 +726,10 @@ describe('7 — today, byte for byte', () => {
   // draws "What next?" moved (V7_PIN_TODAY=1, V7_PIN_SCREENS=1); no figure of any answer moved but B's new sentences'
   // …and the "when it runs out" line (7.12.0): "We follow each future on to 104. In the futures where the money runs out
   // before then, …" — every answer that says it moved (V7_PIN_TODAY=1, V7_PIN_SCREENS=1); no count or age moved
+  // …and the saver followed through (7.12.0, round 3): "The full amount" of State Pension says it needs 35 years of National
+  // Insurance and where a forecast is (every numbers step of A, B and C that asks it), and an answer on course with room says
+  // only that there is room, never "as little as" or "stop paying in" (b/answer-B2-on-course, b/answer-have)
+  // (V7_PIN_TODAY=1, V7_PIN_SCREENS=1); no figure moved and no other drawing moved
   const NEW = ['[data-field="partner.stop.kind"]', '[data-field="you.taxFreeTaken"]', '[data-field="partner.taxFreeTaken"]', '[data-region="shape"]',
     '[data-warning-id="drawdown-2028"]', '[data-field="isaGrowth"]', '[data-testid="nav.plans"]', '[data-testid="nav.account"]', '[data-testid="nav.whatsNew"]', '[data-testid="nav.assumptions"]', '[data-testid="front.exampleLine"]',
     // 7.9.0: "Try the bad years" under C's and D's final answers — a button only until pressed; no figure of the answer moves

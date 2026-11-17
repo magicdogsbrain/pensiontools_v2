@@ -399,7 +399,7 @@ describe('step 7: a name the person did not type follows the plan', () => {
   };
   it('Sam\'s plan kept under the suggested name, then the stop moved to 67 and £2,200 a month: "Stop at 67 · £2,200 a month"', () => {
     const plan = sam65();
-    expect(plan.planDetails.name).toMatch(/^Stop at 65 · £2,400 a month · paying £/);
+    expect(plan.planDetails.name).toBe('Stop at 65 · £2,400 a month');   // 7.12.0: a name kept from B carries no pay-in
     const after = changed(plan);
     expect(shownPlanName(after, { now: noon(READ_ON) })).toBe('Stop at 67 · £2,200 a month');
     // brought in from a window before 7.12.0, with the old mark: the same

@@ -368,7 +368,7 @@ describe('B, step 2: am I on course, and what would be enough to pay in?', () =>
     expect(actions).toEqual(wants.stopLater(later.answers.b.result));
   });
 
-  it('on course: one headline, no levers, nothing more "to be on course", and how little could still get there', () => {
+  it('on course: one headline, no levers, nothing more "to be on course", and only that there is room', () => {
     const state = load('answer-B2-on-course');
     const r = state.answers.b.result;
     const root = renderScreen(state);
@@ -378,7 +378,7 @@ describe('B, step 2: am I on course, and what would be enough to pay in?', () =>
     expect(v.querySelector('[data-verdict]').getAttribute('data-verdict')).toBe('yes');
     expect(v.querySelector('#answer-figure').textContent).toBe(`On course for ${money(r.spend.perMonth)} a month from ${r.stop.age}`);
     expect(r.enough.atLevel.payIn).toBeLessThan(r.payIn.now);
-    expect(v.querySelector('[data-sentence="verdict"]').textContent).toContain(`You could pay in as little as ${money(r.enough.atLevel.payIn)} a month and still be on course: about ${money(Math.round(r.enough.atLevel.payIn * 0.8))} a month from your take-home pay.`);   // 7.12.0: × 0.8
+    expect(v.querySelector('[data-sentence="verdict"]').textContent).toContain('There is room: you would still be on course paying in less.');   // 7.12.0: room, never how little
     expect(root.querySelector('[data-guide="levels.balanced.pot"]').textContent).toContain(r.sentences.bad.text);
   });
 

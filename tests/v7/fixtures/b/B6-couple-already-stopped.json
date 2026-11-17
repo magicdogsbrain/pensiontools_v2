@@ -1527,7 +1527,7 @@
       },
       "verdictLine": {
         "id": "b.verdict.line.yes",
-        "text": "With your partner paying in £850 a month as now, counting how long people your ages live, your money lasts as long as one of you is alive 19 times in 20. Your partner could stop paying in and still be on course.",
+        "text": "With your partner paying in £850 a month as now, counting how long people your ages live, your money lasts as long as one of you is alive 19 times in 20. There is room: you would still be on course paying in less.",
         "parts": [
           "With your partner paying in ",
           {
@@ -1548,9 +1548,7 @@
           {
             "fixed": "20"
           },
-          ". ",
-          "Your partner could stop paying in",
-          " and still be on course."
+          ". There is room: you would still be on course paying in less."
         ],
         "mark": "weighted"
       },

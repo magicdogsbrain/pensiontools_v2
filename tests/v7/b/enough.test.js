@@ -94,7 +94,7 @@ describe('the words, state by state (saving-enough-and-check-in.md 2.2 and 3.5; 
     const s = a.sentences;
     expect(a.verdict.band).toBe('yes');
     expect(s.verdictHead.text).toBe('On course for £1,500 a month from 66');
-    expect(s.verdictLine.text).toBe('Paying in £400 a month as now, your money lasted until you are 95 in 9 futures out of 10. You could pay in as little as £380 a month and still be on course: about £304 a month from your take-home pay.');   // 380 × 0.8 = 304
+    expect(s.verdictLine.text).toBe('Paying in £400 a month as now, your money lasted until you are 95 in 9 futures out of 10. There is room: you would still be on course paying in less.');   // 7.12.0: room, never how little
     expect(s.income.text).toBe('To last in 9 futures out of 10, you could spend £1,520 a month from 66, with your State Pension from 68 (the full amount, as assumed).');
     expect(a.gap.month).toBe(0);
     expect(s.enoughHead).toBeUndefined();
@@ -247,11 +247,12 @@ describe('the words, state by state (saving-enough-and-check-in.md 2.2 and 3.5; 
     const verdict = [s.verdictLine, s.verdictEnough, s.enoughHead, s.enoughLine, s.enoughFour].filter(Boolean).map((x) => x.text).join(' ');
     expect(verdict).not.toMatch(/\byour pay\b|\byou \d|your employer|into your pension\b/);
     if (a.levers.payMore) expect(s.lever.payMore.text).toMatch(/^Your partner pays in [\d.]+% of their pay in all \(your partner [\d.]+%; £[\d,]+ a month in all\)/);
-    // on course: they could stop paying in themselves, with their employer's part going in
+    // on course with room: only that there is room (7.12.0), never that they could stop paying in themselves
     const easy = already(20, 1200);
     const b = ok(answerB(easy, ENV), easy);
     if (b.verdict.band === 'yes' && b.enough.atLevel && b.enough.atLevel.ownPct === 0) {
-      expect(b.sentences.verdictLine.text).toContain("Your partner could stop paying in themselves, with their employer's 4% going in, and still be on course.");
+      expect(b.sentences.verdictLine.text).toContain('There is room: you would still be on course paying in less.');
+      expect(b.sentences.verdictLine.text).not.toContain('stop paying in');
     }
     expect(b.sentences.verdictLine.text).toMatch(/^With your partner paying in 24% of their pay as now/);
   });
@@ -281,12 +282,12 @@ describe('the words, state by state (saving-enough-and-check-in.md 2.2 and 3.5; 
     for (const x of [a, f]) expect(text(x)).not.toMatch(/stop paying in|as little as/i);
   }, 60_000);
 
-  it('on course, your employer\'s part alone enough: "You could stop paying in yourself", in pounds as in shares', () => {
+  it('on course, your employer\'s part alone enough: the solver finds it, the words say only that there is room (7.12.0)', () => {
     const alex = { household: 'single', you: { age: 48, pot: 600000, payIn: { kind: 'split', own: 500, employer: 300 } }, stop: { age: 60 }, spend: { kind: 'amount', amount: 2000 } };
     const a = ok(answerB(alex, ENV), alex);
     expect(a.verdict.band).toBe('yes');
     expect(a.enough.atLevel).toMatchObject({ own: 0, employer: 300 });
-    expect(a.sentences.verdictLine.text).toMatch(/You could stop paying in yourself, with your employer's £300 going in, and still be on course\.$/);
+    expect(a.sentences.verdictLine.text).toMatch(/There is room: you would still be on course paying in less\.$/);
   });
 });
 
@@ -483,7 +484,7 @@ describe('keeping "on course" (3.6): the seed is the answer at that figure, in t
     // a name left as suggested follows what is kept; one the person typed stays theirs
     const followed = buildPlanSeed({ source: 'b', result: a, env, name: { suggested: now.name.suggested, chosen: now.name.suggested }, createdAt: '2026-11-04T10:00:00.000Z', payIn: 'enough' });
     expect(followed.name.chosen).toBe(followed.name.suggested);
-    expect(followed.name.chosen).not.toBe(now.name.suggested);
+    expect(followed.name.chosen).toBe(now.name.suggested);   // 7.12.0: B names no pay-in, so the two keeps share a name
     expect(kept.name.chosen).toBe('Sam on course');
   });
   it('on course already, or nothing would be enough: nothing to choose (atEnough is null, the seed refused)', () => {

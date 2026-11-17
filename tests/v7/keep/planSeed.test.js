@@ -267,7 +267,10 @@ const KEEPABLE = ['c', 'a', 'b'].flatMap((q) => readdirSync(join(process.cwd(), 
  * `enough.nineInTen`, `basis.failuresAllowed`) — the same figure the level keys hold. Only the `answer` row differs by
  * design (seed version 4, 7.8.0: the level's row), so it is compared on its own.
  */
-const frozen = { ...frozenCopy, buildPlanSeed: (args) => frozenCopy.buildPlanSeed({ ...args, result: asBefore(args.source, args.result) }) };
+// (7.12.0) a name B suggests carries no pay-in: 6.19.0's suggestion less its " · paying £…" (the only part that moved)
+const unpaid = (n) => (typeof n === 'string' ? n.replace(/ · paying £[\d,]+/, '') : n);
+const unpaidSeed = (q, s) => { if (q === 'b' && s && s.name) { for (const k of ['suggested', 'chosen']) if (k in s.name) s.name[k] = unpaid(s.name[k]); } return s; };
+const frozen = { ...frozenCopy, buildPlanSeed: (args) => unpaidSeed(args.source, frozenCopy.buildPlanSeed({ ...args, result: asBefore(args.source, args.result) })) };
 
 /** A version 2 seed with its version 2 keys taken out and the version written back as 1 (and no answer row: above). */
 function asVersion1(seed) {

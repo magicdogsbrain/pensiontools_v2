@@ -36,7 +36,7 @@ const MADE = { id: 'Kq8LwT2mJv5PzYc9BnRd', name: 'Stop at 60 · £1,850 a month'
 
 // (7.8.0: C's figures at Balanced weighted by how long people live; answer-A1 spends £1,850, its "close" while weighing)
 const ANSWERS = [['c', 'answer-F1', 'From 58 · £1,380 a month'], ['c', 'answer-F2', 'From 62 and 60 · £3,530 a month'], ['a', 'answer-A1', 'Stop at 60 · £1,850 a month'],
-  ['a', 'answer-A2-couple', 'Stop at 56 and 54 · £3,590 a month'], ['b', 'answer-B1', 'Stop at 60 · £2,000 a month · paying £700'], ['b', 'answer-B2-on-course', 'Stop at 60 · £2,000 a month · paying £1,400'],
+  ['a', 'answer-A2-couple', 'Stop at 56 and 54 · £3,590 a month'], ['b', 'answer-B1', 'Stop at 60 · £2,000 a month'], ['b', 'answer-B2-on-course', 'Stop at 60 · £2,000 a month'],
   ['d', 'answer-D1', 'From 68 · £2,100 a month'], ['d', 'answer-D2-couple', 'From 72 and 70 · £2,800 a month']];
 
 describe('at the foot of every answer', () => {
@@ -192,7 +192,7 @@ describe('after keeping (road-to-7.md step 7): "Kept as ‘…’", the lock ste
     expect(one(root, 'b.keep.saving').getAttribute('href')).toBe('#/plan/guest-a1b2c3d4/saving');
     expect(one(root, 'b.keep.saving').textContent).toBe(KEEP.seeSaving);
     expect(one(root, 'b.keep.saving').className).toContain('primary');
-    expect(one(root, 'b.keep.lock').className).toContain('quiet');
+    expect(one(root, 'b.keep.lock')).toBe(null);   // 7.12.0: no lock offered as your own saving plan is kept
     // the second button: the plan's first check-in (release step R3, 4.3)
     expect(one(root, 'b.keep.checkIn').getAttribute('href')).toBe('#/plan/guest-a1b2c3d4/checkin');
     expect(one(root, 'b.keep.checkIn').textContent).toBe(KEEP.firstCheckIn);
@@ -224,7 +224,7 @@ describe('after keeping (road-to-7.md step 7): "Kept as ‘…’", the lock ste
   it('the words of the panel pass the banned list in every scope the questions are shown in', () => {
     const all = Object.values(KEEP.made).concat(Object.values(KEEP.problems), Object.values(KEEP.why), [KEEP.title, KEEP.titleSeparate, KEEP.stepLead, KEEP.note, KEEP.privacy, KEEP.separate, KEEP.madePartner, KEEP.madeSeparate, KEEP.lockThis, KEEP.tried, KEEP.triedUse, KEEP.open, KEEP.newTitle, KEEP.anotherTitle, KEEP.saveNew, KEEP.saveAnother, KEEP.seeSaving, KEEP.seeSavingPartner],
       Object.values(KEEP.use).flatMap((v) => (typeof v === 'string' ? [v] : Object.values(v))));
-    for (const text of all) expect(bannedHits(fill(text, { name: 'Stop later', now: '10%', enough: '31%', savings: '£200', payIn: '£700 a month' }), ['all', 'first', 'planner', 'retired', 'saver']), text).toEqual([]);
+    for (const text of all) expect(bannedHits(fill(text, { name: 'Stop later', now: '10%', enough: '31%', savings: '£200', payIn: '£700 a month', amount: '£2,500', age: '58' }), ['all', 'first', 'planner', 'retired', 'saver']), text).toEqual([]);
   });
 });
 

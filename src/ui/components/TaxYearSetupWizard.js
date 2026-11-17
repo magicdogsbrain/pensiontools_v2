@@ -391,7 +391,7 @@ function renderConfirmation() {
           <strong>About ${fmt(breakdown.totalNet)} a month</strong> reaches your bank
         </p>
         ${(wizardContext.taxFreeFraction || 0) > 0 ? '<p class="hint" id="wizTaxFree" style="margin-top: 6px;">A quarter of each pension payment is tax-free.</p>' : ''}
-        ${(() => { const r = partYearReason(wizardContext, wizardInputs, breakdown); return r ? '<p class="hint" id="wizPartYear" style="margin-top: 6px;">' + esc('In a full tax year this income is about ' + r.full + ' a month after tax. This tax year about ' + r.month + ' a month reaches your bank, because the money you received before ' + r.before + ' used your tax-free allowance.') + '</p>' : ''; })()}
+        ${(() => { const r = partYearReason(wizardContext, wizardInputs, breakdown); return r ? '<p class="hint" id="wizPartYear" style="margin-top: 6px;">' + esc('In a full tax year this income is ' + r.full + ' a month after tax. This tax year ' + r.month + ' a month reaches your bank, because the money you received before ' + r.before + ' used your tax-free allowance.') + '</p>' : ''; })()}
       </div>
 
       <div class="wizard-buttons">

@@ -108,7 +108,7 @@ export const MONTH = {
     /** Under the table when a part of each pension payment is tax-free (7.12.0). */
     taxFree: 'A quarter of each pension payment is tax-free.',
     /** A part year after money was received (7.12.0): why less reaches the bank than in a full year. */
-    reason: 'In a full tax year this income is about {full} a month after tax. This tax year about {month} a month reaches your bank, because the money you received before {before} used your tax-free allowance.',
+    reason: 'In a full tax year this income is {full} a month after tax. This tax year {month} a month reaches your bank, because the money you received before {before} used your tax-free allowance.',
     spLater: 'The State Pension starts {from} at {monthly} a month: the months before it come from the pension.',
     bandsChange: 'Change the tax bands',
     bandsHide: 'Hide the tax bands',

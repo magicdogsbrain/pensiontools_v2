@@ -83,7 +83,9 @@ export const HOME = {
     /** The review (7.10.0): one page in every phase; a saver's is the check-in. */
     'review.due':         { title: 'Your review', detail: 'Due {reviewOften}. A few figures, a few minutes. Nothing about your plan changes unless you say so.' },
     'review.offCourse':   { title: 'Past your line at your last two reviews', detail: 'At your last two reviews that worked out the chance, the money lasted as long as you do {a} and then {b}; your line is {line} in 20. The review shows what you can change.' },
-    'household.pending':  { title: 'Your partner’s plan', detail: 'The plan it is linked with is not in this account. Link one, or leave it.' }
+    'household.pending':  { title: 'Your partner’s plan', detail: 'The plan it is linked with is not in this account. Link one, or leave it.' },
+    /** Moving (7.12.0): what is still to buy for the plan's mix, and the months left before work stops. */
+    'move.toBuy':         { title: 'Moving to your plan’s mix: {toBuy} still to buy, {windowLeft} left', detail: 'The move page says what to buy and what pays for it. It is optional: you can also say that what you hold is how you want to hold it.' }
   },
   /** Off course said another way: by the guardrails rule, or from readings kept before 7.8.0 that say no figure. */
   offCourse: {

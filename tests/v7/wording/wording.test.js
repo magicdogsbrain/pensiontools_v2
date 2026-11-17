@@ -151,7 +151,7 @@ describe('the words in src/v7/copy/', () => {
       // a saver's check-in (release step R3): how often, the last check-in's month and the next's
       .replace(/\{often\}/g, 'yearly').replace(/\{(last|nextCheck|nextReview)\}/g, 'November 2026')
       // 7.10.0: how often the review falls, and the months left in the move window
-      .replace(/\{reviewOften\}/g, 'once a tax year').replace(/\{windowLeft\}/g, '24 months')
+      .replace(/\{reviewOften\}/g, 'once a tax year').replace(/\{windowLeft\}/g, '24 months').replace(/\{toBuy\}/g, '£102,400')
       // Delete several (6.59.0): the names deleted, said as a list, and why one was not
       .replace(/\{names\}/g, '‘Ladder plan’ and ‘Shares and cash’').replace(/\{why\}/g, 'This plan is locked.')
       // a plan stored with its start later than it should be (7.3.3): the month it is set to start, and the month work stopped

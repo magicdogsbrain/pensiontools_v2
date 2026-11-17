@@ -55,7 +55,7 @@ export const SAVER_STAGES = Object.freeze(['saving', 'approaching', 'committed-s
  * The rail's "Next" is the first thing to do (read.js dueFor), so it is always the home's first to-do. The rail reads no
  * runs: only the stored readings.
  */
-export const NEXT_ORDER = Object.freeze(['P.readonly', 'P.closed', 'P.closedAlone', 'P.noAge', 'P.agesFromSaving', 'P.confirmStop', 'P.taxyear', 'P.arrive', 'P.month', 'P.review', 'P.offCourse', 'P.householdPending',
+export const NEXT_ORDER = Object.freeze(['P.readonly', 'P.closed', 'P.closedAlone', 'P.noAge', 'P.agesFromSaving', 'P.confirmStop', 'P.taxyear', 'P.arrive', 'P.month', 'P.review', 'P.offCourse', 'P.householdPending', 'P.move',
   'P.idle', 'P.window', 'P.onCourse', 'P.nextReview', 'P.reviewAny']);
 /** The next sentences that say where things stand rather than something to do: never a to-do on the home. */
 export const NEXT_INFO = Object.freeze(['P.readonly', 'P.closedAlone', 'P.idle', 'P.window', 'P.onCourse', 'P.nextReview', 'P.reviewAny']);
@@ -63,7 +63,8 @@ export const NEXT_INFO = Object.freeze(['P.readonly', 'P.closedAlone', 'P.idle',
 export const DUE_IDS = Object.freeze({
   'P.closed': 'closed.next', 'P.noAge': 'plan.noAge', 'P.agesFromSaving': 'plan.agesFromSaving', 'P.confirmStop': 'plan.confirmStop',
   'P.taxyear': 'month.taxYear', 'P.arrive': 'month.arrive', 'P.month': 'month.record',
-  'P.review': 'review.due', 'P.offCourse': 'review.offCourse', 'P.householdPending': 'household.pending'
+  'P.review': 'review.due', 'P.offCourse': 'review.offCourse', 'P.householdPending': 'household.pending',
+  'P.move': 'move.toBuy'
 });
 
 /**

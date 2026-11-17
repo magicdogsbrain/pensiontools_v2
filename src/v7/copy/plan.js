@@ -542,6 +542,7 @@ export const PLAN = {
     'P.review': 'Next: your review, due {reviewOften}. A few figures, a few minutes; nothing about your plan changes unless you say so.',
     'P.offCourse': 'At your last two reviews that worked out the chance, the plan was past your line. Next: see what you can change.',
     'P.householdPending': 'Your partner’s plan is not in this account. Next: link one, or leave it.',
+    'P.move': 'Moving to your plan’s mix: {toBuy} still to buy, {windowLeft} left.',
     'P.idle': '{month} is recorded. Nothing to do until {nextMonth}.',
     'P.window': 'In your move window: {windowLeft} left, to {stop}.',
     'P.onCourse': 'On course at your last check-in ({last}). Your next review: {nextCheck}.',

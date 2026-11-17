@@ -906,8 +906,10 @@ function moveStep(C) {
   }
   // the share held, once: a ladder's status sentence already says it (7.12.0)
   if (m && m.diff && typeof m.diff.progressPct === 'number' && !(result.id === 'move.gilts' || result.id === 'move.giltsPart')) { figures.heldPct = m.diff.progressPct; lines.push(line('move.held', [count('heldPct'), '% of the plan’s mix held'], figures, sourceOf('hold', normaliseHoldings(plan.holdings).updatedAt || null, now))); }
+  // what is still to buy while the move is under way (7.12.0, the moving brief S4: the home's to-do says it)
+  const toBuy = !asHeld && m && m.target && m.target.kind !== 'none' && m.diff && !m.diff.complete && m.diff.totals ? Math.round(num(m.diff.totals.buyCost) || 0) : 0;
   // "Open it": the move is drawn inside V7 (road-to-7.md step 10; holdings-and-move.md §4)
-  return { done, result, figures, lines, buttons: [link('openMove', '#/plan/' + plan.id + '/move')], notes: asHeld ? [] : ['move.optional'] };
+  return { done, result, figures, lines, buttons: [link('openMove', '#/plan/' + plan.id + '/move')], notes: asHeld ? [] : ['move.optional'], toBuy };
 }
 
 /** Your household (2.3 `household`; 6). */
@@ -980,6 +982,11 @@ function rulesFor(C, built) {
   // DrawCadence.monthsWanted: said, a cadence, or a month recorded) — an annual drawer or someone who keeps no record here
   // is never asked for eleven months
   const wanted = monthsWanted(plan.decisionTool);
+  // Moving, inside the window, with what is held listed and not said to be how the person wants it: what is still to buy
+  // (7.12.0, the moving brief S4), from the move step's one reading
+  const inWindow = phase === 'moving' && !(life && life.confirmStop) && !!moveWindowOf(life) && moveWindowOf(life).state === 'inside';
+  const listed = (() => { try { return holdingsSummary(normaliseHoldings(plan.holdings)).count > 0; } catch { return false; } })();
+  const toBuy = inWindow && listed && !heldPhase(life) && built.move && built.move.toBuy > 0 ? built.move.toBuy : 0;
   const livingMonths = retiredRunning && locked && phase === 'drawing' && wanted;
   // the review (spec-7100 §4.3, §4.4): when it is next and whether it is due; off course by the person's own rule
   const reviewDue = C.reviewDue;
@@ -998,10 +1005,11 @@ function rulesFor(C, built) {
     'P.review':      () => !closing && !!reviewDue && reviewDue.due,
     'P.offCourse':   () => !closing && !!offCourse && offCourse.off,
     'P.householdPending': () => partnerMissing,
+    'P.move':        () => toBuy > 0,
     // the sentences that say where things stand: never a to-do
     'P.idle':        () => retiredRunning && wanted && recorded,
     // inside the window only: never once the stop has passed (asked "did you stop work?") or before it opens
-    'P.window':      () => phase === 'moving' && !(life && life.confirmStop) && !!moveWindowOf(life) && moveWindowOf(life).state === 'inside',
+    'P.window':      () => inWindow,
     'P.onCourse':    () => !!ci && lastBand === 'yes',
     'P.nextReview':  () => !!reviewDue && !!reviewDue.next,
     'P.reviewAny':   () => true
@@ -1016,6 +1024,7 @@ function rulesFor(C, built) {
     nextReview, nextCheck: nextReview || (ci && ci.chosen && ci.next ? monthWords(ci.next) : ''), reviewOften: reviewOftenOf(phase, reviewDue ? reviewDue.every : 'year'),
     ...(ci && ci.lastCheckIn ? { last: monthWords(ci.lastCheckIn.month) } : {}),
     ...(left != null ? { windowLeft: left === 1 ? '1 month' : left + ' months' } : {}),
+    ...(toBuy > 0 ? { toBuy: pounds(toBuy) } : {}),
     ...(offCourse && offCourse.off ? { ...offCourseWordsOf(offCourse), offKind: offCourse.rule.kind } : {}) };
   // what each to-do is put away for (answers/plan/tasks.js): its month, tax year, review date, partner's plan or stop
   const occurrence = {
@@ -1025,7 +1034,8 @@ function rulesFor(C, built) {
     'P.month': toRecord,
     'P.review': reviewDue ? reviewDue.occurrence : null,
     'P.offCourse': offCourse ? offCourse.occurrence : null,
-    'P.householdPending': mine
+    'P.householdPending': mine,
+    'P.move': stop
   };
   const aboutHref = '#/plan/' + plan.id + '/about';   // "About you and when", inside V7 (editing-in-v7.md 2)
   const review = reviewHrefOf(plan);
@@ -1042,6 +1052,7 @@ function rulesFor(C, built) {
     'P.review': link('startReview', review),
     'P.offCourse': link('seeChange', review),
     'P.householdPending': link('linkOne', '#/plan/' + plan.id + '/household'),
+    'P.move': link('openMove', '#/plan/' + plan.id + '/move'),
     'P.idle': null,
     'P.window': null,
     'P.onCourse': null,
@@ -1091,7 +1102,8 @@ const DISMISSIBLE = {
   'P.month': ['notNow'],
   'P.review': ['notNow', 'notThisTime'],
   'P.offCourse': ['notNow', 'seen'],
-  'P.householdPending': ['notNow', 'done']
+  'P.householdPending': ['notNow', 'done'],
+  'P.move': ['notNow']
 };
 export function dueFor(C, built, R = rulesFor(C, built)) {
   if (C.readonly) return [];

@@ -226,7 +226,7 @@ describe('the share on the plan, the saving mix and the rise (4.4, 4.5, decision
     expect(payInShareOf(next)).toBe(null);
     expect(savingPatch(plan, {}, { today: KEPT_ON }).patch).toEqual({});   // nothing typed: nothing written
   });
-  it('the saving mix: kept only when the answer saved apart from its drawing mix; the path reads it after what you hold, before the allocation', () => {
+  it('the saving mix: kept only when the answer saved apart from its drawing mix; the path reads it after what you hold (once accepted), before the allocation', () => {
     expect(kept(sam({ kind: 'total', total: 400 })).plan.accumulationTool.settings.savingMix).toBeUndefined();
     const { plan } = kept(sam({ kind: 'total', total: 400 }, { savingRisk: 'cautious', risk: 'adventurous' }));
     const acc = plan.accumulationTool.settings;
@@ -239,7 +239,9 @@ describe('the share on the plan, the saving mix and the rise (4.4, 4.5, decision
     expect(mixes.fromSavingMix).toBe(true);
     expect(savingPathMixes(ss, null, {}).saving).toEqual(mixes.drawing);   // absent: the old rule
     const held = { total: 1000, buckets: { shares: 1, bonds: 0, diversifiers: 0, cash: 0 } };
-    expect(savingPathMixes(ss, held, acc).saving).toEqual({ equity: 1, bond: 0, cash: 0 });   // what you hold still comes first
+    // (7.12.0, lead decision 4) what you hold comes first only once it is accepted as the plan; until then the saving mix kept
+    expect(savingPathMixes(ss, held, acc).saving).toEqual(savingMixOf(acc));
+    expect(savingPathMixes(ss, held, acc, { moving: { agreed: { strategyId: 'pots-and-valves', how: 'asHeld', at: '2026-10-02T12:00:00.000Z' } } }).saving).toEqual({ equity: 1, bond: 0, cash: 0 });
   });
   it('the words on how pay-ins rise: none at the price rise; less or more otherwise (until R4 reads the plan\'s own rise)', () => {
     const { plan } = kept(sam({ kind: 'total', total: 400 }));

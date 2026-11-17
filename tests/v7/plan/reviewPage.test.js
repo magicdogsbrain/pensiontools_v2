@@ -187,9 +187,10 @@ describe('the screen', () => {
     expect(q(sv.root, 'plan.step.checkin')).toBeTruthy();
     expect(q(sv.root, 'plan.review').getAttribute('data-phase')).toBe('saving');
     expect(q(sv.root, 'plan.review.choice.level.read')).toBeTruthy();
-    // the note says where the level is read from: what 05 holds
-    expect(q(sv.root, 'plan.review.choice.level.read').getAttribute('data-from')).toBe('held');
-    expect(q(sv.root, 'plan.review.choice.level.read').textContent).toBe(W.level.read.held);
+    // the note says where the level is read from: 05 holds funds but never accepted them as the plan (7.12.0, lead
+    // decision 4), so the level is read from the mix the plan draws on, and never said to come from what it holds
+    expect(q(sv.root, 'plan.review.choice.level.read').getAttribute('data-from')).toBe('drawing');
+    expect(q(sv.root, 'plan.review.choice.level.read').textContent).toBe(W.level.read.drawing);
     // a plan with nothing held is never told the level was read from what it holds
     const bare = copy(C['10-couple-b']); delete bare.holdings;
     const nb = draw(stateWith([entryOf(bare, day)], '#/plan/' + bare.id + '/review', { today: day }));

@@ -1311,7 +1311,7 @@
    "firstTaxYear": 2028,
    "startAge": 63,
    "decisionChecksum": "-3e7fc580",
-   "stressChecksum": "-4043fe6f",
+   "stressChecksum": "-53c89937",
    "historyMonths": 0,
    "taxYearsSetUp": [],
    "hasPlanDocument": false,
@@ -1332,9 +1332,9 @@
     "coverage": 100,
     "worst12Min": 14827,
     "worst12Median": 17400,
-    "terminalP10": 248999,
-    "terminalP50": 605921,
-    "terminalP90": 1789052,
+    "terminalP10": 248747,
+    "terminalP50": 605380,
+    "terminalP90": 1787243,
     "spentMedian": 522135,
     "guaranteedToAge": "State Pension only (from age 67)",
     "cone": {
@@ -1346,25 +1346,25 @@
       28
      ],
      "wealthP10": [
-      416632,
-      273716,
-      274754,
-      257903,
-      253646
+      416405,
+      273506,
+      274549,
+      257657,
+      253343
      ],
      "wealthP50": [
-      416632,
-      386786,
-      423928,
-      501759,
-      603282
+      416405,
+      386514,
+      423630,
+      501348,
+      602776
      ],
      "wealthP90": [
-      416632,
-      521092,
-      678272,
-      1132835,
-      1771053
+      416405,
+      520736,
+      677775,
+      1131856,
+      1769439
      ],
      "incomeP50": [
       22200,

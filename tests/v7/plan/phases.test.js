@@ -91,14 +91,17 @@ describe('phasesOf reads, and writes nothing', () => {
       }
     });
   }
-  it('the saving level a plan is read at: the mix held, then the saving mix kept from an answer, then Balanced (shown only)', () => {
+  it('the saving level a plan is read at: the mix held once accepted as the plan, then the saving mix kept from an answer, then Balanced (shown only)', () => {
     expect(derivedLevelOf({})).toBe('balanced');
     expect(derivedLevelOf({ accumulationTool: { settings: { savingMix: { equity: 0.8, bond: 0.15, cash: 0.05 } } } })).toBe('adventurous');
     expect(derivedLevelOf({ accumulationTool: { settings: { savingMix: { equity: 0.3, bond: 0.5, cash: 0.2 } } } })).toBe('cautious');
     const held = { holdings: { lines: [{ ticker: 'VWRP', wrapper: 'SIPP', value: 100000 }] }, accumulationTool: { settings: { savingMix: { equity: 0.3, bond: 0.5, cash: 0.2 } } } };
-    expect(derivedLevelOf(held)).toBe('adventurous');   // all in shares, before the saving mix
-    // where it is read from, for the words beside it: what is held, the saving mix, the pots the plan draws on, else Balanced
-    expect(derivedLevelFrom(held)).toEqual({ level: 'adventurous', from: 'held' });
+    // (7.12.0, lead decision 4) what is held is read only once it was accepted as the plan; until then the saving mix kept
+    expect(derivedLevelOf(held)).toBe('cautious');
+    const accepted = { ...held, phases: { moving: { agreed: { strategyId: 'pots-and-valves', how: 'asHeld', at: '2026-10-02T12:00:00.000Z' } } } };
+    expect(derivedLevelOf(accepted)).toBe('adventurous');   // all in shares, before the saving mix
+    // where it is read from, for the words beside it: what is held (accepted), the saving mix, the pots the plan draws on, else Balanced
+    expect(derivedLevelFrom(accepted)).toEqual({ level: 'adventurous', from: 'held' });
     expect(derivedLevelFrom({ accumulationTool: { settings: { savingMix: { equity: 0.3, bond: 0.5, cash: 0.2 } } } }).from).toBe('savingMix');
     const pots = { stressTool: { settings: { equityMin: 120000, bondMin: 180000, cashTarget: 30000 } } };
     expect(derivedLevelFrom(pots)).toEqual({ level: 'cautious', from: 'drawing' });

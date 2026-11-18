@@ -97,6 +97,15 @@ test('s12 · Kim and Sam in the full view: what each types stays, and Will it la
     await q.step('sign in', () => signIn(page, me));
     await q.step('Kim\'s plan: the full view\'s wizard > See if I can afford to retire', () => fullWizard(page, { age: KIM66.age, retired: true, retireAge: KIM66.age, start: 'start-stress' }));
     await q.step('Stress tester > Settings', () => fullPage(page, 'stress settings'));
+    // the second walk (walker 9): a press on the chip in the plan button ("✏️ draft · …") opened six paragraphs on locking,
+    // never the list of plans; a press anywhere on the button opens the list
+    if (await page.locator('#planLockChip').isVisible()) {
+      await q.step('press the chip in the plan button', () => page.locator('#planLockChip').click());
+      const listOpen = await page.locator('#scenarioDropdown.open').isVisible().catch(() => false);
+      const explainer = await page.locator('#planLockExplainer').isVisible().catch(() => false);
+      q.reach('the list of plans, from a press on the chip', listOpen && !explainer, { did: explainer ? '"Plans — and why they lock"' : 'nothing opened', owner: 'VIEWS' });
+      await page.keyboard.press('Escape'); await page.locator('#stress-stresssettings h2').first().click().catch(() => {});
+    }
     // decision 11: the first screen asks what everyone has; the tax-free cash rules wait under "More detail"
     const first = await visibleText(page, '#stress-stresssettings');
     q.never('Settings, as it opens', ['UFPLS', 'Money Purchase Annual Allowance', 'bed-and-ISA'].filter((w) => first.includes(w)), { must: 'no tax-free-cash rules before a pot and an income', owner: 'VIEWS' });

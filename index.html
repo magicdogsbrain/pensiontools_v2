@@ -2210,6 +2210,9 @@
             <div class="scenario-dropdown-actions" style="padding-top:0;">
               <button type="button" id="scenarioExportBtn" title="Save a copy of this plan on your own computer. Nothing is sent anywhere." data-on-click="exportActivePlan()">Download this plan (JSON)</button>
             </div>
+            <div class="scenario-dropdown-actions" style="padding-top:0;">
+              <button type="button" id="planLockExplainBtn" data-on-click="explainPlanLock()">What “draft” and “locked” mean</button>
+            </div>
           </div>
         </div>
         <button type="button" id="mobileMenuBtn" aria-label="Menu" data-on-click="openMobileMenu()">&#8801;</button>
@@ -5036,14 +5039,14 @@
       chip.textContent = (locked ? '🔒 locked' : '✏️ draft') + stageWord;
       if (st && st.key !== 'unknown') chip.dataset.stageWhy = st.reasons.join('; ');
       chip.title = locked
-        ? 'This plan’s settings are committed so your recorded entries stay consistent. Click for details.'
-        : 'This plan’s settings are still editable. You are asked before the first monthly entry or tax-year set-up locks it. Click for details.';
-      chip.style.cursor = 'pointer';
-      chip.onclick = (e) => { e.stopPropagation(); explainPlanLock(locked); };
+        ? 'This plan’s settings are committed so your recorded entries stay consistent.'
+        : 'This plan’s settings are still editable. You are asked before the first monthly entry or tax-year set-up locks it.';
+      chip.dataset.locked = locked ? '1' : '0';
+      chip.onclick = null;   // (7.12.0) a press on the chip is a press on the plan button: it opens the list; what the lock means is a button in the list
     }
 
     // A small explainer card for the plans/lock concept, reachable from the header chip.
-    window.explainPlanLock = function (locked) {
+    window.explainPlanLock = function (locked) { if (locked === undefined) { const c = document.getElementById('planLockChip'); locked = !!c && c.dataset.locked === '1'; }   // from the list's button (7.12.0): the chip says which
       let el = document.getElementById('planLockExplainer');
       if (el) { el.remove(); }
       el = document.createElement('div');

@@ -86,17 +86,6 @@ export async function visibleText(page, region = null) {
 /** One place of the register, read once: { value, raw } or null when the page does not state it (yet). */
 export async function readPlaceOnce(page, id, place) {
   const kind = FACTS[id].kind;
-  const marked = page.locator(`[data-fact="${id}"]`);
-  if (await marked.count()) {
-    const el = marked.first();
-    if (await el.isVisible()) {
-      const text = (await el.innerText()).replace(/ /g, ' ');
-      const m = place.find ? new RegExp(place.find, 'm').exec(text) : null;
-      const raw = m ? m[1] : text;
-      const value = parse(kind, raw);
-      if (value !== null) return { value, raw, how: 'data-fact' };
-    }
-  }
   if (place.input) {
     const box = page.locator(place.input).first();
     if (!(await box.count()) || !(await box.isVisible())) return null;
@@ -104,10 +93,23 @@ export async function readPlaceOnce(page, id, place) {
     if (raw === '') return null;
     return { value: parse(kind, raw), raw, how: place.input };
   }
+  // the place is where the register says: its words on the page (lead4.md G1 put marks on many more figures than the
+  // register's places; a mark elsewhere on the page is the parity gate's to compare, e2e/parity/, not this reader's)
   const text = await visibleText(page, place.region);
-  const m = new RegExp(place.find, 'm').exec(text);
+  const m = place.find ? new RegExp(place.find, 'm').exec(text) : null;
+  if (place.find && !m) return null;
+  // the mark that holds the place's figure, when the markup has one (its text is read, as drawn)
+  const marked = page.locator(`[data-fact="${id}"]`);
+  const want = m ? parse(kind, m[1]) : null;
+  for (let i = 0, n = await marked.count(); i < n; i++) {
+    const el = marked.nth(i);
+    if (!(await el.isVisible())) continue;
+    const raw = (await el.innerText()).replace(/\u00a0/g, ' ');
+    const value = parse(kind, raw.trim());
+    if (value !== null && (want === null || JSON.stringify(value) === JSON.stringify(want))) return { value, raw, how: 'data-fact' };
+  }
   if (!m) return null;
-  return { value: parse(kind, m[1]), raw: m[0], how: place.region || 'the page' };
+  return { value: want, raw: m[0], how: place.region || 'the page' };
 }
 
 /**

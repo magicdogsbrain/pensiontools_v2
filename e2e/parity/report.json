@@ -1,5 +1,5 @@
 {
- "at": "2026-11-18T08:44:23.702Z",
+ "at": "2026-11-18T09:35:42.195Z",
  "fixtures": [
   "age-only",
   "budget",
@@ -19,12 +19,12 @@
   "saver-payin",
   "wizard-defaults"
  ],
- "factsMarked": 54,
- "marks": 10023,
+ "factsMarked": 53,
+ "marks": 10017,
  "fieldsBound": 0,
  "disagreements": 482,
- "unmarked": 14938,
- "oneViewOnly": 2035,
+ "unmarked": 14953,
+ "oneViewOnly": 2032,
  "readingMismatches": 0,
  "roundTripsFailed": null,
  "rose": [],
@@ -15965,12 +15965,6 @@
     "view": "simple"
    },
    {
-    "key": "retired-locked-ladder|income.thisYear.beforeTax",
-    "fixture": "retired-locked-ladder",
-    "fact": "income.thisYear.beforeTax",
-    "view": "simple"
-   },
-   {
     "key": "retired-locked-ladder|isa.today",
     "fixture": "retired-locked-ladder",
     "fact": "isa.today",
@@ -16923,12 +16917,6 @@
     "fixture": "retired-locked-months",
     "fact": "income.step.0.monthAfterTax",
     "view": "full"
-   },
-   {
-    "key": "retired-locked-months|income.thisYear.beforeTax",
-    "fixture": "retired-locked-months",
-    "fact": "income.thisYear.beforeTax",
-    "view": "simple"
    },
    {
     "key": "retired-locked-months|isa.today",
@@ -17901,12 +17889,6 @@
     "fixture": "retired-locked-pots",
     "fact": "income.step.0.monthAfterTax",
     "view": "full"
-   },
-   {
-    "key": "retired-locked-pots|income.thisYear.beforeTax",
-    "fixture": "retired-locked-pots",
-    "fact": "income.thisYear.beforeTax",
-    "view": "simple"
    },
    {
     "key": "retired-locked-pots|isa.today",

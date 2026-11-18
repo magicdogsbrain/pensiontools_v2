@@ -24,7 +24,6 @@ const FIGURES = Object.freeze({
   'hold.summary:gia': 'holdings.gia',
   'hold.summary:cash': 'holdings.cash',
   'hold.total:total': 'holdings.total',
-  'where.yearPlan:yearMonthly': 'income.thisYear.beforeTax',
   'pots.pension:sipp': 'pot.today',
   'pots.isa:isa': 'isa.today',
   'pots.gia:gia': 'gia.today',

@@ -85,7 +85,7 @@ describe('the busy mark', () => {
     const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
     expect(html).toContain("import { trackBusy } from './src/reading/busy.js';");
     expect(html).toContain("function showMainApp(user, initialTab = null) { return trackBusy(showMainAppNow(user, initialTab), 'open'); }");
-    expect(html).toContain("tab.addEventListener('click', () => trackBusy(openTabNow(tab), 'tab'));");
+    expect(html).toContain("tab.addEventListener('click', () => { window._tabPresses = (window._tabPresses || 0) + 1; return trackBusy(openTabNow(tab), 'tab'); });");   // counted (step S): a tab pressed while the page opens stays
     const body = html.slice(html.indexOf('async function openTabNow(tab) {'), html.indexOf('async function openTabNow(tab) {') + 2000);
     expect(body).toContain('await drawTab(tab.dataset.tab);');   // step S: the tab's loader is drawTab (src/ui/repaintPlan.js), the repaint's too
     const mod = readFileSync(resolve(process.cwd(), 'src/ui/repaintPlan.js'), 'utf8');

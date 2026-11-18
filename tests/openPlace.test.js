@@ -175,6 +175,17 @@ describe('T8 — the planner with a request: the right plan, page and section, w
     expect(scrolled).toEqual(['ssTimingBlock']);
     expect(note.textContent).not.toContain('in this window only');               // A1 is the account's open plan
   });
+  it('a tab the person pressed while the page opened is kept: the line is added, no tab is pressed for them', async () => {
+    const r = { v: 1, planId: 'A1', place: 'about', back: '#/plan/A1/plan', at: new Date(NOW - 1000).toISOString() };
+    sessionStorage.setItem(OPEN_PLACE_KEY, JSON.stringify(r));
+    vi.setSystemTime(new Date(NOW));
+    const { loaded } = plannerPage();
+    const op = startOpenPlace(window);
+    op.atMainApp(null, null, () => true);
+    await vi.runAllTimersAsync();
+    expect(loaded).toEqual([]);
+    expect(document.getElementById(NOTE_ID)).not.toBe(null);
+  });
   it('a plan\'s home (7.11.0): no button is pressed and nothing is scrolled, the tab is the page\'s own (openingTab); the line, its way back and the window sentence; nothing saved', async () => {
     const r = { v: 1, planId: 'B2', place: 'home', back: '#/plan/B2', at: new Date(NOW - 1000).toISOString() };
     const { loaded, scrolled, tab, note } = await run(r, null);
@@ -396,7 +407,7 @@ describe('index.html: the hand-over is one call in the inline script', () => {
     expect(script.match(/openPlace\.atMainApp\(/g).length).toBe(1);
     expect(script).not.toMatch(/sessionStorage\.getItem\('pt_open_tab'\)/);          // the line moved into the module
     const main = script.slice(script.indexOf('async function showMainAppNow('), script.indexOf('window.openToolSettingsTab =')); // showMainApp runs this body under the busy mark (src/reading/busy.js)
-    expect(main).toContain("initialTab = openPlace.atMainApp(initialTab, (page) => showStrategyPage(page));");
+    expect(main).toContain("initialTab = openPlace.atMainApp(initialTab, (page) => showStrategyPage(page), personPressed);");   // a tab pressed while the page opens wins (S, lead4.md R2)
   });
   it('the release pop-up waits while the line is on screen; the plan menu and What\'s new read the window\'s plan', () => {
     expect(script).toMatch(/\|\| openPlace\.showing\(\);\n\s*setTimeout\(\(\) => \{ if \(!blocked\(\)\) showWhatsNew\(rels\); \}, 600\);/);

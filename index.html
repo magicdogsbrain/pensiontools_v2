@@ -4640,6 +4640,7 @@
       document.getElementById('deleteAccountBtn').style.display = user.isGuest ? 'none' : '';
 
       // Every form of every tab filled from the plan open, every cache dropped (repaintPlan's first half)
+      const pressesAtOpen = window._tabPresses || 0;
       await repaintForms('load');
 
       // A ?demo= link for a signed-in visitor: add the demo plan to their account (once) and open it.
@@ -4663,9 +4664,12 @@
         } catch (e) { console.warn('demo link', e); }
       }
       // A one-shot tab request (e.g. after opening a demo plan) survives the reload in sessionStorage.
-      initialTab = openPlace.atMainApp(initialTab, (page) => showStrategyPage(page));   // the demo link's one-shot tab, and the preview's hand-over: the plan, page and section, with the loader run (src/ui/components/OpenPlace.js)
+      const personPressed = () => (window._tabPresses || 0) !== pressesAtOpen;   // a tab pressed while the page opened
+      initialTab = openPlace.atMainApp(initialTab, (page) => showStrategyPage(page), personPressed);   // the demo link's one-shot tab, and the preview's hand-over: the plan, page and section, with the loader run (src/ui/components/OpenPlace.js)
       const opening = initialTab ? { tab: initialTab, sub: null } : await openingTabOf({ refreshLifeStage, getActiveScenarioId, listScenariosAsync }), targetTab = opening.tab;   // the first screen by stage, and its sub-tab (7.12.0: homeBannerUi.openingTabOf, LifeStage.openingTab)
       updateNextStepBanner();
+      // A tab the person pressed while the page was opening is where they asked to be: the page does not move them away
+      if (personPressed()) return;
 
       // Activate the target tab
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -5483,7 +5487,7 @@
     // Tab switching
     document.querySelectorAll('.tab').forEach(tab => {
       // a tab's loader runs under the busy mark (src/reading/busy.js): the page says it is still drawing until the tab is filled
-      tab.addEventListener('click', () => trackBusy(openTabNow(tab), 'tab'));
+      tab.addEventListener('click', () => { window._tabPresses = (window._tabPresses || 0) + 1; return trackBusy(openTabNow(tab), 'tab'); });   // counted: a tab pressed while the page opens is the one it stays on
     });
     async function openTabNow(tab) {
       // Update tab buttons

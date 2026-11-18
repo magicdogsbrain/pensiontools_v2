@@ -88,7 +88,7 @@ export function startOpenPlace(win = window) {
   }
 
   /** The hand-over's steps, after showMainApp has drawn: the plan check, the tab, the sub-page, the section, the line. */
-  async function apply(showStrategyPage) {
+  async function apply(showStrategyPage, personPressed = () => false) {
     const r = request;
     const place = PLACES[r.place];
     let plans = [];
@@ -112,7 +112,8 @@ export function startOpenPlace(win = window) {
     // The page is hidden for this plan (its tools, or its stage): say so instead of opening it.
     const tab = place.tab && doc.querySelector('.tab[data-tab="' + place.tab + '"]');
     const switchedOff = place.needs && Array.isArray(mine.enabledTools) && !mine.enabledTools.includes(place.needs);
-    if (tab && !switchedOff && tab.style.display !== 'none') {
+    // a tab the person pressed meanwhile is where they asked to be: the hand-over's line is added, the page is not moved
+    if (tab && !switchedOff && tab.style.display !== 'none' && !personPressed()) {
       tab.click();                                                     // the tab's click handler runs its loader
       if (place.sub && SUB_ATTR[place.tab]) {
         const sub = doc.querySelector('.sub-tab[' + SUB_ATTR[place.tab] + '="' + place.sub + '"]');
@@ -139,14 +140,14 @@ export function startOpenPlace(win = window) {
     }
     addNote({ lead: W.opened, back: backHref(r.back), backLabel: W.backTo.replace('{name}', name), extra });
     // a place may name the strategy page to open (the rotation watch's switch, 6.43.0); the overview otherwise
-    if (showStrategyPage && place.tab === 'strategies') win.setTimeout(() => { try { showStrategyPage(place.page || 'overview'); } catch (e) { /* optional */ } }, 400);
+    if (showStrategyPage && place.tab === 'strategies' && !personPressed()) win.setTimeout(() => { try { showStrategyPage(place.page || 'overview'); } catch (e) { /* optional */ } }, 400);
   }
 
   /**
    * From showMainApp, once. Returns the tab showMainApp should open: the request's tab, else the old one-shot key's.
    * The hand-over's own steps run after showMainApp has drawn (a task later), and only on the page's first showMainApp.
    */
-  function atMainApp(initialTab, showStrategyPage = null) {
+  function atMainApp(initialTab, showStrategyPage = null, personPressed = () => false) {
     let tab = initialTab;
     if (oldTab && !acted) {
       tab = oldTab;
@@ -155,7 +156,7 @@ export function startOpenPlace(win = window) {
     if (request && !acted) {
       const place = PLACES[request.place];
       if (place && place.tab) tab = place.tab;
-      win.setTimeout(() => { apply(showStrategyPage).catch(() => {}); }, 0);
+      win.setTimeout(() => { apply(showStrategyPage, personPressed).catch(() => {}); }, 0);
     }
     acted = true;
     return tab;

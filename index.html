@@ -8730,7 +8730,7 @@
       const scored = rankedWays(S, c.p, lockedOwn, scoreStrategy);
       let h = rankingCardHtml({ scored, names: STRATEGY_NAMES, colors: STRATEGY_COLORS, rankBy: window._cmpRankBy || 'lasts', more: !!window._cmpMore, volFloorPct: VOL_FLOOR_PCT,
         unaffordable: ids.filter((id) => !S[id].affordable).map((id) => ({ id, name: STRATEGY_NAMES[id], reason: S[id].reason || '' })),
-        cutsWords: 'Pots & Valves and Buckets in order ' + cutsSettingWords(c.settings, 'pots-and-valves') });
+        cutsWords: 'Pots & Valves and Buckets in order ' + cutsSettingWords(c.settings, 'pots-and-valves'), own: lockedOwn ? lockedOwn.id : null });
       // Live trigger status for the rotation row — the one strategy whose behaviour depends on today.
       try { const eq = equityProvenance(); if (eq && S['gilt-rotation']) { const dd = (eq.level / eq.ath - 1) * 100; h += '<p class="hint" style="margin:-6px 0 10px;"><strong>Gilt ladder + rotation — trigger status today:</strong> ' + budEsc(eq.symbol) + ' is ' + dd.toFixed(1) + '% below its all-time high' + (dd <= -30 ? ' — <strong style="color:var(--warning);">the trigger is LIVE</strong>' : ' (fires at −30%)') + '. Updated ' + budEsc(ukDate(eq.date)) + (eq.stale ? ' — over a week old' : '') + '; the watch itself lives on the strategy page and the Decision tool.</p>'; } } catch (e) { /* no feed */ }
       // ---- 2 · The question router ----

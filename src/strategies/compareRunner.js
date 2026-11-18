@@ -23,6 +23,7 @@ import { runFlexWindows, runFlexMonteCarlo, floorCost } from './FloorAndFlex.js'
 import { profileTargetForYear } from '../services/IncomeProfile.js';
 import { stressTestAll, stressTestStrategy, STRATEGY_NAMES } from './stressTest.js';
 import { mixCells } from '../services/GlidepathService.js';
+import { withIncomeAnyway, worstTwelveOf } from './incomeAnyway.js';
 export { mixCells };
 
 
@@ -39,20 +40,12 @@ export function runPnvWindows(cfg, { END, stride = 1 } = {}) {
   for (let s = 0; s < n; s += stride) {
     const returns = annualNominal(rtr, cpi, s, planYears);   // nominal: real history × its own inflation
     const r = eng.simulate({ ...cfg, years: planYears, trace: true }, returns, s);
-    // Worst rolling-12-month income from the trace (SIPP + ISA + fixed floors), then drop it.
-    let worst12 = Infinity;
+    // Worst rolling-12-month income from the trace (SIPP + ISA + fixed floors), then drop it. A run that ran out of money
+    // still has the income that comes anyway after that (strategies/incomeAnyway.js): never £0 while a pension is paid.
     const t = r.trace || [];
-    if (t.length >= 12) {
-      let run = 0;
-      const inc = t.map((row) => ((row.effectiveSipp || 0) + (row.effectiveIsa ?? row.isaMonthly ?? 0) + (row.giaNet || 0)
-        + ((row.planInputs && row.planInputs.fixed) || 0) / 12) / (row.cumInf || 1));
-      for (let i = 0; i < inc.length; i++) {
-        run += inc[i];
-        if (i >= 12) run -= inc[i - 12];
-        if (i >= 11) worst12 = Math.min(worst12, run);
-      }
-    }
-    if (r.failed) worst12 = 0;   // a busted plan's worst year is no income at all
+    const inc = t.map((row) => ((row.effectiveSipp || 0) + (row.effectiveIsa ?? row.isaMonthly ?? 0) + (row.giaNet || 0)
+      + ((row.planInputs && row.planInputs.fixed) || 0) / 12) / (row.cumInf || 1));
+    const worst12 = worstTwelveOf(r.failed ? withIncomeAnyway(inc, cfg, returns, planYears * 12) : inc);
     windows.push({
       s,
       failed: r.failed,

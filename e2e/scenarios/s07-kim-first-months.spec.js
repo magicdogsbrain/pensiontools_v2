@@ -71,6 +71,8 @@ test('s07 · Kim, 62, stopped last month: the year set up, two months recorded @
       const t = await page.locator('body').innerText();
       year30925.push({ where: `full view ${name}`, value: has(t, pounds(year)) ? pounds(year) : (has(t, 32858) ? 32858 : null) });
       q.never(`the full view ${name}`, /months are not recorded: April/i.test(t) ? ['months are not recorded: April'] : []);
+      // (E1) the guaranteed line names every source that comes anyway; "State Pension only" left out a final-salary pension
+      if (name === 'plan document') q.never('the plan document\'s guaranteed line', /State Pension only/.test(t) ? ['State Pension only'] : [], { must: 'every source that comes anyway, named', owner: 'MEASURE' });
     }
 
     // the simple home: taken against the plan, the ISA Kim typed
@@ -96,5 +98,10 @@ test('s07 · Kim, 62, stopped last month: the year set up, two months recorded @
     await q.step('simple Does it last?', async () => { await planPage(page, planId, 'lasts'); await settled(page).catch(() => {}); });
     const docWords = await page.locator('[data-testid="plan.lasts.document"] .verdict-word').count();
     q.never('simple Does it last? (the figure kept from the lock)', docWords ? ['a verdict word on the figure kept from the lock'] : [], { must: 'one verdict per plan: never "Not yet" above "Close"', owner: 'MEASURE' });
+    // (E1) the lowest 12 months count the income that comes anyway. By hand: Kim's State Pension is £230.25 × 52 = £11,973 a
+    // year from 67; her £580,000 paying £30,925 a year lasts 580,000 ÷ 30,925 = 18.8 years even with no growth, past 67, so a
+    // start that runs out still has £11,973 a year: no "Lowest 12 months" on the page is under it (it said £0).
+    const lowest = [...(await visibleText(page)).matchAll(/Lowest 12 months £([\d,]+)/g)].map((m) => money(m[1]));
+    q.never('simple Does it last? (lowest 12 months)', lowest.filter((v) => v < 11973 - 1).map((v) => 'Lowest 12 months £' + v.toLocaleString('en-GB')), { must: 'never under the State Pension that comes anyway (£11,973)', owner: 'MEASURE' });
   });
 });

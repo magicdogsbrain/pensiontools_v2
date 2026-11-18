@@ -80,6 +80,12 @@ const ADDED_AFTER_THE_PINS = Object.freeze({
  * ladder's extra cash beside the cash years, unspent on their run's pots, which the ladder no longer adds (a ladder's cash
  * years are its only cash). Every other output of theirs, and every output of every other fixture, kept its pin (the
  * fields 7.4.2 removed are put back by asPinned below, never a figure).
+ * Engine 6.40.0 (strategies/incomeAnyway.js) retook eight on Node 24, their document only: 01 (three clocks), 05 (three)
+ * and 09 (two), whose Pots & Valves futures include some that run out. After the money runs out the income that comes
+ * anyway is still paid, so their worst 12 months went from £0 to the State Pension (01: £12,000 assumed; 05: £11,973) and
+ * the income cone's late years from £0 to it. The Node 20 pins of those eight are to be retaken on Node 20 (CI) the same way.
+ * Every other output of theirs, and every output of every other fixture, kept its pin (the guaranteed line's new words are
+ * put back by guaranteedAsPinned below, never a figure).
  */
 const NODE = String(process.versions.node).split('.')[0];
 // One pins file per Node major, each taken on the code before the change with that Node: simulated money can differ in
@@ -134,6 +140,17 @@ const withoutAdded = (doc) => {
 const contractAgeAsPinned = (r) => (isObj(r) && typeof r.guaranteedToAge === 'string' ? { ...r, guaranteedToAge: r.guaranteedToAge.replace(/^(\d+)( by contract \(every year bought today\))$/, (m, n, t) => (+n - 1) + t) } : r);
 
 /**
+ * 7.12.0 (engine 6.40.0): the Pots & Valves family's guaranteed line names every source of income that comes anyway
+ * (strategies/incomeAnyway.js), where it said "State Pension only (from age N)": words, never a figure. The pins are read
+ * with the old words put back, worked out by the rule of the code that wrote them.
+ */
+const guaranteedAsPinned = (r, p) => {
+  if (!isObj(r) || !isObj(p) || typeof r.guaranteedToAge !== 'string' || / by contract|^\d/.test(r.guaranteedToAge)) return r;
+  const old = p.spAnnual > 0 ? `State Pension only (from age ${p.startAge + (p.spStartYear || 0)}${p.spAssumed ? ', assumed — none entered' : ''})` : 'None — market-dependent';
+  return { ...r, guaranteedToAge: old };
+};
+
+/**
  * 7.4.2 removed fields, not figures, from every output: the timing's months to a start (`bridgeMonths`; a saver's renamed
  * `monthsToStop`), the document's copies of it and of a ladder's extra cash (`assumptions.bridgeMonths`/`bridgeCash`,
  * `decisionRun.bridgeMonths`), and the run's flag that said a plan's pots were its year 0's (`runUpSpent`) beside the extra
@@ -180,7 +197,7 @@ function asPinned(outputs, stress, now) {
     d = { ...doc, timing: placed(timing, 'startMonth', 'bridgeMonths', m), assumptions, decisionRun: placed(doc.decisionRun, 'year0', 'bridgeMonths', m),
       strategy: { ...doc.strategy, p: plan(doc.strategy.p) } };
   }
-  if (isObj(d) && isObj(d.strategy)) d = { ...d, strategy: { ...d.strategy, r: contractAgeAsPinned(d.strategy.r) } };
+  if (isObj(d) && isObj(d.strategy)) d = { ...d, strategy: { ...d.strategy, r: guaranteedAsPinned(contractAgeAsPinned(d.strategy.r), p) } };
   return { ...outputs, planFromSettings: plan(p), fullGiltTest: contractAgeAsPinned(outputs.fullGiltTest), buildPlanDocument: d };
 }
 

@@ -30,6 +30,7 @@ import { LEVEL_FAILS20, levelOf, passes as passesLevel } from '../answers/shared
 import { planToAgeOf } from '../services/AgeConvention.js';   // the income cuts, counted from the same futures (6.24.0: one answer)
 import { pensionLockOf, pensionPotOf } from '../services/PensionLock.js';
 import { planNeedOf, lockOfNeed } from '../services/PlanNeed.js';
+import { withIncomeAnyway, worstTwelveOf, incomeAnywayWords } from './incomeAnyway.js';
 // the closed years as a plan's run sees them, with no test run (services/PlanNeed.js): re-exported, as both apps read it here
 export { pensionLockForSettings } from '../services/PlanNeed.js';
 
@@ -159,6 +160,10 @@ export function planFromSettings(settings, cfg, { yieldForYear, essentialsAnnual
       spareGrowth: params.spareGrowth === true || undefined   // a gilt ladder's money left over in shares (6.35.0); absent = kept
     },
     spFirstYearRatio: cfg.spFirstYearRatio ?? 1,
+    // A State Pension already being paid when the run starts (begun in an earlier tax year, or before `now`): the
+    // guaranteed line says "being paid now", not an age (strategies/incomeAnyway.js). Only when true.
+    ...(spAnnual > 0 && !(timing.yearsToStart > 0) && (spPaidBefore(settings, timing.firstTaxYear + lived)
+      || (now && settings.spStartDate && new Date(settings.spStartDate) <= now)) ? { spPaidNow: true } : {}),
     // No State Pension entered: the engine falls back to the legacy £12,000-from-67 default. Say so.
     spAssumed: !settings.spStartDate && !(+settings.spWeeklyAmount > 0) && spAnnual > 0,
     // Ladder rungs are per TAX year: the SP's first-year share is measured against 6 April (a whole year in a run from
@@ -202,15 +207,12 @@ function pnvRun(cfg, returns, seed, planYears, startAge) {
     const netYr = grossToNet(taxableYr, pi.pa, pi.brl, pi.hrl) + isaYr;   // what lands in the bank
     return netToGross(netYr, pi.pa, pi.brl, pi.hrl) / 12 / (row.cumInf || 1);   // gross-equivalent, today's money
   });
-  let worst12 = Infinity, run = 0;
-  for (let i = 0; i < inc.length; i++) {
-    run += inc[i];
-    if (i >= 12) run -= inc[i - 12];
-    if (i >= 11) worst12 = Math.min(worst12, run);
-  }
-  if (r.failed || !Number.isFinite(worst12)) worst12 = 0;
+  // After the money runs out the person still has the income that comes anyway (State Pension, a final-salary pension,
+  // other income): the months the run did not reach are that, never £0 (strategies/incomeAnyway.js).
+  const lived = (r.failed && !process.env.OLDE1) ? withIncomeAnyway(inc, cfg, returns, planYears * 12) : inc;
+  const worst12 = worstTwelveOf(lived);
   const incomeByYear = [];
-  for (let y = 0; y < planYears; y++) { let s = 0; for (let m = 0; m < 12; m++) s += inc[12 * y + m] || 0; incomeByYear.push(s); }
+  for (let y = 0; y < planYears; y++) { let s = 0; for (let m = 0; m < 12; m++) s += lived[12 * y + m] || 0; incomeByYear.push(s); }
   incomeByYear.push(incomeByYear[incomeByYear.length - 1] || 0);
   const wealth = (r.potByYear || []).map((v, y) => (v == null ? 0 : v) + (r.isaByYear && r.isaByYear[y] != null ? r.isaByYear[y] : 0));
   return {
@@ -237,7 +239,7 @@ function pnvTest(p, configs) {
     affordable: true,
     ruin: { hist: 100 * hist.filter((w) => w.failed).length / hist.length, mc: 100 * mc.filter((w) => w.failed).length / mc.length },
     worst12: { min: Math.min(...hist.map((w) => w.worst12)), median: pct(hist.map((w) => w.worst12), 0.5) },
-    guaranteedToAge: p.spAnnual > 0 ? `State Pension only (from age ${p.startAge + (p.spStartYear || 0)}${p.spAssumed ? ', assumed — none entered' : ''})` : 'None — market-dependent',
+    guaranteedToAge: incomeAnywayWords(p),   // every source that comes anyway, State Pension first (incomeAnyway.js)
     terminal: { p10: pct(terms, 0.10), p50: pct(terms, 0.5), p90: pct(terms, 0.90), histMedian: pct(hist.map((w) => w.terminal), 0.5) },
     cones: { wealth: coneOf(mc.map((w) => w.wealthByYear), planYears), income: coneOf(mc.map((w) => w.incomeByYear), planYears) },
     samples: { wealth: sampleOf(mc.map((w) => w.wealthByYear), planYears), income: sampleOf(mc.map((w) => w.incomeByYear), planYears) },
@@ -294,7 +296,8 @@ function ladderTest(p, configs) {
       const lastRung = Math.min(lr.ladderYears + securedBy, planYears);
       wealth.push(sleeve + ladderPvAt(y, lastRung, drawForYear, pricer));
       const failedBy = w.survived === false && w.failAge != null && (p.startAge + y) >= w.failAge;
-      income.push(failedBy ? 0 : drawForYear(y + 1) + ((y >= (p.spStartYear ?? 99)) ? p.spAnnual : 0) + otherAt(p, y));
+      // Run out: the rungs and the sleeve pay nothing more; the State Pension and other income still come.
+      income.push((failedBy ? 0 : drawForYear(y + 1)) + ((y >= (p.spStartYear ?? 99)) ? p.spAnnual : 0) + otherAt(p, y));
     }
     return { wealth, income };
   };

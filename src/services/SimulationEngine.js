@@ -898,30 +898,12 @@ function yearsUntilStatePension(config, year) {
 }
 
 /**
- * Monthly SIPP + ISA draw to deliver the target income via band management, given the
- * current ISA balance (see DrawdownStrategy.planDrawdown). Replaces the old draw-to-BRL
- * (which under-drew the target and ignored the ISA).
- * @returns {{sippMonthly:number, isaMonthly:number}}
+ * The income that comes whatever the markets do, in plan year `year` (nominal pounds a year): other income, the State
+ * Pension, a final-salary (defined-benefit) pension and any extra income floors. Lifted out of calculateMonthlyDraw
+ * unchanged (it is what that draw counts as fixed income) so a run that has run out of money can still say what the person
+ * lives on after that (incomeAnywayByMonth).
  */
-function calculateMonthlyDraw(config, year, cumInf, yearlyInf, isaBalance = 0, lsaRemaining = 0, isaAllowanceLeft = RECYCLE_DEFAULTS.ISA_ANNUAL_ALLOWANCE, topUpStrategy = null) {
-  // Adjust tax thresholds
-  const pa = config.taxMode === 'frozen' ? config.pa : config.pa * cumInf;
-  const brl = config.taxMode === 'frozen' ? config.brl : config.brl * cumInf;
-  const hrl = config.taxMode === 'frozen' ? config.hrl : (config.hrl || 125140) * cumInf;
-
-  // Target income
-  // Per-year target schedule (today's money, from the Budget tool's dated lines + one-offs):
-  // when present it replaces the flat baseSalary anchor for the year — temporary items end when
-  // they end, lumpy costs land in their year. The spending profile still applies on top (it is
-  // a separate, generic age-decline assumption the user opted into).
-  const scheduledTarget = Array.isArray(config.targetSchedule) && config.targetSchedule[year] != null
-    ? config.targetSchedule[year]
-    : config.baseSalary;
-  // Extra withdrawals ({year, amount, years?, indexation?}): a one-off or a run of years of extra
-  // gross spending on top of the target — a car, a roof, a wedding. Today's money by default
-  // (inflation-adjusted); 'level' = fixed nominal £. Drawn like any other income need (taxable).
-  const target = scheduledTarget * cumInf * spendingFactor(config, year) + extraWithdrawalFor(config, year, cumInf);
-
+export function fixedIncomeFor(config, year, cumInf, yearlyInf) {
   // Other income with CPI cap (4%)
   const other = cappedInflation(config.other, yearlyInf);
 
@@ -971,7 +953,56 @@ function calculateMonthlyDraw(config, year, cumInf, yearlyInf, isaBalance = 0, l
     }
   }
 
-  const fixed = other + statePension + dbPension + extraIncome;
+  return { other, statePension, dbPension, extraIncome, fixed: other + statePension + dbPension + extraIncome };
+}
+
+/**
+ * The income that comes anyway, month by month, in today's money (a year's worth divided by twelve, deflated by the run's
+ * own inflation): the same inflation walk as simulate() on the same returns, the same fixed income it counts each month.
+ * It does not depend on the pots, so it is what a person lives on in the months after a run has run out of money.
+ */
+export function incomeAnywayByMonth(config, returns, months) {
+  const yearlyInf = [];
+  let cumInf = 1;
+  const out = [];
+  for (let month = 0; month < months; month++) {
+    const year = Math.floor(month / 12);
+    if (month > 0 && month % 12 === 0) {
+      const inf = (returns && returns.inflation && returns.inflation[year]) || 0.025;
+      yearlyInf.push(inf);
+      cumInf *= (1 + inf);
+    }
+    out.push(fixedIncomeFor(config, year, cumInf, yearlyInf).fixed / 12 / cumInf);
+  }
+  return out;
+}
+
+/**
+ * Monthly SIPP + ISA draw to deliver the target income via band management, given the
+ * current ISA balance (see DrawdownStrategy.planDrawdown). Replaces the old draw-to-BRL
+ * (which under-drew the target and ignored the ISA).
+ * @returns {{sippMonthly:number, isaMonthly:number}}
+ */
+function calculateMonthlyDraw(config, year, cumInf, yearlyInf, isaBalance = 0, lsaRemaining = 0, isaAllowanceLeft = RECYCLE_DEFAULTS.ISA_ANNUAL_ALLOWANCE, topUpStrategy = null) {
+  // Adjust tax thresholds
+  const pa = config.taxMode === 'frozen' ? config.pa : config.pa * cumInf;
+  const brl = config.taxMode === 'frozen' ? config.brl : config.brl * cumInf;
+  const hrl = config.taxMode === 'frozen' ? config.hrl : (config.hrl || 125140) * cumInf;
+
+  // Target income
+  // Per-year target schedule (today's money, from the Budget tool's dated lines + one-offs):
+  // when present it replaces the flat baseSalary anchor for the year — temporary items end when
+  // they end, lumpy costs land in their year. The spending profile still applies on top (it is
+  // a separate, generic age-decline assumption the user opted into).
+  const scheduledTarget = Array.isArray(config.targetSchedule) && config.targetSchedule[year] != null
+    ? config.targetSchedule[year]
+    : config.baseSalary;
+  // Extra withdrawals ({year, amount, years?, indexation?}): a one-off or a run of years of extra
+  // gross spending on top of the target — a car, a roof, a wedding. Today's money by default
+  // (inflation-adjusted); 'level' = fixed nominal £. Drawn like any other income need (taxable).
+  const target = scheduledTarget * cumInf * spendingFactor(config, year) + extraWithdrawalFor(config, year, cumInf);
+
+  const { other, statePension, fixed } = fixedIncomeFor(config, year, cumInf, yearlyInf);
   const yearsUntilSp = yearsUntilStatePension(config, year);
   // UFPLS: a quarter of each withdrawal is tax-free until the lifetime Lump Sum Allowance is
   // used up (tracked by the caller in nominal £; the LSA is a frozen nominal figure).

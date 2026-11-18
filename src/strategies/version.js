@@ -37,5 +37,13 @@
  *           for a plan that has some and whose pots did not yet belong to a plan year begun — a retired draft in its year 0
  *           with no stop month, a saver's ladder, a plan stored with a later start: the ladder costs less, the spare is more.
  *           Every other plan runs exactly as before.
+ *   6.40.0  (NEXT: the stamp moves to it with the release that ships it, beside that release's notes, which
+ *           tests/releases.test.js holds to this constant; until then the constant stays 6.39.0)
+ *           The income that comes anyway (State Pension, a final-salary pension, other income: strategies/incomeAnyway.js)
+ *           is counted after a run has run out of money: Pots & Valves and Buckets in order (histories, futures, named starts,
+ *           the compare's canned decades) and Ladder & Ratchet. Their "worst 12 months" is never £0 while such income is
+ *           paid, and the Pots & Valves family's income cone carries it in the years after the money ran out (it was £0).
+ *           The guaranteed line names every source of that income ("State Pension (being paid now) and final-salary pension
+ *           £6,000 a year (from age 60)"), where it said "State Pension only". No chance, run-out age or amount left moves.
  */
 export const ENGINE_VERSION = '6.39.0';

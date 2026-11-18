@@ -292,7 +292,7 @@ describe('the words in src/v7/copy/', () => {
     // the way step is a plan page (way-and-mix.md 2): a retired person's and a saver's plan alike; its cards state the answer
     const scopes = ['all', 'record', 'retired', 'saver', 'planner', 'result'];
     const slot = (s) => s.replace(/\{date\}/g, '1 July 2026').replace(/\{(words|docWords)\}/g, 'in 9 futures out of 10').replace(/\{(name|old|docWay|way)\}/g, 'Floor to an age, then decide')
-      .replace(/\{(typical|bad|cost|left|short)\}/g, '£25,000').replace(/\{pct\}/g, '92.7').replace(/\{(futures|histories)\}/g, '1,000').replace(/\{(years|toAge|min|max)\}/g, '12').replace(/\{s\}/g, '4.6');
+      .replace(/\{(typical|bad|cost|left|short|pot)\}/g, '£25,000').replace(/\{pct\}/g, '92.7').replace(/\{(futures|histories)\}/g, '1,000').replace(/\{(years|toAge|min|max|age)\}/g, '12').replace(/\{s\}/g, '4.6');
     const hits = [];
     const all = strings(WAY).map(([, s]) => slot(s)).join('\n');
     // the names are shown one at a time beside a label; the one with an ampersand is spelt as the planner spells it

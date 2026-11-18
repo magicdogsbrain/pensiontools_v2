@@ -7,8 +7,11 @@
  * `collectMarks` runs IN the page (page.evaluate): it may use only what a browser has, and nothing from this file's scope.
  */
 export function collectMarks() {
+  // inside a closed <details> (its summary aside) nothing is shown, though the browser may still lay it out
+  // (content-visibility: hidden keeps boxes with no text): such a place is not on screen
+  const folded = (el) => { const d = el.closest('details:not([open])'); return !!d && !(el.closest('summary') && d.contains(el.closest('summary'))); };
   const vis = (el) => {
-    if (!el || !(el.offsetWidth || el.offsetHeight || el.getClientRects().length)) return false;
+    if (!el || folded(el) || !(el.offsetWidth || el.offsetHeight || el.getClientRects().length)) return false;
     const cs = getComputedStyle(el);
     return cs.visibility !== 'hidden' && cs.display !== 'none';
   };

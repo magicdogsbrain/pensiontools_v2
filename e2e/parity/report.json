@@ -1,5 +1,5 @@
 {
- "at": "2026-11-18T09:35:42.195Z",
+ "at": "2026-11-18T10:21:01.459Z",
  "fixtures": [
   "age-only",
   "budget",
@@ -19,12 +19,12 @@
   "saver-payin",
   "wizard-defaults"
  ],
- "factsMarked": 53,
- "marks": 10017,
+ "factsMarked": 61,
+ "marks": 10123,
  "fieldsBound": 0,
  "disagreements": 482,
- "unmarked": 14953,
- "oneViewOnly": 2032,
+ "unmarked": 13652,
+ "oneViewOnly": 2132,
  "readingMismatches": 0,
  "roundTripsFailed": null,
  "rose": [],
@@ -13139,6 +13139,30 @@
     "view": "full"
    },
    {
+    "key": "closed-successor|mix.held.bonds",
+    "fixture": "closed-successor",
+    "fact": "mix.held.bonds",
+    "view": "simple"
+   },
+   {
+    "key": "closed-successor|mix.held.cash",
+    "fixture": "closed-successor",
+    "fact": "mix.held.cash",
+    "view": "simple"
+   },
+   {
+    "key": "closed-successor|mix.held.diversifiers",
+    "fixture": "closed-successor",
+    "fact": "mix.held.diversifiers",
+    "view": "simple"
+   },
+   {
+    "key": "closed-successor|mix.held.shares",
+    "fixture": "closed-successor",
+    "fact": "mix.held.shares",
+    "view": "simple"
+   },
+   {
     "key": "closed-successor|pot.today",
     "fixture": "closed-successor",
     "fact": "pot.today",
@@ -14001,6 +14025,24 @@
     "fixture": "mover-holdings",
     "fact": "left.typically",
     "view": "full"
+   },
+   {
+    "key": "mover-holdings|mix.held.bonds",
+    "fixture": "mover-holdings",
+    "fact": "mix.held.bonds",
+    "view": "simple"
+   },
+   {
+    "key": "mover-holdings|mix.held.cash",
+    "fixture": "mover-holdings",
+    "fact": "mix.held.cash",
+    "view": "simple"
+   },
+   {
+    "key": "mover-holdings|mix.held.diversifiers",
+    "fixture": "mover-holdings",
+    "fact": "mix.held.diversifiers",
+    "view": "simple"
    },
    {
     "key": "mover-holdings|statePension.age",
@@ -15497,6 +15539,30 @@
     "view": "simple"
    },
    {
+    "key": "retired-everything|mix.held.bonds",
+    "fixture": "retired-everything",
+    "fact": "mix.held.bonds",
+    "view": "simple"
+   },
+   {
+    "key": "retired-everything|mix.held.cash",
+    "fixture": "retired-everything",
+    "fact": "mix.held.cash",
+    "view": "simple"
+   },
+   {
+    "key": "retired-everything|mix.held.diversifiers",
+    "fixture": "retired-everything",
+    "fact": "mix.held.diversifiers",
+    "view": "simple"
+   },
+   {
+    "key": "retired-everything|mix.held.shares",
+    "fixture": "retired-everything",
+    "fact": "mix.held.shares",
+    "view": "simple"
+   },
+   {
     "key": "retired-everything|pot.today",
     "fixture": "retired-everything",
     "fact": "pot.today",
@@ -15987,6 +16053,30 @@
     "fixture": "retired-locked-ladder",
     "fact": "left.typically",
     "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|mix.held.bonds",
+    "fixture": "retired-locked-ladder",
+    "fact": "mix.held.bonds",
+    "view": "simple"
+   },
+   {
+    "key": "retired-locked-ladder|mix.held.cash",
+    "fixture": "retired-locked-ladder",
+    "fact": "mix.held.cash",
+    "view": "simple"
+   },
+   {
+    "key": "retired-locked-ladder|mix.held.diversifiers",
+    "fixture": "retired-locked-ladder",
+    "fact": "mix.held.diversifiers",
+    "view": "simple"
+   },
+   {
+    "key": "retired-locked-ladder|mix.held.shares",
+    "fixture": "retired-locked-ladder",
+    "fact": "mix.held.shares",
+    "view": "simple"
    },
    {
     "key": "retired-locked-ladder|month.take.afterTax",
@@ -16935,6 +17025,30 @@
     "fixture": "retired-locked-months",
     "fact": "left.typically",
     "view": "full"
+   },
+   {
+    "key": "retired-locked-months|mix.held.bonds",
+    "fixture": "retired-locked-months",
+    "fact": "mix.held.bonds",
+    "view": "simple"
+   },
+   {
+    "key": "retired-locked-months|mix.held.cash",
+    "fixture": "retired-locked-months",
+    "fact": "mix.held.cash",
+    "view": "simple"
+   },
+   {
+    "key": "retired-locked-months|mix.held.diversifiers",
+    "fixture": "retired-locked-months",
+    "fact": "mix.held.diversifiers",
+    "view": "simple"
+   },
+   {
+    "key": "retired-locked-months|mix.held.shares",
+    "fixture": "retired-locked-months",
+    "fact": "mix.held.shares",
+    "view": "simple"
    },
    {
     "key": "retired-locked-months|month.take.afterTax",
@@ -19367,6 +19481,18 @@
     "view": "full"
    },
    {
+    "key": "saver-locked-ladder|mix.held.cash",
+    "fixture": "saver-locked-ladder",
+    "fact": "mix.held.cash",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|mix.held.diversifiers",
+    "fixture": "saver-locked-ladder",
+    "fact": "mix.held.diversifiers",
+    "view": "simple"
+   },
+   {
     "key": "saver-locked-ladder|pot.today",
     "fixture": "saver-locked-ladder",
     "fact": "pot.today",
@@ -19394,6 +19520,462 @@
     "key": "saver-locked-ladder|statePension.week",
     "fixture": "saver-locked-ladder",
     "fact": "statePension.week",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:T41:cost",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:T41:cost",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:T41:matures",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:T41:matures",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:T41:pays",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:T41:pays",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:T41:units",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:T41:units",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:T42A:cost",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:T42A:cost",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:T42A:matures",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:T42A:matures",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:T42A:pays",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:T42A:pays",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:T42A:units",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:T42A:units",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:T44:cost",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:T44:cost",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:T44:matures",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:T44:matures",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:T44:pays",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:T44:pays",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:T44:units",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:T44:units",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:T47:cost",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:T47:cost",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:T47:matures",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:T47:matures",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:T47:pays",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:T47:pays",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:T47:units",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:T47:units",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:T58:cost",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:T58:cost",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:T58:matures",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:T58:matures",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:T58:pays",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:T58:pays",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:T58:units",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:T58:units",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:T62:cost",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:T62:cost",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:T62:matures",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:T62:matures",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:T62:pays",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:T62:pays",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:T62:units",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:T62:units",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:T68:cost",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:T68:cost",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:T68:matures",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:T68:matures",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:T68:pays",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:T68:pays",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:T68:units",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:T68:units",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TG39:cost",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TG39:cost",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TG39:matures",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TG39:matures",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TG39:pays",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TG39:pays",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TG39:units",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TG39:units",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TG48:cost",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TG48:cost",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TG48:matures",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TG48:matures",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TG48:pays",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TG48:pays",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TG48:units",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TG48:units",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TG51:cost",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TG51:cost",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TG51:matures",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TG51:matures",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TG51:pays",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TG51:pays",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TG51:units",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TG51:units",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TG52:cost",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TG52:cost",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TG52:matures",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TG52:matures",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TG52:pays",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TG52:pays",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TG52:units",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TG52:units",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TG54:cost",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TG54:cost",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TG54:matures",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TG54:matures",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TG54:pays",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TG54:pays",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TG54:units",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TG54:units",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TR40:cost",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TR40:cost",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TR40:matures",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TR40:matures",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TR40:pays",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TR40:pays",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TR40:units",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TR40:units",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TR45:cost",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TR45:cost",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TR45:matures",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TR45:matures",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TR45:pays",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TR45:pays",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TR45:units",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TR45:units",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TR46:cost",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TR46:cost",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TR46:matures",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TR46:matures",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TR46:pays",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TR46:pays",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TR46:units",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TR46:units",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TR50:cost",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TR50:cost",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TR50:matures",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TR50:matures",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TR50:pays",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TR50:pays",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TR50:units",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TR50:units",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TR56:cost",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TR56:cost",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TR56:matures",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TR56:matures",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TR56:pays",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TR56:pays",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TR56:units",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TR56:units",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TR65:cost",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TR65:cost",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TR65:matures",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TR65:matures",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TR65:pays",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TR65:pays",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TR65:units",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TR65:units",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TR8F:cost",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TR8F:cost",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TR8F:matures",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TR8F:matures",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TR8F:pays",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TR8F:pays",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TR8F:units",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TR8F:units",
     "view": "simple"
    },
    {
@@ -20469,6 +21051,24 @@
     "fixture": "saver-locked-pots",
     "fact": "left.typically",
     "view": "full"
+   },
+   {
+    "key": "saver-locked-pots|mix.plan.bonds",
+    "fixture": "saver-locked-pots",
+    "fact": "mix.plan.bonds",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-pots|mix.plan.cash",
+    "fixture": "saver-locked-pots",
+    "fact": "mix.plan.cash",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-pots|mix.plan.shares",
+    "fixture": "saver-locked-pots",
+    "fact": "mix.plan.shares",
+    "view": "simple"
    },
    {
     "key": "saver-locked-pots|pot.today",

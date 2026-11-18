@@ -111,6 +111,8 @@ test.describe('parity sweep', () => {
       }
 
       await openFull(page);
+      // the full view opens on its stage's tab once the plan is read (under the busy mark): a press before then is undone by it
+      await waitQuiet(page);
       for (const p of FULL_PAGES) {
         const opened = await fullTab(page, p);
         if (opened && p.press) {

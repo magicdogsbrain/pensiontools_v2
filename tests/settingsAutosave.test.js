@@ -234,6 +234,9 @@ describe('"Saved" only when something was written (lead4.md R3)', () => {
     expect(saveOutcomeToast('saved')).toEqual({ words: SAVE_OUTCOME_WORDS.saved, kind: 'success' });
     expect(saveOutcomeToast('nothing').kind).toBe('info');
     expect(saveOutcomeToast('locked').words).toMatch(/locked/);
+    expect(saveOutcomeToast('saved', 'Settings')).toEqual({ words: 'Settings saved.', kind: 'success' });
+    expect(saveOutcomeToast('nothing', 'Settings')).toEqual({ words: 'Settings saved already: nothing has changed since.', kind: 'info' });
+    expect(saveOutcomeToast('locked', 'Settings').words).toBe(SAVE_OUTCOME_WORDS.locked);
     for (const w of Object.values(SAVE_OUTCOME_WORDS)) expect(w).not.toMatch(/should|recommend/i);
   });
 });

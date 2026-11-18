@@ -46,8 +46,9 @@ export function installRepaint(win, doc, d) {
   /** Every cache dropped and every form filled from the plan open now (the first half of repaintPlan; the page's load uses it). */
   async function repaintForms(reason) {
     invalidateCache(); invalidateStressCache();
+    st.reset(null); st.markAllStale();   // at once, before anything is awaited: a page pressed meanwhile draws for the plan now open
     let plan = null; try { plan = await getActiveScenarioAsync(); } catch (e) { plan = null; }
-    st.reset(planKeyOf(plan)); st.markAllStale();
+    st.key = planKeyOf(plan);
     win._holdingsLines = []; win._planDocLast = null; d.resetCurrentDecision();
     doc.getElementById('openPlaceNote')?.remove();   // a note that names a plan names the plan it was written for
     { const n = doc.getElementById('seedNote'); if (n && reason !== 'load') n.style.display = 'none'; }

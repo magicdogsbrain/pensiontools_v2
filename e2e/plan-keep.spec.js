@@ -44,7 +44,9 @@ function plan() {
 const GILT = 8, SHARE = 9;
 const stored = (page) => page.evaluate((k) => sessionStorage.getItem(k), GUEST_KEY);
 /** The plan as stored, without what a keep may change: the record and the stamp. */
-const withoutRecord = (p) => { const o = JSON.parse(JSON.stringify(p)); delete o.holdings; delete o.lastModified; return JSON.stringify(o); };
+// schemaVersion: the store's upgrade stamp goes with a plan's first write; since step S (lead4.md R9) the full view writes
+// nothing on opening a plan, so Keep this is that first write
+const withoutRecord = (p) => { const o = JSON.parse(JSON.stringify(p)); delete o.holdings; delete o.lastModified; delete o.schemaVersion; return JSON.stringify(o); };
 const shots = (name, info) => { const dir = process.env.SHOTS_DIR; if (!dir) return null; mkdirSync(dir, { recursive: true }); return join(dir, name + '-' + info.project.name + '.png'); };
 
 test.describe('"Keep this", without an account', () => {

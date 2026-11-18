@@ -52,7 +52,9 @@ function plan() {
 }
 const stored = (page) => page.evaluate((k) => sessionStorage.getItem(k), GUEST_KEY);
 /** The plan as stored, without what an agreement may change: the list of agreements and the stamp. */
-const withoutAgreements = (p) => { const o = JSON.parse(JSON.stringify(p)); delete o.planAmendments; delete o.lastModified; return JSON.stringify(o); };
+// schemaVersion: the store's upgrade stamp goes with a plan's first write; since step S (lead4.md R9) the full view writes
+// nothing on opening a plan, so the agreement is that first write
+const withoutAgreements = (p) => { const o = JSON.parse(JSON.stringify(p)); delete o.planAmendments; delete o.lastModified; delete o.schemaVersion; return JSON.stringify(o); };
 const shots = (name, info) => { const dir = process.env.SHOTS_DIR; if (!dir) return null; mkdirSync(dir, { recursive: true }); return join(dir, name + '-' + info.project.name + '.png'); };
 const noSideways = async (page) => { const w = await page.evaluate(() => ({ doc: document.documentElement.scrollWidth, win: window.innerWidth })); expect(w.doc, 'no sideways scroll').toBeLessThanOrEqual(w.win); };
 

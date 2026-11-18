@@ -25,8 +25,10 @@ import { activePlanLocked, getActiveScenarioAsStored } from '../storage/Scenario
 import { saveStressSettings, getStressSettingsAsync } from '../storage/StressRepository.js';
 import { getDecisionSettingsAsync, getAllTaxYearsAsync } from '../storage/DecisionRepository.js';
 import { effectiveStressSettings } from '../services/PlanReading.js';
-import { stopAskOf, stopLeftOf, stopChangeOf, moveAnchorOf, startLaterOf, laterDraftOf, laterDraftLeftOf } from '../services/PlanMove.js';
+import { stopAskOf, stopLeftOf, stopChangeOf, moveAnchorOf, startLaterOf, laterDraftLeftOf } from '../services/PlanMove.js';
 import { lockedStopAnswer } from '../answers/plan/about.js';
+import { laterDraftPatch } from '../answers/plan/moveStart.js';
+import { todayOf } from '../reading/clock.js';
 import { stoppedWorkOf, monthName, decisionAnchorYear, deriveTiming, taxYearStartOf } from '../services/PlanTiming.js';
 import { runPositionOf } from '../services/PlanFromToday.js';
 import { planFillStart } from '../services/MonthFill.js';
@@ -52,9 +54,12 @@ export async function decisionPotsYear() {
  */
 export async function saveLaterDraftFirst() {
   let sc = null; try { sc = await getActiveScenarioAsStored(); } catch (e) { sc = null; }
-  const ss = sc && sc.stressTool && sc.stressTool.settings;
-  if (!sc || !laterDraftOf(sc, ss || {}, new Date())) return;
-  await saveStressSettings({});
+  if (!sc) return;
+  // the move itself, as the simple view writes it (answers/plan/moveStart.js laterDraftPatch): never the reading's whole copy
+  const { patch } = laterDraftPatch(sc, { now: todayOf() });
+  const stress = {};
+  for (const [k, v] of Object.entries(patch)) if (k.startsWith('stressTool.settings.')) stress[k.slice('stressTool.settings.'.length)] = v;
+  if (Object.keys(stress).length) await saveStressSettings(stress);
 }
 
 /** The open plan, read as PlanMove.startLaterOf reads it (as stored): null for every plan with nothing to move or ask. */

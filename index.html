@@ -9401,7 +9401,7 @@
     };
 
     window.saveAccumulationUI = async function () {   // the same write as a box changing (7.12.0): the ages through the plan's own, a new pot today this month's record
-      try { const a = window._acAutosave; if (!a.checkNow()) return; const t = saveOutcomeToast(await a.run()); showToast(t.words, t.kind, t.kind === 'success' ? 3000 : 6000); } catch (e) { showToast('Could not save: ' + e.message, 'error'); }   // "Saved" only when something was written; a refusal says why
+      try { const a = window._acAutosave; if (!a.checkNow()) return; const t = saveOutcomeToast(await a.run(), 'Accumulation plan'); showToast(t.words, t.kind, t.kind === 'success' ? 3000 : 6000); } catch (e) { showToast('Could not save: ' + e.message, 'error'); }   // "Saved" only when something was written; a refusal says why
     };
 
     window.recalcAccumulation = async function () {
@@ -9789,7 +9789,7 @@
         const form = stressFormSettings(_curSS);
         let hadFigures = true; try { hadFigures = planHasFigures(await getActiveScenarioAsStored()); } catch (e) { hadFigures = true; }
         const patch = stressSavePatch({ base: base && base.form, form, hadFigures });
-        if (!Object.keys(patch).length) { if (quiet) return true; showToast(SAVE_OUTCOME_WORDS.nothing, 'info'); if (window._ssAutosave) window._ssAutosave.markSaved(); return 'nothing'; }   // "Saved" only when something was written
+        if (!Object.keys(patch).length) { if (quiet) return true; { const t = saveOutcomeToast('nothing', 'Settings'); showToast(t.words, t.kind); } if (window._ssAutosave) window._ssAutosave.markSaved(); return 'nothing'; }   // "Saved" only when something was written
         if (touches(patch, STRATEGY_KEYS)) await setActiveStrategyChecked(form.strategyId, form.strategyParams);
         // ONE target: the income shape's first step is the Decision tool's year-0 target too (and the
         // shape itself its schedule). Only while the plan is a draft — a locked plan's target stays put.
@@ -9811,7 +9811,7 @@
         renderStressStartSummary({ ...ssAlloc, duration: +document.getElementById('ssDuration').value || 35 }); if (!quiet) renderChargesField().catch(() => {});   // the box shows the charge as saved (as typed, when saved as it changed)
         updateDraftLines();
         updateNextStepBanner();
-        if (!quiet) { showToast(SAVE_OUTCOME_WORDS.saved, 'success'); if (window._ssAutosave) window._ssAutosave.markSaved(); } return true;
+        if (!quiet) { showToast(saveOutcomeToast('saved', 'Settings').words, 'success'); if (window._ssAutosave) window._ssAutosave.markSaved(); } return true;
       } catch (error) {
         console.error('Error saving stress settings:', error);
         fault('Error saving: ' + error.message);

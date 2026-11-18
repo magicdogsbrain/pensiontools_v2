@@ -42,3 +42,13 @@ describe('a Save writes only the boxes changed', () => {
     expect(touches({ pa: 1 }, TIMING_KEYS)).toBe(false);
   });
 });
+
+describe('the lock\'s copy into the Decision tool never carries an undefined value', () => {
+  it('a key neither copy has is left out', async () => {
+    const { seedDecisionFromStress } = await import('../../src/services/PlanCommit.js');
+    const d = seedDecisionFromStress({ equityMin: 1000 }, {});
+    for (const [k, v] of Object.entries(d)) expect(v, k).not.toBe(undefined);
+    expect(d).not.toHaveProperty('allocMode');
+    expect(d.equityMin).toBe(1000);
+  });
+});

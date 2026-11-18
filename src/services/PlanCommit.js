@@ -100,9 +100,15 @@ export function getDefaultDecisionSettings() {
  * @param {object} [currentDecision={}] - existing Decision settings to overlay onto
  * @returns {object} new Decision settings
  */
+/**
+ * A key nobody gave (neither the Stress settings nor the Decision copy) is left out, never written as undefined: the store
+ * refuses an undefined value, and a plan whose Settings were saved only where changed (step S) need not carry every key.
+ */
+const withoutUnset = (o) => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined));
+
 export function seedDecisionFromStress(stressSettings, currentDecision = {}) {
   const s = stressSettings || {};
-  return {
+  return withoutUnset({
     ...getDefaultDecisionSettings(),
     ...currentDecision,
     equityMin: s.equityMin,
@@ -158,7 +164,7 @@ export function seedDecisionFromStress(stressSettings, currentDecision = {}) {
     windfalls: Array.isArray(s.windfalls) ? s.windfalls.map((w) => ({ ...w })) : (currentDecision.windfalls || []),
     configured: true,   // a full copy IS a configuration — routing can go straight to the tool
     seededFrom: 'stress'
-  };
+  });
 }
 
 /**

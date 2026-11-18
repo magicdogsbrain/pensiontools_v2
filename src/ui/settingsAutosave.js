@@ -45,8 +45,16 @@ export const SAVE_OUTCOME_WORDS = Object.freeze({
   notSaved: 'Nothing was saved.'
 });
 
-/** The outcome as a toast: { words, kind }. */
-export const saveOutcomeToast = (outcome) => ({ words: SAVE_OUTCOME_WORDS[outcome] || SAVE_OUTCOME_WORDS.notSaved, kind: outcome === 'saved' ? 'success' : outcome === 'nothing' ? 'info' : 'error' });
+/**
+ * The outcome as a toast: { words, kind }. `what` names the form ('Settings', 'Accumulation plan'): "Settings saved." when
+ * written, "Settings saved already: nothing has changed since." when there was nothing to write.
+ */
+export const saveOutcomeToast = (outcome, what = null) => {
+  const kind = outcome === 'saved' ? 'success' : outcome === 'nothing' ? 'info' : 'error';
+  if (what && outcome === 'saved') return { words: what + ' saved.', kind };
+  if (what && outcome === 'nothing') return { words: what + ' saved already: nothing has changed since.', kind };
+  return { words: SAVE_OUTCOME_WORDS[outcome] || SAVE_OUTCOME_WORDS.notSaved, kind };
+};
 
 const NOT_A_PRESS = 'summary, .hlp, [data-no-autosave]';
 

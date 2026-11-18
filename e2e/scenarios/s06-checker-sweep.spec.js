@@ -120,6 +120,17 @@ test.describe('s06 · the checker', () => {
       const home = await visibleText(page);
       const window = /move window opens in ((?:January|February|March|April|May|June|July|August|September|October|November|December) \d{4})/.exec(home);
       q.exact('the month the move window opens', window ? window[1] : null, monthName(addMonths(stop, -36)), { byHand: '36 months before February 2038', owner: 'HOLD' });
+      // the second walk (walker 9): a saver's bought ways said "Costs £… of your pot today", but they buy from the pots when
+      // work stops: cost + what is left to grow is that figure, said with the age the plan stops
+      await q.step('How the money is taken', async () => {
+        await planPage(page, id, 'way'); await settled(page).catch(() => {});
+        await page.getByText(/left to grow/).first().waitFor({ timeout: 120_000 }).catch(() => {});
+      });
+      const way = await visibleText(page);
+      const costs = [...way.matchAll(/Costs £([\d,]+) of the £([\d,]+) your pots could hold when you stop at (\d+); £([\d,]+) left to grow/g)];
+      q.never('How the money is taken, a plan still saving', way.includes('of your pot today') ? ['of your pot today'] : [], { must: 'a saver\'s bought way is costed against the pots when work stops', owner: 'VIEWS' });
+      q.reach('each bought way\'s cost and what is left adding up to the pots when work stops, at 60', costs.length > 0 && costs.every((c) => Math.abs(Number(c[1].replace(/,/g, '')) + Number(c[4].replace(/,/g, '')) - Number(c[2].replace(/,/g, ''))) <= 1 && c[3] === '60'),
+        { did: costs.map((c) => c[0]).join(' / ') || 'no cost line', byHand: 'cost + left to grow = the pots at the stop (to £1, each rounded); the plan stops at 60', owner: 'VIEWS' });
       // the full view names the month of the next review as the simple view does
       const due = readings['due.next'];
       q.reach('the month of the next review in the full view', due.some((r) => r.where.startsWith('full view') && /\d{4}/.test(String(r.value))), { did: due.map((r) => `${r.where}: ${r.value}`).join('; ') || 'no next step read in either view', owner: 'FACTS' });

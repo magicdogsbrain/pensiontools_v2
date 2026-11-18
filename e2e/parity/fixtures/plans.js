@@ -11,7 +11,11 @@
  *   FIXTURES                    [{ key, label, subject, plans() }]: `plans()` gives fresh raw plan documents (as stored),
  *                               `subject` is the id of the plan the sweep opens (it is the active one)
  *   PARITY_TODAY                the one clock of both views: 16 November 2026, mid-morning in London
- *   fixtureNamed(key)
+ *   SWITCH_FIXTURES             more accounts of several plans, for the plan switches only (not swept: the ratchet files
+ *                               hold the sweep's plans)
+ *   SWITCHES                    [{ key, fixture, from, to }]: plan `from` open in the full view, then `to` chosen from its
+ *                               menu (e2e/parity/roundtrip.spec.js)
+ *   fixtureNamed(key)           a fixture of either list
  */
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -238,4 +242,19 @@ export const FIXTURES = Object.freeze([
   }
 ]);
 
-export const fixtureNamed = (key) => FIXTURES.find((f) => f.key === key) || null;
+/** Accounts for the plan switches only: two savers, each plan as the sweep's own fixture builds it, the first open. */
+export const SWITCH_FIXTURES = Object.freeze([
+  {
+    key: 'two-savers', label: 'two savers, unlinked: Jo saving and Sam saving', subject: 'ParSaverDraft',
+    plans: () => [...FIXTURES.find((f) => f.key === 'saver-draft').plans().map((p) => active(p, true)), ...FIXTURES.find((f) => f.key === 'saver-payin').plans().map((p) => active(p, false))]
+  }
+]);
+
+/** The plan switches the gate makes inside the full view: a saver to a retired partner and back, and one saver to another. */
+export const SWITCHES = Object.freeze([
+  { key: 'Sam>Kim', fixture: 'couple', from: 'ParCoupleSam', to: 'ParCoupleKim' },
+  { key: 'Kim>Sam', fixture: 'couple', from: 'ParCoupleKim', to: 'ParCoupleSam' },
+  { key: 'Jo>Sam', fixture: 'two-savers', from: 'ParSaverDraft', to: 'ParSaverPayIn' }
+]);
+
+export const fixtureNamed = (key) => FIXTURES.find((f) => f.key === key) || SWITCH_FIXTURES.find((f) => f.key === key) || null;

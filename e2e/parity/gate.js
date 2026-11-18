@@ -18,6 +18,8 @@
  *   failedTrips(entries)          → those that did not come back as typed with no press: what report.json counts
  *   ratchetTrips(entries, known, { only }) → { rose, shrank } against known-roundtrips.json
  *   tripsBaselineOf(entries)      → known-roundtrips.json's contents
+ *   switchDifferences(direct, switched) → a full page read after a plan switch against the same page with that plan
+ *                                     opened directly: [{ id, direct, switched }]
  *
  * A round trip's kinds, worst first: 'not reachable' (the box is not on the page it was typed on), 'not saved' (nothing
  * was written, with or without a press), 'not in the other view' (no box there), 'shows another value', 'differs from
@@ -258,4 +260,32 @@ export function tripsBaselineOf(entries) {
     note: 'Round trips that fail (lead4.md G5): per box and direction ("<field>|s2f" typed in the simple view, read in the full; "|f2s" the other way), and the plan-change trips, each with its kind. "needs a press" is a save that needed the page\'s Save button. May only shrink: a trip not listed, or listed as a better kind, is a rise.',
     entries: Object.fromEntries(failedTrips(entries).map((t) => [t.key, tripKindOf(t)]).sort(([a], [b]) => a.localeCompare(b)))
   };
+}
+
+/**
+ * One page of the full view read after a plan was chosen from its menu, held against the same page with that plan opened
+ * directly. Each side is { facts: { id: [texts] } (a table cell as 'table:<t>:<row>:<col>'), fields: { id: [values] },
+ * figures: [the figure-like texts outside any mark] }. One difference per fact, per box ('field:<id>'), per table (its first
+ * differing cell) and for the figures outside the marks ('figures', compared as a set of counts, in any order).
+ */
+export function switchDifferences(direct, switched) {
+  const out = new Map();
+  const list = (v) => JSON.stringify((v || []).map(shownText));
+  for (const kind of ['facts', 'fields']) {
+    const a = (direct && direct[kind]) || {}, b = (switched && switched[kind]) || {};
+    for (const id of [...new Set([...Object.keys(a), ...Object.keys(b)])].sort()) {
+      const x = list(a[id]), y = list(b[id]);
+      if (x === y) continue;
+      const table = kind === 'facts' && id.startsWith('table:') ? id.split(':').slice(0, 2).join(':') : null;
+      const key = table || (kind === 'fields' ? 'field:' + id : id);
+      if (out.has(key)) continue;
+      out.set(key, table ? { id: key, direct: `${id} ${x}`, switched: `${id} ${y}` } : { id: key, direct: x, switched: y });
+    }
+  }
+  const counts = (l) => { const m = new Map(); for (const t of (l || []).map(shownText)) m.set(t, (m.get(t) || 0) + 1); return m; };
+  const fa = counts(direct && direct.figures), fb = counts(switched && switched.figures);
+  const less = (m, n) => { const r = []; for (const [t, c] of [...m].sort(([p], [q]) => p.localeCompare(q))) for (let i = (n.get(t) || 0); i < c; i++) r.push(t); return r; };
+  const onlyA = less(fa, fb), onlyB = less(fb, fa);
+  if (onlyA.length || onlyB.length) out.set('figures', { id: 'figures', direct: 'only directly: ' + (onlyA.join(', ') || 'none'), switched: 'only after the switch: ' + (onlyB.join(', ') || 'none') });
+  return [...out.values()].sort((p, q) => p.id.localeCompare(q.id));
 }

@@ -9,6 +9,8 @@
  * piece of text outside any mark that is exactly one of them, as a chip or a label shows it; `anywhere` (the plan's own
  * name) counts every time it is written outside a mark.
  *
+ * `words.figures` true also returns `figures`: every such figure outside a mark, not only the first samples.
+ *
  * `collectMarks` runs IN the page (page.evaluate): it may use only what a browser has, and nothing from this file's scope.
  */
 export function collectMarks(words = {}) {
@@ -59,6 +61,7 @@ export function collectMarks(words = {}) {
   const timesIn = (t, w) => t.split(w).length - 1;
   let unmarked = 0;
   const samples = [];
+  const figures = [];
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
   for (let n = walker.nextNode(); n; n = walker.nextNode()) {
     const el = n.parentElement;
@@ -70,8 +73,9 @@ export function collectMarks(words = {}) {
     if (!m.length || !vis(el)) continue;
     unmarked += m.length;
     for (const x of m) if (samples.length < 25) samples.push(clean(x));
+    if (words.figures) for (const x of m) figures.push(clean(x));
   }
-  return { places, cells, fields, unmarked, samples };
+  return { places, cells, fields, unmarked, samples, ...(words.figures ? { figures } : {}) };
 }
 
 /** True while the page is still working out a figure: the busy mark (src/reading/busy.js), or a spinner on screen. */

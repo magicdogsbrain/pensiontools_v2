@@ -7,7 +7,11 @@
  *     typed (as one quantity, e2e/parity/fields.js canonOf); and the two pages read still agree on every fact the baseline
  *     does not list as a known disagreement.
  *  2. Typed, then a link pressed at once, in each view: the value is saved.
- *  3. Plan 1 open in the full view, then plan 2 chosen from its menu: every mark on every page equals plan 2 opened directly.
+ *  3. Plan 1 open in the full view, then plan 2 chosen from its menu (e2e/parity/fixtures/plans.js SWITCHES): for each page,
+ *     plan 1 opened ON that page (its figures drawn as a person draws them), plan 2 chosen, and the page left on screen read
+ *     BEFORE anything is pressed — every mark, box and figure outside a mark equals that page with plan 2 opened directly.
+ *     Then, as before, every page pressed open after the switch equals plan 2 opened directly (a press reloads a tab, so this
+ *     second check cannot see a tab the switch left showing the first plan: the first one is there for that).
  *  4. A new plan made after another (the full view's wizard): no figure or box of the first plan appears on its pages, in
  *     either view.
  *
@@ -24,10 +28,11 @@
 import { test as base, expect } from '@playwright/test';
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { PARITY_TODAY, fixtureNamed } from './fixtures/plans.js';
+import { PARITY_TODAY, fixtureNamed, SWITCHES } from './fixtures/plans.js';
 import { makeAccount, plansOf } from '../signed-in/emulator.js';
 import { resetTo, subjectOf, waitChange } from './account.js';
 import { REGISTRY, DIRECTIONS, valueIn, canonOf, entryOf } from './fields.js';
+import { switchDifferences } from './gate.js';
 import { collectMarks, waitQuiet } from './collect.js';
 import { FULL_PAGES, fullTab, fullLocked } from './pages.js';
 import { signIn, openSimple, openFull, closeNews, fullWizard } from '../scenarios/routes.js';
@@ -270,6 +275,32 @@ test.describe('parity round trips: typed, then a link at once', () => {
 
 // ---- 3. plan 1, then plan 2 chosen inside the full view ----------------------------------------------------------------
 
+/** The full view's plan menu opened as a person opens it (the plan button at the top) and a plan chosen in it. */
+async function chooseInMenu(page, id) {
+  await closeNews(page);
+  await page.locator('#scenarioActiveBtn').click();
+  await page.locator(`.scenario-dropdown-item[data-scenario-id="${id}"]`).click();
+}
+
+/** The page of the full view on screen now: { tab, sub } (sub null on a tab without sub-tabs). */
+const landedOn = (page) => page.evaluate(() => {
+  const tab = document.querySelector('.tab.active')?.getAttribute('data-tab') || null;
+  const sub = tab ? document.querySelector(`.sub-tab.active[data-${tab}tab]`)?.getAttribute(`data-${tab}tab`) || null : null;
+  return { tab, sub };
+});
+const pageNameOf = ({ tab, sub }) => (FULL_PAGES.find((p) => p.tab === tab && (!p.sub || p.sub === sub)) || {}).name || `${tab}${sub ? '/' + sub : ''}`;
+
+/** The page on screen read as it stands, nothing pressed: { facts, fields, figures } (gate.js switchDifferences). */
+async function readAsIs(page) {
+  const got = await page.evaluate(collectMarks, { figures: true });
+  const facts = {};
+  for (const x of got.places) (facts[x.fact] ||= []).push(x.text);
+  for (const c of got.cells) (facts[`table:${c.table}:${c.row}:${c.col}`] ||= []).push(c.text);
+  const fields = {};
+  for (const f of got.fields) if (entryOf(f.field)) (fields[f.field] ||= []).push(f.value);
+  return { facts, fields, figures: got.figures };
+}
+
 /** Every page of the full view read as the sweep reads it: { '<page>': { facts: {id: [texts]}, fields: {id: [values]} } }. */
 async function readFullView(page) {
   const out = {};
@@ -293,25 +324,77 @@ async function readFullView(page) {
   return out;
 }
 
-test.describe('parity round trips: a plan chosen inside the full view', () => {
+const plansWithOpen = (fx, activeId) => fx.plans().map((p) => ({ ...p, isActive: p.id === activeId }));
+
+test.describe('parity round trips: a plan chosen inside the full view, the page on screen read before any press', () => {
+  for (const sw of SWITCHES) {
+    const fx = fixtureNamed(sw.fixture);
+    if (!runs(fx.key)) continue;
+    for (const p of FULL_PAGES) {
+      test(`switch ${sw.key} on ${p.name}`, async ({ acct }) => {
+        test.setTimeout(5 * 60_000);
+        const key = `switch:${sw.key}:${p.name}`;
+        // plan 1 open on the page, its figures drawn as a person draws them (the page's own press, its folds opened)
+        let page = await freshPage(acct, plansWithOpen(fx, sw.from));
+        await openFull(page);
+        await waitQuiet(page);
+        if (!(await fullTab(page, p))) {
+          write(`switch-${sw.key}-${p.name}`, fx.key, [{ key: `${key}|all`, kind: 'ok', press: false, detail: 'the first plan does not offer this page' }]);
+          await page.close();
+          return;
+        }
+        if (p.press && (!p.onlyLocked || await fullLocked(page))) {
+          const run = page.locator(p.press).first();
+          if (await run.isVisible().catch(() => false)) await run.click();
+        }
+        await waitQuiet(page);
+        if (p.openFolds) await page.evaluate((sel) => { for (const d of document.querySelectorAll(sel + ' details')) d.open = true; }, p.openFolds);
+        // plan 2 chosen from the menu; the page the view leaves on screen read as it stands
+        await chooseInMenu(page, sw.to);
+        await waitQuiet(page);
+        const landed = await landedOn(page);
+        const switched = await readAsIs(page);
+        await page.close();
+        // plan 2 opened directly on that page, nothing pressed
+        page = await freshPage(acct, plansWithOpen(fx, sw.to));
+        await openFull(page);
+        await waitQuiet(page);
+        const entries = [];
+        const there = landed.tab ? await fullTab(page, landed) : true;
+        if (!there) {
+          entries.push({ key: `${key}|page`, kind: 'differs from opened directly', press: false, detail: `the switch leaves the ${pageNameOf(landed)} page on screen; the plan opened directly does not offer it` });
+        } else {
+          await waitQuiet(page);
+          const direct = await readAsIs(page);
+          for (const d of switchDifferences(direct, switched)) {
+            entries.push({ key: `${key}|${d.id}`, kind: 'differs from opened directly', press: false, detail: `${pageNameOf(landed)}: directly ${d.direct.slice(0, 120)} / after the switch ${d.switched.slice(0, 120)}` });
+          }
+        }
+        if (!entries.length) entries.push({ key: `${key}|all`, kind: 'ok', press: false, detail: `read on ${pageNameOf(landed)}` });
+        write(`switch-${sw.key}-${p.name}`, fx.key, entries);
+        await page.close();
+      });
+    }
+  }
+});
+
+test.describe('parity round trips: a plan chosen inside the full view, then every page pressed open', () => {
   const fx = fixtureNamed('couple');
   if (!runs(fx.key)) return;
   test('plan 1 then plan 2 equals plan 2 opened directly', async ({ acct }) => {
     test.setTimeout(15 * 60_000);
     const other = fx.plans().find((p) => p.id !== fx.subject);
-    const as = (activeId) => fx.plans().map((p) => ({ ...p, isActive: p.id === activeId }));
     // plan 2 opened directly
-    let page = await freshPage(acct, as(other.id));
+    let page = await freshPage(acct, plansWithOpen(fx, other.id));
     await openFull(page);
     await waitQuiet(page);
     const direct = await readFullView(page);
     await page.close();
     // plan 1 opened, then plan 2 chosen from the menu
-    page = await freshPage(acct, as(fx.subject));
+    page = await freshPage(acct, plansWithOpen(fx, fx.subject));
     await openFull(page);
     await waitQuiet(page);
-    await page.locator('#scenarioDropdown').evaluate((d) => d.classList.add('open'));
-    await page.locator(`.scenario-dropdown-item[data-scenario-id="${other.id}"]`).click();
+    await chooseInMenu(page, other.id);
     await waitQuiet(page);
     const switched = await readFullView(page);
     await page.close();

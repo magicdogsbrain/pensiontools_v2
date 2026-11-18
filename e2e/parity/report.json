@@ -1,5 +1,5 @@
 {
- "at": "2026-11-18T15:32:11.032Z",
+ "at": "2026-11-18T16:36:52.659Z",
  "fixtures": [
   "age-only",
   "budget",
@@ -29,7 +29,7 @@
  "unmarked": 17295,
  "oneViewOnly": 2353,
  "readingMismatches": 0,
- "roundTripsFailed": 75,
+ "roundTripsFailed": 127,
  "rose": [],
  "shrank": [],
  "grew": [],
@@ -27774,6 +27774,266 @@
     "key": "sweep:saver-draft:pots|s2f",
     "kind": "sweep breaks",
     "detail": "pot.today: \"£61,000\" / \"£60,000\""
+   },
+   {
+    "key": "switch:Jo>Sam:accumulation|field:about.age",
+    "kind": "differs from opened directly",
+    "detail": "accumulation: directly [\"45\"] / after the switch [\"41\"]"
+   },
+   {
+    "key": "switch:Jo>Sam:accumulation|field:about.stopAge",
+    "kind": "differs from opened directly",
+    "detail": "accumulation: directly [\"67\"] / after the switch [\"60\"]"
+   },
+   {
+    "key": "switch:Jo>Sam:accumulation|field:saving.employerMonthly",
+    "kind": "differs from opened directly",
+    "detail": "accumulation: directly [\"250\"] / after the switch [\"\"]"
+   },
+   {
+    "key": "switch:Jo>Sam:accumulation|field:saving.netMonthly",
+    "kind": "differs from opened directly",
+    "detail": "accumulation: directly [\"300\"] / after the switch [\"400\"]"
+   },
+   {
+    "key": "switch:Jo>Sam:accumulation|field:saving.potNow",
+    "kind": "differs from opened directly",
+    "detail": "accumulation: directly [\"120000\"] / after the switch [\"60000\"]"
+   },
+   {
+    "key": "switch:Jo>Sam:accumulation|field:saving.want.monthly",
+    "kind": "differs from opened directly",
+    "detail": "accumulation: directly [] / after the switch [\"2000\"]"
+   },
+   {
+    "key": "switch:Jo>Sam:accumulation|field:saving.want.stopAge",
+    "kind": "differs from opened directly",
+    "detail": "accumulation: directly [] / after the switch [\"60\"]"
+   },
+   {
+    "key": "switch:Jo>Sam:accumulation|figures",
+    "kind": "differs from opened directly",
+    "detail": "accumulation: directly only directly: £120,000, £120,000, £120,000, £120,000,, £126,207, £129,917, £133,730, £145,352, £156,350, £182,622, £185 / after the switch only after the switch: £1,060, £1,248, £1,248, £1,248, £10,000, £100, £105,461, £115,702, £116,281, £122,354, £125,188, "
+   },
+   {
+    "key": "switch:Jo>Sam:accumulation|payIn.employer",
+    "kind": "differs from opened directly",
+    "detail": "accumulation: directly [\"£250\"] / after the switch []"
+   },
+   {
+    "key": "switch:Jo>Sam:accumulation|payIn.fromTakeHome",
+    "kind": "differs from opened directly",
+    "detail": "accumulation: directly [\"£300\"] / after the switch [\"£400\",\"£400\"]"
+   },
+   {
+    "key": "switch:Jo>Sam:accumulation|payIn.total",
+    "kind": "differs from opened directly",
+    "detail": "accumulation: directly [\"£625\"] / after the switch [\"£500\"]"
+   },
+   {
+    "key": "switch:Jo>Sam:accumulation|saver.chance",
+    "kind": "differs from opened directly",
+    "detail": "accumulation: directly [] / after the switch [\"5 times in 20\"]"
+   },
+   {
+    "key": "switch:Jo>Sam:accumulation|saver.enough.pounds",
+    "kind": "differs from opened directly",
+    "detail": "accumulation: directly [] / after the switch [\"£1,560\",\"£1,560\"]"
+   },
+   {
+    "key": "switch:Jo>Sam:accumulation|saver.incomeAtStop",
+    "kind": "differs from opened directly",
+    "detail": "accumulation: directly [] / after the switch [\"£1,320\"]"
+   },
+   {
+    "key": "switch:Jo>Sam:accumulation|saver.verdict",
+    "kind": "differs from opened directly",
+    "detail": "accumulation: directly [] / after the switch [\"Not enough for £2,000 a month from 60\"]"
+   },
+   {
+    "key": "switch:Jo>Sam:accumulation|want.income",
+    "kind": "differs from opened directly",
+    "detail": "accumulation: directly [] / after the switch [\"£2,000\",\"£2,000\"]"
+   },
+   {
+    "key": "switch:Jo>Sam:accumulation|want.stopAge",
+    "kind": "differs from opened directly",
+    "detail": "accumulation: directly [] / after the switch [\"60\"]"
+   },
+   {
+    "key": "switch:Jo>Sam:budget|field:budget.currentAge",
+    "kind": "differs from opened directly",
+    "detail": "budget: directly [\"44\"] / after the switch [\"41\"]"
+   },
+   {
+    "key": "switch:Jo>Sam:budget|field:budget.endAge",
+    "kind": "differs from opened directly",
+    "detail": "budget: directly [\"95\"] / after the switch [\"101\"]"
+   },
+   {
+    "key": "switch:Jo>Sam:budget|field:budget.retireAge",
+    "kind": "differs from opened directly",
+    "detail": "budget: directly [\"67\"] / after the switch [\"60\"]"
+   },
+   {
+    "key": "switch:Jo>Sam:budget|figures",
+    "kind": "differs from opened directly",
+    "detail": "budget: directly only directly: £2,200, £2,200, £2,200, £29,858 / after the switch only after the switch: £2,000, £2,000, £2,000, £26,858"
+   },
+   {
+    "key": "switch:Jo>Sam:strategies|figures",
+    "kind": "differs from opened directly",
+    "detail": "strategies: directly only directly: £0k, £0k, £0k, £0k, £0k, £0k, £1181k, £12,548, £12,548, £131,449, £1327k, £1327k, £1327k, £1327k, £1327k, / after the switch only after the switch: £0, £0, £0, £0, £142,292, £142,292, £142,292, £142,292, £146,266, £146,266, £15,719, £15,719, £15"
+   },
+   {
+    "key": "switch:Kim>Sam:budget|field:budget.currentAge",
+    "kind": "differs from opened directly",
+    "detail": "budget: directly [\"58\"] / after the switch [\"64\"]"
+   },
+   {
+    "key": "switch:Kim>Sam:budget|field:budget.retireAge",
+    "kind": "differs from opened directly",
+    "detail": "budget: directly [\"62\"] / after the switch [\"66\"]"
+   },
+   {
+    "key": "switch:Kim>Sam:budget|figures",
+    "kind": "differs from opened directly",
+    "detail": "budget: directly only directly: £0, £0, £0, £0, £22,400, £59,000, 70%, at 63 / after the switch only after the switch: £14,400, £31,300"
+   },
+   {
+    "key": "switch:Kim>Sam:decision settings|figures",
+    "kind": "differs from opened directly",
+    "detail": "monthly entry: directly only directly: none / after the switch only after the switch: £2,833, £34,000, £87,578, 2 years, age 66, April 2027"
+   },
+   {
+    "key": "switch:Kim>Sam:decision settings|way.name",
+    "kind": "differs from opened directly",
+    "detail": "monthly entry: directly [\"Pots & Valves\"] / after the switch [\"Full index-linked gilt ladder\"]"
+   },
+   {
+    "key": "switch:Kim>Sam:history|figures",
+    "kind": "differs from opened directly",
+    "detail": "monthly entry: directly only directly: none / after the switch only after the switch: £2,833, £34,000, £87,578, 2 years, age 66, April 2027"
+   },
+   {
+    "key": "switch:Kim>Sam:history|way.name",
+    "kind": "differs from opened directly",
+    "detail": "monthly entry: directly [\"Pots & Valves\"] / after the switch [\"Full index-linked gilt ladder\"]"
+   },
+   {
+    "key": "switch:Kim>Sam:monthly entry|figures",
+    "kind": "differs from opened directly",
+    "detail": "monthly entry: directly only directly: none / after the switch only after the switch: £2,833, £34,000, £7,428, £87,578, 2 years, 3 months, age 66, April 2027, November 2026"
+   },
+   {
+    "key": "switch:Kim>Sam:monthly entry|taken.againstPlan",
+    "kind": "differs from opened directly",
+    "detail": "monthly entry: directly [] / after the switch [\"£8,500\"]"
+   },
+   {
+    "key": "switch:Kim>Sam:monthly entry|way.name",
+    "kind": "differs from opened directly",
+    "detail": "monthly entry: directly [\"Pots & Valves\"] / after the switch [\"Full index-linked gilt ladder\"]"
+   },
+   {
+    "key": "switch:Kim>Sam:plan document|figures",
+    "kind": "differs from opened directly",
+    "detail": "monthly entry: directly only directly: none / after the switch only after the switch: £2,833, £34,000, £87,578, 2 years, age 66, April 2027"
+   },
+   {
+    "key": "switch:Kim>Sam:plan document|way.name",
+    "kind": "differs from opened directly",
+    "detail": "monthly entry: directly [\"Pots & Valves\"] / after the switch [\"Full index-linked gilt ladder\"]"
+   },
+   {
+    "key": "switch:Kim>Sam:strategies|figures",
+    "kind": "differs from opened directly",
+    "detail": "strategies: directly only directly: £0, £0, £0, £103k, £104,439, £106,340, £108,800, £109k, £1151k, £12,128, £12,128, £1218k, £1317k, £1317k, / after the switch only after the switch: £1,080,388, £1,080,388, £1,109,093, £1,109,093, £1,180,274, £1,180,274, £1080k, £1109k, £1167k, £"
+   },
+   {
+    "key": "switch:Kim>Sam:tax years|figures",
+    "kind": "differs from opened directly",
+    "detail": "monthly entry: directly only directly: none / after the switch only after the switch: £2,833, £34,000, £87,578, 2 years, age 66, April 2027"
+   },
+   {
+    "key": "switch:Kim>Sam:tax years|way.name",
+    "kind": "differs from opened directly",
+    "detail": "monthly entry: directly [\"Pots & Valves\"] / after the switch [\"Full index-linked gilt ladder\"]"
+   },
+   {
+    "key": "switch:Sam>Kim:accumulation|page",
+    "kind": "differs from opened directly",
+    "detail": "the switch leaves the accumulation page on screen; the plan opened directly does not offer it"
+   },
+   {
+    "key": "switch:Sam>Kim:budget|field:budget.currentAge",
+    "kind": "differs from opened directly",
+    "detail": "budget: directly [\"64\"] / after the switch [\"58\"]"
+   },
+   {
+    "key": "switch:Sam>Kim:budget|field:budget.retireAge",
+    "kind": "differs from opened directly",
+    "detail": "budget: directly [\"66\"] / after the switch [\"62\"]"
+   },
+   {
+    "key": "switch:Sam>Kim:budget|figures",
+    "kind": "differs from opened directly",
+    "detail": "budget: directly only directly: £14,400, £31,300 / after the switch only after the switch: £0, £0, £0, £0, £22,400, £59,000, 70%, at 63"
+   },
+   {
+    "key": "switch:Sam>Kim:decision settings|figures",
+    "kind": "differs from opened directly",
+    "detail": "monthly entry: directly only directly: £2,833, £34,000, £87,578, 2 years, age 66, April 2027 / after the switch only after the switch: none"
+   },
+   {
+    "key": "switch:Sam>Kim:decision settings|way.name",
+    "kind": "differs from opened directly",
+    "detail": "monthly entry: directly [\"Full index-linked gilt ladder\"] / after the switch [\"Pots & Valves\"]"
+   },
+   {
+    "key": "switch:Sam>Kim:history|figures",
+    "kind": "differs from opened directly",
+    "detail": "monthly entry: directly only directly: £2,833, £34,000, £87,578, 2 years, age 66, April 2027 / after the switch only after the switch: none"
+   },
+   {
+    "key": "switch:Sam>Kim:history|way.name",
+    "kind": "differs from opened directly",
+    "detail": "monthly entry: directly [\"Full index-linked gilt ladder\"] / after the switch [\"Pots & Valves\"]"
+   },
+   {
+    "key": "switch:Sam>Kim:monthly entry|figures",
+    "kind": "differs from opened directly",
+    "detail": "monthly entry: directly only directly: £2,833, £34,000, £87,578, 2 years, age 66, April 2027 / after the switch only after the switch: none"
+   },
+   {
+    "key": "switch:Sam>Kim:monthly entry|way.name",
+    "kind": "differs from opened directly",
+    "detail": "monthly entry: directly [\"Full index-linked gilt ladder\"] / after the switch [\"Pots & Valves\"]"
+   },
+   {
+    "key": "switch:Sam>Kim:plan document|figures",
+    "kind": "differs from opened directly",
+    "detail": "monthly entry: directly only directly: £2,833, £34,000, £87,578, 2 years, age 66, April 2027 / after the switch only after the switch: none"
+   },
+   {
+    "key": "switch:Sam>Kim:plan document|way.name",
+    "kind": "differs from opened directly",
+    "detail": "monthly entry: directly [\"Full index-linked gilt ladder\"] / after the switch [\"Pots & Valves\"]"
+   },
+   {
+    "key": "switch:Sam>Kim:strategies|figures",
+    "kind": "differs from opened directly",
+    "detail": "strategies: directly only directly: £1,080,388, £1,080,388, £1,109,093, £1,109,093, £1,180,274, £1,180,274, £1080k, £1109k, £1167k, £1180k, £ / after the switch only after the switch: £0, £0, £0, £103k, £104,439, £106,340, £108,800, £109k, £1151k, £12,128, £12,128, £1218k, £1317k,"
+   },
+   {
+    "key": "switch:Sam>Kim:tax years|figures",
+    "kind": "differs from opened directly",
+    "detail": "monthly entry: directly only directly: £2,833, £34,000, £87,578, 2 years, age 66, April 2027 / after the switch only after the switch: none"
+   },
+   {
+    "key": "switch:Sam>Kim:tax years|way.name",
+    "kind": "differs from opened directly",
+    "detail": "monthly entry: directly [\"Full index-linked gilt ladder\"] / after the switch [\"Pots & Valves\"]"
    },
    {
     "key": "typeThenLink|simple",

@@ -4,7 +4,7 @@
  * The browser half of this proof (the page reader on a page with two different marks) is e2e/parity/self-test.spec.js.
  */
 import { describe, it, expect } from 'vitest';
-import { summarise, ratchet, baselineOf, reportOf, lineOf, shownText } from '../../e2e/parity/gate.js';
+import { summarise, ratchet, baselineOf, reportOf, lineOf, shownText, switchDifferences } from '../../e2e/parity/gate.js';
 
 const opened = [{ view: 'simple', page: 'home', opened: true }, { view: 'full', page: 'stress settings', opened: true }];
 const result = (places, more = {}) => ({ fixture: 'fx', subject: 'P1', pages: opened, places, cells: [], fields: [], unmarked: {}, ...more });
@@ -148,6 +148,21 @@ describe('the parity gate', () => {
     // a plan that is new to the floor grows it
     expect(ratchet(summarise([result(run1Places()), { ...result(run1Places()), fixture: 'gone' }, { ...result([]), fixture: 'new' }]), base).grew)
       .toContain('a plan new to the floor, add it to coverage.json: new');
+  });
+
+  it('a page read after a plan switch is held against the same page with that plan opened directly', () => {
+    const direct = { facts: { 'plan.name': ['Kim'], 'table:years:0:pot': ['£1'], 'table:years:1:pot': ['£2'] }, fields: { 'budget.currentAge': ['64'] }, figures: ['£300', 'age 66'] };
+    expect(switchDifferences(direct, JSON.parse(JSON.stringify(direct)))).toEqual([]);
+    // the open tab still holds the first plan's boxes, a table cell and words with figures; a mark gone is a difference too
+    const switched = { facts: { 'plan.name': ['Kim'], 'table:years:0:pot': ['£1'], 'table:years:1:pot': ['£9'], 'lasts.chance': ['18 in 20'] }, fields: { 'budget.currentAge': ['58'] }, figures: ['£300', 'age 62', 'age 62'] };
+    expect(switchDifferences(direct, switched)).toEqual([
+      { id: 'field:budget.currentAge', direct: '["64"]', switched: '["58"]' },
+      { id: 'figures', direct: 'only directly: age 66', switched: 'only after the switch: age 62, age 62' },
+      { id: 'lasts.chance', direct: '[]', switched: '["18 in 20"]' },
+      { id: 'table:years', direct: 'table:years:1:pot ["£2"]', switched: 'table:years:1:pot ["£9"]' }
+    ]);
+    // space does not count; the order of the figures does not count
+    expect(switchDifferences({ facts: { a: ['£1 '] }, fields: {}, figures: ['x', 'y'] }, { facts: { a: ['£1'] }, fields: {}, figures: ['y', 'x'] })).toEqual([]);
   });
 
   it('prints one line', () => {

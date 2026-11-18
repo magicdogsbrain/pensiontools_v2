@@ -5,7 +5,7 @@
  */
 import { describe, it, expect, vi } from 'vitest';
 vi.mock('../../src/firebase/index.js', () => ({ isFirebaseConfigured: () => false, isLoggedIn: () => false }));
-import { FIXTURES, PARITY_DAY } from '../../e2e/parity/fixtures/plans.js';
+import { FIXTURES, PARITY_DAY, SWITCH_FIXTURES, SWITCHES, fixtureNamed } from '../../e2e/parity/fixtures/plans.js';
 import { upgradeScenario } from '../../src/firebase/scenarioMigration.js';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -50,6 +50,26 @@ describe('the parity fixtures', () => {
     expect(built['budget'][0].budgetTool.settings.lines.length).toBe(4);
     expect(built['retired-locked-pots'][0].decisionTool.history.map((h) => h.date)).toEqual(['2026-09', '2026-10']);
     expect(built.couple.map((p) => p.household && p.household.partnerScenarioId).filter(Boolean).length).toBe(2);
+  });
+
+  it('the plan switches the gate makes inside the full view: a saver to a retired plan and back, and one saver to another', () => {
+    expect(SWITCHES.map((s) => s.key)).toEqual(['Sam>Kim', 'Kim>Sam', 'Jo>Sam']);
+    for (const s of SWITCHES) {
+      const f = fixtureNamed(s.fixture);
+      expect(f, s.fixture).toBeTruthy();
+      const plans = f.plans();
+      const from = plans.find((p) => p.id === s.from), to = plans.find((p) => p.id === s.to);
+      expect(from && to && from !== to, s.key).toBe(true);
+      for (const p of plans) expect(upgradeScenario(JSON.parse(JSON.stringify(p)), { now: noon(PARITY_DAY) }).error || null).toBeNull();
+    }
+    // the two savers are not one plan twice: what they pay in differs, so the Accumulation tab's boxes differ
+    const [jo, sam] = SWITCH_FIXTURES.find((f) => f.key === 'two-savers').plans();
+    expect(jo.isActive).toBe(true);
+    expect(sam.isActive).toBe(false);
+    expect(jo.household || null).toBeNull();
+    expect(JSON.stringify(jo.accumulationTool)).not.toBe(JSON.stringify(sam.accumulationTool));
+    // a switch fixture is not a plan of the sweep's floor (the ratchet files hold the sweep's plans only)
+    expect(FIXTURES.some((f) => f.key === 'two-savers')).toBe(false);
   });
 
   it('every plan the gate\'s floor holds is still here under its name (e2e/parity/coverage.json "fixtures")', () => {

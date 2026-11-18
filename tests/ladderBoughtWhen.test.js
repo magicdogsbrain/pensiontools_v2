@@ -15,4 +15,8 @@ describe('when a ladder\'s rungs are bought, in the full view', () => {
     expect(html).not.toContain('the steps you chose — is bought today');
     expect(html).toContain('Every year of your income plan is bought up front, when your plan starts.');
   });
+  it('the order sheet names no platform (walker 7)', () => {
+    expect(html).toContain('How to give the order (most platforms take either):');
+    expect(html).not.toMatch(/How to give the order \([A-Z][\w ]+ and most platforms/);
+  });
 });

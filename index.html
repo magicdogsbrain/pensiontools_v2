@@ -4290,7 +4290,7 @@
     import { whatsNewHtml, versionsPageHtml, safeAffects } from './src/ui/components/ReleaseNotesView.js';
 
     import { getChartStyles } from './src/ui/Charts.js';
-    import { createPlanState, bindPlanState } from './src/ui/planState.js'; import { installRepaint } from './src/ui/repaintPlan.js'; import { stressSavePatch, settingsFromForm, ownPotAtRetirement, touches, INCOME_KEYS, TIMING_KEYS, STRATEGY_KEYS } from './src/ui/settingsChanged.js'; import { todayOf } from './src/reading/clock.js'; import { READ_FAULT_WORDS, isPlanReadError } from './src/reading/readFault.js';
+    import { createPlanState, bindPlanState } from './src/ui/planState.js'; import { installRepaint } from './src/ui/repaintPlan.js'; import { formatNumberBoxes } from './src/ui/numberOverlays.js'; import { stressSavePatch, settingsFromForm, ownPotAtRetirement, touches, INCOME_KEYS, TIMING_KEYS, STRATEGY_KEYS } from './src/ui/settingsChanged.js'; import { todayOf } from './src/reading/clock.js'; import { READ_FAULT_WORDS, isPlanReadError } from './src/reading/readFault.js';
     // Everything the page knows about the open plan, in ONE object (src/ui/planState.js, lead4.md R2): window._budget,
     // window._oneTest and the rest are its fields. repaintPlan drops it and makes it again on any change of plan.
     const planState = bindPlanState(window, createPlanState());
@@ -4477,101 +4477,8 @@
       });
     }
 
-    // Create a formatted display overlay system for number inputs
-    function initFormattedDisplays() {
-      const numberInputs = document.querySelectorAll('input[type="number"]');
-
-      numberInputs.forEach(input => {
-        // Skip inputs that already have formatting
-        if (input.dataset.formatted) return;
-        // Budget tab + wizard use dynamic flex rows; the overlay wrapper would disrupt their layout.
-        if (input.closest('#budget-content') || input.closest('#budWizardOverlay') || input.closest('#adminPanelOverlay')) return;
-        // Hidden templates get cloned later; a cloned overlay has no listeners and freezes. Format the clone, not the source.
-        if (input.closest('#giltExplainerSource')) return;
-        input.dataset.formatted = 'true';
-
-        // AUDIT/ROBUSTNESS: the overlay must sit in a TIGHT container around just the input, so it
-        // always centres on the input box. If the input isn't already in a tight `.input-with-unit`,
-        // wrap it in a relative span. (Previously the wrapper fell back to input.parentElement — often
-        // a .form-group that also contains the <label>, so top:50% landed at the TOP of the input.)
-        let wrapper = input.closest('.input-with-unit');
-        const hasUnit = !!wrapper;
-        if (!wrapper) {
-          wrapper = document.createElement('span');
-          wrapper.className = 'num-format-wrap';
-          wrapper.style.cssText = 'position:relative; display:block;';
-          input.parentNode.insertBefore(wrapper, input);
-          wrapper.appendChild(input);
-        }
-
-        // Create overlay span for formatted display
-        const overlay = document.createElement('span');
-        overlay.className = 'number-format-overlay';
-
-        // Left offset aligns with the input's text: with a £ unit ~34px, otherwise the input padding.
-        const leftOffset = hasUnit ? '34px' : '14px';
-
-        overlay.style.cssText = `
-          position: absolute;
-          left: ${leftOffset};
-          top: 50%;
-          transform: translateY(-50%);
-          pointer-events: none;
-          color: var(--text);   /* NOT inherit: inside a muted .hint label the overlay went grey */
-          font-size: inherit;
-          font-family: inherit;
-          background: transparent;
-          z-index: 1;
-        `;
-
-        if (getComputedStyle(wrapper).position === 'static') {
-          wrapper.style.position = 'relative';
-        }
-
-        // Function to update overlay
-        function updateOverlay() {
-          const val = parseFloat(input.value);
-          if (!isNaN(val) && val >= 1000 && document.activeElement !== input) {
-            overlay.textContent = formatWithSpaces(val);
-            // top:50% is correct now that the wrapper is always tight around the input.
-            overlay.style.display = 'block';
-            input.style.color = 'transparent';
-          } else {
-            overlay.style.display = 'none';
-            input.style.color = '';
-          }
-        }
-
-        // Store updateOverlay function on the input for external access
-        input._updateOverlay = updateOverlay;
-
-        // Hide overlay on focus, show on blur
-        input.addEventListener('focus', () => {
-          overlay.style.display = 'none';
-          input.style.color = '';
-        });
-
-        input.addEventListener('blur', updateOverlay);
-        input.addEventListener('input', () => {
-          // Keep overlay hidden while typing
-          if (document.activeElement === input) {
-            overlay.style.display = 'none';
-            input.style.color = '';
-          }
-        });
-        // Scroll-wheel / spinner / arrow-key changes can land while the input is NOT the active
-        // element (e.g. wheel over an unfocused box, or after blur) — refresh the overlay on every
-        // value change so the number shown always matches the value in the box.
-        input.addEventListener('change', updateOverlay);
-        input.addEventListener('wheel', () => setTimeout(updateOverlay, 0), { passive: true });
-
-        // Insert overlay
-        wrapper.appendChild(overlay);
-
-        // Initial format
-        updateOverlay();
-      });
-    }
+    // The thousand-separator overlay on number boxes (src/ui/numberOverlays.js): a box with the focus is never moved
+    function initFormattedDisplays() { formatNumberBoxes(document, formatWithSpaces); }
 
     // Function to refresh all number input overlays (call after programmatically setting values)
     function refreshNumberOverlays() {

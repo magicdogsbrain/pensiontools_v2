@@ -115,6 +115,7 @@ export function wayOf(entries, id, { today } = {}) {
     source: locked ? { kind: 'locked', at: dayWords(lockedAtOf(plan)) } : { kind: 'saved', at: plan.lastModified ? dayWords(plan.lastModified) : null },
     strategyId, docStrategyId, bought: isBought(strategyId), family: FAMILY.includes(strategyId),
     endAge: (num(timing.shapeAgeNow) || 57) + (num(ss.duration) || 35),   // "to 97" = to the 97th birthday (rules.js planToAgeOf)
+    atStop: timing.mode === 'future' && ss.retired === false && num(timing.shapeAgeNow) ? { age: num(timing.shapeAgeNow) } : null,   // still saving: the runs start at the stop
     runKey: readonly ? null : runKeyOf(plan),
     stash, cuts: cutsOfSettings(ss),
     document: docShare == null ? null : { share: docShare, words: futuresOutOfTen(docShare).words, chance: pctText(docShare * 100, 1, CHANCE_BARS).replace(/%$/, ''), lockedOn: dayWords(doc.lockedAt || lockedAtOf(plan)) }
@@ -157,7 +158,7 @@ export function checkDials(id, typed, base = {}) {
 const chanceOf = (a) => pctText(a.chancePct, 1, CHANCE_BARS).replace(/%$/, '');
 
 /** The lines of one way's figures (a wayResult), as ids into copy/way.js card with slots. */
-export function cardLines(w, { endAge = null, current = false } = {}) {
+export function cardLines(w, { endAge = null, current = false, atStop = null } = {}) {
   const lines = [];
   if (!w) return lines;
   if (!w.affordable) {
@@ -172,7 +173,10 @@ export function cardLines(w, { endAge = null, current = false } = {}) {
   if (CONTRACT.includes(w.id)) lines.push({ id: 'subContract', slots: { years: String(years), toAge: endAge == null ? '' : String(endAge) } });
   else lines.push({ id: 'sub', slots: { pct: chanceOf(a), futures: n0(a.futures), histories: n0(a.histories) } });
   lines.push({ id: 'left', slots: { typical: pounds(a.typicalLeft), bad: pounds(a.badCaseLeft) } });
-  if (w.bought) lines.push({ id: w.left != null && w.left > 0 ? 'cost' : 'costAll', slots: { cost: pounds(w.cost), left: pounds(w.left || 0) } });
+  // (7.12.0) a plan still saving buys from the pension when work stops (cost + left), never "your pot today"
+  const all = !(w.left != null && w.left > 0);
+  if (w.bought && atStop && atStop.age) lines.push({ id: all ? 'costAllAtStop' : 'costAtStop', slots: { cost: pounds(w.cost), pot: pounds((+w.cost || 0) + (+w.left || 0)), age: String(atStop.age), left: pounds(w.left || 0) } });
+  else if (w.bought) lines.push({ id: all ? 'costAll' : 'cost', slots: { cost: pounds(w.cost), left: pounds(w.left || 0) } });
   return lines;
 }
 
@@ -242,7 +246,7 @@ export function cardsOf(reading, W) {
     return {
       id, current: id === current, open: isOpen, rank: result ? order.indexOf(id) : null,
       has: !!shownResult, affordable: shownResult ? !!shownResult.affordable : null, bought: isBought(id), family: FAMILY.includes(id),
-      lines: shownResult ? cardLines(shownResult, { endAge: reading.endAge, current: id === current }) : [],
+      lines: shownResult ? cardLines(shownResult, { endAge: reading.endAge, current: id === current, atStop: reading.atStop || null }) : [],
       verdict, stale,
       dials, values: c.ok ? c.values : null, ok: c.ok, errors: c.errors, typed: Object.keys(typed).length > 0,
       needsRun, tried: t ? { status: t.status, reason: t.reason || null, runs: t.result && t.result.basis ? t.result.basis.runs : 1, ms: t.ms == null ? null : t.ms } : null,

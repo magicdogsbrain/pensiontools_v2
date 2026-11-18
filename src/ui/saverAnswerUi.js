@@ -20,6 +20,7 @@ import { SAVING } from '../v7/copy/saving.js';
 import { entriesOf, dayOf, simpleLinkHref } from './homeBannerUi.js';
 import { SAVER_MARKS, saverSlotsOf, sentenceHtml } from '../reading/sentenceMarks.js';
 import { markFact } from '../reading/mark.js';
+import { fieldAttrOf } from '../reading/fields.js';
 
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const fill = (text, slots) => String(text || '').replace(/\{(\w+)\}/g, (m, k) => (slots && slots[k] != null ? String(slots[k]) : m));
@@ -109,7 +110,7 @@ export function wantFormHtml(want, problem = null) {
   const F = SAVING.want.fields;
   const E = SAVING.want.errors;
   const box = (id, path, value) => '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">' + esc(F[path].label)
-    + '<input type="text" inputmode="numeric" id="' + id + '" data-testid="' + id + '" value="' + esc(value) + '" style="width:130px;">'
+    + '<input type="text" inputmode="numeric" id="' + id + '" data-testid="' + id + '"' + fieldAttrOf('saving.' + path) + ' value="' + esc(value) + '" style="width:130px;">'
     + (problem && problem[path] ? '<span class="error" role="alert">' + esc(E[path][problem[path]] || '') + '</span>' : '') + '</label>';
   return '<div data-testid="ac.want" style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin:10px 0 0;">'
     + box('acWantMonthly', 'want.monthly', String(Math.round(want.monthly))) + box('acWantStopAge', 'want.stopAge', String(want.stopAge))

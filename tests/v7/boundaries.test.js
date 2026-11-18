@@ -216,8 +216,9 @@ describe('rule 2 — screens and components work out nothing', () => {
     under(t, 'src/v7/components') || under(t, 'src/v7/screens') || under(t, 'src/v7/copy') || under(t, 'src/v7/styles') ||
     t === 'src/v7/router/routes.js' || t === 'src/v7/state/select.js' || t === 'src/v7/rail/index.js' ||
     t === 'src/answers/shared/format.js' || /^src\/answers\/[a-z]+\/schema\.js$/.test(t) ||
-    // the parity marks (lead4.md G1): markup only, the fact register and the helpers that write data-fact
-    ['src/reading/facts.js', 'src/reading/mark.js', 'src/reading/Mark.jsx', 'src/reading/sentenceMarks.js'].includes(t);
+    // the parity marks (lead4.md G1): markup only, the fact register and the helpers that write data-fact, and the field
+    // table's ids that a box carries as data-field (lead4.md R3, G5)
+    ['src/reading/facts.js', 'src/reading/mark.js', 'src/reading/Mark.jsx', 'src/reading/sentenceMarks.js', 'src/reading/fields.js'].includes(t);
   const files = V7.filter(isScreenLayer);
   it.each(files)('%s', (file) => {
     for (const t of targetsOf(file)) {

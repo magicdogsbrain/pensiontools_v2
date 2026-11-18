@@ -4209,7 +4209,7 @@
     import { proportions as holdingsProportions, describeMix } from './src/services/Holdings.js';
     import { targetHoldings, diffHoldings, sequence as transitionSequence, progress as transitionProgress, tickMove, untickMove, yearNeedsOf } from './src/services/TransitionPlanner.js';
     import { transitionHtml } from './src/ui/components/TransitionView.js';
-    import { installKeepHandlers, transitionGaps, transitionHeld, transitionOpensAt, nameTransitionTab, installKeepTestHandlers, transitionKeepTest, keepLineHtml } from './src/ui/keepHoldingsUi.js'; import { installStressPanel } from './src/ui/stressPanelUi.js'; import { stageWordOf } from './src/ui/stageWord.js'; import { markFact, markWithin, tableAttr, cellAttr } from './src/reading/mark.js'; import { trackBusy } from './src/reading/busy.js'; import { HELD_MIX_FINDS } from './src/reading/sentenceMarks.js';   // "Try the bad years" on the Scenarios page (7.9.0)
+    import { installKeepHandlers, transitionGaps, transitionHeld, transitionOpensAt, nameTransitionTab, installKeepTestHandlers, transitionKeepTest, keepLineHtml } from './src/ui/keepHoldingsUi.js'; import { installStressPanel } from './src/ui/stressPanelUi.js'; import { stageWordOf } from './src/ui/stageWord.js'; import { markFact, markWithin, tableAttr, cellAttr } from './src/reading/mark.js'; import { markFieldBoxes, fieldAttrOf } from './src/reading/fields.js'; import { trackBusy } from './src/reading/busy.js'; import { HELD_MIX_FINDS } from './src/reading/sentenceMarks.js';   // "Try the bad years" on the Scenarios page (7.9.0)
     import { parsePaste, matchRows, mergeLedger, categorise, applyPaste } from './src/services/HoldingsPaste.js';
     import { pastePreviewHtml } from './src/ui/components/HoldingsPasteView.js';   // every pasted line counts (6.23)
     import { configureMonthlyEntry, readMonthlyEntry, openMonthlyEntry, confirmFundsIfLow, installMonthlyEntryHandlers } from './src/ui/monthlyEntry.js';   // the platform view of the monthly entry (6.23)
@@ -4615,6 +4615,7 @@
       hideAuthScreen();
       hideSetupWizard();
       document.getElementById('mainApp').classList.remove('hidden');
+      markFieldBoxes(document);   // each box's field id (src/reading/fields.js), the same as the simple view's box of that field
 
       // Shared curated datasets (fund catalogue / typical amounts) may have Firestore overrides —
       // fetch once, silently, then refresh the ticker autocompletes if a bigger list arrived.
@@ -7805,7 +7806,7 @@
         + '<input type="number" value="' + (st.fromAge ?? '') + '" min="40" max="100" style="width:74px;"' + (i === 0 ? ' disabled title="The first step starts when the plan starts — set above in When your plan starts"' : '') + ' data-on-input="updIncomeStep(' + i + ',\'fromAge\',this.value)">'
         + (i === 0 && window._ssTiming ? '<span class="hint">(' + taxYearLabel(window._ssTiming.firstTaxYear) + ')</span>' : '')
         + '<span class="hint">take</span>'
-        + '<input type="number" value="' + (st.amount ?? '') + '" step="1000" style="width:110px;" data-on-input="updIncomeStep(' + i + ',\'amount\',this.value)">'
+        + '<input type="number" value="' + (st.amount ?? '') + '" step="1000" style="width:110px;"' + (i === 0 ? fieldAttrOf('spend.first') : '') + ' data-on-input="updIncomeStep(' + i + ',\'amount\',this.value)">'
         + '<span class="hint">£/yr gross' + (window._shapeRefs.budgetGross && i > 0 && +st.amount > 0 ? ' — ' + Math.round(100 * +st.amount / window._shapeRefs.budgetGross) + '% of ' + (window._shapeRefs.budgetWords || 'today\'s budget') : '') + '</span>'
         + (i > 0 ? '<button type="button" class="risk-btn" title="Remove" data-on-click="rmIncomeStep(' + i + ')">✕</button>' : '')
         + '</div>'

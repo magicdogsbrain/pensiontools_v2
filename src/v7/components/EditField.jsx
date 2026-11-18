@@ -14,11 +14,15 @@
  *     slots    fills {yearNow} and the like in option words and error sentences
  *     nested   for a choice: { option: vnode } drawn inside that option's row
  */
+import { simpleFieldId } from '../../reading/fields.js';
+
 const fill = (text, slots = {}) => String(text == null ? '' : text).replace(/\{(\w+)\}/g, (m, k) => (k in slots && slots[k] != null ? String(slots[k]) : m));
 
 export function EditField({ f, words = {}, errors = {}, source = null, savedWords = '({value})', planId, dispatch, slots = {}, nested = null, help, extra = null, step = 'about', onLeave = null }) {
   if (!f || f.applies === false) return null;
   const id = `plan.${step}.${f.path}`;
+  // the box's mark in the field table (src/reading/fields.js): the same id as the full view's box of the same field
+  const bound = simpleFieldId(step, f.path);
   const error = f.error ? fill(errors[f.error] || errors.other || f.error, slots) : null;
   const helpText = help !== undefined ? help : words.help;
   const helpId = `${id}.help`;
@@ -39,7 +43,7 @@ export function EditField({ f, words = {}, errors = {}, source = null, savedWord
         {(f.options || []).map((o) => (
           <div class="option" key={o}>
             <div class="option-row">
-              <input type="radio" id={`${id}.${o}`} data-testid={`${id}.${o}`} name={id} value={o} checked={f.shown === o}
+              <input type="radio" id={`${id}.${o}`} data-testid={`${id}.${o}`} data-field={bound} name={id} value={o} checked={f.shown === o}
                 onClick={() => { if (f.shown !== o) set(o); }} onChange={() => {}} onBlur={touch} />
               <label for={`${id}.${o}`}>{fill((words.options && words.options[o]) || o, slots)}</label>
             </div>
@@ -58,7 +62,7 @@ export function EditField({ f, words = {}, errors = {}, source = null, savedWord
     <div class={`field field-${f.type}${error ? ' has-error' : ''}`} data-field={f.path}>
       <label for={id}>{words.label}</label>
       <div class="box">
-        <input type="text" inputmode={mode} autocomplete="off" id={id} data-testid={id} name={id} value={f.shown || ''}
+        <input type="text" inputmode={mode} autocomplete="off" id={id} data-testid={id} data-field={bound} name={id} value={f.shown || ''}
           aria-invalid={error ? 'true' : undefined} aria-describedby={described}
           onInput={(e) => set(e.currentTarget.value)} onBlur={touch} />
       </div>

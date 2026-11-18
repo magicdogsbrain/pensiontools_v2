@@ -20,7 +20,8 @@
     "test:coverage": "vitest --coverage",
     "lint": "eslint src/**/*.js",
     "e2e:signed-in": "node scripts/e2e-signed-in.mjs",
-    "e2e:scenarios": "node scripts/e2e-signed-in.mjs --scenarios"
+    "e2e:scenarios": "node scripts/e2e-signed-in.mjs --scenarios",
+    "e2e:parity": "node scripts/e2e-parity.mjs"
   },
   "dependencies": {
     "firebase": "^10.7.0",

@@ -1,0 +1,88 @@
+{
+ "note": "Banned direct uses outside the reading layer (lead4.md G6), counted by tests/reading/staticRatchet.js. Baseline written by step G1 (18 Nov 2026). May only go down: lower a count in the same change that removes a use; never raise one.",
+ "totals": {
+  "getStressSettingsAsync": 54,
+  "DEFAULT_TAX_BANDS": 11,
+  "grossToNet": 7,
+  "projectAccumulation": 2,
+  "diffHoldings": 1,
+  "newDate": 84,
+  "boxValue": 128,
+  "engineImport": 22
+ },
+ "byRule": {
+  "getStressSettingsAsync": {
+   "index.html": 47,
+   "src/ui/components/NewPlanFromSeed.js": 1,
+   "src/ui/draftPlanLine.js": 1,
+   "src/ui/homeBannerUi.js": 1,
+   "src/ui/lockedStartUi.js": 3,
+   "src/ui/stressSubTabs.js": 1
+  },
+  "DEFAULT_TAX_BANDS": {
+   "index.html": 7,
+   "src/answers/plan/about.js": 4
+  },
+  "grossToNet": {
+   "index.html": 2,
+   "src/ui/components/NewPlanFromSeed.js": 1,
+   "src/ui/plannerWords.js": 1,
+   "src/answers/plan/about.js": 1,
+   "src/answers/plan/life.js": 2
+  },
+  "projectAccumulation": {
+   "index.html": 1,
+   "src/answers/plan/saving.js": 1
+  },
+  "diffHoldings": {
+   "index.html": 1
+  },
+  "newDate": {
+   "index.html": 32,
+   "src/ui/accumulationProjection.js": 1,
+   "src/ui/components/NewPlanFromSeed.js": 1,
+   "src/ui/components/SetupWizard.js": 1,
+   "src/ui/homeBannerUi.js": 2,
+   "src/ui/householdTabUi.js": 1,
+   "src/ui/householdView.js": 2,
+   "src/ui/keepHoldingsUi.js": 14,
+   "src/ui/lockedStartUi.js": 5,
+   "src/ui/monthFillEntry.js": 1,
+   "src/ui/monthlyEntry.js": 1,
+   "src/ui/planCloseUi.js": 6,
+   "src/ui/planStartUi.js": 2,
+   "src/ui/saverAnswerUi.js": 1,
+   "src/ui/savingPathForLock.js": 1,
+   "src/ui/stageWord.js": 1,
+   "src/ui/startingPotsWords.js": 1,
+   "src/ui/stressPanelUi.js": 3,
+   "src/v7/effects/account.js": 3,
+   "src/v7/effects/clock.js": 1,
+   "src/v7/effects/download.js": 1,
+   "src/v7/effects/openPlace.js": 1,
+   "src/v7/effects/planSource.js": 1,
+   "src/v7/effects/planWrite.js": 1
+  },
+  "boxValue": {
+   "index.html": 125,
+   "src/ui/dbStartSetting.js": 2,
+   "src/ui/planStartUi.js": 1
+  },
+  "engineImport": {
+   "index.html": 5,
+   "src/ui/plannerWords.js": 1,
+   "src/ui/startingPotsWords.js": 1,
+   "src/ui/strategySettingsUse.js": 1,
+   "src/answers/plan/checkIn.js": 1,
+   "src/answers/plan/householdRun.js": 1,
+   "src/answers/plan/keepRun.js": 3,
+   "src/answers/plan/lastsRun.js": 1,
+   "src/answers/plan/mixRun.js": 2,
+   "src/answers/plan/move.js": 1,
+   "src/answers/plan/moveRun.js": 1,
+   "src/answers/plan/saving.js": 1,
+   "src/answers/plan/stressPanelRun.js": 1,
+   "src/answers/plan/waysRun.js": 2
+  }
+ }
+}

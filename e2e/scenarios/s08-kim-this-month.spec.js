@@ -4,14 +4,16 @@
  * Kim's plan as s07 makes it, locked from Stress settings, nothing recorded yet. On 16 November 2026 she opens the simple
  * home and asks what to take this month and from which pot. Worked by hand: this month's draw is £2,577
  * ((28,800 − 2,514) ÷ 0.85 ÷ 12); the pots named each carry a £ figure and they add up to the month's total. The full
- * view's Monthly Recommendation gives the same amount and the same split.
+ * view's Monthly Recommendation gives the same amount and the same split, and gives no orders (round 3, walker 6: "Move
+ * £8,000 Equity→Bond", "Replenish Cash", "Tax Saved -£129"). Then she saves November and unlocks the plan to change it, as
+ * the site tells her to: the home keeps the month, 1 month and £2,577 taken before tax (round 3, decision 10).
  */
 import { test, expect } from '@playwright/test';
 import { ask } from './ask.js';
 import { accountFor } from './account.js';
-import { at, planPage, settled, screenOf } from './routes.js';
+import { at, planPage, settled, screenOf, fullPage } from './routes.js';
 import { visibleText, moneyAll } from './read.js';
-import { kimKept, lockFromStressSettings, monthlyEntry } from './made.js';
+import { kimKept, lockFromStressSettings, monthlyEntry, saveMonth } from './made.js';
 import { knownUnanswered } from './known.js';
 import { KIM62 } from './people.js';
 import { grossQuarterFree, monthly, pounds } from './hand/money.js';
@@ -58,5 +60,22 @@ test('s08 · Kim asks what to take this month, and from which pot @phone', async
     for (const s of simpleSplit) q.exact(`what comes from the ${s.pot} in the full view`, (fullSplit.find((x) => x.pot === s.pot) || {}).amount ?? null, s.amount, { tolerance: 2, owner: 'MONTH' });
     const alarm = await page.locator('.alert-danger:visible, [role="alert"]:visible').allInnerTexts();
     q.never('the full view\'s first month', alarm.filter((t) => /floor|below|short/i.test(t)).map((t) => t.slice(0, 80)), { must: 'no red alarm in the first month for floors equal to the starting pots', owner: 'MONTH' });
+    // round 3 (walker 6, decision 6): what the plan's rule does, in "you can" words; a saving never shown with a minus (the tax
+    // taken off the pension in the gross / tax / net row is a deduction, and keeps its minus)
+    q.never('the full view\'s Monthly Recommendation', [...['Equity→Bond', 'Bond→Equity', 'Replenish Cash', 'Rebalancing Suggestions', 'Total Surplus'].filter((w) => full.includes(w)), ...(/Tax Saved[^\n]*-£/i.test(full) ? ['a tax saving with a minus: "' + (/Tax Saved[^\n]*/i.exec(full) || [''])[0] + '"'] : [])], { must: 'what the plan\'s rule does this month, never an order', owner: 'MONTH' });
+
+    // round 3 (walker 6, decision 10): November saved, then the plan unlocked to change; the months recorded are kept and said
+    await q.step('Save November', () => saveMonth(page));
+    await q.step('unlock to edit, from the full view\'s Stress settings', async () => {
+      await fullPage(page, 'stress settings');
+      await page.getByRole('button', { name: /Unlock to edit/ }).first().click();
+      await page.getByRole('button', { name: 'Unlock — I understand' }).click();
+      await expect(page.getByRole('button', { name: /Unlock to edit/ }).first()).toBeHidden({ timeout: 30_000 }).catch(() => {});
+    });
+    await q.step('the simple home, unlocked', async () => { await planPage(page, planId, 'home'); await settled(page).catch(() => {}); });
+    const home = await visibleText(page);
+    const kept = `Your 1 recorded month is kept: £${draw.toLocaleString('en-GB')} taken before tax (November 2026)`;
+    q.reach(`the home keeps November: 1 month, £${draw.toLocaleString('en-GB')} taken before tax`, home.includes(kept), { byHand: '1 × 2,577', did: home.split('\n').find((l) => /recorded|Unlocked/i.test(l)) || 'no line about the months recorded', owner: 'MONTH' });
+    q.never('the home after unlocking', ['Nothing recorded to read against the plan yet', 'Months are recorded once the plan is locked'].filter((w) => home.includes(w)), { must: 'the months recorded, kept and said', owner: 'MONTH' });
   });
 });

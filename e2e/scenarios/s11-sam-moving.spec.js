@@ -72,6 +72,13 @@ test('s11 · Sam, 59, moving: buy what is missing, sell no more than that, keep 
     q.exact('what is not sold stays as it is: £410,000 less the sell total', left, sell === null ? null : OUTSIDE - sell, { byHand: `410,000 − ${sell}` });
     q.reach('TG28\'s maturity, 22 October 2028, said beside it', /22 October 2028/.test(t), { did: 'no maturity date for TG28' });
     q.never('the move page', /proceeds|ticked off|\bNext:/i.test(t) ? ['proceeds / ticked off / Next:'] : []);
+    // round 3 (walker 5, decision 8): the order sheet orders what is still to buy of a gilt part bought, the Buy list's figure
+    const anyway = page.getByTestId('plan.move.sheet.anyway');
+    if (await anyway.isVisible().catch(() => false)) await q.step('the order sheet: "Show the sheet anyway"', () => anyway.click());
+    const sheet = await visibleText(page);
+    const t29Buy = unitsToBuy(planT29, t29.units);
+    const g = (n) => Number(n).toLocaleString('en-GB');
+    q.reach(`the order sheet's T29 units are ${g(t29Buy)}, the Buy list's, with the 17,300 held said`, new RegExp(`${g(t29Buy)}\\s*\\(${Math.round(t29Buy / 100)} if the screen counts £100 lots\\)\\s*You hold 17,300 of the ${g(planT29)}\\.`).test(sheet), { byHand: `${planT29} − 17,300` });
 
     await q.step('the home', async () => { await planPage(page, planId, 'home'); await settled(page).catch(() => {}); });
     const home = await visibleText(page);
@@ -81,6 +88,15 @@ test('s11 · Sam, 59, moving: buy what is missing, sell no more than that, keep 
     await expect(page.getByText(/^Totals: buy/).first()).toBeVisible({ timeout: 30_000 }).catch(() => {});
     const full = await page.locator('body').innerText();
     q.same('the buy total, both views', [{ where: 'simple Moving', value: buy }, { where: 'full view Transition', value: grab(/Totals: buy £([\d,]+)/, full) }], { everywhere: true });
+    // round 3 (walker 5, decision 8): "Stands in for some years" on TG28 fills no year by itself; a year it cannot pay is refused
+    const tg28 = page.locator('#holdingsCard tr', { has: page.locator('input[value="TG28"]') }).first();
+    await q.step('What you hold: TG28, Keep this = "Stands in for some years"', () => tg28.locator('select[aria-label="Keep this"]').selectOption('rung'));
+    const years = tg28.locator('.keep-years input');
+    q.reach('the years box beside it is there and empty: nothing is filled in by itself', (await years.isVisible().catch(() => false)) && (await years.inputValue().catch(() => 'x')) === '', { did: `box value "${await years.inputValue().catch(() => '?')}"` });
+    q.never('the full view after choosing "Stands in"', /stands in for 2027\/28|Cash year 2027\/28: paid by what you keep/i.test(await page.locator('body').innerText()) ? ['a year filled in by itself'] : []);
+    await q.step('type 2027/28, a year that ends before TG28 pays', async () => { await years.fill('2027/28'); await years.press('Tab'); });
+    await expect(page.getByText('This gilt pays on 22 October 2028, after 2027/28 ends, so it cannot pay for 2027/28.').first()).toBeVisible({ timeout: 15_000 }).catch(() => {});
+    q.reach('2027/28 is refused with the reason: 2027/28 ends 5 April 2028, TG28 pays 22 October 2028', await page.getByText('This gilt pays on 22 October 2028, after 2027/28 ends, so it cannot pay for 2027/28.').first().isVisible().catch(() => false), { byHand: '5 April 2028 is before 22 October 2028' });
 
     // M10: "This is how I want to hold it", one press and a confirm
     await q.step('Moving to your plan\'s mix: "This is how I want to hold it", then yes', async () => {

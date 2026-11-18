@@ -18,3 +18,10 @@ export function againstNeed(held, need) {
 
 /** Units still to buy of a gilt: what the plan holds less what is held, never below 0. */
 export const unitsToBuy = (planUnits, heldUnits) => Math.max(0, planUnits - heldUnits);
+
+/**
+ * What an ordinary (fixed-coupon) gilt pays on the day it matures, held to then: its units back, plus every half-yearly coupon
+ * still to come after today (`couponsLeft`, counted by hand from the maturity day back in six-month steps). `couponPct` is the
+ * yearly coupon in per cent (3.75 for a 3¾% gilt). Rounded to the pound, as the site shows money.
+ */
+export const paysAtMaturity = (units, couponPct, couponsLeft) => Math.round(units + couponsLeft * units * couponPct / 100 / 2);

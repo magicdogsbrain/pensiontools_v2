@@ -10,7 +10,14 @@
  *   this month              2,500 before tax; (30,000 − 12,570) × 0.2 ÷ 12 = 290.50 tax; 2,209.50 after (the site says
  *                           money to the pound, as every scenario reads it: £291 and £2,210)
  *   the cash years' need    June 2026 to March 2027 is 10 months: 10 × 2,500 + 30,000 + 30,000 = 85,000 to April 2029
- *   held outside the ladder 86,000 + 500 = 86,500 at today's value: 1,500 more than those years need
+ *   held outside the ladder 86,000 + 500 = 86,500 at today's value
+ *   what arrives, held to the day each gilt pays (round 3: what Your plan's mix sets against the need):
+ *     3¾% 2027, 28,056 units, 7 Mar 2027: coupons Sep 2026, Mar 2027: 28,056 + 2 × 526.05 = 29,108
+ *     0 1/8% 2028, 30,459 units, 31 Jan 2028: four coupons from Jul 2026: 30,459 + 4 × 19.04 = 30,535
+ *     0½% 2029, 31,823 units, 31 Jan 2029: six coupons from Jul 2026: 31,823 + 6 × 79.56 = 32,300
+ *     500 + 29,108 + 30,535 + 32,300 = 92,443, against 85,000: 7,443 more
+ *   the timing                June 2026 to February 2027, 9 × 2,500 = 22,500, is due before the 2027 gilt pays on 7 March
+ *                           2027, and the pension holds £500 of cash
  *
  * The route, as a person takes it: on 10 April the full view's set-up as already drawing, Stress settings with the full
  * index-linked gilt ladder, £485,000 and three years from cash, Save, Lock; the plan's units read off its order sheet; on
@@ -26,13 +33,13 @@ import { fullViewDrawing, stressLadder, lockFromStressSettings, orderSheet, past
 import { knownUnanswered } from './known.js';
 import { ALEX64 } from './people.js';
 import { monthly, months, monthlyTaxAllTaxable, pounds } from './hand/money.js';
-import { cashYearsNeed, heldOutside, againstNeed } from './hand/held.js';
+import { cashYearsNeed, heldOutside, againstNeed, paysAtMaturity } from './hand/held.js';
 import { monthsLeftInTaxYear } from './hand/dates.js';
 import { readFileSync } from 'node:fs';
 
 const VERSION = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8')).version;
 const ROUTE = { path: 'a ladder locked 10 Apr 2026, holdings pasted, April and May recorded > 20 Jun 2026: home > Your plan\'s mix > What you hold > Month by month, both views', who: 'signed in', today: '20 Jun 2026', asked: 'whether the next few years are paid for, holding gilts instead of the plan\'s cash' };
-const NEVER_HERE = ['not covered', 'not yet covered', 'runs short', 'Not kept', 'is not placed in the mix yet', 'and it counts', 'Not counted in the mix', 'check the last maturity landed', 'Keep it in a money-market fund', 'already in cash'];
+const NEVER_HERE = ['Tell the broker', 'Instruct the broker', 'Nothing is sold', 'cash years bucket', 'not covered', 'not yet covered', 'runs short', 'Not kept', 'is not placed in the mix yet', 'and it counts', 'Not counted in the mix', 'check the last maturity landed', 'Keep it in a money-market fund', 'already in cash'];
 
 /** What Alex's platform lists: each plan gilt at the plan's units (two above), the three ordinary gilts, the cash. */
 function platformTable(orders) {
@@ -94,22 +101,42 @@ test('s10 · Alex, 64, holds ordinary gilts for the cash years: paid for, said o
       if (name === 'move') {
         q.reach('all the plan\'s gilts held, on Your plan\'s mix', /All \d+ of your plan’s gilts are held/.test(t), { did: 'no line saying every gilt is held' });
         q.reach(`the cash years' need, £${need.toLocaleString('en-GB')}`, moneyAll(t).includes(need), { byHand: '10 × 2,500 + 30,000 + 30,000 = 85,000' });
-        q.reach(`held outside the ladder, £${held.toLocaleString('en-GB')}, £${againstNeed(held, need).spare.toLocaleString('en-GB')} more than needed`, moneyAll(t).includes(held) && moneyAll(t).includes(againstNeed(held, need).spare), { byHand: '86,000 + 500 = 86,500; 86,500 − 85,000 = 1,500' });
+        // round 3 (walker 7): the page opens on its one line, and the cash years are one dated table of what is due against
+        // what arrives, each gilt on the day it pays with its interest
+        const [g27, g28, g29] = ALEX64.ordinaryGilts;
+        const arrives = ALEX64.cash + paysAtMaturity(g27.units, 3.75, 2) + paysAtMaturity(g28.units, 0.125, 4) + paysAtMaturity(g29.units, 0.5, 6);
+        const one = t.indexOf('In one line:'), gilts = t.indexOf('The gilts your plan pays from');
+        const firstLines = one >= 0 ? t.slice(one, one + 300) : t.slice(Math.max(0, gilts - 300), gilts);
+        q.reach('Your plan\'s mix opens on its one line, before the gilts: every gilt held, and the cash years paid by what is held', one >= 0 && one < gilts && /^In one line: all \d+ of your plan’s gilts are held, and what you hold pays your cash years/.test(firstLines), { did: firstLines.replace(/\n+/g, ' / ').slice(0, 300) });
+        q.reach(`what arrives by the end of the cash years, £${arrives.toLocaleString('en-GB')}, £${againstNeed(arrives, need).spare.toLocaleString('en-GB')} more than they need`, moneyAll(t).includes(arrives) && moneyAll(t).includes(againstNeed(arrives, need).spare), { byHand: '500 + 29,108 + 30,535 + 32,300 = 92,443; 92,443 − 85,000 = 7,443' });
+        const gap = (monthsLeftInTaxYear('2026-06') - 1) * monthly(ALEX64.yearly);
+        q.reach(`the one difference in timing: £${gap.toLocaleString('en-GB')} due June 2026 to February 2027, before the 2027 gilt pays on 7 March 2027`, t.includes(`£${gap.toLocaleString('en-GB')} is due June 2026 to February 2027, before 3¾% Treasury Gilt 2027 pays on 7 March 2027`), { byHand: '9 × 2,500 = 22,500 (June to February; the March payment comes after the gilt pays)' });
+        q.reach('the cash years are one dated table: when money is due, and when it arrives', t.includes('Due from the plan’s cash') && t.includes('Arrives in your pension'), { did: 'no dated table' });
       }
       if (name === 'month') {
         q.reach(`this month: £2,500 before tax, £${pounds(tax)} tax, £${pounds(2500 - tax).toLocaleString('en-GB')} after`, moneyAll(t).includes(2500) && moneyAll(t).includes(pounds(tax)) && moneyAll(t).includes(pounds(2500 - tax)), { byHand: `(30,000 − 12,570) × 0.2 ÷ 12 = ${tax.toFixed(2)}; 2,500 − ${tax.toFixed(2)} = ${(2500 - tax).toFixed(2)}` });
-        const where = (t.split('Where it comes from')[1] || '').split('\n').filter((l) => l.trim()).slice(0, 3).join('\n');
+        // the source line, the one line under the heading (round 3: the sentence under it now names the next money in)
+        const where = (t.split('Where it comes from')[1] || '').split('\n').filter((l) => l.trim()).slice(0, 1).join('\n');
         q.reach('where this month comes from says £2,500, the month\'s own figure', moneyAll(where).length > 0 && moneyAll(where).every((v) => v === 2500 || v === ALEX64.cash), { did: `"${where.replace(/\n+/g, ' / ').slice(0, 160)}"` });
+        // round 3 (walker 7, decision 6): £500 of cash is less than the month, so the page says where the money can come from
+        const next = paysAtMaturity(ALEX64.ordinaryGilts[0].units, 3.75, 2);
+        q.reach(`this month is not in cash, and the next money in is the 2027 gilt: £${next.toLocaleString('en-GB')} on 7 March 2027`, t.includes(`Your pension’s cash is £${ALEX64.cash}, so this month’s £2,500 is not in cash. The next money into your pension is 3¾% Treasury Gilt 2027: £${next.toLocaleString('en-GB')} on 7 March 2027.`), { byHand: '28,056 + 2 × 526.05 = 29,108' });
       }
       q.never(`simple ${name}`, [...NEVER_HERE.filter((w) => t.includes(w)), ...(await neverOnAnyPage(p))]);
     }
     for (const name of ['transition', 'monthly entry']) {
       if (!(await q.step(`the full view, ${name}`, () => fullPage(p, name)))) continue;
-      await expect(p.getByText(name === 'transition' ? 'Your cash years' : 'Tell the broker to pay').first()).toBeVisible({ timeout: 30_000 });
+      // the ladder box's month (round 3: "The plan pays", what the plan's rule does, never "Tell the broker to pay")
+      await expect(p.getByText(name === 'transition' ? 'Your cash years' : 'The plan pays').first()).toBeVisible({ timeout: 30_000 });
       const t = await p.locator('body').innerText();
+      if (name === 'transition') {
+        // walker 7: the tab opened on a 24-row form; the reading is first now, and the form is below it
+        const at = (s) => t.toLowerCase().indexOf(s.toLowerCase());   // a table's headings are drawn in capitals
+        q.reach('the full view\'s mix tab opens on the reading, What you hold below it', at('In one line:') > -1 && at('In one line:') < at('Ticker / gilt code'), { did: `"In one line" at ${at('In one line:')}, the form at ${at('Ticker / gilt code')}` });
+      }
       q.never(`full view ${name}`, NEVER_HERE.filter((w) => t.includes(w)));
       if (name === 'monthly entry') {
-        const box = /Tell the broker to pay\s*£([\d,]+)/.exec(t);
+        const box = /The plan pays\s*£([\d,]+) \/ month/.exec(t);
         q.exact('the ladder box\'s month, beside the £2,500 the plan pays', box ? Number(box[1].replace(/,/g, '')) : null, 2500, { byHand: '(30,000 − 2 × 2,500) ÷ 10 months = 2,500' });
       }
     }

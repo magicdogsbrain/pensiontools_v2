@@ -7,6 +7,8 @@ import { describe, it, expect, vi } from 'vitest';
 vi.mock('../../src/firebase/index.js', () => ({ isFirebaseConfigured: () => false, isLoggedIn: () => false }));
 import { FIXTURES, PARITY_DAY } from '../../e2e/parity/fixtures/plans.js';
 import { upgradeScenario } from '../../src/firebase/scenarioMigration.js';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 const noon = (day) => { const [y, m, d] = day.split('-').map(Number); return new Date(y, m - 1, d, 12); };
 const isLocked = (p) => !!(p.decisionTool && p.decisionTool.settings && p.decisionTool.settings.locked);
@@ -48,5 +50,11 @@ describe('the parity fixtures', () => {
     expect(built['budget'][0].budgetTool.settings.lines.length).toBe(4);
     expect(built['retired-locked-pots'][0].decisionTool.history.map((h) => h.date)).toEqual(['2026-09', '2026-10']);
     expect(built.couple.map((p) => p.household && p.household.partnerScenarioId).filter(Boolean).length).toBe(2);
+  });
+
+  it('every plan the gate\'s floor holds is still here under its name (e2e/parity/coverage.json "fixtures")', () => {
+    const floor = JSON.parse(readFileSync(join(process.cwd(), 'e2e', 'parity', 'coverage.json'), 'utf8'));
+    expect(floor.fixtures.length).toBeGreaterThanOrEqual(16);
+    expect(floor.fixtures.filter((k) => !FIXTURES.some((f) => f.key === k))).toEqual([]);
   });
 });

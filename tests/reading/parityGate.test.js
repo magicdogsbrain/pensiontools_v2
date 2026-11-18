@@ -76,8 +76,8 @@ describe('the parity gate', () => {
     expect(ratchet(gone, base).rose).toEqual(['a page that opened before did not open: fx|full:will it last', 'a page that opened before did not open: fx|full:will it last#press']);
     const unpressed = summarise([result([], { pages: [pages[0], pages[1], { ...pages[2], pressed: false }] })]);
     expect(ratchet(unpressed, base).rose).toEqual(['a page that opened before did not open: fx|full:will it last#press']);
-    // a run of another fixture says nothing of this one's pages
-    expect(ratchet(summarise([{ ...result([]), fixture: 'other' }]), base).rose).toEqual([]);
+    // a run of another fixture, named for the run, says nothing of this one's pages
+    expect(ratchet(summarise([{ ...result([]), fixture: 'other' }]), base, { only: ['other'] }).rose).toEqual([]);
   });
 
   it('a page read before it went quiet is a rise', () => {
@@ -109,6 +109,45 @@ describe('the parity gate', () => {
     const s = summarise([result([{ view: 'simple', page: 'home', fact: 'stage', text: 'Saving' }, { view: 'full', page: 'top', fact: 'stage', text: 'Saving' }, { view: 'simple', page: 'home', fact: 'pot.today', text: '£1' }])]);
     expect(s.factsInBoth).toEqual(['stage']);
     expect(reportOf(s, { at: 'now' }).factsInBoth).toBe(1);
+  });
+
+  it('a listed disagreement holds its places and values: a new value, or a new place that disagrees, is a rise', () => {
+    const places = () => [
+      { view: 'simple', page: 'home', fact: 'pot.atStop', text: '£252,000' }, { view: 'simple', page: 'saving', fact: 'pot.atStop', text: '£252,000' },
+      { view: 'full', page: 'stress settings', fact: 'pot.atStop', text: '£252,175' }
+    ];
+    const base = baselineOf(summarise([result(places())]));
+    expect(base.known.pairs).toEqual({ 'fx|pot.atStop': { 'full:stress settings': ['£252,175'], 'simple:home': ['£252,000'], 'simple:saving': ['£252,000'] } });
+    expect(ratchet(summarise([result(places())]), base).rose).toEqual([]);
+    // the full view's wrong figure moves to another wrong figure: still listed as a pair, but a new value
+    const worse = places(); worse[2].text = '£252,182';
+    expect(ratchet(summarise([result(worse)]), base).rose).toEqual([
+      'a listed disagreement shows a new value: fx|pot.atStop full stress settings: "£252,182" (listed: "£252,000" / "£252,175")'
+    ]);
+    // a place that agreed takes another figure (a known one, but at a place where the fact was not drawn before)
+    const spread = [...places(), { view: 'full', page: 'drawdown', fact: 'pot.atStop', text: '£252,175' }];
+    expect(ratchet(summarise([result(spread)]), base).rose).toEqual([
+      'a listed disagreement is drawn at a new place: fx|pot.atStop full drawdown: "£252,175"'
+    ]);
+    // one place moving to the other's figure narrows it; agreeing everywhere takes it out
+    const nearer = places(); nearer[1].text = '£252,175';
+    expect(ratchet(summarise([result(nearer)]), base).rose).toEqual([]);
+    const agreed = places(); agreed[2].text = '£252,000';
+    expect(ratchet(summarise([result(agreed)]), base).shrank).toEqual(['agrees now, take it out of known-disagreements.json: fx|pot.atStop']);
+  });
+
+  it('the floor holds its fixtures: a full run without one, or a named one not run, is a rise', () => {
+    const base = baselineOf(summarise([result(run1Places()), { ...result(run1Places()), fixture: 'gone' }]));
+    expect(base.coverage.fixtures).toEqual(['fx', 'gone']);
+    const onlyFx = summarise([result(run1Places())]);
+    // a full run (no fixtures named): a fixture of the floor that did not run is a rise, its pairs and pages unheld otherwise
+    expect(ratchet(onlyFx, base).rose).toEqual(['a plan of the floor was not in the full run (dropped, renamed or failed?): gone']);
+    // a run of named fixtures is held to those
+    expect(ratchet(onlyFx, base, { only: ['fx'] }).rose).toEqual([]);
+    expect(ratchet(onlyFx, base, { only: ['fx', 'gone'] }).rose).toEqual(['a plan named for the run did not run: gone']);
+    // a plan that is new to the floor grows it
+    expect(ratchet(summarise([result(run1Places()), { ...result(run1Places()), fixture: 'gone' }, { ...result([]), fixture: 'new' }]), base).grew)
+      .toContain('a plan new to the floor, add it to coverage.json: new');
   });
 
   it('prints one line', () => {

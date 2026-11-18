@@ -9,7 +9,8 @@
  *
  *   summarise(results)            → { facts, factsInBoth, marks, fieldsBound, disagreements, oneViewOnly, unmarked,
  *                                     readingMismatches, pages, shown }
- *   ratchet(summary, baseline)    → { rose: [why], shrank: [why], grew: [why] }   (baseline: the ratchet files' contents)
+ *   ratchet(summary, baseline, { only })  → { rose: [why], shrank: [why], grew: [why] }   (baseline: the ratchet files'
+ *                                     contents; only: the fixtures named for the run, or null for a full run)
  *   baselineOf(summary)           → the ratchet files' contents for this summary
  *   reportOf(summary, o)          → report.json's contents; lineOf(report) → the one printed line
  */
@@ -21,6 +22,14 @@ export const shownText = (t) => String(t ?? '').replace(/ /g, ' ').replace(/\s+
 export const cellFact = (c) => `table:${c.table}:${c.row}:${c.col}`;
 
 const pairKey = (fixture, fact) => `${fixture}|${fact}`;
+const placeKey = (v) => `${v.view}:${v.page}`;
+
+/** A disagreement's places and what each showed: { '<view>:<page>': [text, …] }, sorted, as known-disagreements.json holds it. */
+export function placesOf(d) {
+  const m = {};
+  for (const v of d.values) (m[placeKey(v)] ||= new Set()).add(v.text);
+  return Object.fromEntries(Object.entries(m).sort(([a], [b]) => a.localeCompare(b)).map(([k, t]) => [k, [...t].sort()]));
+}
 const VIEWS = ['simple', 'full'];
 
 export function summarise(results) {
@@ -92,11 +101,15 @@ const openedPagesOf = (s) => s.pages.flatMap((p) => (p.opened ? [p.key, ...(p.pr
 /** The ratchet files' contents for a summary: what a baseline run writes. */
 export function baselineOf(s) {
   return {
-    known: { note: 'Fact x fixture pairs that still differ between places (lead4.md G4). May only shrink.', pairs: s.disagreements.map((d) => d.key) },
+    known: {
+      note: 'Fact x fixture pairs that still differ between places (lead4.md G4), each with its places and what each showed. May only shrink: a pair not listed, a value not listed for its pair, or a place not listed for its pair is a rise.',
+      pairs: Object.fromEntries(s.disagreements.map((d) => [d.key, placesOf(d)]))
+    },
     unmarked: { note: 'Per fixture and page, figure-like text visible outside any mark (lead4.md G4). May only go down.', counts: Object.fromEntries(Object.entries(s.unmarked).sort(([a], [b]) => a.localeCompare(b))) },
     oneView: { note: 'Fact x fixture pairs shown in one view and nowhere in the other (lead4.md G4). May only shrink.', pairs: s.oneViewOnly.map((d) => d.key) },
     coverage: {
-      note: 'The FLOOR under the three ratchets (lead4.md G4): every page that opened (and press made), and per fixture, fact and view how many places drew the fact (a table: drawn at all). May only grow: a page that stops opening, or a mark taken off, is a rise.',
+      note: 'The FLOOR under the three ratchets (lead4.md G4): every plan of the gate, every page that opened (and press made), and per fixture, fact and view how many places drew the fact (a table: drawn at all). May only grow: a plan missing from a full run, a page that stops opening, or a mark taken off, is a rise.',
+      fixtures: [...s.fixtures],
       pages: openedPagesOf(s),
       shown: { ...s.shown }
     }
@@ -104,18 +117,37 @@ export function baselineOf(s) {
 }
 
 /**
- * Held against the ratchet files: a pair not listed, or a page above its count, is a rise. Only the fixtures in the run are
- * held (a run of some fixtures says nothing of the others). A listed pair now agreeing is a shrink to take out of the file.
+ * Held against the ratchet files: a pair not listed, a listed pair showing a value or a place not listed for it, or a page
+ * above its count, is a rise. Only the fixtures in the run are held (a run of some fixtures says nothing of the others), but
+ * a full run (`only` null) must hold every plan of the floor (coverage.json "fixtures"), and a run of named fixtures every
+ * one named: a plan dropped, renamed or failed would otherwise take its pairs, pages and places out unseen. A listed pair
+ * now agreeing is a shrink to take out of the file.
  */
-export function ratchet(s, base) {
+export function ratchet(s, base, { only = null } = {}) {
   const inRun = (key) => s.fixtures.includes(String(key).split('|')[0]);
   const rose = [];
   const shrank = [];
   const grew = [];
-  const known = new Set(base.known.pairs);
+  const cover = base.coverage || { fixtures: [], pages: [], shown: {} };
+  const floor = cover.fixtures || [];
+  for (const f of only || floor) if (!s.fixtures.includes(f)) rose.push(only ? `a plan named for the run did not run: ${f}` : `a plan of the floor was not in the full run (dropped, renamed or failed?): ${f}`);
+  for (const f of s.fixtures) if (!floor.includes(f)) grew.push(`a plan new to the floor, add it to coverage.json: ${f}`);
+  if (Array.isArray(base.known.pairs)) throw new Error('known-disagreements.json lists bare pairs: it holds each pair\'s places and values now (write the baseline again)');
+  const known = base.known.pairs || {};
   const now = new Set(s.disagreements.map((d) => d.key));
-  for (const d of s.disagreements) if (!known.has(d.key)) rose.push(`disagreement not in known-disagreements.json: ${d.key} (${d.values.map((v) => `${v.view} ${v.page}: "${v.text}"`).join(' / ')})`);
-  for (const k of known) if (inRun(k) && !now.has(k)) shrank.push(`agrees now, take it out of known-disagreements.json: ${k}`);
+  const quoted = (t) => `"${t}"`;
+  for (const d of s.disagreements) {
+    const was = known[d.key];
+    if (!was) { rose.push(`disagreement not in known-disagreements.json: ${d.key} (${d.values.map((v) => `${v.view} ${v.page}: "${v.text}"`).join(' / ')})`); continue; }
+    // a listed pair can get worse: a value it never showed, or the fact drawn at a place it was not
+    const listed = [...new Set(Object.values(was).flat())].sort();
+    for (const [place, texts] of Object.entries(placesOf(d))) {
+      const at = place.replace(':', ' ');
+      if (!was[place]) { rose.push(`a listed disagreement is drawn at a new place: ${d.key} ${at}: ${texts.map(quoted).join(' / ')}`); continue; }
+      for (const t of texts) if (!listed.includes(t)) rose.push(`a listed disagreement shows a new value: ${d.key} ${at}: ${quoted(t)} (listed: ${listed.map(quoted).join(' / ')})`);
+    }
+  }
+  for (const k of Object.keys(known)) if (inRun(k) && !now.has(k)) shrank.push(`agrees now, take it out of known-disagreements.json: ${k}`);
   const oneBase = new Set(base.oneView.pairs);
   const oneNow = new Set(s.oneViewOnly.map((d) => d.key));
   for (const d of s.oneViewOnly) if (!oneBase.has(d.key)) rose.push(`shown in the ${d.view} view only, not in one-view-only.json: ${d.key}`);
@@ -126,7 +158,6 @@ export function ratchet(s, base) {
     else if (was !== undefined && n < was) shrank.push(`unmarked figures fell on ${k}: ${was} → ${n}`);
   }
   // the floor: a page that stops opening, a press not made, or a mark taken off lowers the counts above; each is a rise
-  const cover = base.coverage || { pages: [], shown: {} };
   const openedNow = new Set(openedPagesOf(s));
   for (const k of cover.pages) if (inRun(k) && !openedNow.has(k)) rose.push(`a page that opened before did not open: ${k}`);
   for (const k of openedNow) if (!cover.pages.includes(k)) grew.push(`opens now, add it to coverage.json: ${k}`);

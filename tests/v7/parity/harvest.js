@@ -132,6 +132,9 @@ export function harvestV6Keys() {
   for (const f of everywhere) {
     const s = callLiteralKeys(f.src, 'saveStressSettings');
     add('stress', s.keys, f.rel + ': saveStressSettings({…})');
+    // the full view's Settings form, which its Save compares and writes only where changed (step S: src/ui/settingsChanged.js)
+    const sf = callLiteralKeys(f.src, 'settingsFromForm');
+    add('stress', sf.keys, f.rel + ': settingsFromForm({…}) (the Settings form)');
     const d = callLiteralKeys(f.src, 'saveDecisionSettings');
     add('decision', d.keys, f.rel + ': saveDecisionSettings({…})');
     const p = callLiteralKeys(f.src, 'saveUserProfile');

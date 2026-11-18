@@ -17,8 +17,11 @@ import { sweepRetirementAges } from '../services/RetireSweep.js';
 import { runStressRow } from '../answers/plan/stressPanelRun.js';
 
 let giltsReady = null;
+// The page's one clock (src/reading/clock.js), handed in with every job (engineClient.runInWorker): the plan is seen from the
+// same day as every other figure on the page, never from the worker's own clock.
+let jobNow;
 function plan(settings, cfg, essentialsAnnual) {
-  return planFromSettings(settings, cfg, { yieldForYear: realYieldForYear, essentialsAnnual, startAge: +settings.shapeAgeNow || 57 });
+  return planFromSettings(settings, cfg, { yieldForYear: realYieldForYear, essentialsAnnual, startAge: +settings.shapeAgeNow || 57, now: jobNow });
 }
 
 /** One plan through its own strategy's one test (what the household checks hand to HouseholdService). */
@@ -26,6 +29,7 @@ function oneTest(settings, cfg, strategyId) { const p = plan(settings, cfg); ret
 
 self.onmessage = async (e) => {
   const { id, type, payload } = e.data || {};
+  jobNow = payload && payload.now ? new Date(payload.now) : undefined;
   try {
     if (!giltsReady) giltsReady = Promise.resolve().then(() => Promise.all([loadLiveGilts(), loadLiveEquity()])).catch(() => null);
     await giltsReady;

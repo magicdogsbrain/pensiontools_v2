@@ -172,6 +172,7 @@ export function PlanScreen(state, dispatch) {
         <div class="plan-head">
           <p class="plan-kicker">{w.title} <span class="plan-name">{view.example ? PLAN.list.actions.exampleRow : <>‘{view.name}’</>}</span></p>
           <p class="plan-stage-line" data-testid="plan.stageLine">{view.line ? fill(PLAN.stageLines[view.line.id], view.line.slots) : ''}{view.lockedOn ? <> {fillMarked(w.lockedOn, { date: view.lockedOn }, LOCK_DATE)}</> : ''}</p>
+          {view.readFault && <p class="notice" role="alert" data-testid="plan.readFault">{view.readFault}</p>}
           {view.readonly && <p class="notice" role="status" data-testid="plan.readonly">{w.shownAsSaved}</p>}
           {view.lockedShort && step.id === 'plan' && <p class="notice" role="status" data-testid="plan.lockedShort">{fill(PLAN.lockedShort, view.lockedShort)}</p>}
           {/* a closed plan, and the plan that carries one on (6.56.0): what came after it, or before, with the way there */}

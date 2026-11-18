@@ -64,6 +64,9 @@ let cachedScenarios = null;
 let cachedActiveScenario = null;
 // The plan last open, as the account's settings hold it (7.12.0): read once per cache; undefined: not read yet.
 let cachedLastPlanId = undefined;
+// Each invalidation starts a new generation: a read that began before it (a list, the plan last open, the open plan) never
+// fills the caches when it lands after it, so a plan made, chosen or deleted is never followed by the one before it.
+let cacheGen = 0;
 
 // "Which plan is open in THIS WINDOW" (6.26, research/v7/your-plan.md 5.5): the preview's "Change this" on a plan that is
 // not the account's open plan pins that plan in this window's session storage. Every "which plan is open" read prefers
@@ -125,6 +128,7 @@ function isFirebaseAvailable() {
  * Invalidate the scenario cache
  */
 export function invalidateScenarioCache() {
+  cacheGen += 1;
   cachedScenarios = null;
   cachedActiveScenario = null;
   storedSettings = new Map();
@@ -158,8 +162,10 @@ export function openingPlanOf(scenarios, { pin = null, lastPlanId = null } = {})
 
 async function lastPlanIdRead() {
   if (cachedLastPlanId !== undefined) return cachedLastPlanId;
+  const gen = cacheGen;
   let id = null;
   try { const p = await loadUserProfile(); id = p && p.lastLocation && typeof p.lastLocation.planId === 'string' ? p.lastLocation.planId : null; } catch (e) { id = null; }
+  if (gen !== cacheGen) return lastPlanIdRead();   // the plan last open changed meanwhile: read it again
   cachedLastPlanId = id;
   return id;
 }
@@ -241,7 +247,9 @@ export async function listScenariosAsync() {
   }
 
   try {
+    const gen = cacheGen;
     const scenarios = await loadAllScenarios();
+    if (gen !== cacheGen) return listScenariosAsync();   // the plans changed meanwhile: read them again
     scenarios.forEach(ensureStrategyBlock);
     scenarios.forEach(rememberStored);
     cachedScenarios = scenarios;
@@ -266,9 +274,11 @@ export async function getActiveScenarioAsync() {
   }
 
   try {
+    const gen = cacheGen;
     const scenarios = await listScenariosAsync();
     const pin = pinnedPlanId();
     const active = openingPlanOf(scenarios, { pin, lastPlanId: pin ? null : await lastPlanIdRead() });
+    if (gen !== cacheGen) return getActiveScenarioAsync();   // the open plan changed meanwhile: read it again
 
     if (active) {
       cachedActiveScenario = active;

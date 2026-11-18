@@ -21,7 +21,10 @@ vi.mock('../../src/storage/ScenarioRepository.js', () => ({
   invalidateScenarioCache: () => {},
   // 6.20.2: the settings as stored (the lock guard's yardstick, and what the timing pin is written onto)
   storedActiveSettings: async (kind) => (kind === 'stress' && store.stress ? JSON.parse(JSON.stringify(store.stress)) : undefined),
-  activePlanLocked: async () => false
+  activePlanLocked: async () => false,
+  // step S: the loader reads the plan itself (PlanReading.effectiveStressSettings), the same reading as the simple view
+  getActiveScenarioAsync: async () => ({ id: 'p', lastModified: null, ...(store.stress ? { stressTool: { settings: JSON.parse(JSON.stringify(store.stress)) } } : {}), ...(store.budget ? { budgetTool: { settings: JSON.parse(JSON.stringify(store.budget)) } } : {}) }),
+  getDefaultStressSettings: () => ({})
 }));
 
 import { loadStressDBAsync, invalidateStressCache, createSimulationConfigFromSettings } from '../../src/storage/StressRepository.js';
@@ -162,7 +165,7 @@ describe('G2-residual — the app page reads the Budget\'s age only through "did
     expect(html).not.toContain('age = +b?.currentAge || 0;');
     // 7.12.0: the Accumulation form opens from the saver's facts (src/ui/accumulationProjection.js accumulationBoxes), the
     // Budget's ages read there through the same rule
-    expect(html).toContain('accumulationBoxes(await getActiveScenarioAsync(), null, new Date())');
+    expect(html).toContain('accumulationBoxes(await getActiveScenarioAsync(), null, todayOf())');   // the one clock (step S)
     const boxes = readFileSync(join(process.cwd(), 'src', 'ui', 'accumulationProjection.js'), 'utf8');
     expect(boxes).toContain('acAge: f.age ?? n(acc.currentAge) ?? budgetAgeToday(budget)');
     expect(boxes).toContain('acRetireAge: f.stopAge ?? n(acc.retirementAge) ?? budgetRetirementAge(budget)');

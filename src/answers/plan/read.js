@@ -13,7 +13,8 @@
  * Words with {slots} are filled by the screen from copy/plan.js; the ids here match that file. A sentence's figures
  * are `parts` ({ key, kind }) into the step's `figures`, so the screen draws each through Money (data-key, data-value).
  */
-import { planStage, effectiveStressSettings, whereAmIFor, whereAmIInputs, moveInputs, thisMonth, historyAscending, planMoneyOf } from '../../services/PlanReading.js';
+import { READ_FAULT_WORDS } from '../../reading/readFault.js';
+import { planStage, settingsForScreen, whereAmIFor, whereAmIInputs, moveInputs, thisMonth, historyAscending, planMoneyOf } from '../../services/PlanReading.js';
 import { CONTRACT_STRATEGIES, planToAgeOfDefinition, guardrailOf, pricesMonthKeyOf } from '../../services/PlanDocument.js';
 import { taxYearLabel, taxYearStartOf, taxYearKey, ageOnDate } from '../../services/PlanTiming.js';
 import { documentLadder, firstRungOf } from '../../services/LadderPosition.js';
@@ -128,9 +129,7 @@ export function stageLine(stage, plan, ss = null) {
 function safeStage(plan, now) {
   try { return planStage(plan, { now }); } catch { return { key: 'unknown', locked: isLocked(plan), retired: false, timingMode: 'legacy', firstTaxYear: null, startMonth: null, beforeStart: false, hasRecords: false, hasDocument: !!(plan && plan.planDocument), monthsToStart: 0, yearsToStart: 0 }; }
 }
-function safeSettings(plan, now) {
-  try { return effectiveStressSettings(plan, { now }); } catch { return (plan && plan.stressTool && plan.stressTool.settings) || {}; }
-}
+const safeSettings = (plan, now) => settingsForScreen(plan, { now });   // never the stored or factory settings in its place (lead4.md D1)
 
 /**
  * The stage line with the plans at hand: a closed plan's names the plan that carries it on (copy/plan.js stageLines.closed),
@@ -1353,6 +1352,8 @@ export function planPage(entries, id, stepId, { today, source = 'account' } = {}
     current,
     // the stored "will it last" answer, when the plan's settings no longer match the inputs it was worked out from
     answerStale: answerStale || null,
+    // the plan cannot be read: the same plain words as the full view (src/reading/readFault.js), and no other settings shown
+    readFault: settingsForScreen(plan, { now }).readFault ? READ_FAULT_WORDS : null,
     next: readonly ? { ...next, button: null } : next,
     // 7.3.0 (research/v7/one-product-design.md, "The to-do reader"): every thing due now, in order — the first is `next`
     due,

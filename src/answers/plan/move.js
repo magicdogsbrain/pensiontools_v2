@@ -26,7 +26,7 @@
  * it can be tested. The reading still carries the lists, the totals and the schedule (as it does for a saver waiting), but no
  * view draws them there. Moving otherwise (`mode` 'move'), and a saver waiting (`mode` 'waiting'), as before.
  */
-import { planStage, effectiveStressSettings, moveInputs, planMoneyOf } from '../../services/PlanReading.js';
+import { planStage, settingsForScreen, moveInputs, planMoneyOf } from '../../services/PlanReading.js';
 import { sequence, tickMove, untickMove } from '../../services/TransitionPlanner.js';
 import { normaliseHoldings } from '../../services/HoldingsRecord.js';
 import { proportions } from '../../services/Holdings.js';
@@ -59,7 +59,7 @@ const lockedAtOf = (plan) => (plan && plan.decisionTool && plan.decisionTool.set
 /** The name a plan is shown by (services/PlanName.js, 7.12.0): the person's own, else one that follows its present figures. */
 const nameOf = (plan, when) => shownPlanNameOn(plan, when);
 const safeStage = (plan, now) => { try { return planStage(plan, { now }); } catch { return { key: 'unknown', firstTaxYear: null, startMonth: null, yearsToStart: 0 }; } };
-const safeSettings = (plan, now) => { try { return effectiveStressSettings(plan, { now }); } catch { return (plan && plan.stressTool && isObj(plan.stressTool.settings)) ? plan.stressTool.settings : {}; } };
+const safeSettings = (plan, now) => settingsForScreen(plan, { now });   // never the stored or factory settings in its place (lead4.md D1)
 /**
  * The stages in which the move is just where new money goes (§3.4): the stop further away than the plan's move window
  * (7.10.0, Phases.windowYearsOf: one clock). `saving` is placed outside the window already; a locked saver

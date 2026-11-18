@@ -19,10 +19,13 @@ describe('the full view follows a saved change', () => {
   it('Stress tester\'s load draws the starting balances from the settings it read', () => {
     expect(body('async function loadStressSettings() {')).toMatch(/renderStressStartSummary\(s\)/);
   });
+  // since step S (lead4.md R2) a save goes through repaintAfterWrite, which draws the plan menu again among the rest
   it('a save as Settings changes draws the plan menu again', () => {
-    expect(line('window._ssAutosave = installStressSettingsAutosave(')).toMatch(/afterSave: \(\) => \{[^}]*renderScenarioSelector\(\)/);
+    expect(line('window._ssAutosave = installStressSettingsAutosave(')).toMatch(/afterSave: async \(\) => \{[^}]*repaintAfterWrite\('save'\)/);
+    const mod = readFileSync(resolve(process.cwd(), 'src/ui/repaintPlan.js'), 'utf8');
+    expect(mod.slice(mod.indexOf('async function repaintAfterWrite('), mod.indexOf('async function noteJourney('))).toMatch(/renderScenarioSelector/);
   });
   it('a save as the Accumulation tab changes draws the plan menu again', () => {
-    expect(line('window._acAutosave = installAccumulationAutosave(')).toMatch(/afterSave: \(\) => \{[^}]*renderScenarioSelector\(\)/);
+    expect(line('window._acAutosave = installAccumulationAutosave(')).toMatch(/afterSave: async \(\) => \{[^}]*repaintAfterWrite\('save'\)/);
   });
 });

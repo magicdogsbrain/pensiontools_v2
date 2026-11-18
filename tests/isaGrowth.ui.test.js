@@ -118,7 +118,7 @@ describe('index.html: the choice in Stress tester → Settings', () => {
   });
   it('painted with the charges box (on load, after a save and when the lock changes) and saved beside the charge', () => {
     expect(fnBody('async function renderChargesField()', 900)).toContain('paintIsaGrowthField(document, isaGrowthFieldState(st, { locked }))');
-    expect(fnBody('window.saveStressSettingsUI', 9000)).toContain('isaGrowth: isaGrowthForSave(readIsaGrowthChoice(document), _curSS)');
+    expect(fnBody('function stressFormSettings(_curSS)', 9000)).toContain('isaGrowth: isaGrowthForSave(readIsaGrowthChoice(document), _curSS)');   // the Settings form the Save compares (step S)
   });
   it('the ISA paragraph no longer says the ISA has "its own steady return"', () => {
     const risk = doc.querySelector('#ssRiskMode').textContent.replace(/\s+/g, ' ');
@@ -228,7 +228,7 @@ describe('the Accumulation planner: "Into ISAs and savings" and the ISA line', (
     const boxes = (v) => ({ getElementById: (id) => (id === 'acIsaMonthly' ? { value: v } : null) });
     expect([accumulationInputsOf(boxes('250')).isaMonthly, accumulationInputsOf(boxes('')).isaMonthly]).toEqual([250, 0]);
     // 7.12.0: the boxes open from the saver's facts (accumulationBoxes), the ISA box among them
-    expect(fnBody('window.loadAccumulationUI', 2000)).toContain('accumulationBoxes(await getActiveScenarioAsync(), null, new Date())');
+    expect(fnBody('window.loadAccumulationUI', 2000)).toContain('accumulationBoxes(await getActiveScenarioAsync(), null, todayOf())');   // the one clock (step S)
     expect(fnBody('window.recalcAccumulation', 6500)).toContain('accumulationTableHtml({ rows, mixOn: window._acMixOn, mixRealReturn, chargesPct: acCharges, stress: acStress, inputs: a })');
   });
   it('the ISA line follows the plan\'s choice, pays in, and ends where the Timing block\'s ISA at retirement does', () => {

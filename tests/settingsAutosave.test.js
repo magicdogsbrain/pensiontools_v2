@@ -207,3 +207,33 @@ describe('"Saved" is never shown while a change waits to go', () => {
     expect(line()).toBe('Saved');
   });
 });
+
+describe('"Saved" only when something was written (lead4.md R3)', () => {
+  it('a press says what happened: saved, nothing to save, refused and why', async () => {
+    const { SAVE_OUTCOME_WORDS, saveOutcomeToast } = await import('../src/ui/settingsAutosave.js');
+    form();
+    let refusal = null, plan = 'PlanA', saves = 0;
+    const auto = createAutosave(window, document, {
+      root: () => document.getElementById('f'), heading: () => document.querySelector('#f h2'), include: () => true, state: () => null,
+      kindOf: () => null, canSave: async () => !refusal, refusal: async () => refusal, planId: async () => plan, visible: () => true, byPerson: () => true, delay: 5,
+      save: async () => { saves += 1; return true; }
+    });
+    await auto.loaded();
+    expect(await auto.run()).toBe('nothing');
+    document.getElementById('pot').value = '1000';
+    refusal = 'locked';
+    expect(await auto.run()).toBe('locked');
+    refusal = 'signedOut';
+    expect(await auto.run()).toBe('signedOut');
+    refusal = null; plan = 'PlanB';
+    expect(await auto.run()).toBe('otherPlan');   // typed in plan A, never written into plan B
+    expect(saves).toBe(0);
+    plan = 'PlanA';
+    expect(await auto.run()).toBe('saved');
+    expect(saves).toBe(1);
+    expect(saveOutcomeToast('saved')).toEqual({ words: SAVE_OUTCOME_WORDS.saved, kind: 'success' });
+    expect(saveOutcomeToast('nothing').kind).toBe('info');
+    expect(saveOutcomeToast('locked').words).toMatch(/locked/);
+    for (const w of Object.values(SAVE_OUTCOME_WORDS)) expect(w).not.toMatch(/should|recommend/i);
+  });
+});

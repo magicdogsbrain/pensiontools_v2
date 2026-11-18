@@ -17,7 +17,7 @@
  *     o.root()          the element holding the boxes        o.heading()   where "Saved" is said
  *     o.include(el)     which boxes are the form's           o.state()     what the form holds outside its boxes
  *     o.kindOf(el)      'age' | 'money' | 'spDate' | null    o.extraProblems()   [{ el, words, blocks }] the page's own checks
- *     o.canSave()       async: signed in and the plan not locked
+ *     o.canSave()       async: signed in and the plan not locked   o.refusal()  optional async: null, 'signedOut' or 'locked'
  *     o.planId()        async: the plan open now             o.save({ onFault })   async: true when saved
  *     o.afterSave()     optional                             o.visible(el) optional (default: drawn on screen)
  *     o.delay           ms after a change (default 300)      o.testid      the status line's data-testid
@@ -30,6 +30,23 @@ import { ABOUT } from '../v7/copy/about.js';
 import { SAVING } from '../v7/copy/saving.js';
 
 export const SAVE_WORDS = Object.freeze({ ...FIELD_WORDS, fixBox: 'A box needs a change first: it says what, beside it.' });
+
+/**
+ * What a press of a Save button says, by what happened (lead4.md R3): "Saved" only when something was written; a write
+ * refused says why in plain words. `run()` gives the outcome.
+ */
+export const SAVE_OUTCOME_WORDS = Object.freeze({
+  saved: 'Saved.',
+  nothing: 'Nothing to save: nothing has changed since it was last saved.',
+  signedOut: 'Nothing was saved: sign in to keep a plan.',
+  locked: 'Nothing was saved: this plan is locked, so its figures stay as they were locked. Unlock it to change them.',
+  otherPlan: 'Nothing was saved: another plan is open now. What was typed belonged to the plan open before.',
+  problem: 'Nothing was saved yet: a box needs a change first. It says what, beside it.',
+  notSaved: 'Nothing was saved.'
+});
+
+/** The outcome as a toast: { words, kind }. */
+export const saveOutcomeToast = (outcome) => ({ words: SAVE_OUTCOME_WORDS[outcome] || SAVE_OUTCOME_WORDS.notSaved, kind: outcome === 'saved' ? 'success' : outcome === 'nothing' ? 'info' : 'error' });
 
 const NOT_A_PRESS = 'summary, .hlp, [data-no-autosave]';
 
@@ -165,16 +182,18 @@ export function createAutosave(win, doc, o) {
     return !line;
   }
 
+  /** One save: its outcome, 'saved' | 'nothing' | 'signedOut' | 'locked' | 'otherPlan' | 'problem' | 'notSaved' (SAVE_OUTCOME_WORDS). */
   async function runOnce() {
-    if (!(await o.canSave())) return;
+    const refused = o.refusal ? await o.refusal() : ((await o.canSave()) ? null : 'notSaved');
+    if (refused) return refused;
     const list = problems();
     paint(list);
     const line = problemsLine(list);
-    if (line) { status(line, 'warn'); return; }
+    if (line) { status(line, 'warn'); return 'problem'; }
     const before = fp();
-    if (before === base) { status(FIELD_WORDS.saved); return; }
+    if (before === base) { status(FIELD_WORDS.saved); return 'nothing'; }
     const id = await o.planId();
-    if (boundId && id && id !== boundId) return;   // another plan is open now: this form is never written into it
+    if (boundId && id && id !== boundId) return 'otherPlan';   // another plan is open now: this form is never written into it
     dirty = false;
     status(FIELD_WORDS.saving);
     let why = null;
@@ -184,15 +203,19 @@ export function createAutosave(win, doc, o) {
       base = dirty ? before : fp();   // typed during the save: what was typed is still to go
       status(FIELD_WORDS.saved);
       if (o.afterSave) { try { await o.afterSave(); } catch (e) { /* the save stands */ } }
-    } else status(why ? FIELD_WORDS.fault.replace('{why}', why) : (problemsLine(problems()) || FIELD_WORDS.notSaved), 'warn');
+      return 'saved';
+    }
+    status(why ? FIELD_WORDS.fault.replace('{why}', why) : (problemsLine(problems()) || FIELD_WORDS.notSaved), 'warn');
+    return 'notSaved';
   }
 
   async function run() {
     timer = null;
     if (running) { dirty = true; return running; }
     running = runOnce().finally(() => { running = null; });
-    await running;
+    const out = await running;
     if (dirty) { dirty = false; return run(); }
+    return out;
   }
 
   function schedule(ms) {
@@ -288,6 +311,7 @@ export function installStressSettingsAutosave(win, doc, deps) {
     },
     notAPress: '#ssSaveBtn, #ssLockBtn, #ssLockBanner, #tmLockedStart',
     canSave: async () => !!deps.isLoggedIn() && !(await deps.planIsLocked()),
+    refusal: async () => (!deps.isLoggedIn() ? 'signedOut' : (await deps.planIsLocked()) ? 'locked' : null),
     planId: () => deps.getActiveScenarioId(),
     save: (opts) => deps.save({ quiet: true, onFault: opts.onFault }),
     afterSave: deps.afterSave
@@ -337,6 +361,7 @@ export function installAccumulationAutosave(win, doc, deps) {
     extraProblems: () => refused,
     notAPress: 'button',   // only the boxes save here; the tab's buttons do their own work
     canSave: async () => !!deps.isLoggedIn() && !(await deps.planIsLocked()),
+    refusal: async () => (!deps.isLoggedIn() ? 'signedOut' : (await deps.planIsLocked()) ? 'locked' : null),
     planId: () => deps.getActiveScenarioId(),
     save: async (opts) => {
       const r = await deps.saveTab(accumulationBoxesTyped(doc));

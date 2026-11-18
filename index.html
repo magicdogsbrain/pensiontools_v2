@@ -4203,7 +4203,7 @@
     import { shareBudgetWith, stopSharingBudget, getHouseholdSplitDismissed, setHouseholdSplitDismissed, budgetSharedFromOf } from './src/storage/ScenarioRepository.js';
     import { guestPlanRefusal, isExamplePlanError, DEMO_PLANS, EXAMPLE_PLAN_KEY, EXAMPLE_PLAN_DESCRIPTION } from './src/services/GuestPlans.js';   // three plans without an account; the read-only example (6.23.0)
     import { refreshDraftLines, paintDraftSettingsLine, openStressSettings, blankUnsetPots, missingWords, bedAndIsaTicked, DRAFT_WORDS } from './src/ui/draftPlanLine.js'; window.openStressSettingsTab = () => openStressSettings(window); import { planHasFigures } from './src/services/DraftDecision.js'; import { testReadyOf } from './src/services/PlanFigures.js'; import { sippTodayOf } from './src/services/PotsAtRetirement.js';   // an unlocked plan's own figures (7.12.0)
-    import { installStressSubTabs } from './src/ui/stressSubTabs.js'; import { installStressSettingsAutosave, installAccumulationAutosave, accumulationInputsOf, SAVE_WORDS } from './src/ui/settingsAutosave.js'; import { orderStressSettingsSections } from './src/ui/settingsLayout.js'; import { tryFillKeyOf, tryNeedsFill, watchTryTouched, paintTryPotWords } from './src/ui/tryBoxes.js';   // the Stress tester's sub-tabs (Settings pressed while open is not drawn again); Settings and the Accumulation tab save as they change; Settings' order (7.12.0)
+    import { installStressSubTabs } from './src/ui/stressSubTabs.js'; import { installStressSettingsAutosave, installAccumulationAutosave, accumulationInputsOf, SAVE_WORDS, SAVE_OUTCOME_WORDS, saveOutcomeToast } from './src/ui/settingsAutosave.js'; import { orderStressSettingsSections } from './src/ui/settingsLayout.js'; import { tryFillKeyOf, tryNeedsFill, watchTryTouched, paintTryPotWords } from './src/ui/tryBoxes.js';   // the Stress tester's sub-tabs (Settings pressed while open is not drawn again); Settings and the Accumulation tab save as they change; Settings' order (7.12.0)
     import { updateHomeBanner, installHomeBanner, openingTabOf, pressOpeningSub } from './src/ui/homeBannerUi.js'; import { installHouseholdTab } from './src/ui/householdTabUi.js';   // the next-step banner is the plan home's first thing due, else the life stage's sentence (7.10.0; 6.20.2); the opening tab reads the plan's phase (7.11.0)
     import { moreSheetHtml, MORE_TABS } from './src/ui/mobileMenu.js';
     import { proportions as holdingsProportions, describeMix } from './src/services/Holdings.js';
@@ -4290,6 +4290,10 @@
     import { whatsNewHtml, versionsPageHtml, safeAffects } from './src/ui/components/ReleaseNotesView.js';
 
     import { getChartStyles } from './src/ui/Charts.js';
+    import { createPlanState, bindPlanState } from './src/ui/planState.js'; import { installRepaint } from './src/ui/repaintPlan.js'; import { stressSavePatch, settingsFromForm, ownPotAtRetirement, touches, INCOME_KEYS, TIMING_KEYS, STRATEGY_KEYS } from './src/ui/settingsChanged.js'; import { todayOf } from './src/reading/clock.js'; import { READ_FAULT_WORDS, isPlanReadError } from './src/reading/readFault.js';
+    // Everything the page knows about the open plan, in ONE object (src/ui/planState.js, lead4.md R2): window._budget,
+    // window._oneTest and the rest are its fields. repaintPlan drops it and makes it again on any change of plan.
+    const planState = bindPlanState(window, createPlanState());
 
     /** Clear stress test results (used when switching scenarios): every tab reads the one test, so its cache goes too. */
     function clearStressResults() {
@@ -4323,9 +4327,14 @@
       // A different plan: the previous plan's recommendation and typed fund values must not linger.
       const out = document.getElementById('decisionOutput');
       if (out) out.innerHTML = '<div class="card"><div class="loading"><p>Enter your fund values and click Calculate to see this month’s figures.</p></div></div>';
-      ['entryEquity', 'entryBond', 'entryCash', 'entryIsa', 'entryDiversifier'].forEach((id) => { const e = document.getElementById(id); if (e) e.value = ''; });
+      ['entryEquity', 'entryBond', 'entryCash', 'entryIsa', 'entryDiversifier', 'entryGia', 'entryGiaBasis'].forEach((id) => { const e = document.getElementById(id); if (e) e.value = ''; });
+      { const w = document.getElementById('whereAmILine'); if (w) w.innerHTML = ''; }   // the strip is drawn for the plan open, at Calculate
       currentDecision = null; monthEntry.setState('none');   // nothing calculated for this plan yet: Save off, and the line says so (3 Nov 2026)
     }
+
+    // The one entry after any change of plan, and after a write (src/ui/repaintPlan.js, lead4.md R2)
+    const { repaintPlan, repaintForms, changePlan, repaintAfterWrite, drawTab, drawDecisionSub, noteJourney, sayReadFault } = installRepaint(window, document, { planState, resetCurrentDecision: () => { currentDecision = null; },
+      clearStressResults, resetStressSubTabs, resetDecisionSubTabs, renderHistory, renderTaxYears, initializeAllInputsFromSettings, loadBudgetUI, renderScenarioSelector, refreshDecisionLock, loadHouseholdUI: () => loadHouseholdUI(), loadStressSettings, loadTransitionUI: () => loadTransitionUI(), loadDecisionSettings, updateDraftLines: () => updateDraftLines() });
 
     // Inject component styles
     const styleEl = document.createElement('style');
@@ -4630,20 +4639,8 @@
       document.getElementById('userEmail').textContent = user.email;
       document.getElementById('deleteAccountBtn').style.display = user.isGuest ? 'none' : '';
 
-      // Load scenario selector
-      await renderScenarioSelector();
-
-      // Load initial data
-      await renderHistory();
-      await renderTaxYears();
-
-      // ALWAYS pre-fill ALL input fields from stored settings on app load
-      initializeAllInputsFromSettings();
-
-      // Reset sub-tabs to their default views
-      resetStressSubTabs();
-      resetDecisionSubTabs();
-      clearStressResults();
+      // Every form of every tab filled from the plan open, every cache dropped (repaintPlan's first half)
+      await repaintForms('load');
 
       // A ?demo= link for a signed-in visitor: add the demo plan to their account (once) and open it.
       if (window._pendingDemo && !user.isGuest && DEMO_PLANS[window._pendingDemo]) {
@@ -4798,9 +4795,11 @@
 
         // Refresh number overlays after all values are set
         refreshNumberOverlays();
+        markStressFormFilled(stressSettings);
 
         console.log('All inputs initialized from stored settings');
       } catch (error) {
+        if (isPlanReadError(error)) sayReadFault(READ_FAULT_WORDS);   // the plan cannot be read: said in plain words, no other settings shown
         console.error('Error initializing inputs from settings:', error);
       }
     }
@@ -5215,23 +5214,8 @@
           }
 
           try {
-            await flushSettings();   // what was typed goes to the plan it was typed for
-            await switchScenario(id);
-            invalidateCache();
-            invalidateStressCache();
             document.getElementById('scenarioDropdown').classList.remove('open');
-
-            // Clear stale results and reset sub-tabs
-            clearStressResults();
-            resetStressSubTabs();
-            resetDecisionSubTabs();
-
-            await renderHistory();
-            await renderTaxYears();
-            await initializeAllInputsFromSettings();
-            window._holdingsDraft = null; window._holdingsDraftFor = null; window._transitionLast = null;   // never carry one plan's holdings draft into another (6.13.0)
-            try { const nowTab = document.querySelector('.tab.active'); if (nowTab && nowTab.dataset.tab === 'transition') await loadTransitionUI(); } catch (e) { /* view optional */ }
-            await renderScenarioSelector(); updateNextStepBanner(); loadHouseholdUI();   // the banner, the way back to the simple view (7.11.0) and the Household tab's partner (7.12.0) follow the plan now open
+            await changePlan('switch', () => switchScenario(id));   // what was typed goes to the plan it was typed for; then every tab follows the plan now open
           } catch (error) {
             console.error('Error switching scenario:', error);
             showToast('Failed to switch plan: ' + error.message, 'error');
@@ -5266,15 +5250,7 @@
           const name = btn.dataset.name;
           if (await appConfirm(`Delete plan "${name}"? This cannot be undone.`)) {
             try {
-              await deleteScenario(id);
-              invalidateCache();
-              invalidateStressCache();
-              await renderHistory();
-              await renderTaxYears();
-              await initializeAllInputsFromSettings();
-            window._holdingsDraft = null; window._holdingsDraftFor = null; window._transitionLast = null;   // never carry one plan's holdings draft into another (6.13.0)
-            try { const nowTab = document.querySelector('.tab.active'); if (nowTab && nowTab.dataset.tab === 'transition') await loadTransitionUI(); } catch (e) { /* view optional */ }
-              await renderScenarioSelector(); updateNextStepBanner();   // deleting the open plan opens another: the banner and the way back to the simple view follow it (7.11.0)
+              await changePlan('delete', () => deleteScenario(id));   // deleting the open plan opens another: every tab follows it
             } catch (error) {
               console.error('Error deleting scenario:', error);
               showToast('Failed to delete plan: ' + error.message, 'error');
@@ -5520,15 +5496,7 @@
 
       // Load content if needed (async), once anything typed has gone
       await flushSettings(); if (!tab.classList.contains('active')) return;   // pressed on meanwhile: that press loads
-      if (tab.dataset.tab === 'stress') { await loadStressSettings(); updateStrategyNote(); }
-      if (tab.dataset.tab === 'budget') await loadBudgetUI();
-      if (tab.dataset.tab === 'decision') renderDecisionStrategyPanel();
-      if (tab.dataset.tab === 'accumulation') await loadAccumulationUI();
-      if (tab.dataset.tab === 'transition') await loadTransitionUI();
-      if (tab.dataset.tab === 'household') await loadHouseholdUI();
-      if (tab.dataset.tab === 'strategies') await loadStrategiesPage();
-      updateNextStepBanner();
-      updateDraftLines();
+      await drawTab(tab.dataset.tab);
       window.__hideHelpTip && window.__hideHelpTip();
     }
 
@@ -5547,7 +5515,9 @@
 
     // Stress tester sub-tab switching (src/ui/stressSubTabs.js): Settings pressed while open is not drawn again (7.12.0)
     installStressSubTabs(document, window, { loadStressSettings, updateStrategyNote: () => updateStrategyNote(), getStressSettingsAsync, beforeChange: () => flushSettings() });
-    window.flushSettings = flushSettings; function flushSettings() { return Promise.all([window._ssAutosave && window._ssAutosave.flush(), window._acAutosave && window._acAutosave.flush()]); }   // anything typed is saved before a tab, sub-tab or plan changes
+    window.flushSettings = flushSettings; function flushSettings() { return Promise.all([window._ssAutosave && window._ssAutosave.flush(), window._acAutosave && window._acAutosave.flush(), flushBudget()]); }
+    /** The budget's waiting save sent now, to the plan it was typed in (before a tab, sub-tab or plan changes). */
+    async function flushBudget() { if (!_budSaveTimer) return; clearTimeout(_budSaveTimer); _budSaveTimer = null; await budAutosave(); }   // anything typed is saved before a tab, sub-tab or plan changes
 
     // Decision tool sub-tab switching
     document.querySelectorAll('.sub-tab[data-decisiontab]').forEach(tab => {
@@ -5561,11 +5531,7 @@
         document.getElementById(`decision-${tab.dataset.decisiontab}`).classList.remove('hidden');
 
         // Load content for specific sub-tabs
-        if (tab.dataset.decisiontab === 'decisionsettings') await loadDecisionSettings();
-        if (tab.dataset.decisiontab === 'entry') await loadCadenceUI();
-        if (tab.dataset.decisiontab === 'history') await renderHistory();
-        if (tab.dataset.decisiontab === 'plandoc') await renderPlanDocumentPage();
-        if (tab.dataset.decisiontab === 'taxyears') await renderTaxYears();
+        await drawDecisionSub(tab.dataset.decisiontab);
       });
     });
 
@@ -5728,6 +5694,8 @@
       // The fill first (with its tick on), then this month or its batch: src/ui/monthFillEntry.js (3 Nov 2026). Every write goes through saveDecision.
       const r = await monthEntry.save(currentDecision);
       currentDecision = r.decision;   // this month as saved: worked out again after a fill
+      await noteJourney();   // a first month locks the plan: its stage, dated, with the record (as the simple view's month)
+      await repaintAfterWrite('record');   // what was worked out from the plan before this month goes
       await renderHistory();  // Refresh history display (a fill that stopped, or a write that failed part-way, has records to show too)
       try { await updatePlanLockChip(); } catch (e) { /* cosmetic */ }   // the first record locks the plan
       monthEntry.refreshOffer(); renderWhereAmILine().catch(() => {});   // the strip was drawn at Calculate, before this month was on record: drawn again so it counts it
@@ -5762,7 +5730,7 @@
     // ONE renderer for ONE result shape (stressTestStrategy) — whatever strategy the plan is
     // switched to, the cones and the headline are drawn from the same numbers the compare shows.
     function strategyPlanFor(settings, essentialsOverride) {
-      const cfg = createSimulationConfigFromSettings({}, settings);
+      const cfg = createSimulationConfigFromSettings({}, settings, todayOf());
       // The plan starts at the income shape's first age (retirement), not a hard-coded 57.
       return planFromSettings(settings, cfg, { yieldForYear: realYieldForYear, essentialsAnnual: essentialsOverride, startAge: +settings.shapeAgeNow || 57 });
     }
@@ -5972,7 +5940,7 @@
         p = locked.doc.strategy.p; r = locked.doc.strategy.r; lockedNote = lockedLadderNoteHtml(locked);
       } else {
         try {
-          const res = await runInWorker('strategy', { settings, cfg: createSimulationConfigFromSettings({}, settings), strategyId: sid, essentialsAnnual: undefined });
+          const res = await runInWorker('strategy', { settings, cfg: createSimulationConfigFromSettings({}, settings, todayOf()), strategyId: sid, essentialsAnnual: undefined });
           p = res.p; r = res.r;
         } catch (e) {
           console.warn('engine worker unavailable, running inline', e);
@@ -5989,7 +5957,7 @@
       const a = oneAnswer(r, p);
       if (!a || !a.cuts || settings.disableProtection || !PNV_FAMILY.includes(settings.strategyId || 'pots-and-valves')) return;
       const twin = { ...settings, disableProtection: true };
-      runInWorker('strategy', { settings: twin, cfg: createSimulationConfigFromSettings({}, twin), strategyId: settings.strategyId || 'pots-and-valves', essentialsAnnual: undefined })
+      runInWorker('strategy', { settings: twin, cfg: createSimulationConfigFromSettings({}, twin, todayOf()), strategyId: settings.strategyId || 'pots-and-valves', essentialsAnnual: undefined })
         .then((res) => { const el = target.querySelector('.without-cuts'); if (el) el.innerHTML = withoutCutsLineHtml(a, res.r); })
         .catch(() => {});
     }
@@ -6066,7 +6034,7 @@
       try {
         let p, r;
         try {
-          const res = await runInWorker('strategy', { settings: c, cfg: createSimulationConfigFromSettings({}, c), strategyId: c.strategyId, essentialsAnnual: undefined });
+          const res = await runInWorker('strategy', { settings: c, cfg: createSimulationConfigFromSettings({}, c, todayOf()), strategyId: c.strategyId, essentialsAnnual: undefined });
           p = res.p; r = res.r;
         } catch (e) {
           console.warn('engine worker unavailable, running inline', e);
@@ -6843,7 +6811,7 @@
         for (const cell of mixCells(s, { own: false })) {
           const alloc = cell.settings;
           let r;
-          try { r = (await runInWorker('strategy', { settings: alloc, cfg: createSimulationConfigFromSettings({}, alloc), strategyId: alloc.strategyId, essentialsAnnual: undefined })).r; }
+          try { r = (await runInWorker('strategy', { settings: alloc, cfg: createSimulationConfigFromSettings({}, alloc, todayOf()), strategyId: alloc.strategyId, essentialsAnnual: undefined })).r; }
           catch (e) { console.warn('engine worker unavailable, running inline', e); r = stressTestStrategy(alloc.strategyId, strategyPlanFor(alloc)); }
           (grid[cell.key] = grid[cell.key] || {})[cell.tent ? 'tent' : 'flat'] = r;
           say('Running the one test on six splits… ' + (++n) + ' of 6');
@@ -7016,7 +6984,11 @@
       const ageNow = +document.getElementById('shapeAgeNow')?.value || 57;
       const dur = +document.getElementById('ssDuration')?.value || 35;
       const steps = (window._ssIncomeSteps || []).filter((st) => +st.amount > 0);
-      if (!steps.length) { box.innerHTML = '<p class="hint">No shape yet — start from your budget or a number.</p>'; return; }
+      if (!steps.length) {   // no shape: nothing of another shape (or another plan) is said under it either
+        box.innerHTML = '<p class="hint">No shape yet — start from your budget or a number.</p>';
+        for (const id of ['incomeShapeLumps', 'incomeShapeNote']) { const el = document.getElementById(id); if (el) el.innerHTML = ''; }
+        window._shapeFlooredFrom = null; return;
+      }
       // Layers: State Pension (from its date) and other income / DB, read from the settings form above.
       let sp = null; const other = [];
       try {
@@ -7145,7 +7117,7 @@
     async function strategyResultForDocument(settings) {
       const sid = settings.strategyId || 'pots-and-valves';
       const ess = (window._shapeRefs && window._shapeRefs.essentials) || undefined;
-      const cfg = createSimulationConfigFromSettings({}, settings);
+      const cfg = createSimulationConfigFromSettings({}, settings, todayOf());
       try { const out = await runInWorker('strategy', { settings, cfg, strategyId: sid, essentialsAnnual: ess }); if (out && out.r) return out.r; } catch (e) { /* inline below */ }
       return stressTestStrategy(sid, strategyPlanFor(settings, ess));
     }
@@ -7174,9 +7146,8 @@
         if (!(await planIsLocked())) { await saveLaterDraftFirst(); await saveDecisionSettings(seedDecisionFromStress(await getStressSettingsAsync(), await getDecisionSettingsAsync())); invalidateCache(); }
         const fresh = await lockPlanIfNeeded(reason);
         await buildPlanDocumentNow(reason, rGiven);
-        await refreshStressLock();
-        try { await refreshDecisionLock(); } catch (e) { /* form not built yet */ }
-        try { await refreshLifeStage(); updatePlanLockChip(); } catch (e) { /* chip optional */ }
+        await noteJourney();   // the stage the lock causes, dated, with the lock (as the simple view's lockPatch)
+        await repaintPlan('lock');   // every tab, the banners and the chip follow the plan as locked
         return fresh;
       } finally { hideLoading(); }
     };
@@ -7509,14 +7480,8 @@
         window._lifeStage = stage; window._stageWord = stageWordOf(sc ? { ...sc, stressTool: { ...(sc.stressTool || {}), settings: ss || sc.stressTool?.settings || {} } } : null, stage);   // the home's word for the stage (7.12.0)
         applyStageToTabs(stage); nameTransitionTab(document, () => getActiveScenarioAsStored(), sc).then((n) => { window._transitionName = n; }).catch(() => {});   // 7.11.1: the Transition tab by the phase V7's home reads
         try { updatePlanLockChip(); } catch (e) { /* chip optional */ }
-        // Journey: record the stage change with its date (the plan document lists them).
-        try {
-          if (sc && sc.id) {
-            const j = Array.isArray(sc.journey) ? sc.journey : [];
-            const next = journeyAppend(j, stage);
-            if (next !== j) await saveActiveJourney(next);
-          }
-        } catch (e) { /* journey is optional */ }
+        // Nothing is written on reading the stage (lead4.md R9): the journey's stage changes are written with the lock and
+        // the month that make them (answers/plan/lock.js, month.js; the full view's lock: buildPlanDocumentNow).
         return stage;
       } catch (e) { console.warn('life stage', e); return null; }
     };
@@ -8469,8 +8434,8 @@
       for (const fid of ['stratSipp', 'stratIsa', 'stratSippFf', 'stratIsaFf', 'miniSipp', 'miniIsa']) { const e = document.getElementById(fid); if (e) e.value = ''; }
       { const se = document.getElementById('miniSipp'), ie = document.getElementById('miniIsa'), fe = document.getElementById('miniFloorToAge'); if (se) se.value = params && params.sippTotal ? params.sippTotal : ''; if (ie) ie.value = params && params.isaTotal != null ? params.isaTotal : ''; if (fe) fe.value = params && params.floorToAge ? params.floorToAge : ''; }
       window._ssApplying = true; try { pickStrategy(id || 'pots-and-valves'); } finally { window._ssApplying = false; }
-      if (id === 'bridge-and-engine' && params) { const a = document.getElementById('miniBridgeAge'), b = document.getElementById('miniBridgeCash'); if (a && params.bridgeAge) a.value = params.bridgeAge; if (b && params.cashYears != null) b.value = params.cashYears; }
-      if (id === 'buckets-in-order' && params) { const e = document.getElementById('bucketBand'); if (e && params.bucketBand) e.value = params.bucketBand; }
+      { const a = document.getElementById('miniBridgeAge'), b = document.getElementById('miniBridgeCash'), e = document.getElementById('bucketBand'); const p = (id === 'bridge-and-engine' || id === 'buckets-in-order') && params ? params : {};   // a box this plan does not fill shows what the page opens with, never another plan's figure (lead4.md R2)
+        if (a) a.value = id === 'bridge-and-engine' && p.bridgeAge ? p.bridgeAge : a.defaultValue; if (b) b.value = id === 'bridge-and-engine' && p.cashYears != null ? p.cashYears : b.defaultValue; if (e) e.value = id === 'buckets-in-order' && p.bucketBand ? p.bucketBand : e.defaultValue; }
       if (id === 'full-il-gilt' && params) { const a = document.getElementById('giltCashYears'); if (a && params.cashYears != null) a.value = params.cashYears; }
       if (id === 'gilt-rotation' && params) { const a = document.getElementById('giltCashYears'), c = document.getElementById('giltRotateCut'); if (a && params.cashYears != null) a.value = params.cashYears; if (c && params.rotateCutAge) c.value = params.rotateCutAge; }
       if (id === 'full-il-gilt' || id === 'gilt-rotation') {   // shared inputs: a clean start must not inherit the other gilt strategy's typed values (6.13.0)
@@ -8690,7 +8655,7 @@
       const say = (t) => { if (prog) prog.textContent = t; };
       // Off the main thread when we can (a phone must not freeze); the synchronous loop is the fallback.
       try {
-        const cfg = createSimulationConfigFromSettings({}, eff);
+        const cfg = createSimulationConfigFromSettings({}, eff, todayOf());
         const res = await runInWorker('overview', { settings: eff, cfg, essentialsAnnual: undefined },
           (pr) => say('Running ' + pr.name + ' (' + (pr.i + 1) + ' of ' + pr.n + ')…'));
         window._cmpCache = { key, p: res.p, all: res.all, settings };
@@ -9267,7 +9232,7 @@
         // Who draws what (6.25.0): the split that pays the least tax (HouseholdDraw), then both plans through the ONE test each
         // way — as they are, and drawing together — paired future for future on the shared market seed, pooled in the combination.
         const split = householdDrawSplit({ settings: ownSettings, name: ownName }, { settings: partnerSettings, name: pName }, { limit: window._hhLimit || null });
-        const cfgOf = (st) => createSimulationConfigFromSettings({}, st);
+        const cfgOf = (st) => createSimulationConfigFromSettings({}, st, todayOf());
         const ways = { own: { settingsA: ownSettings, cfgA: cfgOf(ownSettings), settingsB: partnerSettings, cfgB: cfgOf(partnerSettings) } };
         if (split.applies) ways.together = { settingsA: split.settings.a, cfgA: cfgOf(split.settings.a), settingsB: split.settings.b, cfgB: cfgOf(split.settings.b) };
         const dismissed = isSplitDismissed(await getHouseholdSplitDismissed(), partnerId, split.fingerprint);
@@ -9425,8 +9390,8 @@
     window.loadAccumulationUI = async function () {
       try {
         if (window._acAutosave) await window._acAutosave.flush();
-        const box = accumulationBoxes(await getActiveScenarioAsync(), null, new Date());   // the saver's facts, as "What you pay in" reads them (7.12.0)
-        for (const [id, v] of Object.entries(box.values)) { const el = document.getElementById(id); if (el && v != null) el.value = v; }
+        const box = accumulationBoxes(await getActiveScenarioAsync(), null, todayOf());   // the saver's facts, as "What you pay in" reads them (7.12.0)
+        for (const [id, v] of Object.entries(box.values)) { const el = document.getElementById(id); if (el) el.value = v == null ? (el.tagName === 'SELECT' ? ((el.querySelector('option[selected]') || el.options[0] || {}).value || '') : '') : v; }   // an empty value empties the box: nothing of another plan stays in it (lead4.md R2)
         document.getElementById('acPotLine').textContent = box.potLine;
         await renderAccumulationHoldings();   // 6.7.0: proportions from the ledger (and pot today when the box is empty)
         recalcAccumulation();
@@ -9436,7 +9401,7 @@
     };
 
     window.saveAccumulationUI = async function () {   // the same write as a box changing (7.12.0): the ages through the plan's own, a new pot today this month's record
-      try { const a = window._acAutosave; if (!a.checkNow()) return; await a.run(); if (!a.problems().length) showToast('Accumulation plan saved', 'success'); } catch (e) { showToast('Could not save: ' + e.message, 'error'); }
+      try { const a = window._acAutosave; if (!a.checkNow()) return; const t = saveOutcomeToast(await a.run()); showToast(t.words, t.kind, t.kind === 'success' ? 3000 : 6000); } catch (e) { showToast('Could not save: ' + e.message, 'error'); }   // "Saved" only when something was written; a refusal says why
     };
 
     window.recalcAccumulation = async function () {
@@ -9484,9 +9449,9 @@
 
     // "Am I on course?" (7.12.0, src/ui/saverAnswerUi.js): the simple view's answer block, from the same reader and the same run
     window.runOnTrackCheck = async () => { if (window._acAutosave) await window._acAutosave.flush(); return paintSaverAnswer(document, { listScenariosAsync, getActiveScenarioId, saveWant: saveActiveWant, afterSave: () => window.loadAccumulationUI && window.loadAccumulationUI() }); };
-    window._ssAutosave = installStressSettingsAutosave(window, document, { save: (o) => saveStressSettingsUI(o), planIsLocked, isLoggedIn, getActiveScenarioId, dbStartError: () => dbStartError(document, window._ssTiming), afterSave: () => { renderTiming(); renderScenarioSelector().catch(() => {}); } });   // the pots-at-stop line and the plan menu's name follow what was just saved
+    window._ssAutosave = installStressSettingsAutosave(window, document, { save: (o) => saveStressSettingsUI(o), planIsLocked, isLoggedIn, getActiveScenarioId, dbStartError: () => dbStartError(document, window._ssTiming), afterSave: async () => { await repaintAfterWrite('save'); renderTiming(); } });   // the pots-at-stop line and the plan menu's name follow what was just saved
     window._acAutosave = installAccumulationAutosave(window, document, { saveTab: (b) => saveActiveAccumulationTab(b), planIsLocked, isLoggedIn, getActiveScenarioId,
-      afterSave: () => { invalidateStressCache(); renderScenarioSelector().catch(() => {}); if (document.getElementById('acOnTrack')?.textContent.trim()) window.runOnTrackCheck(); } }); document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushSettings(); });   // the answer on the card follows the boxes; Settings reads the new ages; a page hidden sends what is typed
+      afterSave: async () => { await repaintAfterWrite('save'); if (document.getElementById('acOnTrack')?.textContent.trim()) window.runOnTrackCheck(); } }); document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushSettings(); });   // the answer on the card follows the boxes; Settings reads the new ages; a page hidden sends what is typed
 
     // In-app confirm modal — replaces window.confirm(), which BLOCKS the whole renderer (and any
     // browser automation) with a native dialog. Promise<boolean>; Escape/backdrop = cancel.
@@ -9709,6 +9674,7 @@
 
         // Refresh number overlays after programmatic value changes
         refreshNumberOverlays();
+        markStressFormFilled(s);
         if (window._ssAutosave) await window._ssAutosave.loaded();
       } catch (error) {
         console.error('Error loading stress settings:', error);
@@ -9717,12 +9683,82 @@
       }
     }
 
+    /**
+     * The Settings form as it stands, as the plan's settings keys (what a Save compares with the form as filled: settingsChanged.js).
+     * `_curSS` is the plan as read, for the keys a box leaves to the plan (a schedule the Budget made, a charge left empty).
+     */
+    function stressFormSettings(_curSS) {
+      const ssAlloc = readAlloc('ss');
+      const _newBase = +document.getElementById('ssBaseSalary').value;
+      // Budget-derived per-year target schedule: kept only while the target still matches its year-0 anchor.
+      const _keepSchedule = Array.isArray(_curSS.targetSchedule) && Math.abs(_newBase - (_curSS.targetSchedule[0] || 0)) < 1;
+      // Stepped income compiles to the canonical per-year schedule the engine reads; it wins over the kept schedule.
+      const _stepSchedule = compiledTargetSchedule(+document.getElementById('ssDuration').value || 35, _newBase);
+      const timing = timingFieldsForSave();
+      return settingsFromForm({
+          strategyId: window._ssStrategy || 'pots-and-valves',
+        strategyParams: cleanParams(window._ssStrategy || 'pots-and-valves', readStrategyParams()),   // this strategy's own keys only (6.13.0)
+        strategyState: window._ssStrategyState || {},                                                 // every strategy's put-away inputs
+        incomeShape: window._ssIncomeShape,
+        incomeSteps: window._ssIncomeShape === 'phases' ? window._ssIncomeSteps.filter((st) => +st.amount > 0) : [],
+        // Timing (6.4.0): age today + retired / retire-at-age → the saved first tax year and the derived
+        // start age. The Timing block is the source; the Budget's age is kept in step (see above).
+        ...timing, potAtRetirement: ownPotAtRetirement(timing.potAtRetirement),   // pots at the stop only as the person typed them, never as worked out
+        accessMethod: document.getElementById('ssAccessMethod').value || 'drawdown',
+        ufplsYears: +document.getElementById('ssUfplsYears').value || null,
+        ufplsThenPcls: document.getElementById('ssUfplsPcls').checked,
+        bandFillRecycle: document.getElementById('ssBandFillRecycle').checked,
+        targetSchedule: _stepSchedule || (_keepSchedule ? _curSS.targetSchedule : null),
+        baseSalary: +document.getElementById('ssBaseSalary').value,
+        equityMin: ssAlloc.equityMin,
+        bondMin: ssAlloc.bondMin,
+        cashTarget: ssAlloc.cashTarget,
+        duration: +document.getElementById('ssDuration').value,
+        pa: +document.getElementById('ssPA').value,
+        brl: +document.getElementById('ssBRL').value,
+        hrl: +document.getElementById('ssHRL').value,
+        taxMode: document.getElementById('ssTaxMode').value,
+        other: +document.getElementById('ssOther').value,
+        dbAmount: +document.getElementById('ssDbAmount').value || 0,
+        dbStartYear: +document.getElementById('ssDbStartYear').value || 0, dbStartAge: dbStartAgeForSave(document),   // the year is what the engines read; the age is what was asked (dbStartSetting.js)
+        dbIndexation: document.getElementById('ssDbIndexation').value || 'lpi5',
+        extraIncomes: (window._ssExtraIncomes || []).filter((r) => r.annual > 0),
+        windfalls: (window._ssWindfalls || []).filter((r) => r.amount > 0 && r.year != null),
+        extraWithdrawals: (window._ssExtraWithdrawals || []).filter((r) => r.amount > 0 && r.year != null),
+        // State Pension (new fields)
+        spStartDate: document.getElementById('ssSpStartDate').value.trim() || null,
+        spWeeklyAmount: +document.getElementById('ssSpWeeklyAmount').value || 0,
+        consecutiveLimit: +document.getElementById('ssConsecutiveLimit').value,
+        protectionMult: +document.getElementById('ssProtectionMult').value,
+        protectionEscalateMonths: Math.max(0, +document.getElementById('ssProtEscalate')?.value ?? 12),
+        disableProtection: document.getElementById('ssDisableProtection').checked,
+        recoveryBuffer: +document.getElementById('ssRecoveryBuffer').value || 15000,
+        hodlEnabled: document.getElementById('ssHodlEnabled').checked,
+        hodlValue: +document.getElementById('ssHodlValue').value,
+        isaBalance: +document.getElementById('ssIsaBalance').value || 0,
+        isaDrawdownStrategy: document.getElementById('ssIsaPolicy')?.value || 'minimiseEarlyTax',
+        ...readGiaFields('ss'), chargesPct: chargesForSave(document.getElementById('ssChargesPct')?.value, _curSS), isaGrowth: isaGrowthForSave(readIsaGrowthChoice(document), _curSS),   // charges (6.19.0): 0–3% on the 0.05 grid; empty keeps the plan's own; the ISA choice (6.22.0). Never reached when locked (refused above)
+        spendingProfile: 'flat',   // the taper lives on the income steps now
+        equityGlideEnabled: document.getElementById('ssEquityGlide').checked,
+        // Diversifiers sleeve (opt-in). readAlloc emits these only when the toggle is on.
+        diversifierStart: ssAlloc.diversifierStart || 0,
+        subAsset: ssAlloc.subAsset || null,
+        glideEndgame: ssAlloc.glideEndgame || null,   // tent endgame for a tagged plan
+        allocMode: allocMode('ss'),                   // 'risk' or 'funds'
+        // Persist the tagged fund list so it can be reused (e.g. the Decision tab's "Fill from
+        // my tagged funds") without re-entering it.
+        taggedFunds: funds('ss').filter(f => f.ticker && f.value > 0)
+      });
+    }
+    /** The form just filled from the plan is the baseline a Save compares with (lead4.md D1). */
+    function markStressFormFilled(cur) { try { planState.stressFormBase = { form: stressFormSettings(cur) }; } catch (e) { planState.stressFormBase = null; } }
+
     // Save stress settings
     // `quiet` (7.12.0, src/ui/stressSettingsAutosave.js): the save as a box changes — no overlay, no toast, no question; a fault goes to onFault
     window.saveStressSettingsUI = async function(opts) {
       const quiet = !!(opts && opts.quiet), fault = (m) => { if (quiet) { if (opts.onFault) opts.onFault(m); } else showToast(m, 'error', 8000); };
       if (!isLoggedIn()) {
-        if (!quiet) showToast('Please sign in to save settings', 'error');
+        if (!quiet) showToast(SAVE_OUTCOME_WORDS.signedOut, 'error');
         return;
       }
       // 6.5.0: a locked plan's Stress settings are frozen too (one lock for both tools).
@@ -9745,93 +9781,37 @@
 
       if (!quiet) showLoading('Saving settings...');
       try {
-        // Budget-derived per-year target schedule: keep it only while the target still matches
-        // its year-0 anchor — a manual target edit reverts the plan to a flat target (the user
-        // can re-apply from the Budget page to restore the shape).
+        // Only what the person changed since the form was filled from the plan is written (lead4.md D1; src/ui/settingsChanged.js):
+        // never the defaults merged under the plan, an age folded in from the Budget or pots worked out at the stop.
+        try { await renderTiming(); } catch (e) { /* timing block optional */ }   // the Timing block read from the whole form as it stands (6.10.2)
         const _curSS = await getStressSettingsAsync();
-        const _newBase = +document.getElementById('ssBaseSalary').value;
-        const _keepSchedule = Array.isArray(_curSS.targetSchedule)
-          && Math.abs(_newBase - (_curSS.targetSchedule[0] || 0)) < 1;
-        // Stepped income compiles to the canonical per-year schedule the engine reads. It must WIN over
-        // the budget-schedule keep/clear logic below (a later duplicate key used to null it out).
-        const _stepSchedule = compiledTargetSchedule(+document.getElementById('ssDuration').value || 35, _newBase);
-        await setActiveStrategyChecked(window._ssStrategy || 'pots-and-valves', cleanParams(window._ssStrategy || 'pots-and-valves', readStrategyParams()));
+        const base = planState.stressFormBase;
+        const form = stressFormSettings(_curSS);
+        let hadFigures = true; try { hadFigures = planHasFigures(await getActiveScenarioAsStored()); } catch (e) { hadFigures = true; }
+        const patch = stressSavePatch({ base: base && base.form, form, hadFigures });
+        if (!Object.keys(patch).length) { if (quiet) return true; showToast(SAVE_OUTCOME_WORDS.nothing, 'info'); if (window._ssAutosave) window._ssAutosave.markSaved(); return 'nothing'; }   // "Saved" only when something was written
+        if (touches(patch, STRATEGY_KEYS)) await setActiveStrategyChecked(form.strategyId, form.strategyParams);
         // ONE target: the income shape's first step is the Decision tool's year-0 target too (and the
         // shape itself its schedule). Only while the plan is a draft — a locked plan's target stays put.
         try {
-          if (!(await planIsLocked())) {
+          if (touches(patch, [...INCOME_KEYS, 'firstTaxYear']) && !(await planIsLocked())) {
+            const _newBase = +form.baseSalary;
             const firstStep = (window._ssIncomeShape === 'phases' && (window._ssIncomeSteps || []).filter((st) => +st.amount > 0).length) ? +[...window._ssIncomeSteps].filter((st) => +st.amount > 0).sort((x, y) => +x.fromAge - +y.fromAge)[0].amount : _newBase;
             // …and the plan's start (6.4.0): the Decision tool's year 0 is the Stress plan's first tax year.
-            await saveDecisionSettings({ baseSalary: firstStep || _newBase, targetSchedule: _stepSchedule || null, ...(window._ssTiming?.firstTaxYear > 0 ? { firstTaxYear: window._ssTiming.firstTaxYear } : {}) });
+            await saveDecisionSettings({ baseSalary: firstStep || _newBase, targetSchedule: form.targetSchedule || null, ...(window._ssTiming?.firstTaxYear > 0 ? { firstTaxYear: window._ssTiming.firstTaxYear } : {}) });
             const dsB = document.getElementById('dsBaseSalary'); if (dsB) { dsB.value = firstStep || _newBase; try { syncNetFromGross('ds'); } catch (e) { /* form not built yet */ } }
           }
         } catch (e) { console.warn('Decision target sync skipped:', e); }
-        // Timing is derived from the WHOLE form as it stands at save (pots, SP date, ages) — not from the
-        // state when the block last rendered (6.10.2).
-        try { await renderTiming(); } catch (e) { /* timing block optional */ }
-        await syncBudgetAgeFromTiming();
-        await saveStressSettings({
-          configured: true,  // user has been through Settings — routing can go straight to the tool
-          strategyId: window._ssStrategy || 'pots-and-valves',
-          strategyParams: cleanParams(window._ssStrategy || 'pots-and-valves', readStrategyParams()),   // this strategy's own keys only (6.13.0)
-          strategyState: window._ssStrategyState || {},                                                 // every strategy's put-away inputs
-          incomeShape: window._ssIncomeShape,
-          incomeSteps: window._ssIncomeShape === 'phases' ? window._ssIncomeSteps.filter((st) => +st.amount > 0) : [],
-          // Timing (6.4.0): age today + retired / retire-at-age → the saved first tax year and the derived
-          // start age. The Timing block is the source; the Budget's age is kept in step (see above).
-          ...timingFieldsForSave(),
-          accessMethod: document.getElementById('ssAccessMethod').value || 'drawdown',
-          ufplsYears: +document.getElementById('ssUfplsYears').value || null,
-          ufplsThenPcls: document.getElementById('ssUfplsPcls').checked,
-          bandFillRecycle: document.getElementById('ssBandFillRecycle').checked,
-          targetSchedule: _stepSchedule || (_keepSchedule ? _curSS.targetSchedule : null),
-          baseSalary: +document.getElementById('ssBaseSalary').value,
-          equityMin: ssAlloc.equityMin,
-          bondMin: ssAlloc.bondMin,
-          cashTarget: ssAlloc.cashTarget,
-          duration: +document.getElementById('ssDuration').value,
-          pa: +document.getElementById('ssPA').value,
-          brl: +document.getElementById('ssBRL').value,
-          hrl: +document.getElementById('ssHRL').value,
-          taxMode: document.getElementById('ssTaxMode').value,
-          other: +document.getElementById('ssOther').value,
-          dbAmount: +document.getElementById('ssDbAmount').value || 0,
-          dbStartYear: +document.getElementById('ssDbStartYear').value || 0, dbStartAge: dbStartAgeForSave(document),   // the year is what the engines read; the age is what was asked (dbStartSetting.js)
-          dbIndexation: document.getElementById('ssDbIndexation').value || 'lpi5',
-          extraIncomes: (window._ssExtraIncomes || []).filter((r) => r.annual > 0),
-          windfalls: (window._ssWindfalls || []).filter((r) => r.amount > 0 && r.year != null),
-          extraWithdrawals: (window._ssExtraWithdrawals || []).filter((r) => r.amount > 0 && r.year != null),
-          // State Pension (new fields)
-          spStartDate: document.getElementById('ssSpStartDate').value.trim() || null,
-          spWeeklyAmount: +document.getElementById('ssSpWeeklyAmount').value || 0,
-          consecutiveLimit: +document.getElementById('ssConsecutiveLimit').value,
-          protectionMult: +document.getElementById('ssProtectionMult').value,
-          protectionEscalateMonths: Math.max(0, +document.getElementById('ssProtEscalate')?.value ?? 12),
-          disableProtection: document.getElementById('ssDisableProtection').checked,
-          recoveryBuffer: +document.getElementById('ssRecoveryBuffer').value || 15000,
-          hodlEnabled: document.getElementById('ssHodlEnabled').checked,
-          hodlValue: +document.getElementById('ssHodlValue').value,
-          isaBalance: +document.getElementById('ssIsaBalance').value || 0,
-          isaDrawdownStrategy: document.getElementById('ssIsaPolicy')?.value || 'minimiseEarlyTax',
-          ...readGiaFields('ss'), chargesPct: chargesForSave(document.getElementById('ssChargesPct')?.value, _curSS), isaGrowth: isaGrowthForSave(readIsaGrowthChoice(document), _curSS),   // charges (6.19.0): 0–3% on the 0.05 grid; empty keeps the plan's own; the ISA choice (6.22.0). Never reached when locked (refused above)
-          spendingProfile: 'flat',   // the taper lives on the income steps now
-          equityGlideEnabled: document.getElementById('ssEquityGlide').checked,
-          // Diversifiers sleeve (opt-in). readAlloc emits these only when the toggle is on.
-          diversifierStart: ssAlloc.diversifierStart || 0,
-          subAsset: ssAlloc.subAsset || null,
-          glideEndgame: ssAlloc.glideEndgame || null,   // tent endgame for a tagged plan
-          allocMode: allocMode('ss'),                   // 'risk' or 'funds'
-          // Persist the tagged fund list so it can be reused (e.g. the Decision tab's "Fill from
-          // my tagged funds") without re-entering it.
-          taggedFunds: funds('ss').filter(f => f.ticker && f.value > 0)
-        });
+        if (touches(patch, TIMING_KEYS)) await syncBudgetAgeFromTiming();   // the Budget's age follows a changed age (and only then)
+        await saveStressSettings(patch);
+        planState.stressFormBase = { form };   // what is saved now is the form as it stands
         { const was = sippTodayOf(_curSS), typed = sippTodayOf(ssAlloc); if (window._ssTiming?.mode === 'future' && typed > 0 && Math.round(typed) !== Math.round(was)) { await saveActivePensionToday(typed); invalidateStressCache(); } }   // a saver's pot typed here is the pension today everywhere (7.12.0)
         // Refresh the Monte-Carlo / Historical starting-balance banners so they reflect the just-
         // saved allocation (they otherwise only re-render on load/tab-switch → stale after a save).
         renderStressStartSummary({ ...ssAlloc, duration: +document.getElementById('ssDuration').value || 35 }); if (!quiet) renderChargesField().catch(() => {});   // the box shows the charge as saved (as typed, when saved as it changed)
         updateDraftLines();
         updateNextStepBanner();
-        if (!quiet) { showToast('Settings saved successfully', 'success'); if (window._ssAutosave) window._ssAutosave.markSaved(); } return true;
+        if (!quiet) { showToast(SAVE_OUTCOME_WORDS.saved, 'success'); if (window._ssAutosave) window._ssAutosave.markSaved(); } return true;
       } catch (error) {
         console.error('Error saving stress settings:', error);
         fault('Error saving: ' + error.message);
@@ -9923,7 +9903,7 @@
     }
 
     async function loadBudgetUI() {
-      _budLoaded = false; // suppress autosave while (re)loading
+      planState.budLoaded = false; // suppress autosave while (re)loading
       try {
         window._budget = normaliseBudget(await getBudgetAsync());
       } catch (e) {
@@ -9953,7 +9933,7 @@
       // Nudge brand-new budgets (no amounts entered anywhere) toward the guided walk-through.
       const untouched = !window._budget.lines.some((l) => l.annual) && !window._budget.oneOffs.some((o) => o.amount);
       document.getElementById('budWizBanner').style.display = untouched ? 'block' : 'none';
-      _budLoaded = true;
+      planState.budLoaded = true; try { planState.budFor = await getActiveScenarioId(); } catch (e) { planState.budFor = null; }   // what is typed here belongs to this plan only
       budSetStatus('Autosaves as you edit');
       // Arriving fresh from the setup wizard → open the walk-through directly.
       if (window._budWizAutoOpen) {
@@ -10385,7 +10365,6 @@
     // The budget behaves like a shared doc: every edit funnels through budTouch(), which debounces a
     // silent save. No Save button needed; a status chip shows Saving…/Saved. Manual flush still
     // exists (saveBudgetUI) for the wizard's finish buttons.
-    let _budLoaded = false;
     let _budSaveTimer = null;
 
     function budSetStatus(txt) {
@@ -10433,7 +10412,7 @@
     };
 
     window.budTouch = function () {
-      if (!_budLoaded || !window._budget) return;
+      if (!planState.budLoaded || !window._budget) return;
       budSetStatus('Saving\u2026');
       clearTimeout(_budSaveTimer);
       _budSaveTimer = setTimeout(budAutosave, 1200);
@@ -10442,7 +10421,11 @@
     const budCleanForSave = () => cleanBudgetForSave(window._budget);   // BudgetModel, lifted (6.45.0)
 
     async function budAutosave() {
+      _budSaveTimer = null;
       if (!isLoggedIn()) { budSetStatus('Sign in to save'); return; }
+      // typed in one plan, never written into another: a budget drawn for a plan that is no longer open is not saved
+      let openId = null; try { openId = await getActiveScenarioId(); } catch (e) { openId = null; }
+      if (!planState.budLoaded || !window._budget || !planState.budFor || planState.budFor !== openId) { budSetStatus(''); return; }
       try {
         await saveBudget(budCleanForSave());
         budSetStatus(savedChipText(isGuest()));
@@ -10498,7 +10481,7 @@
 
           // Safe apply: pre-import copy for undo, replace under the autosave gate, flush once.
           const before = JSON.parse(JSON.stringify(window._budget));
-          _budLoaded = false;
+          planState.budLoaded = false;
           const b = Object.assign(window._budget, importedBudget(window._budget, r, budId));   // BudgetModel, lifted (6.45.0)
           // re-sync the horizon/sharing inputs from the imported settings
           const setV = (id, v) => { const el = document.getElementById(id); if (el && v != null) el.value = v; };
@@ -10507,7 +10490,7 @@
           setV('budSharePct', b.mySharePct);
           const row = document.getElementById('budShareRow'); if (row) row.style.display = b.sharedWithPartner ? 'block' : 'none';
           renderSplitPhases(); renderBudgetLines(); renderBudgetOneOffs(); updateBudgetSummary();
-          _budLoaded = true;
+          planState.budLoaded = true;
           await saveBudgetUI();
           // one-shot undo
           window._budImportUndo = before;
@@ -10525,11 +10508,11 @@
 
     window.undoBudgetImport = async function () {
       if (!window._budImportUndo) { showToast('Nothing to undo', 'warning'); return; }
-      _budLoaded = false;
+      planState.budLoaded = false;
       window._budget = window._budImportUndo;
       window._budImportUndo = null;
       renderSplitPhases(); renderBudgetLines(); renderBudgetOneOffs(); updateBudgetSummary();
-      _budLoaded = true;
+      planState.budLoaded = true;
       await saveBudgetUI();
       showToast('Budget restored', 'success');
     };
@@ -11478,9 +11461,7 @@
       showLoading('Unlocking…');
       try {
         await unlockPlan(); if (unlockPatch) { try { await saveStressSettings(unlockPatch); } catch (e) { console.warn('Could not write the defaults on unlock:', e); } }
-        await loadDecisionSettings();   // reload → refreshDecisionLock → now unlocked + editable
-        refreshStressLock().catch(() => {});   // the Stress settings page unlocks with it (6.5.0)
-        refreshLifeStage().then(() => updatePlanLockChip()).catch(() => {});   // stage moves back to draft (6.6.0)
+        await repaintPlan('unlock');   // every tab, the banners and the stage follow the plan as unlocked
         showToast('Plan unlocked — edit and save. It re-locks on the next recorded entry.', 'success', 4000);
       } catch (e) {
         console.error('Unlock error:', e);

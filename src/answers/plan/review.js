@@ -50,7 +50,7 @@ import { planPage, dateOf, monthWords, offCourseWordsOf } from './read.js';
 import { dayWords } from './dates.js';
 import { pounds } from './income.js';
 import { REVIEW_FIELDS, REVIEW_CHOICES } from './schema.js';
-import { effectiveStressSettings, whereAmIInputs, moveInputs, historyAscending } from '../../services/PlanReading.js';
+import { settingsForScreen, whereAmIInputs, moveInputs, historyAscending } from '../../services/PlanReading.js';
 import { whereAmI, guardrailOf, bandMeasure, GUARDRAIL_STRATEGIES } from '../../services/PlanDocument.js';
 import { driftOf } from '../../services/TransitionPlanner.js';
 import { RISK_PRESETS } from '../../services/GlidepathService.js';
@@ -79,9 +79,7 @@ export const REVIEW_PHASES = Object.freeze(['moving', 'drawing']);
 /** How far behind the move may be and still be on course to finish by the stop, in points of the pension. */
 export const ON_TRACK_SLACK = 5;
 
-function safeSettings(plan, now) {
-  try { return effectiveStressSettings(plan, { now }); } catch { return (plan && plan.stressTool && plan.stressTool.settings) || {}; }
-}
+const safeSettings = (plan, now) => settingsForScreen(plan, { now });   // never the stored or factory settings in its place (lead4.md D1)
 
 // ---- the boxes (Living on it) ---------------------------------------------------------------------------------------------
 

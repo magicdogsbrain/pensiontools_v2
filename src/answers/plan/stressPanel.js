@@ -52,7 +52,7 @@
  * (`ageRule`, services/AgeConvention.js); `engineVersion` the app's version. The kept lines' risk has one record, the
  * keep agreement on What you hold: the held rows show its state and never write.
  */
-import { effectiveStressSettings } from '../../services/PlanReading.js';
+import { effectiveStressSettings, settingsForScreen } from '../../services/PlanReading.js';
 import { holdingsKeyOf, amendmentsOf, amendmentsWithout, documentAtOf, keepsLines } from '../../services/PlanAmendments.js';
 import { isClosedPlan } from '../../services/PlanClosed.js';
 import { budgetAgesKnown } from '../../services/BudgetModel.js';
@@ -115,7 +115,7 @@ export const lockedLadderOf = (plan, strategyId) => {
 /** The rows this plan shows (see the header). */
 export function rowsFor(plan, { settings = null, today = null } = {}) {
   let s = isObj(settings) ? settings : null;
-  if (!s) { try { s = today ? effectiveStressSettings(plan, { now: dateOf(today) }) : storedStressOf(plan); } catch { s = storedStressOf(plan); } }
+  if (!s) s = today ? settingsForScreen(plan, { now: dateOf(today) }) : storedStressOf(plan);   // never the stored copy in place of a reading that failed (lead4.md D1)
   const strategyId = s.strategyId || 'pots-and-valves';
   const ladder = lockedLadderOf(plan, strategyId);
   const rows = [{ id: 'asPlanned', ref: null, na: null }];
@@ -174,7 +174,7 @@ export function stressPanelView(plan, rows, { level = null, today, settings = nu
   const closed = isClosedPlan(plan);
   const keep = keepStateOf(keepsLines(plan && plan.holdings) ? keepTestOf(plan, { today }) : null);
   let s = isObj(settings) ? settings : null;
-  if (!s) { try { s = effectiveStressSettings(plan, { now: dateOf(today) }); } catch { s = storedStressOf(plan); } }
+  if (!s) s = settingsForScreen(plan, { now: dateOf(today) });   // never the stored copy in place of a reading that failed (lead4.md D1)
   const ctx0 = contextOf(plan, s, today);
   const rows0 = rowsFor(plan, { settings: s, today }).map((row) => {
     const res = fresh(row.id);

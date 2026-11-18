@@ -195,16 +195,17 @@ describe('index.html: the banner is the module\'s', () => {
   // 7.11.0: the banner sets the way back to the simple view (#classicToSimple) to the plan that is open, so every way the
   // plan menu changes the open plan without a reload redraws it — a switch, and a delete of the open plan (which opens
   // another: ScenarioRepository.deleteScenario); before, a delete left the way back on the plan that was gone
+  // step S (lead4.md R2): a switch and a delete go through changePlan → repaintPlan (src/ui/repaintPlan.js), which draws the
+  // plan menu again and then the banner, after the plan has changed
   it('the plan menu redraws the banner after a switch and after a delete, once the menu is drawn again', () => {
     const block = (from, to) => { const a = html.indexOf(from); const b = html.indexOf(to, a + from.length); expect(a, from).toBeGreaterThan(-1); expect(b, to).toBeGreaterThan(a); return html.slice(a, b); };
-    const redraw = /await renderScenarioSelector\(\); updateNextStepBanner\(\);/;
-    const switching = block('// Click to switch scenario', '// Rename buttons');
-    expect(switching).toContain('await switchScenario(id);');
-    expect(switching).toMatch(redraw);
-    expect(switching.indexOf('await switchScenario(id);')).toBeLessThan(switching.search(redraw));
-    const deleting = block('// Delete buttons', 'showToast(\'Failed to delete plan: \'');
-    expect(deleting).toContain('await deleteScenario(id);');
-    expect(deleting).toMatch(redraw);
-    expect(deleting.indexOf('await deleteScenario(id);')).toBeLessThan(deleting.search(redraw));
+    expect(block('// Click to switch scenario', '// Rename buttons')).toContain("await changePlan('switch', () => switchScenario(id));");
+    expect(block('// Delete buttons', 'showToast(\'Failed to delete plan: \'')).toContain("await changePlan('delete', () => deleteScenario(id));");
+    const mod = readFileSync('src/ui/repaintPlan.js', 'utf8');
+    const forms = mod.slice(mod.indexOf('async function repaintForms('), mod.indexOf('/** A Decision page drawn'));
+    expect(forms.indexOf('await d.renderScenarioSelector();')).toBeGreaterThan(-1);
+    expect(forms.indexOf('await d.renderScenarioSelector();')).toBeLessThan(forms.indexOf('win.updateNextStepBanner'));
+    const change = mod.slice(mod.indexOf('async function changePlanNow('));
+    expect(change.indexOf('await change();')).toBeLessThan(change.indexOf('await repaintPlanNow(reason);'));
   });
 });

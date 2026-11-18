@@ -23,7 +23,7 @@
  * Every path written is in schema.js HOUSEHOLD_WRITES (tested), or, on a draft read from an earlier start, LATER_DRAFT_WRITES.
  */
 import { householdStartsOf, startsWords } from '../../services/HouseholdStarts.js';
-import { effectiveStressSettings } from '../../services/PlanReading.js';
+import { settingsForScreen } from '../../services/PlanReading.js';
 import { testReadyOf } from '../../services/PlanFigures.js';
 import { personProfile, splitFingerprint, SPLIT_HEADLINE_MIN, settingsWithSchedule, noSplitWords } from '../../services/HouseholdDraw.js';
 import { isLockedPlan, splitWriteMode, shapeWords, splitCopyNames, SPLIT_KEYS } from '../../services/HouseholdSplitApply.js';
@@ -59,7 +59,7 @@ const r0 = (v) => Math.round(+v || 0);
 // the figure beside its words, never rounded across a line where the words change (OneAnswer.pctBesideWords, 7.12.0)
 const pct = (share) => pctBesideWords(+share || 0).replace(/%$/, '');
 const inTen = (share) => futuresOutOfTen(+share || 0).words;
-const safeSettings = (plan, now) => { try { return effectiveStressSettings(plan, { now }); } catch { return (plan && plan.stressTool && isObj(plan.stressTool.settings)) ? plan.stressTool.settings : {}; } };
+const safeSettings = (plan, now) => settingsForScreen(plan, { now });   // never the stored or factory settings in its place (lead4.md D1)
 
 /** The plan linked to `plan`, either way (6): its own link first, else the first plan that points at it (services/HouseholdLink.js). */
 export { partnerOf };

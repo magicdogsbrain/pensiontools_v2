@@ -186,6 +186,15 @@ export function effectiveStressSettings(scenario, { now = new Date(), env = {} }
 }
 
 /**
+ * The settings as read, for a screen (lead4.md D1): effectiveStressSettings, or — when the plan cannot be read — empty
+ * settings that say so (`readFault`), never the settings as stored or the factory ones in their place. Both views then say
+ * the same plain words (src/reading/readFault.js READ_FAULT_WORDS).
+ */
+export function settingsForScreen(scenario, { now = new Date() } = {}) {
+  try { return effectiveStressSettings(scenario, { now }); } catch (e) { return { readFault: true }; }
+}
+
+/**
  * The pots when you stop, as read (7.12.0; services/PotsAtStop.js), in memory only: a plan still saving and not locked
  * reads them worked out from its own facts (or the person's own typed figure); a locked plan reads the figure its plan
  * document was locked with; anything else as stored. Nothing is written.

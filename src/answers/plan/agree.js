@@ -30,7 +30,7 @@
 import { planPage, dateOf } from './read.js';
 import { reviewEntryOf, reviewRunKeyOf, runInputsOf, readingOf } from './review.js';
 import { stressAmendPatch, fingerprintOf, WHOLE_ID } from './stressPanel.js';
-import { effectiveStressSettings, moveInputs } from '../../services/PlanReading.js';
+import { settingsForScreen, moveInputs } from '../../services/PlanReading.js';
 import { driftOf } from '../../services/TransitionPlanner.js';
 import { phasesPatch, storedAgreementOf, strategyIdOf } from '../../services/Phases.js';
 import { amendmentsOf, amendmentsWithout, documentAtOf } from '../../services/PlanAmendments.js';
@@ -47,9 +47,7 @@ const BUCKETS = ['shares', 'bonds', 'cash', 'diversifiers'];
 /** How far a bucket may move from what was accepted, in points of the pension, before the agreement says it has moved. */
 export const MOVED_POINTS = 5;
 
-function safeSettings(plan, now) {
-  try { return effectiveStressSettings(plan, { now }); } catch { return (plan && plan.stressTool && plan.stressTool.settings) || {}; }
-}
+const safeSettings = (plan, now) => settingsForScreen(plan, { now });   // never the stored or factory settings in its place (lead4.md D1)
 const isWhole = (e) => e && e.kind === 'asHeld' && isObj(e.test) && e.test.id === WHOLE_ID;
 
 /** What is held now, against the mix the plan moves to (PlanReading.moveInputs `fromSettings`), and in whole points. */

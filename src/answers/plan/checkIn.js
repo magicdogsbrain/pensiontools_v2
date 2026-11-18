@@ -45,7 +45,7 @@
  *
  * Pure: no clock (the day and the moment arrive as `today` and `now`), no storage, no runs.
  */
-import { effectiveStressSettings, planStage } from '../../services/PlanReading.js';
+import { settingsForScreen, planStage } from '../../services/PlanReading.js';
 import { deriveTiming } from '../../services/PlanTiming.js';
 import { saverReading, potRecordOf, pathCountsIsa, pathStart, savingPathVersion } from '../../services/SaverReading.js';
 import { buildSavingPath } from '../../services/SavingPath.js';
@@ -100,9 +100,7 @@ const bytesOf = (v) => new TextEncoder().encode(JSON.stringify(v)).length;
 function safeStage(plan, now) {
   try { return planStage(plan, { now }); } catch { return { key: 'unknown' }; }
 }
-function safeSettings(plan, now) {
-  try { return effectiveStressSettings(plan, { now }); } catch { return (plan && plan.stressTool && plan.stressTool.settings) || {}; }
-}
+const safeSettings = (plan, now) => settingsForScreen(plan, { now });   // never the stored or factory settings in its place (lead4.md D1)
 
 // ---- reading what is stored ----------------------------------------------------------------------------------------------
 

@@ -5,6 +5,7 @@
  */
 import { cloneSafe } from '../utils/cloneSafe.js';
 import { trackBusy } from '../reading/busy.js';
+import { todayOf } from '../reading/clock.js';
 
 let worker = null;
 let seq = 0;
@@ -41,6 +42,8 @@ export function runInWorker(type, payload, onProgress) {
     try { w = get(); } catch (e) { reject(e); return; }
     const id = ++seq;
     pending.set(id, { resolve, reject, onProgress });
-    try { w.postMessage({ id, type, payload: cloneSafe(payload) }); } catch (e) { pending.delete(id); reject(e); }
+    // every job carries the one clock (src/reading/clock.js): the worker sees the plan from the page's day
+    const withNow = payload && typeof payload === 'object' && payload.now == null ? { ...payload, now: todayOf().toISOString() } : payload;
+    try { w.postMessage({ id, type, payload: cloneSafe(withNow) }); } catch (e) { pending.delete(id); reject(e); }
   }), 'worker');
 }

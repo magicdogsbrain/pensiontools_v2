@@ -131,3 +131,13 @@ describe('a save writes only the change, onto the plan as stored (lead4.md D1, R
     expect((await getStressSettingsAsync()).baseSalary).toBe((+before.baseSalary || 0) + 1000);
   });
 });
+
+describe('the simple view\'s screens read the same way (PlanReading.settingsForScreen)', () => {
+  it('a plan that cannot be read gives empty settings that say so, never the stored copy', async () => {
+    const { settingsForScreen } = await import('../../src/services/PlanReading.js');
+    const plan = upgradeScenario(fs.clone({ id: 'p1', ...fixture('02-pnv-draft') })).scenario;
+    expect(settingsForScreen(plan, { now: todayOf() })).toEqual(effectiveStressSettings(plan, { now: todayOf() }));
+    Object.defineProperty(plan.stressTool, 'settings', { get() { throw new Error('broken'); }, configurable: true });
+    expect(settingsForScreen(plan, { now: todayOf() })).toEqual({ readFault: true });
+  });
+});

@@ -19,7 +19,7 @@
  * Every path written is in schema.js ABOUT_WRITES (tested); a key is sent only when its value changes.
  */
 import { deriveTiming, taxYearStartOf, taxYearLabel, ageOnDate, staleDraft, stoppedWorkOf, taxYearOfMonth, hasStopped } from '../../services/PlanTiming.js';
-import { effectiveStressSettings, historyAscending, laterDraftReading } from '../../services/PlanReading.js';
+import { effectiveStressSettings, settingsForScreen, historyAscending, laterDraftReading } from '../../services/PlanReading.js';
 import { accumulationAgesOf } from '../../services/LifeStage.js';
 import { longevityAge } from '../../services/LongevityModel.js';
 import { grossToNet } from '../../services/TaxCalculator.js';
@@ -94,9 +94,7 @@ export function parseMonth(s) {
 const monthKey = (p) => p.y + '-' + String(p.m).padStart(2, '0');
 
 /** The effective settings, or the stored ones when the planner's reading throws (income.js reads these too). */
-export function safeSettings(plan, now) {
-  try { return effectiveStressSettings(plan, { now }); } catch { return (plan && plan.stressTool && plan.stressTool.settings) || {}; }
-}
+export const safeSettings = (plan, now) => settingsForScreen(plan, { now });   // never the stored or factory settings in its place (lead4.md D1)
 export function safeTiming(ss, now) {
   // a plan the timing cannot be read from starts this tax year, as a plan with no age does (7.4.0)
   try { return deriveTiming(ss, now); } catch { const ty = taxYearStartOf(now); return { mode: 'legacy', firstTaxYear: ty, shapeAgeNow: num(ss.shapeAgeNow) || 57, currentAge: null, retireAge: null, startMonth: ty + '-04', yearsToStart: 0 }; }

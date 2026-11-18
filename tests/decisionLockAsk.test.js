@@ -141,8 +141,8 @@ describe('index.html: the Decision tool asks before the month that would lock, a
     expect(f.indexOf('seedDecisionFromStress(')).toBeGreaterThan(0);
     expect(f.indexOf('seedDecisionFromStress(')).toBeLessThan(f.indexOf('lockPlanIfNeeded(reason)'));
     expect(f.indexOf('lockPlanIfNeeded(reason)')).toBeLessThan(f.indexOf('buildPlanDocumentNow(reason'));   // retaken in 7.12.0: it may pass the run the lock's fit was read from
-    expect(f).toContain('refreshDecisionLock()');
-    expect(f).toContain('refreshLifeStage()');
+    expect(f).toContain("repaintPlan('lock')");   // step S: every tab, the lock banners and the stage follow the lock (src/ui/repaintPlan.js)
+    expect(f.indexOf('buildPlanDocumentNow(reason')).toBeLessThan(f.indexOf("repaintPlan('lock')"));
   });
   // retaken in 7.12.0: the button's handler moved to src/ui/lockFromStressUi.js (it reads the lock's fit before it locks)
   it('the Stress settings button saves the form, then takes the same route', () => {

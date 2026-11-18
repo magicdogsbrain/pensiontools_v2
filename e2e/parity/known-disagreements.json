@@ -33,14 +33,6 @@
     "500000"
    ]
   },
-  "age-only|field:saving.escalationPct": {
-   "full:accumulation": [
-    "0"
-   ],
-   "simple:saving": [
-    ""
-   ]
-  },
   "age-only|field:spend.first": {
    "full:stress settings": [
     ""
@@ -1008,14 +1000,6 @@
     "0"
    ],
    "simple:income": [
-    ""
-   ]
-  },
-  "couple|field:saving.escalationPct": {
-   "full:accumulation": [
-    "0"
-   ],
-   "simple:saving": [
     ""
    ]
   },
@@ -6412,14 +6396,6 @@
    ],
    "simple:pots": [
     "500000"
-   ]
-  },
-  "wizard-defaults|field:saving.escalationPct": {
-   "full:accumulation": [
-    "0"
-   ],
-   "simple:saving": [
-    ""
    ]
   },
   "wizard-defaults|field:spend.first": {

@@ -131,7 +131,11 @@ export async function loadDecisionDBAsync() {
   // Check cache: an unlocked plan's settings follow its Stress settings, so they are read again when those have changed
   if (cachedDecisionDB) {
     if (cachedFrom && isFirebaseAvailable()) {
+      const was = cachedDecisionDB;
       const sc = await getActiveScenarioAsync().catch(() => null);
+      // The copy was dropped (a write's repaint) or replaced while the plan was read: read again from the start, never
+      // refresh a copy that is no longer the one held (a half copy, the settings alone, failed every later save).
+      if (cachedDecisionDB !== was) return loadDecisionDBAsync();
       if (sc && !planLocked(sc) && !sameSources(cachedFrom, sourcesOf(sc))) {
         cachedDecisionDB = { ...cachedDecisionDB, settings: settingsAsRead(sc, sc.decisionTool && sc.decisionTool.settings) };
         cachedDecisionDB.checksum = generateDecisionChecksum(cachedDecisionDB);

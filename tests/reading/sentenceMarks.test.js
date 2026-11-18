@@ -57,3 +57,20 @@ describe('the full view draws the same marks', () => {
     expect(saverSlotsOf('now.share')).toBe(saverSlotsOf('now.pounds'));
   });
 });
+
+describe('the mix by bucket (mix.held.#, mix.plan.#)', () => {
+  it('the full view\'s held-mix line marks the same numbers the simple view\'s slots hold', async () => {
+    const { HELD_MIX_FINDS, HELD_MIX_SLOTS, PLAN_MIX_SLOTS } = await import('../../src/reading/sentenceMarks.js');
+    const { markWithin } = await import('../../src/reading/mark.js');
+    const { describeMix } = await import('../../src/services/Holdings.js');
+    const { mixWords } = await import('../../src/answers/plan/hold.js');
+    const p = { total: 100000, buckets: { shares: 0.78, bonds: 0.17, diversifiers: 0, cash: 0.05 }, weightedOcf: 0.0018, expectedReal: 0.043, untagged: [] };
+    const html = markWithin(esc(describeMix(p)), HELD_MIX_FINDS);
+    const marked = Object.fromEntries([...html.matchAll(/data-fact="([^"]+)">([^<]*)</g)].map((m) => [m[1], m[2]]));
+    const w = mixWords(p);
+    expect(marked).toEqual({ 'mix.held.shares': w.shares, 'mix.held.bonds': w.bonds, 'mix.held.cash': w.cash });   // a bucket the line leaves out is not marked
+    expect(unmarked(html)).toBe(esc(describeMix(p)));   // "0.18%/yr" is never taken for a bucket
+    expect(Object.keys(HELD_MIX_SLOTS)).toEqual(['shares', 'bonds', 'diversifiers', 'cash']);
+    expect(PLAN_MIX_SLOTS.shares).toBe('mix.plan.shares');
+  });
+});

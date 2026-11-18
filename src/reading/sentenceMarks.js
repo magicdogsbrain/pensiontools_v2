@@ -14,7 +14,7 @@
  */
 import { partText } from '../answers/shared/format.js';
 import { markFact } from './mark.js';
-import { FACT } from './facts.js';
+import { FACT, BUCKETS, factId } from './facts.js';
 
 export function groupParts(parts, source, { keys = {}, finds = [] } = {}) {
   // each part with its text; strings may be split at a find's edges
@@ -115,3 +115,14 @@ export const TAKEN_FACTS = Object.freeze({ drawn: FACT.TAKEN_YEAR });
 
 /** The household's headline (HOUSEHOLD.verdict.headline, both views): its chance in words. */
 export const HOUSEHOLD_CHANCE = Object.freeze({ words: FACT.HOUSEHOLD_CHANCE });
+
+/**
+ * The mix by bucket, as a share of the whole in whole percent: the mark holds the number, the "%" is the words' (the simple
+ * view's copy writes "Shares {shares}%", so its slot is the number). The held mix (Holdings.proportions, both views) and the
+ * plan's own mix (the plan document's first year, both views).
+ */
+const bucketMarks = (pattern) => Object.freeze(Object.fromEntries(BUCKETS.map((b) => [b, factId(pattern, b)])));
+export const HELD_MIX_SLOTS = bucketMarks(FACT.MIX_HELD);
+export const PLAN_MIX_SLOTS = bucketMarks(FACT.MIX_PLAN);
+/** The full view's one line of the held mix (Holdings.describeMix: "78% shares · 17% bonds · 5% cash; cost …"). */
+export const HELD_MIX_FINDS = Object.freeze(BUCKETS.map((b) => [new RegExp('(\\d+)% ' + b + '\\b'), HELD_MIX_SLOTS[b]]));

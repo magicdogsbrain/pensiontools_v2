@@ -13,6 +13,7 @@
 import { PlanRail, changeAction, EditField, UndoToast, fill, Button, LinkButton, stepNameOf } from '../../components/index.js';
 import { LOCK_DATE } from '../../components/facts.js';
 import { fillMarked } from '../../components/PlanFigures.jsx';
+import { HELD_MIX_SLOTS } from '../../../reading/sentenceMarks.js';
 import { planView, planHoldView, planKeepTestView } from '../../state/select.js';
 import { href } from '../../router/routes.js';
 import { PLAN } from '../../copy/plan.js';
@@ -356,7 +357,7 @@ function Mix({ V }) {
       <h2>{W.sections.mix}</h2>
       {V.mix ? (
         <>
-          <p class="line" data-testid={`${T}.mix.line`}>{fill(M.line, V.mix)}</p>
+          <p class="line" data-testid={`${T}.mix.line`}>{fillMarked(M.line, V.mix, HELD_MIX_SLOTS)}</p>
           <p class="note" data-testid={`${T}.mix.charge`}>{fill(M.charge, V.mix)}</p>
           {V.mix.untagged.length > 0 && <p class="note" data-testid={`${T}.mix.notCounted`}>{fill(M.notCounted, { list: V.mix.untagged.join(', ') })}</p>}
         </>

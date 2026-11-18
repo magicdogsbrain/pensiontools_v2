@@ -17,6 +17,8 @@
 import { PlanRail, changeAction, UndoToast, fill, Button, LinkButton, stepNameOf } from '../../components/index.js';
 import { LOCK_DATE } from '../../components/facts.js';
 import { fillMarked } from '../../components/PlanFigures.jsx';
+import { PLAN_MIX_SLOTS } from '../../../reading/sentenceMarks.js';
+import { TABLES } from '../../../reading/facts.js';
 import { planView, planMoveView, planKeepTestView } from '../../state/select.js';
 import { KeepTestLine } from './KeepTest.jsx';
 import { href } from '../../router/routes.js';
@@ -164,7 +166,7 @@ function Waiting({ V }) {
     <section class="plan-section" data-section="waiting" data-testid={`${T}.waiting`}>
       <p class="figure" data-testid={`${T}.waiting.line`}>{V.opens ? fill(S.line, { years: V.yearsToStart, opens: V.opens }) : fill(S.lineSoon, { years: V.yearsToStart })}</p>
       {V.newMoney ? <p class="line" data-testid={`${T}.waiting.newMoney`}>{fill(S.newMoney, { parts: V.newMoney.parts.map((p) => fill(S.newMoneyPart, p)).join(', '), monthly: V.newMoney.monthly })}</p> : <p class="note" data-testid={`${T}.waiting.noNewMoney`}>{S.newMoneyNone} <a href={href.plan(V.id, 'hold')}>{W.buttons.hold}</a></p>}
-      {V.planMix && <p class="line" data-testid={`${T}.waiting.planMix`}>{fill(S.planMix, V.planMix)}</p>}
+      {V.planMix && <p class="line" data-testid={`${T}.waiting.planMix`}>{fillMarked(S.planMix, V.planMix, PLAN_MIX_SLOTS)}</p>}
       {V.held && <p class="line" data-testid={`${T}.waiting.heldMix`}>{fill(S.heldMix, V.held.pcts)}</p>}
       {V.startsAround && <p class="note" data-testid={`${T}.waiting.starts`}>{fill(S.starts, { when: V.startsAround })}</p>}
     </section>
@@ -293,7 +295,7 @@ const grouped = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 function SheetUnits({ r, S, held }) {
   const toOrder = !held && r.part && r.part.toBuy > 0 ? r.part.toBuy : +r.nominal;
   return (<>
-    <strong>{grouped(toOrder)}</strong><br /><span class="note">{fill(S.lots, { lots: grouped(Math.round(toOrder / 100)) })}</span>
+    <strong data-row={r.tidm} data-col="units">{grouped(toOrder)}</strong><br /><span class="note">{fill(S.lots, { lots: grouped(Math.round(toOrder / 100)) })}</span>
     {!held && r.part && r.part.toBuy > 0 && <><br /><span class="note" data-testid="plan.move.sheet.partHeld">{fill(S.partHeld, { held: grouped(r.part.heldUnits), plan: grouped(r.nominal) })}</span></>}
   </>);
 }
@@ -319,13 +321,13 @@ function Sheet({ V, dispatch }) {
       <p class="note">{fill(held ? S.leadHeld : S.lead, { date: V.pricedOn || '' })}</p>
       {(!held || V.sheet.some((r) => r.bought === 'part' || r.bought === 'not yet')) && <p class="note">{S.order}</p>}
       <div class="table-wrap">
-        <table class="way-table" data-testid={`${T}.sheet.table`}>
+        <table class="way-table" data-testid={`${T}.sheet.table`} data-fact-table={TABLES.LADDER}>
           <thead><tr><th>{S.columns.n}</th><th>{held ? S.gilt : S.columns.buy}</th>{held && <th>{S.columns.bought}</th>}<th>{S.columns.code}</th><th>{S.columns.sedol}</th><th>{S.columns.matures}</th><th>{S.columns.pays}</th><th>{S.columns.years}</th><th>{held ? S.units : S.columns.units}</th><th>{S.columns.price}</th><th>{S.columns.cost}</th>{!held && <th>{S.columns.bought}</th>}</tr></thead>
           <tbody>{V.sheet.map((r) => (
             <tr key={r.n} data-rung={r.n} data-bought={r.bought || ''}>
-              <td>{r.n}</td><td>{r.name}</td>{held && <td>{bought(r)}</td>}<td>{r.tidm}</td><td>{r.sedol}</td><td>{r.matures}</td><td>{r.pays}</td><td>{r.taxYears.join(', ')}{r.taxYears.length > 1 ? ' ' + S.surplus : ''}</td>
+              <td>{r.n}</td><td>{r.name}</td>{held && <td>{bought(r)}</td>}<td>{r.tidm}</td><td>{r.sedol}</td><td data-row={r.tidm} data-col="matures">{r.matures}</td><td data-row={r.tidm} data-col="pays">{r.pays}</td><td>{r.taxYears.join(', ')}{r.taxYears.length > 1 ? ' ' + S.surplus : ''}</td>
               <td>{gated ? S.withheld : r.nominal ? <SheetUnits r={r} S={S} held={held} /> : '—'}</td>
-              <td>{gated ? S.withheld : r.cleanPrice || '—'}</td><td>{gated ? S.withheld : r.cost}</td>{!held && <td>{bought(r)}</td>}
+              <td>{gated ? S.withheld : r.cleanPrice || '—'}</td><td>{gated ? S.withheld : <span data-row={r.tidm} data-col="cost">{r.cost}</span>}</td>{!held && <td>{bought(r)}</td>}
             </tr>
           ))}</tbody>
         </table>

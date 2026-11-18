@@ -97,8 +97,9 @@ export const TABLES = Object.freeze({
   LADDER: 'ladder'
 });
 
-/** The keys an indexed fact takes: the mix buckets and the wrappers by their stored names; steps, pensions and lumps by number. */
-export const BUCKETS = Object.freeze(['equity', 'bond', 'cash', 'diversifier', 'gilts']);
+/** The keys an indexed fact takes: the mix buckets as the held mix names them (Holdings.proportions), the wrappers by their
+ * stored names; steps, pensions and lumps by number. */
+export const BUCKETS = Object.freeze(['shares', 'bonds', 'diversifiers', 'cash']);
 export const WRAPPERS = Object.freeze(['sipp', 'isa', 'gia', 'cash']);
 
 const PATTERNS = Object.freeze(Object.values(FACT));

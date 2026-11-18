@@ -17,7 +17,7 @@ import { PLAN } from '../../v7/copy/plan.js';
 import { lockedShortOf } from '../../services/PlanCommit.js';
 import { STRESS as STRESS_ON } from '../../answers/shared/rules.js';
 import { markFact } from '../../reading/mark.js';
-import { GUARDRAIL_FACTS, TAKEN_FACTS, sentenceHtml } from '../../reading/sentenceMarks.js';
+import { GUARDRAIL_FACTS, TAKEN_FACTS, PLAN_MIX_SLOTS, sentenceHtml } from '../../reading/sentenceMarks.js';
 
 const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 const dateGB = (iso) => { const d = new Date(iso); return Number.isFinite(d.getTime()) ? d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : ''; };
@@ -192,7 +192,7 @@ export function planDocumentHtml(doc, r = {}) {
     pf += '<p>A contract strategy: the plan\'s target holding IS the ladder in section 2 — the order sheet lists every gilt and the cash years, and "what arrives when" shows the rung that pays each tax year. Nothing is sold; each year\'s matured rung pays that year. The Transition tool takes you from what you held (above) to the order sheet.</p>';
   } else if (d.targetMix?.length) {
     pf += '<div class="section-title" style="font-size:13px;margin-top:10px;">Target mix by plan year</div>'
-      + table(['Plan year', 'Shares', 'Bonds', 'Cash'], d.targetMix.map((m) => [String(m.y), m.equity + '%', m.bond + '%', m.cash + '%']))
+      + table(['Plan year', 'Shares', 'Bonds', 'Cash'], d.targetMix.map((m, i) => [String(m.y), ...[[m.equity, 'shares'], [m.bond, 'bonds'], [m.cash, 'cash']].map(([v, b]) => (i === 0 ? markFact(PLAN_MIX_SLOTS[b], esc(String(v))) : esc(String(v))) + '%')]))   // the plan's own mix: its first year marked (mix.plan.#), as the move step says it
       + '<p class="hint">' + esc(mixWords(d.strategy?.id, { allocMode: P.allocation?.allocMode })) + '</p>';
     if (P.allocation?.taggedFunds?.length) pf += '<div class="section-title" style="font-size:13px;margin-top:10px;">Funds the strategy was tested on</div>'
       + table(['Fund', 'Wrapper', 'Value in the test'], P.allocation.taggedFunds.map((f) => [esc(f.name || f.ticker || ''), esc(f.wrapper || ''), gbp(f.value)]))

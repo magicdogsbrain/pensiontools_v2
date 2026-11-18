@@ -140,7 +140,9 @@ export function prefillMonthlyEntry(history, opts) {
  */
 export function openMonthlyEntry(history, opts) {
   const t = monthToRecord({ decisionTool: { history: Array.isArray(history) ? history : [] } }, thisMonth());
-  if (t.month) setVal('entryMonth', t.month);
+  // the box moved: tell the form, so the line under Calculate names the same month as the box (7.12.0 round 3, walker 10:
+  // "Press Calculate to work out November 2026" beside a box set to October); an input event, so nothing is filled twice
+  if (t.month && t.month !== (el('entryMonth') && el('entryMonth').value)) { setVal('entryMonth', t.month); const b = el('entryMonth'); if (b) b.dispatchEvent(new Event('input', { bubbles: true })); }
   return prefillMonthlyEntry(history, opts);
 }
 

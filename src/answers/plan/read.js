@@ -938,6 +938,17 @@ function holdStep(C) {
   return { done: has, result, figures, lines, buttons: [link('changeHold', '#/plan/' + plan.id + '/hold')], notes: [] };
 }
 
+/** The last monthly record's pots as shares of 100 by bucket ({ month, pct }), or null when it has none. */
+function recordSplitOf(plan) {
+  const hist = historyAscending(plan);
+  const h = hist.length ? hist[hist.length - 1] : null;
+  if (!h) return null;
+  const v = { shares: +h.equity || 0, bonds: +h.bond || 0, diversifiers: +h.diversifier || 0, cash: +h.cash || 0 };
+  const total = v.shares + v.bonds + v.diversifiers + v.cash;
+  if (!(total > 0)) return null;
+  return { month: String(h.date || '').slice(0, 7), pct: Object.fromEntries(Object.entries(v).map(([k, x]) => [k, Math.round(x / total * 100)])) };
+}
+
 /** Moving to your plan's mix (2.3 `move`). */
 function moveStep(C) {
   const { plan, now, life } = C;
@@ -964,6 +975,20 @@ function moveStep(C) {
     result = sentence('move.' + st.id, st.id === 'giltsPart'
       ? [count('bought'), ' of ', count('rungs'), ' gilts bought, and ', count('part'), ' part bought. ', count('heldPct'), '% of your plan’s mix is held.']
       : [count('bought'), ' of ', count('rungs'), ' gilts bought. ', count('heldPct'), '% of your plan’s mix is held.'], figures);
+  } else if (asHeld && m.target.kind === 'buckets' && !normaliseHoldings(plan.holdings).lines.length && recordSplitOf(plan)) {
+    // living on a pot plan with nothing listed (7.12.0 round 3, walker 6: "0% of the plan's mix held" beside months recorded
+    // with every pot): the last month's record is what is held, set beside the plan's mix — facts, never a share "held"
+    const rs = recordSplitOf(plan);
+    const planPct = Object.fromEntries((m.target.lines || []).map((l) => [l.bucket, Math.round(+l.pct || 0)]));
+    const parts = [];
+    for (const b of ['shares', 'bonds', 'diversifiers', 'cash']) {
+      if (!(rs.pct[b] > 0) && !(planPct[b] > 0)) continue;
+      figures['rec_' + b] = rs.pct[b] || 0;
+      parts.push(parts.length ? ', ' : '', (b === 'diversifiers' ? 'gold and trend ' : b + ' '), count('rec_' + b), '%');
+    }
+    const planWords = ['shares', 'bonds', 'diversifiers', 'cash'].filter((b) => planPct[b] > 0).map((b) => String(planPct[b])).join(' / ');
+    result = sentence('move.fromRecord', ['From ', { fixed: monthWords(rs.month) }, '’s record: ', ...parts, ' (your plan: ', { fixed: planWords }, ')'], figures);
+    unlisted = true;   // nothing listed: no "% of the plan's mix held" line under it
   } else if (asHeld && typeof m.diff.progressPct === 'number') {
     figures.heldPct = m.diff.progressPct;
     result = sentence('move.heldShare', [count('heldPct'), '% of the plan’s mix held'], figures);

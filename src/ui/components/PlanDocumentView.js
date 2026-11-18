@@ -17,6 +17,7 @@ import { PLAN } from '../../v7/copy/plan.js';
 import { lockedShortOf } from '../../services/PlanCommit.js';
 import { STRESS as STRESS_ON } from '../../answers/shared/rules.js';
 import { markFact } from '../../reading/mark.js';
+import { GUARDRAIL_FACTS, TAKEN_FACTS, sentenceHtml } from '../../reading/sentenceMarks.js';
 
 const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 const dateGB = (iso) => { const d = new Date(iso); return Number.isFinite(d.getTime()) ? d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : ''; };
@@ -69,8 +70,8 @@ export function planDocumentHeaderHtml(doc) {
   const d = doc || {};
   const asOf = potsAsOfWords(d);
   return '<div class="rpt-header"><h1>Plan document — ' + esc(d.planName || 'My plan') + '</h1>'
-    + '<div class="rpt-sub">Locked ' + esc(dateGB(d.lockedAt)) + (d.createdAt && d.createdAt !== d.lockedAt ? ' · document created ' + esc(dateGB(d.createdAt)) : '') + ' · PensionTools v' + esc(d.appVersion || '') + ', engine ' + esc(d.engineVersion || '') + '</div>'
-    + '<table class="rpt-meta"><tr><td>Strategy</td><td>' + esc(strategyNameOf(d.strategy) || '—') + '</td><td>' + (startedAtLock(d) ? 'Plan started' : 'Plan starts') + '</td><td>' + esc(d.decisionRun?.year0 || '—') + (asOf ? ' (locked in plan year ' + asOf.planYear + ')' : '') + '</td></tr>'
+    + '<div class="rpt-sub">Locked ' + markFact('lock.date', esc(dateGB(d.lockedAt))) + (d.createdAt && d.createdAt !== d.lockedAt ? ' · document created ' + esc(dateGB(d.createdAt)) : '') + ' · PensionTools v' + esc(d.appVersion || '') + ', engine ' + esc(d.engineVersion || '') + '</div>'
+    + '<table class="rpt-meta"><tr><td>Strategy</td><td>' + (strategyNameOf(d.strategy) ? markFact('way.name', esc(strategyNameOf(d.strategy))) : '—') + '</td><td>' + (startedAtLock(d) ? 'Plan started' : 'Plan starts') + '</td><td>' + esc(d.decisionRun?.year0 || '—') + (asOf ? ' (locked in plan year ' + asOf.planYear + ')' : '') + '</td></tr>'
     + '<tr><td>Priced on</td><td>' + gbp(d.pots?.sipp) + (d.pots?.isa ? (d.pots.isaPolicy === 'hold' ? ', ISA ' + gbp(d.pots.isa) + ' held aside' : ' + ISA ' + gbp(d.pots.isa)) : '') + (d.pots?.gia ? ' + GIA ' + gbp(d.pots.gia) : '') + '</td><td>First step</td><td>' + (d.steps?.[0] ? gbp(d.steps[0].amount) + '/yr from age ' + esc(String(d.steps[0].fromAge)) : '—') + '</td></tr></table></div>';
 }
 
@@ -432,7 +433,9 @@ export function saverReadingText(s) {
  */
 export function incomeThisYearText(inc, { compare = true } = {}) {
   if (!inc || !inc.taxYear) return '';
-  return esc(sentenceText(takenSentence(inc, { year: inc.taxYear, compare, setUpNote: true })));
+  const said = takenSentence(inc, { year: inc.taxYear, compare, setUpNote: true });
+  // what was taken marked as the simple view marks it (lead4.md G1; the same sentence, the same figure)
+  return Array.isArray(said.parts) ? sentenceHtml(said, said.figures, { keys: TAKEN_FACTS }, esc) : esc(sentenceText(said));
 }
 
 /**
@@ -485,8 +488,14 @@ export function whereAmIHtml(w, g = null) {
   if (potText) parts.push(potText);
   if (w.ladder && w.ladder.instruction) parts.push(esc(w.ladder.instruction));
   // the guardrail reading (7.9.0; services/PlanDocument.js guardrailOf, passed in by the page): the words V7 says
-  const guard = g && STRESS_ON.guardrail && STRESS.guardrail[g.state] ? '<p class="hint" id="planDocGuardrail" data-guardrail="' + esc(g.state) + '" style="margin:6px 0 0;">' + esc(fillSlots(STRESS.guardrail[g.state], g.slots) + (g.cutsOn ? ' ' + STRESS.guardrail.cuts : '')) + '</p>' : '';
+  const guard = g && STRESS_ON.guardrail && STRESS.guardrail[g.state] ? '<p class="hint" id="planDocGuardrail" data-guardrail="' + esc(g.state) + '" style="margin:6px 0 0;">' + fillSlotsMarked(STRESS.guardrail[g.state], g.slots, GUARDRAIL_FACTS) + esc(g.cutsOn ? ' ' + STRESS.guardrail.cuts : '') + '</p>' : '';
   return '<div class="alert alert-info pd-where"><div class="section-title" style="font-size:13px;">Where you are — ' + esc(dateGB(w.today)) + '</div><p style="margin:4px 0 0;">' + parts.join(' ') + '</p>' + guard + '</div>';
 }
+/** The same, escaped, with the slots that hold a figure of the fact register marked (lead4.md G1). */
+const fillSlotsMarked = (t, slots, marks) => String(t).split(/(\{\w+\})/).map((piece) => {
+  const m = /^\{(\w+)\}$/.exec(piece);
+  if (!m || !slots || slots[m[1]] == null) return esc(piece);
+  return marks[m[1]] ? markFact(marks[m[1]], esc(String(slots[m[1]]))) : esc(String(slots[m[1]]));
+}).join('');
 /** A sentence of the shared words with its {slots} filled. */
 const fillSlots = (t, slots) => String(t).replace(/\{(\w+)\}/g, (m, k) => (slots && slots[k] != null ? String(slots[k]) : m));

@@ -14,6 +14,7 @@
  * document's figure stays above and ONE comparison line is said. Nothing here is written to the plan.
  */
 import { PlanRail, changeAction, EditField, UndoToast, OutOfTenBar, fill, Button, LinkButton, RunRing, AtLeast } from '../../components/index.js';
+import { LOCK_DATE } from '../../components/facts.js';
 import { planView, planLastsView } from '../../state/select.js';
 import { href } from '../../router/routes.js';
 import { PLAN } from '../../copy/plan.js';
@@ -35,7 +36,7 @@ function Head({ view }) {
   return (
     <div class="plan-head">
       <p class="plan-kicker">{w.title} <span class="plan-name">‘{view.name}’</span></p>
-      <p class="plan-stage-line" data-testid="plan.stageLine">{view.line ? fill(PLAN.stageLines[view.line.id], view.line.slots) : ''}{view.lockedOn ? ' ' + fill(w.lockedOn, { date: view.lockedOn }) : ''}</p>
+      <p class="plan-stage-line" data-testid="plan.stageLine">{view.line ? fill(PLAN.stageLines[view.line.id], view.line.slots) : ''}{view.lockedOn ? <> {fillMarked(w.lockedOn, { date: view.lockedOn }, LOCK_DATE)}</> : ''}</p>
       {view.readonly && <p class="notice" role="status" data-testid="plan.readonly">{w.shownAsSaved}</p>}
       {view.source === 'window' && <p class="note" data-testid="plan.windowWarning">{w.windowWarning}</p>}
     </div>
@@ -149,9 +150,9 @@ function Years({ v, L, dispatch }) {
       <div class="actions-row"><Button testid="plan.lasts.schedule" kind="quiet" aria-expanded={L.scheduleOpen ? 'true' : 'false'} aria-controls={L.scheduleOpen ? 'plan.lasts.schedule.table' : undefined} onClick={() => toggle('lastsSchedule')} {...keepFocus}>{L.scheduleOpen ? Y.hide : Y.show}</Button></div>
       {L.scheduleOpen && (
         <div class="table-wrap">
-          <table class="way-table lasts-table" id="plan.lasts.schedule.table" data-testid="plan.lasts.schedule.table">
+          <table class="way-table lasts-table" id="plan.lasts.schedule.table" data-testid="plan.lasts.schedule.table" data-fact-table="years">
             <thead><tr>{cols.map((c) => <th key={c} scope="col">{Y.columns[c]}</th>)}</tr></thead>
-            <tbody>{rows.map((r) => <tr key={r.year} data-year={r.year} data-age={r.age}>{cols.map((c, i) => (i === 0 ? <th key={c} scope="row">{r[c]}</th> : <td key={c}>{r[c]}</td>))}</tr>)}</tbody>
+            <tbody>{rows.map((r) => <tr key={r.year} data-year={r.year} data-age={r.age}>{cols.map((c, i) => (i === 0 ? <th key={c} scope="row" data-row={r.year} data-col={c}>{r[c]}</th> : <td key={c} data-row={r.year} data-col={c}>{r[c]}</td>))}</tr>)}</tbody>
           </table>
         </div>
       )}

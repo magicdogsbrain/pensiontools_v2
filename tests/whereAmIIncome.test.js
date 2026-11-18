@@ -16,7 +16,10 @@ import { describe, it, expect, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 vi.mock('../src/firebase/index.js', () => ({ isFirebaseConfigured: () => false, isLoggedIn: () => false }));
 import { whereAmI } from '../src/services/PlanDocument.js';
-import { whereAmIHtml, incomeThisYearText } from '../src/ui/components/PlanDocumentView.js';
+import { whereAmIHtml, incomeThisYearText as incomeThisYearHtml } from '../src/ui/components/PlanDocumentView.js';
+import { unmarked } from '../src/reading/mark.js';
+// the words as read: the figure the parity marks wrap (lead4.md G1) taken off, the text unchanged
+const incomeThisYearText = (...a) => unmarked(incomeThisYearHtml(...a));
 
 const strip = (w) => whereAmIHtml(w).replace(/<[^>]+>/g, '');
 const series = (n, f) => Array.from({ length: n }, (_, y) => f(y));

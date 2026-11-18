@@ -1,6 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
 vi.mock('../src/firebase/index.js', () => ({ isFirebaseConfigured: () => false, isLoggedIn: () => false }));
-import { transitionHtml, holdingsCardHtml, HOLDING_WRAPPERS } from '../src/ui/components/TransitionView.js';
+import { transitionHtml as transitionMarked, holdingsCardHtml as holdingsCardMarked, HOLDING_WRAPPERS } from '../src/ui/components/TransitionView.js';
+import { unmarked } from '../src/reading/mark.js';
+// the HTML as these tests read it: the parity marks (lead4.md G1) taken off, everything else as drawn
+const transitionHtml = (a) => unmarked(transitionMarked(a));
+const holdingsCardHtml = (a) => unmarked(holdingsCardMarked(a));
 import { targetHoldings, diffHoldings, sequence, progress } from '../src/services/TransitionPlanner.js';
 import { rotationStatus } from '../src/services/RotationStatus.js';
 import { parse } from '../src/ui/inlineHandlers.js';

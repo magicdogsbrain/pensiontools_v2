@@ -5,6 +5,9 @@
  * the hand-over (plan/change); without an account the warning says what to press there.
  */
 import { PlanRail, changeAction, PlanLine, PlanSentence, PlanButtons, UndoToast, fill, Button, LinkButton, Money, stepNameOf } from '../../components/index.js';
+import { LOCK_DATE } from '../../components/facts.js';
+import { GUARDRAIL_FACTS } from '../../../reading/sentenceMarks.js';
+import { fillMarked } from '../../components/PlanFigures.jsx';
 import { planView, plansView, planActionsView } from '../../state/select.js';
 import { href } from '../../router/routes.js';
 import { PLAN } from '../../copy/plan.js';
@@ -168,7 +171,7 @@ export function PlanScreen(state, dispatch) {
       <>
         <div class="plan-head">
           <p class="plan-kicker">{w.title} <span class="plan-name">{view.example ? PLAN.list.actions.exampleRow : <>‘{view.name}’</>}</span></p>
-          <p class="plan-stage-line" data-testid="plan.stageLine">{view.line ? fill(PLAN.stageLines[view.line.id], view.line.slots) : ''}{view.lockedOn ? ' ' + fill(w.lockedOn, { date: view.lockedOn }) : ''}</p>
+          <p class="plan-stage-line" data-testid="plan.stageLine">{view.line ? fill(PLAN.stageLines[view.line.id], view.line.slots) : ''}{view.lockedOn ? <> {fillMarked(w.lockedOn, { date: view.lockedOn }, LOCK_DATE)}</> : ''}</p>
           {view.readonly && <p class="notice" role="status" data-testid="plan.readonly">{w.shownAsSaved}</p>}
           {view.lockedShort && step.id === 'plan' && <p class="notice" role="status" data-testid="plan.lockedShort">{fill(PLAN.lockedShort, view.lockedShort)}</p>}
           {/* a closed plan, and the plan that carries one on (6.56.0): what came after it, or before, with the way there */}
@@ -187,7 +190,7 @@ export function PlanScreen(state, dispatch) {
             ? <p class="note" key={i}>{PLAN.notes[n] || ''}</p>
             : <p class="note" key={i}>{n.id === 'prices' ? fill(w.prices, n.slots) : n.id === 'pricesToday' ? w.pricesToday : ''}</p>))}
           {/* the guardrail reading (7.9.0): this year's draw as a share of what the pots hold, beside the start's */}
-          {step.guardrail && <p class="note" data-guardrail={step.guardrail.state} data-testid="plan.where.guardrail">{fill(STRESS.guardrail[step.guardrail.state], step.guardrail.slots)}{step.guardrail.cuts ? ' ' + STRESS.guardrail.cuts : ''}</p>}
+          {step.guardrail && <p class="note" data-guardrail={step.guardrail.state} data-testid="plan.where.guardrail">{fillMarked(STRESS.guardrail[step.guardrail.state], step.guardrail.slots, GUARDRAIL_FACTS)}{step.guardrail.cuts ? ' ' + STRESS.guardrail.cuts : ''}</p>}
           {step.id === 'plan' && step.sections && (
             <>
               {step.sections.map((sec) => <Section key={sec.id} section={sec} view={{ figures: step.figures, lockedOn: view.lockedOn, readonly: view.readonly }} onChange={onChange} />)}

@@ -154,6 +154,7 @@ export function partText(part, result) {
   if (typeof part === 'string') return part;
   if (part && 'fixed' in part) return String(part.fixed);
   const value = get(result, part.key);
+  if (part.kind === 'count') return String(Math.round(value));   // a whole number (months, gilts), as Money draws it
   return part.kind === 'age' ? ageText(value) : part.kind === 'pot' ? pot(value) : part.kind === 'pct' ? pctText(value) : money(value);
 }
 

@@ -53,5 +53,6 @@ export function saverBlockOf(verdict, run) {
     const fig = en && isObj(en.atLevel) ? en.atLevel : null;
     if (fig && payInWithinReach(r) && en.how === 'pounds' && now && now.salary > 0 && isNum(fig.payIn) && fig.payIn > 0) lines.push({ id: 'enoughShare', slots: { pct: pctOf(fig.payIn, now.salary) } });
   }
-  return { state: 'answer', status, reason: null, band, lines };
+  // (the answer itself rides along: its sentences' figures are read from it when the full view draws them marked)
+  return { state: 'answer', status, reason: null, band, lines, result: r };
 }

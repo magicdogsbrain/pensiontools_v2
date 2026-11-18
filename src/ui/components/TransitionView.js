@@ -23,6 +23,8 @@ import { heldSummaryView } from '../../answers/plan/held.js';
 import { HELD } from '../../v7/copy/held.js';
 import { PLAN } from '../../v7/copy/plan.js';
 import { LAYOUT } from '../../appLayout.js';
+import { markWithin, markFact } from '../../reading/mark.js';
+import { GILTS_HELD_FIND } from '../../reading/sentenceMarks.js';
 import { moveStatusOf, sayMoveStatus, payingOf, outsideRowsOf, moveTotalsOf, cashRowsOf, fillMove } from '../../answers/plan/moveWords.js';
 
 const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
@@ -260,7 +262,7 @@ export function holdingsCardHtml({ holdings = null, offer = null, keep = null } 
     });
     h += table(['Wrapper', 'Ticker / gilt code', 'Name', 'Units', 'Value', 'What it is', ''], rows);
     const byW = {}; for (const l of lines) { const w = String((l && l.wrapper) || 'SIPP').toUpperCase(); byW[w] = (byW[w] || 0) + (+(l && l.value) || 0); }
-    h += '<p class="hint" style="margin-top:6px;">Total ' + gbp(Object.values(byW).reduce((t, v) => t + v, 0)) + ' — ' + HOLDING_WRAPPERS.filter((w) => byW[w] > 0).map((w) => w + ' ' + gbp(byW[w])).join(' · ') + '. Units matter for gilts (the nominal); value is enough for a fund.</p>';
+    h += '<p class="hint" style="margin-top:6px;">Total ' + markFact('holdings.total', gbp(Object.values(byW).reduce((t, v) => t + v, 0))) + ' — ' + HOLDING_WRAPPERS.filter((w) => byW[w] > 0).map((w) => w + ' ' + markFact('holdings.' + w.toLowerCase(), gbp(byW[w]))).join(' · ') + '. Units matter for gilts (the nominal); value is enough for a fund.</p>';
     // What you hold counts every line, as it is (7.12.0 round 3); a pot plan's move still leaves a line nothing places out of
     // its figures until the person says what it is, and says so (6.23); on a ladder the move counts the money whatever it is
     const unplaced = keep && (keep.ladder || keep.held) ? [] : lines.filter((l) => l && needsCategory(l) && (+l.value || 0) > 0);
@@ -341,7 +343,7 @@ export function transitionHtml(a) {
     // when to buy on a ladder; a pot plan keeps when its plan starts and its window opens
     const when = ladder || totalsOnly ? '' : ' ' + esc(seq && seq.startPassed ? 'The plan has been paying since tax year ' + startLabel + '; the schedule is spread over the next ' + seq.months + ' months.'
       : (startLabel ? 'The plan’s first tax year is ' + startLabel + '. ' : '') + (seq && seq.opensAt ? 'Your move window opens in ' + monthWordsLong(seq.opensAt) + '; nothing to do before then.' : seq ? 'The buying is spread over the next ' + seq.months + ' month' + (seq.months === 1 ? '' : 's') + '.' : ''));
-    h += '<div class="alert ' + tone + '" id="transitionStatus"><strong>' + esc(sayMoveStatus(R.status, MOVE)) + '</strong>' + when
+    h += '<div class="alert ' + tone + '" id="transitionStatus"><strong>' + markWithin(esc(sayMoveStatus(R.status, MOVE)), [[GILTS_HELD_FIND, 'gilts.held']]) + '</strong>' + when
       + (R.pace ? '<br>' + esc(fillMove(R.pace.months === '1' ? MOVE.status.paceOne : MOVE.status.pace, R.pace)) : '')
       + (ladder ? '<br>' + esc(MOVE.status.timing) : '') + '</div>';
   }

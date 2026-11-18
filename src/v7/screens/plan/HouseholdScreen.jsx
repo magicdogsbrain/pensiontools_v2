@@ -11,6 +11,9 @@
  * write file's (effects/planWrite.js: link, split, dismiss, budgetShare, and the step's save for who pays).
  */
 import { PlanRail, changeAction, EditField, UndoToast, fill, Button, LinkButton, RunRing, Held } from '../../components/index.js';
+import { LOCK_DATE } from '../../components/facts.js';
+import { HOUSEHOLD_CHANCE } from '../../../reading/sentenceMarks.js';
+import { fillMarked } from '../../components/PlanFigures.jsx';
 import { planView, planHouseholdView } from '../../state/select.js';
 import { href } from '../../router/routes.js';
 import { PLAN } from '../../copy/plan.js';
@@ -29,7 +32,7 @@ function Head({ view }) {
   return (
     <div class="plan-head">
       <p class="plan-kicker">{w.title} <span class="plan-name">‘{view.name}’</span></p>
-      <p class="plan-stage-line" data-testid="plan.stageLine">{view.line ? fill(PLAN.stageLines[view.line.id], view.line.slots) : ''}{view.lockedOn ? ' ' + fill(w.lockedOn, { date: view.lockedOn }) : ''}</p>
+      <p class="plan-stage-line" data-testid="plan.stageLine">{view.line ? fill(PLAN.stageLines[view.line.id], view.line.slots) : ''}{view.lockedOn ? <> {fillMarked(w.lockedOn, { date: view.lockedOn }, LOCK_DATE)}</> : ''}</p>
       {view.readonly && <p class="notice" role="status" data-testid="plan.readonly">{w.shownAsSaved}</p>}
       {view.source === 'window' && <p class="note" data-testid="plan.windowWarning">{w.windowWarning}</p>}
     </div>
@@ -164,7 +167,7 @@ function Verdict({ V, dispatch }) {
       {status === 'done' && V.unaffordable && <div class="notice" role="alert" data-testid={`${T}.unaffordable`}><p>{V.unaffordable.kind === 'partnerNotSet' ? fill(notSetWords(W.partner, V.unaffordable.missing), { name: V.unaffordable.which }) : fill(C.unaffordable, { name: V.unaffordable.which, reason: V.unaffordable.reason ? fill(C.reasonWas, { reason: V.unaffordable.reason }) : '' })}</p></div>}
       {status === 'done' && v && (
         <div class="lever-result" data-testid={`${T}.result`} data-head={v.head}>
-          <p class="figure" data-testid={`${T}.headline`}>{C.head[v.head]}. {fill(C.headline, { words: v.words })}</p>
+          <p class="figure" data-testid={`${T}.headline`}>{C.head[v.head]}. {fillMarked(C.headline, { words: v.words }, HOUSEHOLD_CHANCE)}</p>
           {v.tested && <p class="note" data-testid={`${T}.tested`}>{v.tested.same ? fill(C.tested, v.tested) : fill(C.testedTwo, v.tested)}</p>}
           {V.starts && <p class="note" data-testid={`${T}.starts`}>{V.starts}</p>}
           {v.pooled && <p class="note" data-testid={`${T}.pooled`}>{C.pooled}</p>}

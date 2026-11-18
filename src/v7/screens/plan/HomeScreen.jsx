@@ -22,6 +22,7 @@ import { HELD } from '../../copy/held.js';
 import { fillMarked, markIn } from '../../components/PlanFigures.jsx';
 import { slotFactsOf } from '../../components/facts.js';
 import { Fact } from '../../../reading/Mark.jsx';
+import { SAVER_MARKS, saverSlotsOf } from '../../../reading/sentenceMarks.js';
 
 /** After "With ‘…’": the partner's plan's phase (7.12.0), in the words the household page uses (copy/plan.js theirLines). */
 const theirWords = (t) => (t.theirLine && PLAN.theirLines[t.theirLine.id] ? ': ' + fill(PLAN.theirLines[t.theirLine.id], t.theirLine.slots) : '');
@@ -44,8 +45,8 @@ const itemWords = (it) => {
  */
 function saverLineText(l) {
   if (l.s) return null;
-  if (l.id.startsWith('now.')) return fillMarked(SAVING.payInNow[l.id.slice(4)] || '', l.slots || {}, PAY_IN_NOW_FACTS);
-  return fillMarked(HOME.saver.lines[l.id] || '', l.slots || {}, slotFactsOf('home.saver.' + l.id));
+  if (l.id.startsWith('now.')) return fillMarked(SAVING.payInNow[l.id.slice(4)] || '', l.slots || {}, saverSlotsOf(l.id));
+  return fillMarked(HOME.saver.lines[l.id] || '', l.slots || {}, saverSlotsOf(l.id));
 }
 function SaverBlock({ V, planId, view, dispatch }) {
   if (!V || !V.block) return null;
@@ -69,8 +70,8 @@ function SaverBlock({ V, planId, view, dispatch }) {
       <h2 id="home-saver-title">{W.title}</h2>
       {B.lines.map((l) => (l.s
         ? (l.id === 'head'
-          ? <p key={l.id} class={`figure verdict is-${B.band}`} data-line={l.id}><Sentence s={l.s} source={r} as="span" /></p>
-          : <Sentence key={l.id} s={l.s} source={r} class="line" data-line={l.id} data-testid={l.id === 'line' ? `${T}.saver.line` : l.id === 'enoughLine' ? `${T}.saver.enough` : undefined} />)
+          ? <p key={l.id} class={`figure verdict is-${B.band}`} data-line={l.id}><Fact id="saver.verdict"><Sentence s={l.s} source={r} as="span" marks={SAVER_MARKS.head} /></Fact></p>
+          : <Sentence key={l.id} s={l.s} source={r} marks={SAVER_MARKS[l.id] || null} class="line" data-line={l.id} data-testid={l.id === 'line' ? `${T}.saver.line` : l.id === 'enoughLine' ? `${T}.saver.enough` : undefined} />)
         : <p key={l.id} class="line" data-line={l.id}>{saverLineText(l)}</p>))}
       {B.state === 'failed' && <p class="notice" role="alert">{run.reason === 'noWorker' ? W.noWorker : W.failed}</p>}
       {B.state === 'working' && <p class="working-note" role="status" data-testid={`${T}.saver.working`}>{W.working}</p>}
@@ -136,8 +137,6 @@ function headlineWords(H) {
 }
 /** The headline with its stage word and stop month marked (lead4.md G1). */
 const headlineOf = (H) => markIn(headlineWords(H), [[/^(Saving|Moving|Living on it)\b/, 'stage'], [/stop work in ([A-Z][a-z]+ \d{4})/, 'stop.month']]);
-/** What goes in, on the home (SAVING.payInNow's slots). */
-const PAY_IN_NOW_FACTS = Object.freeze({ takeHome: 'payIn.fromTakeHome', employer: 'payIn.employer', total: 'payIn.total', ownPct: 'payIn.pctOfPay' });
 
 /** The questions a home offers that really open with this plan's figures (a saver's B): the fold's words promise no more. */
 const filledAsk = (H, view) => H.ask.filter((q) => !!(view.askFill && view.askFill[q]));

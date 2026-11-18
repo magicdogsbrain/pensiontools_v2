@@ -198,7 +198,9 @@ export const FACTS = Object.freeze({
     label: 'what was taken against the plan', owner: 'MONTH', kind: 'money',
     simple: [
       // 7.12.0: "£5,154 taken before tax, as your plan said." (one figure when the two are the same) or "… That is £X more"
-      { page: 'home', find: `${M} taken before tax` },
+      // (the year's line, "N months recorded in 2026/27: £X taken before tax" — not a month's cell, "{month}: recorded, £X
+      // taken before tax", which the year view above it says first; the year's figure is the one marked)
+      { page: 'home', find: `recorded in [^:\\n]+: ${M} taken before tax` },
       { page: 'month', find: `${M} taken before tax` }
     ],
     full: [

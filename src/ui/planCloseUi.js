@@ -119,7 +119,7 @@ export async function stressLockBannerHtml({ when, lockedBy = null, hasDocument 
     return '<span>🔒 <strong>' + esc(closedWords(reading)) + '</strong>' + keeps + '</span>'
       + '<span style="display:flex;gap:8px;flex-wrap:wrap;">' + docBtn + openNextBtn(reading) + '</span>';
   }
-  return '<span>🔒 <strong>This plan is locked</strong>' + (when ? ' (since ' + when + (lockedBy ? ', ' + esc(lockedBy) : '') + ')' : '') + '. Its settings are frozen for both tools' + (hasDocument ? ', and the plan document records what you committed to.' : ' — but it has no plan document yet.') + ' What-ifs still run under "Try a strategy"; to change the plan, unlock it or duplicate it.</span>'
+  return '<span>🔒 <strong>This plan is locked</strong>' + (when ? ' (since <span data-fact="lock.date">' + when + '</span>' + (lockedBy ? ', ' + esc(lockedBy) : '') + ')' : '') + '. Its settings are frozen for both tools' + (hasDocument ? ', and the plan document records what you committed to.' : ' — but it has no plan document yet.') + ' What-ifs still run under "Try a strategy"; to change the plan, unlock it or duplicate it.</span>'
     + '<span style="display:flex;gap:8px;flex-wrap:wrap;">' + (hasDocument ? docBtn : '<button type="button" data-on-click="createPlanDocumentNow()">Create the plan document now</button>') + '<button type="button" class="secondary" data-on-click="unlockDecisionSettings()">Unlock to edit…</button></span>';
 }
 

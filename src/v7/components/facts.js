@@ -9,6 +9,8 @@
  * Until 7.12.0 a mark sat on the whole line (LINE_FACTS); it now sits on the figure.
  */
 
+import { GILTS_HELD_FIND } from '../../reading/sentenceMarks.js';
+
 /** `${lineId}:${figureKey}` → fact id, for the sentences read.js writes (src/answers/plan/read.js). */
 const FIGURES = Object.freeze({
   'about.age:ageToday': 'age.today',
@@ -16,6 +18,13 @@ const FIGURES = Object.freeze({
   'where.pot:pot': 'pot.today',
   'where.saverPot:actual': 'pot.today',
   'where.taken:drawn': 'taken.againstPlan',
+  'where.retired:drawn': 'taken.againstPlan',
+  'hold.summary:pension': 'holdings.sipp',
+  'hold.summary:isa': 'holdings.isa',
+  'hold.summary:gia': 'holdings.gia',
+  'hold.summary:cash': 'holdings.cash',
+  'hold.total:total': 'holdings.total',
+  'where.yearPlan:yearMonthly': 'income.thisYear.beforeTax',
   'pots.pension:sipp': 'pot.today',
   'pots.isa:isa': 'isa.today',
   'pots.gia:gia': 'gia.today',
@@ -52,8 +61,19 @@ export function figureFactOf(lineId, key) {
   return null;
 }
 
+/** Phrases of a sentence read.js wrote that are one fact ("3 of 22" gilts held; the lock and its date): [[RegExp, factId]]. */
+const FINDS = Object.freeze({
+  'move.giltsHeld': [[GILTS_HELD_FIND, 'gilts.held']],
+  'move.gilts': [[GILTS_HELD_FIND, 'gilts.held']],
+  'move.giltsPart': [[GILTS_HELD_FIND, 'gilts.held']],
+  'lock.locked': [[/^(Locked)\b/, 'lock.state'], [/^Locked (.+)$/, 'lock.date']],
+  'lock.notLocked': [[/^(Not locked)/, 'lock.state']]
+});
+export const sentenceFindsOf = (id) => FINDS[id] || [];
+
 /** The filled lines of the plan pages (their copy's templates): which slot holds which fact. */
 const SLOTS = Object.freeze({
+  'way.strategy': { strategy: 'way.name' },
   'about.stopIn': { month: 'stop.month' },
   'about.stoppedIn': { month: 'stop.month' },
   'about.monthAs': { month: 'stop.month' },
@@ -71,9 +91,6 @@ const SLOTS = Object.freeze({
   'income.sp.noDateNoAge': { yearly: 'statePension.amount' },
   'income.sp.before': { yearly: 'statePension.amount' },
   'home.headline.savingStop': { month: 'stop.month' },
-  'home.saver.want': { amount: 'want.income', age: 'want.stopAge' },
-  'home.saver.nowShare': { pct: 'payIn.pctOfPay' },
-  'home.saver.enoughShare': { pct: 'saver.enough.pct' },
   'home.moveWindow': { stop: 'stop.month' },
   'saving.ages': { month: 'stop.month', span: 'yearsToGo', from: 'age.today' },
   'saving.agesNoMonth': { span: 'yearsToGo', from: 'age.today' },
@@ -95,4 +112,29 @@ export function slotFactsOf(lineId, slots = null) {
     return Object.fromEntries(Object.entries(numbered).map(([k, v]) => [k, v.replace('#', i)]));
   }
   return {};
+}
+
+/** The stage line's "Locked {date}." on every plan page: the date is the lock's. */
+export const LOCK_DATE = Object.freeze({ date: 'lock.date' });
+
+/**
+ * The words after a line's figure (PLAN.lineAfter): which slot holds which fact. A lump sum's age is numbered by its figure's
+ * key (lump0 → lump.0.age), as its amount is.
+ */
+const AFTER = Object.freeze({
+  'pots.statePension': { from: 'statePension.start' },
+  'income.lump': { age: 'lump.#.age' }
+});
+export function afterFactsOf(line) {
+  const m = line && AFTER[line.id];
+  if (!m) return {};
+  const parts = (line.sentence && Array.isArray(line.sentence.parts)) ? line.sentence.parts : [];
+  const keyed = parts.find((p) => p && typeof p === 'object' && 'key' in p);
+  const n = keyed ? /(\d+)$/.exec(String(keyed.key)) : null;
+  const out = {};
+  for (const [slot, id] of Object.entries(m)) {
+    if (!id.includes('#')) out[slot] = id;
+    else if (n) out[slot] = id.replace('#', n[1]);
+  }
+  return out;
 }

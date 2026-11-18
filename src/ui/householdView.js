@@ -13,6 +13,7 @@
  */
 
 import { isOnCourse, onCourseAlertClass, jointVerdictHtml, ON_COURSE_WORDS } from '../services/OnCourse.js';
+import { markFact } from '../reading/mark.js';
 import { futuresOutOfTen, pctBesideWords } from '../services/OneAnswer.js';
 import { headlineWords, about, noSplitWords } from '../services/HouseholdDraw.js';
 import { HOUSEHOLD } from '../v7/copy/household.js';
@@ -36,7 +37,7 @@ export function householdVerdictHtml(r, o = {}) {
   const share = r.pooled ? r.pooled.success : r.jointSuccess;
   const head = isOnCourse(share) ? C.head.yes : share >= 0.7 ? C.head.close : C.head.no;
   const names = { a: o.ownName || 'This plan', b: o.pName || 'Partner' };
-  let s = '<strong>' + esc(head) + '.</strong> ' + esc(fill(C.headline, { words: futuresOutOfTen(share).words }));
+  let s = '<strong>' + esc(head) + '.</strong> ' + esc(C.headline.split('{words}')[0]) + markFact('household.chance', esc(futuresOutOfTen(share).words)) + esc(C.headline.split('{words}').slice(1).join(''));
   const now = o.now instanceof Date ? o.now : new Date();
   const ends = { a: endAgeOf(o.setA, now), b: endAgeOf(o.setB, now) };
   if (ends.a != null && ends.b != null) s += ' ' + esc(ends.a === ends.b ? fill(C.tested, { age: ends.a }) : fill(C.testedTwo, { a: names.a, b: names.b, ageA: ends.a, ageB: ends.b }));

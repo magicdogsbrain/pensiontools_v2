@@ -4209,7 +4209,7 @@
     import { proportions as holdingsProportions, describeMix } from './src/services/Holdings.js';
     import { targetHoldings, diffHoldings, sequence as transitionSequence, progress as transitionProgress, tickMove, untickMove, yearNeedsOf } from './src/services/TransitionPlanner.js';
     import { transitionHtml } from './src/ui/components/TransitionView.js';
-    import { installKeepHandlers, transitionGaps, transitionHeld, transitionOpensAt, nameTransitionTab, installKeepTestHandlers, transitionKeepTest, keepLineHtml } from './src/ui/keepHoldingsUi.js'; import { installStressPanel } from './src/ui/stressPanelUi.js'; import { stageWordOf } from './src/ui/stageWord.js'; import { markFact, markWithin } from './src/reading/mark.js';   // "Try the bad years" on the Scenarios page (7.9.0)
+    import { installKeepHandlers, transitionGaps, transitionHeld, transitionOpensAt, nameTransitionTab, installKeepTestHandlers, transitionKeepTest, keepLineHtml } from './src/ui/keepHoldingsUi.js'; import { installStressPanel } from './src/ui/stressPanelUi.js'; import { stageWordOf } from './src/ui/stageWord.js'; import { markFact, markWithin, tableAttr, cellAttr } from './src/reading/mark.js';   // "Try the bad years" on the Scenarios page (7.9.0)
     import { parsePaste, matchRows, mergeLedger, categorise, applyPaste } from './src/services/HoldingsPaste.js';
     import { pastePreviewHtml } from './src/ui/components/HoldingsPasteView.js';   // every pasted line counts (6.23)
     import { configureMonthlyEntry, readMonthlyEntry, openMonthlyEntry, confirmFundsIfLow, installMonthlyEntryHandlers } from './src/ui/monthlyEntry.js';   // the platform view of the monthly entry (6.23)
@@ -5165,6 +5165,7 @@
       const nameEl = document.getElementById('scenarioActiveName');
       if (nameEl) {
         nameEl.textContent = active ? (shownPlanName(active) || 'No Plan') : 'No Plan';   // a name the person did not type follows the plan (7.12.0)
+        if (active) nameEl.setAttribute('data-fact', 'plan.name'); else nameEl.removeAttribute('data-fact');   // marked for the parity sweep (lead4.md G1)
       }
 
       await updatePlanLockChip();
@@ -8143,7 +8144,7 @@
           'full-il-gilt': 'The plan\'s cash years, then each year\'s matured gilt, pay the standing monthly withdrawal.',
           'gilt-rotation': 'Runs exactly as the full gilt ladder — the cash bucket, then each year\'s matured gilt, pays the standing monthly withdrawal. The one extra job is the rotation watch below: nothing to do unless the market is 30% below its all-time high.'
         };
-        const banner = '<div class="alert alert-info" style="margin-bottom:10px;"><strong>This plan\'s strategy: ' + budEsc(STRATEGY_NAMES[sid] || sid) + '.</strong> ' + budEsc(HOW[sid] || '') + ' <span class="hint">Set in the Stress Tester settings or on its Strategies page — <button type="button" class="risk-btn" style="padding:1px 8px;font-size:11px;" data-on-click="switchToTab(\'strategies\'); setTimeout(() => showStrategyPage(\'' + sid + '\'), 300);">read it</button> <button type="button" class="risk-btn" style="padding:1px 8px;font-size:11px;" data-on-click="switchToTab(\'stress\'); setTimeout(() => openToolSettingsTab(\'stress\'), 300);">change it</button></span></div>';
+        const banner = '<div class="alert alert-info" style="margin-bottom:10px;"><strong>This plan\'s strategy: ' + markFact('way.name', budEsc(STRATEGY_NAMES[sid] || sid)) + '.</strong> ' + budEsc(HOW[sid] || '') + ' <span class="hint">Set in the Stress Tester settings or on its Strategies page — <button type="button" class="risk-btn" style="padding:1px 8px;font-size:11px;" data-on-click="switchToTab(\'strategies\'); setTimeout(() => showStrategyPage(\'' + sid + '\'), 300);">read it</button> <button type="button" class="risk-btn" style="padding:1px 8px;font-size:11px;" data-on-click="switchToTab(\'stress\'); setTimeout(() => openToolSettingsTab(\'stress\'), 300);">change it</button></span></div>';
         const note = document.getElementById('dsStrategyNote'); if (note) note.innerHTML = banner;
         if (sid === 'pots-and-valves' || sid === 'buckets-in-order') { el.innerHTML = banner; el.style.display = 'block'; return; }
         const params = { ...(settings.strategyParams || {}), ...(st.params || {}) };
@@ -11549,20 +11550,20 @@
 
         let html = '<div class="card"><h2>Projected Drawdown Schedule (SIPP + ISA top-up)</h2>';
         html += '<div class="alert alert-info" style="margin-bottom:16px;">SIPP is drawn to fill the basic-rate band; the tax-free <strong>ISA tops your income up to the target</strong> and runs down over the years to your State Pension. Deterministic projection at your assumed inflation — the stochastic ISA path is in the Monte-Carlo / Historical results. ' + drawdownIsaNoteHtml(settings, { inflation, locked: await planIsLocked().catch(() => null) }) + '</div>';   // how this table's ISA grows against the runs (6.22.0)
-        html += '<div style="overflow-x: auto;"><table>';
+        html += '<div style="overflow-x: auto;"><table' + tableAttr('years') + '>';   // marked for the parity sweep (lead4.md G1): the cells keyed as the simple view's year table
         html += '<thead><tr><th>Year</th><th>SIPP Draw</th><th>State</th><th>Tax</th><th>Net (SIPP+SP)</th><th>ISA Top-up</th><th>Spendable</th><th>ISA Left</th></tr></thead>';
         html += '<tbody>';
 
         for (const row of schedule) {
           html += `<tr>
-            <td>${row.year}</td>
-            <td style="color: var(--primary); font-weight: 600;">${formatCurrency(row.sippDraw)}</td>
-            <td>${formatCurrency(row.statePension)}</td>
-            <td style="color: var(--danger);">-${formatCurrency(row.tax)}</td>
-            <td>${formatCurrency(row.netIncome)}</td>
-            <td style="color: var(--info);">${formatCurrency(row.isaDraw)}</td>
-            <td style="color: var(--success); font-weight: 600;">${formatCurrency(row.spendable)}</td>
-            <td>${formatCurrency(row.isaBalance)}</td>
+            <td${cellAttr(row.year, 'year')}>${row.year}</td>
+            <td${cellAttr(row.year, 'pension')} style="color: var(--primary); font-weight: 600;">${formatCurrency(row.sippDraw)}</td>
+            <td${cellAttr(row.year, 'state')}>${formatCurrency(row.statePension)}</td>
+            <td${cellAttr(row.year, 'tax')} style="color: var(--danger);">-${formatCurrency(row.tax)}</td>
+            <td${cellAttr(row.year, 'net')}>${formatCurrency(row.netIncome)}</td>
+            <td${cellAttr(row.year, 'isa')} style="color: var(--info);">${formatCurrency(row.isaDraw)}</td>
+            <td${cellAttr(row.year, 'spendable')} style="color: var(--success); font-weight: 600;">${formatCurrency(row.spendable)}</td>
+            <td${cellAttr(row.year, 'isaLeft')}>${formatCurrency(row.isaBalance)}</td>
           </tr>`;
         }
 

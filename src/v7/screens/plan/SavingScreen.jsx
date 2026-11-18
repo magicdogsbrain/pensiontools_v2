@@ -9,6 +9,7 @@
  * answers/plan/saving.js through the plan source) or the run's. No figure is worked out here.
  */
 import { PlanRail, changeAction, EditField, UndoToast, fill, Button, LinkButton, Sentence } from '../../components/index.js';
+import { LOCK_DATE } from '../../components/facts.js';
 import { ADVICE_SHORT } from '../../copy/common.js';
 import { planView, planSavingView } from '../../state/select.js';
 import { href } from '../../router/routes.js';
@@ -16,6 +17,8 @@ import { PLAN } from '../../copy/plan.js';
 import { SAVING as W } from '../../copy/saving.js';
 import { fillMarked } from '../../components/PlanFigures.jsx';
 import { slotFactsOf } from '../../components/facts.js';
+import { Fact } from '../../../reading/Mark.jsx';
+import { SAVER_MARKS } from '../../../reading/sentenceMarks.js';
 
 /** A way of drawing named inside a sentence ("your plan draws by full gilt ladder"): its name, the first letter small. */
 const wayWords = (id) => { const n = String(PLAN.strategies[id] || id || ''); return n.charAt(0).toLowerCase() + n.slice(1); };
@@ -28,7 +31,7 @@ function Head({ view }) {
   return (
     <div class="plan-head">
       <p class="plan-kicker">{w.title} <span class="plan-name">‘{view.name}’</span></p>
-      <p class="plan-stage-line" data-testid="plan.stageLine">{view.line ? fill(PLAN.stageLines[view.line.id], view.line.slots) : ''}{view.lockedOn ? ' ' + fill(w.lockedOn, { date: view.lockedOn }) : ''}</p>
+      <p class="plan-stage-line" data-testid="plan.stageLine">{view.line ? fill(PLAN.stageLines[view.line.id], view.line.slots) : ''}{view.lockedOn ? <> {fillMarked(w.lockedOn, { date: view.lockedOn }, LOCK_DATE)}</> : ''}</p>
       {view.readonly && <p class="notice" role="status" data-testid="plan.readonly">{w.shownAsSaved}</p>}
       {view.source === 'window' && <p class="note" data-testid="plan.windowWarning">{w.windowWarning}</p>}
     </div>
@@ -106,17 +109,17 @@ function Verdict({ V, planId, dispatch }) {
         <div class={`answer-region${status === 'first' ? ' is-first' : ''}`} data-region="answer" data-answer={status}>
           <div class="headline" data-headline="verdict">
             <div class={`band verdict is-${band}`} data-verdict={band}>
-              <Sentence s={s.verdictHead} source={result} class="figure" />
+              <Fact id="saver.verdict"><Sentence s={s.verdictHead} source={result} class="figure" marks={SAVER_MARKS.head} /></Fact>
             </div>
-            <Sentence s={s.verdictLine} source={result} class="line" data-sentence="verdict" />
-          {s.verdictEnough && <Sentence s={s.verdictEnough} source={result} class="line enough-now" data-sentence="verdict-enough" />}
+            <Sentence s={s.verdictLine} source={result} class="line" data-sentence="verdict" marks={SAVER_MARKS.line} />
+          {s.verdictEnough && <Sentence s={s.verdictEnough} source={result} class="line enough-now" data-sentence="verdict-enough" marks={SAVER_MARKS.lineEnough} />}
             {s.verdictFour && <Sentence s={s.verdictFour} source={result} class="four" data-testid={`${T}.verdict.four`} />}
-            {s.income && <Sentence s={s.income} source={result} class="income" data-testid={`${T}.verdict.income`} />}
+            {s.income && <Sentence s={s.income} source={result} class="income" data-testid={`${T}.verdict.income`} marks={SAVER_MARKS.income} />}
             {s.atAim && <Sentence s={s.atAim} source={result} class="bad" />}
           </div>
           {s.enoughHead && (
             <div class="enough" data-enough={result.enough ? result.enough.how : undefined}>
-              <h3><Sentence s={s.enoughHead} source={result} as="span" /></h3>
+              <h3><Sentence s={s.enoughHead} source={result} as="span" marks={SAVER_MARKS.enoughHead} /></h3>
               {s.enoughLine && <Sentence s={s.enoughLine} source={result} class="enough-line" data-testid={`${T}.enough.line`} />}
               {s.enoughFour && <Sentence s={s.enoughFour} source={result} class="enough-four" />}
               {s.enoughPaused && <Sentence s={s.enoughPaused} source={result} class="note" />}

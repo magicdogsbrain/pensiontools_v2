@@ -15,7 +15,10 @@ import { describe, it, expect } from 'vitest';
 import { planPage } from '../../src/answers/plan/read.js';
 import { homeOf } from '../../src/answers/plan/home.js';
 import { whereAmIFor } from '../../src/services/PlanReading.js';
-import { incomeThisYearText } from '../../src/ui/components/PlanDocumentView.js';
+import { incomeThisYearText as incomeThisYearHtml } from '../../src/ui/components/PlanDocumentView.js';
+import { unmarked } from '../../src/reading/mark.js';
+// the words as read: the parity marks (lead4.md G1) taken off, the text unchanged
+const incomeThisYearText = (...a) => unmarked(incomeThisYearHtml(...a));
 import { takenAgainstPlan, firstPaymentMonth, monthToRecord } from '../../src/services/YearPlan.js';
 import { monthOf, readMonth, monthRecordPatch } from '../../src/answers/plan/month.js';
 import { calculateMonthlyBreakdown, statePensionFact, statePensionLine, bandsAssumptionText } from '../../src/services/TaxYearSetUp.js';

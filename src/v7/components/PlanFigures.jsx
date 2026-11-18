@@ -10,7 +10,8 @@
 import { Money } from './Money.jsx';
 import { Button, LinkButton } from './Button.jsx';
 import { PLAN } from '../copy/plan.js';
-import { figureFactOf } from './facts.js';
+import { figureFactOf, sentenceFindsOf, slotFactsOf, afterFactsOf } from './facts.js';
+import { groupParts } from '../../reading/sentenceMarks.js';
 import { Fact } from '../../reading/Mark.jsx';
 
 export const fill = (text, slots = {}) => String(text == null ? '' : text).replace(/\{(\w+)\}/g, (m, k) => (k in slots && slots[k] != null ? String(slots[k]) : m));
@@ -63,9 +64,14 @@ export const CHANCE_RE = /((?:more than |less than |about )?(?:\d+ times|once) i
 
 export function PlanSentence({ s, figures, prefix = '', as: Tag = 'span', ...rest }) {
   if (!s || !Array.isArray(s.parts)) return null;
+  // the figures of the fact register drawn marked (lead4.md G1): a figure by its key, a phrase by the sentence's finds
+  const keys = {};
+  for (const p of s.parts) if (p && typeof p === 'object' && 'key' in p && figureFactOf(s.id, p.key)) keys[p.key] = figureFactOf(s.id, p.key);
+  let n = 0;
+  const node = (p) => { const i = n++; return typeof p === 'string' ? p : 'fixed' in p ? <span key={i} data-fixed>{String(p.fixed)}</span> : <Money key={i} source={figures} k={p.key} kind={p.kind} />; };
   return (
     <Tag {...rest} data-sentence-id={s.id}>
-      {s.parts.map((p, i) => (typeof p === 'string' ? p : 'fixed' in p ? <span key={i} data-fixed>{String(p.fixed)}</span> : figureFactOf(s.id, p.key) ? <Fact key={i} id={figureFactOf(s.id, p.key)}><Money source={figures} k={p.key} kind={p.kind} /></Fact> : <Money key={i} source={figures} k={p.key} kind={p.kind} />))}
+      {groupParts(s.parts, figures, { keys, finds: sentenceFindsOf(s.id) }).map((g, gi) => (g.fact ? <Fact key={'g' + gi} id={g.fact}>{g.items.map((x) => node(x.part))}</Fact> : g.items.map((x) => node(x.part))))}
     </Tag>
   );
 }
@@ -90,14 +96,15 @@ const worded = (slots) => Object.fromEntries(Object.entries(slots || {}).map(([k
 
 export function PlanLine({ line, figures, hideSource = false }) {
   if (!line) return null;
-  const label = fill(PLAN.lines[line.id] ?? '', worded(line.slots));
-  const after = PLAN.lineAfter[line.id] ? fill(PLAN.lineAfter[line.id], worded(line.slots)) : '';
+  // (the slots that hold a figure of the fact register drawn marked, lead4.md G1)
+  const label = fillMarked(PLAN.lines[line.id] ?? '', worded(line.slots), slotFactsOf(line.id, line.slots));
+  const after = PLAN.lineAfter[line.id] ? fillMarked(PLAN.lineAfter[line.id], worded(line.slots), afterFactsOf(line)) : '';
   const hasParts = line.sentence && Array.isArray(line.sentence.parts) && line.sentence.parts.length > 0;
   return (
     <li class="plan-line" data-line={line.id}>
-      {label && <span class="plan-label">{label}{hasParts ? ': ' : ''}</span>}
+      {label.length > 0 && <span class="plan-label">{label}{hasParts ? ': ' : ''}</span>}
       {hasParts && <PlanSentence s={line.sentence} figures={figures} class="plan-value" />}
-      {after && line.slots && Object.values(line.slots).some((v) => v) ? <span>{after}</span> : null}
+      {after && after.length > 0 && line.slots && Object.values(line.slots).some((v) => v) ? <span>{after}</span> : null}
       {line.theirLine && <span class="plan-value"> {fill(PLAN.theirLines[line.theirLine.id] || '', line.theirLine.slots)}</span>}
       {!hideSource && line.source && <> <br />{sourceWords(line.source)}</>}
     </li>

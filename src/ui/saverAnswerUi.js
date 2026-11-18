@@ -18,6 +18,8 @@ import { saverBlockOf } from '../v7/state/saverBlock.js';
 import { HOME } from '../v7/copy/home.js';
 import { SAVING } from '../v7/copy/saving.js';
 import { entriesOf, dayOf, simpleLinkHref } from './homeBannerUi.js';
+import { SAVER_MARKS, saverSlotsOf, sentenceHtml } from '../reading/sentenceMarks.js';
+import { markFact } from '../reading/mark.js';
 
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const fill = (text, slots) => String(text || '').replace(/\{(\w+)\}/g, (m, k) => (slots && slots[k] != null ? String(slots[k]) : m));
@@ -75,6 +77,22 @@ export function saverBlockText(l) {
   return fill(HOME.saver.lines[l.id], l.slots);
 }
 
+/** One line as HTML, its figures marked as the simple view marks them (src/reading/sentenceMarks.js; lead4.md G1). */
+export function saverLineHtml(l, result) {
+  if (l.s) {
+    const html = result ? sentenceHtml(l.s, result, SAVER_MARKS[l.id] || null, esc) : esc(l.s.text || '');
+    return l.id === 'head' ? markFact('saver.verdict', html) : html;
+  }
+  const text = l.id.startsWith('now.') ? SAVING.payInNow[l.id.slice(4)] : HOME.saver.lines[l.id];
+  const marks = saverSlotsOf(l.id);
+  return String(text || '').split(/(\{\w+\})/).map((piece) => {
+    const m = /^\{(\w+)\}$/.exec(piece);
+    if (!m) return esc(piece);
+    const v = l.slots && l.slots[m[1]] != null ? String(l.slots[m[1]]) : piece;
+    return marks[m[1]] && v !== piece ? markFact(marks[m[1]], esc(v)) : esc(v);
+  }).join('');
+}
+
 /** (7.12.0) The full view's own words for a plan with no income yet: where it is added there. */
 export const FULL_VIEW = Object.freeze({
   addIncome: 'Add what you want a year on Stress tester → Settings, under “Your income shape”.',
@@ -104,7 +122,7 @@ export function saverBlockHtml(block, planId, form = '') {
   if (!block) return '';
   // no income yet: said, and the full view's own place to add one (7.12.0; the want boxes need a want to change)
   if (block.state === 'noAim') return '<div data-testid="ac.saver" data-why="noAim"><p>' + esc(W.noAim) + '</p><p>' + esc(FULL_VIEW.addIncome) + ' <button type="button" class="risk-btn" data-testid="ac.saver.addIncome" data-on-click="openStressSettingsTab()">' + esc(FULL_VIEW.openSettings) + '</button></p></div>';
-  const lines = block.lines.map((l) => '<p data-line="' + esc(l.id) + '"' + (l.id === 'head' ? ' style="font-weight:600;font-size:15px;"' : '') + '>' + esc(saverBlockText(l)) + '</p>').join('');
+  const lines = block.lines.map((l) => '<p data-line="' + esc(l.id) + '"' + (l.id === 'head' ? ' style="font-weight:600;font-size:15px;"' : '') + '>' + saverLineHtml(l, block.result) + '</p>').join('');
   const tail = block.state === 'working' ? '<p role="status">' + esc(W.working) + '</p>'
     : block.state === 'failed' ? '<div class="alert alert-warning">' + esc(W.failed) + '</div>'
       : block.state === 'invalid' ? '<p>' + esc(W.invalid) + '</p>' : '';

@@ -8,6 +8,8 @@
  * answers/plan/spend.js through the plan source).
  */
 import { PlanRail, changeAction, EditField, UndoToast, fill, Button, LinkButton, ShapeChart } from '../../components/index.js';
+import { LOCK_DATE } from '../../components/facts.js';
+import { fillMarked } from '../../components/PlanFigures.jsx';
 import { ThenBox } from '../../components/StepsField.jsx';
 import { planView, planSpendView } from '../../state/select.js';
 import { href } from '../../router/routes.js';
@@ -24,7 +26,7 @@ function Head({ view }) {
   return (
     <div class="plan-head">
       <p class="plan-kicker">{w.title} <span class="plan-name">‘{view.name}’</span></p>
-      <p class="plan-stage-line" data-testid="plan.stageLine">{view.line ? fill(PLAN.stageLines[view.line.id], view.line.slots) : ''}{view.lockedOn ? ' ' + fill(w.lockedOn, { date: view.lockedOn }) : ''}</p>
+      <p class="plan-stage-line" data-testid="plan.stageLine">{view.line ? fill(PLAN.stageLines[view.line.id], view.line.slots) : ''}{view.lockedOn ? <> {fillMarked(w.lockedOn, { date: view.lockedOn }, LOCK_DATE)}</> : ''}</p>
       {view.readonly && <p class="notice" role="status" data-testid="plan.readonly">{w.shownAsSaved}</p>}
       {view.source === 'window' && <p class="note" data-testid="plan.windowWarning">{w.windowWarning}</p>}
     </div>

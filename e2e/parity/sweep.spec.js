@@ -50,9 +50,12 @@ export const FULL_PAGES = Object.freeze([
   { name: 'glidepath', tab: 'stress', sub: 'glidepath' },
   { name: 'stress settings', tab: 'stress', sub: 'stresssettings' },
   { name: 'strategies', tab: 'strategies' },
-  { name: 'monthly entry', tab: 'decision', sub: 'entry' },
+  // this month's figures are worked out on a press ("Calculate"); on a plan not locked that press asks to lock it first, so
+  // the sweep presses it only on a locked plan (the simple view shows the month only once locked)
+  { name: 'monthly entry', tab: 'decision', sub: 'entry', press: '#decisionForm button[type="submit"]', onlyLocked: true },
   { name: 'history', tab: 'decision', sub: 'history' },
-  { name: 'plan document', tab: 'decision', sub: 'plandoc' },
+  // the plan document draws its sections folded; a person reading it opens them (the sweep opens every fold of the document)
+  { name: 'plan document', tab: 'decision', sub: 'plandoc', openFolds: '#planDocumentPage' },
   { name: 'tax years', tab: 'decision', sub: 'taxyears' },
   { name: 'decision settings', tab: 'decision', sub: 'decisionsettings' },
   // "Am I on course?" is worked out on a press in the full view ("Work it out"), on open in the simple view (lead4.md D24)
@@ -97,6 +100,9 @@ async function fullTab(page, { tab, sub }) {
   return true;
 }
 
+/** The full view's chip says the open plan is locked. */
+const fullLocked = async (page) => /locked/.test(String(await page.locator('[data-fact="lock.state"]').first().innerText().catch(() => '')));
+
 test.describe('parity sweep', () => {
   for (const fx of FIXTURES.filter((f) => !only || only.includes(f.key))) {
     test(`${fx.key}: every page of both views read`, async ({ page }) => {
@@ -137,11 +143,12 @@ test.describe('parity sweep', () => {
       for (const p of FULL_PAGES) {
         const opened = await fullTab(page, p);
         let pressed;
-        if (opened && p.press) {
+        if (opened && p.press && (!p.onlyLocked || await fullLocked(page))) {
           const run = page.locator(p.press).first();
           pressed = await run.isVisible().catch(() => false);
           if (pressed) await run.click();
         }
+        if (opened && p.openFolds) { await waitQuiet(page); await page.evaluate((sel) => { for (const d of document.querySelectorAll(sel + ' details')) d.open = true; }, p.openFolds); }
         await readPage(page, out, 'full', p.name, opened, { pressed, words });
       }
 

@@ -1,5 +1,5 @@
 {
- "at": "2026-11-18T11:02:35.331Z",
+ "at": "2026-11-18T11:40:15.066Z",
  "fixtures": [
   "age-only",
   "budget",
@@ -14,19 +14,20 @@
   "retired-locked-pots",
   "saver-checkin",
   "saver-draft",
+  "saver-ladder-draft",
   "saver-locked-ladder",
   "saver-locked-pots",
   "saver-payin",
   "wizard-defaults"
  ],
- "factsMarked": 61,
- "factsInBoth": 33,
- "pagesOpened": 601,
- "marks": 10123,
+ "factsMarked": 70,
+ "factsInBoth": 55,
+ "pagesOpened": 635,
+ "marks": 11141,
  "fieldsBound": 0,
- "disagreements": 482,
- "unmarked": 15818,
- "oneViewOnly": 2132,
+ "disagreements": 558,
+ "unmarked": 17295,
+ "oneViewOnly": 2353,
  "readingMismatches": 0,
  "roundTripsFailed": null,
  "rose": [],
@@ -182,9 +183,58 @@
       "text": "£25,278"
      },
      {
+      "view": "simple",
+      "page": "spend",
+      "text": "£26,016"
+     },
+     {
       "view": "full",
       "page": "stress settings",
       "text": "£26,858"
+     }
+    ]
+   },
+   {
+    "key": "budget|left.goodCase",
+    "fixture": "budget",
+    "fact": "left.goodCase",
+    "values": [
+     {
+      "view": "simple",
+      "page": "lasts",
+      "text": "£618,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£618,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£618,087"
+     }
+    ]
+   },
+   {
+    "key": "budget|left.typically",
+    "fixture": "budget",
+    "fact": "left.typically",
+    "values": [
+     {
+      "view": "simple",
+      "page": "lasts",
+      "text": "£43,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£43,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£42,549"
      }
     ]
    },
@@ -362,6 +412,23 @@
       "view": "full",
       "page": "household",
       "text": "✏️ draft"
+     }
+    ]
+   },
+   {
+    "key": "budget|statePension.start",
+    "fixture": "budget",
+    "fact": "statePension.start",
+    "values": [
+     {
+      "view": "simple",
+      "page": "plan",
+      "text": "2 November 2026"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "2026/27"
      }
     ]
    },
@@ -1017,6 +1084,50 @@
     ]
    },
    {
+    "key": "closed-successor|left.goodCase",
+    "fixture": "closed-successor",
+    "fact": "left.goodCase",
+    "values": [
+     {
+      "view": "simple",
+      "page": "lasts",
+      "text": "£1,466,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£1,466,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£1,466,227"
+     }
+    ]
+   },
+   {
+    "key": "closed-successor|left.typically",
+    "fixture": "closed-successor",
+    "fact": "left.typically",
+    "values": [
+     {
+      "view": "simple",
+      "page": "lasts",
+      "text": "£484,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£484,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£484,094"
+     }
+    ]
+   },
+   {
     "key": "closed-successor|lock.state",
     "fixture": "closed-successor",
     "fact": "lock.state",
@@ -1190,6 +1301,23 @@
       "view": "full",
       "page": "household",
       "text": "✏️ draft"
+     }
+    ]
+   },
+   {
+    "key": "closed-successor|statePension.start",
+    "fixture": "closed-successor",
+    "fact": "statePension.start",
+    "values": [
+     {
+      "view": "simple",
+      "page": "plan",
+      "text": "9 June 2028"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "2028/29"
      }
     ]
    },
@@ -1709,6 +1837,72 @@
     ]
    },
    {
+    "key": "couple|lasts.fixedChance",
+    "fixture": "couple",
+    "fact": "lasts.fixedChance",
+    "values": [
+     {
+      "view": "simple",
+      "page": "lasts",
+      "text": "in more than 19 of 20 futures we tried"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "over 19 in 20"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "in more than 19 of 20 futures we tried"
+     }
+    ]
+   },
+   {
+    "key": "couple|left.goodCase",
+    "fixture": "couple",
+    "fact": "left.goodCase",
+    "values": [
+     {
+      "view": "simple",
+      "page": "lasts",
+      "text": "£1,580,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£1,580,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£1,580,134"
+     }
+    ]
+   },
+   {
+    "key": "couple|left.typically",
+    "fixture": "couple",
+    "fact": "left.typically",
+    "values": [
+     {
+      "view": "simple",
+      "page": "lasts",
+      "text": "£416,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£416,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£416,180"
+     }
+    ]
+   },
+   {
     "key": "couple|lock.state",
     "fixture": "couple",
     "fact": "lock.state",
@@ -1824,6 +2018,23 @@
       "view": "full",
       "page": "stress settings",
       "text": "£296,087"
+     }
+    ]
+   },
+   {
+    "key": "couple|statePension.start",
+    "fixture": "couple",
+    "fact": "statePension.start",
+    "values": [
+     {
+      "view": "simple",
+      "page": "plan",
+      "text": "17 January 2035"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "2034/35"
      }
     ]
    },
@@ -2421,9 +2632,58 @@
       "text": "£19,631"
      },
      {
+      "view": "simple",
+      "page": "spend",
+      "text": "£19,631"
+     },
+     {
       "view": "full",
       "page": "stress settings",
       "text": "£20,858"
+     }
+    ]
+   },
+   {
+    "key": "mover-holdings|left.goodCase",
+    "fixture": "mover-holdings",
+    "fact": "left.goodCase",
+    "values": [
+     {
+      "view": "simple",
+      "page": "lasts",
+      "text": "£1,832,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£1,832,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£1,831,989"
+     }
+    ]
+   },
+   {
+    "key": "mover-holdings|left.typically",
+    "fixture": "mover-holdings",
+    "fact": "left.typically",
+    "values": [
+     {
+      "view": "simple",
+      "page": "lasts",
+      "text": "£497,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£497,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£497,366"
      }
     ]
    },
@@ -2665,6 +2925,23 @@
       "view": "full",
       "page": "stress settings",
       "text": "£360,000"
+     }
+    ]
+   },
+   {
+    "key": "mover-holdings|statePension.start",
+    "fixture": "mover-holdings",
+    "fact": "statePension.start",
+    "values": [
+     {
+      "view": "simple",
+      "page": "plan",
+      "text": "1 June 2035"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "2035/36"
      }
     ]
    },
@@ -3364,9 +3641,58 @@
       "text": "£19,631"
      },
      {
+      "view": "simple",
+      "page": "spend",
+      "text": "£19,631"
+     },
+     {
       "view": "full",
       "page": "stress settings",
       "text": "£20,858"
+     }
+    ]
+   },
+   {
+    "key": "mover-totals|left.goodCase",
+    "fixture": "mover-totals",
+    "fact": "left.goodCase",
+    "values": [
+     {
+      "view": "simple",
+      "page": "lasts",
+      "text": "£2,013,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£2,013,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£2,012,764"
+     }
+    ]
+   },
+   {
+    "key": "mover-totals|left.typically",
+    "fixture": "mover-totals",
+    "fact": "left.typically",
+    "values": [
+     {
+      "view": "simple",
+      "page": "lasts",
+      "text": "£531,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£531,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£530,890"
      }
     ]
    },
@@ -3581,6 +3907,23 @@
       "view": "full",
       "page": "stress settings",
       "text": "£429,193"
+     }
+    ]
+   },
+   {
+    "key": "mover-totals|statePension.start",
+    "fixture": "mover-totals",
+    "fact": "statePension.start",
+    "values": [
+     {
+      "view": "simple",
+      "page": "plan",
+      "text": "1 June 2035"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "2035/36"
      }
     ]
    },
@@ -4246,9 +4589,58 @@
       "text": "£25,278"
      },
      {
+      "view": "simple",
+      "page": "spend",
+      "text": "£26,016"
+     },
+     {
       "view": "full",
       "page": "stress settings",
       "text": "£26,858"
+     }
+    ]
+   },
+   {
+    "key": "retired-draft|left.goodCase",
+    "fixture": "retired-draft",
+    "fact": "left.goodCase",
+    "values": [
+     {
+      "view": "simple",
+      "page": "lasts",
+      "text": "£613,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£613,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£613,218"
+     }
+    ]
+   },
+   {
+    "key": "retired-draft|left.typically",
+    "fixture": "retired-draft",
+    "fact": "left.typically",
+    "values": [
+     {
+      "view": "simple",
+      "page": "lasts",
+      "text": "£41,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£41,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£41,414"
      }
     ]
    },
@@ -4426,6 +4818,23 @@
       "view": "full",
       "page": "household",
       "text": "✏️ draft"
+     }
+    ]
+   },
+   {
+    "key": "retired-draft|statePension.start",
+    "fixture": "retired-draft",
+    "fact": "statePension.start",
+    "values": [
+     {
+      "view": "simple",
+      "page": "plan",
+      "text": "16 November 2026"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "2026/27"
      }
     ]
    },
@@ -5081,6 +5490,50 @@
     ]
    },
    {
+    "key": "retired-everything|left.goodCase",
+    "fixture": "retired-everything",
+    "fact": "left.goodCase",
+    "values": [
+     {
+      "view": "simple",
+      "page": "lasts",
+      "text": "£2,342,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£2,342,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£2,342,192"
+     }
+    ]
+   },
+   {
+    "key": "retired-everything|left.typically",
+    "fixture": "retired-everything",
+    "fact": "left.typically",
+    "values": [
+     {
+      "view": "simple",
+      "page": "lasts",
+      "text": "£687,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£687,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£686,658"
+     }
+    ]
+   },
+   {
     "key": "retired-everything|lock.state",
     "fixture": "retired-everything",
     "fact": "lock.state",
@@ -5254,6 +5707,23 @@
       "view": "full",
       "page": "household",
       "text": "✏️ draft"
+     }
+    ]
+   },
+   {
+    "key": "retired-everything|statePension.start",
+    "fixture": "retired-everything",
+    "fact": "statePension.start",
+    "values": [
+     {
+      "view": "simple",
+      "page": "plan",
+      "text": "25 July 2034"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "2034/35"
      }
     ]
    },
@@ -5858,6 +6328,82 @@
     ]
    },
    {
+    "key": "retired-locked-ladder|lasts.fixedChance",
+    "fixture": "retired-locked-ladder",
+    "fact": "lasts.fixedChance",
+    "values": [
+     {
+      "view": "simple",
+      "page": "lasts",
+      "text": "in every future we tried"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "20 in 20"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "in every future we tried"
+     }
+    ]
+   },
+   {
+    "key": "retired-locked-ladder|left.goodCase",
+    "fixture": "retired-locked-ladder",
+    "fact": "left.goodCase",
+    "values": [
+     {
+      "view": "simple",
+      "page": "lasts",
+      "text": "£71,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£71,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£70,987"
+     },
+     {
+      "view": "full",
+      "page": "plan document",
+      "text": "£70,987"
+     }
+    ]
+   },
+   {
+    "key": "retired-locked-ladder|left.typically",
+    "fixture": "retired-locked-ladder",
+    "fact": "left.typically",
+    "values": [
+     {
+      "view": "simple",
+      "page": "lasts",
+      "text": "£71,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£71,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£70,987"
+     },
+     {
+      "view": "full",
+      "page": "plan document",
+      "text": "£70,987"
+     }
+    ]
+   },
+   {
     "key": "retired-locked-ladder|lock.date",
     "fixture": "retired-locked-ladder",
     "fact": "lock.date",
@@ -6079,6 +6625,23 @@
     ]
    },
    {
+    "key": "retired-locked-ladder|statePension.start",
+    "fixture": "retired-locked-ladder",
+    "fact": "statePension.start",
+    "values": [
+     {
+      "view": "simple",
+      "page": "plan",
+      "text": "11 May 2030"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "2030/31"
+     }
+    ]
+   },
+   {
     "key": "retired-locked-ladder|way.name",
     "fixture": "retired-locked-ladder",
     "fact": "way.name",
@@ -6102,6 +6665,60 @@
       "view": "full",
       "page": "decision settings",
       "text": "Full index-linked gilt ladder"
+     }
+    ]
+   },
+   {
+    "key": "retired-locked-months|left.goodCase",
+    "fixture": "retired-locked-months",
+    "fact": "left.goodCase",
+    "values": [
+     {
+      "view": "simple",
+      "page": "lasts",
+      "text": "£3,968,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£3,968,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£3,967,896"
+     },
+     {
+      "view": "full",
+      "page": "plan document",
+      "text": "£3,967,896"
+     }
+    ]
+   },
+   {
+    "key": "retired-locked-months|left.typically",
+    "fixture": "retired-locked-months",
+    "fact": "left.typically",
+    "values": [
+     {
+      "view": "simple",
+      "page": "lasts",
+      "text": "£969,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£969,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£968,682"
+     },
+     {
+      "view": "full",
+      "page": "plan document",
+      "text": "£968,682"
      }
     ]
    },
@@ -6337,6 +6954,23 @@
     ]
    },
    {
+    "key": "retired-locked-months|statePension.start",
+    "fixture": "retired-locked-months",
+    "fact": "statePension.start",
+    "values": [
+     {
+      "view": "simple",
+      "page": "plan",
+      "text": "3 February 2031"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "2030/31"
+     }
+    ]
+   },
+   {
     "key": "retired-locked-pots|income.step.0.beforeTax",
     "fixture": "retired-locked-pots",
     "fact": "income.step.0.beforeTax",
@@ -6347,9 +6981,68 @@
       "text": "£26,016"
      },
      {
+      "view": "simple",
+      "page": "spend",
+      "text": "£26,016"
+     },
+     {
       "view": "full",
       "page": "stress settings",
       "text": "£26,858"
+     }
+    ]
+   },
+   {
+    "key": "retired-locked-pots|left.goodCase",
+    "fixture": "retired-locked-pots",
+    "fact": "left.goodCase",
+    "values": [
+     {
+      "view": "simple",
+      "page": "lasts",
+      "text": "£652,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£652,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£651,681"
+     },
+     {
+      "view": "full",
+      "page": "plan document",
+      "text": "£651,681"
+     }
+    ]
+   },
+   {
+    "key": "retired-locked-pots|left.typically",
+    "fixture": "retired-locked-pots",
+    "fact": "left.typically",
+    "values": [
+     {
+      "view": "simple",
+      "page": "lasts",
+      "text": "£48,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£48,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£47,640"
+     },
+     {
+      "view": "full",
+      "page": "plan document",
+      "text": "£47,640"
      }
     ]
    },
@@ -6574,8 +7267,30 @@
      },
      {
       "view": "full",
+      "page": "monthly entry",
+      "text": "£296,000"
+     },
+     {
+      "view": "full",
       "page": "plan document",
       "text": "£296,000"
+     }
+    ]
+   },
+   {
+    "key": "retired-locked-pots|statePension.start",
+    "fixture": "retired-locked-pots",
+    "fact": "statePension.start",
+    "values": [
+     {
+      "view": "simple",
+      "page": "plan",
+      "text": "3 August 2026"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "2026/27"
      }
     ]
    },
@@ -7246,9 +7961,58 @@
       "text": "£28,102"
      },
      {
+      "view": "simple",
+      "page": "spend",
+      "text": "£28,102"
+     },
+     {
       "view": "full",
       "page": "stress settings",
       "text": "£29,858"
+     }
+    ]
+   },
+   {
+    "key": "saver-checkin|left.goodCase",
+    "fixture": "saver-checkin",
+    "fact": "left.goodCase",
+    "values": [
+     {
+      "view": "simple",
+      "page": "lasts",
+      "text": "£1,196,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£1,196,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£1,196,455"
+     }
+    ]
+   },
+   {
+    "key": "saver-checkin|left.typically",
+    "fixture": "saver-checkin",
+    "fact": "left.typically",
+    "values": [
+     {
+      "view": "simple",
+      "page": "lasts",
+      "text": "£275,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£275,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£274,641"
      }
     ]
    },
@@ -7400,6 +8164,23 @@
       "view": "full",
       "page": "stress settings",
       "text": "£128,000"
+     }
+    ]
+   },
+   {
+    "key": "saver-checkin|statePension.start",
+    "fixture": "saver-checkin",
+    "fact": "statePension.start",
+    "values": [
+     {
+      "view": "simple",
+      "page": "plan",
+      "text": "12 November 2049"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "2049/50"
      }
     ]
    },
@@ -7929,9 +8710,31 @@
       "text": "£25,278"
      },
      {
+      "view": "simple",
+      "page": "spend",
+      "text": "£25,278"
+     },
+     {
       "view": "full",
       "page": "stress settings",
       "text": "£26,858"
+     }
+    ]
+   },
+   {
+    "key": "saver-draft|lasts.verdict",
+    "fixture": "saver-draft",
+    "fact": "lasts.verdict",
+    "values": [
+     {
+      "view": "simple",
+      "page": "lasts",
+      "text": "Not yet"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "Not on course"
      }
     ]
    },
@@ -8056,6 +8859,23 @@
       "view": "full",
       "page": "stress settings",
       "text": "£252,175"
+     }
+    ]
+   },
+   {
+    "key": "saver-draft|statePension.start",
+    "fixture": "saver-draft",
+    "fact": "statePension.start",
+    "values": [
+     {
+      "view": "simple",
+      "page": "plan",
+      "text": "16 November 2053"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "2053/54"
      }
     ]
    },
@@ -8847,6 +9667,323 @@
     ]
    },
    {
+    "key": "saver-ladder-draft|lasts.fixedChance",
+    "fixture": "saver-ladder-draft",
+    "fact": "lasts.fixedChance",
+    "values": [
+     {
+      "view": "simple",
+      "page": "lasts",
+      "text": "in every future we tried"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "20 in 20"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "in every future we tried"
+     }
+    ]
+   },
+   {
+    "key": "saver-ladder-draft|left.goodCase",
+    "fixture": "saver-ladder-draft",
+    "fact": "left.goodCase",
+    "values": [
+     {
+      "view": "simple",
+      "page": "lasts",
+      "text": "£240,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£240,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£240,215"
+     }
+    ]
+   },
+   {
+    "key": "saver-ladder-draft|left.typically",
+    "fixture": "saver-ladder-draft",
+    "fact": "left.typically",
+    "values": [
+     {
+      "view": "simple",
+      "page": "lasts",
+      "text": "£240,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£240,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£240,215"
+     }
+    ]
+   },
+   {
+    "key": "saver-ladder-draft|lock.state",
+    "fixture": "saver-ladder-draft",
+    "fact": "lock.state",
+    "values": [
+     {
+      "view": "simple",
+      "page": "lock",
+      "text": "Not locked"
+     },
+     {
+      "view": "full",
+      "page": "budget",
+      "text": "✏️ draft"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "✏️ draft"
+     },
+     {
+      "view": "full",
+      "page": "stress history",
+      "text": "✏️ draft"
+     },
+     {
+      "view": "full",
+      "page": "scenarios",
+      "text": "✏️ draft"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "✏️ draft"
+     },
+     {
+      "view": "full",
+      "page": "strategies",
+      "text": "✏️ draft"
+     },
+     {
+      "view": "full",
+      "page": "monthly entry",
+      "text": "✏️ draft"
+     },
+     {
+      "view": "full",
+      "page": "history",
+      "text": "✏️ draft"
+     },
+     {
+      "view": "full",
+      "page": "plan document",
+      "text": "✏️ draft"
+     },
+     {
+      "view": "full",
+      "page": "tax years",
+      "text": "✏️ draft"
+     },
+     {
+      "view": "full",
+      "page": "decision settings",
+      "text": "✏️ draft"
+     },
+     {
+      "view": "full",
+      "page": "accumulation",
+      "text": "✏️ draft"
+     },
+     {
+      "view": "full",
+      "page": "transition",
+      "text": "✏️ draft"
+     },
+     {
+      "view": "full",
+      "page": "household",
+      "text": "✏️ draft"
+     }
+    ]
+   },
+   {
+    "key": "saver-ladder-draft|pot.atStop",
+    "fixture": "saver-ladder-draft",
+    "fact": "pot.atStop",
+    "values": [
+     {
+      "view": "simple",
+      "page": "plan",
+      "text": "£738,000"
+     },
+     {
+      "view": "simple",
+      "page": "pots",
+      "text": "£738,000"
+     },
+     {
+      "view": "simple",
+      "page": "saving",
+      "text": "£738,000"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "£737,519"
+     }
+    ]
+   },
+   {
+    "key": "saver-ladder-draft|pot.today",
+    "fixture": "saver-ladder-draft",
+    "fact": "pot.today",
+    "values": [
+     {
+      "view": "simple",
+      "page": "plan",
+      "text": "£319,800"
+     },
+     {
+      "view": "simple",
+      "page": "pots",
+      "text": "£310,000"
+     },
+     {
+      "view": "simple",
+      "page": "saving",
+      "text": "£319,800"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "£319,800"
+     }
+    ]
+   },
+   {
+    "key": "saver-ladder-draft|statePension.start",
+    "fixture": "saver-ladder-draft",
+    "fact": "statePension.start",
+    "values": [
+     {
+      "view": "simple",
+      "page": "plan",
+      "text": "22 February 2046"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "2045/46"
+     }
+    ]
+   },
+   {
+    "key": "saver-ladder-draft|way.name",
+    "fixture": "saver-ladder-draft",
+    "fact": "way.name",
+    "values": [
+     {
+      "view": "simple",
+      "page": "plan",
+      "text": "Full gilt ladder"
+     },
+     {
+      "view": "full",
+      "page": "monthly entry",
+      "text": "Full index-linked gilt ladder"
+     },
+     {
+      "view": "full",
+      "page": "decision settings",
+      "text": "Full index-linked gilt ladder"
+     }
+    ]
+   },
+   {
+    "key": "saver-locked-ladder|lasts.fixedChance",
+    "fixture": "saver-locked-ladder",
+    "fact": "lasts.fixedChance",
+    "values": [
+     {
+      "view": "simple",
+      "page": "lasts",
+      "text": "in every future we tried"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "20 in 20"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "in every future we tried"
+     }
+    ]
+   },
+   {
+    "key": "saver-locked-ladder|left.goodCase",
+    "fixture": "saver-locked-ladder",
+    "fact": "left.goodCase",
+    "values": [
+     {
+      "view": "simple",
+      "page": "lasts",
+      "text": "£240,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£240,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£240,215"
+     },
+     {
+      "view": "full",
+      "page": "plan document",
+      "text": "£240,215"
+     }
+    ]
+   },
+   {
+    "key": "saver-locked-ladder|left.typically",
+    "fixture": "saver-locked-ladder",
+    "fact": "left.typically",
+    "values": [
+     {
+      "view": "simple",
+      "page": "lasts",
+      "text": "£240,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£240,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£240,215"
+     },
+     {
+      "view": "full",
+      "page": "plan document",
+      "text": "£240,215"
+     }
+    ]
+   },
+   {
     "key": "saver-locked-ladder|lock.date",
     "fixture": "saver-locked-ladder",
     "fact": "lock.date",
@@ -9100,6 +10237,346 @@
     ]
    },
    {
+    "key": "saver-locked-ladder|statePension.start",
+    "fixture": "saver-locked-ladder",
+    "fact": "statePension.start",
+    "values": [
+     {
+      "view": "simple",
+      "page": "plan",
+      "text": "22 February 2046"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "2045/46"
+     }
+    ]
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:T41:matures",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:T41:matures",
+    "values": [
+     {
+      "view": "simple",
+      "page": "move",
+      "text": "10 August 2041"
+     },
+     {
+      "view": "full",
+      "page": "plan document",
+      "text": "August 2041"
+     }
+    ]
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:T42A:matures",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:T42A:matures",
+    "values": [
+     {
+      "view": "simple",
+      "page": "move",
+      "text": "22 November 2042"
+     },
+     {
+      "view": "full",
+      "page": "plan document",
+      "text": "November 2042"
+     }
+    ]
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:T44:matures",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:T44:matures",
+    "values": [
+     {
+      "view": "simple",
+      "page": "move",
+      "text": "22 March 2044"
+     },
+     {
+      "view": "full",
+      "page": "plan document",
+      "text": "March 2044"
+     }
+    ]
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:T47:matures",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:T47:matures",
+    "values": [
+     {
+      "view": "simple",
+      "page": "move",
+      "text": "22 November 2047"
+     },
+     {
+      "view": "full",
+      "page": "plan document",
+      "text": "November 2047"
+     }
+    ]
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:T58:matures",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:T58:matures",
+    "values": [
+     {
+      "view": "simple",
+      "page": "move",
+      "text": "22 March 2058"
+     },
+     {
+      "view": "full",
+      "page": "plan document",
+      "text": "March 2058"
+     }
+    ]
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:T62:matures",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:T62:matures",
+    "values": [
+     {
+      "view": "simple",
+      "page": "move",
+      "text": "22 March 2062"
+     },
+     {
+      "view": "full",
+      "page": "plan document",
+      "text": "March 2062"
+     }
+    ]
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:T68:matures",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:T68:matures",
+    "values": [
+     {
+      "view": "simple",
+      "page": "move",
+      "text": "22 March 2068"
+     },
+     {
+      "view": "full",
+      "page": "plan document",
+      "text": "March 2068"
+     }
+    ]
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TG39:matures",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TG39:matures",
+    "values": [
+     {
+      "view": "simple",
+      "page": "move",
+      "text": "22 March 2039"
+     },
+     {
+      "view": "full",
+      "page": "plan document",
+      "text": "March 2039"
+     }
+    ]
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TG48:matures",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TG48:matures",
+    "values": [
+     {
+      "view": "simple",
+      "page": "move",
+      "text": "10 August 2048"
+     },
+     {
+      "view": "full",
+      "page": "plan document",
+      "text": "August 2048"
+     }
+    ]
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TG51:matures",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TG51:matures",
+    "values": [
+     {
+      "view": "simple",
+      "page": "move",
+      "text": "22 March 2051"
+     },
+     {
+      "view": "full",
+      "page": "plan document",
+      "text": "March 2051"
+     }
+    ]
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TG52:matures",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TG52:matures",
+    "values": [
+     {
+      "view": "simple",
+      "page": "move",
+      "text": "22 March 2052"
+     },
+     {
+      "view": "full",
+      "page": "plan document",
+      "text": "March 2052"
+     }
+    ]
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TG54:matures",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TG54:matures",
+    "values": [
+     {
+      "view": "simple",
+      "page": "move",
+      "text": "22 November 2054"
+     },
+     {
+      "view": "full",
+      "page": "plan document",
+      "text": "November 2054"
+     }
+    ]
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TR40:matures",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TR40:matures",
+    "values": [
+     {
+      "view": "simple",
+      "page": "move",
+      "text": "22 March 2040"
+     },
+     {
+      "view": "full",
+      "page": "plan document",
+      "text": "March 2040"
+     }
+    ]
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TR45:matures",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TR45:matures",
+    "values": [
+     {
+      "view": "simple",
+      "page": "move",
+      "text": "22 March 2045"
+     },
+     {
+      "view": "full",
+      "page": "plan document",
+      "text": "March 2045"
+     }
+    ]
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TR46:matures",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TR46:matures",
+    "values": [
+     {
+      "view": "simple",
+      "page": "move",
+      "text": "22 March 2046"
+     },
+     {
+      "view": "full",
+      "page": "plan document",
+      "text": "March 2046"
+     }
+    ]
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TR50:matures",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TR50:matures",
+    "values": [
+     {
+      "view": "simple",
+      "page": "move",
+      "text": "22 March 2050"
+     },
+     {
+      "view": "full",
+      "page": "plan document",
+      "text": "March 2050"
+     }
+    ]
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TR56:matures",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TR56:matures",
+    "values": [
+     {
+      "view": "simple",
+      "page": "move",
+      "text": "22 November 2056"
+     },
+     {
+      "view": "full",
+      "page": "plan document",
+      "text": "November 2056"
+     }
+    ]
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TR65:matures",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TR65:matures",
+    "values": [
+     {
+      "view": "simple",
+      "page": "move",
+      "text": "22 November 2065"
+     },
+     {
+      "view": "full",
+      "page": "plan document",
+      "text": "November 2065"
+     }
+    ]
+   },
+   {
+    "key": "saver-locked-ladder|table:ladder:TR8F:matures",
+    "fixture": "saver-locked-ladder",
+    "fact": "table:ladder:TR8F:matures",
+    "values": [
+     {
+      "view": "simple",
+      "page": "move",
+      "text": "22 November 2055"
+     },
+     {
+      "view": "full",
+      "page": "plan document",
+      "text": "November 2055"
+     }
+    ]
+   },
+   {
     "key": "saver-locked-ladder|way.name",
     "fixture": "saver-locked-ladder",
     "fact": "way.name",
@@ -9137,9 +10614,85 @@
       "text": "£26,690"
      },
      {
+      "view": "simple",
+      "page": "spend",
+      "text": "£26,690"
+     },
+     {
       "view": "full",
       "page": "stress settings",
       "text": "£28,358"
+     }
+    ]
+   },
+   {
+    "key": "saver-locked-pots|lasts.verdict",
+    "fixture": "saver-locked-pots",
+    "fact": "lasts.verdict",
+    "values": [
+     {
+      "view": "simple",
+      "page": "lasts",
+      "text": "Not yet"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "Not on course"
+     }
+    ]
+   },
+   {
+    "key": "saver-locked-pots|left.goodCase",
+    "fixture": "saver-locked-pots",
+    "fact": "left.goodCase",
+    "values": [
+     {
+      "view": "simple",
+      "page": "lasts",
+      "text": "£760,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£760,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£759,522"
+     },
+     {
+      "view": "full",
+      "page": "plan document",
+      "text": "£759,522"
+     }
+    ]
+   },
+   {
+    "key": "saver-locked-pots|left.typically",
+    "fixture": "saver-locked-pots",
+    "fact": "left.typically",
+    "values": [
+     {
+      "view": "simple",
+      "page": "lasts",
+      "text": "£79,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£79,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£79,343"
+     },
+     {
+      "view": "full",
+      "page": "plan document",
+      "text": "£79,343"
      }
     ]
    },
@@ -9386,6 +10939,23 @@
       "view": "full",
       "page": "stress settings",
       "text": "£396,175"
+     }
+    ]
+   },
+   {
+    "key": "saver-locked-pots|statePension.start",
+    "fixture": "saver-locked-pots",
+    "fact": "statePension.start",
+    "values": [
+     {
+      "view": "simple",
+      "page": "plan",
+      "text": "1 October 2041"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "2041/42"
      }
     ]
    },
@@ -10095,9 +11665,75 @@
       "text": "£28,102"
      },
      {
+      "view": "simple",
+      "page": "spend",
+      "text": "£28,102"
+     },
+     {
       "view": "full",
       "page": "stress settings",
       "text": "£29,858"
+     }
+    ]
+   },
+   {
+    "key": "saver-payin|lasts.verdict",
+    "fixture": "saver-payin",
+    "fact": "lasts.verdict",
+    "values": [
+     {
+      "view": "simple",
+      "page": "lasts",
+      "text": "Not yet"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "Not on course"
+     }
+    ]
+   },
+   {
+    "key": "saver-payin|left.goodCase",
+    "fixture": "saver-payin",
+    "fact": "left.goodCase",
+    "values": [
+     {
+      "view": "simple",
+      "page": "lasts",
+      "text": "£1,098,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£1,098,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£1,098,127"
+     }
+    ]
+   },
+   {
+    "key": "saver-payin|left.typically",
+    "fixture": "saver-payin",
+    "fact": "left.typically",
+    "values": [
+     {
+      "view": "simple",
+      "page": "lasts",
+      "text": "£244,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£244,000"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "£243,539"
      }
     ]
    },
@@ -10222,6 +11858,23 @@
       "view": "full",
       "page": "stress settings",
       "text": "£443,676"
+     }
+    ]
+   },
+   {
+    "key": "saver-payin|statePension.start",
+    "fixture": "saver-payin",
+    "fact": "statePension.start",
+    "values": [
+     {
+      "view": "simple",
+      "page": "plan",
+      "text": "12 November 2049"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "2049/50"
      }
     ]
    },
@@ -10871,6 +12524,12 @@
     "key": "age-only|income.step.0.beforeTax",
     "fixture": "age-only",
     "fact": "income.step.0.beforeTax",
+    "view": "simple"
+   },
+   {
+    "key": "age-only|income.step.0.monthAfterTax",
+    "fixture": "age-only",
+    "fact": "income.step.0.monthAfterTax",
     "view": "simple"
    },
    {
@@ -12638,27 +14297,15 @@
     "view": "simple"
    },
    {
-    "key": "budget|income.step.0.monthAfterTax",
-    "fixture": "budget",
-    "fact": "income.step.0.monthAfterTax",
-    "view": "full"
-   },
-   {
-    "key": "budget|isa.today",
-    "fixture": "budget",
-    "fact": "isa.today",
-    "view": "simple"
-   },
-   {
     "key": "budget|lasts.worst12",
     "fixture": "budget",
     "fact": "lasts.worst12",
     "view": "full"
    },
    {
-    "key": "budget|left.typically",
+    "key": "budget|left.badCase",
     "fixture": "budget",
-    "fact": "left.typically",
+    "fact": "left.badCase",
     "view": "full"
    },
    {
@@ -12668,21 +14315,9 @@
     "view": "simple"
    },
    {
-    "key": "budget|statePension.age",
-    "fixture": "budget",
-    "fact": "statePension.age",
-    "view": "simple"
-   },
-   {
     "key": "budget|statePension.amount",
     "fixture": "budget",
     "fact": "statePension.amount",
-    "view": "simple"
-   },
-   {
-    "key": "budget|statePension.start",
-    "fixture": "budget",
-    "fact": "statePension.start",
     "view": "simple"
    },
    {
@@ -13112,21 +14747,15 @@
     "view": "full"
    },
    {
-    "key": "closed-successor|income.step.0.monthAfterTax",
-    "fixture": "closed-successor",
-    "fact": "income.step.0.monthAfterTax",
-    "view": "full"
-   },
-   {
     "key": "closed-successor|income.step.1.beforeTax",
     "fixture": "closed-successor",
     "fact": "income.step.1.beforeTax",
     "view": "simple"
    },
    {
-    "key": "closed-successor|isa.today",
+    "key": "closed-successor|income.step.1.monthAfterTax",
     "fixture": "closed-successor",
-    "fact": "isa.today",
+    "fact": "income.step.1.monthAfterTax",
     "view": "simple"
    },
    {
@@ -13136,9 +14765,9 @@
     "view": "full"
    },
    {
-    "key": "closed-successor|left.typically",
+    "key": "closed-successor|left.badCase",
     "fixture": "closed-successor",
-    "fact": "left.typically",
+    "fact": "left.badCase",
     "view": "full"
    },
    {
@@ -13172,21 +14801,9 @@
     "view": "simple"
    },
    {
-    "key": "closed-successor|statePension.age",
-    "fixture": "closed-successor",
-    "fact": "statePension.age",
-    "view": "simple"
-   },
-   {
     "key": "closed-successor|statePension.amount",
     "fixture": "closed-successor",
     "fact": "statePension.amount",
-    "view": "simple"
-   },
-   {
-    "key": "closed-successor|statePension.start",
-    "fixture": "closed-successor",
-    "fact": "statePension.start",
     "view": "simple"
    },
    {
@@ -13550,51 +15167,21 @@
     "view": "simple"
    },
    {
-    "key": "couple|income.step.0.monthAfterTax",
-    "fixture": "couple",
-    "fact": "income.step.0.monthAfterTax",
-    "view": "full"
-   },
-   {
-    "key": "couple|isa.today",
-    "fixture": "couple",
-    "fact": "isa.today",
-    "view": "simple"
-   },
-   {
-    "key": "couple|lasts.fixedChance",
-    "fixture": "couple",
-    "fact": "lasts.fixedChance",
-    "view": "full"
-   },
-   {
     "key": "couple|lasts.worst12",
     "fixture": "couple",
     "fact": "lasts.worst12",
     "view": "full"
    },
    {
-    "key": "couple|left.typically",
+    "key": "couple|left.badCase",
     "fixture": "couple",
-    "fact": "left.typically",
+    "fact": "left.badCase",
     "view": "full"
-   },
-   {
-    "key": "couple|statePension.age",
-    "fixture": "couple",
-    "fact": "statePension.age",
-    "view": "simple"
    },
    {
     "key": "couple|statePension.amount",
     "fixture": "couple",
     "fact": "statePension.amount",
-    "view": "simple"
-   },
-   {
-    "key": "couple|statePension.start",
-    "fixture": "couple",
-    "fact": "statePension.start",
     "view": "simple"
    },
    {
@@ -14012,21 +15599,21 @@
     "view": "full"
    },
    {
-    "key": "mover-holdings|income.step.0.monthAfterTax",
-    "fixture": "mover-holdings",
-    "fact": "income.step.0.monthAfterTax",
-    "view": "full"
-   },
-   {
     "key": "mover-holdings|isa.today",
     "fixture": "mover-holdings",
     "fact": "isa.today",
     "view": "simple"
    },
    {
-    "key": "mover-holdings|left.typically",
+    "key": "mover-holdings|lasts.fixedChance",
     "fixture": "mover-holdings",
-    "fact": "left.typically",
+    "fact": "lasts.fixedChance",
+    "view": "full"
+   },
+   {
+    "key": "mover-holdings|left.badCase",
+    "fixture": "mover-holdings",
+    "fact": "left.badCase",
     "view": "full"
    },
    {
@@ -14048,21 +15635,9 @@
     "view": "simple"
    },
    {
-    "key": "mover-holdings|statePension.age",
-    "fixture": "mover-holdings",
-    "fact": "statePension.age",
-    "view": "simple"
-   },
-   {
     "key": "mover-holdings|statePension.amount",
     "fixture": "mover-holdings",
     "fact": "statePension.amount",
-    "view": "simple"
-   },
-   {
-    "key": "mover-holdings|statePension.start",
-    "fixture": "mover-holdings",
-    "fact": "statePension.start",
     "view": "simple"
    },
    {
@@ -14510,39 +16085,27 @@
     "view": "simple"
    },
    {
-    "key": "mover-totals|income.step.0.monthAfterTax",
-    "fixture": "mover-totals",
-    "fact": "income.step.0.monthAfterTax",
-    "view": "full"
-   },
-   {
     "key": "mover-totals|isa.today",
     "fixture": "mover-totals",
     "fact": "isa.today",
     "view": "simple"
    },
    {
-    "key": "mover-totals|left.typically",
+    "key": "mover-totals|lasts.fixedChance",
     "fixture": "mover-totals",
-    "fact": "left.typically",
+    "fact": "lasts.fixedChance",
     "view": "full"
    },
    {
-    "key": "mover-totals|statePension.age",
+    "key": "mover-totals|left.badCase",
     "fixture": "mover-totals",
-    "fact": "statePension.age",
-    "view": "simple"
+    "fact": "left.badCase",
+    "view": "full"
    },
    {
     "key": "mover-totals|statePension.amount",
     "fixture": "mover-totals",
     "fact": "statePension.amount",
-    "view": "simple"
-   },
-   {
-    "key": "mover-totals|statePension.start",
-    "fixture": "mover-totals",
-    "fact": "statePension.start",
     "view": "simple"
    },
    {
@@ -14990,27 +16553,15 @@
     "view": "simple"
    },
    {
-    "key": "retired-draft|income.step.0.monthAfterTax",
-    "fixture": "retired-draft",
-    "fact": "income.step.0.monthAfterTax",
-    "view": "full"
-   },
-   {
-    "key": "retired-draft|isa.today",
-    "fixture": "retired-draft",
-    "fact": "isa.today",
-    "view": "simple"
-   },
-   {
     "key": "retired-draft|lasts.worst12",
     "fixture": "retired-draft",
     "fact": "lasts.worst12",
     "view": "full"
    },
    {
-    "key": "retired-draft|left.typically",
+    "key": "retired-draft|left.badCase",
     "fixture": "retired-draft",
-    "fact": "left.typically",
+    "fact": "left.badCase",
     "view": "full"
    },
    {
@@ -15020,21 +16571,9 @@
     "view": "simple"
    },
    {
-    "key": "retired-draft|statePension.age",
-    "fixture": "retired-draft",
-    "fact": "statePension.age",
-    "view": "simple"
-   },
-   {
     "key": "retired-draft|statePension.amount",
     "fixture": "retired-draft",
     "fact": "statePension.amount",
-    "view": "simple"
-   },
-   {
-    "key": "retired-draft|statePension.start",
-    "fixture": "retired-draft",
-    "fact": "statePension.start",
     "view": "simple"
    },
    {
@@ -15482,15 +17021,15 @@
     "view": "full"
    },
    {
-    "key": "retired-everything|income.step.0.monthAfterTax",
-    "fixture": "retired-everything",
-    "fact": "income.step.0.monthAfterTax",
-    "view": "full"
-   },
-   {
     "key": "retired-everything|income.step.1.beforeTax",
     "fixture": "retired-everything",
     "fact": "income.step.1.beforeTax",
+    "view": "simple"
+   },
+   {
+    "key": "retired-everything|income.step.1.monthAfterTax",
+    "fixture": "retired-everything",
+    "fact": "income.step.1.monthAfterTax",
     "view": "simple"
    },
    {
@@ -15500,9 +17039,9 @@
     "view": "simple"
    },
    {
-    "key": "retired-everything|isa.today",
+    "key": "retired-everything|income.step.2.monthAfterTax",
     "fixture": "retired-everything",
-    "fact": "isa.today",
+    "fact": "income.step.2.monthAfterTax",
     "view": "simple"
    },
    {
@@ -15512,34 +17051,10 @@
     "view": "full"
    },
    {
-    "key": "retired-everything|left.typically",
+    "key": "retired-everything|left.badCase",
     "fixture": "retired-everything",
-    "fact": "left.typically",
+    "fact": "left.badCase",
     "view": "full"
-   },
-   {
-    "key": "retired-everything|lump.0.age",
-    "fixture": "retired-everything",
-    "fact": "lump.0.age",
-    "view": "simple"
-   },
-   {
-    "key": "retired-everything|lump.0.amount",
-    "fixture": "retired-everything",
-    "fact": "lump.0.amount",
-    "view": "simple"
-   },
-   {
-    "key": "retired-everything|lump.1.age",
-    "fixture": "retired-everything",
-    "fact": "lump.1.age",
-    "view": "simple"
-   },
-   {
-    "key": "retired-everything|lump.1.amount",
-    "fixture": "retired-everything",
-    "fact": "lump.1.amount",
-    "view": "simple"
    },
    {
     "key": "retired-everything|mix.held.bonds",
@@ -15572,21 +17087,9 @@
     "view": "simple"
    },
    {
-    "key": "retired-everything|statePension.age",
-    "fixture": "retired-everything",
-    "fact": "statePension.age",
-    "view": "simple"
-   },
-   {
     "key": "retired-everything|statePension.amount",
     "fixture": "retired-everything",
     "fact": "statePension.amount",
-    "view": "simple"
-   },
-   {
-    "key": "retired-everything|statePension.start",
-    "fixture": "retired-everything",
-    "fact": "statePension.start",
     "view": "simple"
    },
    {
@@ -16022,15 +17525,15 @@
     "view": "full"
    },
    {
-    "key": "retired-locked-ladder|income.step.0.monthAfterTax",
-    "fixture": "retired-locked-ladder",
-    "fact": "income.step.0.monthAfterTax",
-    "view": "full"
-   },
-   {
     "key": "retired-locked-ladder|income.step.1.beforeTax",
     "fixture": "retired-locked-ladder",
     "fact": "income.step.1.beforeTax",
+    "view": "simple"
+   },
+   {
+    "key": "retired-locked-ladder|income.step.1.monthAfterTax",
+    "fixture": "retired-locked-ladder",
+    "fact": "income.step.1.monthAfterTax",
     "view": "simple"
    },
    {
@@ -16040,21 +17543,15 @@
     "view": "simple"
    },
    {
-    "key": "retired-locked-ladder|lasts.fixedChance",
-    "fixture": "retired-locked-ladder",
-    "fact": "lasts.fixedChance",
-    "view": "full"
-   },
-   {
     "key": "retired-locked-ladder|lasts.worst12",
     "fixture": "retired-locked-ladder",
     "fact": "lasts.worst12",
     "view": "full"
    },
    {
-    "key": "retired-locked-ladder|left.typically",
+    "key": "retired-locked-ladder|left.badCase",
     "fixture": "retired-locked-ladder",
-    "fact": "left.typically",
+    "fact": "left.badCase",
     "view": "full"
    },
    {
@@ -16082,18 +17579,6 @@
     "view": "simple"
    },
    {
-    "key": "retired-locked-ladder|month.take.afterTax",
-    "fixture": "retired-locked-ladder",
-    "fact": "month.take.afterTax",
-    "view": "simple"
-   },
-   {
-    "key": "retired-locked-ladder|month.take.pension",
-    "fixture": "retired-locked-ladder",
-    "fact": "month.take.pension",
-    "view": "simple"
-   },
-   {
     "key": "retired-locked-ladder|pot.today",
     "fixture": "retired-locked-ladder",
     "fact": "pot.today",
@@ -16112,16 +17597,490 @@
     "view": "simple"
    },
    {
-    "key": "retired-locked-ladder|statePension.start",
-    "fixture": "retired-locked-ladder",
-    "fact": "statePension.start",
-    "view": "simple"
-   },
-   {
     "key": "retired-locked-ladder|statePension.week",
     "fixture": "retired-locked-ladder",
     "fact": "statePension.week",
     "view": "simple"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:T27:cost",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:T27:cost",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:T27:matures",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:T27:matures",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:T27:pays",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:T27:pays",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:T27:units",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:T27:units",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:T29:cost",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:T29:cost",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:T29:matures",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:T29:matures",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:T29:pays",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:T29:pays",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:T29:units",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:T29:units",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:T32:cost",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:T32:cost",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:T32:matures",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:T32:matures",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:T32:pays",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:T32:pays",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:T32:units",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:T32:units",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:T41:cost",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:T41:cost",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:T41:matures",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:T41:matures",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:T41:pays",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:T41:pays",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:T41:units",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:T41:units",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:T42A:cost",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:T42A:cost",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:T42A:matures",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:T42A:matures",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:T42A:pays",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:T42A:pays",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:T42A:units",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:T42A:units",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:T44:cost",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:T44:cost",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:T44:matures",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:T44:matures",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:T44:pays",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:T44:pays",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:T44:units",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:T44:units",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:T47:cost",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:T47:cost",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:T47:matures",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:T47:matures",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:T47:pays",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:T47:pays",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:T47:units",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:T47:units",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:TG36:cost",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:TG36:cost",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:TG36:matures",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:TG36:matures",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:TG36:pays",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:TG36:pays",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:TG36:units",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:TG36:units",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:TG39:cost",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:TG39:cost",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:TG39:matures",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:TG39:matures",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:TG39:pays",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:TG39:pays",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:TG39:units",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:TG39:units",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:TG48:cost",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:TG48:cost",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:TG48:matures",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:TG48:matures",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:TG48:pays",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:TG48:pays",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:TG48:units",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:TG48:units",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:TG51:cost",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:TG51:cost",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:TG51:matures",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:TG51:matures",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:TG51:pays",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:TG51:pays",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:TG51:units",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:TG51:units",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:TG52:cost",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:TG52:cost",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:TG52:matures",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:TG52:matures",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:TG52:pays",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:TG52:pays",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:TG52:units",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:TG52:units",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:TR31:cost",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:TR31:cost",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:TR31:matures",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:TR31:matures",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:TR31:pays",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:TR31:pays",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:TR31:units",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:TR31:units",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:TR35:cost",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:TR35:cost",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:TR35:matures",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:TR35:matures",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:TR35:pays",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:TR35:pays",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:TR35:units",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:TR35:units",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:TR37:cost",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:TR37:cost",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:TR37:matures",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:TR37:matures",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:TR37:pays",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:TR37:pays",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:TR37:units",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:TR37:units",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:TR40:cost",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:TR40:cost",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:TR40:matures",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:TR40:matures",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:TR40:pays",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:TR40:pays",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:TR40:units",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:TR40:units",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:TR45:cost",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:TR45:cost",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:TR45:matures",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:TR45:matures",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:TR45:pays",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:TR45:pays",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:TR45:units",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:TR45:units",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:TR46:cost",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:TR46:cost",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:TR46:matures",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:TR46:matures",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:TR46:pays",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:TR46:pays",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:TR46:units",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:TR46:units",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:TR50:cost",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:TR50:cost",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:TR50:matures",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:TR50:matures",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:TR50:pays",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:TR50:pays",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:TR50:units",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:TR50:units",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:TRTQ:cost",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:TRTQ:cost",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:TRTQ:matures",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:TRTQ:matures",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:TRTQ:pays",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:TRTQ:pays",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|table:ladder:TRTQ:units",
+    "fixture": "retired-locked-ladder",
+    "fact": "table:ladder:TRTQ:units",
+    "view": "full"
    },
    {
     "key": "retired-locked-ladder|table:years:1:age",
@@ -17006,27 +18965,15 @@
     "view": "full"
    },
    {
-    "key": "retired-locked-months|income.step.0.monthAfterTax",
-    "fixture": "retired-locked-months",
-    "fact": "income.step.0.monthAfterTax",
-    "view": "full"
-   },
-   {
-    "key": "retired-locked-months|isa.today",
-    "fixture": "retired-locked-months",
-    "fact": "isa.today",
-    "view": "simple"
-   },
-   {
     "key": "retired-locked-months|lasts.worst12",
     "fixture": "retired-locked-months",
     "fact": "lasts.worst12",
     "view": "full"
    },
    {
-    "key": "retired-locked-months|left.typically",
+    "key": "retired-locked-months|left.badCase",
     "fixture": "retired-locked-months",
-    "fact": "left.typically",
+    "fact": "left.badCase",
     "view": "full"
    },
    {
@@ -17054,16 +19001,22 @@
     "view": "simple"
    },
    {
-    "key": "retired-locked-months|month.take.afterTax",
+    "key": "retired-locked-months|mix.plan.bonds",
     "fixture": "retired-locked-months",
-    "fact": "month.take.afterTax",
-    "view": "simple"
+    "fact": "mix.plan.bonds",
+    "view": "full"
    },
    {
-    "key": "retired-locked-months|month.take.pension",
+    "key": "retired-locked-months|mix.plan.cash",
     "fixture": "retired-locked-months",
-    "fact": "month.take.pension",
-    "view": "simple"
+    "fact": "mix.plan.cash",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-months|mix.plan.shares",
+    "fixture": "retired-locked-months",
+    "fact": "mix.plan.shares",
+    "view": "full"
    },
    {
     "key": "retired-locked-months|pot.today",
@@ -17072,21 +19025,9 @@
     "view": "simple"
    },
    {
-    "key": "retired-locked-months|statePension.age",
-    "fixture": "retired-locked-months",
-    "fact": "statePension.age",
-    "view": "simple"
-   },
-   {
     "key": "retired-locked-months|statePension.amount",
     "fixture": "retired-locked-months",
     "fact": "statePension.amount",
-    "view": "simple"
-   },
-   {
-    "key": "retired-locked-months|statePension.start",
-    "fixture": "retired-locked-months",
-    "fact": "statePension.start",
     "view": "simple"
    },
    {
@@ -18002,57 +19943,39 @@
     "view": "simple"
    },
    {
-    "key": "retired-locked-pots|income.step.0.monthAfterTax",
-    "fixture": "retired-locked-pots",
-    "fact": "income.step.0.monthAfterTax",
-    "view": "full"
-   },
-   {
-    "key": "retired-locked-pots|isa.today",
-    "fixture": "retired-locked-pots",
-    "fact": "isa.today",
-    "view": "simple"
-   },
-   {
     "key": "retired-locked-pots|lasts.worst12",
     "fixture": "retired-locked-pots",
     "fact": "lasts.worst12",
     "view": "full"
    },
    {
-    "key": "retired-locked-pots|left.typically",
+    "key": "retired-locked-pots|left.badCase",
     "fixture": "retired-locked-pots",
-    "fact": "left.typically",
+    "fact": "left.badCase",
     "view": "full"
    },
    {
-    "key": "retired-locked-pots|month.take.afterTax",
+    "key": "retired-locked-pots|mix.plan.bonds",
     "fixture": "retired-locked-pots",
-    "fact": "month.take.afterTax",
-    "view": "simple"
+    "fact": "mix.plan.bonds",
+    "view": "full"
    },
    {
-    "key": "retired-locked-pots|month.take.pension",
+    "key": "retired-locked-pots|mix.plan.cash",
     "fixture": "retired-locked-pots",
-    "fact": "month.take.pension",
-    "view": "simple"
+    "fact": "mix.plan.cash",
+    "view": "full"
    },
    {
-    "key": "retired-locked-pots|statePension.age",
+    "key": "retired-locked-pots|mix.plan.shares",
     "fixture": "retired-locked-pots",
-    "fact": "statePension.age",
-    "view": "simple"
+    "fact": "mix.plan.shares",
+    "view": "full"
    },
    {
     "key": "retired-locked-pots|statePension.amount",
     "fixture": "retired-locked-pots",
     "fact": "statePension.amount",
-    "view": "simple"
-   },
-   {
-    "key": "retired-locked-pots|statePension.start",
-    "fixture": "retired-locked-pots",
-    "fact": "statePension.start",
     "view": "simple"
    },
    {
@@ -18476,39 +20399,27 @@
     "view": "simple"
    },
    {
-    "key": "saver-checkin|income.step.0.monthAfterTax",
-    "fixture": "saver-checkin",
-    "fact": "income.step.0.monthAfterTax",
-    "view": "full"
-   },
-   {
     "key": "saver-checkin|isa.today",
     "fixture": "saver-checkin",
     "fact": "isa.today",
     "view": "simple"
    },
    {
-    "key": "saver-checkin|left.typically",
+    "key": "saver-checkin|lasts.fixedChance",
     "fixture": "saver-checkin",
-    "fact": "left.typically",
+    "fact": "lasts.fixedChance",
     "view": "full"
    },
    {
-    "key": "saver-checkin|statePension.age",
+    "key": "saver-checkin|left.badCase",
     "fixture": "saver-checkin",
-    "fact": "statePension.age",
-    "view": "simple"
+    "fact": "left.badCase",
+    "view": "full"
    },
    {
     "key": "saver-checkin|statePension.amount",
     "fixture": "saver-checkin",
     "fact": "statePension.amount",
-    "view": "simple"
-   },
-   {
-    "key": "saver-checkin|statePension.start",
-    "fixture": "saver-checkin",
-    "fact": "statePension.start",
     "view": "simple"
    },
    {
@@ -18872,16 +20783,22 @@
     "view": "simple"
    },
    {
-    "key": "saver-draft|income.step.0.monthAfterTax",
+    "key": "saver-draft|lasts.fixedChance",
     "fixture": "saver-draft",
-    "fact": "income.step.0.monthAfterTax",
+    "fact": "lasts.fixedChance",
     "view": "full"
    },
    {
-    "key": "saver-draft|isa.today",
+    "key": "saver-draft|left.badCase",
     "fixture": "saver-draft",
-    "fact": "isa.today",
-    "view": "simple"
+    "fact": "left.badCase",
+    "view": "full"
+   },
+   {
+    "key": "saver-draft|left.goodCase",
+    "fixture": "saver-draft",
+    "fact": "left.goodCase",
+    "view": "full"
    },
    {
     "key": "saver-draft|left.typically",
@@ -18902,21 +20819,9 @@
     "view": "full"
    },
    {
-    "key": "saver-draft|statePension.age",
-    "fixture": "saver-draft",
-    "fact": "statePension.age",
-    "view": "simple"
-   },
-   {
     "key": "saver-draft|statePension.amount",
     "fixture": "saver-draft",
     "fact": "statePension.amount",
-    "view": "simple"
-   },
-   {
-    "key": "saver-draft|statePension.start",
-    "fixture": "saver-draft",
-    "fact": "statePension.start",
     "view": "simple"
    },
    {
@@ -19430,6 +21335,1584 @@
     "view": "full"
    },
    {
+    "key": "saver-ladder-draft|age.today",
+    "fixture": "saver-ladder-draft",
+    "fact": "age.today",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|holdings.total",
+    "fixture": "saver-ladder-draft",
+    "fact": "holdings.total",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|income.step.1.beforeTax",
+    "fixture": "saver-ladder-draft",
+    "fact": "income.step.1.beforeTax",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|income.step.1.monthAfterTax",
+    "fixture": "saver-ladder-draft",
+    "fact": "income.step.1.monthAfterTax",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|isa.today",
+    "fixture": "saver-ladder-draft",
+    "fact": "isa.today",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|lasts.worst12",
+    "fixture": "saver-ladder-draft",
+    "fact": "lasts.worst12",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|left.badCase",
+    "fixture": "saver-ladder-draft",
+    "fact": "left.badCase",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|mix.held.cash",
+    "fixture": "saver-ladder-draft",
+    "fact": "mix.held.cash",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|mix.held.diversifiers",
+    "fixture": "saver-ladder-draft",
+    "fact": "mix.held.diversifiers",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|statePension.age",
+    "fixture": "saver-ladder-draft",
+    "fact": "statePension.age",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|statePension.amount",
+    "fixture": "saver-ladder-draft",
+    "fact": "statePension.amount",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|statePension.week",
+    "fixture": "saver-ladder-draft",
+    "fact": "statePension.week",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:T41:cost",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:T41:cost",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:T41:matures",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:T41:matures",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:T41:pays",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:T41:pays",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:T41:units",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:T41:units",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:T42A:cost",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:T42A:cost",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:T42A:matures",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:T42A:matures",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:T42A:pays",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:T42A:pays",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:T42A:units",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:T42A:units",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:T44:cost",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:T44:cost",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:T44:matures",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:T44:matures",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:T44:pays",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:T44:pays",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:T44:units",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:T44:units",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:T47:cost",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:T47:cost",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:T47:matures",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:T47:matures",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:T47:pays",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:T47:pays",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:T47:units",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:T47:units",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:T58:cost",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:T58:cost",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:T58:matures",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:T58:matures",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:T58:pays",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:T58:pays",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:T58:units",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:T58:units",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:T62:cost",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:T62:cost",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:T62:matures",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:T62:matures",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:T62:pays",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:T62:pays",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:T62:units",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:T62:units",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:T68:cost",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:T68:cost",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:T68:matures",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:T68:matures",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:T68:pays",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:T68:pays",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:T68:units",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:T68:units",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:TG39:cost",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:TG39:cost",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:TG39:matures",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:TG39:matures",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:TG39:pays",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:TG39:pays",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:TG39:units",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:TG39:units",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:TG48:cost",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:TG48:cost",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:TG48:matures",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:TG48:matures",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:TG48:pays",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:TG48:pays",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:TG48:units",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:TG48:units",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:TG51:cost",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:TG51:cost",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:TG51:matures",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:TG51:matures",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:TG51:pays",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:TG51:pays",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:TG51:units",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:TG51:units",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:TG52:cost",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:TG52:cost",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:TG52:matures",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:TG52:matures",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:TG52:pays",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:TG52:pays",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:TG52:units",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:TG52:units",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:TG54:cost",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:TG54:cost",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:TG54:matures",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:TG54:matures",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:TG54:pays",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:TG54:pays",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:TG54:units",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:TG54:units",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:TR40:cost",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:TR40:cost",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:TR40:matures",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:TR40:matures",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:TR40:pays",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:TR40:pays",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:TR40:units",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:TR40:units",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:TR45:cost",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:TR45:cost",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:TR45:matures",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:TR45:matures",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:TR45:pays",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:TR45:pays",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:TR45:units",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:TR45:units",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:TR46:cost",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:TR46:cost",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:TR46:matures",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:TR46:matures",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:TR46:pays",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:TR46:pays",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:TR46:units",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:TR46:units",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:TR50:cost",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:TR50:cost",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:TR50:matures",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:TR50:matures",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:TR50:pays",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:TR50:pays",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:TR50:units",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:TR50:units",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:TR56:cost",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:TR56:cost",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:TR56:matures",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:TR56:matures",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:TR56:pays",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:TR56:pays",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:TR56:units",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:TR56:units",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:TR65:cost",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:TR65:cost",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:TR65:matures",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:TR65:matures",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:TR65:pays",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:TR65:pays",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:TR65:units",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:TR65:units",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:TR8F:cost",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:TR8F:cost",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:TR8F:matures",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:TR8F:matures",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:TR8F:pays",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:TR8F:pays",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:ladder:TR8F:units",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:ladder:TR8F:units",
+    "view": "full"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:1:age",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:1:age",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:1:incomeBad",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:1:incomeBad",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:1:incomeMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:1:incomeMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:1:leftMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:1:leftMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:1:year",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:1:year",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:10:age",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:10:age",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:10:incomeBad",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:10:incomeBad",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:10:incomeMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:10:incomeMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:10:leftMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:10:leftMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:10:year",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:10:year",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:11:age",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:11:age",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:11:incomeBad",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:11:incomeBad",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:11:incomeMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:11:incomeMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:11:leftMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:11:leftMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:11:year",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:11:year",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:12:age",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:12:age",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:12:incomeBad",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:12:incomeBad",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:12:incomeMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:12:incomeMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:12:leftMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:12:leftMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:12:year",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:12:year",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:13:age",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:13:age",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:13:incomeBad",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:13:incomeBad",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:13:incomeMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:13:incomeMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:13:leftMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:13:leftMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:13:year",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:13:year",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:14:age",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:14:age",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:14:incomeBad",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:14:incomeBad",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:14:incomeMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:14:incomeMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:14:leftMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:14:leftMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:14:year",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:14:year",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:15:age",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:15:age",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:15:incomeBad",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:15:incomeBad",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:15:incomeMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:15:incomeMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:15:leftMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:15:leftMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:15:year",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:15:year",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:16:age",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:16:age",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:16:incomeBad",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:16:incomeBad",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:16:incomeMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:16:incomeMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:16:leftMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:16:leftMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:16:year",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:16:year",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:17:age",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:17:age",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:17:incomeBad",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:17:incomeBad",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:17:incomeMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:17:incomeMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:17:leftMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:17:leftMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:17:year",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:17:year",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:18:age",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:18:age",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:18:incomeBad",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:18:incomeBad",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:18:incomeMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:18:incomeMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:18:leftMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:18:leftMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:18:year",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:18:year",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:19:age",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:19:age",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:19:incomeBad",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:19:incomeBad",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:19:incomeMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:19:incomeMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:19:leftMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:19:leftMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:19:year",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:19:year",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:2:age",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:2:age",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:2:incomeBad",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:2:incomeBad",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:2:incomeMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:2:incomeMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:2:leftMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:2:leftMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:2:year",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:2:year",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:20:age",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:20:age",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:20:incomeBad",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:20:incomeBad",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:20:incomeMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:20:incomeMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:20:leftMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:20:leftMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:20:year",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:20:year",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:21:age",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:21:age",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:21:incomeBad",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:21:incomeBad",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:21:incomeMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:21:incomeMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:21:leftMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:21:leftMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:21:year",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:21:year",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:22:age",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:22:age",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:22:incomeBad",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:22:incomeBad",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:22:incomeMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:22:incomeMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:22:leftMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:22:leftMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:22:year",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:22:year",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:23:age",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:23:age",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:23:incomeBad",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:23:incomeBad",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:23:incomeMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:23:incomeMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:23:leftMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:23:leftMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:23:year",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:23:year",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:24:age",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:24:age",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:24:incomeBad",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:24:incomeBad",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:24:incomeMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:24:incomeMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:24:leftMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:24:leftMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:24:year",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:24:year",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:25:age",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:25:age",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:25:incomeBad",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:25:incomeBad",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:25:incomeMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:25:incomeMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:25:leftMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:25:leftMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:25:year",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:25:year",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:26:age",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:26:age",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:26:incomeBad",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:26:incomeBad",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:26:incomeMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:26:incomeMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:26:leftMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:26:leftMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:26:year",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:26:year",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:27:age",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:27:age",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:27:incomeBad",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:27:incomeBad",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:27:incomeMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:27:incomeMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:27:leftMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:27:leftMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:27:year",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:27:year",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:28:age",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:28:age",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:28:incomeBad",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:28:incomeBad",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:28:incomeMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:28:incomeMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:28:leftMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:28:leftMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:28:year",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:28:year",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:29:age",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:29:age",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:29:incomeBad",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:29:incomeBad",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:29:incomeMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:29:incomeMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:29:leftMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:29:leftMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:29:year",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:29:year",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:3:age",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:3:age",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:3:incomeBad",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:3:incomeBad",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:3:incomeMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:3:incomeMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:3:leftMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:3:leftMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:3:year",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:3:year",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:30:age",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:30:age",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:30:incomeBad",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:30:incomeBad",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:30:incomeMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:30:incomeMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:30:leftMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:30:leftMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:30:year",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:30:year",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:31:age",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:31:age",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:31:incomeBad",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:31:incomeBad",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:31:incomeMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:31:incomeMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:31:leftMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:31:leftMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:31:year",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:31:year",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:32:age",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:32:age",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:32:incomeBad",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:32:incomeBad",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:32:incomeMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:32:incomeMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:32:leftMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:32:leftMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:32:year",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:32:year",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:33:age",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:33:age",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:33:incomeBad",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:33:incomeBad",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:33:incomeMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:33:incomeMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:33:leftMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:33:leftMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:33:year",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:33:year",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:34:age",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:34:age",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:34:incomeBad",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:34:incomeBad",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:34:incomeMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:34:incomeMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:34:leftMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:34:leftMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:34:year",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:34:year",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:35:age",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:35:age",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:35:incomeBad",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:35:incomeBad",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:35:incomeMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:35:incomeMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:35:leftMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:35:leftMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:35:year",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:35:year",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:4:age",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:4:age",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:4:incomeBad",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:4:incomeBad",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:4:incomeMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:4:incomeMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:4:leftMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:4:leftMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:4:year",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:4:year",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:5:age",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:5:age",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:5:incomeBad",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:5:incomeBad",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:5:incomeMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:5:incomeMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:5:leftMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:5:leftMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:5:year",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:5:year",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:6:age",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:6:age",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:6:incomeBad",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:6:incomeBad",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:6:incomeMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:6:incomeMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:6:leftMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:6:leftMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:6:year",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:6:year",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:7:age",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:7:age",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:7:incomeBad",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:7:incomeBad",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:7:incomeMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:7:incomeMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:7:leftMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:7:leftMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:7:year",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:7:year",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:8:age",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:8:age",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:8:incomeBad",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:8:incomeBad",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:8:incomeMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:8:incomeMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:8:leftMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:8:leftMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:8:year",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:8:year",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:9:age",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:9:age",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:9:incomeBad",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:9:incomeBad",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:9:incomeMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:9:incomeMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:9:leftMid",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:9:leftMid",
+    "view": "simple"
+   },
+   {
+    "key": "saver-ladder-draft|table:years:9:year",
+    "fixture": "saver-ladder-draft",
+    "fact": "table:years:9:year",
+    "view": "simple"
+   },
+   {
     "key": "saver-locked-ladder|age.today",
     "fixture": "saver-locked-ladder",
     "fact": "age.today",
@@ -19448,15 +22931,15 @@
     "view": "full"
    },
    {
-    "key": "saver-locked-ladder|income.step.0.monthAfterTax",
-    "fixture": "saver-locked-ladder",
-    "fact": "income.step.0.monthAfterTax",
-    "view": "full"
-   },
-   {
     "key": "saver-locked-ladder|income.step.1.beforeTax",
     "fixture": "saver-locked-ladder",
     "fact": "income.step.1.beforeTax",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|income.step.1.monthAfterTax",
+    "fixture": "saver-locked-ladder",
+    "fact": "income.step.1.monthAfterTax",
     "view": "simple"
    },
    {
@@ -19466,21 +22949,15 @@
     "view": "simple"
    },
    {
-    "key": "saver-locked-ladder|lasts.fixedChance",
-    "fixture": "saver-locked-ladder",
-    "fact": "lasts.fixedChance",
-    "view": "full"
-   },
-   {
     "key": "saver-locked-ladder|lasts.worst12",
     "fixture": "saver-locked-ladder",
     "fact": "lasts.worst12",
     "view": "full"
    },
    {
-    "key": "saver-locked-ladder|left.typically",
+    "key": "saver-locked-ladder|left.badCase",
     "fixture": "saver-locked-ladder",
-    "fact": "left.typically",
+    "fact": "left.badCase",
     "view": "full"
    },
    {
@@ -19514,471 +22991,9 @@
     "view": "simple"
    },
    {
-    "key": "saver-locked-ladder|statePension.start",
-    "fixture": "saver-locked-ladder",
-    "fact": "statePension.start",
-    "view": "simple"
-   },
-   {
     "key": "saver-locked-ladder|statePension.week",
     "fixture": "saver-locked-ladder",
     "fact": "statePension.week",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:T41:cost",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:T41:cost",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:T41:matures",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:T41:matures",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:T41:pays",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:T41:pays",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:T41:units",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:T41:units",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:T42A:cost",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:T42A:cost",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:T42A:matures",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:T42A:matures",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:T42A:pays",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:T42A:pays",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:T42A:units",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:T42A:units",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:T44:cost",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:T44:cost",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:T44:matures",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:T44:matures",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:T44:pays",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:T44:pays",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:T44:units",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:T44:units",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:T47:cost",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:T47:cost",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:T47:matures",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:T47:matures",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:T47:pays",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:T47:pays",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:T47:units",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:T47:units",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:T58:cost",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:T58:cost",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:T58:matures",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:T58:matures",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:T58:pays",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:T58:pays",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:T58:units",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:T58:units",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:T62:cost",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:T62:cost",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:T62:matures",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:T62:matures",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:T62:pays",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:T62:pays",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:T62:units",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:T62:units",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:T68:cost",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:T68:cost",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:T68:matures",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:T68:matures",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:T68:pays",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:T68:pays",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:T68:units",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:T68:units",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:TG39:cost",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:TG39:cost",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:TG39:matures",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:TG39:matures",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:TG39:pays",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:TG39:pays",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:TG39:units",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:TG39:units",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:TG48:cost",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:TG48:cost",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:TG48:matures",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:TG48:matures",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:TG48:pays",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:TG48:pays",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:TG48:units",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:TG48:units",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:TG51:cost",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:TG51:cost",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:TG51:matures",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:TG51:matures",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:TG51:pays",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:TG51:pays",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:TG51:units",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:TG51:units",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:TG52:cost",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:TG52:cost",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:TG52:matures",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:TG52:matures",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:TG52:pays",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:TG52:pays",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:TG52:units",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:TG52:units",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:TG54:cost",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:TG54:cost",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:TG54:matures",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:TG54:matures",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:TG54:pays",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:TG54:pays",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:TG54:units",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:TG54:units",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:TR40:cost",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:TR40:cost",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:TR40:matures",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:TR40:matures",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:TR40:pays",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:TR40:pays",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:TR40:units",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:TR40:units",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:TR45:cost",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:TR45:cost",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:TR45:matures",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:TR45:matures",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:TR45:pays",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:TR45:pays",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:TR45:units",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:TR45:units",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:TR46:cost",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:TR46:cost",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:TR46:matures",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:TR46:matures",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:TR46:pays",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:TR46:pays",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:TR46:units",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:TR46:units",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:TR50:cost",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:TR50:cost",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:TR50:matures",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:TR50:matures",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:TR50:pays",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:TR50:pays",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:TR50:units",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:TR50:units",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:TR56:cost",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:TR56:cost",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:TR56:matures",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:TR56:matures",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:TR56:pays",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:TR56:pays",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:TR56:units",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:TR56:units",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:TR65:cost",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:TR65:cost",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:TR65:matures",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:TR65:matures",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:TR65:pays",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:TR65:pays",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:TR65:units",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:TR65:units",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:TR8F:cost",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:TR8F:cost",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:TR8F:matures",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:TR8F:matures",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:TR8F:pays",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:TR8F:pays",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|table:ladder:TR8F:units",
-    "fixture": "saver-locked-ladder",
-    "fact": "table:ladder:TR8F:units",
     "view": "simple"
    },
    {
@@ -21038,40 +24053,22 @@
     "view": "simple"
    },
    {
-    "key": "saver-locked-pots|income.step.0.monthAfterTax",
-    "fixture": "saver-locked-pots",
-    "fact": "income.step.0.monthAfterTax",
-    "view": "full"
-   },
-   {
     "key": "saver-locked-pots|isa.today",
     "fixture": "saver-locked-pots",
     "fact": "isa.today",
     "view": "simple"
    },
    {
-    "key": "saver-locked-pots|left.typically",
+    "key": "saver-locked-pots|lasts.fixedChance",
     "fixture": "saver-locked-pots",
-    "fact": "left.typically",
+    "fact": "lasts.fixedChance",
     "view": "full"
    },
    {
-    "key": "saver-locked-pots|mix.plan.bonds",
+    "key": "saver-locked-pots|left.badCase",
     "fixture": "saver-locked-pots",
-    "fact": "mix.plan.bonds",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-pots|mix.plan.cash",
-    "fixture": "saver-locked-pots",
-    "fact": "mix.plan.cash",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-pots|mix.plan.shares",
-    "fixture": "saver-locked-pots",
-    "fact": "mix.plan.shares",
-    "view": "simple"
+    "fact": "left.badCase",
+    "view": "full"
    },
    {
     "key": "saver-locked-pots|pot.today",
@@ -21080,21 +24077,9 @@
     "view": "simple"
    },
    {
-    "key": "saver-locked-pots|statePension.age",
-    "fixture": "saver-locked-pots",
-    "fact": "statePension.age",
-    "view": "simple"
-   },
-   {
     "key": "saver-locked-pots|statePension.amount",
     "fixture": "saver-locked-pots",
     "fact": "statePension.amount",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-pots|statePension.start",
-    "fixture": "saver-locked-pots",
-    "fact": "statePension.start",
     "view": "simple"
    },
    {
@@ -21506,39 +24491,27 @@
     "view": "simple"
    },
    {
-    "key": "saver-payin|income.step.0.monthAfterTax",
-    "fixture": "saver-payin",
-    "fact": "income.step.0.monthAfterTax",
-    "view": "full"
-   },
-   {
     "key": "saver-payin|isa.today",
     "fixture": "saver-payin",
     "fact": "isa.today",
     "view": "simple"
    },
    {
-    "key": "saver-payin|left.typically",
+    "key": "saver-payin|lasts.fixedChance",
     "fixture": "saver-payin",
-    "fact": "left.typically",
+    "fact": "lasts.fixedChance",
     "view": "full"
    },
    {
-    "key": "saver-payin|statePension.age",
+    "key": "saver-payin|left.badCase",
     "fixture": "saver-payin",
-    "fact": "statePension.age",
-    "view": "simple"
+    "fact": "left.badCase",
+    "view": "full"
    },
    {
     "key": "saver-payin|statePension.amount",
     "fixture": "saver-payin",
     "fact": "statePension.amount",
-    "view": "simple"
-   },
-   {
-    "key": "saver-payin|statePension.start",
-    "fixture": "saver-payin",
-    "fact": "statePension.start",
     "view": "simple"
    },
    {
@@ -21899,6 +24872,12 @@
     "key": "wizard-defaults|income.step.0.beforeTax",
     "fixture": "wizard-defaults",
     "fact": "income.step.0.beforeTax",
+    "view": "simple"
+   },
+   {
+    "key": "wizard-defaults|income.step.0.monthAfterTax",
+    "fixture": "wizard-defaults",
+    "fact": "income.step.0.monthAfterTax",
     "view": "simple"
    },
    {

@@ -124,6 +124,20 @@ export const FIXTURES = Object.freeze([
     }
   },
   {
+    // the same saver's ladder not locked yet: both views draw the order sheet of a plan still being made
+    key: 'saver-ladder-draft', label: 'a saver\'s draft on a gilt ladder (the corpus\'s saver, its way of drawing set to the ladder)', subject: 'ParLadderDraft',
+    plans: () => {
+      const p = corpus('05-saver-committed');
+      delete p.planDocument; delete p.household;
+      p.decisionTool.settings = { ...p.decisionTool.settings, locked: false };
+      delete p.decisionTool.settings.lockedAt; delete p.decisionTool.settings.lockedBy; delete p.decisionTool.planOfRecord;
+      p.stressTool.settings = { ...p.stressTool.settings, strategyId: 'full-il-gilt' };
+      p.strategy = { ...(p.strategy || {}), id: 'full-il-gilt' };
+      p.id = 'ParLadderDraft'; p.planDetails = { ...p.planDetails, name: 'Jo on a ladder' };
+      return [active(p)];
+    }
+  },
+  {
     key: 'saver-checkin', label: 'a saver with a check-in recorded during a pause in paying in', subject: 'ParSaverCheckIn',
     plans: () => {
       const day = '2026-10-05';

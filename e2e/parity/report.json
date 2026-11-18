@@ -1,5 +1,5 @@
 {
- "at": "2026-11-18T18:29:33.706Z",
+ "at": "2026-11-18T20:36:27.069Z",
  "fixtures": [
   "age-only",
   "budget",
@@ -31,11 +31,7 @@
  "readingMismatches": 0,
  "roundTripsFailed": 71,
  "rose": [],
- "shrank": [
-  "agrees now, take it out of known-disagreements.json: age-only|field:saving.escalationPct",
-  "agrees now, take it out of known-disagreements.json: couple|field:saving.escalationPct",
-  "agrees now, take it out of known-disagreements.json: wizard-defaults|field:saving.escalationPct"
- ],
+ "shrank": [],
  "grew": [],
  "notQuiet": [],
  "detail": {

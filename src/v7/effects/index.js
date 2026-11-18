@@ -29,6 +29,7 @@ import { startDownloads } from './download.js';
 import { startAssumptions } from './assumptions.js';
 import { startPlace, hasSignedInHint } from './place.js';
 import { startView } from './view.js';
+import { setBusy } from '../../reading/busy.js';
 import { startStaleBuild, watchClient } from './staleBuild.js';
 
 /**
@@ -54,6 +55,7 @@ export function markReady(root, state) {
   const was = root.getAttribute('data-ready');
   if (root.getAttribute('data-answer') !== answer) root.setAttribute('data-answer', answer);
   if (was !== ready) root.setAttribute('data-ready', ready);
+  setBusy('simple', ready !== '1');
   if (ready === '1' && was !== '1') root.dispatchEvent(new CustomEvent('pt:done', { bubbles: true }));
 }
 

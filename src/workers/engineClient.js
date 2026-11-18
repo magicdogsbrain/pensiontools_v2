@@ -4,6 +4,7 @@
  * unavailable or the worker itself fails. One worker is shared; jobs are matched by id.
  */
 import { cloneSafe } from '../utils/cloneSafe.js';
+import { trackBusy } from '../reading/busy.js';
 
 let worker = null;
 let seq = 0;
@@ -34,11 +35,12 @@ function get() {
 export function workerAvailable() { return typeof Worker !== 'undefined'; }
 
 export function runInWorker(type, payload, onProgress) {
-  return new Promise((resolve, reject) => {
+  // the page carries data-busy while a job is in flight (src/reading/busy.js), so a sweep waits for its figures
+  return trackBusy(new Promise((resolve, reject) => {
     let w;
     try { w = get(); } catch (e) { reject(e); return; }
     const id = ++seq;
     pending.set(id, { resolve, reject, onProgress });
     try { w.postMessage({ id, type, payload: cloneSafe(payload) }); } catch (e) { pending.delete(id); reject(e); }
-  });
+  }), 'worker');
 }

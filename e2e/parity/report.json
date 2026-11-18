@@ -1,0 +1,2004 @@
+{
+ "at": "2026-11-18T08:05:36.093Z",
+ "fixtures": [
+  "age-only",
+  "budget",
+  "closed-successor",
+  "couple",
+  "mover-holdings",
+  "mover-totals",
+  "retired-draft",
+  "retired-everything",
+  "retired-locked-ladder",
+  "retired-locked-months",
+  "retired-locked-pots",
+  "saver-checkin",
+  "saver-draft",
+  "saver-locked-ladder",
+  "saver-locked-pots",
+  "saver-payin",
+  "wizard-defaults"
+ ],
+ "factsMarked": 37,
+ "marks": 1428,
+ "fieldsBound": 0,
+ "disagreements": 27,
+ "unmarked": 15290,
+ "oneViewOnly": 211,
+ "readingMismatches": 0,
+ "roundTripsFailed": null,
+ "rose": [],
+ "shrank": [],
+ "notQuiet": [],
+ "detail": {
+  "disagreements": [
+   {
+    "key": "age-only|pot.today",
+    "fixture": "age-only",
+    "fact": "pot.today",
+    "values": [
+     {
+      "view": "simple",
+      "page": "plan",
+      "text": "£500,000"
+     },
+     {
+      "view": "simple",
+      "page": "pots",
+      "text": "£500,000"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "£0"
+     }
+    ]
+   },
+   {
+    "key": "budget|income.step.0.beforeTax",
+    "fixture": "budget",
+    "fact": "income.step.0.beforeTax",
+    "values": [
+     {
+      "view": "simple",
+      "page": "plan",
+      "text": "£25,278"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "£26,858"
+     }
+    ]
+   },
+   {
+    "key": "couple|pot.atStop",
+    "fixture": "couple",
+    "fact": "pot.atStop",
+    "values": [
+     {
+      "view": "simple",
+      "page": "plan",
+      "text": "£296,000"
+     },
+     {
+      "view": "simple",
+      "page": "pots",
+      "text": "£296,000"
+     },
+     {
+      "view": "simple",
+      "page": "saving",
+      "text": "£296,000"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "£296,087"
+     }
+    ]
+   },
+   {
+    "key": "mover-holdings|income.step.0.beforeTax",
+    "fixture": "mover-holdings",
+    "fact": "income.step.0.beforeTax",
+    "values": [
+     {
+      "view": "simple",
+      "page": "plan",
+      "text": "£19,631"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "£20,858"
+     }
+    ]
+   },
+   {
+    "key": "mover-holdings|pot.atStop",
+    "fixture": "mover-holdings",
+    "fact": "pot.atStop",
+    "values": [
+     {
+      "view": "simple",
+      "page": "plan",
+      "text": "£408,000"
+     },
+     {
+      "view": "simple",
+      "page": "pots",
+      "text": "£408,000"
+     },
+     {
+      "view": "simple",
+      "page": "pots",
+      "text": "£433,175"
+     },
+     {
+      "view": "simple",
+      "page": "saving",
+      "text": "£408,000"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "£407,755"
+     }
+    ]
+   },
+   {
+    "key": "mover-holdings|pot.today",
+    "fixture": "mover-holdings",
+    "fact": "pot.today",
+    "values": [
+     {
+      "view": "simple",
+      "page": "plan",
+      "text": "£360,000"
+     },
+     {
+      "view": "simple",
+      "page": "pots",
+      "text": "£380,000"
+     },
+     {
+      "view": "simple",
+      "page": "saving",
+      "text": "£360,000"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "£360,000"
+     }
+    ]
+   },
+   {
+    "key": "mover-holdings|yearsToGo",
+    "fixture": "mover-holdings",
+    "fact": "yearsToGo",
+    "values": [
+     {
+      "view": "simple",
+      "page": "saving",
+      "text": "1 year 7 months"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "19 months"
+     }
+    ]
+   },
+   {
+    "key": "mover-totals|income.step.0.beforeTax",
+    "fixture": "mover-totals",
+    "fact": "income.step.0.beforeTax",
+    "values": [
+     {
+      "view": "simple",
+      "page": "plan",
+      "text": "£19,631"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "£20,858"
+     }
+    ]
+   },
+   {
+    "key": "mover-totals|pot.atStop",
+    "fixture": "mover-totals",
+    "fact": "pot.atStop",
+    "values": [
+     {
+      "view": "simple",
+      "page": "plan",
+      "text": "£429,000"
+     },
+     {
+      "view": "simple",
+      "page": "pots",
+      "text": "£429,000"
+     },
+     {
+      "view": "simple",
+      "page": "pots",
+      "text": "£433,175"
+     },
+     {
+      "view": "simple",
+      "page": "saving",
+      "text": "£429,000"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "£429,193"
+     }
+    ]
+   },
+   {
+    "key": "mover-totals|yearsToGo",
+    "fixture": "mover-totals",
+    "fact": "yearsToGo",
+    "values": [
+     {
+      "view": "simple",
+      "page": "saving",
+      "text": "1 year 7 months"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "19 months"
+     }
+    ]
+   },
+   {
+    "key": "retired-draft|income.step.0.beforeTax",
+    "fixture": "retired-draft",
+    "fact": "income.step.0.beforeTax",
+    "values": [
+     {
+      "view": "simple",
+      "page": "plan",
+      "text": "£25,278"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "£26,858"
+     }
+    ]
+   },
+   {
+    "key": "retired-locked-ladder|pot.today",
+    "fixture": "retired-locked-ladder",
+    "fact": "pot.today",
+    "values": [
+     {
+      "view": "simple",
+      "page": "home",
+      "text": "£404,513"
+     },
+     {
+      "view": "simple",
+      "page": "plan",
+      "text": "£450,000"
+     },
+     {
+      "view": "simple",
+      "page": "where",
+      "text": "£404,513"
+     }
+    ]
+   },
+   {
+    "key": "retired-locked-months|pot.today",
+    "fixture": "retired-locked-months",
+    "fact": "pot.today",
+    "values": [
+     {
+      "view": "simple",
+      "page": "home",
+      "text": "£602,808"
+     },
+     {
+      "view": "simple",
+      "page": "plan",
+      "text": "£590,000"
+     },
+     {
+      "view": "simple",
+      "page": "where",
+      "text": "£602,808"
+     }
+    ]
+   },
+   {
+    "key": "retired-locked-pots|income.step.0.beforeTax",
+    "fixture": "retired-locked-pots",
+    "fact": "income.step.0.beforeTax",
+    "values": [
+     {
+      "view": "simple",
+      "page": "plan",
+      "text": "£26,016"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "£26,858"
+     }
+    ]
+   },
+   {
+    "key": "retired-locked-pots|pot.today",
+    "fixture": "retired-locked-pots",
+    "fact": "pot.today",
+    "values": [
+     {
+      "view": "simple",
+      "page": "plan",
+      "text": "£300,000"
+     },
+     {
+      "view": "full",
+      "page": "plan document",
+      "text": "£296,000"
+     }
+    ]
+   },
+   {
+    "key": "saver-checkin|income.step.0.beforeTax",
+    "fixture": "saver-checkin",
+    "fact": "income.step.0.beforeTax",
+    "values": [
+     {
+      "view": "simple",
+      "page": "plan",
+      "text": "£28,102"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "£29,858"
+     }
+    ]
+   },
+   {
+    "key": "saver-checkin|pot.atStop",
+    "fixture": "saver-checkin",
+    "fact": "pot.atStop",
+    "values": [
+     {
+      "view": "simple",
+      "page": "plan",
+      "text": "£458,000"
+     },
+     {
+      "view": "simple",
+      "page": "pots",
+      "text": "£458,000"
+     },
+     {
+      "view": "simple",
+      "page": "pots",
+      "text": "£495,754"
+     },
+     {
+      "view": "simple",
+      "page": "saving",
+      "text": "£458,000"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "£458,351"
+     }
+    ]
+   },
+   {
+    "key": "saver-checkin|pot.today",
+    "fixture": "saver-checkin",
+    "fact": "pot.today",
+    "values": [
+     {
+      "view": "simple",
+      "page": "plan",
+      "text": "£128,000"
+     },
+     {
+      "view": "simple",
+      "page": "pots",
+      "text": "£120,000"
+     },
+     {
+      "view": "simple",
+      "page": "saving",
+      "text": "£128,000"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "£128,000"
+     }
+    ]
+   },
+   {
+    "key": "saver-draft|income.step.0.beforeTax",
+    "fixture": "saver-draft",
+    "fact": "income.step.0.beforeTax",
+    "values": [
+     {
+      "view": "simple",
+      "page": "plan",
+      "text": "£25,278"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "£26,858"
+     }
+    ]
+   },
+   {
+    "key": "saver-draft|pot.atStop",
+    "fixture": "saver-draft",
+    "fact": "pot.atStop",
+    "values": [
+     {
+      "view": "simple",
+      "page": "plan",
+      "text": "£252,000"
+     },
+     {
+      "view": "simple",
+      "page": "pots",
+      "text": "£252,000"
+     },
+     {
+      "view": "simple",
+      "page": "pots",
+      "text": "£254,968"
+     },
+     {
+      "view": "simple",
+      "page": "saving",
+      "text": "£252,000"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "£252,175"
+     }
+    ]
+   },
+   {
+    "key": "saver-locked-ladder|pot.atStop",
+    "fixture": "saver-locked-ladder",
+    "fact": "pot.atStop",
+    "values": [
+     {
+      "view": "simple",
+      "page": "plan",
+      "text": "£737,519"
+     },
+     {
+      "view": "simple",
+      "page": "pots",
+      "text": "£738,000"
+     },
+     {
+      "view": "simple",
+      "page": "saving",
+      "text": "£738,000"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "£737,519"
+     }
+    ]
+   },
+   {
+    "key": "saver-locked-ladder|pot.today",
+    "fixture": "saver-locked-ladder",
+    "fact": "pot.today",
+    "values": [
+     {
+      "view": "simple",
+      "page": "plan",
+      "text": "£310,000"
+     },
+     {
+      "view": "simple",
+      "page": "saving",
+      "text": "£319,800"
+     },
+     {
+      "view": "simple",
+      "page": "where",
+      "text": "£361,250"
+     }
+    ]
+   },
+   {
+    "key": "saver-locked-pots|income.step.0.beforeTax",
+    "fixture": "saver-locked-pots",
+    "fact": "income.step.0.beforeTax",
+    "values": [
+     {
+      "view": "simple",
+      "page": "plan",
+      "text": "£26,690"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "£28,358"
+     }
+    ]
+   },
+   {
+    "key": "saver-locked-pots|pot.atStop",
+    "fixture": "saver-locked-pots",
+    "fact": "pot.atStop",
+    "values": [
+     {
+      "view": "simple",
+      "page": "plan",
+      "text": "£396,175"
+     },
+     {
+      "view": "simple",
+      "page": "pots",
+      "text": "£396,000"
+     },
+     {
+      "view": "simple",
+      "page": "pots",
+      "text": "£411,073"
+     },
+     {
+      "view": "simple",
+      "page": "saving",
+      "text": "£396,000"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "£396,175"
+     }
+    ]
+   },
+   {
+    "key": "saver-locked-pots|yearsToGo",
+    "fixture": "saver-locked-pots",
+    "fact": "yearsToGo",
+    "values": [
+     {
+      "view": "simple",
+      "page": "saving",
+      "text": "10 years"
+     },
+     {
+      "view": "full",
+      "page": "budget",
+      "text": "11 years"
+     },
+     {
+      "view": "full",
+      "page": "will it last",
+      "text": "11 years"
+     },
+     {
+      "view": "full",
+      "page": "stress history",
+      "text": "11 years"
+     },
+     {
+      "view": "full",
+      "page": "scenarios",
+      "text": "11 years"
+     },
+     {
+      "view": "full",
+      "page": "drawdown",
+      "text": "11 years"
+     },
+     {
+      "view": "full",
+      "page": "glidepath",
+      "text": "11 years"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "11 years"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "11 years"
+     },
+     {
+      "view": "full",
+      "page": "strategies",
+      "text": "11 years"
+     },
+     {
+      "view": "full",
+      "page": "monthly entry",
+      "text": "11 years"
+     },
+     {
+      "view": "full",
+      "page": "history",
+      "text": "11 years"
+     },
+     {
+      "view": "full",
+      "page": "plan document",
+      "text": "11 years"
+     },
+     {
+      "view": "full",
+      "page": "plan document",
+      "text": "11 years"
+     },
+     {
+      "view": "full",
+      "page": "tax years",
+      "text": "11 years"
+     },
+     {
+      "view": "full",
+      "page": "decision settings",
+      "text": "11 years"
+     },
+     {
+      "view": "full",
+      "page": "accumulation",
+      "text": "11 years"
+     },
+     {
+      "view": "full",
+      "page": "accumulation",
+      "text": "11 years"
+     },
+     {
+      "view": "full",
+      "page": "transition",
+      "text": "11 years"
+     },
+     {
+      "view": "full",
+      "page": "household",
+      "text": "11 years"
+     }
+    ]
+   },
+   {
+    "key": "saver-payin|income.step.0.beforeTax",
+    "fixture": "saver-payin",
+    "fact": "income.step.0.beforeTax",
+    "values": [
+     {
+      "view": "simple",
+      "page": "plan",
+      "text": "£28,102"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "£29,858"
+     }
+    ]
+   },
+   {
+    "key": "saver-payin|pot.atStop",
+    "fixture": "saver-payin",
+    "fact": "pot.atStop",
+    "values": [
+     {
+      "view": "simple",
+      "page": "plan",
+      "text": "£444,000"
+     },
+     {
+      "view": "simple",
+      "page": "pots",
+      "text": "£444,000"
+     },
+     {
+      "view": "simple",
+      "page": "pots",
+      "text": "£495,754"
+     },
+     {
+      "view": "simple",
+      "page": "saving",
+      "text": "£444,000"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "£443,676"
+     }
+    ]
+   }
+  ],
+  "oneViewOnly": [
+   {
+    "key": "age-only|age.today",
+    "fixture": "age-only",
+    "fact": "age.today",
+    "view": "simple"
+   },
+   {
+    "key": "age-only|income.step.0.beforeTax",
+    "fixture": "age-only",
+    "fact": "income.step.0.beforeTax",
+    "view": "simple"
+   },
+   {
+    "key": "age-only|isa.today",
+    "fixture": "age-only",
+    "fact": "isa.today",
+    "view": "simple"
+   },
+   {
+    "key": "age-only|lock.state",
+    "fixture": "age-only",
+    "fact": "lock.state",
+    "view": "full"
+   },
+   {
+    "key": "age-only|payIn.fromTakeHome",
+    "fixture": "age-only",
+    "fact": "payIn.fromTakeHome",
+    "view": "full"
+   },
+   {
+    "key": "age-only|payIn.total",
+    "fixture": "age-only",
+    "fact": "payIn.total",
+    "view": "full"
+   },
+   {
+    "key": "age-only|plan.name",
+    "fixture": "age-only",
+    "fact": "plan.name",
+    "view": "simple"
+   },
+   {
+    "key": "age-only|statePension.age",
+    "fixture": "age-only",
+    "fact": "statePension.age",
+    "view": "simple"
+   },
+   {
+    "key": "age-only|statePension.amount",
+    "fixture": "age-only",
+    "fact": "statePension.amount",
+    "view": "simple"
+   },
+   {
+    "key": "budget|age.today",
+    "fixture": "budget",
+    "fact": "age.today",
+    "view": "simple"
+   },
+   {
+    "key": "budget|income.step.0.monthAfterTax",
+    "fixture": "budget",
+    "fact": "income.step.0.monthAfterTax",
+    "view": "full"
+   },
+   {
+    "key": "budget|isa.today",
+    "fixture": "budget",
+    "fact": "isa.today",
+    "view": "simple"
+   },
+   {
+    "key": "budget|lasts.worst12",
+    "fixture": "budget",
+    "fact": "lasts.worst12",
+    "view": "full"
+   },
+   {
+    "key": "budget|left.typically",
+    "fixture": "budget",
+    "fact": "left.typically",
+    "view": "full"
+   },
+   {
+    "key": "budget|lock.state",
+    "fixture": "budget",
+    "fact": "lock.state",
+    "view": "full"
+   },
+   {
+    "key": "budget|plan.name",
+    "fixture": "budget",
+    "fact": "plan.name",
+    "view": "simple"
+   },
+   {
+    "key": "budget|pot.today",
+    "fixture": "budget",
+    "fact": "pot.today",
+    "view": "simple"
+   },
+   {
+    "key": "budget|statePension.age",
+    "fixture": "budget",
+    "fact": "statePension.age",
+    "view": "simple"
+   },
+   {
+    "key": "budget|statePension.amount",
+    "fixture": "budget",
+    "fact": "statePension.amount",
+    "view": "simple"
+   },
+   {
+    "key": "budget|statePension.week",
+    "fixture": "budget",
+    "fact": "statePension.week",
+    "view": "simple"
+   },
+   {
+    "key": "closed-successor|age.today",
+    "fixture": "closed-successor",
+    "fact": "age.today",
+    "view": "simple"
+   },
+   {
+    "key": "closed-successor|income.step.0.monthAfterTax",
+    "fixture": "closed-successor",
+    "fact": "income.step.0.monthAfterTax",
+    "view": "full"
+   },
+   {
+    "key": "closed-successor|income.step.1.beforeTax",
+    "fixture": "closed-successor",
+    "fact": "income.step.1.beforeTax",
+    "view": "simple"
+   },
+   {
+    "key": "closed-successor|isa.today",
+    "fixture": "closed-successor",
+    "fact": "isa.today",
+    "view": "simple"
+   },
+   {
+    "key": "closed-successor|lasts.worst12",
+    "fixture": "closed-successor",
+    "fact": "lasts.worst12",
+    "view": "full"
+   },
+   {
+    "key": "closed-successor|left.typically",
+    "fixture": "closed-successor",
+    "fact": "left.typically",
+    "view": "full"
+   },
+   {
+    "key": "closed-successor|lock.state",
+    "fixture": "closed-successor",
+    "fact": "lock.state",
+    "view": "full"
+   },
+   {
+    "key": "closed-successor|plan.name",
+    "fixture": "closed-successor",
+    "fact": "plan.name",
+    "view": "simple"
+   },
+   {
+    "key": "closed-successor|pot.today",
+    "fixture": "closed-successor",
+    "fact": "pot.today",
+    "view": "simple"
+   },
+   {
+    "key": "closed-successor|statePension.age",
+    "fixture": "closed-successor",
+    "fact": "statePension.age",
+    "view": "simple"
+   },
+   {
+    "key": "closed-successor|statePension.amount",
+    "fixture": "closed-successor",
+    "fact": "statePension.amount",
+    "view": "simple"
+   },
+   {
+    "key": "closed-successor|statePension.week",
+    "fixture": "closed-successor",
+    "fact": "statePension.week",
+    "view": "simple"
+   },
+   {
+    "key": "couple|age.today",
+    "fixture": "couple",
+    "fact": "age.today",
+    "view": "simple"
+   },
+   {
+    "key": "couple|income.step.0.monthAfterTax",
+    "fixture": "couple",
+    "fact": "income.step.0.monthAfterTax",
+    "view": "full"
+   },
+   {
+    "key": "couple|isa.today",
+    "fixture": "couple",
+    "fact": "isa.today",
+    "view": "simple"
+   },
+   {
+    "key": "couple|lasts.fixedChance",
+    "fixture": "couple",
+    "fact": "lasts.fixedChance",
+    "view": "full"
+   },
+   {
+    "key": "couple|lasts.worst12",
+    "fixture": "couple",
+    "fact": "lasts.worst12",
+    "view": "full"
+   },
+   {
+    "key": "couple|left.typically",
+    "fixture": "couple",
+    "fact": "left.typically",
+    "view": "full"
+   },
+   {
+    "key": "couple|lock.state",
+    "fixture": "couple",
+    "fact": "lock.state",
+    "view": "full"
+   },
+   {
+    "key": "couple|payIn.pctOfPay",
+    "fixture": "couple",
+    "fact": "payIn.pctOfPay",
+    "view": "simple"
+   },
+   {
+    "key": "couple|plan.name",
+    "fixture": "couple",
+    "fact": "plan.name",
+    "view": "simple"
+   },
+   {
+    "key": "couple|statePension.age",
+    "fixture": "couple",
+    "fact": "statePension.age",
+    "view": "simple"
+   },
+   {
+    "key": "couple|statePension.amount",
+    "fixture": "couple",
+    "fact": "statePension.amount",
+    "view": "simple"
+   },
+   {
+    "key": "couple|statePension.week",
+    "fixture": "couple",
+    "fact": "statePension.week",
+    "view": "simple"
+   },
+   {
+    "key": "couple|want.income",
+    "fixture": "couple",
+    "fact": "want.income",
+    "view": "simple"
+   },
+   {
+    "key": "couple|want.stopAge",
+    "fixture": "couple",
+    "fact": "want.stopAge",
+    "view": "simple"
+   },
+   {
+    "key": "mover-holdings|age.today",
+    "fixture": "mover-holdings",
+    "fact": "age.today",
+    "view": "simple"
+   },
+   {
+    "key": "mover-holdings|income.step.0.monthAfterTax",
+    "fixture": "mover-holdings",
+    "fact": "income.step.0.monthAfterTax",
+    "view": "full"
+   },
+   {
+    "key": "mover-holdings|isa.today",
+    "fixture": "mover-holdings",
+    "fact": "isa.today",
+    "view": "simple"
+   },
+   {
+    "key": "mover-holdings|left.typically",
+    "fixture": "mover-holdings",
+    "fact": "left.typically",
+    "view": "full"
+   },
+   {
+    "key": "mover-holdings|lock.state",
+    "fixture": "mover-holdings",
+    "fact": "lock.state",
+    "view": "full"
+   },
+   {
+    "key": "mover-holdings|plan.name",
+    "fixture": "mover-holdings",
+    "fact": "plan.name",
+    "view": "simple"
+   },
+   {
+    "key": "mover-holdings|statePension.age",
+    "fixture": "mover-holdings",
+    "fact": "statePension.age",
+    "view": "simple"
+   },
+   {
+    "key": "mover-holdings|statePension.amount",
+    "fixture": "mover-holdings",
+    "fact": "statePension.amount",
+    "view": "simple"
+   },
+   {
+    "key": "mover-holdings|statePension.week",
+    "fixture": "mover-holdings",
+    "fact": "statePension.week",
+    "view": "simple"
+   },
+   {
+    "key": "mover-holdings|want.income",
+    "fixture": "mover-holdings",
+    "fact": "want.income",
+    "view": "simple"
+   },
+   {
+    "key": "mover-holdings|want.stopAge",
+    "fixture": "mover-holdings",
+    "fact": "want.stopAge",
+    "view": "simple"
+   },
+   {
+    "key": "mover-totals|age.today",
+    "fixture": "mover-totals",
+    "fact": "age.today",
+    "view": "simple"
+   },
+   {
+    "key": "mover-totals|income.step.0.monthAfterTax",
+    "fixture": "mover-totals",
+    "fact": "income.step.0.monthAfterTax",
+    "view": "full"
+   },
+   {
+    "key": "mover-totals|isa.today",
+    "fixture": "mover-totals",
+    "fact": "isa.today",
+    "view": "simple"
+   },
+   {
+    "key": "mover-totals|left.typically",
+    "fixture": "mover-totals",
+    "fact": "left.typically",
+    "view": "full"
+   },
+   {
+    "key": "mover-totals|lock.state",
+    "fixture": "mover-totals",
+    "fact": "lock.state",
+    "view": "full"
+   },
+   {
+    "key": "mover-totals|plan.name",
+    "fixture": "mover-totals",
+    "fact": "plan.name",
+    "view": "simple"
+   },
+   {
+    "key": "mover-totals|statePension.age",
+    "fixture": "mover-totals",
+    "fact": "statePension.age",
+    "view": "simple"
+   },
+   {
+    "key": "mover-totals|statePension.amount",
+    "fixture": "mover-totals",
+    "fact": "statePension.amount",
+    "view": "simple"
+   },
+   {
+    "key": "mover-totals|statePension.week",
+    "fixture": "mover-totals",
+    "fact": "statePension.week",
+    "view": "simple"
+   },
+   {
+    "key": "mover-totals|want.income",
+    "fixture": "mover-totals",
+    "fact": "want.income",
+    "view": "simple"
+   },
+   {
+    "key": "mover-totals|want.stopAge",
+    "fixture": "mover-totals",
+    "fact": "want.stopAge",
+    "view": "simple"
+   },
+   {
+    "key": "retired-draft|age.today",
+    "fixture": "retired-draft",
+    "fact": "age.today",
+    "view": "simple"
+   },
+   {
+    "key": "retired-draft|income.step.0.monthAfterTax",
+    "fixture": "retired-draft",
+    "fact": "income.step.0.monthAfterTax",
+    "view": "full"
+   },
+   {
+    "key": "retired-draft|isa.today",
+    "fixture": "retired-draft",
+    "fact": "isa.today",
+    "view": "simple"
+   },
+   {
+    "key": "retired-draft|lasts.worst12",
+    "fixture": "retired-draft",
+    "fact": "lasts.worst12",
+    "view": "full"
+   },
+   {
+    "key": "retired-draft|left.typically",
+    "fixture": "retired-draft",
+    "fact": "left.typically",
+    "view": "full"
+   },
+   {
+    "key": "retired-draft|lock.state",
+    "fixture": "retired-draft",
+    "fact": "lock.state",
+    "view": "full"
+   },
+   {
+    "key": "retired-draft|plan.name",
+    "fixture": "retired-draft",
+    "fact": "plan.name",
+    "view": "simple"
+   },
+   {
+    "key": "retired-draft|pot.today",
+    "fixture": "retired-draft",
+    "fact": "pot.today",
+    "view": "simple"
+   },
+   {
+    "key": "retired-draft|statePension.age",
+    "fixture": "retired-draft",
+    "fact": "statePension.age",
+    "view": "simple"
+   },
+   {
+    "key": "retired-draft|statePension.amount",
+    "fixture": "retired-draft",
+    "fact": "statePension.amount",
+    "view": "simple"
+   },
+   {
+    "key": "retired-draft|statePension.week",
+    "fixture": "retired-draft",
+    "fact": "statePension.week",
+    "view": "simple"
+   },
+   {
+    "key": "retired-everything|age.today",
+    "fixture": "retired-everything",
+    "fact": "age.today",
+    "view": "simple"
+   },
+   {
+    "key": "retired-everything|finalSalary.0.age",
+    "fixture": "retired-everything",
+    "fact": "finalSalary.0.age",
+    "view": "simple"
+   },
+   {
+    "key": "retired-everything|finalSalary.0.amount",
+    "fixture": "retired-everything",
+    "fact": "finalSalary.0.amount",
+    "view": "simple"
+   },
+   {
+    "key": "retired-everything|gia.today",
+    "fixture": "retired-everything",
+    "fact": "gia.today",
+    "view": "simple"
+   },
+   {
+    "key": "retired-everything|income.step.0.monthAfterTax",
+    "fixture": "retired-everything",
+    "fact": "income.step.0.monthAfterTax",
+    "view": "full"
+   },
+   {
+    "key": "retired-everything|income.step.1.beforeTax",
+    "fixture": "retired-everything",
+    "fact": "income.step.1.beforeTax",
+    "view": "simple"
+   },
+   {
+    "key": "retired-everything|income.step.2.beforeTax",
+    "fixture": "retired-everything",
+    "fact": "income.step.2.beforeTax",
+    "view": "simple"
+   },
+   {
+    "key": "retired-everything|isa.today",
+    "fixture": "retired-everything",
+    "fact": "isa.today",
+    "view": "simple"
+   },
+   {
+    "key": "retired-everything|lasts.worst12",
+    "fixture": "retired-everything",
+    "fact": "lasts.worst12",
+    "view": "full"
+   },
+   {
+    "key": "retired-everything|left.typically",
+    "fixture": "retired-everything",
+    "fact": "left.typically",
+    "view": "full"
+   },
+   {
+    "key": "retired-everything|lock.state",
+    "fixture": "retired-everything",
+    "fact": "lock.state",
+    "view": "full"
+   },
+   {
+    "key": "retired-everything|lump.0.amount",
+    "fixture": "retired-everything",
+    "fact": "lump.0.amount",
+    "view": "simple"
+   },
+   {
+    "key": "retired-everything|lump.1.amount",
+    "fixture": "retired-everything",
+    "fact": "lump.1.amount",
+    "view": "simple"
+   },
+   {
+    "key": "retired-everything|plan.name",
+    "fixture": "retired-everything",
+    "fact": "plan.name",
+    "view": "simple"
+   },
+   {
+    "key": "retired-everything|pot.today",
+    "fixture": "retired-everything",
+    "fact": "pot.today",
+    "view": "simple"
+   },
+   {
+    "key": "retired-everything|statePension.age",
+    "fixture": "retired-everything",
+    "fact": "statePension.age",
+    "view": "simple"
+   },
+   {
+    "key": "retired-everything|statePension.amount",
+    "fixture": "retired-everything",
+    "fact": "statePension.amount",
+    "view": "simple"
+   },
+   {
+    "key": "retired-everything|statePension.week",
+    "fixture": "retired-everything",
+    "fact": "statePension.week",
+    "view": "simple"
+   },
+   {
+    "key": "retired-locked-ladder|age.today",
+    "fixture": "retired-locked-ladder",
+    "fact": "age.today",
+    "view": "simple"
+   },
+   {
+    "key": "retired-locked-ladder|income.step.0.monthAfterTax",
+    "fixture": "retired-locked-ladder",
+    "fact": "income.step.0.monthAfterTax",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|income.step.1.beforeTax",
+    "fixture": "retired-locked-ladder",
+    "fact": "income.step.1.beforeTax",
+    "view": "simple"
+   },
+   {
+    "key": "retired-locked-ladder|isa.today",
+    "fixture": "retired-locked-ladder",
+    "fact": "isa.today",
+    "view": "simple"
+   },
+   {
+    "key": "retired-locked-ladder|lasts.fixedChance",
+    "fixture": "retired-locked-ladder",
+    "fact": "lasts.fixedChance",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|lasts.worst12",
+    "fixture": "retired-locked-ladder",
+    "fact": "lasts.worst12",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|left.typically",
+    "fixture": "retired-locked-ladder",
+    "fact": "left.typically",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|lock.state",
+    "fixture": "retired-locked-ladder",
+    "fact": "lock.state",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-ladder|month.take.afterTax",
+    "fixture": "retired-locked-ladder",
+    "fact": "month.take.afterTax",
+    "view": "simple"
+   },
+   {
+    "key": "retired-locked-ladder|month.take.pension",
+    "fixture": "retired-locked-ladder",
+    "fact": "month.take.pension",
+    "view": "simple"
+   },
+   {
+    "key": "retired-locked-ladder|plan.name",
+    "fixture": "retired-locked-ladder",
+    "fact": "plan.name",
+    "view": "simple"
+   },
+   {
+    "key": "retired-locked-ladder|pot.today",
+    "fixture": "retired-locked-ladder",
+    "fact": "pot.today",
+    "view": "simple"
+   },
+   {
+    "key": "retired-locked-ladder|statePension.age",
+    "fixture": "retired-locked-ladder",
+    "fact": "statePension.age",
+    "view": "simple"
+   },
+   {
+    "key": "retired-locked-ladder|statePension.amount",
+    "fixture": "retired-locked-ladder",
+    "fact": "statePension.amount",
+    "view": "simple"
+   },
+   {
+    "key": "retired-locked-ladder|statePension.week",
+    "fixture": "retired-locked-ladder",
+    "fact": "statePension.week",
+    "view": "simple"
+   },
+   {
+    "key": "retired-locked-ladder|taken.againstPlan",
+    "fixture": "retired-locked-ladder",
+    "fact": "taken.againstPlan",
+    "view": "simple"
+   },
+   {
+    "key": "retired-locked-months|age.today",
+    "fixture": "retired-locked-months",
+    "fact": "age.today",
+    "view": "simple"
+   },
+   {
+    "key": "retired-locked-months|income.step.0.monthAfterTax",
+    "fixture": "retired-locked-months",
+    "fact": "income.step.0.monthAfterTax",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-months|isa.today",
+    "fixture": "retired-locked-months",
+    "fact": "isa.today",
+    "view": "simple"
+   },
+   {
+    "key": "retired-locked-months|lasts.worst12",
+    "fixture": "retired-locked-months",
+    "fact": "lasts.worst12",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-months|left.typically",
+    "fixture": "retired-locked-months",
+    "fact": "left.typically",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-months|lock.state",
+    "fixture": "retired-locked-months",
+    "fact": "lock.state",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-months|month.take.afterTax",
+    "fixture": "retired-locked-months",
+    "fact": "month.take.afterTax",
+    "view": "simple"
+   },
+   {
+    "key": "retired-locked-months|month.take.pension",
+    "fixture": "retired-locked-months",
+    "fact": "month.take.pension",
+    "view": "simple"
+   },
+   {
+    "key": "retired-locked-months|plan.name",
+    "fixture": "retired-locked-months",
+    "fact": "plan.name",
+    "view": "simple"
+   },
+   {
+    "key": "retired-locked-months|pot.today",
+    "fixture": "retired-locked-months",
+    "fact": "pot.today",
+    "view": "simple"
+   },
+   {
+    "key": "retired-locked-months|statePension.age",
+    "fixture": "retired-locked-months",
+    "fact": "statePension.age",
+    "view": "simple"
+   },
+   {
+    "key": "retired-locked-months|statePension.amount",
+    "fixture": "retired-locked-months",
+    "fact": "statePension.amount",
+    "view": "simple"
+   },
+   {
+    "key": "retired-locked-months|statePension.week",
+    "fixture": "retired-locked-months",
+    "fact": "statePension.week",
+    "view": "simple"
+   },
+   {
+    "key": "retired-locked-months|taken.againstPlan",
+    "fixture": "retired-locked-months",
+    "fact": "taken.againstPlan",
+    "view": "simple"
+   },
+   {
+    "key": "retired-locked-pots|age.today",
+    "fixture": "retired-locked-pots",
+    "fact": "age.today",
+    "view": "simple"
+   },
+   {
+    "key": "retired-locked-pots|income.step.0.monthAfterTax",
+    "fixture": "retired-locked-pots",
+    "fact": "income.step.0.monthAfterTax",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-pots|isa.today",
+    "fixture": "retired-locked-pots",
+    "fact": "isa.today",
+    "view": "simple"
+   },
+   {
+    "key": "retired-locked-pots|lasts.worst12",
+    "fixture": "retired-locked-pots",
+    "fact": "lasts.worst12",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-pots|left.typically",
+    "fixture": "retired-locked-pots",
+    "fact": "left.typically",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-pots|lock.state",
+    "fixture": "retired-locked-pots",
+    "fact": "lock.state",
+    "view": "full"
+   },
+   {
+    "key": "retired-locked-pots|month.take.afterTax",
+    "fixture": "retired-locked-pots",
+    "fact": "month.take.afterTax",
+    "view": "simple"
+   },
+   {
+    "key": "retired-locked-pots|month.take.pension",
+    "fixture": "retired-locked-pots",
+    "fact": "month.take.pension",
+    "view": "simple"
+   },
+   {
+    "key": "retired-locked-pots|plan.name",
+    "fixture": "retired-locked-pots",
+    "fact": "plan.name",
+    "view": "simple"
+   },
+   {
+    "key": "retired-locked-pots|statePension.age",
+    "fixture": "retired-locked-pots",
+    "fact": "statePension.age",
+    "view": "simple"
+   },
+   {
+    "key": "retired-locked-pots|statePension.amount",
+    "fixture": "retired-locked-pots",
+    "fact": "statePension.amount",
+    "view": "simple"
+   },
+   {
+    "key": "retired-locked-pots|statePension.week",
+    "fixture": "retired-locked-pots",
+    "fact": "statePension.week",
+    "view": "simple"
+   },
+   {
+    "key": "retired-locked-pots|taken.againstPlan",
+    "fixture": "retired-locked-pots",
+    "fact": "taken.againstPlan",
+    "view": "simple"
+   },
+   {
+    "key": "saver-checkin|age.today",
+    "fixture": "saver-checkin",
+    "fact": "age.today",
+    "view": "simple"
+   },
+   {
+    "key": "saver-checkin|income.step.0.monthAfterTax",
+    "fixture": "saver-checkin",
+    "fact": "income.step.0.monthAfterTax",
+    "view": "full"
+   },
+   {
+    "key": "saver-checkin|isa.today",
+    "fixture": "saver-checkin",
+    "fact": "isa.today",
+    "view": "simple"
+   },
+   {
+    "key": "saver-checkin|left.typically",
+    "fixture": "saver-checkin",
+    "fact": "left.typically",
+    "view": "full"
+   },
+   {
+    "key": "saver-checkin|lock.state",
+    "fixture": "saver-checkin",
+    "fact": "lock.state",
+    "view": "full"
+   },
+   {
+    "key": "saver-checkin|plan.name",
+    "fixture": "saver-checkin",
+    "fact": "plan.name",
+    "view": "simple"
+   },
+   {
+    "key": "saver-checkin|statePension.age",
+    "fixture": "saver-checkin",
+    "fact": "statePension.age",
+    "view": "simple"
+   },
+   {
+    "key": "saver-checkin|statePension.amount",
+    "fixture": "saver-checkin",
+    "fact": "statePension.amount",
+    "view": "simple"
+   },
+   {
+    "key": "saver-checkin|statePension.week",
+    "fixture": "saver-checkin",
+    "fact": "statePension.week",
+    "view": "simple"
+   },
+   {
+    "key": "saver-checkin|want.income",
+    "fixture": "saver-checkin",
+    "fact": "want.income",
+    "view": "simple"
+   },
+   {
+    "key": "saver-checkin|want.stopAge",
+    "fixture": "saver-checkin",
+    "fact": "want.stopAge",
+    "view": "simple"
+   },
+   {
+    "key": "saver-draft|age.today",
+    "fixture": "saver-draft",
+    "fact": "age.today",
+    "view": "simple"
+   },
+   {
+    "key": "saver-draft|income.step.0.monthAfterTax",
+    "fixture": "saver-draft",
+    "fact": "income.step.0.monthAfterTax",
+    "view": "full"
+   },
+   {
+    "key": "saver-draft|isa.today",
+    "fixture": "saver-draft",
+    "fact": "isa.today",
+    "view": "simple"
+   },
+   {
+    "key": "saver-draft|left.typically",
+    "fixture": "saver-draft",
+    "fact": "left.typically",
+    "view": "full"
+   },
+   {
+    "key": "saver-draft|lock.state",
+    "fixture": "saver-draft",
+    "fact": "lock.state",
+    "view": "full"
+   },
+   {
+    "key": "saver-draft|payIn.employer",
+    "fixture": "saver-draft",
+    "fact": "payIn.employer",
+    "view": "simple"
+   },
+   {
+    "key": "saver-draft|payIn.total",
+    "fixture": "saver-draft",
+    "fact": "payIn.total",
+    "view": "full"
+   },
+   {
+    "key": "saver-draft|plan.name",
+    "fixture": "saver-draft",
+    "fact": "plan.name",
+    "view": "simple"
+   },
+   {
+    "key": "saver-draft|statePension.age",
+    "fixture": "saver-draft",
+    "fact": "statePension.age",
+    "view": "simple"
+   },
+   {
+    "key": "saver-draft|statePension.amount",
+    "fixture": "saver-draft",
+    "fact": "statePension.amount",
+    "view": "simple"
+   },
+   {
+    "key": "saver-draft|statePension.week",
+    "fixture": "saver-draft",
+    "fact": "statePension.week",
+    "view": "simple"
+   },
+   {
+    "key": "saver-draft|want.income",
+    "fixture": "saver-draft",
+    "fact": "want.income",
+    "view": "simple"
+   },
+   {
+    "key": "saver-draft|want.stopAge",
+    "fixture": "saver-draft",
+    "fact": "want.stopAge",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|age.today",
+    "fixture": "saver-locked-ladder",
+    "fact": "age.today",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|income.step.0.monthAfterTax",
+    "fixture": "saver-locked-ladder",
+    "fact": "income.step.0.monthAfterTax",
+    "view": "full"
+   },
+   {
+    "key": "saver-locked-ladder|income.step.1.beforeTax",
+    "fixture": "saver-locked-ladder",
+    "fact": "income.step.1.beforeTax",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|isa.today",
+    "fixture": "saver-locked-ladder",
+    "fact": "isa.today",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|lasts.fixedChance",
+    "fixture": "saver-locked-ladder",
+    "fact": "lasts.fixedChance",
+    "view": "full"
+   },
+   {
+    "key": "saver-locked-ladder|lasts.worst12",
+    "fixture": "saver-locked-ladder",
+    "fact": "lasts.worst12",
+    "view": "full"
+   },
+   {
+    "key": "saver-locked-ladder|left.typically",
+    "fixture": "saver-locked-ladder",
+    "fact": "left.typically",
+    "view": "full"
+   },
+   {
+    "key": "saver-locked-ladder|lock.state",
+    "fixture": "saver-locked-ladder",
+    "fact": "lock.state",
+    "view": "full"
+   },
+   {
+    "key": "saver-locked-ladder|payIn.pctOfPay",
+    "fixture": "saver-locked-ladder",
+    "fact": "payIn.pctOfPay",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|plan.name",
+    "fixture": "saver-locked-ladder",
+    "fact": "plan.name",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|pot.today",
+    "fixture": "saver-locked-ladder",
+    "fact": "pot.today",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|saver.enough.pct",
+    "fixture": "saver-locked-ladder",
+    "fact": "saver.enough.pct",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|statePension.age",
+    "fixture": "saver-locked-ladder",
+    "fact": "statePension.age",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|statePension.amount",
+    "fixture": "saver-locked-ladder",
+    "fact": "statePension.amount",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|statePension.week",
+    "fixture": "saver-locked-ladder",
+    "fact": "statePension.week",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|want.income",
+    "fixture": "saver-locked-ladder",
+    "fact": "want.income",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-ladder|want.stopAge",
+    "fixture": "saver-locked-ladder",
+    "fact": "want.stopAge",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-pots|age.today",
+    "fixture": "saver-locked-pots",
+    "fact": "age.today",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-pots|income.step.0.monthAfterTax",
+    "fixture": "saver-locked-pots",
+    "fact": "income.step.0.monthAfterTax",
+    "view": "full"
+   },
+   {
+    "key": "saver-locked-pots|isa.today",
+    "fixture": "saver-locked-pots",
+    "fact": "isa.today",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-pots|left.typically",
+    "fixture": "saver-locked-pots",
+    "fact": "left.typically",
+    "view": "full"
+   },
+   {
+    "key": "saver-locked-pots|lock.state",
+    "fixture": "saver-locked-pots",
+    "fact": "lock.state",
+    "view": "full"
+   },
+   {
+    "key": "saver-locked-pots|plan.name",
+    "fixture": "saver-locked-pots",
+    "fact": "plan.name",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-pots|pot.today",
+    "fixture": "saver-locked-pots",
+    "fact": "pot.today",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-pots|statePension.age",
+    "fixture": "saver-locked-pots",
+    "fact": "statePension.age",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-pots|statePension.amount",
+    "fixture": "saver-locked-pots",
+    "fact": "statePension.amount",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-pots|statePension.week",
+    "fixture": "saver-locked-pots",
+    "fact": "statePension.week",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-pots|want.income",
+    "fixture": "saver-locked-pots",
+    "fact": "want.income",
+    "view": "simple"
+   },
+   {
+    "key": "saver-locked-pots|want.stopAge",
+    "fixture": "saver-locked-pots",
+    "fact": "want.stopAge",
+    "view": "simple"
+   },
+   {
+    "key": "saver-payin|age.today",
+    "fixture": "saver-payin",
+    "fact": "age.today",
+    "view": "simple"
+   },
+   {
+    "key": "saver-payin|income.step.0.monthAfterTax",
+    "fixture": "saver-payin",
+    "fact": "income.step.0.monthAfterTax",
+    "view": "full"
+   },
+   {
+    "key": "saver-payin|isa.today",
+    "fixture": "saver-payin",
+    "fact": "isa.today",
+    "view": "simple"
+   },
+   {
+    "key": "saver-payin|left.typically",
+    "fixture": "saver-payin",
+    "fact": "left.typically",
+    "view": "full"
+   },
+   {
+    "key": "saver-payin|lock.state",
+    "fixture": "saver-payin",
+    "fact": "lock.state",
+    "view": "full"
+   },
+   {
+    "key": "saver-payin|plan.name",
+    "fixture": "saver-payin",
+    "fact": "plan.name",
+    "view": "simple"
+   },
+   {
+    "key": "saver-payin|statePension.age",
+    "fixture": "saver-payin",
+    "fact": "statePension.age",
+    "view": "simple"
+   },
+   {
+    "key": "saver-payin|statePension.amount",
+    "fixture": "saver-payin",
+    "fact": "statePension.amount",
+    "view": "simple"
+   },
+   {
+    "key": "saver-payin|statePension.week",
+    "fixture": "saver-payin",
+    "fact": "statePension.week",
+    "view": "simple"
+   },
+   {
+    "key": "saver-payin|want.income",
+    "fixture": "saver-payin",
+    "fact": "want.income",
+    "view": "simple"
+   },
+   {
+    "key": "saver-payin|want.stopAge",
+    "fixture": "saver-payin",
+    "fact": "want.stopAge",
+    "view": "simple"
+   },
+   {
+    "key": "wizard-defaults|income.step.0.beforeTax",
+    "fixture": "wizard-defaults",
+    "fact": "income.step.0.beforeTax",
+    "view": "simple"
+   },
+   {
+    "key": "wizard-defaults|isa.today",
+    "fixture": "wizard-defaults",
+    "fact": "isa.today",
+    "view": "simple"
+   },
+   {
+    "key": "wizard-defaults|lock.state",
+    "fixture": "wizard-defaults",
+    "fact": "lock.state",
+    "view": "full"
+   },
+   {
+    "key": "wizard-defaults|plan.name",
+    "fixture": "wizard-defaults",
+    "fact": "plan.name",
+    "view": "simple"
+   },
+   {
+    "key": "wizard-defaults|pot.today",
+    "fixture": "wizard-defaults",
+    "fact": "pot.today",
+    "view": "simple"
+   },
+   {
+    "key": "wizard-defaults|statePension.age",
+    "fixture": "wizard-defaults",
+    "fact": "statePension.age",
+    "view": "simple"
+   },
+   {
+    "key": "wizard-defaults|statePension.amount",
+    "fixture": "wizard-defaults",
+    "fact": "statePension.amount",
+    "view": "simple"
+   }
+  ]
+ }
+}

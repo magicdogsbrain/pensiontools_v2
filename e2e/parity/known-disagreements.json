@@ -1,0 +1,32 @@
+{
+ "note": "Fact x fixture pairs that still differ between places (lead4.md G4). May only shrink.",
+ "pairs": [
+  "age-only|pot.today",
+  "budget|income.step.0.beforeTax",
+  "couple|pot.atStop",
+  "mover-holdings|income.step.0.beforeTax",
+  "mover-holdings|pot.atStop",
+  "mover-holdings|pot.today",
+  "mover-holdings|yearsToGo",
+  "mover-totals|income.step.0.beforeTax",
+  "mover-totals|pot.atStop",
+  "mover-totals|yearsToGo",
+  "retired-draft|income.step.0.beforeTax",
+  "retired-locked-ladder|pot.today",
+  "retired-locked-months|pot.today",
+  "retired-locked-pots|income.step.0.beforeTax",
+  "retired-locked-pots|pot.today",
+  "saver-checkin|income.step.0.beforeTax",
+  "saver-checkin|pot.atStop",
+  "saver-checkin|pot.today",
+  "saver-draft|income.step.0.beforeTax",
+  "saver-draft|pot.atStop",
+  "saver-locked-ladder|pot.atStop",
+  "saver-locked-ladder|pot.today",
+  "saver-locked-pots|income.step.0.beforeTax",
+  "saver-locked-pots|pot.atStop",
+  "saver-locked-pots|yearsToGo",
+  "saver-payin|income.step.0.beforeTax",
+  "saver-payin|pot.atStop"
+ ]
+}

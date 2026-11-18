@@ -24,7 +24,9 @@ export const SIMPLE_PAGES = Object.freeze(['', 'plan', 'about', 'income', 'spend
 /** Every tab and sub-tab of the full view. */
 export const FULL_PAGES = Object.freeze([
   { name: 'budget', tab: 'budget' },
-  { name: 'will it last', tab: 'stress', sub: 'montecarlo' },
+  // the full view works the one test out on a press ("Run the test"); the simple view without one — the sweep presses it, as a
+  // person reading the figure does, so the figures can be compared (that a press is needed is said in the handover, lead4.md D24)
+  { name: 'will it last', tab: 'stress', sub: 'montecarlo', press: 'button[data-on-click="runMonteCarloUI()"]' },
   { name: 'stress history', tab: 'stress', sub: 'historical' },
   { name: 'scenarios', tab: 'stress', sub: 'scenarios' },
   { name: 'drawdown', tab: 'stress', sub: 'drawdown' },
@@ -99,6 +101,10 @@ test.describe('parity sweep', () => {
       await openFull(page);
       for (const p of FULL_PAGES) {
         const opened = await fullTab(page, p);
+        if (opened && p.press) {
+          const run = page.locator(p.press).first();
+          if (await run.isVisible().catch(() => false)) await run.click();
+        }
         await readPage(page, out, 'full', p.name, opened);
       }
 

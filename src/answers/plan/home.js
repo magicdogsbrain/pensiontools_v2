@@ -316,6 +316,8 @@ export function homeOf(entries, id, { today, source = 'account', page = null } =
   if (stageKey === 'saving') { if (stepOf('where')) add('where', { ids: [] }); else add('checkin', { ids: [] }); }
   else if (stageKey === 'moving') { add('move', { result: false, ids: ['move.held'] }); add('where'); }
   else if (stageKey === 'drawing' || stageKey === 'closed') add('where');
+  // unlocked to change with months recorded (7.12.0 round 3, decision 10): the months are kept and said, never "Nothing recorded"
+  if (!where.length && stepOf('month') && stepOf('month').kept) where.push({ step: 'month', result: stepOf('month').kept, lines: [], figures: stepOf('month').figures || {} });
   const whereFull = cut && stepOf('where') ? '#/plan/' + pg.id + '/where' : null;
   let gapLine = null;
   if (!pg.readonly && !pg.closed) { try { const h = gapHeadline(gapsOf(plan, { today, life })); gapLine = h ? { ...h, Y: String(h.Y), href: '#/plan/' + pg.id + '/hold' } : null; } catch { gapLine = null; } }

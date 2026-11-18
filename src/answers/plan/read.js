@@ -335,6 +335,17 @@ function monthStep(C) {
   }
   // a retired plan not locked yet (7.2.0): its months are recorded once it is locked, and the step says so with the way there
   if (!C.locked) {
+    // unlocked to change (7.12.0 round 3, decision 10): the months already recorded are kept and said, with what they took
+    if (hist.length) {
+      const months = [...new Set(hist.map((h) => String(h.date || '').slice(0, 7)).filter((m) => /^\d{4}-\d{2}$/.test(m)))].sort();
+      figures.keptMonths = months.length;
+      figures.keptTaken = r0(hist.reduce((t, h) => t + (Number.isFinite(+h.sipp) ? +h.sipp : 0), 0));
+      const first = months[0], last = months[months.length - 1];
+      const span = first === last ? monthWords(first) : (first.slice(0, 4) === last.slice(0, 4) ? monthName(first) : monthWords(first)) + ' to ' + monthWords(last);
+      const result = sentence('month.unlockedKept', [{ fixed: monthWords(last) }, ' recorded. Lock the plan again to record more.'], figures);
+      const kept = sentence('where.unlockedKept', ['Unlocked to change. Your ', count('keptMonths'), months.length === 1 ? ' recorded month is' : ' recorded months are', ' kept: ', money('keptTaken'), ' taken before tax (', { fixed: span }, '). Lock the plan again to carry on recording.'], figures);
+      return { done: false, result, kept, figures, lines, buttons: [link('lockFirst', '#/plan/' + plan.id + '/lock'), link('monthByMonth', monthHref(plan))], notes: [], recorded: true, setUp, gap: null, toRecord: mon };
+    }
     const result = sentence('month.lockFirst', ['Months are recorded once the plan is locked'], figures);
     return { done: false, result, figures, lines, buttons: [link('lockFirst', '#/plan/' + plan.id + '/lock'), link('monthByMonth', monthHref(plan))], notes: [], recorded: false, setUp, gap: null, toRecord: mon };
   }

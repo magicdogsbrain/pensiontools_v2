@@ -62,7 +62,9 @@ export const STAGES = Object.freeze({
   'draft-retired': {
     key: 'draft-retired', label: 'Retired, designing the plan', chip: 'retired',
     leads: ['stress', 'strategies'], readOnly: [], hidden: ['accumulation'],
-    banner: { text: 'You are retired and the plan is still a draft. Stress-test it, then lock it from the Stress tester\'s Settings page to write the plan document and start recording months.', btn: 'Open the Stress tester', tab: 'stress' }
+    banner: { text: 'You are retired and the plan is still a draft. Stress-test it, then lock it from the Stress tester\'s Settings page to write the plan document and start recording months.', btn: 'Open the Stress tester', tab: 'stress',
+      // unlocked to change with months recorded (7.12.0 round 3, decision 10): never "still a draft … start recording"
+      keptText: 'Your plan is unlocked to change, and the months you recorded are kept. Lock it again from the Stress tester\'s Settings page to carry on recording.' }
   },
   // A closed plan (PlanClosed.js): kept to read, carried on by the plan that followed it. Nothing leads; every tool that
   // could change it is read-only; Month by month keeps its months (and takes none after the close).
@@ -147,7 +149,8 @@ export function deriveStage(scenario, now = new Date()) {
   const windowWords = yw === 1 ? '1 year' : yw + ' years';
   const closingText = closing ? ' ' + CLOSING_TEXT.replace('{closed}', monthWordsOf(closedAt)) : '';
   // a stage with no banner of its own (running: the where-am-I strip is its banner) still says when a closing plan closes
-  const banner = closing && !def.banner ? { text: closingText.trim(), btn: 'Open the Decision tool', tab: 'decision' } : def.banner ? { text: (def.banner.text + (near ? ' ' + def.banner.nearText : '') + closingText).replace(/\{start\}/g, startLabel).replace(/\{stop\}/g, stopWords).replace(/\{window\}/g, windowWords).replace(/\{closed\}/g, monthWordsOf(closedAt)), btn: def.banner.btn, tab: def.banner.tab, ...(def.banner.sub ? { sub: def.banner.sub } : {}) } : null;
+  const bannerText = def.banner && def.banner.keptText && !locked && history.length ? def.banner.keptText : def.banner ? def.banner.text : '';
+  const banner = closing && !def.banner ? { text: closingText.trim(), btn: 'Open the Decision tool', tab: 'decision' } : def.banner ? { text: (bannerText + (near ? ' ' + def.banner.nearText : '') + closingText).replace(/\{start\}/g, startLabel).replace(/\{stop\}/g, stopWords).replace(/\{window\}/g, windowWords).replace(/\{closed\}/g, monthWordsOf(closedAt)), btn: def.banner.btn, tab: def.banner.tab, ...(def.banner.sub ? { sub: def.banner.sub } : {}) } : null;
   const before = beforeOf(s);
   return {
     key, label: def.label, chip: chipText(def, monthsToStart, beforeStart),

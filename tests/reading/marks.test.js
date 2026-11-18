@@ -4,6 +4,8 @@
  */
 import { describe, it, expect, afterEach } from 'vitest';
 import { h, render } from 'preact';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { FACT, factId, patternOf, isFactId, FACT_PATTERNS, TABLES } from '../../src/reading/facts.js';
 import { markFact, factAttr, factProps, tableAttr, cellAttr, fieldAttr, setFact } from '../../src/reading/mark.js';
 import { Fact } from '../../src/reading/Mark.jsx';
@@ -76,5 +78,15 @@ describe('the busy mark', () => {
     await p;
     await Promise.resolve();
     expect(document.documentElement.hasAttribute('data-busy')).toBe(false);
+  });
+  // the full view fills a tab after awaits (the Budget page read 8 figures in one sweep and 17 in another): its opening and
+  // every tab's loader run under the mark, so the sweep waits until the tab is drawn
+  it('covers the full view\'s opening and every tab\'s loader', () => {
+    const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
+    expect(html).toContain("import { trackBusy } from './src/reading/busy.js';");
+    expect(html).toContain("function showMainApp(user, initialTab = null) { return trackBusy(showMainAppNow(user, initialTab), 'open'); }");
+    expect(html).toContain("tab.addEventListener('click', () => trackBusy(openTabNow(tab), 'tab'));");
+    const body = html.slice(html.indexOf('async function openTabNow(tab) {'), html.indexOf('async function openTabNow(tab) {') + 2000);
+    expect(body).toContain('await loadBudgetUI();');
   });
 });

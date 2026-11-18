@@ -4209,7 +4209,7 @@
     import { proportions as holdingsProportions, describeMix } from './src/services/Holdings.js';
     import { targetHoldings, diffHoldings, sequence as transitionSequence, progress as transitionProgress, tickMove, untickMove, yearNeedsOf } from './src/services/TransitionPlanner.js';
     import { transitionHtml } from './src/ui/components/TransitionView.js';
-    import { installKeepHandlers, transitionGaps, transitionHeld, transitionOpensAt, nameTransitionTab, installKeepTestHandlers, transitionKeepTest, keepLineHtml } from './src/ui/keepHoldingsUi.js'; import { installStressPanel } from './src/ui/stressPanelUi.js'; import { stageWordOf } from './src/ui/stageWord.js'; import { markFact, markWithin, tableAttr, cellAttr } from './src/reading/mark.js';   // "Try the bad years" on the Scenarios page (7.9.0)
+    import { installKeepHandlers, transitionGaps, transitionHeld, transitionOpensAt, nameTransitionTab, installKeepTestHandlers, transitionKeepTest, keepLineHtml } from './src/ui/keepHoldingsUi.js'; import { installStressPanel } from './src/ui/stressPanelUi.js'; import { stageWordOf } from './src/ui/stageWord.js'; import { markFact, markWithin, tableAttr, cellAttr } from './src/reading/mark.js'; import { trackBusy } from './src/reading/busy.js';   // "Try the bad years" on the Scenarios page (7.9.0)
     import { parsePaste, matchRows, mergeLedger, categorise, applyPaste } from './src/services/HoldingsPaste.js';
     import { pastePreviewHtml } from './src/ui/components/HoldingsPasteView.js';   // every pasted line counts (6.23)
     import { configureMonthlyEntry, readMonthlyEntry, openMonthlyEntry, confirmFundsIfLow, installMonthlyEntryHandlers } from './src/ui/monthlyEntry.js';   // the platform view of the monthly entry (6.23)
@@ -4608,7 +4608,9 @@
      * @param {object} user - Firebase user object
      * @param {string} initialTab - Which tab to show ('decision' or 'stress')
      */
-    async function showMainApp(user, initialTab = null) {
+    // the page carries the busy mark (src/reading/busy.js) until the opening tab's loader has run, so a reader waits for it
+    function showMainApp(user, initialTab = null) { return trackBusy(showMainAppNow(user, initialTab), 'open'); }
+    async function showMainAppNow(user, initialTab = null) {
       hideLandingPage();
       hideAuthScreen();
       hideSetupWizard();
@@ -5503,29 +5505,31 @@
 
     // Tab switching
     document.querySelectorAll('.tab').forEach(tab => {
-      tab.addEventListener('click', async () => {
-        // Update tab buttons
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
-
-        // Update content
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-        document.getElementById(`${tab.dataset.tab}-content`).classList.add('active');
-
-        // Load content if needed (async), once anything typed has gone
-        await flushSettings(); if (!tab.classList.contains('active')) return;   // pressed on meanwhile: that press loads
-        if (tab.dataset.tab === 'stress') { await loadStressSettings(); updateStrategyNote(); }
-        if (tab.dataset.tab === 'budget') await loadBudgetUI();
-        if (tab.dataset.tab === 'decision') renderDecisionStrategyPanel();
-        if (tab.dataset.tab === 'accumulation') await loadAccumulationUI();
-        if (tab.dataset.tab === 'transition') await loadTransitionUI();
-        if (tab.dataset.tab === 'household') await loadHouseholdUI();
-        if (tab.dataset.tab === 'strategies') await loadStrategiesPage();
-        updateNextStepBanner();
-        updateDraftLines();
-        window.__hideHelpTip && window.__hideHelpTip();
-      });
+      // a tab's loader runs under the busy mark (src/reading/busy.js): the page says it is still drawing until the tab is filled
+      tab.addEventListener('click', () => trackBusy(openTabNow(tab), 'tab'));
     });
+    async function openTabNow(tab) {
+      // Update tab buttons
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+
+      // Update content
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      document.getElementById(`${tab.dataset.tab}-content`).classList.add('active');
+
+      // Load content if needed (async), once anything typed has gone
+      await flushSettings(); if (!tab.classList.contains('active')) return;   // pressed on meanwhile: that press loads
+      if (tab.dataset.tab === 'stress') { await loadStressSettings(); updateStrategyNote(); }
+      if (tab.dataset.tab === 'budget') await loadBudgetUI();
+      if (tab.dataset.tab === 'decision') renderDecisionStrategyPanel();
+      if (tab.dataset.tab === 'accumulation') await loadAccumulationUI();
+      if (tab.dataset.tab === 'transition') await loadTransitionUI();
+      if (tab.dataset.tab === 'household') await loadHouseholdUI();
+      if (tab.dataset.tab === 'strategies') await loadStrategiesPage();
+      updateNextStepBanner();
+      updateDraftLines();
+      window.__hideHelpTip && window.__hideHelpTip();
+    }
 
     // Mobile tabs scroll hint - hide arrow when scrolled to end
     const tabsNav = document.querySelector('.tabs');

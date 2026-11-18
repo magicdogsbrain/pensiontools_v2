@@ -395,7 +395,7 @@ describe('index.html: the hand-over is one call in the inline script', () => {
     expect(script).toMatch(/const openPlace = \(\(\) => \{ try \{ return startOpenPlace\(window\); \}/);
     expect(script.match(/openPlace\.atMainApp\(/g).length).toBe(1);
     expect(script).not.toMatch(/sessionStorage\.getItem\('pt_open_tab'\)/);          // the line moved into the module
-    const main = script.slice(script.indexOf('async function showMainApp('), script.indexOf('window.openToolSettingsTab ='));
+    const main = script.slice(script.indexOf('async function showMainAppNow('), script.indexOf('window.openToolSettingsTab =')); // showMainApp runs this body under the busy mark (src/reading/busy.js)
     expect(main).toContain("initialTab = openPlace.atMainApp(initialTab, (page) => showStrategyPage(page));");
   });
   it('the release pop-up waits while the line is on screen; the plan menu and What\'s new read the window\'s plan', () => {

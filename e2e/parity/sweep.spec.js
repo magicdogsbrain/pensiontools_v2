@@ -21,6 +21,9 @@ export const OUT_DIR = join(process.cwd(), 'test-results', 'parity', 'fixtures')
 /** Every step of a plan in the simple view ('' is its home). */
 export const SIMPLE_PAGES = Object.freeze(['', 'plan', 'about', 'income', 'spend', 'pots', 'lasts', 'way', 'mix', 'saving', 'checkin', 'review', 'month', 'where', 'lock', 'hold', 'move', 'budget', 'household']);
 
+/** A press on a simple page that opens a figure drawn closed (the year table on "Does it last?"). */
+export const SIMPLE_PRESS = Object.freeze({ lasts: '[data-testid="plan.lasts.schedule"]' });
+
 /** Every tab and sub-tab of the full view. */
 export const FULL_PAGES = Object.freeze([
   { name: 'budget', tab: 'budget' },
@@ -29,7 +32,8 @@ export const FULL_PAGES = Object.freeze([
   { name: 'will it last', tab: 'stress', sub: 'montecarlo', press: 'button[data-on-click="runMonteCarloUI()"]' },
   { name: 'stress history', tab: 'stress', sub: 'historical' },
   { name: 'scenarios', tab: 'stress', sub: 'scenarios' },
-  { name: 'drawdown', tab: 'stress', sub: 'drawdown' },
+  // the year table is drawn on a press in the full view ("Show Schedule") and opened on a press in the simple view
+  { name: 'drawdown', tab: 'stress', sub: 'drawdown', press: 'button[data-on-click="showDrawdownScheduleUI()"]' },
   { name: 'glidepath', tab: 'stress', sub: 'glidepath' },
   { name: 'stress settings', tab: 'stress', sub: 'stresssettings' },
   { name: 'strategies', tab: 'strategies' },
@@ -38,7 +42,8 @@ export const FULL_PAGES = Object.freeze([
   { name: 'plan document', tab: 'decision', sub: 'plandoc' },
   { name: 'tax years', tab: 'decision', sub: 'taxyears' },
   { name: 'decision settings', tab: 'decision', sub: 'decisionsettings' },
-  { name: 'accumulation', tab: 'accumulation' },
+  // "Am I on course?" is worked out on a press in the full view ("Work it out"), on open in the simple view (lead4.md D24)
+  { name: 'accumulation', tab: 'accumulation', press: 'button[data-on-click="runOnTrackCheck()"]' },
   { name: 'transition', tab: 'transition' },
   { name: 'household', tab: 'household' }
 ]);
@@ -95,6 +100,13 @@ test.describe('parity sweep', () => {
         const route = new URL(page.url()).hash;
         // the page is this plan's step when the address held and the screen is a plan's
         const opened = /^plan/.test(screen) && route.startsWith(`#/plan/${fx.subject}`) && (step === '' ? !/#\/plan\/[^/]+\/./.test(route) : route.includes('/' + step));
+        // the year table opens on a press, as a person opens it (both views' year tables are compared cell by cell)
+        const press = SIMPLE_PRESS[step];
+        if (opened && press) {
+          await waitQuiet(page);   // the button is drawn once the run has landed
+          const b = page.locator(press).first();
+          if (await b.isVisible().catch(() => false) && (await b.getAttribute('aria-expanded')) !== 'true') await b.click();
+        }
         await readPage(page, out, 'simple', step, opened);
       }
 

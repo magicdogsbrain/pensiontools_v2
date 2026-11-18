@@ -62,7 +62,7 @@ export function strategyOverlayOf(decision, dateStr, { strategy, stressSettings,
 
 /** The day a month's figures are read on: today in today's month, else the month's first day ('YYYY-MM-DD'). */
 export function monthDayOf(ym, now = new Date()) {
-  const d = now instanceof Date && !Number.isNaN(now.getTime()) ? now : new Date();
+  const d = now;   // the wall clock only as the parameter's default (tests/determinism.test.js)
   const iso = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   const first = String(ym).slice(0, 7) + '-01';
   return first > iso ? first : iso;

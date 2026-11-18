@@ -12,6 +12,7 @@ import { chanceWords, fixedAgeWords } from '../answers/shared/format.js';
 import { LEVEL_IDS } from '../answers/shared/shown.js';
 import { SUCCESS, planToAgeOf } from '../answers/shared/rules.js';
 import { withSavingChance } from '../answers/shared/savingChance.js';
+import { markFact, markWithin, CHANCE_WORDS } from '../reading/mark.js';
 
 const futuresWords = (share) => futuresOutOfTen(share).words;
 
@@ -24,7 +25,7 @@ const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 
 /** "Left at the end" — typical, bad case (the worst 1 in 10), good case. */
 export function leftRowHtml(a) {
   if (!a) return '';
-  return '<tr><td>Left at the end (today\'s money)</td><td>typically <strong>' + gbp(a.typicalLeft) + '</strong>; in a bad case (the worst 1 in 10) <strong>' + gbp(a.badCaseLeft) + '</strong>; in a good case (the best 1 in 10) ' + gbp(a.goodCaseLeft) + '</td></tr>';
+  return '<tr><td>Left at the end (today\'s money)</td><td>typically <strong>' + markFact('left.typically', gbp(a.typicalLeft)) + '</strong>; in a bad case (the worst 1 in 10) <strong>' + gbp(a.badCaseLeft) + '</strong>; in a good case (the best 1 in 10) ' + gbp(a.goodCaseLeft) + '</td></tr>';
 }
 
 /** The income cuts: how many futures, by how much, for how long. '' for a strategy that does not cut. */
@@ -325,8 +326,8 @@ export function verdictBlockView(r, p, o = {}) {
   const name = LEVEL_NAMES[a.level];
   const bold = a.level === 'bold' ? ' ' + boldConsequenceOf(a) : '';
   const hero = a.weighted !== null
-    ? '<div data-weighted="' + a.weighted + '"' + (saving ? ' data-chance-from="saving"' : '') + '><span class="hero" style="font-size:30px;">' + esc(chanceWords(a.weighted, typeof a.sumW === 'number' ? { sumW: a.sumW, n: a.n } : {})) + '</span><span class="hero-sub">' + esc(w.headline) + esc(bold) + '</span></div>'
-    : '<div><span class="hero" style="font-size:30px;">' + esc(fixedShort(a.fixedAge)) + '</span><span class="hero-sub">' + esc(w.fixed) + esc(bold) + '</span></div>';
+    ? '<div data-weighted="' + a.weighted + '"' + (saving ? ' data-chance-from="saving"' : '') + '><span class="hero" style="font-size:30px;">' + markFact('lasts.chance', esc(chanceWords(a.weighted, typeof a.sumW === 'number' ? { sumW: a.sumW, n: a.n } : {}))) + '</span><span class="hero-sub">' + esc(w.headline) + esc(bold) + '</span></div>'
+    : '<div><span class="hero" style="font-size:30px;">' + markFact('lasts.fixedChance', esc(fixedShort(a.fixedAge))) + '</span><span class="hero-sub">' + esc(w.fixed) + esc(bold) + '</span></div>';
   const cov = r.coverage != null ? r.coverage : (r.failAges && r.failAges.length === 0 ? 100 : 100 - (r.ruin.mc || 0));
   // ("How careful?" straight under the title, beside the figure it changes)
   return '<div class="verdict verdict-' + tone + '" data-chance-block="1" data-level="' + a.level + '"><div class="verdict-title">' + (r.ruinLabel ? 'Will you get what you planned? — ' : 'Will your money last? — ') + VERDICT_TITLE[a.verdict] + ' at ' + name + '</div>'
@@ -335,10 +336,10 @@ export function verdictBlockView(r, p, o = {}) {
     // under it is this run's, from the middling pot when work stops, and is said to be
     + '<div class="verdict-heroes">' + hero
     + (saving ? '' : '<div><span class="hero" style="font-size:30px;">' + pctText(cov) + '</span><span class="hero-sub">of the plan\'s years covered — the share of your planned income the money actually paid, averaged over every future</span></div>'
-    + '<div><span class="hero" style="font-size:30px;">' + gbpC(Math.round(r.worst12.min)) + '</span><span class="hero-sub">worst 12 months lived, today\'s money</span></div>') + '</div>'
+    + '<div><span class="hero" style="font-size:30px;">' + markFact('lasts.worst12', gbpC(Math.round(r.worst12.min))) + '</span><span class="hero-sub">worst 12 months lived, today\'s money</span></div>') + '</div>'
     + (saving ? '<p class="hint" data-from-stop="1">' + esc(fromStopWords(p)) + '</p>' : '')
-    + '<p class="verdict-fixed" data-fixed="1">' + esc(a.weighted !== null ? w.fixed : (w.why || '')) + '</p>'
-    + (w.floor ? '<p class="hint">' + esc(w.floor) + '</p>' : '') + '<p class="hint">' + esc(w.left) + '</p>'
+    + '<p class="verdict-fixed" data-fixed="1">' + (a.weighted !== null ? markWithin(esc(w.fixed), [[CHANCE_WORDS, 'lasts.fixedChance'], [/live to (\d+)/, 'plan.endAge']]) : esc(w.why || '')) + '</p>'
+    + (w.floor ? '<p class="hint">' + markWithin(esc(w.floor), [[/ran out at (\d+)/, 'lasts.runOutAge']]) + '</p>' : '') + '<p class="hint">' + markWithin(esc(w.left), [[/typically (£[\d,]+)/, 'left.typically']]) + '</p>'
     + '<div class="verdict-basis">' + esc(w.assumed.join(' ')) + '</div></div>';
 }
 

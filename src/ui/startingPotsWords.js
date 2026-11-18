@@ -24,6 +24,7 @@ import { answerLastedWords } from '../services/PlanSeed.js';
 import { chargesRunLine, hasStoredCharges, formatChargesPct } from './chargesSetting.js';
 import { chargesPctOf } from '../services/Charges.js';
 import { isaGrowthRunLine } from './isaGrowthSetting.js';
+import { markFact } from '../reading/mark.js';
 
 const fmt = (n) => '£' + Math.round(+n || 0).toLocaleString('en-GB');
 
@@ -146,13 +147,13 @@ function accessNote(s) {
 export function potsAtRetirementLine(p, override = {}) {
   // 7.12.0: a locked plan: the pots it was locked with, which every run uses; today's middling case beside it, labelled
   if (p && p.source === 'locked') {
-    return 'Your plan was locked with <strong>' + fmt(p.sipp) + '</strong> in your pension and <strong>' + fmt(p.isa) + '</strong> in ISAs when you stop work (the middling case then). Every strategy is priced on these.'
+    return 'Your plan was locked with <strong>' + markFact('pot.atStop', fmt(p.sipp)) + '</strong> in your pension and <strong>' + fmt(p.isa) + '</strong> in ISAs when you stop work (the middling case then). Every strategy is priced on these.'
       + (p.today ? ' Today’s middling case, from your pension today (' + fmt(p.today.from.pot) + ') and ' + fmt(p.today.from.monthly) + ' a month going in: pension ' + fmt(p.today.sipp) + ' · ISA ' + fmt(p.today.isa) + '.' : '');
   }
   // 7.12.0: the pots worked out from the saver's facts (services/PotsAtStop.js), when the person typed none below
   if (p && p.source === 'worked' && p.from && !(+(override || {}).sipp > 0 || +(override || {}).isa > 0)) {
-    return 'Pots at retirement in today\'s money, in a middling case: pension <strong>' + fmt(p.sipp) + '</strong> · ISA <strong>' + fmt(p.isa) + '</strong>. '
-      + 'Worked out from your pension today (' + fmt(p.from.pot) + ') and ' + fmt(p.from.monthly) + ' a month going in, to age ' + p.from.toAge + '. Every strategy is priced on these; type your own below to use those instead.';
+    return 'Pots at retirement in today\'s money, in a middling case: pension <strong>' + markFact('pot.atStop', fmt(p.sipp)) + '</strong> · ISA <strong>' + fmt(p.isa) + '</strong>. '
+      + 'Worked out from your pension today (' + markFact('pot.today', fmt(p.from.pot)) + ') and ' + fmt(p.from.monthly) + ' a month going in, to age ' + p.from.toAge + '. Every strategy is priced on these; type your own below to use those instead.';
   }
   const proj = 'SIPP ' + fmt(p.sipp) + ' (cautious ' + fmt(p.low) + ', strong ' + fmt(p.high) + ') · ISA ' + fmt(p.isa);
   const how = p.hasContributions ? ' with your Accumulation planner contributions' : ' (growth only — no contributions saved on the Accumulation tab)';
@@ -165,6 +166,6 @@ export function potsAtRetirementLine(p, override = {}) {
       + 'For comparison, the planner\'s own projection, middle band' + how + ': ' + proj + '. '
       + 'The pots below are what the strategy is tested on — record what you hold on the Transition tab.';
   }
-  return 'Pots at retirement in today\'s money, middle band' + how + ': SIPP <strong>' + fmt(p.sipp) + '</strong> (cautious ' + fmt(p.low) + ', strong ' + fmt(p.high) + ') · ISA <strong>' + fmt(p.isa) + '</strong>. '
+  return 'Pots at retirement in today\'s money, middle band' + how + ': SIPP <strong>' + markFact('pot.atStop', fmt(p.sipp)) + '</strong> (cautious ' + markFact('pot.atStop.low', fmt(p.low)) + ', strong ' + markFact('pot.atStop.high', fmt(p.high)) + ') · ISA <strong>' + fmt(p.isa) + '</strong>. '
     + 'Every strategy is priced on these; the pots below are what the strategy is tested on — record what you hold on the Transition tab.';
 }

@@ -9,6 +9,7 @@ import { describe, it, expect } from 'vitest';
 import { buildPlanDocument, whereAmI } from '../src/services/PlanDocument.js';
 import { whereAmIHtml } from '../src/ui/components/PlanDocumentView.js';
 import { deriveStage } from '../src/services/LifeStage.js';
+import { unmarked } from '../src/reading/mark.js';   // the marks are markup only (lead4.md G1): the words are read without them
 
 const NOW = new Date(2026, 10, 17, 12);
 const settings = { currentAge: 58, currentAgeAsOf: '2026-11-17', retired: false, retireAge: 63, equityMin: 96000, bondMin: 18000, cashTarget: 6000,
@@ -24,7 +25,7 @@ describe('the plan document counts the time to go as the header chip does', () =
   });
   it('the strip says the stop and the first tax year, with the chip\'s count', () => {
     const html = whereAmIHtml(whereAmI(doc, { today: NOW }));
-    expect(html).toContain('<strong>5 years to go</strong>: you stop work in November 2031; the plan’s first tax year is 2031/32.');
+    expect(unmarked(html)).toContain('<strong>5 years to go</strong>: you stop work in November 2031; the plan’s first tax year is 2031/32.');
     const scenario = { stressTool: { settings: { ...settings, firstTaxYear: 2031 } }, decisionTool: { settings: { locked: true, lockedAt: NOW.toISOString() }, history: [] }, planDocument: doc };
     expect(deriveStage(scenario, NOW).chip).toBe('5 years to go');
   });
@@ -32,6 +33,6 @@ describe('the plan document counts the time to go as the header chip does', () =
     const old = { ...doc, timing: { ...doc.timing, startMonth: undefined } };
     const w = whereAmI(old, { today: NOW });
     expect(w.saving.monthsToGo).toBe(53);   // by hand: 17 Nov 2026 to 6 Apr 2031 is 4 years and about 4.6 months, 53 to the nearest
-    expect(whereAmIHtml(w)).toContain('<strong>4 years to go</strong> — the plan starts in 2031/32.');
+    expect(unmarked(whereAmIHtml(w))).toContain('<strong>4 years to go</strong> — the plan starts in 2031/32.');
   });
 });

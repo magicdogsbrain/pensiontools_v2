@@ -10,15 +10,62 @@
 import { Money } from './Money.jsx';
 import { Button, LinkButton } from './Button.jsx';
 import { PLAN } from '../copy/plan.js';
-import { factOf } from './facts.js';
+import { figureFactOf } from './facts.js';
+import { Fact } from '../../reading/Mark.jsx';
 
 export const fill = (text, slots = {}) => String(text == null ? '' : text).replace(/\{(\w+)\}/g, (m, k) => (k in slots && slots[k] != null ? String(slots[k]) : m));
+
+/**
+ * fill, with the slots that hold a figure of the fact register drawn marked (lead4.md G1): `marks` is { slot: factId }.
+ * Returns the words as nodes; the text a person reads is the same as fill's.
+ */
+export function fillMarked(text, slots = {}, marks = {}) {
+  const out = [];
+  const t = String(text == null ? '' : text);
+  let at = 0;
+  for (const m of t.matchAll(/\{(\w+)\}/g)) {
+    const k = m[1];
+    const has = k in slots && slots[k] != null;
+    out.push(t.slice(at, m.index));
+    out.push(has ? (marks[k] ? <Fact key={m.index} id={marks[k]}>{String(slots[k])}</Fact> : String(slots[k])) : m[0]);
+    at = m.index + m[0].length;
+  }
+  out.push(t.slice(at));
+  return out.filter((x) => x !== '');
+}
+
+/**
+ * Words already written (a sentence another reader built), with the figures found in them drawn marked (lead4.md G1):
+ * `finds` is [[RegExp with one group, factId], …]; the first match of each, group 1, is wrapped. The text is unchanged.
+ */
+export function markIn(text, finds = []) {
+  const t = String(text == null ? '' : text);
+  const hits = [];
+  for (const [re, id] of finds) {
+    const m = new RegExp(re.source, re.flags.replace('g', '')).exec(t);
+    if (!m || m[1] == null) continue;
+    const start = m.index + m[0].indexOf(m[1]);
+    const end = start + m[1].length;
+    if (hits.some((h) => start < h.end && end > h.start)) continue;
+    hits.push({ start, end, id });
+  }
+  if (!hits.length) return t;
+  hits.sort((a, b) => a.start - b.start);
+  const out = [];
+  let at = 0;
+  for (const h of hits) { out.push(t.slice(at, h.start)); out.push(<Fact key={h.start} id={h.id}>{t.slice(h.start, h.end)}</Fact>); at = h.end; }
+  out.push(t.slice(at));
+  return out.filter((x) => x !== '');
+}
+
+/** The chance words of the register ("about 17 times in 20", "more than 19 times in 20", "less than once in 20"). */
+export const CHANCE_RE = /((?:more than |less than |about )?(?:\d+ times|once) in 20)/;
 
 export function PlanSentence({ s, figures, prefix = '', as: Tag = 'span', ...rest }) {
   if (!s || !Array.isArray(s.parts)) return null;
   return (
     <Tag {...rest} data-sentence-id={s.id}>
-      {s.parts.map((p, i) => (typeof p === 'string' ? p : 'fixed' in p ? <span key={i} data-fixed>{String(p.fixed)}</span> : <Money key={i} source={figures} k={p.key} kind={p.kind} />))}
+      {s.parts.map((p, i) => (typeof p === 'string' ? p : 'fixed' in p ? <span key={i} data-fixed>{String(p.fixed)}</span> : figureFactOf(s.id, p.key) ? <Fact key={i} id={figureFactOf(s.id, p.key)}><Money source={figures} k={p.key} kind={p.kind} /></Fact> : <Money key={i} source={figures} k={p.key} kind={p.kind} />))}
     </Tag>
   );
 }
@@ -47,7 +94,7 @@ export function PlanLine({ line, figures, hideSource = false }) {
   const after = PLAN.lineAfter[line.id] ? fill(PLAN.lineAfter[line.id], worded(line.slots)) : '';
   const hasParts = line.sentence && Array.isArray(line.sentence.parts) && line.sentence.parts.length > 0;
   return (
-    <li class="plan-line" data-line={line.id} {...factOf(line.id)}>
+    <li class="plan-line" data-line={line.id}>
       {label && <span class="plan-label">{label}{hasParts ? ': ' : ''}</span>}
       {hasParts && <PlanSentence s={line.sentence} figures={figures} class="plan-value" />}
       {after && line.slots && Object.values(line.slots).some((v) => v) ? <span>{after}</span> : null}

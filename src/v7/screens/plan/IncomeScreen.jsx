@@ -11,7 +11,8 @@ import { planView, incomeView } from '../../state/select.js';
 import { href } from '../../router/routes.js';
 import { PLAN } from '../../copy/plan.js';
 import { INCOME } from '../../copy/income.js';
-import { factOf } from '../../components/facts.js';
+import { slotFactsOf } from '../../components/facts.js';
+import { fillMarked } from '../../components/PlanFigures.jsx';
 
 const w = PLAN.page;
 /**
@@ -40,7 +41,7 @@ function Derived({ inc }) {
     <section class="plan-section about-derived" data-section="derived">
       <h3>{INCOME.derivedTitle}</h3>
       <ul class="plan-lines">
-        {inc.derived.map((d, i) => <li key={i} class="plan-line" data-line={'income.' + d.id} {...factOf('income.' + d.id)}>{fill(INCOME.derived[d.id] || '', worded(d.slots))}</li>)}
+        {inc.derived.map((d, i) => <li key={i} class="plan-line" data-line={'income.' + d.id} >{fillMarked(INCOME.derived[d.id] || '', worded(d.slots), slotFactsOf('income.' + d.id, d.slots))}</li>)}
       </ul>
     </section>
   );

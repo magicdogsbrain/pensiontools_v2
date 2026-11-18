@@ -8,6 +8,7 @@
  * Already retired, or no pots at retirement: the words are today's, unchanged.
  */
 import { describe, it, expect, vi } from 'vitest';
+import { unmarked } from '../src/reading/mark.js';   // the marks are markup only (lead4.md G1): the words are read without them
 
 vi.mock('../src/firebase/index.js', () => ({ isFirebaseConfigured: () => false, isLoggedIn: () => false }));
 
@@ -54,7 +55,7 @@ describe('the Timing block\'s line', () => {
     expect(plain(potsAtRetirementLine(p, { sipp: 493164, isa: 0 }))).toMatch(/^Every strategy is priced on the pots at retirement in the boxes below: SIPP £493,164 \(today's money\)\./);
   });
   it('no boxes filled: today\'s words, unchanged', () => {
-    expect(potsAtRetirementLine(p, {})).toBe('Pots at retirement in today\'s money, middle band with your Accumulation planner contributions: SIPP <strong>£473,935</strong> (cautious £378,650, strong £594,021) · ISA <strong>£36,702</strong>. Every strategy is priced on these; the pots below are what the strategy is tested on — record what you hold on the Transition tab.');
+    expect(unmarked(potsAtRetirementLine(p, {}))).toBe('Pots at retirement in today\'s money, middle band with your Accumulation planner contributions: SIPP <strong>£473,935</strong> (cautious £378,650, strong £594,021) · ISA <strong>£36,702</strong>. Every strategy is priced on these; the pots below are what the strategy is tested on — record what you hold on the Transition tab.');
     expect(potsAtRetirementLine({ ...p, hasContributions: false })).toMatch(/middle band \(growth only — no contributions saved on the Accumulation tab\):/);
   });
 });

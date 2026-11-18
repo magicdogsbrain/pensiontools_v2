@@ -31,6 +31,6 @@ describe('the chip says the home\'s stage word', () => {
   it('the chip uses it', () => {
     const html = readFileSync('index.html', 'utf8');
     expect(html).toMatch(/stageWordOf\(/);
-    expect(html).toMatch(/' · ' \+ \(window\._stageWord \|\| st\.label\)/);
+    expect(html).toMatch(/' · ' \+ markFact\('stage', esc\(window\._stageWord \|\| st\.label\)\)/);   // marked for the parity sweep (lead4.md G1)
   });
 });

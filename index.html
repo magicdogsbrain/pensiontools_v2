@@ -4209,7 +4209,7 @@
     import { proportions as holdingsProportions, describeMix } from './src/services/Holdings.js';
     import { targetHoldings, diffHoldings, sequence as transitionSequence, progress as transitionProgress, tickMove, untickMove, yearNeedsOf } from './src/services/TransitionPlanner.js';
     import { transitionHtml } from './src/ui/components/TransitionView.js';
-    import { installKeepHandlers, transitionGaps, transitionHeld, transitionOpensAt, nameTransitionTab, installKeepTestHandlers, transitionKeepTest, keepLineHtml } from './src/ui/keepHoldingsUi.js'; import { installStressPanel } from './src/ui/stressPanelUi.js'; import { stageWordOf } from './src/ui/stageWord.js';   // "Try the bad years" on the Scenarios page (7.9.0)
+    import { installKeepHandlers, transitionGaps, transitionHeld, transitionOpensAt, nameTransitionTab, installKeepTestHandlers, transitionKeepTest, keepLineHtml } from './src/ui/keepHoldingsUi.js'; import { installStressPanel } from './src/ui/stressPanelUi.js'; import { stageWordOf } from './src/ui/stageWord.js'; import { markFact, markWithin } from './src/reading/mark.js';   // "Try the bad years" on the Scenarios page (7.9.0)
     import { parsePaste, matchRows, mergeLedger, categorise, applyPaste } from './src/services/HoldingsPaste.js';
     import { pastePreviewHtml } from './src/ui/components/HoldingsPasteView.js';   // every pasted line counts (6.23)
     import { configureMonthlyEntry, readMonthlyEntry, openMonthlyEntry, confirmFundsIfLow, installMonthlyEntryHandlers } from './src/ui/monthlyEntry.js';   // the platform view of the monthly entry (6.23)
@@ -5035,8 +5035,8 @@
       chip.style.display = 'inline-block';
       // The stage, by name ("Committed, still saving · 7 months to go"), so the chip answers "where am I?" (6.10.1).
       const st = window._lifeStage;
-      const word = window._stageWord || (st && st.label) || '', stageWord = st && st.key !== 'unknown' ? ' · ' + (window._stageWord || st.label) + (st.chip && (/to go/.test(st.chip) || word === st.label) && !word.toLowerCase().includes(st.chip) ? ' · ' + st.chip : '') : '';   // one stage word in both views (7.12.0)
-      chip.textContent = (locked ? '🔒 locked' : '✏️ draft') + stageWord;
+      const word = window._stageWord || (st && st.label) || '', esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;'), stageWord = st && st.key !== 'unknown' ? ' · ' + markFact('stage', esc(window._stageWord || st.label)) + (st.chip && (/to go/.test(st.chip) || word === st.label) && !word.toLowerCase().includes(st.chip) ? ' · ' + (/to go/.test(st.chip) ? markFact('yearsToGo', esc(st.chip.replace(/\s*to go\b.*$/, ''))) + ' to go' : esc(st.chip)) : '') : '';   // one stage word in both views (7.12.0); marked for the parity sweep (lead4.md G1)
+      chip.innerHTML = markFact('lock.state', locked ? '🔒 locked' : '✏️ draft') + stageWord;
       if (st && st.key !== 'unknown') chip.dataset.stageWhy = st.reasons.join('; ');
       chip.title = locked
         ? 'This plan’s settings are committed so your recorded entries stay consistent.'
@@ -7649,7 +7649,7 @@
         : describeTiming(t, s);
       summary = paintStopMonth(document, t, s, await closedTimingSummary(summary));   // the month box's label and warning
       if (t.mode === 'future' && t.yearsToStart > 0) summary += ' Gilt ladders are priced at today\'s real yields as a guide — the rungs are bought at retirement. The "Funds to test" list sets only the starting mix the strategy is tested on — it is not a record of what you hold (that is the Transition tab); the plan is priced on the pots at retirement.';
-      g('tmSummary').textContent = summary;
+      g('tmSummary').innerHTML = markWithin(String(summary).replace(/&/g, '&amp;').replace(/</g, '&lt;'), [[/(?:stop work|retire|stopped work) in ([A-Z][a-z]+ \d{4})/, 'stop.month'], [/ at \d+, (\d+ (?:years?|months?)) away/, 'yearsToGo'], [/Plan runs to age (\d+)/, 'plan.endAge']]);   // marked for the parity sweep (lead4.md G1)
       // The first income step starts when the plan starts.
       if (Array.isArray(window._ssIncomeSteps) && window._ssIncomeSteps.length) window._ssIncomeSteps[0].fromAge = t.shapeAgeNow;
       updateDurationHint(); paintDbStart(document, window._ssTiming);   // the start age is known now: the final-salary age box and its words
@@ -9446,11 +9446,11 @@
         return;
       }
       const b = contributionBreakdown(a);
-      bd.innerHTML = '<div class="alert alert-info">Each month: you pay <strong>' + gbp(a.netMonthly) + '</strong> → '
+      bd.innerHTML = '<div class="alert alert-info">Each month: you pay <strong>' + markFact('payIn.fromTakeHome', gbp(a.netMonthly)) + '</strong> → '
         + '<strong>' + gbp(Math.round(b.grossMonthly)) + '</strong> goes into your pension'
         + (b.reliefMonthly > 0.5 ? ' (incl. ' + gbp(Math.round(b.reliefMonthly)) + ' tax relief' + (b.niSavedMonthly > 0.5 ? ' + NI saving' : '') + ')' : '')
-        + (b.employerMonthly ? ' + <strong>' + gbp(b.employerMonthly) + '</strong> from your employer' : '')
-        + ' = <strong>' + gbp(Math.round(b.totalMonthly)) + '/mo</strong>. Each £1 invested costs you '
+        + (b.employerMonthly ? ' + <strong>' + markFact('payIn.employer', gbp(b.employerMonthly)) + '</strong> from your employer' : '')
+        + ' = <strong>' + markFact('payIn.total', gbp(Math.round(b.totalMonthly))) + '/mo</strong>. Each £1 invested costs you '
         + (b.costPerPound * 100).toFixed(0) + 'p' + (b.hrClaimMonthly > 0.5 ? ' before the HMRC reclaim (' + Math.max(0, Math.round((a.netMonthly - b.hrClaimMonthly) / b.totalMonthly * 100)) + 'p after it)' : '') + '.'
         + (b.hrClaimMonthly > 0.5 ? ' Plus ≈' + gbp(Math.round(b.hrClaimMonthly)) + '/mo you can claim back from HMRC.' : '')
         + '</div>'

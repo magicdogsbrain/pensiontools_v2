@@ -39,11 +39,12 @@ describe('a year before tax as it is taken', () => {
 
 import { partYearReason, breakdownFor } from '../src/services/TaxYearSetUp.js';
 import { firstStepNoteHtml } from '../src/ui/plannerWords.js';
+import { unmarked } from '../src/reading/mark.js';   // the marks are markup only (lead4.md G1): the words are read without them
 
 describe('the pages that say a year before tax, with a quarter of each payment tax-free', () => {
   it('the Stress settings line: the shape as held, and what is taken before tax for it', () => {
     const ufpls = firstStepNoteHtml(TARGET, { access: 'ufpls' });
-    expect(ufpls).toContain('First step £32,858/yr gross ≈ £2,400/mo take-home');
+    expect(unmarked(ufpls)).toContain('First step £32,858/yr gross ≈ £2,400/mo take-home');
     expect(ufpls).toContain('you take £30,925 a year before tax for it');
     expect(firstStepNoteHtml(TARGET, { access: 'drawdown' })).not.toContain('a year before tax for it');
   });

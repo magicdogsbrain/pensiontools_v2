@@ -16,6 +16,7 @@ import { STRESS } from '../../v7/copy/stressPanel.js';
 import { PLAN } from '../../v7/copy/plan.js';
 import { lockedShortOf } from '../../services/PlanCommit.js';
 import { STRESS as STRESS_ON } from '../../answers/shared/rules.js';
+import { markFact } from '../../reading/mark.js';
 
 const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 const dateGB = (iso) => { const d = new Date(iso); return Number.isFinite(d.getTime()) ? d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : ''; };
@@ -343,7 +344,7 @@ export function whereAmIPotText(pot) {
   const leftOut = P.isaLeftOut ? ' Your ISA is held aside, outside this plan, so neither the pot nor the plan\'s band counts it.' : '';
   if (missing.includes('pension')) return 'No pension pot on record yet to set against the plan\'s band. Enter this month\'s values in the Decision tool, or record it under What you hold, to compare.';
   if (missing.length) {
-    const head = pension ? 'Pension pot ' + gbp(pension.value) + ' (' + esc(sourceText(pension)) + '). ' : '';
+    const head = pension ? 'Pension pot ' + markFact('pot.today', gbp(pension.value)) + ' (' + esc(sourceText(pension)) + '). ' : '';
     if (missing.includes('diversifiers')) return head + 'The plan\'s band counts your diversifiers as well, and the monthly record does not keep their value, so the pot is not set against the band. You can list what you hold, diversifiers included, under What you hold, to compare.';
     const names = missing.filter((k) => ADD_NAME[k]);
     // the ISA alone (7.12.0): the simple view's words, the box it can be typed in and the page it can be added on
@@ -409,7 +410,7 @@ export function saverReadingText(s) {
   if (missing.includes('pension') || (s.actual == null && !missing.length)) return s.expected != null ? 'The locked path expects about ' + gbp(s.expected) + (s.version === 3 ? (s.isaCounted ? ' in your pension and ISA now, in pounds of the day' : ' in the pension pot now, in pounds of the day') : ' in the pension pot now') + '. Record this month\'s pot on the Accumulation planner to compare.' : '';
   if (missing.includes('isa')) return 'Pension pot ' + gbp(s.pension) + from + '. The locked path counts your ISA as well, and there is no ISA figure with it, so the pot is not set against the path. Add your ISA to the monthly record on the Accumulation tab to compare.';
   if (s.version === 3) {
-    const what = s.isaCounted ? 'Pension and ISA ' + gbp(s.actual) + ' (' + (src ? src + ': ' : '') + 'pension ' + gbp(s.pension) + ', ISA ' + gbp(s.isa) + ')' : 'Pension pot ' + gbp(s.actual) + from;
+    const what = s.isaCounted ? 'Pension and ISA ' + gbp(s.actual) + ' (' + (src ? src + ': ' : '') + 'pension ' + gbp(s.pension) + ', ISA ' + gbp(s.isa) + ')' : 'Pension pot ' + markFact('pot.today', gbp(s.actual)) + from;
     if (s.band === 'start') return what + ', in pounds of the day, against ' + gbp(s.expected) + ' the locked path starts from; its lines open as the months go on.';
     const band = SAVER_V3_BAND[s.band];
     return what + ', in pounds of the day, against ' + gbp(s.expected) + ', the middle of the locked path for then' + (band ? ' — ' + band(s) : '') + '.';
@@ -418,7 +419,7 @@ export function saverReadingText(s) {
   const prices = pr && pr.factor && Math.abs(pr.factor - 1) >= 0.0005 && s.compared != null
     ? ', which is ' + gbp(s.compared) + ' in the prices of ' + esc(monthText(pr.start)) + ', when this path was drawn (prices assumed to rise ' + ((pr.cpi || 0.025) * 100).toFixed(1) + '% a year, as the path does)'
     : '';
-  return 'Pension pot ' + gbp(s.actual) + from + prices + ', against ' + gbp(s.expected) + ' on the locked path for then — <strong>' + esc(s.band || '') + '</strong>' + (s.low != null && s.high != null ? ' (cautious ' + gbp(s.low) + ', strong ' + gbp(s.high) + ')' : '') + '. This path was drawn before ISAs were counted: it follows your pension only.';
+  return 'Pension pot ' + markFact('pot.today', gbp(s.actual)) + from + prices + ', against ' + gbp(s.expected) + ' on the locked path for then — <strong>' + esc(s.band || '') + '</strong>' + (s.low != null && s.high != null ? ' (cautious ' + gbp(s.low) + ', strong ' + gbp(s.high) + ')' : '') + '. This path was drawn before ISAs were counted: it follows your pension only.';
 }
 
 /**
@@ -452,9 +453,9 @@ export function whereAmIHtml(w, g = null) {
     // Still saving for a plan locked in advance (6.7.0; read like with like from 6.22.0 — saverReadingText)
     const s = w.saving;
     // (7.12.0) the header chip's count, to the month work stops, and both facts: the stop and the plan's first tax year
-    const toGo = '<strong>' + (s.monthsToGo >= 24 ? Math.round(s.monthsToGo / 12) + ' years' : s.monthsToGo + ' month' + (s.monthsToGo === 1 ? '' : 's')) + ' to go</strong>';
+    const toGo = '<strong>' + markFact('yearsToGo', s.monthsToGo >= 24 ? Math.round(s.monthsToGo / 12) + ' years' : s.monthsToGo + ' month' + (s.monthsToGo === 1 ? '' : 's')) + ' to go</strong>';
     const stop = s.stopMonth ? monthYearWords(s.stopMonth) : '';
-    parts.push(stop ? toGo + ': you stop work in ' + esc(stop) + '; the plan’s first tax year is ' + esc(w.planStart) + '.' : toGo + ' — the plan starts in ' + esc(w.planStart) + '.');
+    parts.push(stop ? toGo + ': you stop work in ' + markFact('stop.month', esc(stop)) + '; the plan’s first tax year is ' + esc(w.planStart) + '.' : toGo + ' — the plan starts in ' + esc(w.planStart) + '.');
     const text = saverReadingText(s);
     if (text) parts.push(text);
     if (s.contributions > 0 || s.isaMonthly > 0) parts.push('Going in on the locked plan: ' + [s.contributions > 0 ? gbp(s.contributions) + ' a month gross into your pension' : '', s.isaMonthly > 0 ? gbp(s.isaMonthly) + ' a month into ISAs and savings' : ''].filter(Boolean).join(' and ') + '.');

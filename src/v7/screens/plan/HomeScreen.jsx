@@ -19,6 +19,9 @@ import { HOME } from '../../copy/home.js';
 import { SAVING } from '../../copy/saving.js';
 import { GAPS } from '../../copy/gaps.js';
 import { HELD } from '../../copy/held.js';
+import { fillMarked, markIn } from '../../components/PlanFigures.jsx';
+import { slotFactsOf } from '../../components/facts.js';
+import { Fact } from '../../../reading/Mark.jsx';
 
 /** After "With ‘…’": the partner's plan's phase (7.12.0), in the words the household page uses (copy/plan.js theirLines). */
 const theirWords = (t) => (t.theirLine && PLAN.theirLines[t.theirLine.id] ? ': ' + fill(PLAN.theirLines[t.theirLine.id], t.theirLine.slots) : '');
@@ -41,8 +44,8 @@ const itemWords = (it) => {
  */
 function saverLineText(l) {
   if (l.s) return null;
-  if (l.id.startsWith('now.')) return fill(SAVING.payInNow[l.id.slice(4)] || '', l.slots || {});
-  return fill(HOME.saver.lines[l.id] || '', l.slots || {});
+  if (l.id.startsWith('now.')) return fillMarked(SAVING.payInNow[l.id.slice(4)] || '', l.slots || {}, PAY_IN_NOW_FACTS);
+  return fillMarked(HOME.saver.lines[l.id] || '', l.slots || {}, slotFactsOf('home.saver.' + l.id));
 }
 function SaverBlock({ V, planId, view, dispatch }) {
   if (!V || !V.block) return null;
@@ -122,7 +125,7 @@ function Drift({ D }) {
   );
 }
 
-function headlineOf(H) {
+function headlineWords(H) {
   const s = H.stage;
   const W = HOME.headline;
   if (s.key === 'saving') return s.stop ? fill(W.savingStop, { month: s.stop }) : W.saving;
@@ -131,6 +134,10 @@ function headlineOf(H) {
   if (s.key === 'closed') return W.closed;
   return W.none;
 }
+/** The headline with its stage word and stop month marked (lead4.md G1). */
+const headlineOf = (H) => markIn(headlineWords(H), [[/^(Saving|Moving|Living on it)\b/, 'stage'], [/stop work in ([A-Z][a-z]+ \d{4})/, 'stop.month']]);
+/** What goes in, on the home (SAVING.payInNow's slots). */
+const PAY_IN_NOW_FACTS = Object.freeze({ takeHome: 'payIn.fromTakeHome', employer: 'payIn.employer', total: 'payIn.total', ownPct: 'payIn.pctOfPay' });
 
 /** The questions a home offers that really open with this plan's figures (a saver's B): the fold's words promise no more. */
 const filledAsk = (H, view) => H.ask.filter((q) => !!(view.askFill && view.askFill[q]));
@@ -198,7 +205,7 @@ export function HomeScreen(state, dispatch) {
       <div class={`home is-${s.key || 'none'}`} data-region="plan-home" data-testid={T} data-stage={s.key || 'none'} data-locked={H.locked ? '1' : '0'}>
         <div class="plan-head home-head">
           <p class="plan-kicker" data-testid={`${T}.kicker`}>
-            {PLAN.page.title} <span class="plan-name">{H.example ? PLAN.list.actions.exampleRow : <>‘{H.name}’</>}</span>
+            {PLAN.page.title} <span class="plan-name">{H.example ? PLAN.list.actions.exampleRow : <>‘<Fact id="plan.name">{H.name}</Fact>’</>}</span>
           </p>
           <h1 tabIndex={-1} data-testid={`${T}.headline`}>
             {s.key && <span class={`stage-word is-${s.key}`}><span class="stage-dot" aria-hidden="true" /></span>}{headlineOf(H)}
@@ -207,7 +214,7 @@ export function HomeScreen(state, dispatch) {
               it was locked — drawn only when there is something to say */}
           {headLine && <p class="plan-stage-line" data-testid="plan.stageLine">{headLine}</p>}
           {/* the move window (7.10.0): how long is left to the stop, or when it opens — said, never a to-do */}
-          {H.moveWindow && <p class="line" data-testid={`${T}.moveWindow`} data-line={H.moveWindow.id}>{fill(HOME.moveWindow[H.moveWindow.id], H.moveWindow.slots)}</p>}
+          {H.moveWindow && <p class="line" data-testid={`${T}.moveWindow`} data-line={H.moveWindow.id}>{fillMarked(HOME.moveWindow[H.moveWindow.id], H.moveWindow.slots, slotFactsOf('home.moveWindow'))}</p>}
           {H.readonly && <p class="notice" role="status" data-testid="plan.readonly">{HOME.readonly}</p>}
           {H.closed && <p class="notice" role="status" data-testid="plan.closed">{H.closed.hasDocument ? PLAN.page.closedKeeps : PLAN.page.closedKeepsNoDocument}{H.closed.next && !closedListed && <> <LinkButton testid="plan.closed.open" kind="quiet" href={href.plan(H.closed.next.id)}>{fill(PLAN.buttons.openNext, { name: H.closed.next.name })}</LinkButton></>}</p>}
           {H.before && <p class="note" data-testid="plan.before">{H.before.previous ? fill(PLAN.page.before, { name: H.before.previous.name, month: H.before.until }) : fill(PLAN.page.beforeAlone, { month: H.before.until })}{H.before.previous && <> <LinkButton testid="plan.before.open" kind="quiet" href={href.plan(H.before.previous.id)}>{fill(PLAN.buttons.openPrevious, { name: H.before.previous.name })}</LinkButton></>}</p>}

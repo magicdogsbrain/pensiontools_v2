@@ -11,6 +11,7 @@ import { listStrategies } from '../strategies/registry.js';
 import { LOCK } from '../v7/copy/lock.js';
 import { grossToNet } from '../services/TaxCalculator.js';
 import { takenBeforeTax, taxFreeShareOf } from '../services/BeforeTax.js';
+import { markFact } from '../reading/mark.js';
 
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
@@ -116,6 +117,6 @@ export function firstStepNoteHtml(amount, { pa = 12570, brl = 50270, hrl = 12514
   const netMo = grossToNet(gross, pa, brl, hrl) / 12;
   const f = taxFreeShareOf({ accessMethod: access });
   const taken = f > 0 ? takenBeforeTax(gross, { taxFreeFraction: f, pa, brl, hrl }) : null;
-  return '<strong>First step ' + gbp(gross) + '/yr gross ≈ ' + gbp(netMo) + '/mo take-home</strong> at today\'s bands. '
+  return '<strong>First step ' + markFact('income.step.0.beforeTax', gbp(gross)) + '/yr gross ≈ ' + markFact('income.step.0.monthAfterTax', gbp(netMo)) + '/mo take-home</strong> at today\'s bands. '
     + (taken != null && Math.round(taken) !== Math.round(gross) ? 'With a quarter of each payment tax-free, you take ' + gbp(taken) + ' a year before tax for it. ' : '');
 }

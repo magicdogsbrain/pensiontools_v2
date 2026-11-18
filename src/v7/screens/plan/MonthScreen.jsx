@@ -12,6 +12,7 @@ import { planView, planMonthView } from '../../state/select.js';
 import { href } from '../../router/routes.js';
 import { PLAN } from '../../copy/plan.js';
 import { MONTH as W } from '../../copy/month.js';
+import { Fact } from '../../../reading/Mark.jsx';
 
 const w = PLAN.page;
 const keepFocus = { onMouseDown: (e) => e.preventDefault() };
@@ -132,12 +133,12 @@ function Advice({ V }) {
       <h2>{W.sections.advice}</h2>
       {V.preview && <p class="note" data-testid={`${T}.preview`}>{fill(W.setUp.preview, { year: V.setUp ? V.setUp.year : V.year, month: a.month })}</p>}
       <ul class="plan-lines month-figures">
-        <li class="plan-line" data-figure="pension"><span class="plan-label">{A.pension}</span> <strong data-testid={`${T}.pension`}>{a.pension}</strong></li>
+        <li class="plan-line" data-figure="pension"><span class="plan-label">{A.pension}</span> <strong data-testid={`${T}.pension`}><Fact id="month.take.pension">{a.pension}</Fact></strong></li>
         <li class="plan-line" data-figure="tax"><span class="plan-label">{A.tax}</span> <span data-testid={`${T}.tax`}>{a.tax}</span></li>
         {a.isa && <li class="plan-line" data-figure="isa"><span class="plan-label">{A.isa}</span> <span>{a.isa}</span></li>}
         {a.other && <li class="plan-line note">{fill(A.other, { amount: a.other })}</li>}
         {a.statePension && <li class="plan-line note">{fill(A.statePension, { amount: a.statePension })}</li>}
-        <li class="plan-line month-total" data-figure="afterTax"><span class="plan-label">{A.afterTax}</span> <strong data-testid={`${T}.afterTax`}>{a.afterTax}</strong></li>
+        <li class="plan-line month-total" data-figure="afterTax"><span class="plan-label">{A.afterTax}</span> <strong data-testid={`${T}.afterTax`}><Fact id="month.take.afterTax">{a.afterTax}</Fact></strong></li>
       </ul>
       {a.gia && <p class="note">{fill(A.gia, { sold: a.gia.sold, net: a.gia.net, cgt: a.gia.cgt ? fill(A.giaCgt, { cgt: a.gia.cgt }) : '' })}</p>}
       {a.recycle && <p class="note">{fill(A.recycle, a.recycle)}</p>}

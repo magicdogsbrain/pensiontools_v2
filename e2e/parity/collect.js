@@ -14,7 +14,8 @@ export function collectMarks() {
   };
   const shown = (el) => (el.matches('input, select, textarea') ? String(el.value ?? '') : String(el.innerText ?? el.textContent ?? ''));
   const clean = (t) => String(t).replace(/ /g, ' ').replace(/\s+/g, ' ').trim();
-  const places = [...document.querySelectorAll('[data-fact]')].filter(vis).map((el) => ({ fact: el.getAttribute('data-fact'), text: clean(shown(el)) }));
+  // a mark that shows nothing (its figure not there) is no place of the fact
+  const places = [...document.querySelectorAll('[data-fact]')].filter(vis).map((el) => ({ fact: el.getAttribute('data-fact'), text: clean(shown(el)) })).filter((p) => p.text !== '');
   const cells = [];
   for (const t of [...document.querySelectorAll('[data-fact-table]')].filter(vis)) {
     for (const c of t.querySelectorAll('[data-row][data-col]')) {

@@ -14,6 +14,8 @@ import { planView, planSavingView } from '../../state/select.js';
 import { href } from '../../router/routes.js';
 import { PLAN } from '../../copy/plan.js';
 import { SAVING as W } from '../../copy/saving.js';
+import { fillMarked } from '../../components/PlanFigures.jsx';
+import { slotFactsOf } from '../../components/facts.js';
 
 /** A way of drawing named inside a sentence ("your plan draws by full gilt ladder"): its name, the first letter small. */
 const wayWords = (id) => { const n = String(PLAN.strategies[id] || id || ''); return n.charAt(0).toLowerCase() + n.slice(1); };
@@ -149,8 +151,8 @@ function Pot({ V }) {
     <section class="plan-section saving-pot" data-section="pot" data-testid={`${T}.pot`} data-mix={V.mix ? '1' : '0'}>
       <h3>{W.sections.pot}</h3>
       <p class="note">{fill(P.lead, V.rates)}</p>
-      {V.atStop && <p class="note" data-testid={`${T}.pot.atStop`}>{fill(P.atStop, V.atStop)}</p>}
-      <p class="note" data-testid={`${T}.pot.potNow`} data-from={V.potNow.line.id}>{fill(P.potNow[V.potNow.line.id] || '', V.potNow.line.slots)}</p>
+      {V.atStop && <p class="note" data-testid={`${T}.pot.atStop`}>{fillMarked(P.atStop, V.atStop, slotFactsOf('saving.atStop'))}</p>}
+      <p class="note" data-testid={`${T}.pot.potNow`} data-from={V.potNow.line.id}>{fillMarked(P.potNow[V.potNow.line.id] || '', V.potNow.line.slots, slotFactsOf('saving.potNow'))}</p>
       {V.mix && <p class="note" data-testid={`${T}.pot.mix`}>{fill(P.mix, { ...V.mix, mix: V.rates.mix })}{V.rates.charges ? ' ' + fill(P.mixCharge, V.mix) : ''}</p>}
       <div class="table-wrap">
         <table class="way-table saving-table" data-testid={`${T}.pot.table`}>
@@ -289,7 +291,7 @@ export function SavingScreen(state, dispatch) {
         <h1 tabIndex={-1} data-testid="plan.step.saving">{W.title}</h1>
         {step && !step.listed && <p class="note" data-testid="plan.notListed">{w.notListed}</p>}
         <p class="lead">{W.lead}</p>
-        {V.ages.line && <p class="note" data-testid={`${T}.ages`}>{fill(W.ages[V.ages.line.id], V.ages.line.slots)}</p>}
+        {V.ages.line && <p class="note" data-testid={`${T}.ages`}>{fillMarked(W.ages[V.ages.line.id], V.ages.line.slots, slotFactsOf('saving.' + V.ages.line.id))}</p>}
         {V.locked && <p class="note" data-testid={`${T}.notFrozen`}>{W.notFrozen}</p>}
         {/* money taken from a pension flexibly, carried from a plan drawn on and closed (research/plan-start.md §2 J) */}
         {V.allowance && <p class="notice" data-testid={`${T}.allowance`} data-over={V.allowance.over ? '1' : '0'}>{fill(W.allowance, V.allowance)}{V.allowance.over ? ' ' + fill(W.allowanceOver, V.allowance) : ''}</p>}

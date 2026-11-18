@@ -21,7 +21,8 @@ import { LASTS } from '../../copy/lasts.js';
 import { WAY } from '../../copy/way.js';
 import { LEVELS_WORDS } from '../../copy/common.js';
 import { StressPanel, STRESS_PROBLEMS } from './StressPanel.jsx';
-import { factOf } from '../../components/facts.js';
+import { slotFactsOf } from '../../components/facts.js';
+import { fillMarked, markIn, CHANCE_RE } from '../../components/PlanFigures.jsx';
 
 const LEVEL_IDS = ['careful', 'balanced', 'bold'];
 
@@ -72,11 +73,11 @@ function Band({ v, stale = false, testid, dispatch = null }) {
     <div class={`band verdict lasts-band is-${v.record ? 'record' : v.verdict}${stale ? ' is-stale' : ''}`} data-verdict={v.verdict} data-testid={testid} data-ok="1" data-stale={stale ? '1' : '0'}
       data-chance={f.chancePct} data-typical={f.typicalLeft} data-bad={f.badCaseLeft} data-good={f.goodCaseLeft} data-futures={f.futures} data-histories={f.histories} data-years={f.years}
       data-cut-n={f.cutN == null ? undefined : f.cutN} data-cut-per-year={f.cutPerYear == null ? undefined : f.cutPerYear} data-cut-years={f.cutYears == null ? undefined : f.cutYears}>
-      <p class={v.record ? 'figure-sub lasts-record' : 'figure'} data-testid={testid + '.headline'} {...(v.id === 'lasts.headlineW' ? { 'data-weighted': '1' } : v.id === 'lasts.headlineFixed' ? { 'data-fixed': 'age' } : {})}>{fill(LASTS.verdict[v.id], v.slots)}</p>
+      <p class={v.record ? 'figure-sub lasts-record' : 'figure'} data-testid={testid + '.headline'} {...(v.id === 'lasts.headlineW' ? { 'data-weighted': '1' } : v.id === 'lasts.headlineFixed' ? { 'data-fixed': 'age' } : {})}>{v.record ? fill(LASTS.verdict[v.id], v.slots) : markIn(fill(LASTS.verdict[v.id], v.slots), [[CHANCE_RE, v.id === 'lasts.headlineFixed' ? 'lasts.fixedChance' : 'lasts.chance']])}</p>
       {!v.record && <p class="lasts-bar">{v.level && v.weighted && <span class="lasts-level" data-testid={testid + '.level'}>{fill(LASTS.verdict.atLevel, { level: LEVELS_WORDS.names[v.level] })} </span>}<span class={`verdict-word is-${v.verdict}`} data-verdict={v.verdict}>{LASTS.verdict.word[v.verdict]}</span> <OutOfTenBar source={v} k="share" of={v.weighted ? 20 : 10} /></p>}
-      <p class="figure-sub" data-testid={testid + '.sub'} {...(v.sub.id === 'lasts.subFixed' || v.sub.id.startsWith('lasts.subFromStop') ? { 'data-fixed': 'age' } : {})}{...(v.chanceFrom === 'saving' ? { 'data-from-stop': '1' } : {})}>{fill(LASTS.verdict[v.sub.id], v.sub.slots)}</p>
+      <p class="figure-sub" data-testid={testid + '.sub'} {...(v.sub.id === 'lasts.subFixed' || v.sub.id.startsWith('lasts.subFromStop') ? { 'data-fixed': 'age' } : {})}{...(v.chanceFrom === 'saving' ? { 'data-from-stop': '1' } : {})}>{v.record ? fill(LASTS.verdict[v.sub.id], v.sub.slots) : markIn(fill(LASTS.verdict[v.sub.id], v.sub.slots), [[/\bto (?:age )?(\d+)\b/, 'plan.endAge'], ...(v.sub.id === 'lasts.subFixed' ? [[CHANCE_RE, 'lasts.fixedChance']] : [])])}</p>
       <ul class="plan-lines">
-        {v.rows.map((r, i) => <li key={i} class="plan-line" data-line={'lasts.' + r.id} {...factOf('lasts.' + r.id)} {...(r.id === 'fixedW' ? { 'data-fixed': 'age' } : {})}>{fill(LASTS.rows[r.id] || '', r.slots)}</li>)}
+        {v.rows.map((r, i) => <li key={i} class="plan-line" data-line={'lasts.' + r.id} {...(r.id === 'fixedW' ? { 'data-fixed': 'age' } : {})}>{v.record ? fill(LASTS.rows[r.id] || '', r.slots) : r.id === 'floorW' ? markIn(fill(LASTS.rows[r.id], r.slots), [[/ran out at (\d+)/, 'lasts.runOutAge']]) : r.id === 'leftW' ? markIn(fill(LASTS.rows[r.id], r.slots), [[/typically (£[\d,]+)/, 'left.typically']]) : fillMarked(LASTS.rows[r.id] || '', r.slots, slotFactsOf('lasts.' + r.id, r.slots))}</li>)}
       </ul>
       {!stale && !v.record && <PlanLevelStrip v={v} dispatch={dispatch} />}
     </div>

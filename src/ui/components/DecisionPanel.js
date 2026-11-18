@@ -4,6 +4,7 @@
  */
 
 import { formatCurrency, formatPercent } from '../../utils/FormatUtils.js';
+import { markFact } from '../../reading/mark.js';
 import { moveOfAlert } from '../../services/PlanRuleWords.js';
 import { MONTH } from '../../v7/copy/month.js';
 import { AlertSeverity } from '../../models/Decision.js';
@@ -264,7 +265,7 @@ export function buildDecisionHTML(decision) {
   // SIPP draw
   html += '<div class="draw-row primary">';
   html += `<span class="label">SIPP Withdrawal</span>`;
-  html += `<span class="value">${formatCurrency(d.sippDraw)}</span>`;
+  html += `<span class="value">${markFact('month.take.pension', formatCurrency(d.sippDraw))}</span>`;
   html += '</div>';
 
   // ISA top-up (if applicable)
@@ -328,7 +329,7 @@ export function buildDecisionHTML(decision) {
 
   html += '<div class="draw-row total">';
   html += `<span class="label">Total Monthly Income, after tax</span>`;
-  html += `<span class="value">${formatCurrency(totalMonthlyNet)}</span>`;
+  html += `<span class="value">${markFact('month.take.afterTax', formatCurrency(totalMonthlyNet))}</span>`;
   html += '</div>';
 
   // Tax boost indicator

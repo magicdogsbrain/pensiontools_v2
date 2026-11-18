@@ -11,7 +11,8 @@ import { planView, planPotsView } from '../../state/select.js';
 import { href } from '../../router/routes.js';
 import { PLAN } from '../../copy/plan.js';
 import { POTS } from '../../copy/pots.js';
-import { factOf } from '../../components/facts.js';
+import { slotFactsOf } from '../../components/facts.js';
+import { fillMarked } from '../../components/PlanFigures.jsx';
 
 const w = PLAN.page;
 /** A button that does not take the focus on mousedown (IncomeScreen): the box being typed in keeps it. */
@@ -41,7 +42,7 @@ function Derived({ pt }) {
     <section class="plan-section about-derived" data-section="derived">
       <h3>{POTS.derivedTitle}</h3>
       <ul class="plan-lines">
-        {pt.derived.map((d, i) => <li key={i} class="plan-line" data-line={'pots.' + d.id} {...factOf('pots.' + d.id)}>{fill(POTS.derived[d.id] || '', worded(d.id, d.slots))}</li>)}
+        {pt.derived.map((d, i) => <li key={i} class="plan-line" data-line={'pots.' + d.id} >{fillMarked(POTS.derived[d.id] || '', worded(d.id, d.slots), slotFactsOf('pots.' + d.id, d.slots))}</li>)}
       </ul>
     </section>
   );

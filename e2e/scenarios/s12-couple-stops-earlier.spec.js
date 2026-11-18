@@ -53,6 +53,10 @@ test('s12 · Kim and Sam: Sam stops at 62 instead of 63, and the household check
     });
     const p63 = await q.step('Sam\'s pot at 63, on Sam\'s plan', async () => { await planPage(page, sam, 'plan'); await settled(page).catch(() => {}); return (await fact(page, 'pot.atStop', { page: 'plan' }))?.value ?? null; });
     const before = await q.step('the household check', () => check(page, sam));
+    // the second walk (walker 8): "pensions go to them free of tax before 75" beside a death at 76, which the check never
+    // did: the pension inherited is added to the survivor's pension and taxed as it is drawn, and the page says so
+    q.never('the household page, "If one of you dies first"', ['free of tax before 75', 'inherited free of tax'].filter((w) => before.includes(w)), { must: 'what the check does with an inherited pension, never "free of tax" as the check', owner: 'COUPLE' });
+    q.reach('the inherited pension said as added to the survivor\'s pension and taxed as it is drawn', /pension inherited is added to the pension in their name and taxed as it is drawn/.test(before), { did: before.split('\n').find((l) => /inherit/i.test(l)) || 'no word of the inheritance', owner: 'COUPLE' });
     // C5: the link shows from Kim's plan too, in both views
     await q.step('Kim\'s household page', async () => { await planPage(page, kim, 'household'); await settled(page).catch(() => {}); });
     const fromKim = await visibleText(page);

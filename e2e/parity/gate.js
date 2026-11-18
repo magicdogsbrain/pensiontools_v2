@@ -13,6 +13,17 @@
  *                                     contents; only: the fixtures named for the run, or null for a full run)
  *   baselineOf(summary)           → the ratchet files' contents for this summary
  *   reportOf(summary, o)          → report.json's contents; lineOf(report) → the one printed line
+ *   roundTripsOf(results)         → the round trips' entries (e2e/parity/roundtrip.spec.js), one per box and direction:
+ *                                     { key: '<field>|<s2f|f2s>' or '<test>|<what>', fixture, kind, press, detail }
+ *   failedTrips(entries)          → those that did not come back as typed with no press: what report.json counts
+ *   ratchetTrips(entries, known, { only }) → { rose, shrank } against known-roundtrips.json
+ *   tripsBaselineOf(entries)      → known-roundtrips.json's contents
+ *
+ * A round trip's kinds, worst first: 'not reachable' (the box is not on the page it was typed on), 'not saved' (nothing
+ * was written, with or without a press), 'not in the other view' (no box there), 'shows another value', 'differs from
+ * opened directly', 'carried over', 'sweep breaks' (a fact disagrees on the pages read that the baseline does not list),
+ * 'not tried' (a list of rows, not typed into yet), 'ok'. `press` is true when the save needed the page's Save button:
+ * "needs a press" is its own entry when nothing else failed.
  */
 
 /** Displayed text as compared: the space trimmed and runs of space made one. */
@@ -86,6 +97,7 @@ export function summarise(results) {
     factsInBoth: [...views.simple].filter((f) => views.full.has(f)).sort(),
     marks,
     fieldsBound: fields.size,
+    fieldIds: [...fields].sort(),
     disagreements: [...disagreements, ...readingMismatches].sort((a, b) => a.key.localeCompare(b.key)),
     oneViewOnly: oneViewOnly.sort((a, b) => a.key.localeCompare(b.key)),
     unmarked,
@@ -171,7 +183,7 @@ export function ratchet(s, base, { only = null } = {}) {
   return { rose, shrank, grew };
 }
 
-export function reportOf(s, { at, fixtures = s.fixtures, rose = [], shrank = [], grew = [], roundTripsFailed = null } = {}) {
+export function reportOf(s, { at, fixtures = s.fixtures, rose = [], shrank = [], grew = [], roundTripsFailed = null, trips = null } = {}) {
   return {
     at,
     fixtures,
@@ -189,8 +201,61 @@ export function reportOf(s, { at, fixtures = s.fixtures, rose = [], shrank = [],
     shrank,
     grew,
     notQuiet: s.pages.filter((p) => p.opened && p.quiet === false).map((p) => p.key),
-    detail: { disagreements: s.disagreements, oneViewOnly: s.oneViewOnly }
+    detail: { disagreements: s.disagreements, oneViewOnly: s.oneViewOnly, ...(trips ? { roundTrips: failedTrips(trips).map((t) => ({ key: t.key, kind: tripKindOf(t), ...(t.detail ? { detail: t.detail } : {}) })) } : {}) }
   };
 }
 
 export const lineOf = (r) => `parity: ${r.fixtures.length} plans · facts marked ${r.factsMarked} (${r.factsInBoth} in both views, ${r.marks} places, ${r.pagesOpened} pages) · fields bound ${r.fieldsBound} · disagreements ${r.disagreements} · unmarked ${r.unmarked} · one-view-only ${r.oneViewOnly} · round trips failed ${r.roundTripsFailed ?? 'not built'}${r.rose.length ? ` · ROSE ${r.rose.length}` : ''}`;
+
+// ---- round trips (lead4.md G5) -----------------------------------------------------------------------------------------
+
+export const TRIP_KINDS = Object.freeze(['not reachable', 'not saved', 'not in the other view', 'shows another value', 'differs from opened directly', 'carried over', 'sweep breaks', 'not tried', 'needs a press', 'ok']);
+
+/** The kind a trip is counted as: its own, or "needs a press" when it came back but only after the Save button. */
+export const tripKindOf = (t) => (t.kind === 'ok' && t.press ? 'needs a press' : t.kind);
+
+export function roundTripsOf(results) {
+  const out = [];
+  for (const r of results) for (const t of r.entries || []) out.push({ fixture: r.fixture, ...t, press: !!t.press });
+  return out.sort((a, b) => a.key.localeCompare(b.key));
+}
+
+export const failedTrips = (entries) => entries.filter((t) => tripKindOf(t) !== 'ok');
+
+/**
+ * Held against known-roundtrips.json ({ entries: { key: kind } }): a trip failing that is not listed, or listed as another
+ * kind, is a rise; a listed trip now 'ok' (or of a kind listed later in TRIP_KINDS: better) is a shrink to take out or
+ * narrow. Only the fixtures in the run are held; a full run (`only` null) must hold every listed trip.
+ */
+export function ratchetTrips(entries, known = {}, { only = null } = {}) {
+  const rose = [];
+  const shrank = [];
+  const list = known.entries || {};
+  const ran = new Set(entries.map((t) => t.fixture));
+  const now = new Map(entries.map((t) => [t.key, t]));
+  const rank = (k) => TRIP_KINDS.indexOf(k);
+  for (const t of entries) {
+    const k = tripKindOf(t);
+    if (k === 'ok') continue;
+    const was = list[t.key];
+    if (!was) rose.push(`a round trip fails that known-roundtrips.json does not list: ${t.key} — ${k}${t.detail ? ' (' + t.detail + ')' : ''}`);
+    else if (rank(k) < rank(was)) rose.push(`a listed round trip got worse: ${t.key} — ${was} → ${k}${t.detail ? ' (' + t.detail + ')' : ''}`);
+    else if (rank(k) > rank(was)) shrank.push(`a listed round trip got better, narrow known-roundtrips.json: ${t.key} — ${was} → ${k}`);
+  }
+  for (const [key, was] of Object.entries(list)) {
+    const t = now.get(key);
+    if (!t) {
+      if (!only && ran.size) rose.push(`a listed round trip was not run (dropped, renamed or failed?): ${key}`);
+      continue;
+    }
+    if (tripKindOf(t) === 'ok') shrank.push(`comes back now, take it out of known-roundtrips.json: ${key} (was ${was})`);
+  }
+  return { rose, shrank };
+}
+
+export function tripsBaselineOf(entries) {
+  return {
+    note: 'Round trips that fail (lead4.md G5): per box and direction ("<field>|s2f" typed in the simple view, read in the full; "|f2s" the other way), and the plan-change trips, each with its kind. "needs a press" is a save that needed the page\'s Save button. May only shrink: a trip not listed, or listed as a better kind, is a rise.',
+    entries: Object.fromEntries(failedTrips(entries).map((t) => [t.key, tripKindOf(t)]).sort(([a], [b]) => a.localeCompare(b)))
+  };
+}

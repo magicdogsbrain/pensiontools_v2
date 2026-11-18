@@ -17,52 +17,14 @@ import { FIXTURES, PARITY_TODAY } from './fixtures/plans.js';
 import { seedFixture } from './fixtures/seed.js';
 import { collectMarks, waitQuiet } from './collect.js';
 import { readingsFor } from './readings.js';
-import { STRATEGY_NAMES } from '../../src/strategies/stressTest.js';
-import { shownPlanName } from '../../src/services/PlanName.js';
-import { FIELD_IDS } from '../../src/reading/fields.js';
+import { entryOf, canonOf } from './fields.js';
 import { at, signIn, openSimple, openFull, closeNews } from '../scenarios/routes.js';
+import { wordsOf, SIMPLE_PAGES, SIMPLE_PRESS, FULL_PAGES, fullTab, fullLocked } from './pages.js';
+
+export { SIMPLE_PAGES, SIMPLE_PRESS, FULL_PAGES };
 
 export const OUT_DIR = join(process.cwd(), 'test-results', 'parity', 'fixtures');
 const TEXT_DIR = join(process.cwd(), 'test-results', 'parity', 'text');
-
-/** The facts a page shows as words (collect.js counts them outside a mark): the stage, the lock, the way, the plan's name. */
-const wordsOf = (plan, now) => ({
-  exact: ['Saving', 'Moving', 'Living on it', 'Locked', 'Not locked', '🔒 locked', '✏️ draft', ...Object.values(STRATEGY_NAMES)],
-  anywhere: [shownPlanName(plan, { now })].filter((n) => typeof n === 'string' && n.length > 2)
-});
-
-/** Every step of a plan in the simple view ('' is its home). */
-export const SIMPLE_PAGES = Object.freeze(['', 'plan', 'about', 'income', 'spend', 'pots', 'lasts', 'way', 'mix', 'saving', 'checkin', 'review', 'month', 'where', 'lock', 'hold', 'move', 'budget', 'household']);
-
-/** A press on a simple page that opens a figure drawn closed (the year table on "Does it last?"). */
-export const SIMPLE_PRESS = Object.freeze({ lasts: '[data-testid="plan.lasts.schedule"]' });
-
-/** Every tab and sub-tab of the full view. */
-export const FULL_PAGES = Object.freeze([
-  { name: 'budget', tab: 'budget' },
-  // the full view works the one test out on a press ("Run the test"); the simple view without one — the sweep presses it, as a
-  // person reading the figure does, so the figures can be compared (that a press is needed is said in the handover, lead4.md D24)
-  { name: 'will it last', tab: 'stress', sub: 'montecarlo', press: 'button[data-on-click="runMonteCarloUI()"]' },
-  { name: 'stress history', tab: 'stress', sub: 'historical' },
-  { name: 'scenarios', tab: 'stress', sub: 'scenarios' },
-  // the year table is drawn on a press in the full view ("Show Schedule") and opened on a press in the simple view
-  { name: 'drawdown', tab: 'stress', sub: 'drawdown', press: 'button[data-on-click="showDrawdownScheduleUI()"]' },
-  { name: 'glidepath', tab: 'stress', sub: 'glidepath' },
-  { name: 'stress settings', tab: 'stress', sub: 'stresssettings' },
-  { name: 'strategies', tab: 'strategies' },
-  // this month's figures are worked out on a press ("Calculate"); on a plan not locked that press asks to lock it first, so
-  // the sweep presses it only on a locked plan (the simple view shows the month only once locked)
-  { name: 'monthly entry', tab: 'decision', sub: 'entry', press: '#decisionForm button[type="submit"]', onlyLocked: true },
-  { name: 'history', tab: 'decision', sub: 'history' },
-  // the plan document draws its sections folded; a person reading it opens them (the sweep opens every fold of the document)
-  { name: 'plan document', tab: 'decision', sub: 'plandoc', openFolds: '#planDocumentPage' },
-  { name: 'tax years', tab: 'decision', sub: 'taxyears' },
-  { name: 'decision settings', tab: 'decision', sub: 'decisionsettings' },
-  // "Am I on course?" is worked out on a press in the full view ("Work it out"), on open in the simple view (lead4.md D24)
-  { name: 'accumulation', tab: 'accumulation', press: 'button[data-on-click="runOnTrackCheck()"]' },
-  { name: 'transition', tab: 'transition' },
-  { name: 'household', tab: 'household' }
-]);
 
 const only = process.env.PARITY_FIXTURE ? process.env.PARITY_FIXTURE.split(',').map((s) => s.trim()).filter(Boolean) : null;
 const noon = (iso) => { const d = new Date(iso); return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12); };
@@ -80,28 +42,11 @@ async function readPage(page, out, view, name, opened, { pressed, words } = {}) 
   }
   for (const p of got.places) out.places.push({ view, page: name || 'home', ...p });
   for (const c of got.cells) out.cells.push({ view, page: name || 'home', ...c });
-  // only boxes bound through the field table count (src/reading/fields.js)
-  for (const f of got.fields) if (FIELD_IDS.includes(f.field)) out.fields.push({ view, page: name || 'home', ...f });
+  // only boxes of the field table count (src/reading/fields.js, e2e/parity/fields.js), each as one quantity both views compare
+  for (const f of got.fields) if (entryOf(f.field)?.kind === 'box') out.fields.push({ view, page: name || 'home', field: f.field, value: canonOf(f.field, view, f.value), shown: f.value });
   out.unmarked[key] = got.unmarked;
   out.samples[key] = got.samples;
 }
-
-/** Opens a tab (and sub-tab) of the full view as a person does; false when the stage does not offer it. */
-async function fullTab(page, { tab, sub }) {
-  await closeNews(page);
-  const t = page.locator(`.tab[data-tab="${tab}"]`);
-  if (!(await t.isVisible().catch(() => false))) return false;
-  await t.click();
-  if (!sub) return true;
-  const s = page.locator(`.sub-tab[data-${tab}tab="${sub}"]`);
-  const shows = () => expect(s).toBeVisible({ timeout: 5_000 }).then(() => true, () => false);
-  if (!(await shows())) { await t.click(); if (!(await shows())) return false; }
-  await s.click();
-  return true;
-}
-
-/** The full view's chip says the open plan is locked. */
-const fullLocked = async (page) => /locked/.test(String(await page.locator('[data-fact="lock.state"]').first().innerText().catch(() => '')));
 
 test.describe('parity sweep', () => {
   for (const fx of FIXTURES.filter((f) => !only || only.includes(f.key))) {

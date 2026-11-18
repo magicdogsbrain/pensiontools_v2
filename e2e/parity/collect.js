@@ -1,6 +1,7 @@
 /**
  * Reading the marks off a page (lead4.md G3): every visible `data-fact` with the text it shows (a box: its value), every
- * cell of a marked table by its row and column keys, every bound box (`data-field`) with its value, and the count of
+ * cell of a marked table by its row and column keys, every bound box (a form control carrying `data-field`) with its value
+ * (a tick as yes/no, a group of radios as the one ticked), and the count of
  * figure-like text — money, ages, chances, months, percentages, durations — visible outside any mark (G4's unmarked
  * ratchet), with a few samples so a reader can find them.
  *
@@ -29,7 +30,20 @@ export function collectMarks(words = {}) {
       if (vis(c)) cells.push({ table: t.getAttribute('data-fact-table'), row: c.getAttribute('data-row'), col: c.getAttribute('data-col'), text: clean(shown(c)) });
     }
   }
-  const fields = [...document.querySelectorAll('[data-field]')].filter(vis).map((el) => ({ field: el.getAttribute('data-field'), value: clean(shown(el)) }));
+  // a bound box is a form control carrying data-field (the simple view's form wrappers carry their own paths: not read):
+  // a text box or a list by its value, a tick as yes/no, a group of radios once, by the one ticked ('' when none is)
+  const fields = [];
+  const groups = new Map();
+  for (const el of document.querySelectorAll('input[data-field], select[data-field], textarea[data-field]')) {
+    if (el.type === 'hidden' || !vis(el)) continue;
+    const field = el.getAttribute('data-field');
+    if (el.type === 'radio') {
+      if (!groups.has(field)) { groups.set(field, { field, value: '' }); fields.push(groups.get(field)); }
+      if (el.checked) groups.get(field).value = clean(el.value);
+      continue;
+    }
+    fields.push({ field, value: el.type === 'checkbox' ? (el.checked ? 'yes' : 'no') : clean(el.value) });
+  }
   const MONTHS = 'January|February|March|April|May|June|July|August|September|October|November|December';
   const FIG = new RegExp([
     '£\\s?\\d[\\d,]*(?:\\.\\d+)?k?',                         // money

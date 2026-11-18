@@ -195,6 +195,16 @@ describe('needsRun and the ready mark', () => {
     expect(needsRun(s, 'c')).toBe(true);
     expect(readyMark(s).ready).toBe('0');
   });
+  it('a plan page is not ready while its plan is written or read again: the form is not drawn then', () => {
+    // leaving a box saves the plan and reads the plans again (planWrite.js); meanwhile the page says "Opening your plan"
+    const onPlan = { ...fresh(), route: { screen: 'plan', q: null, step: 'saving', planId: 'p1', focus: null } };
+    const read = { ...onPlan, plans: { status: 'read', source: 'account', readAt: null, list: [] } };
+    expect(readyMark(read).ready).toBe('1');
+    expect(readyMark({ ...onPlan, plans: { ...read.plans, status: 'reading' } }).ready).toBe('0');
+    expect(readyMark({ ...read, ui: { ...read.ui, saving: { planId: 'p1', kind: 'save', auto: true } } }).ready).toBe('0');
+    // away from a plan's pages the plans being read hold nothing up
+    expect(readyMark({ ...read, route: route('step', 'c', 'answer'), plans: { ...read.plans, status: 'reading' } }).ready).toBe('1');
+  });
   it('a failed run is not run again by itself; "try again" asks for one', () => {
     const s = onAnswer(typed());
     const key = currentKey(s, 'c');

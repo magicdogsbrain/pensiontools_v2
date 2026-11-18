@@ -462,6 +462,9 @@ export function readyMark(state) {
   }
   // a saver's check-in (saving-enough-and-check-in.md 5.4): its run and its one write under way are not ready
   if (state.ui && state.ui.saving && state.ui.saving.kind === 'checkIn') busy = true;
+  // a plan's page while its plan is written, or the plans read again after a write (planWrite.js): the page says "Opening your
+  // plan" then, its boxes not drawn, so it is not ready (anything typed meanwhile has no box to go into)
+  if (r && r.screen === 'plan' && ((state.plans && state.plans.status === 'reading') || (state.ui && state.ui.saving))) busy = true;
   // "How the money is taken" (way-and-mix.md 2.2): the nine-way run, or one way being tried, is not ready
   const W = state.ways;
   if (W && (W.status === 'working' || Object.values(W.tried || {}).some((t) => t && t.status === 'working'))) busy = true;

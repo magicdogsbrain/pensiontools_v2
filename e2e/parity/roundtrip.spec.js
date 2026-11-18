@@ -11,6 +11,11 @@
  *  4. A new plan made after another (the full view's wizard): no figure or box of the first plan appears on its pages, in
  *     either view.
  *
+ * A simple page is typed into only once it is settled (#app data-ready="1", its plan's page drawn): leaving a box there saves
+ * the plan and reads the plans again, and meanwhile the page says "Opening your plan" with no boxes, so each box is waited
+ * out before the next. The stored plan is read before the first box is typed, so a save made while typing counts as a save.
+ * PARITY_CPU=<n> runs the pages on a processor slowed n times (the harness must hold there too).
+ *
  * One account per worker, signed in once; before each test it is emptied and seeded again with the fixture's plans. Every
  * outcome is written to test-results/parity/roundtrips/<test>.json and totalled by scripts/e2e-parity.mjs against
  * e2e/parity/known-roundtrips.json (a ratchet, gate.js ratchetTrips). The tests themselves fail only when the harness
@@ -66,15 +71,25 @@ async function freshPage(acct, plans) {
   await resetTo(acct.uid, plans, SETTINGS);
   const page = await acct.ctx.newPage();
   page.setDefaultTimeout(20_000);
+  if (process.env.PARITY_CPU) await (await acct.ctx.newCDPSession(page)).send('Emulation.setCPUThrottlingRate', { rate: Number(process.env.PARITY_CPU) });
   return page;
 }
 
 // ---- the views' pages ---------------------------------------------------------------------------------------------------
 
+/**
+ * The simple view settled: nothing being worked out, written or read (#app data-ready="1", src/v7/state/select.js readyMark)
+ * and a plan's page drawn, not "Opening your plan"; then its text still (waitQuiet). False after `timeout`.
+ */
+async function settledSimple(page, timeout = 90_000) {
+  const ok = await page.waitForFunction(() => document.querySelector('#app')?.getAttribute('data-ready') === '1' && !document.querySelector('[data-testid="plan.opening"]'), null, { timeout, polling: 100 }).then(() => true, () => false);
+  return (await waitQuiet(page, { timeout })) && ok;
+}
+
 async function openSimplePage(page, planId, step) {
   await openSimple(page, `#/plan/${planId}${step ? '/' + step : ''}`);
   await closeNews(page);
-  await waitQuiet(page);
+  await settledSimple(page);
 }
 
 async function openFullPage(page, where) {
@@ -166,7 +181,11 @@ test.describe('parity round trips: the boxes', () => {
         const fail = (id, kind, detail) => { const t = out.get(id); if (t.kind === 'ok') Object.assign(t, { kind, detail }); };
 
         expect(await openIn(page, A, entries[0], fx.subject), `${A} view opens the page of ${group}`).toBe(true);
-        for (const [id, v] of (entries[0].prep && entries[0].prep[A]) || []) await setBox(page, A, entryOf(id), v);
+        // each box left as a person leaves it: in the simple view, waited out until the page is drawn again
+        const settle = () => (A === 'simple' ? settledSimple(page) : null);
+        for (const [id, v] of (entries[0].prep && entries[0].prep[A]) || []) { await setBox(page, A, entryOf(id), v); await settle(); }
+        // read before the boxes are typed: a box saved on leaving it (the simple "What you pay in") writes while the rest are typed
+        const before = JSON.stringify(await subjectOf(acct.uid, fx.subject));
         const typed = [];
         for (const e of entries) {
           const v = valueIn(e, A, subject);
@@ -174,10 +193,10 @@ test.describe('parity round trips: the boxes', () => {
           if (!now.values.length && !(A === 'full' && e.full.set)) { fail(e.id, 'not reachable', `no box of ${e.id} on the ${A} view's page`); continue; }
           if (now.values.length && now.values.every((x) => canonOf(e.id, A, x) === canonOf(e.id, A, v))) { fail(e.id, 'not reachable', `the registry's value ${v} is already shown: not a change`); continue; }
           await setBox(page, A, e, v);
+          await settle();
           typed.push(e);
         }
-        for (const [id, v] of (entries[0].then && entries[0].then[A]) || []) await setBox(page, A, entryOf(id), v);
-        const before = JSON.stringify(await subjectOf(acct.uid, fx.subject));
+        for (const [id, v] of (entries[0].then && entries[0].then[A]) || []) { await setBox(page, A, entryOf(id), v); await settle(); }
         if (typed.length) await page.keyboard.press('Tab');
         let saved = typed.length ? await waitChange(acct.uid, fx.subject, before, 5_000) : false;
         let press = false;
@@ -186,7 +205,7 @@ test.describe('parity round trips: the boxes', () => {
           if (await save.first().isVisible().catch(() => false)) { press = true; await save.first().click(); saved = await waitChange(acct.uid, fx.subject, before, 15_000); }
         }
         for (const e of typed) { out.get(e.id).press = press; if (!saved) fail(e.id, 'not saved', press ? 'nothing written, even after the Save button' : 'nothing written and no Save button'); }
-        await waitQuiet(page);
+        await (settle() || waitQuiet(page));
         const placesA = (await marksOf(page)).map((p) => ({ ...p, view: A }));
 
         // view B, opened fresh at the boxes' page

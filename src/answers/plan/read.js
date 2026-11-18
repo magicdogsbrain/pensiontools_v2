@@ -281,7 +281,9 @@ const sentence = (id, parts, figures) => ({ id, parts, text: parts.map((p) => te
 function sourceOf(kind, at, now) {
   const p = at ? ym(at) : null;
   const t = { y: now.getFullYear(), m: now.getMonth() + 1 };
-  const stale = !!p && monthsBetween(p, t) > 3;
+  // the plan as locked is a fixed point, never a figure to check (7.12.0 round 3, walker 7: "Check this figure: it is from
+  // 1 July 2026" on a locked step); a record or a pot figure older than three months still asks
+  const stale = kind !== 'locked' && !!p && monthsBetween(p, t) > 3;
   return { kind, at: at ? (String(at).length > 7 ? dayWords(at) : monthWords(at)) : null, stale };
 }
 

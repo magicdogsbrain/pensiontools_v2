@@ -124,7 +124,7 @@ describe('the locked accumulation path in the plan document, and the saver\'s wh
     const later = new Date(2027, 8, 10);   // a year on
     const w = whereAmI(doc, { today: later, accHistory: [{ date: '2027-09', sipp: 380000, isa: 110000, total: 490000 }] });
     expect(w.beforeStart).toBe(true);
-    expect(w.saving.monthsToGo).toBe(7);
+    expect(w.saving.monthsToGo).toBe(12);   // to the month work stops, September 2028 (58 in September 2026, stops at 60), as the chip counts
     expect(w.saving.actual).toBe(380000);
     expect(w.saving.expected).toBeGreaterThan(320000);
     expect(['below the locked path', 'on or above the locked path', 'above the strong line', 'below the cautious line']).toContain(w.saving.band);

@@ -134,7 +134,7 @@ export function whatToDoHtml(r, ownName, pName) {
 export function survivorCareHtml(ownName, pName) {
   const a = esc(ownName), b = esc(pName);
   return '<div class="settings-section"><div class="section-title">What if one of you dies?</div>'
-    + '<p style="font-size:13px;">The survivor keeps their own pensions, inherits what the other\'s plan has left then (pensions pass tax-free before 75), loses one State Pension, and typically needs about 70% of the joint spending. Both plans run through their own strategy\'s test.</p>'
+    + '<p style="font-size:13px;">The survivor keeps their own pensions, inherits what the other\'s plan has left then (a pension inherited is added to the pension in their name and taxed as it is drawn), loses one State Pension, and typically needs about 70% of the joint spending. Both plans run through their own strategy\'s test.</p>'
     + '<div class="row-flex" style="font-size:13px;">'
     + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Who dies<select id="hhWhoDies" style="min-width:150px;"><option value="A">' + a + '</option><option value="B">' + b + '</option></select></label>'
     + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Years from now<input type="number" id="hhDeathYear" value="10" min="1" max="40" style="width:80px;"></label>'

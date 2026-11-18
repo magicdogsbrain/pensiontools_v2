@@ -150,7 +150,7 @@ export const HOUSEHOLD = {
   },
   /** The survivor question in ages (2.10). */
   survivor: {
-    lead: 'The one who is left keeps the pensions in their name, inherits what the other’s plan has left then (pensions go to them free of tax before 75), loses one State Pension, and typically needs about 70% of the joint spending. Each plan runs through its own way of drawing.',
+    lead: 'The one who is left keeps the pensions in their name, inherits what the other’s plan has left then (a pension inherited is added to the pension in their name and taxed as it is drawn), loses one State Pension, and typically needs about 70% of the joint spending. Each plan runs through its own way of drawing.',
     button: 'Try it',
     again: 'Try it again',
     working: 'Running both plans, each through its own way of drawing…',
@@ -175,7 +175,7 @@ export const HOUSEHOLD = {
       statePensionPaid: 'One State Pension, from {survivor}’s plan: {amount} a year, already paid.',
       spend: 'What {survivor} would spend: {net} a year after tax ({gross} before tax). That is {pct}% of what you both spend after tax now.'
     },
-    note: 'A check, not advice. Simplifications: pensions inherited free of tax (death before 75); the ISA goes across as ISA (the spouse’s extra allowance); the inheritance is split between pension and ISA in the shares {deceased}’s plan held at the start; gilts still held count at the value they would reach if interest rates did not move; the bad case sets {deceased}’s worst 1 in 10 against every one of {survivor}’s futures, not future by future.'
+    note: 'A check, not advice. Simplifications: the pension inherited is added to {survivor}’s pension and taxed with it as it is drawn (after a death before 75 the law takes no tax from it; after 75 all of it is taxed); the ISA goes across as ISA (the spouse’s extra allowance); the inheritance is split between pension and ISA in the shares {deceased}’s plan held at the start; gilts still held count at the value they would reach if interest rates did not move; the bad case sets {deceased}’s worst 1 in 10 against every one of {survivor}’s futures, not future by future.'
   },
   /** The care question in ages (2.10). */
   care: {

@@ -69,3 +69,13 @@ describe('the tax-years box is on gilts only (walker 7)', () => {
     expect(all.find((l) => l.ticker === 'TS27').forYears).toBeTruthy();
   });
 });
+
+describe('sentences in lead type (walker 7)', () => {
+  it('What you hold\'s headline and its gilts line are sentences, never the one-number figure style', () => {
+    const root = document.createElement('div');
+    render(h(App, { state: stateWith([{ plan }], '#/plan/' + plan.id + '/hold', { today: TODAY }), dispatch: () => {} }), root);
+    expect(root.querySelector('[data-testid="plan.hold.headline"]').className).toBe('lead');
+    expect([...root.querySelectorAll('[data-testid="plan.hold.heldSummary.figure"]')][0].className).toBe('lead');
+    expect(root.querySelectorAll('.figure').length).toBe(0);
+  });
+});

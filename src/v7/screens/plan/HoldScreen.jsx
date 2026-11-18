@@ -181,7 +181,7 @@ function HeldSummary({ V }) {
   const S = V.heldSummary;
   return (
     <section class="plan-section" data-section="heldSummary" data-testid={`${T}.heldSummary`}>
-      {S.figure.map((x, i) => <p class={i === 0 ? 'figure' : 'line'} key={i} data-testid={`${T}.heldSummary.figure`}>{heldText(x)}</p>)}
+      {S.figure.map((x, i) => <p class={i === 0 ? 'lead' : 'line'} key={i} data-testid={`${T}.heldSummary.figure`}>{heldText(x)}</p>)}
       {S.cash && <p class="line" data-testid={`${T}.heldSummary.cash`}>{heldText(S.cash)}</p>}
       <p class="note" data-testid={`${T}.heldSummary.counts`}>{HELD.holdCounts} <a href={V.mixHref}>{HELD.holdLinkMix}</a></p>
     </section>
@@ -406,7 +406,8 @@ export function HoldScreen(state, dispatch) {
       <>
         <Head view={view} />
         <h1 tabIndex={-1} data-testid="plan.step.hold">{W.title}</h1>
-        <p class="figure" data-testid={`${T}.headline`}>{headlineText(V.headline)}</p>
+        {/* a sentence in lead type, never the one-number figure style (7.12.0 round 3, walker 7) */}
+        <p class="lead" data-testid={`${T}.headline`}>{headlineText(V.headline)}</p>
         <p class="lead">{W.lead}</p>
         {V.recordSource && W.recordSource[V.recordSource] && <p class="plan-source" data-testid={`${T}.source`}>{W.recordSource[V.recordSource]}</p>}
         {V.locked && <p class="note" data-testid={`${T}.locked`}>{W.locked}</p>}

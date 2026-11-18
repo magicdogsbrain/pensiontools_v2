@@ -85,7 +85,7 @@ function SaidHeld({ V, dispatch }) {
   if (!x) return null;
   return (
     <section class="plan-section" data-section="saidHeld" data-testid={`${T}.saidHeld`}>
-      <p class="figure" data-testid={`${T}.saidHeld.on`}>{fill(H.agreed, x)}</p>
+      <p class="lead" data-testid={`${T}.saidHeld.on`}>{fill(H.agreed, x)}</p>
       {x.notFull && <p class="line" data-testid={`${T}.saidHeld.notFull`}>{fill(x.notFull.n === '1' ? H.notFullOne : H.notFull, x.notFull)}</p>}
       {x.withdrawable && <div class="actions-row"><Button testid={`${T}.saidHeld.takeBack`} kind="quiet" disabled={!!V.saving} onClick={() => dispatch({ type: 'plan/agreeWithdraw', planId: V.id })} {...keepFocus}>{H.takeBack}</Button></div>}
     </section>
@@ -203,7 +203,7 @@ function Held({ V }) {
   const I = V.heldInfo;
   return (
     <section class="plan-section" data-section="heldInfo" data-testid={`${T}.heldInfo`} data-kind={I.kind}>
-      {I.agreed && !V.saidHeld && <p class="figure" data-testid={`${T}.heldInfo.agreed`}>{fill(H.agreed, I.agreed)}</p>}
+      {I.agreed && !V.saidHeld && <p class="lead" data-testid={`${T}.heldInfo.agreed`}>{fill(H.agreed, I.agreed)}</p>}
       {I.noRecord && <p class="note" data-testid={`${T}.heldInfo.noRecord`}>{H.noRecord} <a href={href.plan(V.id, 'hold')}>{W.buttons.hold}</a></p>}
       {I.buckets && <><h2>{H.mixTitle}</h2><ul class="plan-lines" data-testid={`${T}.heldInfo.buckets`}>{I.buckets.map((b) => <li key={b.bucket} class="plan-line" data-bucket={b.bucket}>{fill(H.bucket[b.bucket], b)}</li>)}</ul></>}
       {I.unknown.map((name) => <p class="note" key={name} data-testid={`${T}.heldInfo.unknown`}>{fill(H.unknown, { name })}</p>)}

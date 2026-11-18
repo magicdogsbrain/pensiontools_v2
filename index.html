@@ -2796,7 +2796,7 @@
             <p class="hint" style="margin:0 0 10px;">Run any of the <span data-strategy-count>nine</span> strategies on this plan, or on a what-if version of it. Your saved settings and locked strategy are untouched until you press <em>Use this strategy</em>.</p>
             <div class="form-grid">
               <div class="form-group"><label>Strategy</label><select id="tryStrategy"></select></div>
-              <div class="form-group"><label>SIPP / pension pot (£)</label><input type="number" id="tryPot" step="10000"></div>
+              <div class="form-group"><label id="tryPotLabel" for="tryPot">SIPP / pension pot (£)</label><input type="number" id="tryPot" step="10000"></div>
               <div class="form-group"><label>ISA (£)</label><input type="number" id="tryIsa" step="5000"></div>
               <div class="form-group"><label>ISA policy</label><select id="tryIsaPolicy"><option value="">as saved</option><option value="hold">Hold (powder dry)</option><option value="">Draw as configured</option></select></div>
               <div class="form-group"><label>Income</label><select id="tryIncomeMode" data-on-change="tryIncomeModeChanged(this.value)"><option value="shape">My income shape (as saved)</option><option value="flat">A flat amount</option></select></div>
@@ -4200,7 +4200,7 @@
     import { shareBudgetWith, stopSharingBudget, getHouseholdSplitDismissed, setHouseholdSplitDismissed, budgetSharedFromOf } from './src/storage/ScenarioRepository.js';
     import { guestPlanRefusal, isExamplePlanError, DEMO_PLANS, EXAMPLE_PLAN_KEY, EXAMPLE_PLAN_DESCRIPTION } from './src/services/GuestPlans.js';   // three plans without an account; the read-only example (6.23.0)
     import { refreshDraftLines, paintDraftSettingsLine, openStressSettings, blankUnsetPots, missingWords, bedAndIsaTicked, DRAFT_WORDS } from './src/ui/draftPlanLine.js'; window.openStressSettingsTab = () => openStressSettings(window); import { planHasFigures } from './src/services/DraftDecision.js'; import { testReadyOf } from './src/services/PlanFigures.js'; import { sippTodayOf } from './src/services/PotsAtRetirement.js';   // an unlocked plan's own figures (7.12.0)
-    import { installStressSubTabs } from './src/ui/stressSubTabs.js'; import { installStressSettingsAutosave, installAccumulationAutosave, accumulationInputsOf, SAVE_WORDS } from './src/ui/settingsAutosave.js'; import { orderStressSettingsSections } from './src/ui/settingsLayout.js'; import { tryFillKeyOf, tryNeedsFill, watchTryTouched } from './src/ui/tryBoxes.js';   // the Stress tester's sub-tabs (Settings pressed while open is not drawn again); Settings and the Accumulation tab save as they change; Settings' order (7.12.0)
+    import { installStressSubTabs } from './src/ui/stressSubTabs.js'; import { installStressSettingsAutosave, installAccumulationAutosave, accumulationInputsOf, SAVE_WORDS } from './src/ui/settingsAutosave.js'; import { orderStressSettingsSections } from './src/ui/settingsLayout.js'; import { tryFillKeyOf, tryNeedsFill, watchTryTouched, paintTryPotWords } from './src/ui/tryBoxes.js';   // the Stress tester's sub-tabs (Settings pressed while open is not drawn again); Settings and the Accumulation tab save as they change; Settings' order (7.12.0)
     import { updateHomeBanner, installHomeBanner, openingTabOf, pressOpeningSub } from './src/ui/homeBannerUi.js'; import { installHouseholdTab } from './src/ui/householdTabUi.js';   // the next-step banner is the plan home's first thing due, else the life stage's sentence (7.10.0; 6.20.2); the opening tab reads the plan's phase (7.11.0)
     import { moreSheetHtml, MORE_TABS } from './src/ui/mobileMenu.js';
     import { proportions as holdingsProportions, describeMix } from './src/services/Holdings.js';
@@ -5998,7 +5998,7 @@
       // the pot box starts at the figure the what-if rescales the pots by and "What's different" reads (the pension's shares,
       // bonds and cash; a diversifiers sleeve is left as it is) — until 6.41.0 it started at the sum WITH the sleeve, so an
       // untouched what-if on a plan with a sleeve moved the pots and said the pot differed
-      document.getElementById('tryPot').value = s.potsNotSet ? '' : Math.round(sp.sippTotal || ((s.equityMin || 0) + (s.bondMin || 0) + (s.cashTarget || 0)));   // no pension known: empty (7.12.0)
+      document.getElementById('tryPot').value = s.potsNotSet ? '' : Math.round(sp.sippTotal || ((s.equityMin || 0) + (s.bondMin || 0) + (s.cashTarget || 0))); paintTryPotWords(document, s);   // no pension known: empty (7.12.0); a plan still saving: the pension today, said so (src/ui/tryBoxes.js)
       document.getElementById('tryIsa').value = Math.round(sp.isaTotal ?? (s.isaBalance || 0));
       document.getElementById('tryIsaPolicy').value = '';
       document.getElementById('tryIncomeMode').value = 'shape';

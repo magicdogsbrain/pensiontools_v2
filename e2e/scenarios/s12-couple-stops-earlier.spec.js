@@ -139,6 +139,13 @@ test('s12 · Kim and Sam in the full view: what each types stays, and Will it la
     q.reach('"Saved" by the Settings heading', await savedLine(page, 'settings.saveState'), { did: await visibleText(page, 'settings.saveState'), byHand: '(16,358 − 12,570) × 20% = 757.60 tax; 16,358 − 757.60 = 15,600.40 a year = £1,300 a month', owner: 'VIEWS' });
     await q.step('Will it last?', () => fullPage(page, 'will it last'));
     q.exact('Try a strategy\'s pension pot on Sam\'s plan: Sam\'s, never Kim\'s or a default', Number(await page.locator('#tryPot').inputValue()), SAM61.pot, { byHand: 'Sam\'s pension today, as typed on the Accumulation tab', owner: 'VIEWS' });
+    // the second walk (walker 8, high 5): the box said "SIPP / pension pot" under a line giving the pension when work stops,
+    // so one page showed two pots for Sam with nothing to say which; it is the pension today, and says so, with the other
+    const tryLabel = await visibleText(page, '#tryPotLabel');
+    const tryHint = await visibleText(page, '#tryPotHint');
+    const atStop = (/\(pension £([\d,]+)\)/.exec(await visibleText(page, '#mcStartSummary')) || [])[1] || '';
+    q.reach('Try a strategy\'s pension box named as Sam\'s pension today', tryLabel === 'Your pension today (£)', { did: tryLabel || 'no label', owner: 'VIEWS' });
+    q.reach('the pension when work stops beside the box, the figure the line above gives', !!atStop && tryHint.includes('£' + atStop + ' by ' + SAM61.stopAge), { did: tryHint || 'nothing under the box', byHand: `the line above: £${atStop || '?'} at ${SAM61.stopAge}`, owner: 'VIEWS' });
 
     // the household check from Sam's plan, with Kim's: run, never "no figures saved"
     const plans = await plansOf(me.uid);

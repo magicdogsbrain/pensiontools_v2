@@ -8817,7 +8817,7 @@
       const shape = settings.incomeShape === 'phases' && Array.isArray(settings.incomeSteps) && settings.incomeSteps.length
         ? settings.incomeSteps.map((x, i, arr) => gbp(+x.amount) + ' from ' + x.fromAge + (x.glideToNext && i < arr.length - 1 ? ' (gliding)' : (+x.decline > 0 ? ' (−' + (+x.decline) + '%/yr)' : ''))).join(' → ') : gbp(settings.baseSalary || 0) + ' flat';
       let h = '<div class="card"><h2>Full index-linked gilt ladder <span class="hint" style="font-weight:normal;font-size:13px;">— the fully deterministic plan</span></h2>';
-      h += '<p style="font-size:14px;margin:0 0 4px;"><strong>Every year of your income plan is bought today.</strong> The first years sit in cash; every later year has one index-linked gilt that matures just before that year\'s April. You draw it monthly. Nothing rides the market, and there is nothing to decide — at 60, at 75, or at 90.</p>';
+      h += '<p style="font-size:14px;margin:0 0 4px;"><strong>Every year of your income plan is bought up front, when your plan starts.</strong> The first years sit in cash; every later year has one index-linked gilt that matures just before that year\'s April. You draw it monthly. Nothing rides the market, and there is nothing to decide — at 60, at 75, or at 90.</p>';
       // Block 1 — the machine
       h += '<div class="strat-block"><div class="section-title">1 · The machine</div><div id="giltMachine" class="machine-scroll">' + (plan.years.length ? giltLadderSvg(plan, window._stratFrame) : '<p class="hint">No plan years — set a duration in Settings.</p>') + '</div><div id="giltStepper">' + stepperHtml(GILT_FRAMES, window._stratFrame, 'setGiltFrame') + '</div></div>';
       // Block 2 — dials
@@ -8998,7 +8998,7 @@
       },
       'floor-the-schedule': {
         tag: 'the whole plan bought, a reserve on the side', frames: FS_FRAMES,
-        intro: 'Every year of your income plan — the steps you chose — is bought today as index-linked rungs to the horizon. There is no treats decision because the rungs are the income. What is left becomes a reserve you never draw, reviewed once a year against a line.',
+        intro: 'Every year of your income plan — the steps you chose — is bought up front, when your plan starts, as index-linked rungs to the horizon. There is no treats decision because the rungs are the income. What is left becomes a reserve you never draw, reviewed once a year against a line.',
         machine: (r, p) => ({ fn: floorScheduleSvg, d: { amountsByAge: r.signature.amountsByAge, reserveCone: r.signature.reserveCone, sleeveE0: r.signature.sleeveE0 } }),
         dials: (prm, s) => '<span class="hint">No dials: the schedule comes from your income shape and the horizon in Settings.</span>',
         verdict: (r, p) => '<strong>The whole schedule bought to ' + r.signature.horizonAge + ': ' + gbp(Math.round(r.signature.floorCost)) + ' (' + Math.round(r.signature.shareOfPot * 100) + '% of the pot).</strong> Reserve today ' + gbp(Math.round(r.signature.sleeveE0)) + '; median ' + gbp(Math.round(r.signature.sleeveAt10.p50)) + ' at ' + (p.startAge + 10) + ' and ' + gbp(Math.round(r.signature.sleeveAtEnd.p50)) + ' at the horizon (1-in-10 bad: ' + gbp(Math.round(r.signature.sleeveAtEnd.p10)) + '). Nothing runs out; the plan cannot be cut.',

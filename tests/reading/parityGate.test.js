@@ -8,6 +8,10 @@ import { summarise, ratchet, baselineOf, reportOf, lineOf, shownText } from '../
 
 const opened = [{ view: 'simple', page: 'home', opened: true }, { view: 'full', page: 'stress settings', opened: true }];
 const result = (places, more = {}) => ({ fixture: 'fx', subject: 'P1', pages: opened, places, cells: [], fields: [], unmarked: {}, ...more });
+const run1Places = () => [
+  { view: 'simple', page: 'home', fact: 'pot.today', text: '£1' }, { view: 'full', page: 'stress settings', fact: 'pot.today', text: '£2' },
+  { view: 'simple', page: 'home', fact: 'stage', text: 'Saving' }
+];
 
 describe('the parity gate', () => {
   it('two places of one fact that differ are one disagreement, and a rise against an empty baseline', () => {
@@ -47,7 +51,7 @@ describe('the parity gate', () => {
       { view: 'simple', page: 'home', fact: 'pot.today', text: '£1' }, { view: 'full', page: 'stress settings', fact: 'pot.today', text: '£2' }
     ], { unmarked: { 'simple:home': 4 } })]);
     const base = baselineOf(run1);
-    expect(ratchet(run1, base)).toEqual({ rose: [], shrank: [] });
+    expect(ratchet(run1, base)).toEqual({ rose: [], shrank: [], grew: [] });
     const run2 = summarise([result([
       { view: 'simple', page: 'home', fact: 'pot.today', text: '£1' }, { view: 'full', page: 'stress settings', fact: 'pot.today', text: '£1' }
     ], { unmarked: { 'simple:home': 5 } })]);
@@ -62,9 +66,54 @@ describe('the parity gate', () => {
     expect(s.disagreements.map((d) => d.key)).toEqual(['fx|plan.name#reading']);
   });
 
+  it('a page that opened in the baseline and does not open now, or is missing from the run, is a rise', () => {
+    const pages = [{ view: 'simple', page: 'home', opened: true, quiet: true }, { view: 'full', page: 'stress settings', opened: true, quiet: true }, { view: 'full', page: 'will it last', opened: true, quiet: true, pressed: true }];
+    const base = baselineOf(summarise([result([], { pages })]));
+    expect(base.coverage.pages).toEqual(['fx|full:stress settings', 'fx|full:will it last', 'fx|full:will it last#press', 'fx|simple:home']);
+    const shut = summarise([result([], { pages: [pages[0], { ...pages[1], opened: false }, pages[2]] })]);
+    expect(ratchet(shut, base).rose).toEqual(['a page that opened before did not open: fx|full:stress settings']);
+    const gone = summarise([result([], { pages: [pages[0], pages[1]] })]);
+    expect(ratchet(gone, base).rose).toEqual(['a page that opened before did not open: fx|full:will it last', 'a page that opened before did not open: fx|full:will it last#press']);
+    const unpressed = summarise([result([], { pages: [pages[0], pages[1], { ...pages[2], pressed: false }] })]);
+    expect(ratchet(unpressed, base).rose).toEqual(['a page that opened before did not open: fx|full:will it last#press']);
+    // a run of another fixture says nothing of this one's pages
+    expect(ratchet(summarise([{ ...result([]), fixture: 'other' }]), base).rose).toEqual([]);
+  });
+
+  it('a page read before it went quiet is a rise', () => {
+    const s = summarise([result([], { pages: [{ view: 'simple', page: 'home', opened: true, quiet: false }, opened[1]] })]);
+    expect(ratchet(s, baselineOf(s)).rose).toEqual(['a page was read before it went quiet: fx|simple:home']);
+  });
+
+  it('marks taken off are a rise, even off a fact that disagreed', () => {
+    const cells = [{ view: 'full', page: 'drawdown', table: 'years', row: '67', col: 'income', text: '£20,000' }, { view: 'full', page: 'drawdown', table: 'years', row: '68', col: 'income', text: '£20,000' }];
+    const base = baselineOf(summarise([result(run1Places(), { cells })]));
+    expect(base.coverage.shown).toEqual({ 'fx|pot.today|full': 1, 'fx|pot.today|simple': 1, 'fx|stage|simple': 1, 'fx|table:years|full': 1 });
+    const off = summarise([result([{ view: 'simple', page: 'home', fact: 'stage', text: 'Saving' }])]);
+    expect(ratchet(off, base).rose).toEqual([
+      'fewer places of a fact than before (a mark taken off?): fx|pot.today|full 1 → 0',
+      'fewer places of a fact than before (a mark taken off?): fx|pot.today|simple 1 → 0',
+      'fewer places of a fact than before (a mark taken off?): fx|table:years|full 1 → 0'
+    ]);
+    // a table's rows may change (its length is the plan's): it is held to being drawn at all
+    const shorter = summarise([result(run1Places(), { cells: cells.slice(0, 1) })]);
+    expect(ratchet(shorter, base).rose).toEqual([]);
+  });
+
+  it('a blank place is a place: blank in one view and a figure in the other is a disagreement', () => {
+    const s = summarise([result([{ view: 'simple', page: 'home', fact: 'pot.today', text: '' }, { view: 'full', page: 'stress settings', fact: 'pot.today', text: '£2' }])]);
+    expect(s.disagreements.map((d) => d.key)).toEqual(['fx|pot.today']);
+  });
+
+  it('counts the facts marked in both views', () => {
+    const s = summarise([result([{ view: 'simple', page: 'home', fact: 'stage', text: 'Saving' }, { view: 'full', page: 'top', fact: 'stage', text: 'Saving' }, { view: 'simple', page: 'home', fact: 'pot.today', text: '£1' }])]);
+    expect(s.factsInBoth).toEqual(['stage']);
+    expect(reportOf(s, { at: 'now' }).factsInBoth).toBe(1);
+  });
+
   it('prints one line', () => {
     const s = summarise([result([{ view: 'simple', page: 'home', fact: 'stage', text: 'Saving' }])]);
     const line = lineOf(reportOf(s, { at: 'now' }));
-    expect(line).toBe('parity: 1 plans · facts marked 1 (1 places) · fields bound 0 · disagreements 0 · unmarked 0 · one-view-only 1 · round trips failed not built');
+    expect(line).toBe('parity: 1 plans · facts marked 1 (0 in both views, 1 places, 2 pages) · fields bound 0 · disagreements 0 · unmarked 0 · one-view-only 1 · round trips failed not built');
   });
 });

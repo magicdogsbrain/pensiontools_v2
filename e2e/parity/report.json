@@ -1,5 +1,5 @@
 {
- "at": "2026-11-18T10:21:01.459Z",
+ "at": "2026-11-18T11:02:35.331Z",
  "fixtures": [
   "age-only",
   "budget",
@@ -20,15 +20,18 @@
   "wizard-defaults"
  ],
  "factsMarked": 61,
+ "factsInBoth": 33,
+ "pagesOpened": 601,
  "marks": 10123,
  "fieldsBound": 0,
  "disagreements": 482,
- "unmarked": 13652,
+ "unmarked": 15818,
  "oneViewOnly": 2132,
  "readingMismatches": 0,
  "roundTripsFailed": null,
  "rose": [],
  "shrank": [],
+ "grew": [],
  "notQuiet": [],
  "detail": {
   "disagreements": [

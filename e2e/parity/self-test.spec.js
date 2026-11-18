@@ -27,6 +27,25 @@ async function read(page, html, view, name) {
   };
 }
 
+test('a place showing nothing is a place: blank in one view and a figure in the other is a disagreement', async ({ page }) => {
+  const one = await read(page, pageWith('', '£120,500'), 'simple', 'home');
+  expect(one.places.map((p) => p.text)).toEqual(['', '£120,500']);
+  const s = summarise([{ fixture: 'self', subject: 'S', pages: [{ view: 'simple', page: 'home', opened: true }], places: one.places, cells: [], fields: [], unmarked: {} }]);
+  expect(s.disagreements.map((d) => d.key)).toEqual(['self|pot.today']);
+});
+
+test('figures shown as words or as months, outside any mark, are counted as unmarked', async ({ page }) => {
+  await page.setContent(`<!doctype html><html><body>
+    <p><span>Living on it</span> · <span data-fact="stage">Saving</span></p>
+    <p>Jo’s plan has 19 months to go; <b>Pots &amp; Valves</b> is its way.</p>
+    <h2>Jo’s plan</h2>
+  </body></html>`);
+  const words = { exact: ['Saving', 'Moving', 'Living on it', 'Pots & Valves'], anywhere: ['Jo’s plan'] };
+  const got = await page.evaluate(collectMarks, words);
+  // "Living on it", "19 months", "Pots & Valves", and the plan's name twice; the marked "Saving" is not counted
+  expect(got.unmarked).toBe(5);
+});
+
 test('two places that differ are one disagreement, a rise against an empty baseline; agreeing places are none', async ({ page }) => {
   const one = await read(page, pageWith('£120,000', '£120,500'), 'simple', 'home');
   expect(one.places.map((p) => p.text)).toEqual(['£120,000', '£120,500']);   // the hidden place is not read

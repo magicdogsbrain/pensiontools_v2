@@ -4,7 +4,11 @@
  * results are compared with each other by e2e/parity/gate.js, totalled by scripts/e2e-parity.mjs.
  *
  * Each fixture writes test-results/parity/fixtures/<key>.json. A page a stage does not offer (the simple view sends the
- * address elsewhere; the full view hides the tab) is recorded as not opened.
+ * address elsewhere; the full view hides the tab) is recorded as not opened, a press whose button is not there as not
+ * pressed, a page that did not settle as not quiet: the gate holds every page that opened before (e2e/parity/coverage.json)
+ * and fails on a page read before it settled, so a page that stops opening cannot quietly lower the counts.
+ *
+ * PARITY_TEXT=1 also writes each page's text to test-results/parity/text/<fixture>/<view>-<page>.txt (to find figures).
  */
 import { test, expect } from '@playwright/test';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -13,10 +17,19 @@ import { FIXTURES, PARITY_TODAY } from './fixtures/plans.js';
 import { seedFixture } from './fixtures/seed.js';
 import { collectMarks, waitQuiet } from './collect.js';
 import { readingsFor } from './readings.js';
+import { STRATEGY_NAMES } from '../../src/strategies/stressTest.js';
+import { shownPlanName } from '../../src/services/PlanName.js';
 import { FIELD_IDS } from '../../src/reading/fields.js';
 import { at, signIn, openSimple, openFull, closeNews } from '../scenarios/routes.js';
 
 export const OUT_DIR = join(process.cwd(), 'test-results', 'parity', 'fixtures');
+const TEXT_DIR = join(process.cwd(), 'test-results', 'parity', 'text');
+
+/** The facts a page shows as words (collect.js counts them outside a mark): the stage, the lock, the way, the plan's name. */
+const wordsOf = (plan, now) => ({
+  exact: ['Saving', 'Moving', 'Living on it', 'Locked', 'Not locked', '🔒 locked', '✏️ draft', ...Object.values(STRATEGY_NAMES)],
+  anywhere: [shownPlanName(plan, { now })].filter((n) => typeof n === 'string' && n.length > 2)
+});
 
 /** Every step of a plan in the simple view ('' is its home). */
 export const SIMPLE_PAGES = Object.freeze(['', 'plan', 'about', 'income', 'spend', 'pots', 'lasts', 'way', 'mix', 'saving', 'checkin', 'review', 'month', 'where', 'lock', 'hold', 'move', 'budget', 'household']);
@@ -51,12 +64,17 @@ export const FULL_PAGES = Object.freeze([
 const only = process.env.PARITY_FIXTURE ? process.env.PARITY_FIXTURE.split(',').map((s) => s.trim()).filter(Boolean) : null;
 const noon = (iso) => { const d = new Date(iso); return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12); };
 
-async function readPage(page, out, view, name, opened) {
+async function readPage(page, out, view, name, opened, { pressed, words } = {}) {
   const key = `${view}:${name || 'home'}`;
   const quiet = opened ? await waitQuiet(page) : true;
-  out.pages.push({ view, page: name || 'home', opened, quiet });
+  out.pages.push({ view, page: name || 'home', opened, quiet, ...(pressed === undefined ? {} : { pressed }) });
   if (!opened) return;
-  const got = await page.evaluate(collectMarks);
+  const got = await page.evaluate(collectMarks, words);
+  if (process.env.PARITY_TEXT) {
+    const dir = join(TEXT_DIR, out.fixture);
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, `${view}-${(name || 'home').replace(/[^a-z0-9]+/gi, '-')}.txt`), await page.evaluate(() => document.body.innerText));
+  }
   for (const p of got.places) out.places.push({ view, page: name || 'home', ...p });
   for (const c of got.cells) out.cells.push({ view, page: name || 'home', ...c });
   // only boxes bound through the field table count (src/reading/fields.js)
@@ -90,6 +108,7 @@ test.describe('parity sweep', () => {
         pages: [], places: [], cells: [], fields: [], unmarked: {}, samples: {},
         readings: readingsFor(subject, { now: noon(PARITY_TODAY) })
       };
+      const words = wordsOf(subject, noon(PARITY_TODAY));
       await at(page, PARITY_TODAY);
       await signIn(page, who);
 
@@ -102,24 +121,28 @@ test.describe('parity sweep', () => {
         const opened = /^plan/.test(screen) && route.startsWith(`#/plan/${fx.subject}`) && (step === '' ? !/#\/plan\/[^/]+\/./.test(route) : route.includes('/' + step));
         // the year table opens on a press, as a person opens it (both views' year tables are compared cell by cell)
         const press = SIMPLE_PRESS[step];
+        let pressed;
         if (opened && press) {
           await waitQuiet(page);   // the button is drawn once the run has landed
           const b = page.locator(press).first();
-          if (await b.isVisible().catch(() => false) && (await b.getAttribute('aria-expanded')) !== 'true') await b.click();
+          pressed = await b.isVisible().catch(() => false);
+          if (pressed && (await b.getAttribute('aria-expanded')) !== 'true') await b.click();
         }
-        await readPage(page, out, 'simple', step, opened);
+        await readPage(page, out, 'simple', step, opened, { pressed, words });
       }
 
       await openFull(page);
       // the full view opens on its stage's tab once the plan is read (under the busy mark): a press before then is undone by it
-      await waitQuiet(page);
+      out.pages.push({ view: 'full', page: '(opening)', opened: true, quiet: await waitQuiet(page) });
       for (const p of FULL_PAGES) {
         const opened = await fullTab(page, p);
+        let pressed;
         if (opened && p.press) {
           const run = page.locator(p.press).first();
-          if (await run.isVisible().catch(() => false)) await run.click();
+          pressed = await run.isVisible().catch(() => false);
+          if (pressed) await run.click();
         }
-        await readPage(page, out, 'full', p.name, opened);
+        await readPage(page, out, 'full', p.name, opened, { pressed, words });
       }
 
       mkdirSync(OUT_DIR, { recursive: true });

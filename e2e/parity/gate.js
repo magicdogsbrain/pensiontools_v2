@@ -7,9 +7,10 @@
  *     cells: [{ view, page, table, row, col, text }], fields: [{ view, page, field, value }],
  *     unmarked: { '<view>:<page>': n }, samples: { '<view>:<page>': [...] }, readings: [{ fact, want }] }
  *
- *   summarise(results)            → { facts, marks, fieldsBound, disagreements, oneViewOnly, unmarked, readingMismatches }
- *   ratchet(summary, baseline)    → { rose: [why], shrank: [why] }   (baseline: the three ratchet files' contents)
- *   baselineOf(summary)           → the three ratchet files' contents for this summary
+ *   summarise(results)            → { facts, factsInBoth, marks, fieldsBound, disagreements, oneViewOnly, unmarked,
+ *                                     readingMismatches, pages, shown }
+ *   ratchet(summary, baseline)    → { rose: [why], shrank: [why], grew: [why] }   (baseline: the ratchet files' contents)
+ *   baselineOf(summary)           → the ratchet files' contents for this summary
  *   reportOf(summary, o)          → report.json's contents; lineOf(report) → the one printed line
  */
 
@@ -30,14 +31,20 @@ export function summarise(results) {
   const oneViewOnly = [];
   const unmarked = {};
   const readingMismatches = [];
+  const views = { simple: new Set(), full: new Set() };
+  const pages = [];
+  const shown = {};
   for (const r of results) {
+    for (const p of r.pages || []) pages.push({ key: `${r.fixture}|${p.view}:${p.page}`, fixture: r.fixture, opened: !!p.opened, quiet: p.quiet, pressed: p.pressed });
     const byFact = new Map();
     const put = (fact, view, page, text) => {
       if (!byFact.has(fact)) byFact.set(fact, []);
       byFact.get(fact).push({ view, page, text: shownText(text) });
     };
-    for (const p of r.places || []) { put(p.fact, p.view, p.page, p.text); facts.add(p.fact); marks++; }
-    for (const c of r.cells || []) { put(cellFact(c), c.view, c.page, c.text); facts.add(`table:${c.table}`); marks++; }
+    // how many places of each fact each view drew (a table: drawn at all, as its rows follow the plan's length)
+    const count = (fact, view) => { const k = `${r.fixture}|${fact}|${view}`; shown[k] = fact.startsWith('table:') ? 1 : (shown[k] || 0) + 1; };
+    for (const p of r.places || []) { put(p.fact, p.view, p.page, p.text); facts.add(p.fact); views[p.view]?.add(p.fact); count(p.fact, p.view); marks++; }
+    for (const c of r.cells || []) { put(cellFact(c), c.view, c.page, c.text); facts.add(`table:${c.table}`); views[c.view]?.add(`table:${c.table}`); count(`table:${c.table}`, c.view); marks++; }
     for (const [fact, seen] of byFact) {
       const values = [...new Set(seen.map((s) => s.text))];
       if (values.length > 1) disagreements.push({ key: pairKey(r.fixture, fact), fixture: r.fixture, fact, values: seen });
@@ -67,21 +74,32 @@ export function summarise(results) {
   return {
     fixtures: results.map((r) => r.fixture).sort(),
     facts: [...facts].sort(),
+    factsInBoth: [...views.simple].filter((f) => views.full.has(f)).sort(),
     marks,
     fieldsBound: fields.size,
     disagreements: [...disagreements, ...readingMismatches].sort((a, b) => a.key.localeCompare(b.key)),
     oneViewOnly: oneViewOnly.sort((a, b) => a.key.localeCompare(b.key)),
     unmarked,
-    readingMismatches: readingMismatches.length
+    readingMismatches: readingMismatches.length,
+    pages: pages.sort((a, b) => a.key.localeCompare(b.key)),
+    shown: Object.fromEntries(Object.entries(shown).sort(([a], [b]) => a.localeCompare(b)))
   };
 }
+
+/** The pages a run opened, a press made on a page written as its own entry (`<page>#press`): the coverage floor's pages. */
+const openedPagesOf = (s) => s.pages.flatMap((p) => (p.opened ? [p.key, ...(p.pressed ? [p.key + '#press'] : [])] : [])).sort();
 
 /** The ratchet files' contents for a summary: what a baseline run writes. */
 export function baselineOf(s) {
   return {
     known: { note: 'Fact x fixture pairs that still differ between places (lead4.md G4). May only shrink.', pairs: s.disagreements.map((d) => d.key) },
     unmarked: { note: 'Per fixture and page, figure-like text visible outside any mark (lead4.md G4). May only go down.', counts: Object.fromEntries(Object.entries(s.unmarked).sort(([a], [b]) => a.localeCompare(b))) },
-    oneView: { note: 'Fact x fixture pairs shown in one view and nowhere in the other (lead4.md G4). May only shrink.', pairs: s.oneViewOnly.map((d) => d.key) }
+    oneView: { note: 'Fact x fixture pairs shown in one view and nowhere in the other (lead4.md G4). May only shrink.', pairs: s.oneViewOnly.map((d) => d.key) },
+    coverage: {
+      note: 'The FLOOR under the three ratchets (lead4.md G4): every page that opened (and press made), and per fixture, fact and view how many places drew the fact (a table: drawn at all). May only grow: a page that stops opening, or a mark taken off, is a rise.',
+      pages: openedPagesOf(s),
+      shown: { ...s.shown }
+    }
   };
 }
 
@@ -93,6 +111,7 @@ export function ratchet(s, base) {
   const inRun = (key) => s.fixtures.includes(String(key).split('|')[0]);
   const rose = [];
   const shrank = [];
+  const grew = [];
   const known = new Set(base.known.pairs);
   const now = new Set(s.disagreements.map((d) => d.key));
   for (const d of s.disagreements) if (!known.has(d.key)) rose.push(`disagreement not in known-disagreements.json: ${d.key} (${d.values.map((v) => `${v.view} ${v.page}: "${v.text}"`).join(' / ')})`);
@@ -106,14 +125,28 @@ export function ratchet(s, base) {
     if (was === undefined ? n > 0 : n > was) rose.push(`unmarked figures rose on ${k}: ${was ?? 0} → ${n}`);
     else if (was !== undefined && n < was) shrank.push(`unmarked figures fell on ${k}: ${was} → ${n}`);
   }
-  return { rose, shrank };
+  // the floor: a page that stops opening, a press not made, or a mark taken off lowers the counts above; each is a rise
+  const cover = base.coverage || { pages: [], shown: {} };
+  const openedNow = new Set(openedPagesOf(s));
+  for (const k of cover.pages) if (inRun(k) && !openedNow.has(k)) rose.push(`a page that opened before did not open: ${k}`);
+  for (const k of openedNow) if (!cover.pages.includes(k)) grew.push(`opens now, add it to coverage.json: ${k}`);
+  for (const [k, n] of Object.entries(cover.shown)) {
+    const m = s.shown[k] || 0;
+    if (inRun(k) && m < n) rose.push(`fewer places of a fact than before (a mark taken off?): ${k} ${n} → ${m}`);
+  }
+  for (const [k, m] of Object.entries(s.shown)) if (m > (cover.shown[k] || 0)) grew.push(`more places now, raise coverage.json: ${k} ${cover.shown[k] || 0} → ${m}`);
+  // a page read before it settled was read half drawn: its figures prove nothing
+  for (const p of s.pages) if (p.opened && p.quiet === false) rose.push(`a page was read before it went quiet: ${p.key}`);
+  return { rose, shrank, grew };
 }
 
-export function reportOf(s, { at, fixtures = s.fixtures, rose = [], shrank = [], roundTripsFailed = null, notQuiet = [] } = {}) {
+export function reportOf(s, { at, fixtures = s.fixtures, rose = [], shrank = [], grew = [], roundTripsFailed = null } = {}) {
   return {
     at,
     fixtures,
     factsMarked: s.facts.length,
+    factsInBoth: s.factsInBoth.length,
+    pagesOpened: s.pages.filter((p) => p.opened).length,
     marks: s.marks,
     fieldsBound: s.fieldsBound,
     disagreements: s.disagreements.length,
@@ -123,9 +156,10 @@ export function reportOf(s, { at, fixtures = s.fixtures, rose = [], shrank = [],
     roundTripsFailed,
     rose,
     shrank,
-    notQuiet,
+    grew,
+    notQuiet: s.pages.filter((p) => p.opened && p.quiet === false).map((p) => p.key),
     detail: { disagreements: s.disagreements, oneViewOnly: s.oneViewOnly }
   };
 }
 
-export const lineOf = (r) => `parity: ${r.fixtures.length} plans · facts marked ${r.factsMarked} (${r.marks} places) · fields bound ${r.fieldsBound} · disagreements ${r.disagreements} · unmarked ${r.unmarked} · one-view-only ${r.oneViewOnly} · round trips failed ${r.roundTripsFailed ?? 'not built'}${r.rose.length ? ` · ROSE ${r.rose.length}` : ''}`;
+export const lineOf = (r) => `parity: ${r.fixtures.length} plans · facts marked ${r.factsMarked} (${r.factsInBoth} in both views, ${r.marks} places, ${r.pagesOpened} pages) · fields bound ${r.fieldsBound} · disagreements ${r.disagreements} · unmarked ${r.unmarked} · one-view-only ${r.oneViewOnly} · round trips failed ${r.roundTripsFailed ?? 'not built'}${r.rose.length ? ` · ROSE ${r.rose.length}` : ''}`;

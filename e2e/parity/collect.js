@@ -4,9 +4,13 @@
  * figure-like text — money, ages, chances, months, percentages, durations — visible outside any mark (G4's unmarked
  * ratchet), with a few samples so a reader can find them.
  *
+ * `words` names the facts a page shows as words, for the same count: `exact` (a stage, a lock state, a way's name) counts a
+ * piece of text outside any mark that is exactly one of them, as a chip or a label shows it; `anywhere` (the plan's own
+ * name) counts every time it is written outside a mark.
+ *
  * `collectMarks` runs IN the page (page.evaluate): it may use only what a browser has, and nothing from this file's scope.
  */
-export function collectMarks() {
+export function collectMarks(words = {}) {
   // inside a closed <details> (its summary aside) nothing is shown, though the browser may still lay it out
   // (content-visibility: hidden keeps boxes with no text): such a place is not on screen
   const folded = (el) => { const d = el.closest('details:not([open])'); return !!d && !(el.closest('summary') && d.contains(el.closest('summary'))); };
@@ -17,8 +21,8 @@ export function collectMarks() {
   };
   const shown = (el) => (el.matches('input, select, textarea') ? String(el.value ?? '') : String(el.innerText ?? el.textContent ?? ''));
   const clean = (t) => String(t).replace(/ /g, ' ').replace(/\s+/g, ' ').trim();
-  // a mark that shows nothing (its figure not there) is no place of the fact
-  const places = [...document.querySelectorAll('[data-fact]')].filter(vis).map((el) => ({ fact: el.getAttribute('data-fact'), text: clean(shown(el)) })).filter((p) => p.text !== '');
+  // a mark showing nothing is still a place: blank here and a figure elsewhere is a disagreement
+  const places = [...document.querySelectorAll('[data-fact]')].filter(vis).map((el) => ({ fact: el.getAttribute('data-fact'), text: clean(shown(el)) }));
   const cells = [];
   for (const t of [...document.querySelectorAll('[data-fact-table]')].filter(vis)) {
     for (const c of t.querySelectorAll('[data-row][data-col]')) {
@@ -33,16 +37,23 @@ export function collectMarks() {
     '\\b(?:' + MONTHS + ') \\d{4}\\b',                       // a month
     '\\b\\d{1,2} (?:times )?(?:in|out of) (?:20|10)\\b',      // a chance
     '\\b(?:age|aged|to|at|from) \\d{2,3}\\b',                  // an age
-    '\\b\\d{1,3} years?(?: \\d{1,2} months?)?\\b'              // a duration
+    '\\b\\d{1,3} years?(?: \\d{1,2} months?)?\\b',             // a duration
+    '\\b\\d{1,3} months?\\b'                                  // a duration in months
   ].join('|'), 'gi');
+  const exact = new Set((words.exact || []).map(clean));
+  const anywhere = (words.anywhere || []).map(clean).filter(Boolean);
+  const timesIn = (t, w) => t.split(w).length - 1;
   let unmarked = 0;
   const samples = [];
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
   for (let n = walker.nextNode(); n; n = walker.nextNode()) {
     const el = n.parentElement;
     if (!el || el.closest('[data-fact], [data-fact-table], script, style, noscript, template, [hidden]')) continue;
-    const m = String(n.nodeValue || '').match(FIG);
-    if (!m || !vis(el)) continue;
+    const text = String(n.nodeValue || '');
+    const m = [...(text.match(FIG) || [])];
+    if (exact.has(clean(text))) m.push(clean(text));
+    for (const w of anywhere) for (let i = timesIn(clean(text), w); i > 0; i--) m.push(w);
+    if (!m.length || !vis(el)) continue;
     unmarked += m.length;
     for (const x of m) if (samples.length < 25) samples.push(clean(x));
   }

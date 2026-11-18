@@ -1,6 +1,54 @@
 {
  "note": "Fact x fixture pairs that still differ between places (lead4.md G4), each with its places and what each showed. May only shrink: a pair not listed, a value not listed for its pair, or a place not listed for its pair is a rise.",
  "pairs": {
+  "age-only|field:about.endAge": {
+   "full:stress settings": [
+    "35"
+   ],
+   "simple:about": [
+    "92"
+   ]
+  },
+  "age-only|field:income.other": {
+   "full:stress settings": [
+    "0"
+   ],
+   "simple:income": [
+    ""
+   ]
+  },
+  "age-only|field:pots.isaGrowth": {
+   "full:stress settings": [
+    "cash"
+   ],
+   "simple:pots": [
+    ""
+   ]
+  },
+  "age-only|field:pots.pension": {
+   "full:stress settings": [
+    ""
+   ],
+   "simple:pots": [
+    "500000"
+   ]
+  },
+  "age-only|field:saving.escalationPct": {
+   "full:accumulation": [
+    "0"
+   ],
+   "simple:saving": [
+    ""
+   ]
+  },
+  "age-only|field:spend.first": {
+   "full:stress settings": [
+    ""
+   ],
+   "simple:spend": [
+    "2210"
+   ]
+  },
   "age-only|lock.state": {
    "full:accumulation": [
     "✏️ draft"
@@ -74,6 +122,30 @@
    ],
    "simple:plan": [
     "Pots and valves"
+   ]
+  },
+  "budget|field:about.endAge": {
+   "full:stress settings": [
+    "33"
+   ],
+   "simple:about": [
+    "99"
+   ]
+  },
+  "budget|field:income.other": {
+   "full:stress settings": [
+    "0"
+   ],
+   "simple:income": [
+    ""
+   ]
+  },
+  "budget|field:spend.first": {
+   "full:stress settings": [
+    "26858"
+   ],
+   "simple:spend": [
+    "2000"
    ]
   },
   "budget|income.step.0.beforeTax": {
@@ -521,6 +593,38 @@
     "Pots and valves"
    ]
   },
+  "closed-successor|field:about.age": {
+   "full:stress settings": [
+    "62"
+   ],
+   "simple:about": [
+    "65"
+   ]
+  },
+  "closed-successor|field:about.endAge": {
+   "full:stress settings": [
+    "28"
+   ],
+   "simple:about": [
+    "92"
+   ]
+  },
+  "closed-successor|field:income.other": {
+   "full:stress settings": [
+    "0"
+   ],
+   "simple:income": [
+    ""
+   ]
+  },
+  "closed-successor|field:spend.first": {
+   "full:stress settings": [
+    "25500"
+   ],
+   "simple:spend": [
+    "1910"
+   ]
+  },
   "closed-successor|left.goodCase": {
    "full:will it last": [
     "£1,466,000",
@@ -889,6 +993,38 @@
    ],
    "simple:plan": [
     "Pots and valves"
+   ]
+  },
+  "couple|field:about.endAge": {
+   "full:stress settings": [
+    "32"
+   ],
+   "simple:about": [
+    "94"
+   ]
+  },
+  "couple|field:income.other": {
+   "full:stress settings": [
+    "0"
+   ],
+   "simple:income": [
+    ""
+   ]
+  },
+  "couple|field:saving.escalationPct": {
+   "full:accumulation": [
+    "0"
+   ],
+   "simple:saving": [
+    ""
+   ]
+  },
+  "couple|field:spend.first": {
+   "full:stress settings": [
+    "18000"
+   ],
+   "simple:spend": [
+    "1410"
    ]
   },
   "couple|lasts.fixedChance": {
@@ -1266,6 +1402,30 @@
    ],
    "simple:plan": [
     "Pots and valves"
+   ]
+  },
+  "mover-holdings|field:about.endAge": {
+   "full:stress settings": [
+    "35"
+   ],
+   "simple:about": [
+    "95"
+   ]
+  },
+  "mover-holdings|field:income.other": {
+   "full:stress settings": [
+    "0"
+   ],
+   "simple:income": [
+    ""
+   ]
+  },
+  "mover-holdings|field:spend.first": {
+   "full:stress settings": [
+    "20858"
+   ],
+   "simple:spend": [
+    "1600"
    ]
   },
   "mover-holdings|income.step.0.beforeTax": {
@@ -1761,6 +1921,30 @@
     "1 year 7 months"
    ]
   },
+  "mover-totals|field:about.endAge": {
+   "full:stress settings": [
+    "35"
+   ],
+   "simple:about": [
+    "95"
+   ]
+  },
+  "mover-totals|field:income.other": {
+   "full:stress settings": [
+    "0"
+   ],
+   "simple:income": [
+    ""
+   ]
+  },
+  "mover-totals|field:spend.first": {
+   "full:stress settings": [
+    "20858"
+   ],
+   "simple:spend": [
+    "1600"
+   ]
+  },
   "mover-totals|income.step.0.beforeTax": {
    "full:stress settings": [
     "£20,858"
@@ -2224,6 +2408,30 @@
     "1 year 7 months"
    ]
   },
+  "retired-draft|field:about.endAge": {
+   "full:stress settings": [
+    "33"
+   ],
+   "simple:about": [
+    "99"
+   ]
+  },
+  "retired-draft|field:income.other": {
+   "full:stress settings": [
+    "0"
+   ],
+   "simple:income": [
+    ""
+   ]
+  },
+  "retired-draft|field:spend.first": {
+   "full:stress settings": [
+    "26858"
+   ],
+   "simple:spend": [
+    "2000"
+   ]
+  },
   "retired-draft|income.step.0.beforeTax": {
    "full:stress settings": [
     "£26,858"
@@ -2667,6 +2875,22 @@
    ],
    "simple:plan": [
     "Pots and valves"
+   ]
+  },
+  "retired-everything|field:about.endAge": {
+   "full:stress settings": [
+    "33"
+   ],
+   "simple:about": [
+    "92"
+   ]
+  },
+  "retired-everything|field:spend.first": {
+   "full:stress settings": [
+    "48000"
+   ],
+   "simple:spend": [
+    "3410"
    ]
   },
   "retired-everything|left.goodCase": {
@@ -3882,6 +4106,41 @@
     "Pots and valves"
    ]
   },
+  "saver-checkin|field:about.age": {
+   "full:accumulation": [
+    "45"
+   ],
+   "full:stress settings": [
+    "44"
+   ],
+   "simple:about": [
+    "45"
+   ]
+  },
+  "saver-checkin|field:about.endAge": {
+   "full:stress settings": [
+    "28"
+   ],
+   "simple:about": [
+    "95"
+   ]
+  },
+  "saver-checkin|field:income.other": {
+   "full:stress settings": [
+    "0"
+   ],
+   "simple:income": [
+    ""
+   ]
+  },
+  "saver-checkin|field:spend.first": {
+   "full:stress settings": [
+    "29858"
+   ],
+   "simple:spend": [
+    "2200"
+   ]
+  },
   "saver-checkin|income.step.0.beforeTax": {
    "full:stress settings": [
     "£29,858"
@@ -4242,6 +4501,30 @@
    ],
    "simple:plan": [
     "Pots and valves"
+   ]
+  },
+  "saver-draft|field:about.endAge": {
+   "full:stress settings": [
+    "41"
+   ],
+   "simple:about": [
+    "101"
+   ]
+  },
+  "saver-draft|field:income.other": {
+   "full:stress settings": [
+    "0"
+   ],
+   "simple:income": [
+    ""
+   ]
+  },
+  "saver-draft|field:spend.first": {
+   "full:stress settings": [
+    "26858"
+   ],
+   "simple:spend": [
+    "2000"
    ]
   },
   "saver-draft|income.step.0.beforeTax": {
@@ -4708,6 +4991,30 @@
    ],
    "simple:plan": [
     "Pots and valves"
+   ]
+  },
+  "saver-ladder-draft|field:about.endAge": {
+   "full:stress settings": [
+    "35"
+   ],
+   "simple:about": [
+    "95"
+   ]
+  },
+  "saver-ladder-draft|field:income.other": {
+   "full:stress settings": [
+    "0"
+   ],
+   "simple:income": [
+    ""
+   ]
+  },
+  "saver-ladder-draft|field:spend.first": {
+   "full:stress settings": [
+    "36000"
+   ],
+   "simple:spend": [
+    "2610"
    ]
   },
   "saver-ladder-draft|lasts.fixedChance": {
@@ -5684,6 +5991,41 @@
     "10 years"
    ]
   },
+  "saver-payin|field:about.age": {
+   "full:accumulation": [
+    "45"
+   ],
+   "full:stress settings": [
+    "44"
+   ],
+   "simple:about": [
+    "45"
+   ]
+  },
+  "saver-payin|field:about.endAge": {
+   "full:stress settings": [
+    "28"
+   ],
+   "simple:about": [
+    "95"
+   ]
+  },
+  "saver-payin|field:income.other": {
+   "full:stress settings": [
+    "0"
+   ],
+   "simple:income": [
+    ""
+   ]
+  },
+  "saver-payin|field:spend.first": {
+   "full:stress settings": [
+    "29858"
+   ],
+   "simple:spend": [
+    "2200"
+   ]
+  },
   "saver-payin|income.step.0.beforeTax": {
    "full:stress settings": [
     "£29,858"
@@ -6038,6 +6380,54 @@
    ],
    "simple:plan": [
     "Pots and valves"
+   ]
+  },
+  "wizard-defaults|field:about.endAge": {
+   "full:stress settings": [
+    "35"
+   ],
+   "simple:about": [
+    "92"
+   ]
+  },
+  "wizard-defaults|field:about.stopped": {
+   "full:stress settings": [
+    "yes"
+   ],
+   "simple:about": [
+    ""
+   ]
+  },
+  "wizard-defaults|field:income.other": {
+   "full:stress settings": [
+    "0"
+   ],
+   "simple:income": [
+    ""
+   ]
+  },
+  "wizard-defaults|field:pots.pension": {
+   "full:stress settings": [
+    ""
+   ],
+   "simple:pots": [
+    "500000"
+   ]
+  },
+  "wizard-defaults|field:saving.escalationPct": {
+   "full:accumulation": [
+    "0"
+   ],
+   "simple:saving": [
+    ""
+   ]
+  },
+  "wizard-defaults|field:spend.first": {
+   "full:stress settings": [
+    ""
+   ],
+   "simple:spend": [
+    "2210"
    ]
   },
   "wizard-defaults|lock.state": {

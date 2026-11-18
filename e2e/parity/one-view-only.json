@@ -2354,5 +2354,19 @@
   "wizard-defaults|table:years:9:state",
   "wizard-defaults|table:years:9:tax",
   "wizard-defaults|table:years:9:year"
+ ],
+ "fields": [
+  "budget.currentAge",
+  "budget.endAge",
+  "budget.retireAge",
+  "checkin.every",
+  "decision.cadence",
+  "income.spKind",
+  "mix.bonds",
+  "mix.cash",
+  "mix.diversifiers",
+  "mix.shares",
+  "pots.boughtIsa",
+  "pots.boughtSipp"
  ]
 }

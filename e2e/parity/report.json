@@ -1,5 +1,5 @@
 {
- "at": "2026-11-18T11:40:15.066Z",
+ "at": "2026-11-18T13:55:26.602Z",
  "fixtures": [
   "age-only",
   "budget",
@@ -24,18 +24,120 @@
  "factsInBoth": 55,
  "pagesOpened": 635,
  "marks": 11141,
- "fieldsBound": 0,
- "disagreements": 558,
+ "fieldsBound": 63,
+ "disagreements": 606,
  "unmarked": 17295,
  "oneViewOnly": 2353,
  "readingMismatches": 0,
- "roundTripsFailed": null,
+ "roundTripsFailed": 75,
  "rose": [],
  "shrank": [],
  "grew": [],
  "notQuiet": [],
  "detail": {
   "disagreements": [
+   {
+    "key": "age-only|field:about.endAge",
+    "fixture": "age-only",
+    "fact": "field:about.endAge",
+    "values": [
+     {
+      "view": "simple",
+      "page": "about",
+      "text": "92"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "35"
+     }
+    ]
+   },
+   {
+    "key": "age-only|field:income.other",
+    "fixture": "age-only",
+    "fact": "field:income.other",
+    "values": [
+     {
+      "view": "simple",
+      "page": "income",
+      "text": ""
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "0"
+     }
+    ]
+   },
+   {
+    "key": "age-only|field:pots.isaGrowth",
+    "fixture": "age-only",
+    "fact": "field:pots.isaGrowth",
+    "values": [
+     {
+      "view": "simple",
+      "page": "pots",
+      "text": ""
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "cash"
+     }
+    ]
+   },
+   {
+    "key": "age-only|field:pots.pension",
+    "fixture": "age-only",
+    "fact": "field:pots.pension",
+    "values": [
+     {
+      "view": "simple",
+      "page": "pots",
+      "text": "500000"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": ""
+     }
+    ]
+   },
+   {
+    "key": "age-only|field:saving.escalationPct",
+    "fixture": "age-only",
+    "fact": "field:saving.escalationPct",
+    "values": [
+     {
+      "view": "simple",
+      "page": "saving",
+      "text": ""
+     },
+     {
+      "view": "full",
+      "page": "accumulation",
+      "text": "0"
+     }
+    ]
+   },
+   {
+    "key": "age-only|field:spend.first",
+    "fixture": "age-only",
+    "fact": "field:spend.first",
+    "values": [
+     {
+      "view": "simple",
+      "page": "spend",
+      "text": "2210"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": ""
+     }
+    ]
+   },
    {
     "key": "age-only|lock.state",
     "fixture": "age-only",
@@ -169,6 +271,57 @@
       "view": "full",
       "page": "decision settings",
       "text": "Pots & Valves"
+     }
+    ]
+   },
+   {
+    "key": "budget|field:about.endAge",
+    "fixture": "budget",
+    "fact": "field:about.endAge",
+    "values": [
+     {
+      "view": "simple",
+      "page": "about",
+      "text": "99"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "33"
+     }
+    ]
+   },
+   {
+    "key": "budget|field:income.other",
+    "fixture": "budget",
+    "fact": "field:income.other",
+    "values": [
+     {
+      "view": "simple",
+      "page": "income",
+      "text": ""
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "0"
+     }
+    ]
+   },
+   {
+    "key": "budget|field:spend.first",
+    "fixture": "budget",
+    "fact": "field:spend.first",
+    "values": [
+     {
+      "view": "simple",
+      "page": "spend",
+      "text": "2000"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "26858"
      }
     ]
    },
@@ -1084,6 +1237,74 @@
     ]
    },
    {
+    "key": "closed-successor|field:about.age",
+    "fixture": "closed-successor",
+    "fact": "field:about.age",
+    "values": [
+     {
+      "view": "simple",
+      "page": "about",
+      "text": "65"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "62"
+     }
+    ]
+   },
+   {
+    "key": "closed-successor|field:about.endAge",
+    "fixture": "closed-successor",
+    "fact": "field:about.endAge",
+    "values": [
+     {
+      "view": "simple",
+      "page": "about",
+      "text": "92"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "28"
+     }
+    ]
+   },
+   {
+    "key": "closed-successor|field:income.other",
+    "fixture": "closed-successor",
+    "fact": "field:income.other",
+    "values": [
+     {
+      "view": "simple",
+      "page": "income",
+      "text": ""
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "0"
+     }
+    ]
+   },
+   {
+    "key": "closed-successor|field:spend.first",
+    "fixture": "closed-successor",
+    "fact": "field:spend.first",
+    "values": [
+     {
+      "view": "simple",
+      "page": "spend",
+      "text": "1910"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "25500"
+     }
+    ]
+   },
+   {
     "key": "closed-successor|left.goodCase",
     "fixture": "closed-successor",
     "fact": "left.goodCase",
@@ -1833,6 +2054,74 @@
       "view": "full",
       "page": "decision settings",
       "text": "Pots & Valves"
+     }
+    ]
+   },
+   {
+    "key": "couple|field:about.endAge",
+    "fixture": "couple",
+    "fact": "field:about.endAge",
+    "values": [
+     {
+      "view": "simple",
+      "page": "about",
+      "text": "94"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "32"
+     }
+    ]
+   },
+   {
+    "key": "couple|field:income.other",
+    "fixture": "couple",
+    "fact": "field:income.other",
+    "values": [
+     {
+      "view": "simple",
+      "page": "income",
+      "text": ""
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "0"
+     }
+    ]
+   },
+   {
+    "key": "couple|field:saving.escalationPct",
+    "fixture": "couple",
+    "fact": "field:saving.escalationPct",
+    "values": [
+     {
+      "view": "simple",
+      "page": "saving",
+      "text": ""
+     },
+     {
+      "view": "full",
+      "page": "accumulation",
+      "text": "0"
+     }
+    ]
+   },
+   {
+    "key": "couple|field:spend.first",
+    "fixture": "couple",
+    "fact": "field:spend.first",
+    "values": [
+     {
+      "view": "simple",
+      "page": "spend",
+      "text": "1410"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "18000"
      }
     ]
    },
@@ -2618,6 +2907,57 @@
       "view": "full",
       "page": "decision settings",
       "text": "Pots & Valves"
+     }
+    ]
+   },
+   {
+    "key": "mover-holdings|field:about.endAge",
+    "fixture": "mover-holdings",
+    "fact": "field:about.endAge",
+    "values": [
+     {
+      "view": "simple",
+      "page": "about",
+      "text": "95"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "35"
+     }
+    ]
+   },
+   {
+    "key": "mover-holdings|field:income.other",
+    "fixture": "mover-holdings",
+    "fact": "field:income.other",
+    "values": [
+     {
+      "view": "simple",
+      "page": "income",
+      "text": ""
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "0"
+     }
+    ]
+   },
+   {
+    "key": "mover-holdings|field:spend.first",
+    "fixture": "mover-holdings",
+    "fact": "field:spend.first",
+    "values": [
+     {
+      "view": "simple",
+      "page": "spend",
+      "text": "1600"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "20858"
      }
     ]
    },
@@ -3631,6 +3971,57 @@
     ]
    },
    {
+    "key": "mover-totals|field:about.endAge",
+    "fixture": "mover-totals",
+    "fact": "field:about.endAge",
+    "values": [
+     {
+      "view": "simple",
+      "page": "about",
+      "text": "95"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "35"
+     }
+    ]
+   },
+   {
+    "key": "mover-totals|field:income.other",
+    "fixture": "mover-totals",
+    "fact": "field:income.other",
+    "values": [
+     {
+      "view": "simple",
+      "page": "income",
+      "text": ""
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "0"
+     }
+    ]
+   },
+   {
+    "key": "mover-totals|field:spend.first",
+    "fixture": "mover-totals",
+    "fact": "field:spend.first",
+    "values": [
+     {
+      "view": "simple",
+      "page": "spend",
+      "text": "1600"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "20858"
+     }
+    ]
+   },
+   {
     "key": "mover-totals|income.step.0.beforeTax",
     "fixture": "mover-totals",
     "fact": "income.step.0.beforeTax",
@@ -4579,6 +4970,57 @@
     ]
    },
    {
+    "key": "retired-draft|field:about.endAge",
+    "fixture": "retired-draft",
+    "fact": "field:about.endAge",
+    "values": [
+     {
+      "view": "simple",
+      "page": "about",
+      "text": "99"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "33"
+     }
+    ]
+   },
+   {
+    "key": "retired-draft|field:income.other",
+    "fixture": "retired-draft",
+    "fact": "field:income.other",
+    "values": [
+     {
+      "view": "simple",
+      "page": "income",
+      "text": ""
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "0"
+     }
+    ]
+   },
+   {
+    "key": "retired-draft|field:spend.first",
+    "fixture": "retired-draft",
+    "fact": "field:spend.first",
+    "values": [
+     {
+      "view": "simple",
+      "page": "spend",
+      "text": "2000"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "26858"
+     }
+    ]
+   },
+   {
     "key": "retired-draft|income.step.0.beforeTax",
     "fixture": "retired-draft",
     "fact": "income.step.0.beforeTax",
@@ -5486,6 +5928,40 @@
       "view": "full",
       "page": "decision settings",
       "text": "Pots & Valves"
+     }
+    ]
+   },
+   {
+    "key": "retired-everything|field:about.endAge",
+    "fixture": "retired-everything",
+    "fact": "field:about.endAge",
+    "values": [
+     {
+      "view": "simple",
+      "page": "about",
+      "text": "92"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "33"
+     }
+    ]
+   },
+   {
+    "key": "retired-everything|field:spend.first",
+    "fixture": "retired-everything",
+    "fact": "field:spend.first",
+    "values": [
+     {
+      "view": "simple",
+      "page": "spend",
+      "text": "3410"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "48000"
      }
     ]
    },
@@ -7951,6 +8427,79 @@
     ]
    },
    {
+    "key": "saver-checkin|field:about.age",
+    "fixture": "saver-checkin",
+    "fact": "field:about.age",
+    "values": [
+     {
+      "view": "simple",
+      "page": "about",
+      "text": "45"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "44"
+     },
+     {
+      "view": "full",
+      "page": "accumulation",
+      "text": "45"
+     }
+    ]
+   },
+   {
+    "key": "saver-checkin|field:about.endAge",
+    "fixture": "saver-checkin",
+    "fact": "field:about.endAge",
+    "values": [
+     {
+      "view": "simple",
+      "page": "about",
+      "text": "95"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "28"
+     }
+    ]
+   },
+   {
+    "key": "saver-checkin|field:income.other",
+    "fixture": "saver-checkin",
+    "fact": "field:income.other",
+    "values": [
+     {
+      "view": "simple",
+      "page": "income",
+      "text": ""
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "0"
+     }
+    ]
+   },
+   {
+    "key": "saver-checkin|field:spend.first",
+    "fixture": "saver-checkin",
+    "fact": "field:spend.first",
+    "values": [
+     {
+      "view": "simple",
+      "page": "spend",
+      "text": "2200"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "29858"
+     }
+    ]
+   },
+   {
     "key": "saver-checkin|income.step.0.beforeTax",
     "fixture": "saver-checkin",
     "fact": "income.step.0.beforeTax",
@@ -8696,6 +9245,57 @@
       "view": "full",
       "page": "decision settings",
       "text": "Pots & Valves"
+     }
+    ]
+   },
+   {
+    "key": "saver-draft|field:about.endAge",
+    "fixture": "saver-draft",
+    "fact": "field:about.endAge",
+    "values": [
+     {
+      "view": "simple",
+      "page": "about",
+      "text": "101"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "41"
+     }
+    ]
+   },
+   {
+    "key": "saver-draft|field:income.other",
+    "fixture": "saver-draft",
+    "fact": "field:income.other",
+    "values": [
+     {
+      "view": "simple",
+      "page": "income",
+      "text": ""
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "0"
+     }
+    ]
+   },
+   {
+    "key": "saver-draft|field:spend.first",
+    "fixture": "saver-draft",
+    "fact": "field:spend.first",
+    "values": [
+     {
+      "view": "simple",
+      "page": "spend",
+      "text": "2000"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "26858"
      }
     ]
    },
@@ -9663,6 +10263,57 @@
       "view": "full",
       "page": "decision settings",
       "text": "Pots & Valves"
+     }
+    ]
+   },
+   {
+    "key": "saver-ladder-draft|field:about.endAge",
+    "fixture": "saver-ladder-draft",
+    "fact": "field:about.endAge",
+    "values": [
+     {
+      "view": "simple",
+      "page": "about",
+      "text": "95"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "35"
+     }
+    ]
+   },
+   {
+    "key": "saver-ladder-draft|field:income.other",
+    "fixture": "saver-ladder-draft",
+    "fact": "field:income.other",
+    "values": [
+     {
+      "view": "simple",
+      "page": "income",
+      "text": ""
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "0"
+     }
+    ]
+   },
+   {
+    "key": "saver-ladder-draft|field:spend.first",
+    "fixture": "saver-ladder-draft",
+    "fact": "field:spend.first",
+    "values": [
+     {
+      "view": "simple",
+      "page": "spend",
+      "text": "2610"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "36000"
      }
     ]
    },
@@ -11655,6 +12306,79 @@
     ]
    },
    {
+    "key": "saver-payin|field:about.age",
+    "fixture": "saver-payin",
+    "fact": "field:about.age",
+    "values": [
+     {
+      "view": "simple",
+      "page": "about",
+      "text": "45"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "44"
+     },
+     {
+      "view": "full",
+      "page": "accumulation",
+      "text": "45"
+     }
+    ]
+   },
+   {
+    "key": "saver-payin|field:about.endAge",
+    "fixture": "saver-payin",
+    "fact": "field:about.endAge",
+    "values": [
+     {
+      "view": "simple",
+      "page": "about",
+      "text": "95"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "28"
+     }
+    ]
+   },
+   {
+    "key": "saver-payin|field:income.other",
+    "fixture": "saver-payin",
+    "fact": "field:income.other",
+    "values": [
+     {
+      "view": "simple",
+      "page": "income",
+      "text": ""
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "0"
+     }
+    ]
+   },
+   {
+    "key": "saver-payin|field:spend.first",
+    "fixture": "saver-payin",
+    "fact": "field:spend.first",
+    "values": [
+     {
+      "view": "simple",
+      "page": "spend",
+      "text": "2200"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "29858"
+     }
+    ]
+   },
+   {
     "key": "saver-payin|income.step.0.beforeTax",
     "fixture": "saver-payin",
     "fact": "income.step.0.beforeTax",
@@ -12390,6 +13114,108 @@
       "view": "full",
       "page": "decision settings",
       "text": "Pots & Valves"
+     }
+    ]
+   },
+   {
+    "key": "wizard-defaults|field:about.endAge",
+    "fixture": "wizard-defaults",
+    "fact": "field:about.endAge",
+    "values": [
+     {
+      "view": "simple",
+      "page": "about",
+      "text": "92"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "35"
+     }
+    ]
+   },
+   {
+    "key": "wizard-defaults|field:about.stopped",
+    "fixture": "wizard-defaults",
+    "fact": "field:about.stopped",
+    "values": [
+     {
+      "view": "simple",
+      "page": "about",
+      "text": ""
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "yes"
+     }
+    ]
+   },
+   {
+    "key": "wizard-defaults|field:income.other",
+    "fixture": "wizard-defaults",
+    "fact": "field:income.other",
+    "values": [
+     {
+      "view": "simple",
+      "page": "income",
+      "text": ""
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": "0"
+     }
+    ]
+   },
+   {
+    "key": "wizard-defaults|field:pots.pension",
+    "fixture": "wizard-defaults",
+    "fact": "field:pots.pension",
+    "values": [
+     {
+      "view": "simple",
+      "page": "pots",
+      "text": "500000"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": ""
+     }
+    ]
+   },
+   {
+    "key": "wizard-defaults|field:saving.escalationPct",
+    "fixture": "wizard-defaults",
+    "fact": "field:saving.escalationPct",
+    "values": [
+     {
+      "view": "simple",
+      "page": "saving",
+      "text": ""
+     },
+     {
+      "view": "full",
+      "page": "accumulation",
+      "text": "0"
+     }
+    ]
+   },
+   {
+    "key": "wizard-defaults|field:spend.first",
+    "fixture": "wizard-defaults",
+    "fact": "field:spend.first",
+    "values": [
+     {
+      "view": "simple",
+      "page": "spend",
+      "text": "2210"
+     },
+     {
+      "view": "full",
+      "page": "stress settings",
+      "text": ""
      }
     ]
    },
@@ -26631,6 +27457,338 @@
     "fixture": "wizard-defaults",
     "fact": "table:years:9:year",
     "view": "full"
+   }
+  ],
+  "roundTrips": [
+   {
+    "key": "about.age|s2f",
+    "kind": "needs a press"
+   },
+   {
+    "key": "about.endAge|f2s",
+    "kind": "shows another value",
+    "detail": "typed 36 in the full view; the simple view shows 96"
+   },
+   {
+    "key": "about.endAge|s2f",
+    "kind": "shows another value",
+    "detail": "typed 97 in the simple view; the full view shows 37"
+   },
+   {
+    "key": "about.startWhen|f2s",
+    "kind": "needs a press"
+   },
+   {
+    "key": "about.startWhen|s2f",
+    "kind": "needs a press"
+   },
+   {
+    "key": "about.stopAge|s2f",
+    "kind": "needs a press"
+   },
+   {
+    "key": "about.stopMonth|f2s",
+    "kind": "needs a press"
+   },
+   {
+    "key": "about.stopMonth|s2f",
+    "kind": "needs a press"
+   },
+   {
+    "key": "about.stopped|s2f",
+    "kind": "needs a press"
+   },
+   {
+    "key": "budget.lines|f2s",
+    "kind": "not tried",
+    "detail": "budget lines: rows in both views"
+   },
+   {
+    "key": "budget.lines|s2f",
+    "kind": "not tried",
+    "detail": "budget lines: rows in both views"
+   },
+   {
+    "key": "hold.lines|f2s",
+    "kind": "not tried",
+    "detail": "holdings lines: rows in both views"
+   },
+   {
+    "key": "hold.lines|s2f",
+    "kind": "not tried",
+    "detail": "holdings lines: rows in both views"
+   },
+   {
+    "key": "household.whoPays|f2s",
+    "kind": "not tried",
+    "detail": "who pays: per budget line in both views"
+   },
+   {
+    "key": "household.whoPays|s2f",
+    "kind": "not tried",
+    "detail": "who pays: per budget line in both views"
+   },
+   {
+    "key": "income.fs.0.amount|s2f",
+    "kind": "needs a press"
+   },
+   {
+    "key": "income.fs.0.fromAge|s2f",
+    "kind": "needs a press"
+   },
+   {
+    "key": "income.fs.0.rises|s2f",
+    "kind": "needs a press"
+   },
+   {
+    "key": "income.lumps|f2s",
+    "kind": "not tried",
+    "detail": "lump sums: cards in the simple view, rows in the full view"
+   },
+   {
+    "key": "income.lumps|s2f",
+    "kind": "not tried",
+    "detail": "lump sums: cards in the simple view, rows in the full view"
+   },
+   {
+    "key": "income.other|s2f",
+    "kind": "needs a press"
+   },
+   {
+    "key": "income.spDate|s2f",
+    "kind": "needs a press"
+   },
+   {
+    "key": "income.spWeekly|s2f",
+    "kind": "needs a press"
+   },
+   {
+    "key": "income.streams|f2s",
+    "kind": "not tried",
+    "detail": "more final-salary pensions and incomes for some years: cards in the simple view, an editor of rows in the full view"
+   },
+   {
+    "key": "income.streams|s2f",
+    "kind": "not tried",
+    "detail": "more final-salary pensions and incomes for some years: cards in the simple view, an editor of rows in the full view"
+   },
+   {
+    "key": "lasts.buffer|s2f",
+    "kind": "needs a press"
+   },
+   {
+    "key": "lasts.cutAfterMonths|s2f",
+    "kind": "needs a press"
+   },
+   {
+    "key": "lasts.cutPct|s2f",
+    "kind": "needs a press"
+   },
+   {
+    "key": "lasts.cutsOn|s2f",
+    "kind": "needs a press"
+   },
+   {
+    "key": "lasts.deeperAfterMonths|s2f",
+    "kind": "needs a press"
+   },
+   {
+    "key": "lasts.reserveAmount|s2f",
+    "kind": "needs a press"
+   },
+   {
+    "key": "lasts.reserveOn|s2f",
+    "kind": "needs a press"
+   },
+   {
+    "key": "mix.funds|f2s",
+    "kind": "not tried",
+    "detail": "funds to test: cards in the simple view, rows in the full view"
+   },
+   {
+    "key": "mix.funds|s2f",
+    "kind": "not tried",
+    "detail": "funds to test: cards in the simple view, rows in the full view"
+   },
+   {
+    "key": "mix.sleeve|s2f",
+    "kind": "needs a press"
+   },
+   {
+    "key": "mix.tent|s2f",
+    "kind": "needs a press"
+   },
+   {
+    "key": "newPlan|£120,000",
+    "kind": "carried over",
+    "detail": "seen on full stress settings"
+   },
+   {
+    "key": "newPlan|£40,000",
+    "kind": "carried over",
+    "detail": "seen on full stress settings"
+   },
+   {
+    "key": "newPlan|£48,000",
+    "kind": "carried over",
+    "detail": "seen on full stress settings"
+   },
+   {
+    "key": "newPlan|£60,000",
+    "kind": "carried over",
+    "detail": "seen on full stress settings"
+   },
+   {
+    "key": "newPlan|£90,000",
+    "kind": "carried over",
+    "detail": "seen on full stress settings"
+   },
+   {
+    "key": "newPlan|a box holding 85000",
+    "kind": "carried over",
+    "detail": "seen on full monthly entry"
+   },
+   {
+    "key": "pots.bandFill|s2f",
+    "kind": "needs a press"
+   },
+   {
+    "key": "pots.bedAndIsa|s2f",
+    "kind": "needs a press"
+   },
+   {
+    "key": "pots.brl|s2f",
+    "kind": "needs a press"
+   },
+   {
+    "key": "pots.charges|s2f",
+    "kind": "needs a press"
+   },
+   {
+    "key": "pots.earnings|s2f",
+    "kind": "needs a press"
+   },
+   {
+    "key": "pots.giaBand|s2f",
+    "kind": "needs a press"
+   },
+   {
+    "key": "pots.hrl|s2f",
+    "kind": "needs a press"
+   },
+   {
+    "key": "pots.isa|s2f",
+    "kind": "needs a press"
+   },
+   {
+    "key": "pots.isaGrowth|s2f",
+    "kind": "needs a press"
+   },
+   {
+    "key": "pots.isaUse|s2f",
+    "kind": "needs a press"
+   },
+   {
+    "key": "pots.pa|s2f",
+    "kind": "needs a press"
+   },
+   {
+    "key": "pots.pension|s2f",
+    "kind": "needs a press"
+   },
+   {
+    "key": "pots.stopIsa|s2f",
+    "kind": "needs a press"
+   },
+   {
+    "key": "pots.stopSipp|s2f",
+    "kind": "needs a press"
+   },
+   {
+    "key": "pots.taxable|s2f",
+    "kind": "needs a press"
+   },
+   {
+    "key": "pots.taxableMix|s2f",
+    "kind": "needs a press"
+   },
+   {
+    "key": "pots.taxFree|s2f",
+    "kind": "needs a press"
+   },
+   {
+    "key": "pots.taxMode|s2f",
+    "kind": "needs a press"
+   },
+   {
+    "key": "pots.ufplsThenIsa|s2f",
+    "kind": "needs a press"
+   },
+   {
+    "key": "pots.ufplsYears|s2f",
+    "kind": "needs a press"
+   },
+   {
+    "key": "saving.schemeType|f2s",
+    "kind": "needs a press"
+   },
+   {
+    "key": "saving.want.monthly|f2s",
+    "kind": "needs a press"
+   },
+   {
+    "key": "saving.want.stopAge|f2s",
+    "kind": "needs a press"
+   },
+   {
+    "key": "spend.costs|f2s",
+    "kind": "not tried",
+    "detail": "one-off costs: cards in the simple view, rows in the full view"
+   },
+   {
+    "key": "spend.costs|s2f",
+    "kind": "not tried",
+    "detail": "one-off costs: cards in the simple view, rows in the full view"
+   },
+   {
+    "key": "spend.first|f2s",
+    "kind": "shows another value",
+    "detail": "typed 30000 in the full view; the simple view shows 2210"
+   },
+   {
+    "key": "spend.first|s2f",
+    "kind": "shows another value",
+    "detail": "typed 1900 in the simple view; the full view shows 25358"
+   },
+   {
+    "key": "spend.steps|f2s",
+    "kind": "not tried",
+    "detail": "later steps: cards in the simple view, rows in the full view"
+   },
+   {
+    "key": "spend.steps|s2f",
+    "kind": "not tried",
+    "detail": "later steps: cards in the simple view, rows in the full view"
+   },
+   {
+    "key": "sweep:saver-draft:pots|s2f",
+    "kind": "sweep breaks",
+    "detail": "pot.today: \"£61,000\" / \"£60,000\""
+   },
+   {
+    "key": "typeThenLink|simple",
+    "kind": "not saved",
+    "detail": "typed 44 as the age, then a link pressed at once: nothing written"
+   },
+   {
+    "key": "way.dials|f2s",
+    "kind": "not tried",
+    "detail": "the way's dials: cards drawn per way in the simple view, boxes per way on Settings and the Strategies pages"
+   },
+   {
+    "key": "way.dials|s2f",
+    "kind": "not tried",
+    "detail": "the way's dials: cards drawn per way in the simple view, boxes per way on Settings and the Strategies pages"
    }
   ]
  }

@@ -17,6 +17,7 @@ import { TAX_DEFAULTS } from '../constants.js';
 import { spendingDeclineRateForYear, spendingSmileFactor } from './SpendingModel.js';
 import { decisionAnchorYear, yearOfTaxKey, taxYearKey, taxYearLabel } from './PlanTiming.js';
 import { pensionLockOf, closedYearsWords } from './PensionLock.js';
+import { scheduleFromSteps } from './IncomeSchedule.js';
 
 
 // Re-exported so callers/tests can reach the shared constant from here. The per-year decline is now
@@ -274,7 +275,11 @@ export function wizardDataFrom(selectedMonth, { settings, stressSettings = null,
   let scheduleSuggestedSalary = null, schedulePrevCpiAssumed = false, scheduleSuggestedBase = null;
   try {
     const stress = stressSettings;
-    const sched = Array.isArray(stress?.targetSchedule) ? stress.targetSchedule : null;
+    // the plan's income a year as every engine reads it: a stored schedule, else the steps compiled (IncomeSchedule.js), else
+    // a level plan's one figure every year — read so only while no year has been confirmed (the chain below follows a
+    // confirmed figure); a plan's first year is never grown by a year of prices that has not passed
+    const level = !(prevYearConfig && prevYearConfig.confirmedSalary) && +(stress && stress.baseSalary) > 0 ? +stress.baseSalary : null;
+    const sched = stress ? (scheduleFromSteps(stress) || (level ? Array.from({ length: Math.max(1, +stress.duration || 35) + 1 }, () => level) : null)) : null;
     if (sched && sched[planYear] != null) {
       let cumInf = 1;
       for (let i = 0; i < planYear; i++) {

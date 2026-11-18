@@ -3366,8 +3366,8 @@
                 "set": true,
                 "facts": [
                   {
-                    "k": "off",
-                    "v": false,
+                    "k": "on",
+                    "v": true,
                     "kind": "yesNo"
                   },
                   {
@@ -3533,8 +3533,8 @@
                 "set": true,
                 "facts": [
                   {
-                    "k": "off",
-                    "v": false,
+                    "k": "on",
+                    "v": true,
                     "kind": "yesNo"
                   },
                   {
@@ -4065,6 +4065,7 @@
           "bought": false,
           "family": true,
           "endAge": 96,
+          "atStop": null,
           "runKey": null,
           "stash": {
             "pots-and-valves": {},

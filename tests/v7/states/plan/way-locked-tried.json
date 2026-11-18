@@ -3920,8 +3920,8 @@
                 "set": true,
                 "facts": [
                   {
-                    "k": "off",
-                    "v": false,
+                    "k": "on",
+                    "v": true,
                     "kind": "yesNo"
                   },
                   {
@@ -4119,8 +4119,8 @@
                 "set": true,
                 "facts": [
                   {
-                    "k": "off",
-                    "v": false,
+                    "k": "on",
+                    "v": true,
                     "kind": "yesNo"
                   },
                   {
@@ -4682,6 +4682,7 @@
           "bought": true,
           "family": false,
           "endAge": 86,
+          "atStop": null,
           "runKey": "SamLocked02|2026-09-02T18:30:00.000Z|wudskr|L",
           "stash": {
             "pots-and-valves": {},

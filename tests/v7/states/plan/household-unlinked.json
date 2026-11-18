@@ -914,8 +914,8 @@
                 "set": true,
                 "facts": [
                   {
-                    "k": "off",
-                    "v": false,
+                    "k": "on",
+                    "v": true,
                     "kind": "yesNo"
                   },
                   {
@@ -1081,8 +1081,8 @@
                 "set": true,
                 "facts": [
                   {
-                    "k": "off",
-                    "v": false,
+                    "k": "on",
+                    "v": true,
                     "kind": "yesNo"
                   },
                   {

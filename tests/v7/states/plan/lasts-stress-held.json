@@ -2809,7 +2809,7 @@
                 "source": {
                   "kind": "locked",
                   "at": "20 March 2026",
-                  "stale": true
+                  "stale": false
                 }
               },
               {
@@ -2855,7 +2855,7 @@
                 "source": {
                   "kind": "locked",
                   "at": "20 March 2026",
-                  "stale": true
+                  "stale": false
                 }
               },
               {
@@ -2995,7 +2995,7 @@
                 "source": {
                   "kind": "locked",
                   "at": "20 March 2026",
-                  "stale": true
+                  "stale": false
                 }
               },
               {
@@ -3020,7 +3020,7 @@
                 "source": {
                   "kind": "locked",
                   "at": "20 March 2026",
-                  "stale": true
+                  "stale": false
                 }
               },
               {
@@ -3045,7 +3045,7 @@
                 "source": {
                   "kind": "locked",
                   "at": "20 March 2026",
-                  "stale": true
+                  "stale": false
                 }
               },
               {
@@ -3087,7 +3087,7 @@
                 "source": {
                   "kind": "locked",
                   "at": "20 March 2026",
-                  "stale": true
+                  "stale": false
                 }
               }
             ],
@@ -3138,7 +3138,7 @@
                     "source": {
                       "kind": "locked",
                       "at": "20 March 2026",
-                      "stale": true
+                      "stale": false
                     }
                   },
                   {
@@ -3152,7 +3152,7 @@
                     "source": {
                       "kind": "locked",
                       "at": "20 March 2026",
-                      "stale": true
+                      "stale": false
                     }
                   },
                   {
@@ -3168,7 +3168,7 @@
                     "source": {
                       "kind": "locked",
                       "at": "20 March 2026",
-                      "stale": true
+                      "stale": false
                     }
                   },
                   {
@@ -3192,7 +3192,7 @@
                     "source": {
                       "kind": "locked",
                       "at": "20 March 2026",
-                      "stale": true
+                      "stale": false
                     }
                   }
                 ],
@@ -3227,7 +3227,7 @@
                     "source": {
                       "kind": "locked",
                       "at": "20 March 2026",
-                      "stale": true
+                      "stale": false
                     }
                   }
                 ],
@@ -3254,7 +3254,7 @@
                     "source": {
                       "kind": "locked",
                       "at": "20 March 2026",
-                      "stale": true
+                      "stale": false
                     }
                   },
                   {
@@ -3284,7 +3284,7 @@
                     "source": {
                       "kind": "locked",
                       "at": "20 March 2026",
-                      "stale": true
+                      "stale": false
                     }
                   },
                   {
@@ -3303,7 +3303,7 @@
                     "source": {
                       "kind": "locked",
                       "at": "20 March 2026",
-                      "stale": true
+                      "stale": false
                     }
                   }
                 ],
@@ -3333,7 +3333,7 @@
                     "source": {
                       "kind": "locked",
                       "at": "20 March 2026",
-                      "stale": true
+                      "stale": false
                     }
                   }
                 ],
@@ -3357,7 +3357,7 @@
                     "source": {
                       "kind": "locked",
                       "at": "20 March 2026",
-                      "stale": true
+                      "stale": false
                     }
                   },
                   {
@@ -3378,7 +3378,7 @@
                     "source": {
                       "kind": "locked",
                       "at": "20 March 2026",
-                      "stale": true
+                      "stale": false
                     }
                   }
                 ],
@@ -3401,7 +3401,7 @@
                     "source": {
                       "kind": "locked",
                       "at": "20 March 2026",
-                      "stale": true
+                      "stale": false
                     }
                   },
                   {
@@ -3431,7 +3431,7 @@
                     "source": {
                       "kind": "locked",
                       "at": "20 March 2026",
-                      "stale": true
+                      "stale": false
                     }
                   },
                   {
@@ -3445,7 +3445,7 @@
                     "source": {
                       "kind": "locked",
                       "at": "20 March 2026",
-                      "stale": true
+                      "stale": false
                     }
                   },
                   {
@@ -3461,7 +3461,7 @@
                     "source": {
                       "kind": "locked",
                       "at": "20 March 2026",
-                      "stale": true
+                      "stale": false
                     }
                   }
                 ],
@@ -3488,8 +3488,8 @@
                 "set": true,
                 "facts": [
                   {
-                    "k": "off",
-                    "v": false,
+                    "k": "on",
+                    "v": true,
                     "kind": "yesNo"
                   },
                   {
@@ -3687,8 +3687,8 @@
                 "set": true,
                 "facts": [
                   {
-                    "k": "off",
-                    "v": false,
+                    "k": "on",
+                    "v": true,
                     "kind": "yesNo"
                   },
                   {

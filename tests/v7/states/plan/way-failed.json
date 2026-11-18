@@ -3372,8 +3372,8 @@
                 "set": true,
                 "facts": [
                   {
-                    "k": "off",
-                    "v": false,
+                    "k": "on",
+                    "v": true,
                     "kind": "yesNo"
                   },
                   {
@@ -3539,8 +3539,8 @@
                 "set": true,
                 "facts": [
                   {
-                    "k": "off",
-                    "v": false,
+                    "k": "on",
+                    "v": true,
                     "kind": "yesNo"
                   },
                   {
@@ -4075,6 +4075,7 @@
           "bought": false,
           "family": true,
           "endAge": 96,
+          "atStop": null,
           "runKey": "AlexWay01|2026-08-14T10:05:00.000Z|13z6pso|U",
           "stash": {
             "pots-and-valves": {},

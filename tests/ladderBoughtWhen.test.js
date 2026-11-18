@@ -20,3 +20,11 @@ describe('when a ladder\'s rungs are bought, in the full view', () => {
     expect(html).not.toMatch(/How to give the order \([A-Z][\w ]+ and most platforms/);
   });
 });
+
+describe('a fall said once (walker 7: "is -2.6% below its all-time high")', () => {
+  it('the index\'s distance below its high is said without a minus sign', () => {
+    expect(html).not.toMatch(/[^(]dd\.toFixed\(1\) \+ '% below/);
+    expect(html).not.toMatch(/[^s]\(mk\.drawdown \* 100\)\.toFixed\(1\) \+ '% below/);
+    expect(html).toContain("Math.abs(dd).toFixed(1) + '% below its all-time high'");
+  });
+});

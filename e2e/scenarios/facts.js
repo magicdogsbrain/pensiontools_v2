@@ -95,7 +95,9 @@ export const FACTS = Object.freeze({
     full: [
       { page: 'top', region: '#scenarioSelector', find: '(\\d+ years?(?: \\d+ months?)?) to go' },
       { page: 'stress settings', find: 'at \\d+, (\\d+ years?(?: \\d+ months?)?) away' },
-      { page: 'accumulation', find: '(\\d+ years?(?: \\d+ months?)?) to go' }
+      { page: 'accumulation', find: '(\\d+ years?(?: \\d+ months?)?) to go' },
+      // the second walk (walkers 9, 4 and 10): the plan document counted to 6 April of the first tax year, a year short of the chip
+      { page: 'plan document', find: '(\\d+ years?(?: \\d+ months?)?) to go' }
     ]
   },
   'plan.endAge': {

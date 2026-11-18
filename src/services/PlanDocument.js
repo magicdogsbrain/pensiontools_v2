@@ -10,7 +10,7 @@
  *
  * Pure module: no DOM, no storage.
  */
-import { deriveTiming, describeTiming, taxYearLabel, taxYearKey, planYearOf, taxYearStartOf } from './PlanTiming.js';
+import { deriveTiming, describeTiming, taxYearLabel, taxYearKey, planYearOf, taxYearStartOf, monthsUntilMonth } from './PlanTiming.js';
 import { cleanSteps, amountAtAge, scheduleFromSteps } from './IncomeSchedule.js';
 import { spSimConfigFromSettings } from '../utils/StatePensionUtils.js';
 import { incomeLayersRows } from '../ui/incomeLayersGraphic.js';
@@ -653,10 +653,13 @@ export function whereAmI(doc, { today = new Date(), history = [], potsToday = nu
     const isaFig = wrapperFigure(holdings, 'ISA');
     const pot = saverPotOf({ accHistory, potsToday, holdingsPension: ledgerPot, holdingsIsa: isaFig ? isaFig.value : null, holdingsAsOf: ledgerAsOf, today });
     const r = saverReading(doc, { at: pot.at, pension: pot.pension, isa: pot.isa });
+    // (7.12.0) to go: to the month work stops, the count the header chip gives (LifeStage); a document saved before it kept
+    // the stop month counts to the first tax year, as it did
+    const stopMonth = /^\d{4}-\d{2}$/.test(String(doc.timing.startMonth || '')) ? doc.timing.startMonth : null;
     const start = new Date(+doc.timing.firstTaxYear, 3, 6);
-    const monthsToGo = Math.max(0, Math.round((start.getTime() - today.getTime()) / (30.44 * 24 * 3600 * 1000)));
+    const monthsToGo = stopMonth ? monthsUntilMonth(stopMonth, today) : Math.max(0, Math.round((start.getTime() - today.getTime()) / (30.44 * 24 * 3600 * 1000)));
     saving = {
-      monthsToGo, pathMissing: r.pathMissing, version: r.version, expected: r.expected, low: r.low, high: r.high,
+      monthsToGo, stopMonth, pathMissing: r.pathMissing, version: r.version, expected: r.expected, low: r.low, high: r.high,
       actual: r.pathMissing || r.actual == null ? (pot.pension == null ? null : Math.round(pot.pension)) : r.actual,
       compared: r.compared, pension: r.pension, isa: r.isa, isaCounted: r.isaCounted, missing: r.missing, prices: r.prices, at: r.at, start: r.start,
       actualSource: pot.source, recordedAt: pot.source === 'record' ? pot.recordedAt : (pot.source === 'holdings' ? ledgerAsOf : null),

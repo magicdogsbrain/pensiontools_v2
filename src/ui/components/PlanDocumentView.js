@@ -3,6 +3,7 @@
  * index.html (the strategy card, the staircase SVG) are injected so this module stays testable.
  */
 import { esc } from './ReleaseNotesView.js';
+import { monthWords as monthYearWords } from '../../answers/plan/dates.js';
 import { isaGrowthAssumptionText } from '../isaGrowthSetting.js';
 import { decisionRunWords, mixWords } from '../../services/StrategyWords.js';
 import { assumedStatePensionWords } from '../plannerWords.js';
@@ -450,7 +451,10 @@ export function whereAmIHtml(w, g = null) {
   if (w.saving && w.beforeStart) {
     // Still saving for a plan locked in advance (6.7.0; read like with like from 6.22.0 — saverReadingText)
     const s = w.saving;
-    parts.push('<strong>' + (s.monthsToGo >= 24 ? Math.round(s.monthsToGo / 12) + ' years' : s.monthsToGo + ' month' + (s.monthsToGo === 1 ? '' : 's')) + ' to go</strong> — the plan starts in ' + esc(w.planStart) + '.');
+    // (7.12.0) the header chip's count, to the month work stops, and both facts: the stop and the plan's first tax year
+    const toGo = '<strong>' + (s.monthsToGo >= 24 ? Math.round(s.monthsToGo / 12) + ' years' : s.monthsToGo + ' month' + (s.monthsToGo === 1 ? '' : 's')) + ' to go</strong>';
+    const stop = s.stopMonth ? monthYearWords(s.stopMonth) : '';
+    parts.push(stop ? toGo + ': you stop work in ' + esc(stop) + '; the plan’s first tax year is ' + esc(w.planStart) + '.' : toGo + ' — the plan starts in ' + esc(w.planStart) + '.');
     const text = saverReadingText(s);
     if (text) parts.push(text);
     if (s.contributions > 0 || s.isaMonthly > 0) parts.push('Going in on the locked plan: ' + [s.contributions > 0 ? gbp(s.contributions) + ' a month gross into your pension' : '', s.isaMonthly > 0 ? gbp(s.isaMonthly) + ' a month into ISAs and savings' : ''].filter(Boolean).join(' and ') + '.');

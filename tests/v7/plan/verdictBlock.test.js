@@ -17,6 +17,7 @@ import { join } from 'node:path';
 import { verdictBlockHtml as frozenBlock } from './verdictBlock.v1/verdictBlock.js';
 import { verdictBlockView, legacyVerdictBlockHtml, cardToneOf, chanceOptsOf, chanceVerdictOf, countAgeHtml, installChanceLevel, lifeAssumptionsRows, successLineHtml } from '../../../src/ui/oneAnswerView.js';
 import { planDocumentHtml } from '../../../src/ui/components/PlanDocumentView.js';
+import { unmarked } from '../../../src/reading/mark.js';
 import { LEGACY_DEFINITION, definitionOf } from '../../../src/services/PlanDocument.js';
 import { chanceRunOf, runForDocument } from '../../../src/answers/plan/lastsRun.js';
 import { lifeOfSettings } from '../../../src/answers/plan/life.js';
@@ -102,7 +103,7 @@ describe('a live block, weighing', () => {
     const linked = verdictBlockView(fake('pots-and-valves', 4), P, { life: { ...LIFE, reason: 'linked' } });
     expect(linked).not.toContain('data-weighted');
     expect(linked).toContain('data-fixed="1"');
-    expect(linked).toContain('If you live to 97, the money lasts that long in 16 of 20 futures we tried.');
+    expect(unmarked(linked)).toContain('If you live to 97, the money lasts that long in 16 of 20 futures we tried.');   // the words without the parity marks
   });
 });
 

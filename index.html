@@ -5860,7 +5860,7 @@
       let head;
       if (r.strategyId === 'pots-and-valves') {
         head = '<strong>Ran out of money in ' + pctText(ruinMc, 1, RUIN_BARS) + ' of ' + r.n.mc.toLocaleString() + ' simulated futures</strong> (and ' + pctText(ruinH, 1) + ' of ' + r.n.hist + ' real ' + yrsN + '-year histories since 1871). '
-          + 'Worst 12 months lived: ' + gbp(Math.round(r.worst12.min)) + ' <span class="hint">(median ' + gbp(Math.round(r.worst12.median)) + ')</span>. Guaranteed: ' + budEsc(r.guaranteedToAge) + '.';
+          + 'Worst 12 months lived: ' + gbp(Math.round(r.worst12.min)) + ' <span class="hint">(median ' + gbp(Math.round(r.worst12.median)) + ')</span>. Guaranteed: ' + markWithin(budEsc(r.guaranteedToAge), [[/from age (\d+)/, 'statePension.age']]) + '.';
       } else if (r.strategyId === 'ladder-and-ratchet') {
         head = (r.signature.ladderYears > 0 ? '<strong>' + gbp(p.targetAnnual) + '/yr bolted on to age ' + (p.startAge + r.signature.ladderYears) + ' by contract</strong> (' + r.signature.ladderYears + ' rungs, ' + gbp(Math.round(r.signature.baseLadderCost)) + '). ' : '<strong>The base ladder has all been paid</strong>: nothing is held by contract from today, so the ratcheted rungs and the sleeve pay. ')
           + 'The ratchet then locked a median ' + Math.round(r.signature.securedMedian) + ' more years in history (' + Math.round(r.signature.securedMedianMc) + ' in the futures; fully secured to the horizon in ' + pctText(r.signature.fullySecuredPct) + ' of histories). '
@@ -5892,7 +5892,7 @@
       } else if (r.strategyId === 'buckets-in-order') {
         const sg = r.signature;
         head = '<strong>Ran out of money in ' + pctText(ruinMc, 1, RUIN_BARS) + ' of ' + r.n.mc.toLocaleString() + ' simulated futures</strong> (and ' + pctText(ruinH, 1) + ' of ' + r.n.hist + ' real ' + yrsN + '-year histories since 1871). '
-          + 'Worst 12 months lived: ' + gbp(Math.round(r.worst12.min)) + ' <span class="hint">(median ' + gbp(Math.round(r.worst12.median)) + ')</span>. Guaranteed: ' + budEsc(r.guaranteedToAge) + '. '
+          + 'Worst 12 months lived: ' + gbp(Math.round(r.worst12.min)) + ' <span class="hint">(median ' + gbp(Math.round(r.worst12.median)) + ')</span>. Guaranteed: ' + markWithin(budEsc(r.guaranteedToAge), [[/from age (\d+)/, 'statePension.age']]) + '. '
           + 'Cash pays first (' + gbp(Math.round(sg.pots.cash)) + ' ≈ ' + sg.cashYears.toFixed(1) + ' years of spending), then bonds (' + gbp(Math.round(sg.pots.bond + sg.pots.diversifier)) + '), then equities; surplus waterfalls down from an equity path of ' + gbp(Math.round(sg.eqPath)) + ' (band ' + Math.round(sg.band * 100) + '%). Nothing sold in a slump.';
       } else if (r.strategyId === 'floor-the-schedule') {
         const sg = r.signature;
@@ -6325,7 +6325,7 @@
       const divAmtTxt = dv > 0 ? ' &middot; £' + dvAmt.toLocaleString() + ' diversifiers' : '';
       // The ISA rides alongside as its own tax-free pool — remind the user it isn't in the split.
       const isaVal = Math.round(+((document.getElementById(p + 'IsaBalance') || {}).value) || 0);
-      const isaTxt = isaVal > 0 ? '<br><span style="color:var(--text-muted);">+ £' + isaVal.toLocaleString() + ' ISA kept separate (tax-free, drawn down to your State Pension)</span>' : '';
+      const isaTxt = isaVal > 0 ? '<br><span style="color:var(--text-muted);">+ ' + markFact('isa.today', '£' + isaVal.toLocaleString()) + ' ISA kept separate (tax-free, drawn down to your State Pension)</span>' : '';
       if (amt) amt.innerHTML = '<strong>' + preset.label + '</strong> &mdash; ' + eq + '% shares &middot; ' + bd + '% bonds' + divPct + ' &middot; ' + csh + '% cash<br>' +
         '<span style="color:var(--text-muted);">£' + eqAmt.toLocaleString() + ' shares &middot; £' +
         bdAmt.toLocaleString() + ' bonds' + divAmtTxt + ' &middot; £' + cshAmt.toLocaleString() + ' cash</span>' + isaTxt;
@@ -7053,7 +7053,7 @@
           if (w.wrapper === 'pension') landing = 'It joins your SIPP (beneficiary drawdown; taxed as pension income when drawn).';
           else if (w.wrapper === 'isa') landing = 'It joins your ISA (tax-free).';
           else { try { const sp = routeWindfall(w, { isaAllowanceLeft: isaOnHold('ss') ? 0 : GIA_DEFAULTS.ISA_ALLOWANCE, relevantEarnings: +document.getElementById('ssRelevantEarnings')?.value || 0 }); const mixKey = w.mix || document.getElementById('ssTaxableMix')?.value || 'equity'; const mixTxt = ({ gilt: 'gilts — CGT-free, coupons taxed', equity: 'shares — dividends and gains taxed', bond: 'bond funds — interest and gains taxed', balanced: 'a 60/20/20 mix — partly taxed', cash: 'cash — interest taxed' })[mixKey] || mixKey; landing = 'That year: ' + (sp.toIsa > 0 ? gbp(sp.toIsa) + ' into the ISA, ' : '') + (sp.toSipp > 0 ? gbp(sp.toSipp) + ' into the SIPP, ' : '') + gbp(sp.toGia) + ' into the taxable account held as ' + mixTxt + '; the strategies grow and tax it accordingly.'; } catch (e) { /* no note */ } }
-          return '<div class="hint" style="margin:6px 0 0; display:flex; gap:8px; align-items:center; flex-wrap:wrap;"><span>▲ <strong>' + gbp(w.amount) + '</strong> ' + budEsc(w.label || 'lump sum') + ' at ' + age + ' pays for the shape above — it is not added to it. ' + landing + ' Spread evenly over the ' + yrs + ' years left it could support about <strong>' + gbp(perYear) + '/yr</strong> more (today\'s money, no growth, before the tax the taxable account suffers).</span>'
+          return '<div class="hint" style="margin:6px 0 0; display:flex; gap:8px; align-items:center; flex-wrap:wrap;"><span>▲ <strong>' + markFact('lump.' + i + '.amount', gbp(w.amount)) + '</strong> ' + budEsc(w.label || 'lump sum') + ' at ' + markFact('lump.' + i + '.age', String(age)) + ' pays for the shape above — it is not added to it. ' + landing + ' Spread evenly over the ' + yrs + ' years left it could support about <strong>' + gbp(perYear) + '/yr</strong> more (today\'s money, no growth, before the tax the taxable account suffers).</span>'
             + '<button type="button" class="risk-btn" style="padding:3px 10px;font-size:12px;" data-on-click="spendLumpSum(' + i + ')">Add ' + gbp(perYear) + '/yr to my income from ' + age + '</button></div>';
         }).join('');
       }
@@ -7654,7 +7654,7 @@
         : describeTiming(t, s);
       summary = paintStopMonth(document, t, s, await closedTimingSummary(summary));   // the month box's label and warning
       if (t.mode === 'future' && t.yearsToStart > 0) summary += ' Gilt ladders are priced at today\'s real yields as a guide — the rungs are bought at retirement. The "Funds to test" list sets only the starting mix the strategy is tested on — it is not a record of what you hold (that is the Transition tab); the plan is priced on the pots at retirement.';
-      g('tmSummary').innerHTML = markWithin(String(summary).replace(/&/g, '&amp;').replace(/</g, '&lt;'), [[/(?:stop work|retire|stopped work) in ([A-Z][a-z]+ \d{4})/, 'stop.month'], [/ at \d+, (\d+ (?:years?|months?)) away/, 'yearsToGo'], [/Plan runs to age (\d+)/, 'plan.endAge']]);   // marked for the parity sweep (lead4.md G1)
+      g('tmSummary').innerHTML = markWithin(String(summary).replace(/&/g, '&amp;').replace(/</g, '&lt;'), [[/(?:stop work|retire|stopped work) in ([A-Z][a-z]+ \d{4})/, 'stop.month'], [/ at \d+, (\d+ (?:years?|months?)) away/, 'yearsToGo'], [/Plan runs to age (\d+)/, 'plan.endAge'], [/State Pension from (\d{4}\/\d{2})/, 'statePension.start']]);   // marked for the parity sweep (lead4.md G1)
       // The first income step starts when the plan starts.
       if (Array.isArray(window._ssIncomeSteps) && window._ssIncomeSteps.length) window._ssIncomeSteps[0].fromAge = t.shapeAgeNow;
       updateDurationHint(); paintDbStart(document, window._ssTiming);   // the start age is known now: the final-salary age box and its words

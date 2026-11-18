@@ -13,7 +13,7 @@
  * The saver's block (SAVER_MARKS): which figure of the answer's sentences is which fact, by the block's line id.
  */
 import { partText } from '../answers/shared/format.js';
-import { markFact } from './mark.js';
+import { markFact, FIXED_CHANCE_WORDS } from './mark.js';
 import { FACT, BUCKETS, factId } from './facts.js';
 
 export function groupParts(parts, source, { keys = {}, finds = [] } = {}) {
@@ -126,3 +126,15 @@ export const HELD_MIX_SLOTS = bucketMarks(FACT.MIX_HELD);
 export const PLAN_MIX_SLOTS = bucketMarks(FACT.MIX_PLAN);
 /** The full view's one line of the held mix (Holdings.describeMix: "78% shares · 17% bonds · 5% cash; cost …"). */
 export const HELD_MIX_FINDS = Object.freeze(BUCKETS.map((b) => [new RegExp('(\\d+)% ' + b + '\\b'), HELD_MIX_SLOTS[b]]));
+
+/**
+ * The words under "Does it last?" / "Will it last?" (OneAnswer's weighted words: w.floor, w.left, w.assumed), the same
+ * sentences in both views: which figure in them is which fact. Drawn by the simple view's LastsScreen (markIn) and the full
+ * view's verdict block (markWithin).
+ */
+export const LASTS_FINDS = Object.freeze({
+  floor: Object.freeze([[/ran out at (\d+)/, FACT.RUN_OUT_AGE], [/still have (£[\d,]+) a year after tax/, FACT.FLOOR_INCOME]]),
+  left: Object.freeze([[/typically (?:left then is )?(£[\d,]+)/, FACT.LEFT], [/best 1 in 10 futures it is (£[\d,]+)/, FACT.LEFT_GOOD]]),
+  assumed: Object.freeze([[/About (\d+ in \d+)[^.]*live longer/, FACT.LIVE_LONGER], [/follow each future on to (\d+)/, FACT.FOLLOW_TO]]),
+  fixed: Object.freeze([[FIXED_CHANCE_WORDS, FACT.LASTS_FIXED], [/live to (\d+)/, FACT.END_AGE]])
+});

@@ -55,6 +55,7 @@ describe('the cuts a stored result ran with (walker 6 high 6: "never cut" beside
 
 // ---- one chance for a plan still saving (walker 10 high 2, walker 1 high 2, walker 2 highs 1 and 2) ----------------------
 import { verdictBlockView, chanceVerdictOf, chanceOptsOf } from '../../../src/ui/oneAnswerView.js';
+import { unmarked } from '../../../src/reading/mark.js';
 import { lifeOfSettings } from '../../../src/answers/plan/life.js';
 import { startSummaryHtml } from '../../../src/ui/startingPotsWords.js';
 
@@ -72,7 +73,7 @@ describe('the full view leads a saving plan with the saving chance', () => {
   const o = { life: LIFE, level: 'balanced', savingChance: 0.85 };
   it('the title, the hero and the tone say Close, 17 times in 20 — never On course, more than 19', () => {
     const html = verdictBlockView(run, PS, o);
-    expect(html).toContain('Will your money last? — Close at Balanced');
+    expect(unmarked(html)).toContain('Will your money last? — Close at Balanced');   // the words without the parity marks
     expect(html).toContain('17 times in 20');
     expect(html).not.toContain('more than 19 times in 20');
     expect(html).toContain('verdict-warning');

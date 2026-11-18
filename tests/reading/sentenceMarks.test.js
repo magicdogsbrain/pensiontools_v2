@@ -3,9 +3,9 @@
  * figure is marked the same way wherever the sentence is drawn. The words never change.
  */
 import { describe, it, expect } from 'vitest';
-import { groupParts, sentenceHtml, SAVER_MARKS, saverSlotsOf, GILTS_HELD_FIND } from '../../src/reading/sentenceMarks.js';
+import { groupParts, sentenceHtml, SAVER_MARKS, saverSlotsOf, GILTS_HELD_FIND, LASTS_FINDS } from '../../src/reading/sentenceMarks.js';
 import { saverLineHtml } from '../../src/ui/saverAnswerUi.js';
-import { unmarked } from '../../src/reading/mark.js';
+import { unmarked, markWithin } from '../../src/reading/mark.js';
 
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
 const result = { income: { bad: 1450 }, enough: { atLevel: { payIn: 610 } } };
@@ -72,5 +72,29 @@ describe('the mix by bucket (mix.held.#, mix.plan.#)', () => {
     expect(unmarked(html)).toBe(esc(describeMix(p)));   // "0.18%/yr" is never taken for a bucket
     expect(Object.keys(HELD_MIX_SLOTS)).toEqual(['shares', 'bonds', 'diversifiers', 'cash']);
     expect(PLAN_MIX_SLOTS.shares).toBe('mix.plan.shares');
+  });
+});
+
+describe('the words under "Does it last?" (LASTS_FINDS), marked the same way in both views', () => {
+  // the sentences OneAnswer writes (weightedWordsOf), as both views draw them
+  const words = {
+    floor: 'If the money ran out at 101, you would still have £20,350 a year after tax from the income you get anyway.',
+    left: 'If you live to 92, what is typically left then is £687,000 at today\'s prices. In the best 1 in 10 futures it is £2,342,000 or more.',
+    assumed: 'We tested to 92, the age your plan runs to. About 4 in 10 women your age live longer than that. We follow each future on to 104, when fewer than 1 in 50 women your age are still alive.',
+    fixed: 'If you live to 92, the money lasts that long in every future we tried.'
+  };
+  const marksOf = (html) => [...html.matchAll(/<span data-fact="([^"]+)">([^<]*)<\/span>/g)].map((m) => [m[1], m[2]]);
+  it('each figure is marked as its fact; the words are unchanged', () => {
+    const got = Object.fromEntries(Object.entries(words).map(([k, w]) => [k, markWithin(esc(w), LASTS_FINDS[k])]));
+    expect(marksOf(got.floor)).toEqual([['lasts.runOutAge', '101'], ['lasts.floorIncome', '£20,350']]);
+    expect(marksOf(got.left)).toEqual([['left.typically', '£687,000'], ['left.goodCase', '£2,342,000']]);
+    expect(marksOf(got.assumed)).toEqual([['lasts.liveLonger', '4 in 10'], ['lasts.followTo', '104']]);
+    expect(marksOf(got.fixed)).toEqual([['plan.endAge', '92'], ['lasts.fixedChance', 'in every future we tried']]);
+    for (const [k, w] of Object.entries(words)) expect(unmarked(got[k])).toBe(esc(w));
+  });
+  it('the fixed-age chance in every form the words take', () => {
+    for (const s of ['in 14 of 20 futures we tried', 'in none of the futures we tried', 'in more than 19 of 20 futures we tried', 'in fewer than 1 of 20 futures we tried']) {
+      expect(marksOf(markWithin('If you live to 97, the money lasts that long ' + s + '.', LASTS_FINDS.fixed))).toContainEqual(['lasts.fixedChance', s]);
+    }
   });
 });

@@ -9,7 +9,13 @@
  * Until 7.12.0 a mark sat on the whole line (LINE_FACTS); it now sits on the figure.
  */
 
-import { GILTS_HELD_FIND } from '../../reading/sentenceMarks.js';
+import { GILTS_HELD_FIND, LASTS_FINDS } from '../../reading/sentenceMarks.js';
+
+/** The words under "Does it last?" (OneAnswer's weighted words), marked as the full view marks them: a row id → its finds. */
+const LASTS_ROW_FINDS = Object.freeze({ floorW: LASTS_FINDS.floor, leftW: LASTS_FINDS.left, assumedW: LASTS_FINDS.assumed, fixedW: LASTS_FINDS.fixed });
+/** The fixed-age line where a band leads with it or states it under the weighted chance. */
+export const FIXED_FINDS = LASTS_FINDS.fixed;
+export const lastsRowFindsOf = (id) => LASTS_ROW_FINDS[id] || null;
 
 /** `${lineId}:${figureKey}` → fact id, for the sentences read.js writes (src/answers/plan/read.js). */
 const FIGURES = Object.freeze({
@@ -77,7 +83,7 @@ const SLOTS = Object.freeze({
   'about.stoppedIn': { month: 'stop.month' },
   'about.monthAs': { month: 'stop.month' },
   'about.runs': { endAge: 'plan.endAge' },
-  'lasts.left': { pounds: 'left.typically', typical: 'left.typically' },
+  'lasts.left': { pounds: 'left.typically', typical: 'left.typically', bad: 'left.badCase', good: 'left.goodCase' },
   'pots.pots.today': { pension: 'pot.today', isa: 'isa.today' },
   'pots.pots.todayTaxable': { pension: 'pot.today', isa: 'isa.today', taxable: 'gia.today' },
   'pots.stop.typed': { sipp: 'pot.atStop' },
@@ -137,3 +143,15 @@ export function afterFactsOf(line) {
   }
   return out;
 }
+
+/**
+ * The spending page's worked-out lines (answers/plan/spend.js derivedLines): each income step's line ("From age 60: £X a
+ * month after tax (£Y a year before tax)") marks its two figures as that step's facts, numbered in the order the steps come.
+ */
+export function spendDerivedFactsOf(lines) {
+  let n = -1;
+  return (lines || []).map((d) => (d && /^(first|step)\./.test(d.id) ? (n += 1, { monthly: `income.step.${n}.monthAfterTax`, yearly: `income.step.${n}.beforeTax` }) : {}));
+}
+
+/** A lump sum's line on the spending page, by its place in the list: its amount and age. */
+export const spendLumpFactsOf = (i) => ({ amount: `lump.${i}.amount`, age: `lump.${i}.age` });

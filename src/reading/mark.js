@@ -67,6 +67,9 @@ export function markWithin(html, finds = []) {
 /** The chance words of the register ("about 17 times in 20", "less than once in 20"). */
 export const CHANCE_WORDS = /((?:more than |less than |about )?(?:\d+ times|once) in 20)/;
 
+/** The fixed-age chance as the words say it (answers/shared/format.js twentiethsOfFutures): "in 14 of 20 futures we tried". */
+export const FIXED_CHANCE_WORDS = /(in (?:every future|none of the futures|(?:more than |fewer than )?\d+ of 20 futures) we tried)/;
+
 /** The HTML with every fact mark taken off, its figure left as it was: what a test of the words compares. */
 export function unmarked(html) {
   return String(html == null ? '' : html).replace(/<span data-fact="[^"]*">([^<]*)<\/span>/g, '$1');

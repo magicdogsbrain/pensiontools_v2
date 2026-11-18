@@ -8,7 +8,7 @@
  * answers/plan/spend.js through the plan source).
  */
 import { PlanRail, changeAction, EditField, UndoToast, fill, Button, LinkButton, ShapeChart } from '../../components/index.js';
-import { LOCK_DATE } from '../../components/facts.js';
+import { LOCK_DATE, spendDerivedFactsOf, spendLumpFactsOf } from '../../components/facts.js';
 import { fillMarked } from '../../components/PlanFigures.jsx';
 import { ThenBox } from '../../components/StepsField.jsx';
 import { planView, planSpendView } from '../../state/select.js';
@@ -38,11 +38,12 @@ const worded = (slots) => ({ ...slots, prices: SPEND.prices[slots.prices] || slo
 
 /** The derived figures (8.2): shown, never asked. */
 function Derived({ sp }) {
+  const marks = spendDerivedFactsOf(sp.derived);
   return (
     <section class="plan-section about-derived" data-section="derived">
       <h3>{SPEND.derivedTitle}</h3>
       <ul class="plan-lines">
-        {sp.derived.map((d, i) => <li key={i} class="plan-line" data-line={'spend.' + d.id}>{fill(SPEND.derived[d.id] || '', worded(d.slots))}</li>)}
+        {sp.derived.map((d, i) => <li key={i} class="plan-line" data-line={'spend.' + d.id}>{fillMarked(SPEND.derived[d.id] || '', worded(d.slots), marks[i])}</li>)}
       </ul>
     </section>
   );
@@ -258,9 +259,9 @@ export function SpendScreen(state, dispatch) {
               <div class="spend-lumps" data-testid="plan.spend.lumps">
                 <p class="note">{SPEND.lumps.lead}</p>
                 <ul class="plan-lines">
-                  {sp.lumps.map((l) => (
+                  {sp.lumps.map((l, i) => (
                     <li key={l.id} class="plan-line" data-testid={`plan.spend.lumps.${l.id}`} data-age={l.age} data-per-year={l.perYearValue}>
-                      {fill(SPEND.lumps.line, l)}
+                      {fillMarked(SPEND.lumps.line, l, spendLumpFactsOf(i))}
                       {l.edits && <div class="actions-row"><Button testid={`plan.spend.lumps.${l.id}.add`} kind="quiet" aria-describedby="plan.spend.lumps.help" onClick={() => { for (const ed of l.edits) dispatch({ type: 'plan/edit', planId, path: ed.path, value: ed.value }); }} {...keepFocus}>{fill(SPEND.lumps.add, l)}</Button></div>}
                     </li>
                   ))}

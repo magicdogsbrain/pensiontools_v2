@@ -90,9 +90,10 @@ export const OPTIONS = Object.freeze([
     set: (ss) => !!ss.disableProtection || (num(ss.consecutiveLimit) ?? DRAWDOWN_DEFAULTS.CONSECUTIVE_LIMIT) !== DRAWDOWN_DEFAULTS.CONSECUTIVE_LIMIT
       || (num(ss.protectionMult) ?? SIMULATION_DEFAULTS.PROTECTION_MULTIPLIER) !== SIMULATION_DEFAULTS.PROTECTION_MULTIPLIER
       || (num(ss.recoveryBuffer) ?? DRAWDOWN_DEFAULTS.RECOVERY_BUFFER) !== DRAWDOWN_DEFAULTS.RECOVERY_BUFFER || num(ss.protectionEscalateMonths) > 0,
-    facts: (ss) => [yesNo('off', !!ss.disableProtection), count('after', ss.consecutiveLimit ?? DRAWDOWN_DEFAULTS.CONSECUTIVE_LIMIT),
+    // (7.12.0) "On: no" when switched off, and no dials for a rule that never runs (it said "Switched off: yes" and its dials)
+    facts: (ss) => (ss.disableProtection ? [yesNo('on', false)] : [yesNo('on', true), count('after', ss.consecutiveLimit ?? DRAWDOWN_DEFAULTS.CONSECUTIVE_LIMIT),
       pct('cutTo', (num(ss.protectionMult) ?? SIMULATION_DEFAULTS.PROTECTION_MULTIPLIER) * 100), count('deeperAfter', ss.protectionEscalateMonths ?? 0),
-      money('buffer', ss.recoveryBuffer ?? DRAWDOWN_DEFAULTS.RECOVERY_BUFFER)] },
+      money('buffer', ss.recoveryBuffer ?? DRAWDOWN_DEFAULTS.RECOVERY_BUFFER)]) },
   { id: 'prot.reserve', keys: ['stress.hodlEnabled', 'stress.hodlValue'],
     set: (ss) => !!ss.hodlEnabled,
     facts: (ss) => [yesNo('on', !!ss.hodlEnabled), money('amount', ss.hodlValue ?? SIMULATION_DEFAULTS.HODL_VALUE)] },

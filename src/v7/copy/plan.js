@@ -565,7 +565,7 @@ export const PLAN = {
     'tax.band-fill':          { name: 'Fill the basic-rate band and move the rest into the ISA', facts: { on: 'On' } },
     'tax.bed-and-isa':        { name: 'Move £20,000 a year into the ISA', facts: { on: 'On' } },
     'tax.earnings':           { name: 'Earnings that count for pension saving', facts: { yearly: 'A year' } },
-    'prot.cuts':              { name: 'Cuts in a slump', facts: { off: 'Switched off', after: 'After this many draws from cash', cutTo: 'Income cut to', deeperAfter: 'A deeper cut after this many months', buffer: 'Buffer before the cut ends' } },
+    'prot.cuts':              { name: 'Cuts in a slump', facts: { on: 'On', after: 'After this many draws from cash', cutTo: 'Income cut to', deeperAfter: 'A deeper cut after this many months', buffer: 'Buffer before the cut ends' } },
     'prot.reserve':           { name: 'Emergency reserve', facts: { on: 'On', amount: 'Amount' } },
     'pots.diversifiers':      { name: 'Diversifiers (gold and trend funds)', facts: { amount: 'Amount' } },
     'pots.bond-tent':         { name: 'Bond tent', facts: { on: 'On', endgame: 'At the end' } },

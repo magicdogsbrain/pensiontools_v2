@@ -67,6 +67,12 @@ test('s02 · Jo keeps the plan, comes back the next day, and moves her stop to 6
     q.exact('what leaves Jo\'s take-home pay, on What you pay in', fromJo, pounds(takeHome), { byHand: '5% × 38,000 ÷ 12 × 0.8 = 126.67', tolerance: 1, owner: 'SAVER' });
     q.exact('the employer\'s part, on What you pay in', fromEmployer, pounds(shareOfPay(JO33.employerPct, JO33.pay)), { byHand: '3% × 38,000 ÷ 12 = 95', tolerance: 1, owner: 'SAVER' });
 
+    // the second walk (walkers 9, 1 and 4): "Cuts in a slump. Switched off: yes; … Income cut to: 80%" on a plan kept from
+    // the answer, which runs with the cut off: a double negative, then the dials of a rule that never runs
+    await q.step('Your plan', async () => { await planPage(later, planId, 'plan'); await settled(later).catch(() => {}); });
+    const yourPlan = await visibleText(later);
+    q.never('Your plan, "Everything else this plan uses"', ['Switched off', 'Income cut to'].filter((w) => yourPlan.includes(w)), { must: 'cuts switched off said as "On: no", with no dials', owner: 'VIEWS' });
+
     // X2: stop at 65; every page follows
     const before = await q.step('every page, before the change', () => sweep(later, planId, { ids: FOLLOW, pages: PAGES }));
     await q.step('About you and when: stop at 65', () => editAndSave(later, planId, 'about', 'stopAge', 65));

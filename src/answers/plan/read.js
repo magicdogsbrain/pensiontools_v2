@@ -991,6 +991,11 @@ function moveStep(C) {
     const planWords = ['shares', 'bonds', 'diversifiers', 'cash'].filter((b) => planPct[b] > 0).map((b) => String(planPct[b])).join(' / ');
     result = sentence('move.fromRecord', ['From ', { fixed: monthWords(rs.month) }, '’s record: ', ...parts, ' (your plan: ', { fixed: planWords }, ')'], figures);
     unlisted = true;   // nothing listed: no "% of the plan's mix held" line under it
+  } else if (asHeld && m.target.kind === 'buckets' && !normaliseHoldings(plan.holdings).lines.length) {
+    // living on it with nothing listed and no month recorded (7.12.0 round 3, walker 9: "0% of the plan's mix held" under
+    // "What you hold: Not recorded yet"): nothing is known of what is held, so nothing is compared, and nothing needs to be
+    result = sentence('move.notCompared', ['Not compared: nothing is recorded of what you hold, and nothing needs to be'], figures);
+    unlisted = true;
   } else if (asHeld && typeof m.diff.progressPct === 'number') {
     figures.heldPct = m.diff.progressPct;
     result = sentence('move.heldShare', [count('heldPct'), '% of the plan’s mix held'], figures);

@@ -44,6 +44,13 @@ test('s07 · Kim, 62, stopped last month: the year set up, two months recorded @
     q.reach('Kim\'s £520,000, £60,000 and £2,400 in the full view', sees(KIM62.pot) && sees(KIM62.isa) && (sees(KIM62.wantMonthlyAfterTax) || sees(pounds(year))), { did: `missing: ${[[KIM62.pot, '£520,000'], [KIM62.isa, '£60,000']].filter(([n]) => !sees(n)).map(([, w]) => w).join(', ') || 'the income'}`, owner: 'VIEWS' });
 
     await q.step('lock from Stress settings', () => lockFromStressSettings(page));
+    // the second walk (walker 9): locked, nothing listed under What you hold and no month recorded yet, Month by month's
+    // steps said "What you hold: Not recorded yet" and under it "0% of the plan's mix held": nothing is known, so nothing is compared
+    for (const name of ['month', 'home']) {
+      await q.step(`simple ${name === 'home' ? 'home' : 'Month by month'}, before the first month`, async () => { await planPage(page, planId, name); await settled(page).catch(() => {}); });
+      const before = await visibleText(page);
+      q.never(`simple ${name === 'home' ? 'home' : 'Month by month'}, before the first month`, /\d+% of the plan’s mix held/.test(before) ? [before.match(/\d+% of the plan’s mix held/)[0]] : [], { must: 'nothing compared when nothing of what is held is known', owner: 'HOLD' });
+    }
     let setUpIncome = null;
     const nov = await q.step('Monthly Entry, November 2026: the tax year set up with £21,000 of pay so far', () => monthlyEntry(page, {
       month: '2026-11', pension: KIM62.pot, isa: KIM62.isa,

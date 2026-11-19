@@ -39,12 +39,14 @@ describe('the runs go on to the later of the plan-to age and the weighting age; 
 
   // (7.12.0: C from now is the kept plan's run, and a plan kept to 85 keeps its floors and glidepath over its own 19 years,
   // the lead's ruling 2, so its amounts are that plan's own, not the plan to 99's: careful £2,070 against £2,090. The
-  // weighted sum still runs on to the same weighting age: a shorter plan-to age never shortens it.)
+  // weighted sum still runs on to the same weighting age: a shorter plan-to age never shortens it. E8 fix round 2: April to
+  // August, before the pots' day, give the pots no return, so the futures with a bad first year take less of it: careful
+  // £2,080 against £2,110, was £2,070 against £2,090.)
   it('C: a chosen 85 weighs to the same age as none (a shorter plan-to age never shortens the weighted sum); the label is 85', () => {
     const none = answerC(ALEX_C, ENV);
     const short = answerC({ ...ALEX_C, endAge: 85 }, ENV);
     expect(short.chance.weightToAge).toBe(none.chance.weightToAge);
-    expect([short.levels.careful.monthly, none.levels.careful.monthly]).toEqual([2070, 2090]);
+    expect([short.levels.careful.monthly, none.levels.careful.monthly]).toEqual([2080, 2110]);
     expect(short.basis.endAge).toBe(85);
     expect(short.chance.planToAge).toBe(85);
     expect(short.chance.horizonRule).toBe('chosen');

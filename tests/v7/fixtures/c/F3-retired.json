@@ -77,37 +77,37 @@
       "careful": {
         "monthly": 1750,
         "yearly": 21000,
-        "weighted": 0.9508097273530438,
-        "fixedAge": 0.8
+        "weighted": 0.9558098228182643,
+        "fixedAge": 0.85
       },
       "balanced": {
         "monthly": 1810,
         "yearly": 21720,
-        "weighted": 0.9010050472104922,
-        "fixedAge": 0.75
+        "weighted": 0.902460443857126,
+        "fixedAge": 0.7
       },
       "bold": {
-        "monthly": 1960,
-        "yearly": 23520,
-        "weighted": 0.7014160738326609,
-        "fixedAge": 0.225
+        "monthly": 1950,
+        "yearly": 23400,
+        "weighted": 0.7070986602921039,
+        "fixedAge": 0.175
       }
     },
     "chance": {
-      "weighted": 0.9010050472104922,
-      "fixedAge": 0.75,
-      "fails": 10,
+      "weighted": 0.902460443857126,
+      "fixedAge": 0.7,
+      "fails": 12,
       "n": 40,
       "planToAge": 99,
       "weightToAge": 103,
       "horizonRule": "survival"
     },
     "whose": "you",
-    "floorAge": 99,
+    "floorAge": 98,
     "left": {
       "age": 99,
-      "typical": 28523,
-      "best": 167051
+      "typical": 25537,
+      "best": 192248
     },
     "guaranteed": {
       "monthlyAfterTax": 1342.83
@@ -156,7 +156,7 @@
       "lasted": 0.025,
       "runOutAge": 82,
       "covered": false,
-      "weighted": 0.3909620899707079,
+      "weighted": 0.3804217389784753,
       "verdict": "no",
       "phases": [
         {
@@ -460,7 +460,7 @@
       },
       "bad": {
         "id": "c.when",
-        "text": "We follow each future on to 103. In the futures where the money runs out before then, it typically runs out at 99. In the worst 1 in 10 of all the futures, by 93.",
+        "text": "We follow each future on to 103. In the futures where the money runs out before then, it typically runs out at 98. In the worst 1 in 10 of all the futures, by 94.",
         "parts": [
           "We follow each future on to ",
           {
@@ -470,7 +470,7 @@
           ", it typically runs out ",
           "at ",
           {
-            "fixed": "99"
+            "fixed": "98"
           },
           ". ",
           "In the worst ",
@@ -484,14 +484,14 @@
           " of all the futures, ",
           "by ",
           {
-            "fixed": "93"
+            "fixed": "94"
           },
           "."
         ]
       },
       "range": {
         "id": "c.range",
-        "text": "You could take: Careful £1,750, Balanced £1,810, Bold £1,960 a month.",
+        "text": "You could take: Careful £1,750, Balanced £1,810, Bold £1,950 a month.",
         "parts": [
           "You could take: Careful ",
           {
@@ -595,7 +595,7 @@
       },
       "fixed": {
         "id": "c.fixed",
-        "text": "If you live to 99, the money lasts that long in 15 of 20 futures we tried.",
+        "text": "If you live to 99, the money lasts that long in 14 of 20 futures we tried.",
         "parts": [
           "If you live to ",
           {
@@ -603,7 +603,7 @@
           },
           ", the money lasts that long in ",
           {
-            "fixed": "15"
+            "fixed": "14"
           },
           " of ",
           {
@@ -615,7 +615,7 @@
       },
       "howLong": {
         "id": "c.howLong",
-        "text": "In the futures where it runs out before 99, it still pays for 25 of the 31 years to 99.",
+        "text": "In the futures where it runs out before 99, it still pays for 26 of the 31 years to 99.",
         "parts": [
           "In the futures where it runs out before ",
           {
@@ -623,7 +623,7 @@
           },
           ", it still pays for ",
           {
-            "fixed": "25"
+            "fixed": "26"
           },
           " of the ",
           {
@@ -653,12 +653,12 @@
       },
       "floor": {
         "id": "c.floor",
-        "text": "If the money ran out at 99, you would still have £16,114 a year after tax, from your pensions.",
+        "text": "If the money ran out at 98, you would still have £16,114 a year after tax, from your pensions.",
         "parts": [
           "If the money ran out ",
           "at ",
           {
-            "fixed": "99"
+            "fixed": "98"
           },
           ", ",
           "you would still have ",
@@ -673,7 +673,7 @@
       },
       "left": {
         "id": "c.left",
-        "text": "If you live to 99, what is typically left then is £29,000 at today's prices. In the best 1 in 10 futures it is £167,000 or more.",
+        "text": "If you live to 99, what is typically left then is £26,000 at today's prices. In the best 1 in 10 futures it is £192,000 or more.",
         "parts": [
           "If you live to ",
           {
@@ -681,7 +681,7 @@
           },
           ", what is typically left then is ",
           {
-            "fixed": "£29,000"
+            "fixed": "£26,000"
           },
           " at today's prices. In the best ",
           {
@@ -693,14 +693,14 @@
           },
           " futures it is ",
           {
-            "fixed": "£167,000"
+            "fixed": "£192,000"
           },
           " or more."
         ]
       },
       "cost": {
         "id": "c.cost",
-        "text": "Careful asks for £60 a month less than Balanced. Bold would let you take £150 a month more.",
+        "text": "Careful asks for £60 a month less than Balanced. Bold would let you take £140 a month more.",
         "parts": [
           "Careful asks for ",
           {
@@ -710,7 +710,7 @@
           " ",
           "Bold would let you take ",
           {
-            "fixed": "£150"
+            "fixed": "£140"
           },
           " a month more."
         ]

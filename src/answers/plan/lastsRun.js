@@ -446,9 +446,13 @@ export function trySettingsOf(s, boxes) {
   const id = b.way || 'pots-and-valves';
   const pot = +b.pot || 0;
   const isa = +b.isa || 0;
-  const oldPot = (s.equityMin || 0) + (s.bondMin || 0) + (s.cashTarget || 0);
+  // the box holds the whole pension (lasts.js tryStartOf): every pot scales with it, a diversifiers sleeve included (step F1)
+  const oldPot = (s.equityMin || 0) + (s.bondMin || 0) + (s.cashTarget || 0) + (s.diversifierStart || 0);
   const scale = oldPot > 0 ? pot / oldPot : 0;
-  if (oldPot > 0) { c.equityMin = Math.round((s.equityMin || 0) * scale); c.bondMin = Math.round((s.bondMin || 0) * scale); c.cashTarget = Math.round((s.cashTarget || 0) * scale); }
+  if (oldPot > 0) {
+    c.equityMin = Math.round((s.equityMin || 0) * scale); c.bondMin = Math.round((s.bondMin || 0) * scale); c.cashTarget = Math.round((s.cashTarget || 0) * scale);
+    if ((s.diversifierStart || 0) > 0) c.diversifierStart = Math.round(s.diversifierStart * scale);
+  }
   else { c.equityMin = Math.round(pot * 0.6); c.bondMin = Math.round(pot * 0.3); c.cashTarget = pot - c.equityMin - c.bondMin; }
   c.isaBalance = isa;
   c.strategyId = id;

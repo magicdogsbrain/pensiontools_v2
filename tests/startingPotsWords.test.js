@@ -26,9 +26,17 @@ describe('the line above the runs', () => {
     const S = plan.stressTool.settings;
     expect(startsScaled(S)).toBe(true);
     const cfg = createSimulationConfigFromSettings({}, S);
-    const text = plain(startSummaryHtml(S, { fromAnswer: plan.fromAnswer }));
-    expect(text).toContain(`Starting balances at retirement (age 60), as every run uses them: Equity ${fmt(cfg.equityStart)} · Bond ${fmt(cfg.bondStart)} · Cash ${fmt(cfg.cashStart)} (pension £341,000) · ISA ${fmt(cfg.isaBalance)}.`);
-    expect(text).toContain('These are your Settings pots today (pension £250,000, ISA £20,000) scaled to the pots at retirement in the Timing block.');
+    // (step F1, lead4.md D4) the reading's pot at the stop, to £1,000 and marked, and its pension today — never a sum of the
+    // pots to the pound beside it; nothing said until the reading is in
+    const at = { middle: cfg.equityStart + cfg.bondStart + cfg.cashStart, low: null, high: null, isa: cfg.isaBalance, age: 60, source: 'worked', from: { pot: 250000, monthly: 900 } };
+    const html = startSummaryHtml(S, { fromAnswer: plan.fromAnswer, atStop: at });
+    const text = plain(html);
+    expect(text).toContain(`Starting balances at retirement (age 60), as every run uses them: your Settings split of shares, bonds and cash, grown to the middling case (pension £341,000) · ISA £${(Math.round(cfg.isaBalance / 1000) * 1000).toLocaleString('en-GB')}.`);
+    expect(text).toContain('Worked out from your pension today (£250,000) and £900 a month going in. Change what goes in on the Accumulation tab.');
+    expect(html).toContain('data-fact="pot.atStop">£341,000<');
+    expect(html).toContain('data-fact="pot.today">£250,000<');
+    expect(text).not.toContain(fmt(cfg.equityStart));
+    expect(plain(startSummaryHtml(S, { fromAnswer: plan.fromAnswer }))).toContain('as every run uses them: your pots when you stop, from the Timing block.');
     // (7.12.0) a plan still saving: "Will it last?" leads with the saving chance worked out now, so the kept answer's is not said
     expect(text).not.toContain('This plan was made from a quick answer');
     expect(text).not.toMatch(/Fund Minimums/);

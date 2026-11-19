@@ -2,11 +2,12 @@
  * What the Stress tester says about the pots a run starts from — the two lines that disagreed with what the engine
  * runs on (review of "save this as a plan", 1 Oct 2026). Pure: settings in, HTML out (figures only, no user text).
  *
- *   startSummaryHtml(settings, { fromAnswer, locked })
+ *   startSummaryHtml(settings, { fromAnswer, locked, atStop })
  *                                                the line above Monte Carlo, History and Scenarios. Retiring later, the
- *                                                runs start from the pots AT RETIREMENT (today's pots scaled by the
- *                                                Timing block's pots at retirement — potScaleOf, as
- *                                                createSimulationConfigFromSettings does); it said today's. On a plan
+ *                                                runs start from the pots AT RETIREMENT (today's pots scaled to the pot at
+ *                                                the stop — potScaleOf, as createSimulationConfigFromSettings does), said
+ *                                                from the reading's pot at the stop (`atStop`, src/reading/atStop.js) and
+ *                                                its pension today, marked (step F1); nothing until it is in. On a plan
  *                                                made from a V7 answer it also gives the quick answer's own figure.
  *                                                It ends with the fund and platform charge the runs take (6.19.0)
  *                                                and, for a plan with an ISA, how the ISA grows (6.22.0).
@@ -14,7 +15,7 @@
  *                                                (src/reading/atStop.js potAtStop: the middle with its bad and good cases
  *                                                from the same lives, or the pots a locked plan was locked with).
  */
-import { potScaleOf, sippTodayOf, isaAtRetirementOf } from '../services/PotsAtRetirement.js';
+import { potScaleOf, isaAtRetirementOf } from '../services/PotsAtRetirement.js';
 import { earlyPensionDrawOf, earlyPensionDrawWords } from '../services/PlanTiming.js';
 import { closedYearsWords } from '../services/PensionLock.js';
 import { pensionLockForSettings } from '../strategies/stressTest.js';
@@ -63,12 +64,24 @@ export function ladderPotsOf(settings) {
   return { pinned, pension, isa, held, used: pension + (held ? 0 : isa) };
 }
 
-function ladderLine(s, locked) {
+function ladderLine(s, locked, atStop = null) {
   const L = ladderPotsOf(s);
   const name = LADDER_NAMES[s.strategyId];
   const from = L.pinned ? 'the pension total in this strategy\'s own settings' : 'the total of your <strong>Settings</strong> fund boxes';
-  let text = `This plan's way of drawing is the ${name}: every run buys the ladder from ${fmt(L.used)} — your pension, ${fmt(L.pension)} (${from})`;
-  if (L.isa > 0) text += L.held ? `. Your ISA (${fmt(L.isa)}) is held back and never buys rungs` : `, and your ISA, ${fmt(L.isa)}`;
+  let text;
+  if (startsScaled(s)) {
+    // a plan still saving buys the ladder when it stops, from the pots then: the reading's pot at the stop, to £1,000 and
+    // marked (step F1); nothing said until it is in. A pinned total the runs scale differently is said as it is, unmarked.
+    const at = atStop && +atStop.middle > 0 ? atStop : null;
+    const same = at && moneyK(L.pension) === moneyK(at.middle);
+    text = !at ? `This plan's way of drawing is the ${name}: every run buys the ladder when you stop, from your pots then (the Timing block)`
+      : `This plan's way of drawing is the ${name}: every run buys the ladder when you stop, from ${moneyK(L.used)} — your pension, ${same ? markFact('pot.atStop', moneyK(at.middle)) : moneyK(L.pension)} in the middling case`;
+    if (at && L.isa > 0) text += L.held ? `. Your ISA (${moneyK(L.isa)}) is held back and never buys rungs` : `, and your ISA, ${moneyK(L.isa)}`;
+    if (at && at.source === 'worked' && at.from) text += `. Worked out from your pension today (${markFact('pot.today', money(at.from.pot))}) and ${money(at.from.monthly)} a month going in`;
+  } else {
+    text = `This plan's way of drawing is the ${name}: every run buys the ladder from ${fmt(L.used)} — your pension, ${fmt(L.pension)} (${from})`;
+    if (L.isa > 0) text += L.held ? `. Your ISA (${fmt(L.isa)}) is held back and never buys rungs` : `, and your ISA, ${fmt(L.isa)}`;
+  }
   // The money left over (strategyParams.spareGrowth, 6.35.0; on the rotation it fills a cut year: in shares from 6.36.0, kept from 6.37.0).
   const grown = !!(s.strategyParams && s.strategyParams.spareGrowth), rot = s.strategyId === 'gilt-rotation';
   text += '. The split into shares, bonds and cash in Settings does not apply to the gilts. Money left over after buying the ladder is '
@@ -83,7 +96,7 @@ function ladderLine(s, locked) {
   return text;
 }
 
-export function startSummaryHtml(settings, { fromAnswer = null, locked = null } = {}) {
+export function startSummaryHtml(settings, { fromAnswer = null, locked = null, atStop = null } = {}) {
   const s = settings || {};
   const knowsSp = ('statePension' in s) || ('spStartDate' in s);
   const spNote = knowsSp && (!s.spStartDate || !s.spWeeklyAmount)
@@ -91,23 +104,27 @@ export function startSummaryHtml(settings, { fromAnswer = null, locked = null } 
     : '';
   if (GILT_LADDER_IDS.has(s.strategyId)) {
     const lasted = fromAnswer ? answerLastedWords(fromAnswer) : '';
-    return ladderLine(s, locked) + (lasted ? ` <span class="hint">This plan was made from a quick answer, where ${lasted}. These runs are the planner's own test, so they can differ.</span>` : '') + spNote + accessNote(s);
+    return ladderLine(s, locked, atStop) + (lasted ? ` <span class="hint">This plan was made from a quick answer, where ${lasted}. These runs are the planner's own test, so they can differ.</span>` : '') + spNote + accessNote(s);
   }
   const k = potScaleOf(s);
-  const div = (+s.diversifierStart || 0) > 0 ? ` · Diversifiers ${fmt(s.diversifierStart * k.sipp)}` : '';
   let text;
   if (startsScaled(s)) {
-    const sipp = sippTodayOf(s) * k.sipp, isa = isaAtRetirementOf(s);
-    const fromNothing = isaFromNothing(s) > 0;
-    const par = s.potAtRetirement || {};
-    text = `Starting balances at retirement (age ${+s.shapeAgeNow || s.retireAge}), as every run uses them: `
-      + `Equity ${fmt(s.equityMin * k.sipp)} · Bond ${fmt(s.bondMin * k.sipp)}${div} · Cash ${fmt(s.cashTarget * k.sipp)} (pension ${fmt(sipp)}) · ISA ${fmt(isa)}. `
-      // 7.12.0: worked out from the saver's facts (services/PotsAtStop.js), or the person's own figures
-      + (par.source === 'worked' && par.from
-        ? `Worked out from your pension today (${fmt(par.from.pot)}) and ${fmt(par.from.monthly)} a month going in, in a middling case. Change what goes in on the Accumulation tab.`
-        : `These are your <strong>Settings</strong> pots today (pension ${fmt(sippTodayOf(s))}, ISA ${fmt(s.isaBalance)}${fromNothing ? ' today' : ''}) scaled to the pots at retirement in the Timing block`
-            + `${fromNothing ? ', with the ISA at retirement taken as the Timing block gives it (there is no ISA today to scale)' : ''}. Edit them in the Settings tab.`);
+    // (step F1, lead4.md D3/D4) the pot at the stop and the pension today are the reading's (src/reading/atStop.js potAtStop),
+    // to the formatter's rounding and marked, as the Timing line says them — never a sum of the pots of its own. Until the
+    // reading is in, no figure is said.
+    const at = atStop && +atStop.middle > 0 ? atStop : null;
+    const age = at && Number.isFinite(+at.age) && +at.age > 0 ? +at.age : (+s.shapeAgeNow || s.retireAge);
+    text = `Starting balances at retirement (age ${age}), as every run uses them: `;
+    if (!at) text += 'your pots when you stop, from the Timing block.';
+    else if (at.source === 'locked') {
+      text += `the pots your plan was locked with, split as your <strong>Settings</strong> are (pension ${markFact('pot.atStop', moneyK(at.middle))}) · ISA ${moneyK(at.isa)}.`;
+    } else {
+      const from = at.from || {};
+      text += `your <strong>Settings</strong> split of shares, bonds${(+s.diversifierStart || 0) > 0 ? ', diversifiers' : ''} and cash, grown to the middling case (pension ${markFact('pot.atStop', moneyK(at.middle))}) · ISA ${moneyK(at.isa)}. `
+        + `Worked out from your pension today (${markFact('pot.today', money(from.pot))}) and ${money(from.monthly)} a month going in. Change what goes in on the Accumulation tab.`;
+    }
   } else {
+    const div = (+s.diversifierStart || 0) > 0 ? ` · Diversifiers ${fmt(s.diversifierStart * k.sipp)}` : '';
     text = 'Starting balances come from your <strong>Settings</strong> (Fund Minimums): '
       + `Equity ${fmt(s.equityMin)} · Bond ${fmt(s.bondMin)}${div} · Cash ${fmt(s.cashTarget)}. Edit them in the Settings tab.`;
   }

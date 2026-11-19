@@ -109,9 +109,10 @@ describe('1. no ISA today, money going into one: the runs start from the ISA at 
   });
   it('the line above the runs says the ISA the runs start from, and how it grows', () => {
     expect(startsScaled(saved)).toBe(true);
-    const t = plain(startSummaryHtml(saved));
-    expect(t).toContain('ISA £' + par.isa.toLocaleString('en-GB') + '.');
-    expect(t).toContain('ISA £0 today) scaled to the pots at retirement in the Timing block, with the ISA at retirement taken as the Timing block gives it (there is no ISA today to scale).');
+    // (step F1) said from the reading's pot at the stop, to £1,000 as every place says it: the ISA at retirement, not today's £0
+    const t = plain(startSummaryHtml(saved, { atStop: { middle: par.sipp, low: null, high: null, isa: par.isa, age: 60, source: 'worked', from: { pot: 400000, monthly: 0 } } }));
+    expect(t).toContain('ISA £' + (Math.round(par.isa / 1000) * 1000).toLocaleString('en-GB') + '.');
+    expect(t).not.toContain('ISA £0');
     expect(isaGrowthRunLine(saved)).toMatch(/grows like cash/);
   });
 });

@@ -546,7 +546,9 @@ describe('"Your pots and tax" (editing-in-v7.md 9): the same one write, chosen b
         expect(JSON.stringify(after[1])).toBe(JSON.stringify(JSON.parse(before)[1]));
         if (!c.ok) expect(p.session.raw(GUEST_PLANS_KEY)).toBe(before);
         else {
-          const stripped = (plan) => { const out = copy(plan); for (const path of POTS_WRITES.concat('lastModified')) { const parts = path.split('.'); let o = out; for (let i = 0; i < parts.length - 1 && o; i++) o = o[parts[i]]; if (o) delete o[parts[parts.length - 1]]; } return JSON.stringify(out); };
+          // (step F1) a first pension on a plan with none writes accumulationTool.settings (pensionTodayPatch): the parent that
+          // write makes is part of it, so an object left empty by taking the step's paths off is taken off too
+          const stripped = (plan) => { const out = copy(plan); for (const path of POTS_WRITES.concat('lastModified')) { const parts = path.split('.'); const chain = [out]; let o = out; for (let i = 0; i < parts.length - 1 && o; i++) { o = o[parts[i]]; chain.push(o); } if (!o) continue; delete o[parts[parts.length - 1]]; for (let i = parts.length - 2; i >= 0; i--) { const at = chain[i + 1]; if (at && typeof at === 'object' && !Array.isArray(at) && !Object.keys(at).length) delete chain[i][parts[i]]; else break; } } return JSON.stringify(out); };
           expect(stripped(after[0])).toBe(stripped(JSON.parse(before)[0]));
         }
       }

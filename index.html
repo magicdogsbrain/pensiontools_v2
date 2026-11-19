@@ -4135,7 +4135,7 @@
     import { tagPortfolio, allocationFromTags, mixFromFunds } from './src/services/PortfolioTagger.js';   // the mix a funds list makes, lifted pure (6.41.0)
     import { searchFunds as searchFundsIn } from './src/services/FundCatalogue.js';   // the fuzzy fund search, lifted pure (6.41.0)
     import { trySettingsOf, documentSuccessOf, chanceRunOf } from './src/answers/plan/lastsRun.js';   // "Try a strategy": the what-if copy of the settings, lifted pure (6.41.0)
-    import { tryDifferencesOf } from './src/answers/plan/lasts.js';   // … and its "What's different" list (6.41.0)
+    import { tryDifferencesOf } from './src/answers/plan/lasts.js'; import { tryStartOf } from './src/reading/tryStart.js';   // … and its "What's different" list (6.41.0); where its boxes start, as the simple view's (step F1)
     import { SUB_ASSET_PROFILES, FUND_TAG_MAP, FUND_CATALOGUE, catalogueEntry, subClassOptionsByBucket } from './src/services/SubAssetModel.js';
     import {
       initAdminConfig, activeFundCatalogue, liveCatalogueEntry, isAdminUser, adminPassphrase,
@@ -5536,8 +5536,10 @@
         getStressSettingsAsync().then((full) => renderStressStartSummary({ ...full, ...s })).catch(() => {});
       }
       // The words (src/ui/startingPotsWords.js): retiring later, the pots at retirement every run starts from; a plan made from a V7 answer, the answer's own figure too.
-      const paint = (fromAnswer, locked) => ['mcStartSummary', 'histStartSummary', 'scenStartSummary'].forEach((id) => { const el = document.getElementById(id); if (el) el.innerHTML = startSummaryHtml(s, { fromAnswer, locked }); });   // + the charge the runs take (6.19.0)
-      paint(null, null); Promise.all([planFromAnswer().catch(() => null), planIsLocked().catch(() => null)]).then(([fa, locked]) => paint(fa || null, locked));
+      // a plan still saving: the pot at the stop and the pension today are the reading's (src/reading/atStop.js, step F1), marked
+      const paint = (fromAnswer, locked, atStop) => ['mcStartSummary', 'histStartSummary', 'scenStartSummary'].forEach((id) => { const el = document.getElementById(id); if (el) el.innerHTML = startSummaryHtml(s, { fromAnswer, locked, atStop }); });   // + the charge the runs take (6.19.0)
+      const atStopOf = async () => { const sc = await getActiveScenarioAsync(); return sc ? potAtStop(sc, contextFor(sc, { now: todayOf() })) : null; };
+      paint(null, null, null); Promise.all([planFromAnswer().catch(() => null), planIsLocked().catch(() => null), atStopOf().catch(() => null)]).then(([fa, locked, at]) => paint(fa || null, locked, at));
     }
 
     // Refresh the stress sub-tab summaries from current settings (called on tab switch).
@@ -5810,12 +5812,16 @@
       const sel = document.getElementById('tryStrategy'); paintStrategyCounts(document);   // the count comes from the registry, never typed in
       if (sel && !sel.options.length) sel.innerHTML = Object.entries(STRATEGY_NAMES).map(([id, n]) => '<option value="' + id + '">' + budEsc(n) + '</option>').join('');
       if (sel) sel.value = s.strategyId || 'pots-and-valves';
-      const sp = s.strategyParams || {};
-      // the pot box starts at the figure the what-if rescales the pots by and "What's different" reads (the pension's shares,
-      // bonds and cash; a diversifiers sleeve is left as it is) — until 6.41.0 it started at the sum WITH the sleeve, so an
-      // untouched what-if on a plan with a sleeve moved the pots and said the pot differed
-      document.getElementById('tryPot').value = s.potsNotSet ? '' : Math.round(sp.sippTotal || ((s.equityMin || 0) + (s.bondMin || 0) + (s.cashTarget || 0))); paintTryPotWords(document, s);   // no pension known: empty (7.12.0); a plan still saving: the pension today, said so (src/ui/tryBoxes.js)
-      document.getElementById('tryIsa').value = Math.round(sp.isaTotal ?? (s.isaBalance || 0));
+      // where the pension and ISA boxes start: the one function both views fill them from (src/reading/tryStart.js, step F1) —
+      // a plan still saving its pension and ISA today, a locked plan its last record, else the pension its runs start from
+      // (a diversifiers sleeve included); "What's different" sets a try against its base. The line under the box says the
+      // reading's pot at the stop (src/ui/tryBoxes.js).
+      let sc = null; try { sc = await getActiveScenarioAsync(); } catch (e) { sc = null; }
+      const start = sc ? tryStartOf(sc, { today: dayKeyOf(todayOf()) }) : null;
+      window._tryBase = start ? start.base : null;
+      let atStop = null; try { atStop = sc ? potAtStop(sc, contextFor(sc, { now: todayOf() })) : null; } catch (e) { atStop = null; }
+      document.getElementById('tryPot').value = start && start.pot != null ? start.pot : ''; paintTryPotWords(document, s, atStop);   // no pension known: empty (7.12.0)
+      document.getElementById('tryIsa').value = start ? start.isa : '';
       document.getElementById('tryIsaPolicy').value = '';
       document.getElementById('tryIncomeMode').value = 'shape';
       document.getElementById('tryIncomeWrap').style.display = 'none';
@@ -5882,7 +5888,7 @@
         }
         _tryLast = { id: c.strategyId, params: c.strategyParams };
         // "What's different": the lifted list (answers/plan/lasts.js tryDifferencesOf, 6.41.0) in the planner's words
-        const diff = tryDifferencesOf(s, c).map((d) => TRY_DIFF_WORDS[d.id](d));
+        const diff = tryDifferencesOf(s, c, window._tryBase).map((d) => TRY_DIFF_WORDS[d.id](d));   // against where the boxes started (tryStartOf)
         out.innerHTML = (diff.length ? '<div class="alert alert-warning" style="font-size:12px;"><strong>What-if, not your plan:</strong> ' + budEsc(diff.join(' · ')) + '. Nothing has been saved.</div>' : '<div class="alert alert-info" style="font-size:12px;">This is your plan as saved, run through ' + budEsc(STRATEGY_NAMES[c.strategyId]) + '.</div>')
           + strategyResultCard(r, p);
         document.getElementById('tryUseBtn').style.display = '';
@@ -7341,7 +7347,7 @@
         if (stage && stage.hidden.includes(key)) { tab.dataset.stageHidden = '1'; tab.style.display = 'none'; }
         else if (tab.dataset.stageHidden) { delete tab.dataset.stageHidden; tab.style.display = ''; }
         if (stage && stage.readOnly.includes(key)) tab.title = stage.key === 'closed' ? 'This plan is closed — read-only; it carries on in a new plan' : 'Locked with the plan — read-only until you unlock';
-        else if (stage && stage.leads.includes(key)) tab.title = 'Where your plan is now: ' + stage.label;
+        else if (stage && stage.leads.includes(key) && window._stageWord) tab.title = 'Where your plan is now: ' + window._stageWord;   // the three stage words (src/reading/timing.js), never the placing label (step F1)
         else tab.removeAttribute('title');
       });
       const mb = document.querySelectorAll('#mobileTabBar button[data-tab]');
@@ -8305,7 +8311,7 @@
       if (!el) return;
       try {
         const st = await getActiveStrategy();
-        { const k = tryFillKeyOf(await getActiveScenarioId(), await getStressSettingsAsync()); if (tryNeedsFill(window._tryFilledFor, k, window._tryTouched)) { try { await resetTryStrategyUI(); window._tryFilledFor = k; } catch (e2) { /* settings not ready */ } } }   // Try a strategy's boxes follow the plan open and its figures, unless a what-if was typed (src/ui/tryBoxes.js)
+        { const tsc = await getActiveScenarioAsync().catch(() => null); const k = tryFillKeyOf(await getActiveScenarioId(), await getStressSettingsAsync(), tsc ? tsc.lastModified || null : null); if (tryNeedsFill(window._tryFilledFor, k, window._tryTouched)) { try { await resetTryStrategyUI(); window._tryFilledFor = k; } catch (e2) { /* settings not ready */ } } }   // Try a strategy's boxes follow the plan open and its figures, unless a what-if was typed (src/ui/tryBoxes.js)
         const isPnv = !st.id || st.id === 'pots-and-valves';
         { const b = document.getElementById('optimiseBtnMC'); if (b) b.style.display = isPnv ? '' : 'none'; const fam = !st.id || PNV_FAMILY.includes(st.id); document.querySelectorAll('[data-stresstab="drawdown"], [data-stresstab="glidepath"]').forEach((t) => { t.style.display = fam ? '' : 'none'; }); }   // the fund boxes' schedule and glidepath mean nothing to a bought strategy (sweep 18 Oct 2026)
         if (st.id && st.id !== 'pots-and-valves') {

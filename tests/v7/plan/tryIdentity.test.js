@@ -17,7 +17,8 @@ import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { runTry, trySettings, trySettingsOf } from '../../../src/answers/plan/lastsRun.js';
-import { tryDifferencesOf, tryBoxesOf, tryPotFromRecord, checkTry } from '../../../src/answers/plan/lasts.js';
+import { tryDifferencesOf, tryBoxesOf, tryPotFromRecord, checkTry, tryStartOf } from '../../../src/answers/plan/lasts.js';
+import { pensionToday, isaToday } from '../../../src/reading/money.js';
 import { effectiveStressSettings } from '../../../src/services/PlanReading.js';
 import { createSimulationConfigFromSettings } from '../../../src/storage/StressRepository.js';
 import { planFromSettings, stressTestStrategy } from '../../../src/strategies/stressTest.js';
@@ -132,7 +133,15 @@ describe('gate 8b — Try a change equals the planner\'s what-if on every fixtur
       // (7.12.0, the record brief's G) a locked plan with a pot recorded since the lock starts from it: the pension and the
       // ISA as last recorded; every other box is the planner's saved one
       const rec = tryPotFromRecord(plan, { today: TODAY });
-      expect({ ...mine.run, income: 0 }).toEqual(rec ? { ...savedBoxes(s), pot: rec.pension.value, ...(rec.isa ? { isa: rec.isa.value } : {}) } : savedBoxes(s));
+      // (step F1) both views' boxes start from tryStartOf: a plan still saving (and not locked with a record) from its pension
+      // and ISA today, as every other place says them (src/reading/money.js); its runs grow them to the stop either way
+      const start = tryStartOf(plan, { today: TODAY });
+      if (!rec && s.retired === false) {
+        expect(start.pot).toBe(r0(pensionToday(plan, { now: noon(TODAY), settings: s }).value));
+        expect(start.isa).toBe(r0(isaToday(plan, { now: noon(TODAY), settings: s }).value));
+      }
+      expect({ ...mine.run, income: 0 }).toEqual(rec ? { ...savedBoxes(s), pot: rec.pension.value, ...(rec.isa ? { isa: rec.isa.value } : {}) }
+        : s.retired === false ? { ...savedBoxes(s), pot: start.pot, isa: start.isa } : savedBoxes(s));
     });
   }
   it('the pins exist (written once from the same function) and cover every fixture and row', () => {

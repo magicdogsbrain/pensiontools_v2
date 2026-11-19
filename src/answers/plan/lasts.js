@@ -44,6 +44,8 @@ import { partnersOf } from '../../services/HouseholdLink.js';
 import { shownPlanNameOn } from '../../services/PlanName.js';
 import { marketLabel } from '../../reading/marketPlain.js';
 import { potAtStop } from '../../reading/atStop.js';
+import { pensionToday, isaToday } from '../../reading/money.js';
+import { sippTodayOf } from '../../services/PotsAtRetirement.js';
 import { moneyK } from '../../reading/format.js';
 
 export { applyPatch };
@@ -486,16 +488,18 @@ export function extrasView(x) {
  * (a correction). The planner's `income` line was said only when the plan has steps; a flat try of a flat plan at another
  * figure is a difference too, so it is said then as well (a correction).
  */
-export function tryDifferencesOf(s, c) {
+export function tryDifferencesOf(s, c, base = null) {
   const diff = [];
   const sid = s.strategyId || 'pots-and-valves';
   if (c.strategyId !== sid) diff.push({ id: 'way', slots: { way: c.strategyId, old: sid } });
-  const oldPot = (s.strategyParams && s.strategyParams.sippTotal) || ((s.equityMin || 0) + (s.bondMin || 0) + (s.cashTarget || 0));
+  // set against where the boxes start (tryStartOf's base) when the caller has it; else the pension the plan's runs start from
+  const B = isObj(base) ? base : null;
+  const oldPot = B && B.pot != null ? B.pot : planTryPotOf(s);
   const newPot = (c.strategyParams && c.strategyParams.sippTotal) || 0;
   // a plan with no pension known anywhere (PlanReading.withPensionToday's `potsNotSet`) has no pot to set beside it (7.12.0)
   if (s.potsNotSet) diff.push({ id: 'pot', slots: { pot: r0(newPot), old: null } });
   else if (Math.abs(newPot - oldPot) > 1) diff.push({ id: 'pot', slots: { pot: r0(newPot), old: r0(oldPot) } });
-  const oldIsa = (s.strategyParams && s.strategyParams.isaTotal != null) ? s.strategyParams.isaTotal : (s.isaBalance != null ? s.isaBalance : 0);
+  const oldIsa = B && B.isa != null ? B.isa : planTryIsaOf(s);
   if (Math.abs((c.isaBalance || 0) - oldIsa) > 1) diff.push({ id: 'isa', slots: { isa: r0(c.isaBalance || 0), old: r0(oldIsa) } });
   const policy = (x) => (x.isaDrawdownStrategy == null ? null : String(x.isaDrawdownStrategy));
   if (policy(c) !== policy(s)) diff.push({ id: 'isaPolicy', slots: { policy: policy(c), old: policy(s) } });
@@ -527,9 +531,13 @@ function trySettingsOf(s, boxes) {
   const id = b.way || 'pots-and-valves';
   const pot = +b.pot || 0;
   const isa = +b.isa || 0;
-  const oldPot = (s.equityMin || 0) + (s.bondMin || 0) + (s.cashTarget || 0);
+  // the box holds the whole pension (lasts.js tryStartOf): every pot scales with it, a diversifiers sleeve included (step F1)
+  const oldPot = (s.equityMin || 0) + (s.bondMin || 0) + (s.cashTarget || 0) + (s.diversifierStart || 0);
   const scale = oldPot > 0 ? pot / oldPot : 0;
-  if (oldPot > 0) { c.equityMin = Math.round((s.equityMin || 0) * scale); c.bondMin = Math.round((s.bondMin || 0) * scale); c.cashTarget = Math.round((s.cashTarget || 0) * scale); }
+  if (oldPot > 0) {
+    c.equityMin = Math.round((s.equityMin || 0) * scale); c.bondMin = Math.round((s.bondMin || 0) * scale); c.cashTarget = Math.round((s.cashTarget || 0) * scale);
+    if ((s.diversifierStart || 0) > 0) c.diversifierStart = Math.round(s.diversifierStart * scale);
+  }
   else { c.equityMin = Math.round(pot * 0.6); c.bondMin = Math.round(pot * 0.3); c.cashTarget = pot - c.equityMin - c.bondMin; }
   c.isaBalance = isa;
   c.strategyId = id;
@@ -548,9 +556,34 @@ function restoredParamsOf(s, id) {
   return (s.strategyState && s.strategyState[id] && s.strategyState[id].strategyParams) ? { ...s.strategyState[id].strategyParams } : {};
 }
 
-/** The pot a try starts from, the figure the what-if rescales by and "What's different" reads: the pinned pension total, else the pension's shares, bonds and cash. */
-export const tryPotOf = (ss) => r0((ss.strategyParams && ss.strategyParams.sippTotal) || ((ss.equityMin || 0) + (ss.bondMin || 0) + (ss.cashTarget || 0)));
-export const tryIsaOf = (ss) => r0(ss.strategyParams && ss.strategyParams.isaTotal != null ? ss.strategyParams.isaTotal : (ss.isaBalance || 0));
+/** The pension the plan's runs start from (a try's base): the pinned pension total, else the pension's four pots, a diversifiers sleeve included. */
+const planTryPotOf = (ss) => r0((ss.strategyParams && ss.strategyParams.sippTotal) || sippTodayOf(ss));
+const planTryIsaOf = (ss) => r0(ss.strategyParams && ss.strategyParams.isaTotal != null ? ss.strategyParams.isaTotal : (ss.isaBalance || 0));
+
+/**
+ * Where "Try a strategy"'s pension and ISA boxes start, in BOTH views (lead4.md D3, D10; step F1): ONE function.
+ *   - a locked plan with a record since the lock: the pension and ISA as last recorded (tryPotFromRecord);
+ *   - no pension known anywhere: no pension (the box empty);
+ *   - a plan still saving: the pension and ISA today (src/reading/money.js, as every other place says them; the runs grow
+ *     them to the stop, so the box is labelled the pension today);
+ *   - any other plan: the pension its runs start from (a diversifiers sleeve included) and its ISA.
+ * → { pot: number|null, isa: number, rec: tryPotFromRecord's | null, base: { pot, isa } } — `base` is what "What's
+ * different" sets a try against: the plan's own figures on a locked plan (so a try from the last record says what moved),
+ * the boxes' start on every other plan (an untouched try differs in nothing).
+ */
+export function tryStartOf(plan, { today }) {
+  const now = dateOf(today);
+  const ss = safeSettings(plan, now);
+  const rec = tryPotFromRecord(plan, { today });
+  const own = { pot: ss.potsNotSet ? null : planTryPotOf(ss), isa: planTryIsaOf(ss) };
+  let start = own;
+  if (rec) start = { pot: rec.pension.value, isa: rec.isa ? rec.isa.value : own.isa };
+  else if (ss.retired === false && !ss.potsNotSet) {
+    const ctx = { now, settings: ss };
+    start = { pot: r0(pensionToday(plan, ctx).value), isa: r0(isaToday(plan, ctx).value) };
+  }
+  return { pot: start.pot, isa: start.isa, rec, base: isLocked(plan) ? own : { ...start } };
+}
 
 /** The boxes' starting text (4): the plan as saved — the income box a month after tax, as the spend step shows the first step. */
 /**
@@ -580,12 +613,12 @@ export function tryBoxesOf(plan, { today }) {
   const ss = saved.ss;
   const bands = bandsOf(ss);
   const first = Array.isArray(ss.targetSchedule) && ss.targetSchedule.length ? r0(ss.targetSchedule[0]) : r0(ss.baseSalary);
-  const rec = tryPotFromRecord(plan, { today });
+  const start = tryStartOf(plan, { today });
   return {
     'try.way': WAY_IDS.includes(ss.strategyId) ? ss.strategyId : 'pots-and-valves',
-    // no pension known anywhere (7.12.0): the box starts empty, never the stored default; a locked plan's from its last record
-    'try.pot': rec ? String(rec.pension.value) : ss.potsNotSet ? '' : String(tryPotOf(ss)),
-    'try.isa': rec && rec.isa ? String(rec.isa.value) : String(tryIsaOf(ss)), 'try.isaPolicy': 'saved',
+    // the one start (tryStartOf): no pension known anywhere, the box empty (7.12.0); a locked plan's from its last record
+    'try.pot': start.pot == null ? '' : String(start.pot),
+    'try.isa': String(start.isa), 'try.isaPolicy': 'saved',
     'try.incomeMode': 'shape', 'try.income': String(monthlyNet(first, bands)),
     'try.years': String(num(ss.duration) || 35), 'try.cuts': 'saved', 'try.cutPct': '', 'try.cutEsc': ''
   };
@@ -626,7 +659,7 @@ export function checkTry(plan, typed, { today }) {
 /** "What's different" (4) on a plan: the lines, from the plan's settings and the copy the boxes make. */
 export function tryDifferences(plan, boxes, today) {
   const ss = safeSettings(plan, dateOf(today));
-  return tryDifferencesOf(ss, trySettingsOf(ss, boxes));
+  return tryDifferencesOf(ss, trySettingsOf(ss, boxes), tryStartOf(plan, { today }).base);
 }
 
 /**
@@ -639,7 +672,7 @@ export function tryPatch(plan, boxes, { today, at = null } = {}) {
   if (isLocked(plan)) return { ok: false, errors: { plan: 'locked' }, patch: {}, previous: {}, diffs: [] };
   const ss = safeSettings(plan, dateOf(today));
   const c = trySettingsOf(ss, boxes);
-  const diffs = tryDifferencesOf(ss, c);
+  const diffs = tryDifferencesOf(ss, c, tryStartOf(plan, { today }).base);
   const ids = new Set(diffs.map((d) => d.id));
   const S = 'stressTool.settings.';
   const want = {};
@@ -652,6 +685,7 @@ export function tryPatch(plan, boxes, { today, at = null } = {}) {
   const potsMoved = ids.has('pot') || ids.has('isa');
   if (potsMoved) {
     want[S + 'equityMin'] = c.equityMin; want[S + 'bondMin'] = c.bondMin; want[S + 'cashTarget'] = c.cashTarget; want[S + 'isaBalance'] = c.isaBalance;
+    if ((ss.diversifierStart || 0) > 0) want[S + 'diversifierStart'] = c.diversifierStart;
     // a bought way is priced on its pinned totals (StrategyState.SHARED_KEYS): they travel with the way's params
     if (isBought(c.strategyId)) {
       const params = cleanParams(c.strategyId, { ...(want[S + 'strategyParams'] || (c.strategyId === ss.strategyId ? ss.strategyParams : {}) || {}), sippTotal: c.strategyParams.sippTotal, isaTotal: c.strategyParams.isaTotal });

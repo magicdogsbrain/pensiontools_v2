@@ -141,7 +141,8 @@ test.describe('"Your pots and tax", without an account', () => {
     await expect(page.locator('#ssTaxableStart')).toHaveValue('85000');
     // the planner's own loader stamps its upgrade as it always has; this step's keys are as the preview wrote them
     const plansNow = await storedPlans(page);
-    for (const k of POTS_WRITES) { const [tool, , key] = k.split('.'); expect(plansNow[0][tool].settings[key], k).toEqual(after[0][tool].settings[key]); }
+    for (const k of POTS_WRITES.filter((p) => p.split('.').length === 3)) { const [tool, , key] = k.split('.');   // (a saver's pension today, accumulationTool.settings/.history, is whole objects)
+      expect(plansNow[0][tool].settings[key], k).toEqual(after[0][tool].settings[key]); }
 
     // back in the preview: the same change undone by hand, then Undo of that: byte for byte
     await page.goto(v7('#/plan/PotsPlan01/pots'));

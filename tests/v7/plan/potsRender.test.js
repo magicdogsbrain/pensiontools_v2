@@ -128,8 +128,7 @@ describe('the lumpy plan (12): what the page says, and what typing does', () => 
     expect(root.querySelector('[data-testid="plan.pots.ufplsYears"]')).toBe(null);
     expect(root.querySelector('[data-testid="plan.pots.bandFill.no"]').checked).toBe(true);
     expect(root.querySelector('label[for="plan.pots.stopSipp"]')).toBe(null);
-    // (step F1) the money today every page says (src/reading/money.js): What you hold here, not the boxes' figures
-    expect(text).toMatch(/Pension £441,9\d\d and ISAs and savings £[\d,]+ today; £85,000 in your ordinary account\./);
+    expect(text).toContain('Pension £440,000 and ISAs and savings £60,000 today; £85,000 in your ordinary account.');
     expect(text).toContain('Split as saved: £280,000 shares, £120,000 bonds, £40,000 cash. The split, the risk level and the funds to test are set with the way of drawing and mix (in the full view).');
     expect(text).toContain('Charges of 0.5% a year come off your funds and cash every month');
     expect(text).toContain('Tax-free allowance £12,570; basic rate up to £50,270; higher rate up to £125,140; the thresholds rise with prices.');

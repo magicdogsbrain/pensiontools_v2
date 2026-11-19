@@ -40,11 +40,12 @@ export function isaToday(plan, ctx = {}) {
 }
 
 export function giaToday(plan, ctx = {}) {
+  // the pension today read as the plan's own figure (a plan drawn from now on, not locked): its general account is the plan's own
+  if (pensionToday(plan, ctx).from === 'plan') return { value: Math.max(0, num(settingsOf(plan, ctx).taxableStart) || 0), from: 'plan' };
   const held = wrapperFigure(plan && plan.holdings, 'GIA');
   if (held) return { value: Math.max(0, held.value), from: 'holdings' };
   return { value: Math.max(0, num(settingsOf(plan, ctx).taxableStart) || 0), from: 'plan' };
 }
-// (an unlocked plan's settings already read the general account What you hold says: PlanReading.withSaversPensionToday)
 
 export function cashToday(plan, ctx = {}) {
   const held = wrapperFigure(plan && plan.holdings, 'CASH');

@@ -2,8 +2,8 @@
  * "What you pay in", without an account (research/v7/road-to-7.md step 11b: save.relief, save.escalation, save.own-mix,
  * save.pot-record), on the PUBLISHED build. The committed saver (corpus 05, "Sam's plan", locked, with a record a month and
  * holdings) and a retired plan (corpus 12, "Alex's plan") are planted in the window. On #/plan/<id>/saving: the boxes and
- * what the pot could be equal the Node reading (saving.js savingOf: AccumulationEngine.projectAccumulation with "Your mix"
- * from what is held); a rise typed and saved writes the whole settings object equal to the Node patch (savingPatch, the
+ * the pot at the stop equal the Node reading (saving.js savingOf: the one model, src/reading/atStop.js — this locked saver's
+ * pot as locked); a rise typed and saved writes the whole settings object equal to the Node patch (savingPatch, the
  * planner's readAccumulationInputs), the plan's lock untouched (the settings are outside it), Undo byte for byte; "Record
  * it" writes the record list whole equal to the Node patch (recordPatch, the planner's recordAccumulationMonth), nothing
  * deleted, Undo byte for byte; the saver rules hold on screen; the rail's "Am I saving enough?" opens question B with the
@@ -61,7 +61,7 @@ test.describe('"What you pay in", without an account', () => {
     for (const k of [...Object.keys(node.save.patch), ...Object.keys(node.record.patch)]) expect(SAVING_WRITES).toContain(k);
     expect(node.saving.locked).toBe(true);
 
-    await test.step('the step: the boxes with the planner\'s figures, the relief closed then opened, the pot by the stop with "Your mix", the records; nothing written on opening; no sideways scroll; the saver rules', async () => {
+    await test.step('the step: the boxes with the planner\'s figures, the relief closed then opened, the pot by the stop (the one model), the records; nothing written on opening; no sideways scroll; the saver rules', async () => {
       await page.goto(v7('#/plan/SavingPlan01/saving'));
       await expect(page.locator('#app [data-screen]')).toHaveAttribute('data-screen', 'plan.saving');
       await expect(page.getByTestId('plan.step.saving')).toHaveText('What you pay in');
@@ -79,12 +79,14 @@ test.describe('"What you pay in", without an account', () => {
       await page.getByTestId(`${T}.relief.open`).click();
       await expect(page.getByTestId(`${T}.relief.box`)).toBeVisible();
       await expect(page.getByTestId(`${T}.relief.box`)).toContainText('the tax the government adds back');
-      await expect(page.getByTestId(`${T}.pot`)).toHaveAttribute('data-mix', '1');
+      // (step F1) the pot at the stop is the one model's, as Node reads it: this saver is locked, so the pot it was locked with,
+      // marked, and no table worked out today beside it; the regulator's rates and "Your mix" line are gone
+      expect(node.saving.atStop.locked).toBe(true);
+      await expect(page.getByTestId(`${T}.pot.atStop`)).toContainText(node.saving.atStop.value);
+      await expect(page.getByTestId(`${T}.pot.atStop`).locator('[data-fact="pot.atStop"]')).toHaveText(node.saving.atStop.value);
       await expect(page.locator(`[data-testid="${T}.pot.table"] tbody tr`)).toHaveCount(node.saving.rows);
-      const last = page.locator(`[data-testid="${T}.pot.table"] tbody tr.is-last`);
-      await expect(last).toHaveAttribute('data-mid', String(node.saving.last.raw.mid));
-      await expect(last).toHaveAttribute('data-mix', String(node.saving.last.raw.mix));
-      await expect(page.getByTestId(`${T}.pot.mix`)).toContainText(`shares ${node.saving.mix.shares}%, bonds ${node.saving.mix.bonds}%`);
+      expect(node.saving.rows).toBe(0);
+      await expect(page.getByTestId(`${T}.pot.mix`)).toHaveCount(0);
       await expect(page.getByTestId(`${T}.records`)).toHaveAttribute('data-count', String(node.saving.recordsCount));
       const widths = await page.evaluate(() => ({ doc: document.documentElement.scrollWidth, win: window.innerWidth }));
       expect(widths.doc, 'no sideways scroll').toBeLessThanOrEqual(widths.win);

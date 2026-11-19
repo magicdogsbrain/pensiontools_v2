@@ -47,7 +47,12 @@ import { pct } from '../../strategies/ladderEngine.js';
 import { simulate } from '../../services/SimulationEngine.js';
 import { isIsaGrowthMix } from '../../services/IsaGrowth.js';
 import { planFor, weightedPlanFor, weighing } from '../plan/lastsRun.js';
-import { lifeOf, weightedReasonOf, weightedYearsOf, planLevelOf } from '../plan/life.js';
+import { lifeOf, weightedReasonOf, weightedYearsOf, planLevelOf, floorAt } from '../plan/life.js';
+import { planShortfallOf } from '../../services/OneAnswer.js';
+import { grossToNet } from '../../services/TaxCalculator.js';
+import { leftOf as shortfallLeftOf } from '../shared/shortfall.js';
+import { BANDS } from '../shared/toEngine.js';
+import { lumpyByYear } from '../../services/PlanNeed.js';
 import { dateOf } from '../plan/dates.js';
 import { createFastRunner, prepareFutureFrom } from '../shared/fastEngine.js';
 import { livesList, sliceReturns } from '../shared/lives.js';
@@ -111,6 +116,73 @@ function withIsaMix(c) {
   if (c.isaGrowth !== 'invested' || isIsaGrowthMix(c.isaGrowthMix)) return c;
   const mix = { equity: c.equityStart, bond: c.bondStart, cash: c.cashStart };
   return isIsaGrowthMix(mix) ? { ...c, isaGrowthMix: mix } : c;
+}
+
+/**
+ * What the answer's WORDS read, from the kept plan alone (fault 2 of step P: one reader of the plan's incomes): the plan in
+ * the shape the household plan has for the readers of what an amount is made of (toEngine.js breakdownAt, stopAt.js phasesAt,
+ * c/answer.js phasesOf), who can draw before 2028 (apart.js before2028) and when the money runs out (shortfall.js
+ * shortfallOf, which hands a plan carrying `shortfallAt` to it). Built from the plan's own run (planFromSettings) and its
+ * settings, never from the household:
+ *   - the plan's years from year 0 to the plan-to age, at the plan's start age;
+ *   - in run year y, the State Pension the plan pays (p.spAnnual from p.spStartYear, a whole year: the words describe a
+ *     year at today's prices, not the part year's share) and the other income that comes anyway (a final-salary pension,
+ *     as the plan counts it in today's money: PlanNeed.lumpyByYear), taxed with the plan's bands and its access method (a
+ *     quarter tax-free, 'ufpls', or all taxed);
+ *   - a pension still closed for the plan's closed years (pnvCfg.pensionLockedMonths), its savings paying meanwhile;
+ *   - what comes in anyway once all of it has started (`guaranteedAYear`, after tax);
+ *   - the age today from the plan's date of birth (life.js), for the 2028 rule.
+ * One person; `asGiven` (D: the work and closed-pension fields) as the household plan D read had it.
+ */
+function wordsPlanFrom({ p, settings, life, asGiven, planYears, planToAge }) {
+  const cfg = p.pnvCfg;
+  const startAge = p.startAge;
+  const pa = +settings.pa > 0 ? +settings.pa : BANDS.pa, brl = +settings.brl > 0 ? +settings.brl : BANDS.brl, hrl = +settings.hrl > 0 ? +settings.hrl : BANDS.hrl;
+  const net = (g) => (g > 0 ? grossToNet(g, pa, brl, hrl) : 0);
+  const spStart = isNum(p.spStartYear) ? p.spStartYear : Infinity;
+  const spAt = (y) => (p.spAnnual > 0 && y >= spStart ? p.spAnnual : 0);
+  // the income that comes anyway (a final-salary pension, income streams), as the plan reads it before anything else is put
+  // with it (PlanNeed.lumpyByYear: the plan's otherIncomeByYear also carries the savings that pay a closed pension's years,
+  // which are not income that comes anyway)
+  const lumpy = lumpyByYear(settings, cfg, p.durationYears).otherIncomeByYear;
+  const other = lumpy.length ? lumpy : [0];
+  const otherAt = (y) => +other[Math.max(0, Math.min(y, other.length - 1))] || 0;
+  const lockedYears = cfg.pensionLockedMonths > 0 ? Math.ceil(cfg.pensionLockedMonths / 12) : 0;
+  const pension = (cfg.equityStart || 0) + (cfg.bondStart || 0) + (cfg.cashStart || 0);
+  const isa = cfg.isaBalance || 0;
+  const kind = pension > 0 ? 'pension' : isa > 0 ? 'savings' : 'none';
+  const ageToday = Math.floor(life.ageNow + 1e-9);
+  const person = {
+    who: 'you', index: 0, ageToday, ageAtStart: startAge, pension, isa, money: pension + isa, share: 1, kind,
+    lockedYears, untilAge: lockedYears > 0 ? startAge + lockedYears : null, taxFreeQuarter: settings.accessMethod === 'ufpls',
+    statePension: { amount: p.spAnnual > 0 ? p.spAnnual : 0, startAge: Number.isFinite(spStart) ? startAge + spStart : null, startYear: Number.isFinite(spStart) ? spStart : null, inPayment: p.spAnnual > 0 && spStart <= 0 },
+    finalSalary: [], ...(asGiven ? { work: [] } : {})
+  };
+  // the runs as the household plan makes them (toEngine.js enginePlan): one; a closed pension with savings, D's locked run
+  const runs = kind === 'none' ? [] : lockedYears > 0 && !asGiven && isa > 0
+    ? [{ who: 'you', index: 0, role: 'pension', money: pension }, { who: 'you', index: 0, role: 'savings', money: isa }]
+    : [{ who: 'you', index: 0, role: lockedYears > 0 ? 'pension' : kind, money: lockedYears > 0 && !asGiven ? pension : pension + isa, ...(lockedYears > 0 && asGiven ? { locked: true } : {}) }];
+  const cuts = new Set([0, planYears]);
+  for (let y = 1; y < planYears; y++) if (spAt(y) !== spAt(y - 1) || otherAt(y) !== otherAt(y - 1) || y === lockedYears) cuts.add(y);
+  const bounds = [...cuts].sort((a, b) => a - b);
+  const periods = [];
+  for (let i = 0; i + 1 < bounds.length; i++) {
+    const from = bounds[i];
+    const sp = spAt(from), fs = otherAt(from), g = sp + fs;
+    const b = { who: 'you', statePension: sp, finalSalary: fs, ...(asGiven ? { work: 0 } : {}), gross: g, net: net(g), locked: from < lockedYears };
+    // the pots' share between the runs, as enginePlan shares them: a closed pension draws on nothing until it opens
+    const available = runs.map((r) => (r.role === 'pension' && b.locked ? (asGiven && r.locked ? isa : 0) : r.money));
+    const total = available.reduce((s, v) => s + v, 0);
+    const shares = runs.length === 1 ? [1] : available.map((v) => (total > 0 ? v / total : 0));
+    periods.push({ from, to: bounds[i + 1], byPerson: [b], shares, netTotal: b.net, spPaidCount: sp > 0 ? 1 : 0 });
+  }
+  return {
+    ...(asGiven ? { asGiven: true } : {}), startAge, endAge: planToAge, years: planYears, yearsFromNow: 0, whose: 'you',
+    people: [person], runs, periods, shape: null, apart: null, spCount: p.spAnnual > 0 ? 1 : 0,
+    lockedUntil: lockedYears > 0 ? [{ who: 'you', years: lockedYears, untilAge: person.untilAge }] : [],
+    totalPots: pension + isa, totalPension: pension, totalIsa: isa,
+    guaranteedAYear: net((p.spAnnual > 0 ? p.spAnnual : 0) + Math.max(0, ...other.map((v) => +v || 0)))
+  };
 }
 
 /** The fields the fast path reads once per run from its base (fastEngine.js prepareRun): every config of a case shares them. */
@@ -283,10 +355,41 @@ export function planCaseOf(source, ins, env, { lives = null, dragPct = 0, fromAg
     return { typical: Math.round(pct(terms, 0.5)), best: Math.round(pct(terms, 0.9)) };
   };
 
+  /**
+   * When the money runs out, how long and how much of the plan is still paid, and what still comes in then, at H from the
+   * months each future ran out in (the answers' shortfall shape, shortfall.js): the kept plan's own reading — "Does it
+   * last?"'s and "Try the bad years"' (OneAnswer.planShortfallOf, on the futures these months are, the plan's own years
+   * and the run followed on to the weighting age), the floor what the plan pays anyway in the middle run-out year (life.js
+   * floorAt, as OneAnswer's floor line). `left`: each future's left at the plan-to age (leftTermsOf), said as the plan says it.
+   */
+  const shortfallAt = (ms, H, { left = null } = {}) => {
+    const { p, settings } = at(H);
+    const leftSaid = shortfallLeftOf(left);
+    const own = ms.map((m) => m !== null && m !== undefined && m < toMonth);
+    const r = { strategyId: STRATEGY, survivedMc: own.map((x) => !x), futuresMc: { failYear: ms.map((m, i) => (own[i] ? runYearOf(m, startAge) : null)) } };
+    const rW = extend ? { strategyId: STRATEGY, survivedMc: ms.map((m) => m === null || m === undefined), futuresMc: { failYear: ms.map((m) => (m === null || m === undefined ? null : runYearOf(m, startAge))) } } : null;
+    const s = planShortfallOf(r, p, {}, rW ? { rW, wYears: years } : {});
+    if (!s.when) return { when: null, howLong: null, howMuch: 1, floor: null, ...(leftSaid ? { left: leftSaid } : {}) };
+    const ys = ms.filter((m) => m !== null && m !== undefined).map((m) => runYearOf(m, startAge)).sort((a, b) => a - b);
+    const y = ys[Math.floor((ys.length - 1) / 2)];
+    const wp = wordsPlan();
+    const b = (wp.periods.find((per) => y >= per.from && y < per.to) || wp.periods[wp.periods.length - 1]).byPerson[0];
+    const yearly = floorAt(settings, p, y, now) || 0;
+    const spStart = isNum(p.spStartYear) ? p.spStartYear : Infinity;
+    const floor = { age: Math.round(startAge + y), yearly, survivor: null, sp: b.statePension > 0 ? 1 : 0, fs: b.finalSalary > 0,
+      spAge: yearly > 0 || !(p.spAnnual > 0) || !(spStart > y) || !Number.isFinite(spStart) ? null : Math.round(startAge + spStart) };
+    const howLong = s.howLong ? { paid: s.howLong.paid, of: s.howLong.of, ...(s.howLong.anyway ? { anyway: true } : {}) } : null;
+    return { when: { typical: s.when.typical, worst: s.when.worst, worstLasts: s.when.worstLasts }, howLong, howMuch: s.howMuch, floor, ...(leftSaid ? { left: leftSaid } : {}) };
+  };
+  /** The plan the words read (wordsPlanFrom), made once: the kept plan's incomes do not change with the amount. */
+  let words = null;
+  const wordsPlan = () => words || (words = { ...wordsPlanFrom({ p: p0, settings: first.settings, life, asGiven: source === 'd', planYears, planToAge }), shortfallAt });
+
   return {
     source, plan, sp: { n, lives: L }, runner, weigher, toMonth, planYears, years, startAge, planToAge, weightToAge,
     level: planLevelOf(first.kept), capped: plan.runCapped, reason,
     keptAt: (H) => at(H).kept, settingsAt: (H) => at(H).settings,
-    floorAgeOf, worstAgeOf, leftOf, leftTermsOf
+    floorAgeOf, worstAgeOf, leftOf, leftTermsOf, shortfallAt,
+    get wordsPlan() { return wordsPlan(); }
   };
 }

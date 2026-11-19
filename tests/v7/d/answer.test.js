@@ -162,7 +162,10 @@ describe('the fixtures of answer-D.md 11.4 that this release covers', () => {
     expect(r.pensionOpens.you).toBe(57);
     expect(r.assumed.find((a) => a.id === 'pension-closed-until').text).toBe('Your pension is left alone until you are 57; your savings pay until then.');
     expect(r.warnings.find((w) => w.id === 'pension-closed').text).toBe("You can't take money from your pension until you are 57. Until then your ISA and savings pay.");
-    expect(r.phases[0]).toMatchObject({ fromAge: 53, toAge: 57, pensionOpen: false });
+    // what it is made of is the kept plan's (step P2): the plan opens the pension in the first tax year that starts with
+    // them 57 — 57 on 30 September 2030, so 2031/32, five tax years from 2026/27 — and its runs keep it closed until then,
+    // so the savings pay from 53 to 58 (the household's own years said 57)
+    expect(r.phases[0]).toMatchObject({ fromAge: 53, toAge: 58, pensionOpen: false });
     expect(r.sentences.madeOf[0].id).toBe('d.madeOf.locked');
     expect(r.sentences.madeOf[0].text).toMatch(/all from your savings\. Your pension can't be touched until then\.$/);
     expect(r.assumed.find((a) => a.id === 'd-tax-free-some')).toBeUndefined();

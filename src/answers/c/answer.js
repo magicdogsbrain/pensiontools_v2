@@ -472,11 +472,9 @@ function planCaseC(checked, now, env, { lives = livesOf(env.futures, env), dragP
   const capped = Boolean(pc.capped) || pc.planToAge < ins.endAge;
   const chanceAges = { planToAge: pc.planToAge, weightToAge: pc.weigher.weighted ? pc.weigher.weightToAge : pc.planToAge,
     horizonRule: horizonRuleOf({ defaulted: defaultedFields(ins, env).includes('endAge'), capped }) };
-  // the plan the words read (what comes in each year, the State Pension's start): the household's, to the plan-to age
-  // (cut to the plan-to age when the kept plan is shorter, at most 45 years: its phases end where its chance is counted)
-  const Y = pc.planToAge - now.plan.startAge;
-  const words = Y >= now.plan.years ? { ...now.plan, endAge: pc.planToAge }
-    : { ...now.plan, endAge: pc.planToAge, years: Y, periods: now.plan.periods.filter((per) => per.from < Y).map((per) => ({ ...per, to: Math.min(per.to, Y) })) };
+  // the plan the words read (what comes in each year, the State Pension's start, when the money runs out): the kept plan's
+  // own (planPath wordsPlan), over its years to the plan-to age (at most 45: its phases end where its chance is counted)
+  const words = pc.wordsPlan;
   // the plan the words read the run from: cut short (the kept plan's 45 years) says so as a cap, "We could test only to …"
   const runPlan = capped && !pc.runner.plan.runCapped ? { ...pc.runner.plan, runCapped: true, years: Math.min(pc.runner.plan.years, pc.planToAge - pc.runner.plan.startAge) } : pc.runner.plan;
   return { pc, sp: pc.sp, runner: pc.runner, weigher: pc.weigher, toMonth: pc.toMonth, chanceAges, words, lives, runPlan };
@@ -530,7 +528,8 @@ export function stressCaseOf(inputs, env) {
 
 /**
  * C from now for one person on the plan path (onPlanPath): the band, the amount being tried and the weighted words, every
- * run the kept plan's. The phases and the incomes that come anyway are the household plan's words (`now.plan`).
+ * run the kept plan's; so are the phases, the incomes that come anyway, who can draw before 2028 and when the money runs
+ * out (`c.words`, planPath wordsPlan). The household plan (`now.plan`) is read only for what was typed (the facts).
  */
 function answerOnPlanPath(checked, now, env) {
   const { household, fullStatePensionAYear, plan, level } = now;
@@ -563,7 +562,7 @@ function answerOnPlanPath(checked, now, env) {
     // at the plan-to age, typically and in the best 1 in 10, at today's prices (its "left at the end")
     floorAge: pc.floorAgeOf(lv[level].months),
     left: { age: pc.planToAge, ...(H > 0 ? pc.leftOf(H, lv[level].months) : { typical: 0, best: 0 }) },
-    guaranteed: { monthlyAfterTax: round2(plan.guaranteedAYear / 12) },
+    guaranteed: { monthlyAfterTax: round2(c.words.guaranteedAYear / 12) },
     phases: phasesOf(c.words, H), take, assumed: [], warnings: [], sentences: {},
     basis: { ...basisOf(plan, env, n, levelBasis(level, weigher, ins, pc.planToAge)), startAge, endAge: pc.planToAge, years: pc.planToAge - startAge },
     units: UNITS
@@ -572,6 +571,8 @@ function answerOnPlanPath(checked, now, env) {
   if (typed) result.payIn = typed;
   const facts = factsOf(plan, checked, household, fullStatePensionAYear, env);
   facts.capped = Boolean(plan.capped) || c.chanceAges.horizonRule === 'capped';
+  // who moves money into drawdown before 6 April 2028: the kept plan's own (its age today from its date of birth)
+  facts.drawdown2028 = before2028(c.words.people.map((p) => ({ who: p.who, age: p.ageToday, S: 0, pension: p.pension > 0 })), env.today);
   if (weigher.weighted) {
     result.basis.weighted = true;
     facts.weighing = { lf: lifeFactsOf(result, weigher, c.runPlan, ins),

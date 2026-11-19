@@ -42,7 +42,8 @@ import { answerB } from '../b/_b.js';
 import { keptPlansOf } from '../../../src/answers/keep/keptPlan.js';
 import { buildPlanSeed } from '../../../src/answers/keep/planSeed.js';
 import { seedToScenario } from '../../../src/services/PlanFromSeed.js';
-import { lastsOf, runLasts } from '../../../src/answers/plan/lastsRun.js';
+import { lastsOf, runLasts, weightedOptsOf } from '../../../src/answers/plan/lastsRun.js';
+import { dateOf } from '../../../src/answers/plan/dates.js';
 import { planShortfallOf } from '../../../src/services/OneAnswer.js';
 import { planCaseOf, keptPlanAt } from '../../../src/answers/keep/planPath.js';
 import { checkInputs } from '../../../src/answers/shared/validate.js';
@@ -186,6 +187,65 @@ describe('D: the answer is the plan kept from it (one person, the plan path)', (
     const row = runStressStrip('d', d.inputs, withPlanPath(ENV), { perMonth: 2100 }).rows[0];
     expect(row.id).toBe('asPlanned');
     expect(row.sf.left).toEqual({ typical: k(plan.left), best: k(plan.best), mostNone: plan.lasted * 2 < N });
+  });
+});
+
+/**
+ * The kept plan's own "when, how long, how much" and floor (the stress panel's As planned row: OneAnswer.planShortfallOf on
+ * the plan's run and the run followed on to the weighting age; the floor line weightedPartOf's), in the answers' shape.
+ */
+function planShortfall(plan) {
+  const { settings, strategyId, p, r, a } = lastsOf(plan, { today: TODAY, futures: N, histories: false });
+  const w = weightedOptsOf(plan, { settings, strategyId, p, r, now: dateOf(TODAY) });
+  const sf = planShortfallOf(r, p, a, w.opts);
+  return {
+    when: sf.when ? { typical: sf.when.typical, worst: sf.when.worst, worstLasts: sf.when.worstLasts } : null,
+    howLong: sf.howLong ? { paid: sf.howLong.paid, of: sf.howLong.of, ...(sf.howLong.anyway ? { anyway: true } : {}) } : null,
+    howMuch: sf.howMuch, floor: a.floor ? { age: a.floor.age, yearly: a.floor.yearly } : null
+  };
+}
+const answerShortfall = (sf) => ({ when: sf.when, howLong: sf.howLong, howMuch: sf.howMuch, floor: sf.floor ? { age: sf.floor.age, yearly: sf.floor.yearly } : null });
+
+/** Pat (made up): 60, stopped, £200,000 in a pension, £20,000 of savings, a final-salary pension of £9,000 a year from 63. */
+const PAT_D = { you: { age: 60, pot: 200000, taxFreeTaken: 'no', finalSalary: { has: true, yearly: 9000, fromAge: 63 } }, savings: 20000 };
+
+describe('D and C from now: the words are the kept plan\'s (one reader of its incomes and of when the money runs out)', () => {
+  // Before, the words read the household's own stop plan beside the kept plan's runs: "how long it still pays" counted a
+  // future that ran out in month m as m/12 years paid (the household's rule), the plan as the whole years before the year
+  // it ran out in (planShortfallOf: the year it first failed, f.fy). Pat at £1,950 a month, 100 futures (the check): the
+  // words said "still pays for 28 of the 39 years", the plan's own stress panel 27 — e.g. a future out in month 330 (age
+  // 87½) counted 27.5 years in the words and 27 in the plan, and the mean of such counts rounded down one apart.
+  for (const [name, ins, amounts] of [['Pat', PAT_D, [1850, 1950]], ['D1', D1, [2100]], ['D3', D3, [2000]], ['D5', D5, [1800]]]) {
+    it(`${name}: "Try the bad years"' As planned row and the words say the kept plan's when, how long, how much and floor`, () => {
+      for (const amount of amounts) {
+        const ins1 = { ...ins, spend: { kind: 'amount', amount } };
+        const d = answerD(ins1, ENV);
+        const kept = keptPlansOf('d', d, ENV).yours;
+        const plan = planShortfall(kept);
+        const row = runStressStrip('d', d.inputs, withPlanPath(ENV), { perMonth: amount }).rows[0];
+        expect(answerShortfall(row.sf), `${name} £${amount}`).toEqual(plan);
+        if (plan.howLong) expect(d.sentences.howLong.text, `${name} £${amount}`).toContain(` ${plan.howLong.paid} of the ${plan.howLong.of} years`);
+      }
+    }, 60000);
+  }
+  it('Pat, How much can I take, at an amount tried: As planned\'s when, how long, how much and floor are the kept plan\'s', () => {
+    const PAT_C = { you: { age: 60, pot: 200000, finalSalary: { has: true, yearly: 9000, fromAge: 63 } }, savings: 20000 };
+    for (const take of [1850, 1950]) {
+      const c = answerC({ ...PAT_C, take }, ENV);
+      const plan = planShortfall(keptPlansOf('c', c, ENV, { take: 'tried' }).yours);
+      const row = runStressStrip('c', c.inputs, withPlanPath(ENV), { perMonth: take }).rows[0];
+      expect(answerShortfall(row.sf), `£${take}`).toEqual(plan);
+    }
+  }, 60000);
+  it('Pat: what it is made of, and what comes in anyway, are the kept plan\'s incomes', () => {
+    // the kept plan pays the final-salary pension from its run year 3 (63) at £9,000 a year at today's prices (£750 a month)
+    // and the full State Pension, £241.30 a week (£12,547.60 a year, £1,045.63 a month), from run year 7 (67); taxed with
+    // the plan's bands, a quarter tax-free: the phases are 60-63 pots only, 63-67 £750 a month, 67-99 £750 and £1,045.63
+    const d = answerD({ ...PAT_D, spend: { kind: 'amount', amount: 1950 } }, ENV);
+    expect(d.phases.map((ph) => [ph.fromAge, ph.toAge, ph.finalSalary, ph.statePension])).toEqual([[60, 63, 0, 0], [63, 67, 750, 0], [67, 99, 750, 1045.63]]);
+    // what comes in anyway once all of it has started, after tax: £21,547.60 a year less tax on £8,977.60 above the
+    // £12,570 allowance at 20% (£1,795.52) = £19,752.08 a year, £1,646.01 a month
+    expect(d.guaranteed.monthlyAfterTax).toBe(1646.01);
   });
 });
 

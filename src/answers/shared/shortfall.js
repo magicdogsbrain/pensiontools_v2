@@ -35,6 +35,8 @@
  *                   mostNone  more than half the futures have nothing left then
  *     }
  *
+ * A plan carrying `shortfallAt` (the plan path's words plan, keep/planPath.js) is read by it: the kept plan's own rule.
+ *
  * Pure: no clock, no storage.
  */
 import { grossToNet } from '../../services/TaxCalculator.js';
@@ -84,6 +86,9 @@ export function leftOf(values) {
 }
 
 export function shortfallOf(plan, months, H, { toMonth = Infinity, left = null } = {}) {
+  // the plan path (one person, keep/planPath.js): the words plan is the kept plan's, and so is the reading of when, how
+  // long and how much — "Does it last?"'s own (OneAnswer.planShortfallOf), never a second rule beside it
+  if (plan && typeof plan.shortfallAt === 'function') return plan.shortfallAt(months, H, { toMonth, left });
   const n = months.length;
   const toYears = Number.isFinite(toMonth) ? toMonth / 12 : plan.years;
   const ageOf = (m) => plan.startAge + Math.floor(m / 12);

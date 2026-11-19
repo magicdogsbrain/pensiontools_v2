@@ -106,10 +106,12 @@ describe('the one adapter and the one runner', () => {
     const { a, p } = lastsOf(plan, { today: TODAY, futures: N, histories: false });
     expect(p.mcRuns).toBe(N);
     expect(a.n).toBe(N);
-    // a whole number of futures out of N: 36 of 40 last to 100 (measured; 34 before a retired plan's year 0 paid only for
-    // the months it has — September to March on 30 September — and the State Pension already paid all of them)
-    expect(Math.round(a.fixedAge * N)).toBe(36);
-    expect(a.fixedAge * N).toBeCloseTo(36, 9);
+    // a whole number of futures out of N: 39 of 40 last to 100 (measured; 34 before a retired plan's year 0 paid only for
+    // the months it has — September to March on 30 September — and the State Pension already paid all of them; 36 before
+    // April to August, the months before the pots' day, stopped giving the pots that year's returns: the futures that run
+    // out are those with a bad first year, and they no longer take five months of it)
+    expect(Math.round(a.fixedAge * N)).toBe(39);
+    expect(a.fixedAge * N).toBeCloseTo(39, 9);
   });
 });
 

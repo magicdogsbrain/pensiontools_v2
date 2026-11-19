@@ -184,9 +184,13 @@ describe('Ladder & ratchet: its ladder years are the years left of them from tod
 // Retaken again (E8 fix round 1): that share is whole months, May to March, 11 / 12 (it was 330 / 365): a little more State
 // Pension that year, so the base ladder costs 150,150 -> 150,016 and Ladder & Ratchet leaves 461,079 -> 461,629 in the
 // middle; the bridge pays nothing that year (its cost is unchanged) and its sleeve leaves 908,792 -> 909,287.
+// Retaken again (E8 fix round 2): April to August, the months of the current year before the pots' day, give the sleeve no
+// return (it grew through them). Costs and sleeves at the start unchanged; Bridge & engine runs out 0.13% -> 0.27% of
+// real starts and 1.7% -> 5.0% of the 60 futures (1 -> 3), leaves 909,287 -> 823,003 in the middle; Ladder & Ratchet
+// 21.9% -> 22.6% and 20.0% -> 23.3% (12 -> 14), leaves 461,629 -> 383,447.
 const PINS = {
-  'bridge-and-engine': { dials: { cashYears: 3 }, cost: 93429, E0: 371571, ruinHist: 0.13, ruinMc: 1.7, terminalP50: 909287 },
-  'ladder-and-ratchet': { dials: { ladderYears: 10 }, cost: 150016, E0: 314984, ruinHist: 21.9, ruinMc: 20.0, terminalP50: 461629 }
+  'bridge-and-engine': { dials: { cashYears: 3 }, cost: 93429, E0: 371571, ruinHist: 0.27, ruinMc: 5.0, terminalP50: 823003 },
+  'ladder-and-ratchet': { dials: { ladderYears: 10 }, cost: 150016, E0: 314984, ruinHist: 22.6, ruinMc: 23.3, terminalP50: 383447 }
 };
 describe('the pins: Alex two years in, for both ways', () => {
   for (const [id, pin] of Object.entries(PINS)) {

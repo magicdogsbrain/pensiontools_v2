@@ -706,7 +706,7 @@
           },
           "howLong": {
             "id": "c.howLong",
-            "text": "In the futures where it runs out before 99, what you planned to spend is still met in 40 of the 41 years to 99, with what comes in anyway.",
+            "text": "In the futures where it runs out before 99, what you planned to spend is still met in 39 of the 41 years to 99, with what comes in anyway.",
             "parts": [
               "In the futures where it runs out before ",
               {
@@ -714,7 +714,7 @@
               },
               ", what you planned to spend is still met in ",
               {
-                "fixed": "40"
+                "fixed": "39"
               },
               " of the ",
               {

@@ -803,7 +803,7 @@
           },
           "howLong": {
             "id": "c.howLong",
-            "text": "In the futures where it runs out before 99, it still pays for 31 of the 41 years to 99.",
+            "text": "In the futures where it runs out before 99, it still pays for 30 of the 41 years to 99.",
             "parts": [
               "In the futures where it runs out before ",
               {
@@ -811,7 +811,7 @@
               },
               ", it still pays for ",
               {
-                "fixed": "31"
+                "fixed": "30"
               },
               " of the ",
               {
@@ -1179,7 +1179,7 @@
           },
           "takeHowLong": {
             "id": "c.take.howLong",
-            "text": "In the futures where it runs out before 99, it still pays for 28 of the 41 years to 99.",
+            "text": "In the futures where it runs out before 99, it still pays for 27 of the 41 years to 99.",
             "parts": [
               "In the futures where it runs out before ",
               {
@@ -1187,7 +1187,7 @@
               },
               ", it still pays for ",
               {
-                "fixed": "28"
+                "fixed": "27"
               },
               " of the ",
               {
@@ -1202,11 +1202,11 @@
           },
           "takeHowMuch": {
             "id": "c.take.howMuch",
-            "text": "Across those futures, about £9 of every £10 you planned to spend is still paid.",
+            "text": "Across those futures, about £8 of every £10 you planned to spend is still paid.",
             "parts": [
               "Across those futures, about ",
               {
-                "fixed": "£9"
+                "fixed": "£8"
               },
               " of every ",
               {

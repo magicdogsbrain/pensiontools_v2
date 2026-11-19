@@ -691,7 +691,7 @@
           },
           "howLong": {
             "id": "c.howLong",
-            "text": "In the futures where it runs out before 99, it still pays for 31 of the 41 years to 99.",
+            "text": "In the futures where it runs out before 99, it still pays for 30 of the 41 years to 99.",
             "parts": [
               "In the futures where it runs out before ",
               {
@@ -699,7 +699,7 @@
               },
               ", it still pays for ",
               {
-                "fixed": "31"
+                "fixed": "30"
               },
               " of the ",
               {
@@ -859,26 +859,26 @@
           "id": "asPlanned",
           "perMonth": 1380,
           "chance": {
-            "weighted": 0.9019564881017431,
-            "fixedAge": 0.811,
-            "fails": 189,
-            "sumW": 105273419297,
+            "weighted": 0.9075145567012951,
+            "fixedAge": 0.815,
+            "fails": 185,
+            "sumW": 99305488581,
             "n": 1000
           },
           "verdict": "yes",
           "sf": {
             "when": {
-              "typical": 92,
-              "worst": 90,
+              "typical": 93,
+              "worst": 91,
               "worstLasts": false
             },
             "howLong": {
               "paid": 30,
               "of": 41
             },
-            "howMuch": 0.9392413269677498,
+            "howMuch": 0.9303616956717041,
             "floor": {
-              "age": 92,
+              "age": 93,
               "yearly": 12548,
               "survivor": null,
               "sp": 1,
@@ -886,14 +886,14 @@
               "spAge": null
             },
             "left": {
-              "typical": 151000,
-              "best": 935000,
+              "typical": 142000,
+              "best": 850000,
               "mostNone": false
             }
           },
           "counts": {
-            "failing": 235,
-            "early": 189
+            "failing": 239,
+            "early": 185
           },
           "same": false,
           "short": {
@@ -928,14 +928,14 @@
                 "typical": {
                   "id": "short.at",
                   "slots": {
-                    "age": "92"
+                    "age": "93"
                   }
                 },
                 "refTypical": "",
                 "worst": {
                   "id": "short.by",
                   "slots": {
-                    "age": "90"
+                    "age": "91"
                   }
                 },
                 "refWorst": ""
@@ -945,7 +945,7 @@
           "sentences": {
             "when": {
               "id": "strip.asPlanned.when",
-              "text": "We follow each future on to 104. In the futures where the money runs out before then, it typically runs out at 92. In the worst 1 in 10 of all the futures, by 90.",
+              "text": "We follow each future on to 104. In the futures where the money runs out before then, it typically runs out at 93. In the worst 1 in 10 of all the futures, by 91.",
               "parts": [
                 "We follow each future on to ",
                 {
@@ -955,7 +955,7 @@
                 ", it typically runs out ",
                 "at ",
                 {
-                  "fixed": "92"
+                  "fixed": "93"
                 },
                 ". ",
                 "In the worst ",
@@ -969,7 +969,7 @@
                 " of all the futures, ",
                 "by ",
                 {
-                  "fixed": "90"
+                  "fixed": "91"
                 },
                 "."
               ]
@@ -1028,26 +1028,26 @@
           "id": "fall",
           "perMonth": 1380,
           "chance": {
-            "weighted": 0.7092974897306412,
-            "fixedAge": 0.538,
-            "fails": 462,
-            "sumW": 312139443618,
+            "weighted": 0.8004628911465407,
+            "fixedAge": 0.647,
+            "fails": 353,
+            "sumW": 214251339216,
             "n": 1000
           },
           "verdict": "no",
           "sf": {
             "when": {
-              "typical": 86,
-              "worst": 79,
+              "typical": 89,
+              "worst": 83,
               "worstLasts": false
             },
             "howLong": {
-              "paid": 27,
+              "paid": 28,
               "of": 41
             },
-            "howMuch": 0.9176095121968292,
+            "howMuch": 0.9156707880003011,
             "floor": {
-              "age": 86,
+              "age": 89,
               "yearly": 12548,
               "survivor": null,
               "sp": 1,
@@ -1055,14 +1055,14 @@
               "spAge": null
             },
             "left": {
-              "typical": 17000,
-              "best": 358000,
+              "typical": 57000,
+              "best": 512000,
               "mostNone": false
             }
           },
           "counts": {
-            "failing": 522,
-            "early": 462
+            "failing": 416,
+            "early": 353
           },
           "same": false,
           "short": {
@@ -1074,7 +1074,7 @@
                     "id": "short.lasts.ranOut",
                     "slots": {}
                   },
-                  "chance": "14 times in 20",
+                  "chance": "16 times in 20",
                   "ref": {
                     "id": "short.ref",
                     "slots": {
@@ -1095,7 +1095,7 @@
                     "id": "short.verb.ranOut",
                     "slots": {}
                   },
-                  "count": "in 11 of 20 futures we tried",
+                  "count": "in 13 of 20 futures we tried",
                   "ref": {
                     "id": "short.ref",
                     "slots": {
@@ -1115,28 +1115,28 @@
                 "typical": {
                   "id": "short.at",
                   "slots": {
-                    "age": "86"
+                    "age": "89"
                   }
                 },
                 "worst": {
                   "id": "short.by",
                   "slots": {
-                    "age": "79"
+                    "age": "83"
                   }
                 },
                 "as": {
                   "id": "short.as.asPlanned",
                   "slots": {}
                 },
-                "age1": "92",
-                "age2": "90"
+                "age1": "93",
+                "age2": "91"
               }
             }
           },
           "sentences": {
             "when": {
               "id": "strip.fall.when",
-              "text": "We follow each future on to 104. In the futures where the money runs out before then (522 of the 1,000; as planned: 235), it typically runs out at 86 (as planned: 92). In the worst 1 in 10 of all the futures, by 79 (as planned: by 90).",
+              "text": "We follow each future on to 104. In the futures where the money runs out before then (416 of the 1,000; as planned: 239), it typically runs out at 89 (as planned: 93). In the worst 1 in 10 of all the futures, by 83 (as planned: by 91).",
               "parts": [
                 "We follow each future on to ",
                 {
@@ -1145,7 +1145,7 @@
                 ". In the futures where the money runs out before then",
                 " (",
                 {
-                  "fixed": "522"
+                  "fixed": "416"
                 },
                 " of the ",
                 {
@@ -1153,17 +1153,17 @@
                 },
                 "; as planned: ",
                 {
-                  "fixed": "235"
+                  "fixed": "239"
                 },
                 ")",
                 ", it typically runs out ",
                 "at ",
                 {
-                  "fixed": "86"
+                  "fixed": "89"
                 },
                 " (as planned: ",
                 {
-                  "fixed": "92"
+                  "fixed": "93"
                 },
                 ")",
                 ". ",
@@ -1178,12 +1178,12 @@
                 " of all the futures, ",
                 "by ",
                 {
-                  "fixed": "79"
+                  "fixed": "83"
                 },
                 " (as planned: ",
                 "by ",
                 {
-                  "fixed": "90"
+                  "fixed": "91"
                 },
                 ")",
                 "."
@@ -1191,7 +1191,7 @@
             },
             "howLong": {
               "id": "strip.fall.howLong",
-              "text": "In the futures where it runs out before 99 (462 of the 1,000; as planned: 189), it still pays for 27 of the 41 years to 99 (as planned: 30).",
+              "text": "In the futures where it runs out before 99 (353 of the 1,000; as planned: 185), it still pays for 28 of the 41 years to 99 (as planned: 30).",
               "parts": [
                 "In the futures where it runs out before ",
                 {
@@ -1199,7 +1199,7 @@
                 },
                 " (",
                 {
-                  "fixed": "462"
+                  "fixed": "353"
                 },
                 " of the ",
                 {
@@ -1207,12 +1207,12 @@
                 },
                 "; as planned: ",
                 {
-                  "fixed": "189"
+                  "fixed": "185"
                 },
                 ")",
                 ", it still pays for ",
                 {
-                  "fixed": "27"
+                  "fixed": "28"
                 },
                 " of the ",
                 {
@@ -1265,24 +1265,24 @@
           "id": "lower",
           "perMonth": 1380,
           "chance": {
-            "weighted": 0.8050074528893456,
+            "weighted": 0.8073271844135598,
             "fixedAge": 0.648,
             "fails": 352,
-            "sumW": 209371653201,
+            "sumW": 206880860443,
             "n": 1000
           },
           "verdict": "no",
           "sf": {
             "when": {
               "typical": 90,
-              "worst": 83,
+              "worst": 84,
               "worstLasts": false
             },
             "howLong": {
               "paid": 29,
               "of": 41
             },
-            "howMuch": 0.933306843119687,
+            "howMuch": 0.9211851364208433,
             "floor": {
               "age": 90,
               "yearly": 12548,
@@ -1292,13 +1292,13 @@
               "spAge": null
             },
             "left": {
-              "typical": 44000,
-              "best": 439000,
+              "typical": 40000,
+              "best": 416000,
               "mostNone": false
             }
           },
           "counts": {
-            "failing": 425,
+            "failing": 442,
             "early": 352
           },
           "same": false,
@@ -1358,22 +1358,22 @@
                 "worst": {
                   "id": "short.by",
                   "slots": {
-                    "age": "83"
+                    "age": "84"
                   }
                 },
                 "as": {
                   "id": "short.as.asPlanned",
                   "slots": {}
                 },
-                "age1": "92",
-                "age2": "90"
+                "age1": "93",
+                "age2": "91"
               }
             }
           },
           "sentences": {
             "when": {
               "id": "strip.lower.when",
-              "text": "We follow each future on to 104. In the futures where the money runs out before then (425 of the 1,000; as planned: 235), it typically runs out at 90 (as planned: 92). In the worst 1 in 10 of all the futures, by 83 (as planned: by 90).",
+              "text": "We follow each future on to 104. In the futures where the money runs out before then (442 of the 1,000; as planned: 239), it typically runs out at 90 (as planned: 93). In the worst 1 in 10 of all the futures, by 84 (as planned: by 91).",
               "parts": [
                 "We follow each future on to ",
                 {
@@ -1382,7 +1382,7 @@
                 ". In the futures where the money runs out before then",
                 " (",
                 {
-                  "fixed": "425"
+                  "fixed": "442"
                 },
                 " of the ",
                 {
@@ -1390,7 +1390,7 @@
                 },
                 "; as planned: ",
                 {
-                  "fixed": "235"
+                  "fixed": "239"
                 },
                 ")",
                 ", it typically runs out ",
@@ -1400,7 +1400,7 @@
                 },
                 " (as planned: ",
                 {
-                  "fixed": "92"
+                  "fixed": "93"
                 },
                 ")",
                 ". ",
@@ -1415,12 +1415,12 @@
                 " of all the futures, ",
                 "by ",
                 {
-                  "fixed": "83"
+                  "fixed": "84"
                 },
                 " (as planned: ",
                 "by ",
                 {
-                  "fixed": "90"
+                  "fixed": "91"
                 },
                 ")",
                 "."
@@ -1428,7 +1428,7 @@
             },
             "howLong": {
               "id": "strip.lower.howLong",
-              "text": "In the futures where it runs out before 99 (352 of the 1,000; as planned: 189), it still pays for 29 of the 41 years to 99 (as planned: 30).",
+              "text": "In the futures where it runs out before 99 (352 of the 1,000; as planned: 185), it still pays for 29 of the 41 years to 99 (as planned: 30).",
               "parts": [
                 "In the futures where it runs out before ",
                 {
@@ -1444,7 +1444,7 @@
                 },
                 "; as planned: ",
                 {
-                  "fixed": "189"
+                  "fixed": "185"
                 },
                 ")",
                 ", it still pays for ",
@@ -1502,26 +1502,26 @@
           "id": "spend",
           "perMonth": 1518,
           "chance": {
-            "weighted": 0.7026297477679326,
-            "fixedAge": 0.525,
-            "fails": 475,
-            "sumW": 319298877035,
+            "weighted": 0.6916440913779661,
+            "fixedAge": 0.502,
+            "fails": 498,
+            "sumW": 331094635765,
             "n": 1000
           },
           "verdict": "no",
           "sf": {
             "when": {
-              "typical": 86,
-              "worst": 78,
+              "typical": 87,
+              "worst": 79,
               "worstLasts": false
             },
             "howLong": {
               "paid": 27,
               "of": 41
             },
-            "howMuch": 0.8956192281318263,
+            "howMuch": 0.8783610985667685,
             "floor": {
-              "age": 86,
+              "age": 87,
               "yearly": 12548,
               "survivor": null,
               "sp": 1,
@@ -1529,14 +1529,14 @@
               "spAge": null
             },
             "left": {
-              "typical": 12000,
-              "best": 521000,
+              "typical": 2000,
+              "best": 474000,
               "mostNone": false
             }
           },
           "counts": {
-            "failing": 559,
-            "early": 475
+            "failing": 587,
+            "early": 498
           },
           "same": false,
           "short": {
@@ -1548,7 +1548,7 @@
                     "id": "short.lasts.ranOut",
                     "slots": {}
                   },
-                  "chance": "14 times in 20",
+                  "chance": "13 times in 20",
                   "ref": {
                     "id": "short.ref",
                     "slots": {
@@ -1569,7 +1569,7 @@
                     "id": "short.verb.ranOut",
                     "slots": {}
                   },
-                  "count": "in 11 of 20 futures we tried",
+                  "count": "in 10 of 20 futures we tried",
                   "ref": {
                     "id": "short.ref",
                     "slots": {
@@ -1589,28 +1589,28 @@
                 "typical": {
                   "id": "short.at",
                   "slots": {
-                    "age": "86"
+                    "age": "87"
                   }
                 },
                 "worst": {
                   "id": "short.by",
                   "slots": {
-                    "age": "78"
+                    "age": "79"
                   }
                 },
                 "as": {
                   "id": "short.as.asPlanned",
                   "slots": {}
                 },
-                "age1": "92",
-                "age2": "90"
+                "age1": "93",
+                "age2": "91"
               }
             }
           },
           "sentences": {
             "when": {
               "id": "strip.spend.when",
-              "text": "We follow each future on to 104. In the futures where the money runs out before then (559 of the 1,000; as planned: 235), it typically runs out at 86 (as planned: 92). In the worst 1 in 10 of all the futures, by 78 (as planned: by 90).",
+              "text": "We follow each future on to 104. In the futures where the money runs out before then (587 of the 1,000; as planned: 239), it typically runs out at 87 (as planned: 93). In the worst 1 in 10 of all the futures, by 79 (as planned: by 91).",
               "parts": [
                 "We follow each future on to ",
                 {
@@ -1619,7 +1619,7 @@
                 ". In the futures where the money runs out before then",
                 " (",
                 {
-                  "fixed": "559"
+                  "fixed": "587"
                 },
                 " of the ",
                 {
@@ -1627,17 +1627,17 @@
                 },
                 "; as planned: ",
                 {
-                  "fixed": "235"
+                  "fixed": "239"
                 },
                 ")",
                 ", it typically runs out ",
                 "at ",
                 {
-                  "fixed": "86"
+                  "fixed": "87"
                 },
                 " (as planned: ",
                 {
-                  "fixed": "92"
+                  "fixed": "93"
                 },
                 ")",
                 ". ",
@@ -1652,12 +1652,12 @@
                 " of all the futures, ",
                 "by ",
                 {
-                  "fixed": "78"
+                  "fixed": "79"
                 },
                 " (as planned: ",
                 "by ",
                 {
-                  "fixed": "90"
+                  "fixed": "91"
                 },
                 ")",
                 "."
@@ -1665,7 +1665,7 @@
             },
             "howLong": {
               "id": "strip.spend.howLong",
-              "text": "In the futures where it runs out before 99 (475 of the 1,000; as planned: 189), it still pays for 27 of the 41 years to 99 (as planned: 30).",
+              "text": "In the futures where it runs out before 99 (498 of the 1,000; as planned: 185), it still pays for 27 of the 41 years to 99 (as planned: 30).",
               "parts": [
                 "In the futures where it runs out before ",
                 {
@@ -1673,7 +1673,7 @@
                 },
                 " (",
                 {
-                  "fixed": "475"
+                  "fixed": "498"
                 },
                 " of the ",
                 {
@@ -1681,7 +1681,7 @@
                 },
                 "; as planned: ",
                 {
-                  "fixed": "189"
+                  "fixed": "185"
                 },
                 ")",
                 ", it still pays for ",
@@ -1742,24 +1742,24 @@
           "id": "prices",
           "perMonth": 1380,
           "chance": {
-            "weighted": 0.8797156021902338,
-            "fixedAge": 0.774,
-            "fails": 226,
-            "sumW": 129154388703,
+            "weighted": 0.883999573957175,
+            "fixedAge": 0.766,
+            "fails": 234,
+            "sumW": 124554509044,
             "n": 1000
           },
           "verdict": "close",
           "sf": {
             "when": {
               "typical": 92,
-              "worst": 88,
+              "worst": 89,
               "worstLasts": false
             },
             "howLong": {
-              "paid": 30,
+              "paid": 31,
               "of": 41
             },
-            "howMuch": 0.9378617592479606,
+            "howMuch": 0.930756244238248,
             "floor": {
               "age": 92,
               "yearly": 12548,
@@ -1769,14 +1769,14 @@
               "spAge": null
             },
             "left": {
-              "typical": 104000,
-              "best": 807000,
+              "typical": 100000,
+              "best": 774000,
               "mostNone": false
             }
           },
           "counts": {
-            "failing": 288,
-            "early": 226
+            "failing": 301,
+            "early": 234
           },
           "same": false,
           "short": {
@@ -1824,7 +1824,7 @@
               }
             },
             "runsOut": {
-              "id": "short.runsOut",
+              "id": "short.runsOutBoth",
               "slots": {
                 "typical": {
                   "id": "short.at",
@@ -1832,38 +1832,25 @@
                     "age": "92"
                   }
                 },
-                "refTypical": {
-                  "id": "short.same",
-                  "slots": {
-                    "as": {
-                      "id": "short.as.asPlanned",
-                      "slots": {}
-                    }
-                  }
-                },
                 "worst": {
                   "id": "short.by",
                   "slots": {
-                    "age": "88"
+                    "age": "89"
                   }
                 },
-                "refWorst": {
-                  "id": "short.refWorstBy",
-                  "slots": {
-                    "as": {
-                      "id": "short.as.asPlanned",
-                      "slots": {}
-                    },
-                    "age": "90"
-                  }
-                }
+                "as": {
+                  "id": "short.as.asPlanned",
+                  "slots": {}
+                },
+                "age1": "93",
+                "age2": "91"
               }
             }
           },
           "sentences": {
             "when": {
               "id": "strip.prices.when",
-              "text": "We follow each future on to 104. In the futures where the money runs out before then (288 of the 1,000; as planned: 235), it typically runs out at 92 (as planned: 92). In the worst 1 in 10 of all the futures, by 88 (as planned: by 90).",
+              "text": "We follow each future on to 104. In the futures where the money runs out before then (301 of the 1,000; as planned: 239), it typically runs out at 92 (as planned: 93). In the worst 1 in 10 of all the futures, by 89 (as planned: by 91).",
               "parts": [
                 "We follow each future on to ",
                 {
@@ -1872,7 +1859,7 @@
                 ". In the futures where the money runs out before then",
                 " (",
                 {
-                  "fixed": "288"
+                  "fixed": "301"
                 },
                 " of the ",
                 {
@@ -1880,7 +1867,7 @@
                 },
                 "; as planned: ",
                 {
-                  "fixed": "235"
+                  "fixed": "239"
                 },
                 ")",
                 ", it typically runs out ",
@@ -1890,7 +1877,7 @@
                 },
                 " (as planned: ",
                 {
-                  "fixed": "92"
+                  "fixed": "93"
                 },
                 ")",
                 ". ",
@@ -1905,12 +1892,12 @@
                 " of all the futures, ",
                 "by ",
                 {
-                  "fixed": "88"
+                  "fixed": "89"
                 },
                 " (as planned: ",
                 "by ",
                 {
-                  "fixed": "90"
+                  "fixed": "91"
                 },
                 ")",
                 "."
@@ -1918,7 +1905,7 @@
             },
             "howLong": {
               "id": "strip.prices.howLong",
-              "text": "In the futures where it runs out before 99 (226 of the 1,000; as planned: 189), it still pays for 30 of the 41 years to 99 (as planned: 30).",
+              "text": "In the futures where it runs out before 99 (234 of the 1,000; as planned: 185), it still pays for 31 of the 41 years to 99 (as planned: 30).",
               "parts": [
                 "In the futures where it runs out before ",
                 {
@@ -1926,7 +1913,7 @@
                 },
                 " (",
                 {
-                  "fixed": "226"
+                  "fixed": "234"
                 },
                 " of the ",
                 {
@@ -1934,12 +1921,12 @@
                 },
                 "; as planned: ",
                 {
-                  "fixed": "189"
+                  "fixed": "185"
                 },
                 ")",
                 ", it still pays for ",
                 {
-                  "fixed": "30"
+                  "fixed": "31"
                 },
                 " of the ",
                 {

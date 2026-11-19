@@ -138,7 +138,7 @@
           "best": 200829
         },
         "guaranteed": {
-          "monthlyAfterTax": 1342.83
+          "monthlyAfterTax": 1342.84
         },
         "phases": [
           {
@@ -151,9 +151,9 @@
               }
             },
             "takeHome": 1790,
-            "fromPension": 526.08,
+            "fromPension": 526.07,
             "fromSavings": 0,
-            "fromPots": 526.08,
+            "fromPots": 526.07,
             "statePension": 916.67,
             "finalSalary": 500,
             "tax": 152.75,
@@ -162,7 +162,7 @@
                 "who": "you",
                 "statePension": 916.67,
                 "finalSalary": 500,
-                "fromPension": 526.08,
+                "fromPension": 526.07,
                 "fromSavings": 0,
                 "tax": 152.75,
                 "takeHome": 1790,
@@ -950,7 +950,7 @@
           },
           "takeHowLong": {
             "id": "c.take.howLong",
-            "text": "In the futures where it runs out before 99, it still pays for 18 of the 31 years to 99.",
+            "text": "In the futures where it runs out before 99, it still pays for 17 of the 31 years to 99.",
             "parts": [
               "In the futures where it runs out before ",
               {
@@ -958,7 +958,7 @@
               },
               ", it still pays for ",
               {
-                "fixed": "18"
+                "fixed": "17"
               },
               " of the ",
               {

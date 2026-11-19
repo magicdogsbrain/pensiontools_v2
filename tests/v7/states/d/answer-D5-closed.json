@@ -191,11 +191,11 @@
         "phases": [
           {
             "fromAge": 53,
-            "toAge": 57,
+            "toAge": 58,
             "ages": {
               "you": {
                 "from": 53,
-                "to": 57
+                "to": 58
               }
             },
             "takeHome": 1800,
@@ -234,11 +234,11 @@
             }
           },
           {
-            "fromAge": 57,
+            "fromAge": 58,
             "toAge": 67,
             "ages": {
               "you": {
-                "from": 57,
+                "from": 58,
                 "to": 67
               }
             },
@@ -279,11 +279,11 @@
           },
           {
             "fromAge": 67,
-            "toAge": 100,
+            "toAge": 98,
             "ages": {
               "you": {
                 "from": 67,
-                "to": 100
+                "to": 98
               }
             },
             "takeHome": 1800,
@@ -751,7 +751,7 @@
           "madeOf": [
             {
               "id": "d.madeOf.locked",
-              "text": "From 53 until 57: £1,800 a month, all from your savings. Your pension can't be touched until then.",
+              "text": "From 53 until 58: £1,800 a month, all from your savings. Your pension can't be touched until then.",
               "parts": [
                 "From ",
                 {
@@ -775,7 +775,7 @@
             },
             {
               "id": "d.madeOf.pots",
-              "text": "From 57 until 67: £1,800 a month, all from your pot and savings.",
+              "text": "From 58 until 67: £1,800 a month, all from your pot and savings.",
               "parts": [
                 "From ",
                 {

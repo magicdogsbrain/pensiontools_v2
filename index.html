@@ -4275,7 +4275,7 @@
     import { isLoggedIn, logOut, getCurrentUser, deleteAccount, onAuthStateChange, viewNotesAtSignIn } from './src/firebase/index.js';
     import { hasCloudData, wipeAllUserData, loadUserProfile, saveUserProfile, guestSnapshot, loadAllScenarios, createScenario as createScenarioDoc, saveScenario as saveScenarioDoc, loadScenario as loadScenarioDoc } from './src/firebase/FirestoreService.js';
     import { startSeedEntry, planFromAnswer, planTargetGuide, budgetSummaryWords } from './src/ui/components/NewPlanFromSeed.js'; import { householdStartWords } from './src/services/PlanSeed.js';   // a plan from a V7 answer (V7 design: save-as-plan.md, C.2); the Household tab's line when one plan begins later (couples-different-years.md 7)
-    import { startSummaryHtml, potsAtRetirementLine } from './src/ui/startingPotsWords.js'; import { potAtStop } from './src/reading/atStop.js'; import { stage as readingStage, yearsToGo as readingYearsToGo, ageToday as readingAgeToday, planName as readingPlanName } from './src/reading/timing.js'; import { formatFact } from './src/reading/format.js'; import { isaToday as readingIsaToday, pensionBoxOf, isaBoxOf, settingsOf as readingSettingsOf } from './src/reading/money.js'; import { savingInputsOf } from './src/services/PotsAtStop.js'; import { shownPlanName } from './src/services/PlanName.js';
+    import { startSummaryHtml, potsAtRetirementLine } from './src/ui/startingPotsWords.js'; import { potAtStop } from './src/reading/atStop.js'; import { stageWordsHtml, whereYouAreHtml } from './src/ui/stageWords.js'; import { stage as readingStage, yearsToGo as readingYearsToGo, ageToday as readingAgeToday, planName as readingPlanName } from './src/reading/timing.js'; import { formatFact } from './src/reading/format.js'; import { isaToday as readingIsaToday, pensionBoxOf, isaBoxOf, settingsOf as readingSettingsOf } from './src/reading/money.js'; import { savingInputsOf } from './src/services/PotsAtStop.js'; import { shownPlanName } from './src/services/PlanName.js';
     import { tick as guestTick, readMinutes as guestMinutes, pendingNag as guestPendingNag, markNagShown as guestMarkNag, isBlocked as guestBlocked, bannerText as guestBannerText, savedChipText, stashHandoff as guestStash, readHandoff as guestReadHandoff, clearHandoff as guestClearHandoff, GUEST_ALLOWANCE_MINUTES } from './src/services/GuestMeter.js';
     // Release notes: data + renderers (see RELEASING.md). The pop-up and the What's new page read the same entries.
     import { RELEASES, releasesSince, compareVersions } from './src/releases.js';
@@ -4854,14 +4854,12 @@
       if (!chip) return;
       const locked = await planIsLocked();
       chip.style.display = 'inline-block';
-      // The stage, by name ("Committed, still saving · 7 months to go"), so the chip answers "where am I?" (6.10.1).
+      // The stage, so the chip answers "where am I?" (6.10.1): one stage word in both views (step F1, src/reading/timing.js:
+      // Saving, Moving, Living on it), never the placing's label, and a locked saver's time to the stop — drawn by the one
+      // helper the plan list's card uses too (src/ui/stageWords.js), marked for the parity sweep (lead4.md G1)
       const st = window._lifeStage;
-      // one stage word in both views (step F1, src/reading/timing.js: Saving, Moving, Living on it), never the placing's label;
-      // a locked saver's time to the stop beside it, in the one formatter's words (src/reading/format.js spanText)
-      const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;');
-      const toGo = st && /to go/.test(st.chip || '') && window._yearsToGo > 0 ? ' · ' + markFact('yearsToGo', esc(formatFact('yearsToGo', window._yearsToGo))) + ' to go' : '';
-      const stageWord = st && st.key !== 'unknown' && window._stageWord ? ' · ' + markFact('stage', esc(window._stageWord)) + toGo : '';   // marked for the parity sweep (lead4.md G1)
-      chip.innerHTML = markFact('lock.state', locked ? '🔒 locked' : '✏️ draft') + stageWord;
+      const words = stageWordsHtml({ placing: st, word: window._stageWord, yearsToGo: window._yearsToGo });
+      chip.innerHTML = markFact('lock.state', locked ? '🔒 locked' : '✏️ draft') + (words ? ' · ' + words : '');
       if (st && st.key !== 'unknown') chip.dataset.stageWhy = st.reasons.join('; ');
       chip.title = locked
         ? 'This plan’s settings are committed so your recorded entries stay consistent.'
@@ -4887,7 +4885,7 @@
             '<li><strong style="color:var(--text);">🔒 locked</strong> — entries or tax years are recorded against these settings. You can still unlock: you are shown exactly what that does to your record first.</li>' +
             '<li><strong style="color:var(--text);">Strategy</strong> switches freely while the plan is a draft; once locked it changes only after an unlock (or in a copy).</li>' +
           '</ul>' +
-          (window._lifeStage && window._lifeStage.key !== 'unknown' ? '<p style="margin-bottom:10px;"><strong style="color:var(--text);">Where you are: ' + budEsc(window._lifeStage.label) + (window._lifeStage.chip && !window._lifeStage.label.toLowerCase().includes(window._lifeStage.chip) ? ' — ' + budEsc(window._lifeStage.chip) : '') + '.</strong> <span style="color:var(--text-muted);">Worked out from ' + budEsc(window._lifeStage.reasons.join('; ')) + '. The stage decides which tools lead (underlined), which are frozen with the lock (dimmed) and which do not apply (hidden — a retiree has nothing to accumulate). Change your age or the plan start in Stress → Settings → Timing to move it.</span></p>' : '') +
+          whereYouAreHtml({ placing: window._lifeStage, word: window._stageWord, yearsToGo: window._yearsToGo }) +   // the chip's stage words, never the placing's label (step F1, src/ui/stageWords.js)
           '<p style="margin-bottom:16px; color:var(--text-muted);">You can also lock the plan yourself from Stress Tester → Settings once you are happy with the stress test: that freezes the Stress settings too and writes the <strong style="color:var(--text);">plan document</strong> — the record of what you committed to, which the Decision tool reads against each month. The Budget is never locked; "Try a strategy" what-ifs stay available on a locked plan.</p>' +
           '<div style="display:flex; gap:10px; flex-wrap:wrap;">' +
             '<button type="button" data-on-click="document.getElementById(\'planLockExplainer\').remove()">Got it</button>' +

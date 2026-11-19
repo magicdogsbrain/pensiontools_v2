@@ -31,7 +31,9 @@ describe('the chip says the home\'s stage word', () => {
   it('the chip uses it, and never the placing\'s label', () => {
     const html = readFileSync('index.html', 'utf8');
     expect(html).toMatch(/window\._stageWord = sc \? readingStage\(sc, rc\)/);
-    expect(html).toMatch(/markFact\('stage', esc\(window\._stageWord\)\)/);   // marked for the parity sweep (lead4.md G1)
+    // drawn by the one helper the plan list's card uses too, which marks it for the parity sweep (lead4.md G1;
+    // tests/reading/stageWords.test.js holds the helper's marks)
+    expect(html).toMatch(/stageWordsHtml\(\{ placing: st, word: window\._stageWord/);
     expect(html).not.toMatch(/st\.label\)\)/);
   });
 });

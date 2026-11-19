@@ -1,5 +1,5 @@
 {
- "at": "2026-11-19T14:34:11.751Z",
+ "at": "2026-11-19T15:18:23.221Z",
  "fixtures": [
   "age-only",
   "budget",
@@ -25,13 +25,18 @@
  "pagesOpened": 635,
  "marks": 11540,
  "fieldsBound": 61,
- "disagreements": 546,
- "unmarked": 16529,
+ "disagreements": 544,
+ "unmarked": 16527,
  "oneViewOnly": 2329,
  "readingMismatches": 0,
  "roundTripsFailed": 68,
  "rose": [],
- "shrank": [],
+ "shrank": [
+  "agrees now, take it out of known-disagreements.json: age-only|field:pots.pension",
+  "agrees now, take it out of known-disagreements.json: wizard-defaults|field:pots.pension",
+  "unmarked figures fell on age-only|simple:pots: 34 → 33",
+  "unmarked figures fell on wizard-defaults|simple:pots: 33 → 32"
+ ],
  "grew": [],
  "notQuiet": [],
  "detail": {
@@ -84,23 +89,6 @@
       "view": "full",
       "page": "stress settings",
       "text": "cash"
-     }
-    ]
-   },
-   {
-    "key": "age-only|field:pots.pension",
-    "fixture": "age-only",
-    "fact": "field:pots.pension",
-    "values": [
-     {
-      "view": "simple",
-      "page": "pots",
-      "text": "500000"
-     },
-     {
-      "view": "full",
-      "page": "stress settings",
-      "text": ""
      }
     ]
    },
@@ -11667,23 +11655,6 @@
       "view": "full",
       "page": "stress settings",
       "text": "0"
-     }
-    ]
-   },
-   {
-    "key": "wizard-defaults|field:pots.pension",
-    "fixture": "wizard-defaults",
-    "fact": "field:pots.pension",
-    "values": [
-     {
-      "view": "simple",
-      "page": "pots",
-      "text": "500000"
-     },
-     {
-      "view": "full",
-      "page": "stress settings",
-      "text": ""
      }
     ]
    },

@@ -25,14 +25,6 @@
     ""
    ]
   },
-  "age-only|field:pots.pension": {
-   "full:stress settings": [
-    ""
-   ],
-   "simple:pots": [
-    "500000"
-   ]
-  },
   "age-only|field:spend.first": {
    "full:stress settings": [
     ""
@@ -5724,14 +5716,6 @@
    ],
    "simple:income": [
     ""
-   ]
-  },
-  "wizard-defaults|field:pots.pension": {
-   "full:stress settings": [
-    ""
-   ],
-   "simple:pots": [
-    "500000"
    ]
   },
   "wizard-defaults|field:spend.first": {

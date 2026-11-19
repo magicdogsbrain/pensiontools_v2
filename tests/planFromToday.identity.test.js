@@ -98,6 +98,13 @@ const ADDED_AFTER_THE_PINS = Object.freeze({
  * row 2 → 1 at the other two; the pots' draw that year falls by the State Pension (02 £38,000 → £26,498, 09 £24,000 →
  * £13,683, 20 £34,000 → £22,027). Node 20 retook the same six. On Node 20 every other entry was written again and matched
  * its old pin byte for byte.
+ * Year 0 for its months on every way (7.12.0, check round 2) retook 05 and 10 at all three clocks, on both Nodes, three
+ * outputs each: deriveCompareConfigs (the bought ways buy year 0's months), buildPlanDocument (their Pots & Valves run draws
+ * nothing before the stop month) and fullGiltTest (only the compare configs it carries; its own figures did not move). The
+ * Pots & Valves headline at the corpus clock, before → after: 05 ruin (histories / futures) 0.99% / 5.1% → 0% / 4.1%,
+ * worst 12 months £11,973 → £25,082, left at the end (middle) £751,621 → £876,308, year 0's income £36,000 → £6,000 (two
+ * months); 10 left at the end £416,180 → £457,085, year 0's income £18,000 → £4,500 (three months). The pots' engine
+ * config's `year0Months` is read as the pins had it (asPinned).
  */
 const NODE = String(process.versions.node).split('.')[0];
 // One pins file per Node major, each taken on the code before the change with that Node: simulated money can differ in
@@ -214,6 +221,9 @@ function asPinned(outputs, stress, now) {
     // 7.12.0: `year0Months` (a first year that starts in the month work stops) is where the plan stands, added after the
     // pins; the figures it moves (the full ladder's first year) are retaken, the field itself is read as the pins had it
     if ('year0Months' in q) { const { year0Months, ...rest } = q; q = rest; }
+    // (check round 2) the pots' engine config carries it too (Pots & Valves and Buckets pay year 0 for its months): read the
+    // same way; the run figures it moves are retaken
+    if (isObj(q.pnvCfg) && 'year0Months' in q.pnvCfg) { const { year0Months, ...cfgRest } = q.pnvCfg; q = { ...q, pnvCfg: cfgRest }; }
     let o = spent ? placed(q, 'stride', 'runUpSpent', true, true) : q;
     if (raw !== undefined && isObj(o.params)) o = { ...o, params: placed(o.params, 'cashYears', 'bridgeCash', raw) };
     return o;

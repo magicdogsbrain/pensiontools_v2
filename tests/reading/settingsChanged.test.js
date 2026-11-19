@@ -34,6 +34,12 @@ describe('a Save writes only the boxes changed', () => {
     expect(changedSettingsPatch(null, { a: 1 })).toEqual({ a: 1 });
   });
 
+  it('with no baseline (the page still opening the plan, or the catch that left none) a Save writes NOTHING, never the whole form (check round 2)', () => {
+    expect(stressSavePatch({ base: null, form: { ...filled, spStartDate: '2040-03-01' } })).toEqual({});
+    expect(stressSavePatch({ base: undefined, form: filled, hadFigures: false })).toEqual({});
+    expect(stressSavePatch({ form: filled })).toEqual({});
+  });
+
   it('pots at the stop are kept only when the person typed them', () => {
     expect(ownPotAtRetirement({ sipp: 1, isa: 2, source: 'worked' })).toBe(null);
     expect(ownPotAtRetirement({ sipp: 1, isa: 2, source: 'accumulation' })).toBe(null);

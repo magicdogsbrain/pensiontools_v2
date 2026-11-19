@@ -7,7 +7,9 @@
  *   changedSettingsPatch(base, form)        the keys of `form` whose value differs from `base` (all of them with no base)
  *   stressSavePatch({ base, form, hadFigures })   what the Save writes: the changed keys; on a plan that had no figures, its
  *                                           pots and income as shown (an empty box is none) with the first change; and
- *                                           `configured` with any change. {} when nothing changed.
+ *                                           `configured` with any change. {} when nothing changed, and {} with NO
+ *                                           baseline: a form not yet filled from the plan (the page opening it, or a
+ *                                           fill that failed) shows nothing of the plan, so nothing of it is written
  *   ownPotAtRetirement(v)                   the pots at the stop only when the person typed them (source 'override')
  *   touches(patch, keys)                    does the patch change any of `keys`?
  *   settingsFromForm(o)                     the Settings form as the plan's settings keys (a key with no value left out)
@@ -27,6 +29,7 @@ export const TIMING_KEYS = Object.freeze(['shapeAgeNow', 'currentAge', 'currentA
 export const STRATEGY_KEYS = Object.freeze(['strategyId', 'strategyParams', 'strategyState']);
 
 export function stressSavePatch({ base = null, form = {}, hadFigures = true } = {}) {
+  if (!base) return {};   // never the whole form (its defaults and worked figures) for want of a baseline
   const patch = changedSettingsPatch(base, form);
   if (!Object.keys(patch).length) return {};
   if (!hadFigures) for (const k of [...POT_KEYS, ...INCOME_KEYS]) if (k in form) patch[k] = form[k];

@@ -9604,6 +9604,7 @@
         try { await renderTiming(); } catch (e) { /* timing block optional */ }   // the Timing block read from the whole form as it stands (6.10.2)
         const _curSS = await getStressSettingsAsync();
         const base = planState.stressFormBase;
+        if (!base) { if (quiet) { fault(SAVE_OUTCOME_WORDS.opening); return false; } showToast(SAVE_OUTCOME_WORDS.opening, 'info', 6000); return false; }   // the form not yet filled from this plan: nothing of it is written (never the whole form)
         const form = stressFormSettings(_curSS);
         let hadFigures = true; try { hadFigures = planHasFigures(await getActiveScenarioAsStored()); } catch (e) { hadFigures = true; }
         const patch = stressSavePatch({ base: base && base.form, form, hadFigures });
@@ -9623,6 +9624,7 @@
         if (touches(patch, TIMING_KEYS)) await syncBudgetAgeFromTiming();   // the Budget's age follows a changed age (and only then)
         await saveStressSettings(patch);
         planState.stressFormBase = { form };   // what is saved now is the form as it stands
+        if (!quiet) await repaintAfterWrite('save');   // a pressed Save, as the quiet one's afterSave: every figure worked out from the plan before the write goes
         { const was = sippTodayOf(_curSS), typed = sippTodayOf(ssAlloc); if (window._ssTiming?.mode === 'future' && typed > 0 && Math.round(typed) !== Math.round(was)) { await saveActivePensionToday(typed); invalidateStressCache(); } }   // a saver's pot typed here is the pension today everywhere (7.12.0)
         // Refresh the Monte-Carlo / Historical starting-balance banners so they reflect the just-
         // saved allocation (they otherwise only re-render on load/tab-switch → stale after a save).

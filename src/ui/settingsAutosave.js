@@ -41,6 +41,7 @@ export const SAVE_OUTCOME_WORDS = Object.freeze({
   signedOut: 'Nothing was saved: sign in to keep a plan.',
   locked: 'Nothing was saved: this plan is locked, so its figures stay as they were locked. Unlock it to change them.',
   otherPlan: 'Nothing was saved: another plan is open now. What was typed belonged to the plan open before.',
+  opening: 'Nothing was saved: the plan was still opening. The boxes show what it holds now; type the change again.',
   problem: 'Nothing was saved yet: a box needs a change first. It says what, beside it.',
   notSaved: 'Nothing was saved.'
 });

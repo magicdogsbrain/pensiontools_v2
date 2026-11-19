@@ -98,3 +98,26 @@ describe('the guaranteed line names every source that comes anyway', () => {
     expect(none).toBe('None — market-dependent');
   });
 });
+
+/**
+ * The bought ways (check round 2): their guaranteed line said only what the contract buys ("N by contract …"), though their
+ * worst 12 months count the State Pension and the final-salary pension (£11,960 + £8,040 = £20,000 for Pat). The line now
+ * names those sources beside the contract, State Pension first, in the same words as the Pots & Valves family's line.
+ * Pat's pots here are £900,000, enough for every bought way to be bought.
+ */
+describe('a bought way\'s guaranteed line names the income that comes anyway beside the contract', () => {
+  const rich = { ...pat, equityMin: 600000, bondMin: 200000, cashTarget: 100000 };
+  const BOUGHT = ['full-il-gilt', 'gilt-rotation', 'floor-the-schedule', 'floor-to-age', 'bridge-and-engine', 'floor-and-flex', 'ladder-and-ratchet'];
+  for (const id of BOUGHT) {
+    it(id + ': the contract, plus State Pension (being paid now) and final-salary pension £8,040 a year (being paid now)', () => {
+      const r = stressTestStrategy(id, plan(rich));
+      expect(r.affordable).toBe(true);
+      expect(r.guaranteedToAge).toMatch(/by contract/);
+      expect(r.guaranteedToAge).toMatch(/; plus State Pension \(being paid now\) and final-salary pension £8,040 a year \(being paid now\)$/);
+    });
+  }
+  it('with nothing that comes anyway, the contract line is as it was', () => {
+    const r = stressTestStrategy('full-il-gilt', plan({ ...rich, spWeeklyAmount: 0, spStartDate: null, statePension: 0, dbAmount: 0 }));
+    expect(r.guaranteedToAge).toMatch(/^\d+ by contract \(every year bought today\)$/);
+  });
+});

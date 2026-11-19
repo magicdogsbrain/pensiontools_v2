@@ -149,7 +149,13 @@ const withoutAdded = (doc) => {
   return { ...rest, ...('engineVersion' in rest ? { engineVersion: '6.37.0' } : {}), timing };
 };
 /** 7.9.0 likewise: the full ladder's "N by contract" names the birthday its last year ends on; the pins read it one lower. */
-const contractAgeAsPinned = (r) => (isObj(r) && typeof r.guaranteedToAge === 'string' ? { ...r, guaranteedToAge: r.guaranteedToAge.replace(/^(\d+)( by contract \(every year bought today\))$/, (m, n, t) => (+n - 1) + t) } : r);
+/**
+ * 7.12.0 (check round 2): a bought way's guaranteed line names, after the contract, the income that comes anyway ("; plus
+ * State Pension (from age N) …"), and Bridge & engine's "then the engine + State Pension" leaves the State Pension to that
+ * list: words, never a figure. The pins are read with the old words put back.
+ */
+const contractAnywayAsPinned = (t) => (/ by contract/.test(t) ? t.replace(/; plus .*$/, '').replace(/^(\d+ by contract; then the engine)$/, '$1 + State Pension') : t);
+const contractAgeAsPinned = (r) => (isObj(r) && typeof r.guaranteedToAge === 'string' ? { ...r, guaranteedToAge: contractAnywayAsPinned(r.guaranteedToAge).replace(/^(\d+)( by contract \(every year bought today\))$/, (m, n, t) => (+n - 1) + t) } : r);
 
 /**
  * 7.12.0 (engine 6.40.0): the Pots & Valves family's guaranteed line names every source of income that comes anyway

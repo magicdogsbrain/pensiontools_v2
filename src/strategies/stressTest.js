@@ -30,7 +30,7 @@ import { LEVEL_FAILS20, levelOf, passes as passesLevel } from '../answers/shared
 import { planToAgeOf } from '../services/AgeConvention.js';   // the income cuts, counted from the same futures (6.24.0: one answer)
 import { pensionLockOf, pensionPotOf } from '../services/PensionLock.js';
 import { planNeedOf, lockOfNeed } from '../services/PlanNeed.js';
-import { withIncomeAnyway, worstTwelveOf, incomeAnywayWords } from './incomeAnyway.js';
+import { withIncomeAnyway, worstTwelveOf, incomeAnywayWords, NO_INCOME_ANYWAY } from './incomeAnyway.js';
 // the closed years as a plan's run sees them, with no test run (services/PlanNeed.js): re-exported, as both apps read it here
 export { pensionLockForSettings } from '../services/PlanNeed.js';
 
@@ -549,7 +549,7 @@ function bridgeTest(p, configs) {
     affordable: true,
     ruin: { hist: pctFail(hE), mc: pctFail(mcE) },
     worst12: { min: Math.min(...hE.map((e) => e.worst)), median: pct(hE.map((e) => e.worst), 0.5) },
-    guaranteedToAge: `${c.bridgeAge} by contract; then the engine + State Pension`,
+    guaranteedToAge: `${c.bridgeAge} by contract; then the engine`,   // the State Pension is named after it, when there is one
     terminal: { p10: pct(terms, 0.10), p50: pct(terms, 0.5), p90: pct(terms, 0.90), histMedian: pct(hE.map((e) => e.wealth[N]), 0.5) },
     cones: { wealth: coneOf(mcE.map((e) => e.wealth), N), income: coneOf(mcE.map((e) => e.income), N) },
     samples: { wealth: sampleOf(mcE.map((e) => e.wealth), N), income: sampleOf(mcE.map((e) => e.income), N) },
@@ -881,6 +881,12 @@ export function stressTestStrategy(strategyId, p, configs = deriveCompareConfigs
   if (!fn) throw new Error('unknown strategy ' + strategyId);
   const r = fn(p, configs);
   if (strategyId !== 'pots-and-valves' && strategyId !== 'buckets-in-order') closedYearsCut(r, p);
+  // A bought way's guaranteed line names, beside what the contract buys, every source that comes anyway (State Pension
+  // first, as the Pots & Valves family's line: incomeAnyway.js), which its worst 12 months already count (7.12.0).
+  if (strategyId !== 'pots-and-valves' && strategyId !== 'buckets-in-order' && typeof r.guaranteedToAge === 'string' && / by contract/.test(r.guaranteedToAge)) {
+    const anyway = incomeAnywayWords(p);
+    if (anyway !== NO_INCOME_ANYWAY) r.guaranteedToAge += '; plus ' + anyway;
+  }
   // A windfall not yet spent on rungs is still wealth: add the parked balance to the wealth series
   // of the bought strategies (the P&V engine already carries it inside its own pots).
   const carry = p.windfallCarryByYear;

@@ -44,8 +44,10 @@
  *           the compare's canned decades) and Ladder & Ratchet. Their "worst 12 months" is never £0 while such income is
  *           paid, and the Pots & Valves family's income cone carries it in the years after the money ran out (it was £0).
  *           The guaranteed line names every source of that income ("State Pension (being paid now) and final-salary pension
- *           £6,000 a year (from age 60)"), where it said "State Pension only". That change moves no chance, run-out age
- *           or amount left.
+ *           £6,000 a year (from age 60)"), where it said "State Pension only". The bought ways' line names the same
+ *           sources after what the contract buys ("85 by contract (every year bought today); plus State Pension (from age
+ *           67)"; Bridge & engine's "then the engine + State Pension" leaves the State Pension to that list). That change
+ *           moves no chance, run-out age or amount left.
  *           Year 0 for the months it has: a saver's full gilt ladder (and the ladder + rotation built on it) buys its
  *           first tax year only for the months from the month work stops to March (PlanTiming.year0MonthsOf), less the
  *           State Pension paid in those same months (a State Pension that starts in that tax year pays only the months

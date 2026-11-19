@@ -30,6 +30,9 @@ export function worstTwelveOf(inc) {
   return Number.isFinite(worst) ? worst : 0;
 }
 
+/** The words for a plan with no income that comes anyway. */
+export const NO_INCOME_ANYWAY = 'None — market-dependent';
+
 const pounds = (v) => '£' + Math.round(v).toLocaleString('en-GB');
 
 /**
@@ -55,6 +58,6 @@ export function incomeAnywayWords(p) {
     parts.push((s.label ? String(s.label) : 'income') + ' ' + pounds(s.annual) + ' a year (' + when(s.startYear || 0) + to + ')');
   }
   if (cfg.other > 0) parts.push('other income ' + pounds(cfg.other) + ' a year');
-  if (!parts.length) return 'None — market-dependent';
+  if (!parts.length) return NO_INCOME_ANYWAY;
   return parts.length === 1 ? parts[0] : parts.slice(0, -1).join(', ') + ' and ' + parts[parts.length - 1];
 }

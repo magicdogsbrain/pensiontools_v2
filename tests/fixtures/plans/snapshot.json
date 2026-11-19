@@ -205,7 +205,7 @@
     "terminalP50": 318412,
     "terminalP90": 318412,
     "spentMedian": 626639,
-    "guaranteedToAge": "86 by contract (every year bought today)",
+    "guaranteedToAge": "86 by contract (every year bought today); plus State Pension (from age 67)",
     "cone": {
      "years": [
       0,
@@ -533,7 +533,7 @@
     "terminalP50": 258292,
     "terminalP90": 852228,
     "spentMedian": 964000,
-    "guaranteedToAge": "80 by contract whatever happens; above that, contract until the trigger fires (81% of futures rotate)",
+    "guaranteedToAge": "80 by contract whatever happens; above that, contract until the trigger fires (81% of futures rotate); plus State Pension (from age 67)",
     "cone": {
      "years": [
       0,
@@ -1005,7 +1005,7 @@
     "terminalP50": 71040,
     "terminalP90": 71040,
     "spentMedian": 723000,
-    "guaranteedToAge": "90 by contract (every year bought today)",
+    "guaranteedToAge": "90 by contract (every year bought today); plus State Pension (from age 67)",
     "cone": {
      "years": [
       0,
@@ -1424,7 +1424,7 @@
     "terminalP50": 353188,
     "terminalP90": 353188,
     "spentMedian": 592639,
-    "guaranteedToAge": "86 by contract (every year bought today)",
+    "guaranteedToAge": "86 by contract (every year bought today); plus State Pension (from age 67)",
     "cone": {
      "years": [
       0,

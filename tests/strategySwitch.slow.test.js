@@ -126,7 +126,8 @@ describe('switching strategies: locked-plan stress test == the Strategies compar
     expect(lr.guaranteedToAge).toMatch(/^69 by contract/);
     expect(all.configs.ff.horizonAge).toBe(87);   // 90 asked, capped by the 30-year plan (57+30)
     expect(all.configs.ff.rate).toBe(0.035);
-    expect(ff.guaranteedToAge).toBe('87 by contract (essentials)');
+    // the contract's age, then the income that comes anyway (7.12.0): here the State Pension the plan assumed
+    expect(ff.guaranteedToAge).toBe('87 by contract (essentials); plus State Pension (from age 67, assumed — none entered)');
     expect(lockedPlanStress(settings, 'ladder-and-ratchet').signature.ladderYears).toBe(12);
   });
 

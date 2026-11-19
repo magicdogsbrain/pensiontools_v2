@@ -138,8 +138,8 @@
           "level": null
         },
         "verdict": "no",
-        "fails": 536,
-        "lasted": 0.464,
+        "fails": 534,
+        "lasted": 0.466,
         "runOutAge": 83,
         "outOfTen": {
           "words": "in only 5 futures out of 10",
@@ -150,33 +150,33 @@
         "left": {
           "age": 99,
           "typical": 0,
-          "best": 393749
+          "best": 398350
         },
         "level": "balanced",
         "levels": {
           "careful": {
             "monthly": 1690,
             "yearly": 20280,
-            "weighted": 0.9522461669975891,
-            "fixedAge": 0.871
+            "weighted": 0.9528399634286762,
+            "fixedAge": 0.873
           },
           "balanced": {
             "monthly": 1780,
             "yearly": 21360,
-            "weighted": 0.9032772127678618,
-            "fixedAge": 0.761
+            "weighted": 0.904581756577827,
+            "fixedAge": 0.768
           },
           "bold": {
-            "monthly": 2010,
-            "yearly": 24120,
-            "weighted": 0.7092130199056119,
-            "fixedAge": 0.452
+            "monthly": 2020,
+            "yearly": 24240,
+            "weighted": 0.7021024753851817,
+            "fixedAge": 0.444
           }
         },
         "chance": {
-          "weighted": 0.7185735484836623,
-          "fixedAge": 0.464,
-          "fails": 536,
+          "weighted": 0.7214087403770536,
+          "fixedAge": 0.466,
+          "fails": 534,
           "n": 1000,
           "planToAge": 99,
           "weightToAge": 103,
@@ -638,7 +638,7 @@
           },
           "levels": {
             "id": "d.levels",
-            "text": "At Careful, about £1,690 a month. At Bold, about £2,010 a month.",
+            "text": "At Careful, about £1,690 a month. At Bold, about £2,020 a month.",
             "parts": [
               "At Careful, about ",
               {
@@ -837,7 +837,7 @@
           },
           "cost": {
             "id": "d.cost",
-            "text": "Careful asks for £90 a month less than Balanced. Bold would let you take £230 a month more.",
+            "text": "Careful asks for £90 a month less than Balanced. Bold would let you take £240 a month more.",
             "parts": [
               "Careful asks for ",
               {
@@ -847,7 +847,7 @@
               " ",
               "Bold would let you take ",
               {
-                "fixed": "£230"
+                "fixed": "£240"
               },
               " a month more."
             ]

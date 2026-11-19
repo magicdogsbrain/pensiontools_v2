@@ -95,24 +95,24 @@
           "careful": {
             "monthly": 1330,
             "yearly": 15960,
-            "weighted": 0.9543408934772014,
+            "weighted": 0.9552759515680372,
             "fixedAge": 0.93
           },
           "balanced": {
             "monthly": 1390,
             "yearly": 16680,
-            "weighted": 0.9069875207357109,
+            "weighted": 0.9078696533013135,
             "fixedAge": 0.84
           },
           "bold": {
             "monthly": 1530,
             "yearly": 18360,
-            "weighted": 0.7000580480787904,
+            "weighted": 0.7028106005769224,
             "fixedAge": 0.54
           }
         },
         "chance": {
-          "weighted": 0.9069875207357109,
+          "weighted": 0.9078696533013135,
           "fixedAge": 0.84,
           "fails": 16,
           "n": 100,
@@ -124,8 +124,8 @@
         "floorAge": 91,
         "left": {
           "age": 99,
-          "typical": 152159,
-          "best": 823556
+          "typical": 153822,
+          "best": 831805
         },
         "guaranteed": {
           "monthlyAfterTax": 1045.63
@@ -737,7 +737,7 @@
           },
           "left": {
             "id": "c.left",
-            "text": "If you live to 99, what is typically left then is £152,000 at today's prices. In the best 1 in 10 futures it is £824,000 or more.",
+            "text": "If you live to 99, what is typically left then is £154,000 at today's prices. In the best 1 in 10 futures it is £832,000 or more.",
             "parts": [
               "If you live to ",
               {
@@ -745,7 +745,7 @@
               },
               ", what is typically left then is ",
               {
-                "fixed": "£152,000"
+                "fixed": "£154,000"
               },
               " at today's prices. In the best ",
               {
@@ -757,7 +757,7 @@
               },
               " futures it is ",
               {
-                "fixed": "£824,000"
+                "fixed": "£832,000"
               },
               " or more."
             ]

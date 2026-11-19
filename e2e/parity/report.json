@@ -1,5 +1,5 @@
 {
- "at": "2026-11-19T15:43:39.108Z",
+ "at": "2026-11-19T17:52:31.413Z",
  "fixtures": [
   "age-only",
   "budget",
@@ -25,34 +25,33 @@
  "pagesOpened": 635,
  "marks": 11540,
  "fieldsBound": 61,
- "disagreements": 544,
+ "disagreements": 531,
  "unmarked": 16527,
  "oneViewOnly": 2329,
  "readingMismatches": 0,
- "roundTripsFailed": 68,
+ "roundTripsFailed": 67,
  "rose": [],
- "shrank": [],
+ "shrank": [
+  "agrees now, take it out of known-disagreements.json: age-only|field:about.endAge",
+  "agrees now, take it out of known-disagreements.json: budget|field:about.endAge",
+  "agrees now, take it out of known-disagreements.json: closed-successor|field:about.endAge",
+  "agrees now, take it out of known-disagreements.json: couple|field:about.endAge",
+  "agrees now, take it out of known-disagreements.json: mover-holdings|field:about.endAge",
+  "agrees now, take it out of known-disagreements.json: mover-totals|field:about.endAge",
+  "agrees now, take it out of known-disagreements.json: retired-draft|field:about.endAge",
+  "agrees now, take it out of known-disagreements.json: retired-everything|field:about.endAge",
+  "agrees now, take it out of known-disagreements.json: saver-checkin|field:about.endAge",
+  "agrees now, take it out of known-disagreements.json: saver-draft|field:about.endAge",
+  "agrees now, take it out of known-disagreements.json: saver-ladder-draft|field:about.endAge",
+  "agrees now, take it out of known-disagreements.json: saver-payin|field:about.endAge",
+  "agrees now, take it out of known-disagreements.json: wizard-defaults|field:about.endAge",
+  "a listed round trip got better, narrow known-roundtrips.json: about.endAge|s2f — shows another value → needs a press",
+  "comes back now, take it out of known-roundtrips.json: about.endAge|f2s (was shows another value)"
+ ],
  "grew": [],
  "notQuiet": [],
  "detail": {
   "disagreements": [
-   {
-    "key": "age-only|field:about.endAge",
-    "fixture": "age-only",
-    "fact": "field:about.endAge",
-    "values": [
-     {
-      "view": "simple",
-      "page": "about",
-      "text": "92"
-     },
-     {
-      "view": "full",
-      "page": "stress settings",
-      "text": "35"
-     }
-    ]
-   },
    {
     "key": "age-only|field:income.other",
     "fixture": "age-only",
@@ -215,23 +214,6 @@
       "view": "full",
       "page": "decision settings",
       "text": "Pots & Valves"
-     }
-    ]
-   },
-   {
-    "key": "budget|field:about.endAge",
-    "fixture": "budget",
-    "fact": "field:about.endAge",
-    "values": [
-     {
-      "view": "simple",
-      "page": "about",
-      "text": "99"
-     },
-     {
-      "view": "full",
-      "page": "stress settings",
-      "text": "33"
      }
     ]
    },
@@ -1137,23 +1119,6 @@
     ]
    },
    {
-    "key": "closed-successor|field:about.endAge",
-    "fixture": "closed-successor",
-    "fact": "field:about.endAge",
-    "values": [
-     {
-      "view": "simple",
-      "page": "about",
-      "text": "92"
-     },
-     {
-      "view": "full",
-      "page": "stress settings",
-      "text": "28"
-     }
-    ]
-   },
-   {
     "key": "closed-successor|field:income.other",
     "fixture": "closed-successor",
     "fact": "field:income.other",
@@ -1897,23 +1862,6 @@
     ]
    },
    {
-    "key": "couple|field:about.endAge",
-    "fixture": "couple",
-    "fact": "field:about.endAge",
-    "values": [
-     {
-      "view": "simple",
-      "page": "about",
-      "text": "94"
-     },
-     {
-      "view": "full",
-      "page": "stress settings",
-      "text": "32"
-     }
-    ]
-   },
-   {
     "key": "couple|field:income.other",
     "fixture": "couple",
     "fact": "field:income.other",
@@ -2636,23 +2584,6 @@
       "view": "full",
       "page": "decision settings",
       "text": "Pots & Valves"
-     }
-    ]
-   },
-   {
-    "key": "mover-holdings|field:about.endAge",
-    "fixture": "mover-holdings",
-    "fact": "field:about.endAge",
-    "values": [
-     {
-      "view": "simple",
-      "page": "about",
-      "text": "95"
-     },
-     {
-      "view": "full",
-      "page": "stress settings",
-      "text": "35"
      }
     ]
    },
@@ -3580,23 +3511,6 @@
     ]
    },
    {
-    "key": "mover-totals|field:about.endAge",
-    "fixture": "mover-totals",
-    "fact": "field:about.endAge",
-    "values": [
-     {
-      "view": "simple",
-      "page": "about",
-      "text": "95"
-     },
-     {
-      "view": "full",
-      "page": "stress settings",
-      "text": "35"
-     }
-    ]
-   },
-   {
     "key": "mover-totals|field:income.other",
     "fixture": "mover-totals",
     "fact": "field:income.other",
@@ -4482,23 +4396,6 @@
       "view": "full",
       "page": "decision settings",
       "text": "Pots & Valves"
-     }
-    ]
-   },
-   {
-    "key": "retired-draft|field:about.endAge",
-    "fixture": "retired-draft",
-    "fact": "field:about.endAge",
-    "values": [
-     {
-      "view": "simple",
-      "page": "about",
-      "text": "99"
-     },
-     {
-      "view": "full",
-      "page": "stress settings",
-      "text": "33"
      }
     ]
    },
@@ -5400,23 +5297,6 @@
       "view": "full",
       "page": "decision settings",
       "text": "Pots & Valves"
-     }
-    ]
-   },
-   {
-    "key": "retired-everything|field:about.endAge",
-    "fixture": "retired-everything",
-    "fact": "field:about.endAge",
-    "values": [
-     {
-      "view": "simple",
-      "page": "about",
-      "text": "92"
-     },
-     {
-      "view": "full",
-      "page": "stress settings",
-      "text": "33"
      }
     ]
    },
@@ -7605,23 +7485,6 @@
     ]
    },
    {
-    "key": "saver-checkin|field:about.endAge",
-    "fixture": "saver-checkin",
-    "fact": "field:about.endAge",
-    "values": [
-     {
-      "view": "simple",
-      "page": "about",
-      "text": "95"
-     },
-     {
-      "view": "full",
-      "page": "stress settings",
-      "text": "28"
-     }
-    ]
-   },
-   {
     "key": "saver-checkin|field:income.other",
     "fixture": "saver-checkin",
     "fact": "field:income.other",
@@ -8298,23 +8161,6 @@
       "view": "full",
       "page": "decision settings",
       "text": "Pots & Valves"
-     }
-    ]
-   },
-   {
-    "key": "saver-draft|field:about.endAge",
-    "fixture": "saver-draft",
-    "fact": "field:about.endAge",
-    "values": [
-     {
-      "view": "simple",
-      "page": "about",
-      "text": "101"
-     },
-     {
-      "view": "full",
-      "page": "stress settings",
-      "text": "41"
      }
     ]
    },
@@ -9284,23 +9130,6 @@
       "view": "full",
       "page": "decision settings",
       "text": "Pots & Valves"
-     }
-    ]
-   },
-   {
-    "key": "saver-ladder-draft|field:about.endAge",
-    "fixture": "saver-ladder-draft",
-    "fact": "field:about.endAge",
-    "values": [
-     {
-      "view": "simple",
-      "page": "about",
-      "text": "95"
-     },
-     {
-      "view": "full",
-      "page": "stress settings",
-      "text": "35"
      }
     ]
    },
@@ -10889,23 +10718,6 @@
     ]
    },
    {
-    "key": "saver-payin|field:about.endAge",
-    "fixture": "saver-payin",
-    "fact": "field:about.endAge",
-    "values": [
-     {
-      "view": "simple",
-      "page": "about",
-      "text": "95"
-     },
-     {
-      "view": "full",
-      "page": "stress settings",
-      "text": "28"
-     }
-    ]
-   },
-   {
     "key": "saver-payin|field:income.other",
     "fixture": "saver-payin",
     "fact": "field:income.other",
@@ -11599,23 +11411,6 @@
       "view": "full",
       "page": "decision settings",
       "text": "Pots & Valves"
-     }
-    ]
-   },
-   {
-    "key": "wizard-defaults|field:about.endAge",
-    "fixture": "wizard-defaults",
-    "fact": "field:about.endAge",
-    "values": [
-     {
-      "view": "simple",
-      "page": "about",
-      "text": "92"
-     },
-     {
-      "view": "full",
-      "page": "stress settings",
-      "text": "35"
      }
     ]
    },
@@ -25772,14 +25567,8 @@
     "kind": "needs a press"
    },
    {
-    "key": "about.endAge|f2s",
-    "kind": "shows another value",
-    "detail": "typed 36 in the full view; the simple view shows 96"
-   },
-   {
     "key": "about.endAge|s2f",
-    "kind": "shows another value",
-    "detail": "typed 97 in the simple view; the full view shows 37"
+    "kind": "needs a press"
    },
    {
     "key": "about.startWhen|f2s",

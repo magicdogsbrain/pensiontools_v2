@@ -2,8 +2,7 @@
  "note": "Round trips that fail (lead4.md G5): per box and direction (\"<field>|s2f\" typed in the simple view, read in the full; \"|f2s\" the other way), and the plan-change trips, each with its kind. \"needs a press\" is a save that needed the page's Save button. May only shrink: a trip not listed, or listed as a better kind, is a rise.",
  "entries": {
   "about.age|s2f": "needs a press",
-  "about.endAge|f2s": "shows another value",
-  "about.endAge|s2f": "shows another value",
+  "about.endAge|s2f": "needs a press",
   "about.startWhen|f2s": "needs a press",
   "about.startWhen|s2f": "needs a press",
   "about.stopAge|s2f": "needs a press",

@@ -1,14 +1,6 @@
 {
  "note": "Fact x fixture pairs that still differ between places (lead4.md G4), each with its places and what each showed. May only shrink: a pair not listed, a value not listed for its pair, or a place not listed for its pair is a rise.",
  "pairs": {
-  "age-only|field:about.endAge": {
-   "full:stress settings": [
-    "35"
-   ],
-   "simple:about": [
-    "92"
-   ]
-  },
   "age-only|field:income.other": {
    "full:stress settings": [
     "0"
@@ -95,14 +87,6 @@
    ],
    "simple:plan": [
     "Pots and valves"
-   ]
-  },
-  "budget|field:about.endAge": {
-   "full:stress settings": [
-    "33"
-   ],
-   "simple:about": [
-    "99"
    ]
   },
   "budget|field:income.other": {
@@ -548,14 +532,6 @@
     "Pots and valves"
    ]
   },
-  "closed-successor|field:about.endAge": {
-   "full:stress settings": [
-    "28"
-   ],
-   "simple:about": [
-    "92"
-   ]
-  },
   "closed-successor|field:income.other": {
    "full:stress settings": [
     "0"
@@ -924,14 +900,6 @@
     "Pots and valves"
    ]
   },
-  "couple|field:about.endAge": {
-   "full:stress settings": [
-    "32"
-   ],
-   "simple:about": [
-    "94"
-   ]
-  },
   "couple|field:income.other": {
    "full:stress settings": [
     "0"
@@ -1282,14 +1250,6 @@
    ],
    "simple:plan": [
     "Pots and valves"
-   ]
-  },
-  "mover-holdings|field:about.endAge": {
-   "full:stress settings": [
-    "35"
-   ],
-   "simple:about": [
-    "95"
    ]
   },
   "mover-holdings|field:income.other": {
@@ -1746,14 +1706,6 @@
     "Pots and valves"
    ]
   },
-  "mover-totals|field:about.endAge": {
-   "full:stress settings": [
-    "35"
-   ],
-   "simple:about": [
-    "95"
-   ]
-  },
   "mover-totals|field:income.other": {
    "full:stress settings": [
     "0"
@@ -2190,14 +2142,6 @@
    ],
    "simple:plan": [
     "Pots and valves"
-   ]
-  },
-  "retired-draft|field:about.endAge": {
-   "full:stress settings": [
-    "33"
-   ],
-   "simple:about": [
-    "99"
    ]
   },
   "retired-draft|field:income.other": {
@@ -2641,14 +2585,6 @@
    ],
    "simple:plan": [
     "Pots and valves"
-   ]
-  },
-  "retired-everything|field:about.endAge": {
-   "full:stress settings": [
-    "33"
-   ],
-   "simple:about": [
-    "92"
    ]
   },
   "retired-everything|field:spend.first": {
@@ -3740,14 +3676,6 @@
     "Pots and valves"
    ]
   },
-  "saver-checkin|field:about.endAge": {
-   "full:stress settings": [
-    "28"
-   ],
-   "simple:about": [
-    "95"
-   ]
-  },
   "saver-checkin|field:income.other": {
    "full:stress settings": [
     "0"
@@ -4077,14 +4005,6 @@
    ],
    "simple:plan": [
     "Pots and valves"
-   ]
-  },
-  "saver-draft|field:about.endAge": {
-   "full:stress settings": [
-    "41"
-   ],
-   "simple:about": [
-    "101"
    ]
   },
   "saver-draft|field:income.other": {
@@ -4552,14 +4472,6 @@
    ],
    "simple:plan": [
     "Pots and valves"
-   ]
-  },
-  "saver-ladder-draft|field:about.endAge": {
-   "full:stress settings": [
-    "35"
-   ],
-   "simple:about": [
-    "95"
    ]
   },
   "saver-ladder-draft|field:income.other": {
@@ -5347,14 +5259,6 @@
     "Pots and valves"
    ]
   },
-  "saver-payin|field:about.endAge": {
-   "full:stress settings": [
-    "28"
-   ],
-   "simple:about": [
-    "95"
-   ]
-  },
   "saver-payin|field:income.other": {
    "full:stress settings": [
     "0"
@@ -5692,14 +5596,6 @@
    ],
    "simple:plan": [
     "Pots and valves"
-   ]
-  },
-  "wizard-defaults|field:about.endAge": {
-   "full:stress settings": [
-    "35"
-   ],
-   "simple:about": [
-    "92"
    ]
   },
   "wizard-defaults|field:about.stopped": {

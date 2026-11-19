@@ -48,7 +48,7 @@ describe('buildPlanDocument', () => {
     expect(t[2].gross).toBe(46000);
     expect(t[3]).toMatchObject({ taxYear: '2031/32', age: 67, gross: 39000 });
     expect(t[2].sp).toBe(0);
-    expect(t[3].sp).toBe(6078);              // 3 October to 5 April: 186 of 366 days of £11,960
+    expect(t[3].sp).toBe(5980);              // October to March, whole months (ruling C): 6 of 12 of £11,960 (was 186 of 366 days, £6,078)
     expect(t[4].sp).toBe(11960);
     expect(t[2].lumpIn).toEqual([{ label: 'Inherited pension', amount: 40000, wrapper: 'pension' }]);
     expect(t[2].taxYear).toBe('2030/31');

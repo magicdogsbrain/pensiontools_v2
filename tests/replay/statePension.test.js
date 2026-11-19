@@ -65,6 +65,6 @@ describe('the plan year the State Pension lands in', () => {
       expect(spSimConfigFromSettings(alex, today).spStartYear).toBe(3);
       expect(spTaxYearConfigFromSettings(alex, today).spStartYear).toBe(3);
     }
-    expect(spSimConfigFromSettings(alex, SEPT_2026).spFirstYearRatio).toBeCloseTo(298 / 365, 2);   // measured against 6 April
+    expect(spSimConfigFromSettings(alex, SEPT_2026).spFirstYearRatio).toBe(10 / 12);   // measured against April, June to March in whole months (was 298/365 by days)
   });
 });

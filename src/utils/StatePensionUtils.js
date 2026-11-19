@@ -431,18 +431,20 @@ export function spSimConfigFromSettings(settings, now = new Date()) {
  * years from today). Returns { spStartYear, spWeeklyAmount, spFirstYearRatio } like the sim config.
  */
 /**
- * Share of the State Pension paid in the TAX year it starts (6 April boundary). Gilt-ladder rungs
- * are bought per tax year, so the first-year SP must be measured against 6 April, not 1 January:
- * an SP starting 6 May pays 335/365 of a year in that tax year (the calendar ratio, 240/365,
- * would over-buy that rung). Returns null when no SP date is set.
+ * Share of the State Pension paid in the TAX year it starts (6 April boundary), in whole months (7.12.0, ruling C: a plan
+ * year is counted in whole months, the State Pension's first month counted whole). Gilt-ladder rungs are bought per tax
+ * year, so the first-year share is measured against April, not January: one starting 6 May pays May to March, 11/12 of
+ * that tax year (the calendar ratio would over-buy that rung); one starting 6 January pays January to March, 3/12. A date
+ * of 1 to 5 April belongs to the tax year then ending but its first month is the next tax year's April: it pays nothing
+ * in the year it is dated to and the whole of the next. Returns null when no SP date is set.
  */
 export function spTaxYearFirstRatio(settings) {
   if (!settings || !settings.spStartDate) return null;
   const spDate = parseStatePensionDate(settings.spStartDate);
   if (!spDate) return null;
   const ty = (spDate.getMonth() > 3 || (spDate.getMonth() === 3 && spDate.getDate() >= 6)) ? spDate.getFullYear() : spDate.getFullYear() - 1;
-  const yStart = new Date(ty, 3, 6), yEnd = new Date(ty + 1, 3, 6);
-  return Math.max(0, Math.min(1, (calendarDayNumber(yEnd) - calendarDayNumber(spDate)) / (calendarDayNumber(yEnd) - calendarDayNumber(yStart))));
+  const at = (spDate.getFullYear() - ty) * 12 + spDate.getMonth() - 3;   // months from that tax year's April (April 0 … March 11)
+  return Math.max(0, Math.min(12, 12 - at)) / 12;
 }
 
 export function spTaxYearConfigFromSettings(settings, now = new Date()) {
@@ -452,9 +454,7 @@ export function spTaxYearConfigFromSettings(settings, now = new Date()) {
   const tyStart = (d) => (d.getMonth() > 3 || (d.getMonth() === 3 && d.getDate() >= 6)) ? d.getFullYear() : d.getFullYear() - 1;
   // Plan year 0 is the plan's saved first tax year (6.4.0) — "today" only when the plan has none.
   const spStartYear = Math.max(0, tyStart(spDate) - (+settings.firstTaxYear > 0 ? +settings.firstTaxYear : tyStart(now)));
-  const yStart = new Date(tyStart(spDate), 3, 6), yEnd = new Date(tyStart(spDate) + 1, 3, 6);
-  const spFirstYearRatio = Math.max(0, Math.min(1, (calendarDayNumber(yEnd) - calendarDayNumber(spDate)) / (calendarDayNumber(yEnd) - calendarDayNumber(yStart))));
-  return { spStartYear, spWeeklyAmount: settings.spWeeklyAmount, spFirstYearRatio };
+  return { spStartYear, spWeeklyAmount: settings.spWeeklyAmount, spFirstYearRatio: spTaxYearFirstRatio(settings) };
 }
 
 /**

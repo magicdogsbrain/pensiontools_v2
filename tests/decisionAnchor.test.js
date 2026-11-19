@@ -36,12 +36,14 @@ describe('one anchor for the Decision tool', () => {
 });
 
 describe('State Pension timing reads the anchor', () => {
-  it("Alex's SP (12 June 2030) is plan year 3 of a 2027/28 plan, paid 298/365 in that tax year", () => {
+  it("Alex's SP (12 June 2030) is plan year 3 of a 2027/28 plan, paid June to March, 10/12 of that tax year", () => {
+    // whole months, the first counted whole (7.12.0, ruling C); it was 298/365 by days
     const sim = spSimConfigFromSettings(alex, NOW);
     expect(sim.spStartYear).toBe(3);
-    expect(sim.spFirstYearRatio).toBeCloseTo(298 / 365, 2);
+    expect(sim.spFirstYearRatio).toBe(10 / 12);
     const dec = spTaxYearConfigFromSettings(alex, NOW);
     expect(dec.spStartYear).toBe(3);
+    expect(dec.spFirstYearRatio).toBe(10 / 12);
   });
   it('without an anchor the old behaviour stands (Decision side counts from today)', () => {
     const { firstTaxYear, ...legacy } = alex;

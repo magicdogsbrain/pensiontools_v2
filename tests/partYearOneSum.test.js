@@ -144,3 +144,23 @@ describe('one axis for the current plan year: a plan two years in and the same p
     expect(gA.plan.years[0].need).toBeCloseTo(gB.plan.years[0].need, 6);
   });
 });
+
+describe('the State Pension\'s first year is whole months in every year, not only a part year 0 (check of E8, fault 3)', () => {
+  // State Pension from 6 January 2028: its first tax year (2027/28) pays January, February and March, 3 × 1,000 = 3,000, the
+  // first month counted whole (ruling C). It was 91 ÷ 366 × 12,000 = 2,983.61 whenever 2027/28 was a whole year.
+  const planOf = (s) => planFromSettings(s, createSimulationConfigFromSettings({}, s), { now: NOW });
+  it('stop May 2027 (11 months) and stop April 2027 (12): 3,000 of State Pension in 2027/28 both times', () => {
+    expect(paidYearOf(planOf({ ...jo, stoppedWork: '2027-05' }), 0).sp).toBeCloseTo(3000, 6);
+    const q = planOf({ ...jo, stoppedWork: '2027-04' });
+    expect(paidYearOf(q, 0).sp).toBeCloseTo(3000, 6);
+    // 28,000 − 3,000 = 25,000 from the pots or the contract, in every way and in Pots & Valves' twelve months
+    for (const draw of [...Object.values(deriveCompareConfigs(q)).filter((c) => c && typeof c.floorDraw === 'function').map((c) => c.floorDraw), deriveCompareConfigs(q).lr.drawNetOfSp]) expect(draw(1)).toBeCloseTo(25000, 6);
+    const t = simulate({ ...q.pnvCfg, years: 30, trace: true, disableProtection: true }, flat, 1).trace;
+    expect(t.slice(0, 12).reduce((a, r) => a + (r.effectiveSipp || 0) + (r.effectiveIsa || 0), 0)).toBeCloseTo(25000, 0);
+  });
+  it('stop March 2027 (year 0 is 2026/27, one month): year 1 asks 25,000', () => {
+    const q = planOf({ ...jo, stoppedWork: '2027-03', firstTaxYear: 2026 });
+    expect(paidYearOf(q, 1).need).toBeCloseTo(25000, 6);
+    expect(deriveCompareConfigs(q).fs.floorDraw(2)).toBeCloseTo(25000, 6);
+  });
+});

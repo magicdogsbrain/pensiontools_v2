@@ -111,10 +111,12 @@ describe('State Pension date is a birthday: plan year = age at SP − start age'
 });
 
 describe('spTaxYearFirstRatio (ladder rungs are per tax year)', () => {
-  it('SP starting 6 May pays 335/365 of that tax year, not the calendar 240/365', async () => {
+  // Whole months (7.12.0, ruling C: a plan year is counted in whole months, the State Pension's first month counted whole)
+  it('SP starting 6 May pays May to March, 11/12 of that tax year, not the calendar 8/12', async () => {
     const { spTaxYearFirstRatio } = await import('../src/utils/StatePensionUtils.js');
-    expect(spTaxYearFirstRatio({ spStartDate: '6 May 2040' })).toBeCloseTo(335 / 365, 3);
-    expect(spTaxYearFirstRatio({ spStartDate: '1 April 2037' })).toBeCloseTo(5 / 365, 3);   // lands in 36/37
+    expect(spTaxYearFirstRatio({ spStartDate: '6 May 2040' })).toBe(11 / 12);
+    // dated in 36/37 (before 6 April), but its first month is April, 37/38's first: nothing in 36/37, all of 37/38
+    expect(spTaxYearFirstRatio({ spStartDate: '1 April 2037' })).toBe(0);
     expect(spTaxYearFirstRatio({})).toBeNull();
   });
 });
@@ -124,13 +126,14 @@ describe('spTaxYearFirstRatio (ladder rungs are per tax year)', () => {
 // under Europe/London and 23/366 under UTC, and the same plan gave answers a few pounds apart. These are exact
 // fractions, so they fail under ANY zone with a clock change if milliseconds creep back in.
 describe('State Pension day counts do not depend on the time zone or the clock change', () => {
-  it('first tax-year share is an exact fraction of whole days (winter and summer start dates)', async () => {
+  it('first tax-year share is an exact fraction of whole months (winter and summer start dates)', async () => {
     const { spTaxYearFirstRatio, spTaxYearConfigFromSettings } = await import('../src/utils/StatePensionUtils.js');
-    expect(spTaxYearFirstRatio({ spStartDate: '14 March 2032' })).toBe(23 / 366);        // 31/32 holds 29 Feb 2032
-    expect(spTaxYearFirstRatio({ spStartDate: '9 November 2036' })).toBe(148 / 365);
-    expect(spTaxYearFirstRatio({ spStartDate: '3 October 2030' })).toBe(185 / 365);
+    expect(spTaxYearFirstRatio({ spStartDate: '14 March 2032' })).toBe(1 / 12);          // March, counted whole (was 23/366 by days)
+    expect(spTaxYearFirstRatio({ spStartDate: '9 November 2036' })).toBe(5 / 12);        // November to March (was 148/365)
+    expect(spTaxYearFirstRatio({ spStartDate: '3 October 2030' })).toBe(6 / 12);         // October to March (was 185/365)
     expect(spTaxYearFirstRatio({ spStartDate: '6 April 2037' })).toBe(1);
-    expect(spTaxYearConfigFromSettings({ spStartDate: '14 March 2032', spWeeklyAmount: 221.2, firstTaxYear: 2027 }, NOW).spFirstYearRatio).toBe(23 / 366);
+    // the Decision tool's year table reads the same share (one reading)
+    expect(spTaxYearConfigFromSettings({ spStartDate: '14 March 2032', spWeeklyAmount: 221.2, firstTaxYear: 2027 }, NOW).spFirstYearRatio).toBe(1 / 12);
   });
   it('the Decision tool\'s first-year weeks are whole days ÷ 7', () => {
     const r = calculateStatePensionForTaxYear({ taxYear: '31/32', spStartDate: '14 March 2032', weeklyAmount: 200, taxYearConfigs: {} });

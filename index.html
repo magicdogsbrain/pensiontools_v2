@@ -7465,8 +7465,10 @@
       g('tmProjectionLine').innerHTML = t.mode === 'future' && window._tmProjection ? potsAtRetirementLine(window._tmProjection) : '';   // the one pot at the stop (startingPotsWords.js)
       // the summary says the plan's timing as saved (the boxes save at once, and the save paints this again), on the one clock,
       // its time to go in the one formatter's words (step F1); the age box keeps the age's own day, so the stop month never
-      // moves on its own (W8-M4). The month box's own warning is about what is typed in it, so it reads the box.
-      const sumT = planT || t, sumS = planT ? planS : s;
+      // moves on its own (W8-M4). The month box's own warning is about what is typed in it, so it reads the box. While the form
+      // holds typing not saved yet (on its way, or a window whose boxes are not saved at once), the summary says it as typed.
+      const fromPlan = !!planT && !(window._ssAutosave && window._ssAutosave.pending());
+      const sumT = fromPlan ? planT : t, sumS = fromPlan ? planS : s;
       let summary = sumT.mode === 'legacy'
         ? 'Enter your age today to pin the plan to a tax year. Until then the plan is read from tax year ' + taxYearLabel(sumT.firstTaxYear) + ', with the steps from age ' + sumT.shapeAgeNow + '.'
         : describeTiming(sumT, sumS, todayOf());

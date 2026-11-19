@@ -71,6 +71,18 @@ describe('a form that saves as it changes', () => {
     expect(line()).toBe('Saved');
   });
 
+  it('says whether the form holds typing not saved yet: none as filled, some while it waits, none once saved, some when it cannot save', async () => {
+    expect(auto.pending()).toBe(false);
+    type('pot', '310000');
+    expect(auto.pending()).toBe(true);
+    await tick(30);
+    expect(auto.pending()).toBe(false);
+    locked = true;
+    type('pot', '320000');
+    await tick(30);
+    expect(auto.pending()).toBe(true);
+  });
+
   it('opening writes nothing, and nor does a press that changes nothing', async () => {
     await auto.flush();
     document.getElementById('nothing').click();

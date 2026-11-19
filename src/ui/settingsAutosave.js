@@ -13,7 +13,7 @@
  *
  *   fingerprintOf(root, { include, state })   the form's own values (boxes with an id) and its state, as one string
  *   boxNameOf(el)                             the box's own label, for "Not saved yet: “…” needs a change"
- *   createAutosave(win, doc, o)               → { schedule, flush, loaded, markSaved, checkNow, problems, run }
+ *   createAutosave(win, doc, o)               → { schedule, flush, loaded, markSaved, checkNow, problems, run, pending }
  *     o.root()          the element holding the boxes        o.heading()   where "Saved" is said
  *     o.include(el)     which boxes are the form's           o.state()     what the form holds outside its boxes
  *     o.kindOf(el)      'age' | 'money' | 'spDate' | null    o.extraProblems()   [{ el, words, blocks }] the page's own checks
@@ -272,7 +272,9 @@ export function createAutosave(win, doc, o) {
       schedule();
     }, true);
   }
-  return { schedule, flush, loaded, markSaved, checkNow, problems, run };
+  /** Whether the form holds typing not yet saved (since it was filled from the plan or last saved). */
+  const pending = () => base != null && fp() !== base;
+  return { schedule, flush, loaded, markSaved, checkNow, problems, run, pending };
 }
 
 // ---- the two forms ----------------------------------------------------------------------------------------------------

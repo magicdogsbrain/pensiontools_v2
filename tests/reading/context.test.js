@@ -58,7 +58,10 @@ describe('every run is handed the one context', () => {
     expect(body).toMatch(/contextFor\(own, \{ now: todayOf\(\), plans: scenarios \}\)/);
     expect(body).toMatch(/effectiveStressSettings\(own, \{ now \}\)/);
     expect(body).toMatch(/effectiveStressSettings\(partner, \{ now \}\)/);
-    expect(body).toMatch(/householdIncomeTimeline\(ownSettings, partnerSettings, null, now\)/);
+    // the run, its timeline included, is the simple view's on that day (householdRun.js; tests/reading/householdGatherer.test.js)
+    expect(body).toMatch(/runInWorker\('household', \{ plan: own, partner, today, limit \}\)/);
+    expect(body).toMatch(/const today = dayKeyOf\(now\)/);
+    expect(body).toMatch(/deriveTiming\(ownSettings, now\)/);
     expect(body).not.toMatch(/new Date\(\)/);
   });
   it('the full view\'s ladder position, order sheets and where-you-are read the one clock', () => {

@@ -14,6 +14,7 @@ import { SUCCESS, planToAgeOf } from '../answers/shared/rules.js';
 import { withSavingChance } from '../answers/shared/savingChance.js';
 import { markFact, markWithin } from '../reading/mark.js';
 import { LASTS_FINDS } from '../reading/sentenceMarks.js';
+import { MIX } from '../v7/copy/mix.js';
 
 const futuresWords = (share) => futuresOutOfTen(share).words;
 
@@ -191,26 +192,29 @@ export function rankingCardHtml({ scored, names, colors, rankBy = 'lasts', more 
  * Compare allocations (Pots & Valves): the three risk levels with and without the bond tent, each run through the one
  * test. grid[key].flat / .tent = a stressTestStrategy result (or { affordable: false }).
  */
-export function allocationGridHtml(grid, presets, order) {
-  let best = { share: -1, key: null, tent: null };
-  for (const key of order) for (const t of ['flat', 'tent']) { const g = grid[key] && grid[key][t]; if (g && g.affordable) { const sh = (100 - (+g.ruin.mc || 0)) / 100; if (sh > best.share) best = { share: sh, key, tent: t }; } }
-  const cell = (g, isBest) => {
-    if (!g || !g.affordable) return '<td style="text-align:center;padding:10px;border:1px solid var(--border);" class="hint">not run</td>';
-    const sh = (100 - (+g.ruin.mc || 0)) / 100;
-    return '<td style="text-align:center;padding:10px;border:1px solid var(--border);' + (isBest ? 'background:rgba(16,185,129,0.12);' : '') + '"><div style="font-size:20px;font-weight:700;color:var(--' + (isBest ? 'success' : 'text') + ');">' + tenthsOutOfTen(sh) + ' futures out of 10</div><div style="font-size:11px;color:var(--text-muted);">' + pctText(sh * 100, 0, CHANCE_BARS) + ' · typically ' + gbp(g.terminal.p50) + ' left · bad case ' + gbp(g.terminal.p10) + '</div></td>';
+/**
+ * "Compare allocations" (the simple view's "Which mix lasts best?"): the eight cells of answers/plan/mixRun.js runMixCompare —
+ * the plan's own mix and the three levels, tent off and on — in the words answers/plan/mix.js mixCompareView gives them, the
+ * simple view's words for each cell (lead4.md R6, R7). `view` is mixCompareView's.
+ */
+export function mixGridHtml(view) {
+  const C = MIX.compare;
+  const fill = (t, slots) => String(t).replace(/\{(\w+)\}/g, (m, k) => (slots[k] != null ? String(slots[k]) : m));
+  const cellOf = (key, tent) => (view.cells || []).find((c) => c.key === key && c.tent === tent) || null;
+  const td = (c) => {
+    if (!c || !c.affordable) return '<td style="text-align:center;padding:10px;border:1px solid var(--border);" class="hint">' + esc(C.cannot) + '</td>';
+    return '<td style="text-align:center;padding:10px;border:1px solid var(--border);' + (c.best ? 'background:rgba(16,185,129,0.12);' : '') + '"><div style="font-size:20px;font-weight:700;color:var(--' + (c.best ? 'success' : 'text') + ');">' + esc(fill(C.cell, { words: c.words })) + '</div><div style="font-size:11px;color:var(--text-muted);">' + esc(fill(C.cellSub, c)) + '</div>' + (c.current ? '<div class="hint" style="font-size:11px;">' + esc(C.thisIs) + '</div>' : '') + '</td>';
   };
   let h = '<h3 style="margin-bottom:6px;">Compare allocations</h3>';
-  h += '<p style="color:var(--text-muted);font-size:13px;margin-bottom:12px;">Each cell is the one test (every real stretch since 1871 and 1,000 futures, your own cuts setting, your full length) with the pot split that way. More shares usually lasts in a few more futures but gives a rougher ride; the bond tent mainly lifts the bad case. Pick the risk level you are comfortable holding — the tool will not change it for you.</p>';
-  h += '<table style="border-collapse:collapse;width:100%;max-width:640px;"><thead><tr><th style="text-align:left;padding:8px;"></th><th style="padding:8px;">Flat</th><th style="padding:8px;">+ Bond tent</th></tr></thead><tbody>';
-  for (const key of order) {
-    const p = presets[key];
-    h += '<tr><td style="padding:8px;border:1px solid var(--border);"><strong>' + esc(p.label) + '</strong><br><span style="font-size:11px;color:var(--text-muted);">' + Math.round(p.equity * 100) + '/' + Math.round(p.bond * 100) + '/' + Math.round(p.cash * 100) + '</span></td>';
-    h += cell(grid[key] && grid[key].flat, best.key === key && best.tent === 'flat');
-    h += cell(grid[key] && grid[key].tent, best.key === key && best.tent === 'tent');
-    h += '</tr>';
+  h += '<p style="color:var(--text-muted);font-size:13px;margin-bottom:12px;">' + esc(MIX.notes.compare) + '</p>';
+  h += '<table style="border-collapse:collapse;width:100%;max-width:640px;"><thead><tr><th style="text-align:left;padding:8px;">' + esc(C.columns.mix) + '</th><th style="padding:8px;">' + esc(C.columns.flat) + '</th><th style="padding:8px;">' + esc(C.columns.tent) + '</th></tr></thead><tbody>';
+  for (const key of ['own', 'cautious', 'balanced', 'adventurous']) {
+    const any = cellOf(key, false) || cellOf(key, true);
+    if (!any) continue;
+    h += '<tr><td style="padding:8px;border:1px solid var(--border);"><strong>' + esc(C.rows[key]) + '</strong><br><span style="font-size:11px;color:var(--text-muted);">' + esc(fill(C.cellAmounts, any.amounts)) + '</span></td>' + td(cellOf(key, false)) + td(cellOf(key, true)) + '</tr>';
   }
   h += '</tbody></table>';
-  if (best.key) h += '<p style="margin-top:12px;font-size:13px;"><strong>' + esc(presets[best.key].label) + (best.tent === 'tent' ? ' + bond tent' : '') + '</strong> lasts best: ' + futuresWords(best.share) + ' (' + pctText(best.share * 100, 0, CHANCE_BARS) + '). Set it in Settings if you would like it.</p>';
+  if (view.best) h += '<p style="margin-top:12px;font-size:13px;"><strong>' + esc(fill(C.best, { row: C.rows[view.best.key], tent: view.best.tent ? MIX.tentOnOff.on : MIX.tentOnOff.off, words: view.best.words, pct: view.best.pct })) + '</strong> Set it in Settings if you would like it.</p>';
   return h;
 }
 

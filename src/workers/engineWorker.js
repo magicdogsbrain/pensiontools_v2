@@ -1,6 +1,7 @@
 /**
  * Engine Web Worker — runs the heavy, synchronous strategy maths off the main thread so a phone
- * never freezes: the six-strategy overview, a single strategy stress test, the household checks, a row of "Try the bad
+ * never freezes: the six-strategy overview, a single strategy stress test, the household checks (the simple view's own
+ * answers/plan/householdRun.js, on the two plans and the day), a row of "Try the bad
  * years" (the plan as stored: answers/plan/stressPanelRun.js), the saver's verdict (question B, src/reading/runs.js SAVER_RUN).
  * Inputs are plain settings/config objects; the plan is rebuilt here (planFromSettings) because a
  * plan carries pricing closures that cannot cross the worker boundary. The market is the one loader's (src/reading/market.js),
@@ -10,7 +11,8 @@
 import { stressTestStrategy, STRATEGY_NAMES } from '../strategies/stressTest.js';
 import { enginePlanOf } from '../reading/gather.js';
 import { compareAll } from '../strategies/compareRunner.js';
-import { runSurvivorCheck, runCareCheck, runHouseholdWays } from '../services/HouseholdService.js';
+import { runHousehold, runSurvivor, runCare } from '../answers/plan/householdRun.js';
+import { runMixCompare } from '../answers/plan/mixRun.js';
 import { loadMarket } from '../reading/market.js';
 import { cloneSafe } from '../utils/cloneSafe.js';
 import { sweepRetirementAges } from '../services/RetireSweep.js';
@@ -26,9 +28,6 @@ let jobNow;
 function plan(settings, cfg, essentialsAnnual) {
   return enginePlanOf({ settings, essentialsAnnual, now: jobNow ? jobNow.toISOString() : undefined });
 }
-
-/** One plan through its own strategy's one test (what the household checks hand to HouseholdService). */
-function oneTest(settings, cfg, strategyId) { const p = plan(settings, cfg); return { r: stressTestStrategy(strategyId, p), p }; }
 
 self.onmessage = async (e) => {
   const { id, type, payload } = e.data || {};
@@ -46,12 +45,14 @@ self.onmessage = async (e) => {
     } else if (type === 'strategy') {
       const p = plan(payload.settings, payload.cfg, payload.essentialsAnnual);
       post({ id, result: cloneSafe({ p, r: stressTestStrategy(payload.strategyId, p) }) });
-    } else if (type === 'household-ways') {   // who draws what (6.25.0): both plans, both ways, through the one test
-      post({ id, result: cloneSafe(runHouseholdWays(payload.ways, payload.needs, payload.idA, payload.idB, oneTest)) });
-    } else if (type === 'survivor') {   // each plan through its own strategy's one test (household sweep)
-      post({ id, result: cloneSafe(runSurvivorCheck({ ...payload, now: jobNow }, oneTest)) });
-    } else if (type === 'care') {
-      post({ id, result: cloneSafe(runCareCheck({ ...payload, now: jobNow }, oneTest)) });
+    } else if (type === 'household' || type === 'householdSurvivor' || type === 'householdCare') {
+      // "Your household" (lead4.md D20): the couple's two plans, the survivor and the care checks through the simple view's own
+      // functions (answers/plan/householdRun.js), handed the two plans and the day — one gatherer for both views
+      const onProgress = (i, n) => self.postMessage({ id, progress: { i, n, name: '' } });
+      const fn = type === 'household' ? runHousehold : type === 'householdSurvivor' ? runSurvivor : runCare;
+      post({ id, result: cloneSafe(fn(payload.plan, payload.partner, { ...(payload.boxes || {}), today: payload.today, ...(type === 'household' ? { limit: payload.limit || null } : {}), onProgress })) });
+    } else if (type === 'mixCompare') {   // "Compare allocations": the simple view's "Which mix lasts best?" (mixRun.js), the eight cells on the plan and the day
+      post({ id, result: cloneSafe(runMixCompare(payload.plan, { today: payload.today, onProgress: (i, n) => self.postMessage({ id, progress: { i, n, name: '' } }) })) });
     } else if (type === 'stressRow') {   // "Try the bad years" (7.9.0): one row on the plan as stored
       post({ id, result: cloneSafe(runStressRow(payload.plan, { today: payload.today, row: payload.row })) });
     } else if (type === 'saver') {   // "Am I on course?" (lead4.md R6): question B on the plan's figures, as the simple view's worker runs it

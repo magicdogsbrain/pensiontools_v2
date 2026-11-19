@@ -409,6 +409,14 @@ function tryView(kind, t, base, saved) {
   return { status: 'done', lines, runs: r.basis && r.basis.runs ? r.basis.runs : 1, ms: t.ms == null ? null : t.ms, reason: null };
 }
 
+/**
+ * "Which mix lasts best?" as words, from the eight cells of mixRun.runMixCompare: what BOTH views draw (the full view's
+ * Compare allocations runs the same function on the same plan and day, lead4.md R6, D9).
+ */
+export function mixCompareView(cells, plan, { today }) {
+  return compareView({ status: 'done', result: { cells } }, savedMix(plan, { today }));
+}
+
 /** The comparison (3.2e) in words: each cell as the planner's grid says it, the best marked. */
 function compareView(cmp, saved) {
   const base = { status: cmp ? cmp.status : 'idle', cells: [], best: null, ms: cmp && cmp.ms != null ? cmp.ms : null, runs: 8, progress: cmp ? cmp.progress || null : null, reason: cmp ? cmp.reason || null : null };

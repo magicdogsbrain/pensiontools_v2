@@ -4102,11 +4102,7 @@
       runLadderWindows as runLadderWindowsX,
       runLadderMonteCarlo as runLadderMonteCarloX,
       runFlexWindows as runFlexWindowsX,
-      householdIncomeTimeline,
-      startOffset,
       combineHouseholdStrategies,
-      runSurvivorCheck,
-      runCareCheck,
       typicalSanityFlag,
       breakdownAnnual,
       cleanBudgetForSave, fillTypicalAmountsOf, partnerCopyOf, resetBudgetLines, withSuggestion, importedBudget,   // the Budget page's handlers, lifted pure (6.45.0): the preview's budget step calls the same
@@ -4117,7 +4113,7 @@
     // Import additional services
     import { generateDrawdownSchedule } from './src/services/DrawdownService.js';
     import { generateGlidepathSchedule, RISK_PRESETS, DIVERSIFIER_PRESETS, nearestPresetKey, mixFromLevel, levelOfMix, equityGlideFromRisk, equityGlideFromStart, tentGlideForSettings, targetMixForYear } from './src/services/GlidepathService.js';   // the mix as a level and back, lifted pure (6.41.0)
-    import { resetStressSettings, invalidateStressCache, createSimulationConfigFromSettings } from './src/storage/StressRepository.js';
+    import { resetStressSettings, invalidateStressCache } from './src/storage/StressRepository.js';
     import {
       invalidateScenarioCache,
       listScenariosAsync,
@@ -4161,7 +4157,7 @@
     // One answer per plan (6.24.0; usability audit decision 2): every "will it last" figure is the one test's, read through these.
     import { oneAnswer, worstStarts, earlierTestNote, cutsSettingWords, futuresOutOfTen, pctText, CHANCE_BARS, RUIN_BARS } from './src/services/OneAnswer.js';
     import { namedStartRows, SCENARIO_START } from './src/services/NamedStarts.js';   // the named stresses' start years, lifted (6.45.0): the preview reads the same
-    import { leftRowHtml, cutsRowHtml, withoutCutsLineHtml, historyTabHtml, scenariosTabHtml, rankingCardHtml, allocationGridHtml, earlierTestNoteHtml, verdictBlockView, cardToneOf, chanceOptsOf, countAgeHtml, installChanceLevel, lifeAssumptionsRows, LEVEL_REFUSED } from './src/ui/oneAnswerView.js';
+    import { leftRowHtml, cutsRowHtml, withoutCutsLineHtml, historyTabHtml, scenariosTabHtml, rankingCardHtml, mixGridHtml, earlierTestNoteHtml, verdictBlockView, cardToneOf, chanceOptsOf, countAgeHtml, installChanceLevel, lifeAssumptionsRows, LEVEL_REFUSED } from './src/ui/oneAnswerView.js';
     import { DECISION_ASSUMED_CPI } from './src/services/InflationModel.js';
     import { LADDER_DEFAULTS, orderSheetRows } from './src/strategies/GiltLadderPlan.js';
 
@@ -4195,9 +4191,9 @@
     import { budgetSpendingPatch, spendingBefore, plusTenth, useSpendingWords } from './src/services/BudgetToPlan.js';   // the Budget's one button into the plan (6.23.0)
     import { showUndoToast } from './src/ui/undoToast.js';
     // Who draws what (6.25.0, household-draw-split.md): the rule, the writes, the words — the tab only gathers and calls
-    import { householdDrawSplit, comparisonFigures, limitFrom } from './src/services/HouseholdDraw.js';
+    import { householdDrawSplit, limitFrom } from './src/services/HouseholdDraw.js';
     import { splitWriteMode, splitChanges, applySplit, dismissalFor, isSplitDismissed } from './src/services/HouseholdSplitApply.js';
-    import { runHouseholdWays } from './src/services/HouseholdService.js'; import { effectiveStressSettings, planMoneyOf } from './src/services/PlanReading.js';   // the partner's plan read as its own tools read it (6.42.0)
+    import { runHousehold, runSurvivor, runCare, householdNamesOf } from './src/answers/plan/householdRun.js'; import { runMixCompare } from './src/answers/plan/mixRun.js'; import { mixCompareView } from './src/answers/plan/mix.js'; import { MIX } from './src/v7/copy/mix.js';   // Compare allocations: the simple view's own   // the household checks: the simple view's own (lead4.md D20) import { effectiveStressSettings, planMoneyOf } from './src/services/PlanReading.js';   // the partner's plan read as its own tools read it (6.42.0)
     import { splitSectionHtml, splitNoneHtml, splitDismissedHtml, splitConfirmHtml, verdictSectionHtml, timelineSectionHtml, wealthSectionHtml, whatToDoHtml, survivorCareHtml, survivorResultHtml, careResultHtml, budgetShareHtml, budgetSharedLineHtml, householdNotSetWords } from './src/ui/householdView.js';
     import { shareBudgetWith, stopSharingBudget, getHouseholdSplitDismissed, setHouseholdSplitDismissed, budgetSharedFromOf } from './src/storage/ScenarioRepository.js';
     import { guestPlanRefusal, isExamplePlanError, DEMO_PLANS, EXAMPLE_PLAN_KEY, EXAMPLE_PLAN_DESCRIPTION } from './src/services/GuestPlans.js';   // three plans without an account; the read-only example (6.23.0)
@@ -4215,7 +4211,7 @@
     import { emptyHoldings, normaliseHoldings, linesFromTaggedFunds, holdingsSummary, stampHoldings, holdingsWith } from './src/services/HoldingsRecord.js';
     import { switchStrategy, cleanParams, activeParams, sortLegacyParams } from './src/services/StrategyState.js';
     import { switchPatch, restoredParamsFor, dialParams } from './src/services/PlanCommit.js';   // the strategy switch as one pure patch (6.40.0)
-    import { compareAll, mixCells, ladderYearsOfPlan, rankedWays, wayCostOf } from './src/strategies/compareRunner.js'; import { FACT, factId } from './src/reading/facts.js';   // the nine ways through the one test, one loop (6.40.0); the Compare allocations cells (6.41.0)
+    import { compareAll, ladderYearsOfPlan, rankedWays, wayCostOf } from './src/strategies/compareRunner.js'; import { FACT, factId } from './src/reading/facts.js';   // the nine ways through the one test, one loop (6.40.0); the Compare allocations cells (6.41.0)
     import { rotationStatus, rotationBlock, rotationMarket, sellTicketRows } from './src/services/RotationStatus.js';
     import { activeEquity, equityDrawdown, equityProvenance, setEquityOverride } from './src/services/EquityIndex.js'; import { loadMarket, marketStamp, marketLabel } from './src/reading/market.js'; import { marketFolderOf } from './src/reading/marketPlain.js'; import { LAYOUT } from './src/appLayout.js';
     import { enterGuestMode, isGuest, leaveGuestMode, clearGuestData } from './src/firebase/index.js';
@@ -4238,7 +4234,8 @@
     // The one market (src/reading/market.js, lead4.md R5): the site's data folder, the same file the engine worker and the
     // simple view's worker read (gilt prices for the ladders, the share index for the rotation watch); the copy built into
     // the site when the file cannot be read. Every run on this page waits for it (window._marketReady).
-    window._marketReady = loadMarket({ folder: marketFolderOf(document.baseURI, LAYOUT.classic.data) }).then((m) => { if (m.gilts.source === 'file') window.refreshStrategyCosts?.(); return m; });
+    const MARKET_LOADING = 'The day\'s prices are still loading. Try again in a moment.';   // what a run asked before them says (strategyPlanFor)
+    window._marketReady = loadMarket({ folder: marketFolderOf(document.baseURI, LAYOUT.classic.data) }).then((m) => { window._marketIn = true; return m; });   // (a cost line asked before it waits for it: refreshStrategyCosts)
     window.setEquityOverride = setEquityOverride;   // dev/what-if: fake a drawdown from the console
     window._mathUtils = { seededRng };
 
@@ -5556,6 +5553,8 @@
     // ONE renderer for ONE result shape (stressTestStrategy) — whatever strategy the plan is
     // switched to, the cones and the headline are drawn from the same numbers the compare shows.
     function strategyPlanFor(settings, essentialsOverride) {
+      // the one market first (lead4.md R5): a plan is never priced on the copy built in while the day's file is still loading
+      if (!window._marketIn) throw new Error(MARKET_LOADING);
       // the one builder of the engine's plan (src/reading/gather.js), on the page's one clock, as both views' workers build it
       return enginePlanOf({ settings, essentialsAnnual: essentialsOverride, now: todayOf().toISOString() });
     }
@@ -5862,6 +5861,7 @@
       cutEsc: (d) => 'first-stage months ' + d.slots.months + ' (plan: ' + d.slots.old + ')'
     };
     window.runTryStrategyUI = async function () {
+      await window._marketReady;   // the one market (lead4.md R5): never priced on the copy built in while the day's file loads
       const out = document.getElementById('tryResults');
       await flushSettings(); const s = await getStressSettingsAsync();
       const c = tryStrategySettings(s); { const miss = missingWords({ ...c, potsNotSet: false, incomeNotSet: !!s.incomeNotSet && readTryBoxes().incomeMode !== 'flat' }); if (miss) { out.innerHTML = '<div class="alert alert-info">' + budEsc(miss) + '</div>'; return; } }   // a what-if on figures nobody gave: said, never run (7.12.0)
@@ -5909,6 +5909,7 @@
     };
     // History: the one test's own real start years (src/services/NamedStarts.js), explained — no second figure.
     window.runHistoricalUI = async function () {
+      await window._marketReady;   // the one market (lead4.md R5): never priced on the copy built in while the day's file loads
       const box = document.getElementById('histResults');
       await flushSettings(); const s = await getStressSettingsAsync();
       const sid = s.strategyId || 'pots-and-valves';
@@ -5923,6 +5924,7 @@
     };
     // Scenarios: the named stresses, explained from the same histories.
     window.runScenariosUI = async function (rowsShown = false) {
+      await window._marketReady;   // the one market (lead4.md R5): never priced on the copy built in while the day's file loads
       const box = document.getElementById('scenResults');
       await flushSettings(); const s = await getStressSettingsAsync();
       const sid = s.strategyId || 'pots-and-valves';
@@ -6627,35 +6629,30 @@
       downloadFile('decision-plan-' + taxYear.replace('/', '-') + '.csv', csv, 'text/csv;charset=utf-8;');
     };
 
-    // --- Compare allocations: the 3 risk levels × tent off/on, each through the ONE test (6.24.0) ---
-    // Risk level is the retiree's PREFERENCE, so we never crown a single "best split" that overrides it — we show all
-    // six so they can weigh how many futures each lasts against the risk they're comfortable holding.
+    // --- Compare allocations: the simple view's "Which mix lasts best?" (answers/plan/mixRun.js runMixCompare, lead4.md R6, D9):
+    // the plan's own mix and the three risk levels, tent off and on, each through the ONE test, on the plan and the day, in the
+    // engine worker; drawn in the simple view's words (mix.js mixCompareView). Risk level is the retiree's PREFERENCE, so we
+    // never crown a single "best split" that overrides it — we show all eight so they can weigh them.
     window.runCompareStrategiesUI = async function () {
+      await window._marketReady;   // the one market (lead4.md R5): never priced on the copy built in while the day's file loads
       const btn = document.getElementById('optimiseBtnMC');
       const resultsDiv = document.getElementById('optimiseResultsMC');
       if (btn) { btn.disabled = true; btn.textContent = 'Comparing...'; }
       const say = (t) => { if (resultsDiv) resultsDiv.innerHTML = '<div class="loading"><div class="spinner"></div>' + t + '</div>'; };
-      say('Running the one test on six splits…');
-      const s = JSON.parse(JSON.stringify(await getStressSettingsAsync()));
+      say(budEsc(MIX.compare.working));
+      const s = await getStressSettingsAsync();
       const done = () => { if (btn) { btn.disabled = false; btn.textContent = 'Compare allocations (Pots & Valves)'; } };
       if (s.strategyId && !PNV_FAMILY.includes(s.strategyId)) {
         if (resultsDiv) resultsDiv.innerHTML = '<div class="alert alert-info">This button compares <strong>Pots &amp; Valves</strong> allocations (cautious / balanced / adventurous, with and without a bond tent). Your plan runs <strong>' + budEsc(STRATEGY_NAMES[s.strategyId] || s.strategyId) + '</strong>, which has no split to sweep — all ' + strategyCountWord() + ' strategies, compared on your plan through the same test, are in the <button type="button" class="risk-btn" style="padding:2px 10px;" data-on-click="switchToTab(\'strategies\')">Strategies tab</button>.</div>';
         done(); return;
       }
-      const order = ['cautious', 'balanced', 'adventurous'];
-      const grid = {};
       try {
-        let n = 0;
-        // the six cells (the three levels, tent off and on, each the settings re-split from the pot): compareRunner.mixCells (lifted, 6.41.0)
-        for (const cell of mixCells(s, { own: false })) {
-          const alloc = cell.settings;
-          let r;
-          try { r = (await runInWorker('strategy', { settings: alloc, strategyId: alloc.strategyId, essentialsAnnual: undefined })).r; }
-          catch (e) { console.warn('engine worker unavailable, running inline', e); r = stressTestStrategy(alloc.strategyId, strategyPlanFor(alloc)); }
-          (grid[cell.key] = grid[cell.key] || {})[cell.tent ? 'tent' : 'flat'] = r;
-          say('Running the one test on six splits… ' + (++n) + ' of 6');
-        }
-        if (resultsDiv) resultsDiv.innerHTML = allocationGridHtml(grid, RISK_PRESETS, order);
+        const sc = await getActiveScenarioAsync();
+        const today = dayKeyOf(todayOf());
+        let res;
+        try { res = await runInWorker('mixCompare', { plan: sc, today }, (pr) => say(budEsc(MIX.compare.working) + ' ' + (pr.i + 1) + ' of ' + pr.n)); }
+        catch (e) { console.warn('engine worker unavailable, running inline', e); res = runMixCompare(sc, { today }); }
+        if (resultsDiv) resultsDiv.innerHTML = mixGridHtml(mixCompareView(res.cells, sc, { today }));
       } catch (e) { console.error('compare allocations', e); if (resultsDiv) resultsDiv.innerHTML = '<div class="alert alert-danger">Could not compare: ' + budEsc(e.message) + '</div>'; }
       done();
     };
@@ -6961,6 +6958,7 @@
       return stressTestStrategy(sid, strategyPlanFor(settings, ess));
     }
     async function buildPlanDocumentNow(reason, rGiven = null) {
+      await window._marketReady;   // the one market (lead4.md R5): never priced on the copy built in while the day's file loads
       const settings = await getStressSettingsAsync();
       const r = rGiven || await strategyResultForDocument(settings);   // 7.12.0: the run the lock's fit was read from
       const p = strategyPlanFor(settings, (window._shapeRefs && window._shapeRefs.essentials) || undefined);
@@ -6990,7 +6988,7 @@
         return fresh;
       } finally { hideLoading(); }
     };
-    installLockFromStress(window, { isLoggedIn, planIsLocked, appConfirm: (m, o) => window.appConfirm(m, o), saveStressSettingsUI: () => saveStressSettingsUI(), runPlan: async () => { const settings = await getStressSettingsAsync(); return { p: strategyPlanFor(settings, (window._shapeRefs && window._shapeRefs.essentials) || undefined), r: await strategyResultForDocument(settings) }; }, commitPlanLock: (why, r) => window.commitPlanLock(why, r), showToast, openPlanDocument: () => window.openPlanDocument(), showIncome: () => document.getElementById('ssNetSpend')?.focus() });   // 7.12.0: src/ui/lockFromStressUi.js — a way of drawing that cannot be paid for is not locked
+    installLockFromStress(window, { isLoggedIn, planIsLocked, appConfirm: (m, o) => window.appConfirm(m, o), saveStressSettingsUI: () => saveStressSettingsUI(), runPlan: async () => { await window._marketReady; const settings = await getStressSettingsAsync(); return { p: strategyPlanFor(settings, (window._shapeRefs && window._shapeRefs.essentials) || undefined), r: await strategyResultForDocument(settings) }; }, commitPlanLock: (why, r) => window.commitPlanLock(why, r), showToast, openPlanDocument: () => window.openPlanDocument(), showIncome: () => document.getElementById('ssNetSpend')?.focus() });   // 7.12.0: src/ui/lockFromStressUi.js — a way of drawing that cannot be paid for is not locked
     window.createPlanDocumentNow = async function () {
       if (!(await planDocumentMay(window))) return;   // signed in, and never on a closed plan (6.56.0): src/ui/planCloseUi.js says why
       const prev = await getActivePlanDocument();
@@ -7720,6 +7718,7 @@
     // The ladder plan of record, and where today sits in it. Kept in the open plan's state (planState.ladderPos: dropped on any
     // change of plan and after every write, lead4.md R2), keyed by the plan, its document (locked) or its whole settings (draft) and the tax year.
     async function ladderPositionForPlan(settings, dateStr, extra) {
+      await window._marketReady;   // the one market (lead4.md R5): never priced on the copy built in while the day's file loads
       try {
         const sid = settings.strategyId;
         const today = dateStr ? new Date(dateStr + (dateStr.length === 7 ? '-15' : '')) : todayOf();
@@ -7940,6 +7939,7 @@
 
     window.applyDecisionStrategyMode = applyDecisionStrategyMode;   // exposed for diagnostics/automation
     window.renderDecisionStrategyPanel = async function () {
+      await window._marketReady;   // the one market (lead4.md R5): never priced on the copy built in while the day's file loads
       const el = document.getElementById('dsStrategyPanel');
       if (!el) return;
       try {
@@ -8009,24 +8009,22 @@
       } catch (e) { el.style.display = 'none'; }
     };
 
-    window.checkLadderTrigger = function () {
-      const V = +document.getElementById('lrSleeveNow').value || 0;
+    window.checkLadderTrigger = async function () {
+      const V = +document.getElementById('lrSleeveNow').value || 0;   // this month's sleeve value, typed for this question
       const box = document.getElementById('lrTriggerResult');
-      const { params, settings, tMonths } = window._lrCtx || {};
+      const { tMonths } = window._lrCtx || {};
       if (!V) { box.innerHTML = '<p class="hint">Enter your sleeve value first.</p>'; return; }
-      // E0 = the sleeve the plan started with: pot minus the base ladder cost at lock
-      const alloc = { e: settings.equityMin || 0, b: settings.bondMin || 0, c: settings.cashTarget || 0, d: settings.diversifierStart || 0 };
-      const pot = (params.sippTotal || 0) + (params.isaTotal || 0)
-        || alloc.e + alloc.b + alloc.c + alloc.d + (settings.isaBalance || 0);
-      const draw = params.drawAnnual || settings.baseSalary || 0;
-      const spAnnual = (settings.spWeeklyAmount ? settings.spWeeklyAmount * 52 : settings.statePension) || 0;
-      let cost = 0; for (let k = 1; k <= ladderYearsOfPlan(params.ladderYears, settings.duration); k++) cost += Math.max(0, draw - (k > 10 ? spAnnual : 0)) * Math.pow(1 + realYieldForYear(k), -k);
-      const E0 = Math.max(1, pot - cost);
-      const b = params.bandThreshold || 1.2;
-      const G = E0 * Math.pow(1.05, tMonths / 12);
+      // The sleeve the plan started with, its glide and its band are the plan's own run's (oneTestFor: the one gatherer, the one
+      // market, compareRunner's base ladder cost), never sums of the boxes on this page (lead4.md R1, R2, R6).
+      let t = null; try { t = await oneTestFor(await getStressSettingsAsync()); } catch (e) { t = null; }
+      const r = t && t.r, sg = (r && r.signature) || {}, gl = sg.glide || {};
+      if (!r || r.strategyId !== 'ladder-and-ratchet' || !r.affordable || !(gl.E0 > 0)) { box.innerHTML = '<p class="hint">The plan as saved has no base ladder to check the sleeve against.</p>'; return; }
+      const E0 = gl.E0, b = gl.b || 1.2, gp = Number.isFinite(gl.gp) ? gl.gp : 0.05;
+      const G = E0 * Math.pow(1 + gp, (tMonths || 0) / 12);
       const surplus = Math.max(0, V - G);
-      const nextRungYear = ladderYearsOfPlan(params.ladderYears, settings.duration) + 1;   // conservative: next unsecured year
-      const rungCost = Math.max(0, draw - (nextRungYear > 10 ? spAnnual : 0)) * Math.pow(1 + realYieldForYear(nextRungYear), -(nextRungYear - tMonths / 12));
+      const nextRungYear = (sg.ladderYears || 0) + 1;   // conservative: next unsecured year
+      const draw = Array.isArray(sg.drawNet) ? +(sg.drawNet[nextRungYear - 1] ?? sg.drawNet[sg.drawNet.length - 1] ?? 0) : 0;
+      const rungCost = Math.max(0, draw) * Math.pow(1 + realYieldForYear(nextRungYear), -(nextRungYear - (tMonths || 0) / 12));
       if (V >= b * G) {
         const lockable = Math.floor(surplus / Math.max(1, rungCost));
         box.innerHTML = '<div class="alert alert-success"><strong>Trigger! Sleeve ' + gbp(V) + ' is above the band (' + gbp(Math.round(b * G)) + ').</strong> '
@@ -8166,71 +8164,55 @@
       } finally { hideLoading(); }
     };
 
-    // Live affordability: ladder/floor cost vs the pot, computed from the REAL pricing curve.
-    window.refreshStrategyCosts = function () {
+    // What the way being set up costs: the ONE figure (compareRunner.wayCostOf) from the ways run on the plan as saved (cmpRun:
+    // the one gatherer, the one market) — the Strategies overview's figure and the simple view's ways list's, never a sum of the
+    // boxes on this page (lead4.md R1, R2, R6). The boxes are what will be saved; the line says it prices the plan as saved.
+    window.refreshStrategyCosts = async function () {
+      const way = window._ssStrategy;
       try {
-        const alloc = readAlloc('ss');
-        const pot = (alloc.equityMin || 0) + (alloc.bondMin || 0) + (alloc.cashTarget || 0) + (alloc.diversifierStart || 0)
-          + (+document.getElementById('ssIsaBalance')?.value || 0);
-        const spWeekly = +document.getElementById('ssSpWeeklyAmount')?.value || 0;
-        const spAnnual = spWeekly * 52;
         const target = +document.getElementById('ssBaseSalary')?.value || 0;
-        if (window._ssStrategy === 'ladder-and-ratchet') {
-          const yrs = +document.getElementById('lrLadderYears').value || 15;
-          const draw = +document.getElementById('lrDraw').value || target;
-          if (!document.getElementById('lrDraw').value && target) document.getElementById('lrDraw').value = target;
-          // THE SIPP TOTAL FEEDS THE LADDER: the direct inputs are the source of truth here.
-          const sipp = +document.getElementById('stratSipp')?.value || pot;
-          const isaV = +document.getElementById('stratIsa')?.value || 0;
-          const totalPot = sipp + isaV;
-          const drawNet = (k) => Math.max(0, shapeAmountAtYear(k - 1, draw) - (k > 10 ? spAnnual : 0));
-          let cost = 0;
-          for (let k = 1; k <= yrs; k++) cost += drawNet(k) * Math.pow(1 + realYieldForYear(k), -k);
-          const sleeve = totalPot - cost;
-          if (window._ssIncomeShape === 'phases') {
-            const ageNow = +document.getElementById('shapeAgeNow').value || 57;
-            const parts = [];
-            for (let k = 1; k <= yrs; k++) {
-              const amt = shapeAmountAtYear(k - 1, draw);
-              if (!parts.length || parts[parts.length - 1].amt !== amt) parts.push({ amt, from: ageNow + k - 1 });
-            }
-            const txt = parts.map((p, i) => gbp(p.amt) + (i < parts.length - 1 ? ' to ' + (parts[i + 1].from - 1) : ' from ' + p.from)).join(' → ');
-            const el = document.getElementById('lrDrawSteppedText');
-            if (el) el.innerHTML = 'Your stepped income, per year: <strong>' + txt + '</strong> — each rung is sized (and priced) to its own year.';
-          }
-          document.getElementById('lrCostLine').innerHTML = 'Base ladder: <strong>' + gbp(Math.round(cost)) + '</strong> of your ' + gbp(Math.round(totalPot))
-            + ' → equity sleeve <strong>' + gbp(Math.round(Math.max(0, sleeve))) + '</strong>. '
-            + (sleeve > 0 ? '' : '<span style="color:var(--danger);">Not affordable at this income/years.</span>');
-          // Illustrative ladder (same shared renderer as the stress cards: provenance + not-advice notice)
-          try {
-            document.getElementById('lrGiltTable').innerHTML = exampleLadderHtml(Array.from({ length: yrs }, (_, i) => i + 1), drawNet, 'this shows only what the base ladder\'s rungs might cost, sized net of your State Pension.');
-          } catch (e) { document.getElementById('lrGiltTable').innerHTML = ''; }
-        }
-        if (window._ssStrategy === 'full-il-gilt') {
+        if (way === 'ladder-and-ratchet' && !document.getElementById('lrDraw').value && target) document.getElementById('lrDraw').value = target;
+        if (way === 'floor-and-flex' && !document.getElementById('ffEssentials').value && target) document.getElementById('ffEssentials').value = Math.round(target * 0.55);
+        if (way === 'full-il-gilt') {
+          const alloc = readAlloc('ss');
+          const pot = (alloc.equityMin || 0) + (alloc.bondMin || 0) + (alloc.cashTarget || 0) + (alloc.diversifierStart || 0) + (+document.getElementById('ssIsaBalance')?.value || 0);
           const echo = document.getElementById('giltPotEcho'); if (echo) { const potV = +document.getElementById('ssPot')?.value || pot; const isaV = +document.getElementById('ssIsaBalance')?.value || 0; const hold = document.getElementById('ssIsaPolicy')?.value === 'hold'; echo.textContent = gbp(potV) + (isaV ? (hold ? ' — ISA ' + gbp(isaV) + ' held aside' : ' + ISA ' + gbp(isaV)) : ''); }
           const el = document.getElementById('giltCostLine');
           if (el) el.textContent = 'The order sheet is priced when you run the Monte Carlo tab or the Strategies compare (it needs your saved income shape and State Pension date).';
+          return;
         }
-        if (window._ssStrategy === 'floor-and-flex') {
-          const ess = +document.getElementById('ffEssentials').value || Math.round(target * 0.55);
-          if (!document.getElementById('ffEssentials').value && target) document.getElementById('ffEssentials').value = Math.round(target * 0.55);
-          const horizon = +document.getElementById('ffHorizon').value || 92;
-          const years = Math.max(1, horizon - 57);
-          const sipp = +document.getElementById('stratSippFf')?.value || pot;
-          const isaV = +document.getElementById('stratIsaFf')?.value || 0;
-          const totalPot = sipp + isaV;
-          const essNet = (k) => Math.max(0, ess - (k > 10 ? spAnnual : 0));
-          let cost = 0;
-          for (let k = 1; k <= years; k++) cost += essNet(k) * Math.pow(1 + realYieldForYear(k), -k);
-          const sleeve = totalPot - cost;
-          const rate = (+document.getElementById('ffRate').value || 4) / 100;
-          document.getElementById('ffCostLine').innerHTML = 'Floor to ' + horizon + ': <strong>' + gbp(Math.round(cost)) + '</strong> of your ' + gbp(Math.round(totalPot)) + ' → flex sleeve <strong>'
-            + gbp(Math.round(Math.max(0, sleeve))) + '</strong>, year-1 treats ≈ <strong>' + gbp(Math.round(Math.max(0, sleeve) * rate)) + '</strong>. '
-            + 'Every £1k/yr of essentials ≈ ' + gbp(Math.round(Array.from({ length: years }, (_, i) => Math.pow(1 + realYieldForYear(i + 1), -(i + 1))).reduce((x, y) => x + y, 0) * 1000)) + ' of floor at today\'s real yields. '
-            + (sleeve > 0 ? '' : '<span style="color:var(--danger);">Not affordable at this essentials level.</span>');
-          try {
-            document.getElementById('ffGiltTable').innerHTML = exampleLadderHtml(Array.from({ length: Math.min(years, 45) }, (_, i) => i + 1), essNet, 'this shows only what the essentials floor might cost, sized net of your State Pension.');
-          } catch (e) { document.getElementById('ffGiltTable').innerHTML = ''; }
+        if (way !== 'ladder-and-ratchet' && way !== 'floor-and-flex') return;
+        const lr = way === 'ladder-and-ratchet';
+        const line = document.getElementById(lr ? 'lrCostLine' : 'ffCostLine'), table = document.getElementById(lr ? 'lrGiltTable' : 'ffGiltTable');
+        if (!line) return;
+        line.innerHTML = '<span class="hint">Pricing the plan as saved…</span>';
+        // the plan's own way: its one test (oneTestFor, shared with the Stress tab's card); another way: the ways run (cmpRun)
+        let c = null;
+        try {
+          const saved = await getStressSettingsAsync();
+          if ((saved.strategyId || 'pots-and-valves') === way) { const t = await oneTestFor(saved); c = { p: t.p, r: t.r }; }
+          else { const all = await cmpRun(); c = { p: all.p, r: all.all && all.all.strategies ? all.all.strategies[way] : null }; }
+        } catch (e) { c = null; }
+        if (window._ssStrategy !== way) return;   // the way was changed while it ran
+        const r = c ? c.r : null;
+        if (!r) { line.innerHTML = ''; if (table) table.innerHTML = ''; return; }
+        if (!r.affordable) { line.innerHTML = '<span style="color:var(--danger);">Not affordable on the plan as saved — ' + budEsc(r.reason || '') + '.</span>'; if (table) table.innerHTML = ''; return; }
+        const sg = r.signature || {}, cost = wayCostOf(r), costHtml = markFact(factId(FACT.WAY_COST, way), gbp(Math.round(cost)));
+        if (lr) {
+          const n = sg.ladderYears || 0, net = Array.isArray(sg.drawNet) ? sg.drawNet : [];
+          line.innerHTML = 'On the plan as saved, the base ladder costs <strong>' + costHtml + '</strong> → equity sleeve <strong>' + gbp(Math.round(Math.max(0, (sg.glide && sg.glide.E0) || 0))) + '</strong>.';
+          const sched = Array.isArray(c.p.targetSchedule) && c.p.targetSchedule.length ? c.p.targetSchedule : null, el = document.getElementById('lrDrawSteppedText');
+          if (el && sched && n) {
+            const parts = [];
+            for (let k = 1; k <= n; k++) { const amt = Math.round(sched[Math.min(k - 1, sched.length - 1)] ?? c.p.targetAnnual); if (!parts.length || parts[parts.length - 1].amt !== amt) parts.push({ amt, from: c.p.startAge + k - 1 }); }
+            el.innerHTML = 'Your stepped income, per year: <strong>' + parts.map((p, i) => gbp(p.amt) + (i < parts.length - 1 ? ' to ' + (parts[i + 1].from - 1) : ' from ' + p.from)).join(' → ') + '</strong> — each rung is sized (and priced) to its own year.';
+          }
+          // Illustrative ladder (same shared renderer as the stress cards: provenance + not-advice notice), sized as the run sized it
+          if (table) table.innerHTML = n ? exampleLadderHtml(Array.from({ length: n }, (_, i) => i + 1), (k) => net[k - 1] || 0, 'this shows only what the base ladder\'s rungs might cost, sized net of your State Pension.') : '';
+        } else {
+          const floor = Array.isArray(sg.floorByYear) ? sg.floorByYear : [], sleeve = Math.max(0, sg.sleeveE0 || 0);
+          line.innerHTML = 'On the plan as saved, the floor to ' + budEsc(String(sg.horizonAge ?? '')) + ' costs <strong>' + costHtml + '</strong> → flex sleeve <strong>' + gbp(Math.round(sleeve)) + '</strong>, year-1 treats ≈ <strong>' + gbp(Math.round(sleeve * (sg.rate || 0))) + '</strong>.';
+          if (table) table.innerHTML = floor.length ? exampleLadderHtml(Array.from({ length: Math.min(floor.length, 45) }, (_, i) => i + 1), (k) => floor[k - 1] || 0, 'this shows only what the essentials floor might cost, sized net of your State Pension.') : '';
         }
       } catch (e) { /* fields not ready */ }
     };
@@ -8446,7 +8428,8 @@
       document.querySelectorAll('#stratNav .strat-nav-item').forEach((b) => b.classList.toggle('active', b.dataset.page === id));
       const box = document.getElementById('stratPage');
       box.innerHTML = '<div class="loading"><div class="spinner"></div><div id="cmpProgress" class="hint" style="margin-top:8px;"></div></div>';
-      await new Promise((r) => setTimeout(r, 20)); if (!['overview', 'assumptions', 'whatsnew', 'gilts'].includes(id)) await oneTestFor(await getStressSettingsAsync()).catch(() => null);   // 7.12.0: a way's page judges for the plan's person and level
+      await new Promise((r) => setTimeout(r, 20)); await window._marketReady;   // every page here reads the one market (the Assumptions page its date and curve)
+      if (!['overview', 'assumptions', 'whatsnew', 'gilts'].includes(id)) await oneTestFor(await getStressSettingsAsync()).catch(() => null);   // 7.12.0: a way's page judges for the plan's person and level
       // Stale-render guard: a page the user has already left must not overwrite the one they opened.
       const stale = () => window._stratPage !== id;
       try {
@@ -8566,6 +8549,7 @@
       return h;
     }
     async function genericStrategyPageHtml(id) {
+      await window._marketReady;   // the one market (lead4.md R5): never priced on the copy built in while the day's file loads
       const settings = await getStressSettingsAsync();
       const p = strategyPlanFor(settings);
       const r = stressTestStrategy(id, p);
@@ -8608,6 +8592,7 @@
       return out;
     }
     async function fullGiltPageHtml() {
+      await window._marketReady;   // the one market (lead4.md R5): never priced on the copy built in while the day's file loads
       const settings = await getStressSettingsAsync();
       const d = window._stratDials;
       const over = { ...settings, strategyId: 'full-il-gilt', strategyParams: { ...restoredParamsFor(settings, 'full-il-gilt'), ...(d.cashYears != null ? { cashYears: d.cashYears } : {}) } };
@@ -8672,6 +8657,7 @@
       showToast('Floor to an age is now this plan\'s strategy.', 'success');
     };
     async function floorToAgePageHtml() {
+      await window._marketReady;   // the one market (lead4.md R5): never priced on the copy built in while the day's file loads
       const settings = await getStressSettingsAsync();
       window._ftaBorrowedLine = borrowedFloorLineHtml(settings);   // rendered into the page below
       const ftaBase = restoredParamsFor(settings, 'floor-to-age');
@@ -8880,6 +8866,7 @@
     // page used to copy only some) and the cut dials; the allocation dials stay the page's own and go as the extra patch.
     window.useSpecStrategy = async function (id) { const s = await getStressSettingsAsync(); const d = window._stratDials; const patch = {}; if ((id === 'pots-and-valves' || id === 'buckets-in-order') && (d.eqPct != null || d.bondPct != null || d.divPct != null || d.cashPct != null)) { const a = applyAllocDials(s); Object.assign(patch, { equityMin: a.equityMin, bondMin: a.bondMin, cashTarget: a.cashTarget, diversifierStart: a.diversifierStart, diversifiers: a.diversifiers, allocMode: 'risk' }); } try { await setActiveStrategyChecked(id, {}); } catch (e) { return; } await switchStressStrategy(id, {}, patch, d);  showToast(STRATEGY_NAMES[id] + ' is now this plan\'s strategy.', 'success'); };
     async function specStrategyPageHtml(id) {
+      await window._marketReady;   // the one market (lead4.md R5): never priced on the copy built in while the day's file loads
       const spec = STRATEGY_PAGES[id];
       const settings = await getStressSettingsAsync();
       const d = window._stratDials;
@@ -9050,6 +9037,7 @@
     installHouseholdTab(window, document, { listScenariosAsync, getActiveScenarioId, setHouseholdPartnerId, showToast });   // the partner read either way, with which plan holds the link and their phase (src/ui/householdTabUi.js, 7.12.0)
 
     window.runHouseholdCheck = async function () {
+      await window._marketReady;   // the one market (lead4.md R5): never priced on the copy built in while the day's file loads
       const out = document.getElementById('hhResults'), top = document.getElementById('hhSplit');
       const partnerId = document.getElementById('hhPartnerSelect').value;
       if (!partnerId) { showToast('Choose your partner\'s plan first', 'warning'); return; }
@@ -9063,35 +9051,34 @@
         // Both plans as their own tools read them (6.42.0; this plan's too from 7.12.0, as the simple view reads it): the Budget's age folded in, brought up to date
         const partnerSettings = partner ? effectiveStressSettings(partner, { now }) : null, unset = [[own, ownSettings], [partner, partnerSettings]].map(([p, st]) => ({ p, r: testReadyOf(p, st) })).find((x) => !x.r.ready);   // never run on defaults; the Accumulation tab's figures count, and what is missing is named (7.12.0)
         if (unset) { out.innerHTML = '<div class="alert alert-warning">' + budEsc(householdNotSetWords(unset.p ? shownPlanName(unset.p) || unset.p.planDetails?.name : '', unset.r.missing)) + '</div>'; return; }
-        const ownName = document.getElementById('hhOwnPlan').value, pName = partner.planDetails?.name || 'Partner';
-        const offsets = { a: startOffset(ownSettings, now), b: startOffset(partnerSettings, now) };
+        // The run is the simple view's (answers/plan/householdRun.js runHousehold, lead4.md D20): the two plans and the day, in the
+        // engine worker; the names, the offsets, the timeline and the figures are its. The split below is read by the same function
+        // (HouseholdDraw.householdDrawSplit) for its words and for "Use this split", never for a run.
+        const today = dayKeyOf(now), limit = window._hhLimit || null;
+        const names = householdNamesOf(own, partner, now), ownName = names.a, pName = names.b;
         const idA = ownSettings.strategyId || 'pots-and-valves', idB = partnerSettings.strategyId || 'pots-and-valves';
-        // Who draws what (6.25.0): the split that pays the least tax (HouseholdDraw), then both plans through the ONE test each
-        // way — as they are, and drawing together — paired future for future on the shared market seed, pooled in the combination.
-        const split = householdDrawSplit({ settings: ownSettings, name: ownName }, { settings: partnerSettings, name: pName }, { limit: window._hhLimit || null, now });
-        const cfgOf = (st) => createSimulationConfigFromSettings({}, st, now);
-        const ways = { own: { settingsA: ownSettings, cfgA: cfgOf(ownSettings), settingsB: partnerSettings, cfgB: cfgOf(partnerSettings) } };
-        if (split.applies) ways.together = { settingsA: split.settings.a, cfgA: cfgOf(split.settings.a), settingsB: split.settings.b, cfgB: cfgOf(split.settings.b) };
+        const split = householdDrawSplit({ settings: ownSettings, name: ownName }, { settings: partnerSettings, name: pName }, { limit, now });
         const dismissed = isSplitDismissed(await getHouseholdSplitDismissed(), partnerId, split.fingerprint);
         const { mode, locked } = splitWriteMode(own, partner, split.names);
         top.innerHTML = !split.applies ? splitNoneHtml({ split }) : dismissed ? splitDismissedHtml() : splitSectionHtml({ split, fig: null, mode, locked, running: true });
         let res;
-        try { res = await runInWorker('household-ways', { ways, needs: split.needs, idA, idB, now: now.toISOString() }); }
-        catch (e) {
-          console.warn('engine worker unavailable, running inline', e);
-          res = runHouseholdWays(ways, split.needs, idA, idB, (st, cfg, id) => { const p = strategyPlanFor(st); return { r: stressTestStrategy(id, p), p }; });
+        try { res = await runInWorker('household', { plan: own, partner, today, limit }); }
+        catch (e) { console.warn('engine worker unavailable, running inline', e); res = runHousehold(own, partner, { today, limit }); }
+        if (!res.ok) {
+          top.innerHTML = '';
+          out.innerHTML = '<div class="alert alert-warning">' + (res.reason === 'partnerNotSet'
+            ? budEsc(householdNotSetWords(res.which === 'b' ? pName : ownName, res.missing))
+            : 'One plan\'s strategy is not affordable as configured — ' + budEsc(res.why || '') + '. Fix that plan first.') + '</div>';
+          return;
         }
-        const bad = [res.own.rA, res.own.rB].find((x) => x && !x.affordable);
-        if (bad) { top.innerHTML = ''; out.innerHTML = '<div class="alert alert-warning">One plan\'s strategy is not affordable as configured — ' + budEsc(bad.reason || '') + '. Fix that plan first.</div>'; return; }
-        const r = res.own.combined;
-        const fig = split.applies && res.together && res.together.combined ? comparisonFigures(split, res) : null;
-        window._hhLast = { now, cfgA: ways.own.cfgA, cfgB: ways.own.cfgB, ownSettings, partnerSettings, ownName, pName, split, fig, own, partner, mode, locked };
+        const r = res.own.combined, fig = res.fig, offsets = res.offsets;
+        window._hhLast = { now, today, ownSettings, partnerSettings, ownName, pName, split, fig, own, partner, mode, locked };
         if (split.applies && !dismissed) top.innerHTML = splitSectionHtml({ split, fig, mode, locked });
         const stratNote = '<p class="hint" style="margin:6px 0 0;">Run with each plan\'s own strategy: <strong>' + budEsc(STRATEGY_NAMES[idA]) + '</strong> for ' + budEsc(ownName) + ', <strong>' + budEsc(STRATEGY_NAMES[idB]) + '</strong> for ' + budEsc(pName) + ' — paired future for future on the same markets' + ((offsets.a > 0 || offsets.b > 0) ? '; note that a partner who is still working is not year-shifted under a contract strategy, so the joint figure is approximate for the years before the State Pensions' : '') + '. "Lasts" means paid in full (for Floor to an age and Gilt ladder + rotation: never cut; for Floor &amp; flex: no lean year).</p>';
-        const startsNote = householdStartWords({ offset: offsets.a, firstTaxYear: deriveTiming(ownSettings).firstTaxYear }, { offset: offsets.b, firstTaxYear: deriveTiming(partnerSettings).firstTaxYear });   // one plan begins later than the other (couples-different-years.md 7)
+        const startsNote = householdStartWords({ offset: offsets.a, firstTaxYear: deriveTiming(ownSettings, now).firstTaxYear }, { offset: offsets.b, firstTaxYear: deriveTiming(partnerSettings, now).firstTaxYear });   // one plan begins later than the other (couples-different-years.md 7)
         const thisYear = now.getFullYear();
-        out.innerHTML = verdictSectionHtml({ r, ownName, pName, stratNote, startsNote, setA: ownSettings, setB: partnerSettings, offsets })
-          + timelineSectionHtml(householdIncomeTimeline(ownSettings, partnerSettings, null, now), ownName, pName, thisYear)
+        out.innerHTML = verdictSectionHtml({ r, ownName, pName, stratNote, startsNote, setA: ownSettings, setB: partnerSettings, offsets, now })
+          + timelineSectionHtml(res.timeline, ownName, pName, thisYear)
           + wealthSectionHtml(r.potFan, thisYear)
           + whatToDoHtml(r, ownName, pName)
           + budgetShareHtml({ ownName, pName, sharedFrom: budgetSharedFromOf(own) === partnerId, sharedTo: budgetSharedFromOf(partner) === activeId })
@@ -9152,9 +9139,10 @@
       catch (e) { showToast('Could not change that: ' + e.message, 'error'); }
     };
 
-    // Survivor and care (household sweep): each plan through its own strategy's one test (HouseholdService), what-ifs never saved.
-    const oneTestInline = (st, cfg, id) => { const p = strategyPlanFor(st); return { r: stressTestStrategy(id, p), p }; };
+    // Survivor and care (household sweep): the simple view's own checks (answers/plan/householdRun.js runSurvivor, runCare) on the
+    // two plans and the day, in the engine worker; this tab asks "years from now", the simple view an age — the same question.
     window.runSurvivorUI = async function () {
+      await window._marketReady;   // the one market (lead4.md R5): never priced on the copy built in while the day's file loads
       const box = document.getElementById('hhSurvivorResult'), L = window._hhLast;
       if (!L) return;
       box.innerHTML = '<p style="font-size:13px;">Running both plans through their own strategy\'s test…</p>';
@@ -9162,12 +9150,12 @@
       try {
         const aDies = document.getElementById('hhWhoDies').value === 'A';
         const years = +document.getElementById('hhDeathYear').value || 10, spendPct = +document.getElementById('hhSurvivorPct').value || 70;
-        const sv = aDies ? L.partnerSettings : L.ownSettings, dc = aDies ? L.ownSettings : L.partnerSettings;
-        const args = { survivorSettings: sv, deceasedSettings: dc, deathYear: years, spendFraction: spendPct / 100, dbSurvivorPct: (+document.getElementById('hhDbSurvivorPct').value || 0) / 100, now: L.now };
+        const boxes = { who: aDies ? 'a' : 'b', years, spendPct, dbPct: +document.getElementById('hhDbSurvivorPct').value || 0 };
         let res;
-        try { res = await runInWorker('survivor', args); }
-        catch (e) { console.warn('engine worker unavailable, running inline', e); res = runSurvivorCheck(args, oneTestInline); }
-        box.innerHTML = survivorResultHtml({ res, survivorName: aDies ? L.pName : L.ownName, deceasedName: aDies ? L.ownName : L.pName, years, spendPct,
+        try { res = await runInWorker('householdSurvivor', { plan: L.own, partner: L.partner, today: L.today, boxes }); }
+        catch (e) { console.warn('engine worker unavailable, running inline', e); res = runSurvivor(L.own, L.partner, { today: L.today, ...boxes }); }
+        const sv = aDies ? L.partnerSettings : L.ownSettings, dc = aDies ? L.ownSettings : L.partnerSettings;
+        box.innerHTML = survivorResultHtml({ res, survivorName: aDies ? L.pName : L.ownName, deceasedName: aDies ? L.ownName : L.pName, years: res.deathYear ?? years, spendPct,
           strategyNames: { survivor: STRATEGY_NAMES[sv.strategyId || 'pots-and-valves'], deceased: STRATEGY_NAMES[dc.strategyId || 'pots-and-valves'] } });
       } catch (e) {
         box.innerHTML = '<div class="alert alert-warning">Survivor check failed: ' + e.message + '</div>';
@@ -9175,6 +9163,7 @@
     };
 
     window.runCareUI = async function () {
+      await window._marketReady;   // the one market (lead4.md R5): never priced on the copy built in while the day's file loads
       const box = document.getElementById('hhCareResult'), L = window._hhLast;
       if (!L) return;
       box.innerHTML = '<p style="font-size:13px;">Re-running both plans with the care years included…</p>';
@@ -9182,11 +9171,11 @@
       try {
         const who = document.getElementById('hhCareWho').value;
         const startIn = +document.getElementById('hhCareStart').value || 15, years = +document.getElementById('hhCareYears').value || 3, annualCost = +document.getElementById('hhCareCost').value || 90000;
-        const args = { setA: L.ownSettings, setB: L.partnerSettings, who, startYear: startIn, years, annualCost, needs: L.split && L.split.needs ? L.split.needs.own : null, now: L.now };
+        const boxes = { who: who === 'B' ? 'b' : 'a', startIn, years, cost: annualCost };
         let res;
-        try { res = await runInWorker('care', args); }
-        catch (e) { console.warn('engine worker unavailable, running inline', e); res = runCareCheck(args, oneTestInline); }
-        box.innerHTML = careResultHtml({ res, name: who === 'A' ? L.ownName : L.pName, years, startIn, annualCost });
+        try { res = await runInWorker('householdCare', { plan: L.own, partner: L.partner, today: L.today, boxes }); }
+        catch (e) { console.warn('engine worker unavailable, running inline', e); res = runCare(L.own, L.partner, { today: L.today, ...boxes }); }
+        box.innerHTML = careResultHtml({ res, name: who === 'A' ? L.ownName : L.pName, years, startIn: res.startYear ?? startIn, annualCost });
       } catch (e) {
         box.innerHTML = '<div class="alert alert-warning">Care check failed: ' + e.message + '</div>';
       }
@@ -11322,6 +11311,7 @@
 
     // Drawdown schedule
     async function strategyScheduleNotice(containerId, tabName) {
+      await window._marketReady;   // the one market (lead4.md R5): never priced on the copy built in while the day's file loads
       try {
         const st = await getActiveStrategy();
         if (!st.id || st.id === 'pots-and-valves') return false;

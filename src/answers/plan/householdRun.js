@@ -15,10 +15,12 @@
  *     together: the same drawing together (when the split applies) or null, fig: comparisonFigures's or null,
  *     timeline: householdIncomeTimeline's rows, basis: { today, engine: 'one-test', runs }
  *   }
- *   runSurvivor(plan, partner, { today, who, atAge, spendPct, dbPct, onProgress }) → runSurvivorCheck's result less the
+ *   runSurvivor(plan, partner, { today, who, atAge | years, spendPct, dbPct, onProgress }) → runSurvivorCheck's result less the
  *     what-if settings, with who, atAge, deathYear (the planner's years from now), spendPct, dbPct and the basis
- *   runCare(plan, partner, { today, who, fromAge, years, cost, onProgress }) → runCareCheck's result less the what-if settings,
- *     with who ('A' | 'B'), fromAge, startYear, years, annualCost and the basis
+ *   runCare(plan, partner, { today, who, fromAge | startIn, years, cost, onProgress }) → runCareCheck's result less the what-if
+ *     settings, with who ('A' | 'B'), fromAge, startYear, years, annualCost and the basis
+ * Both views run these (the full view's Household tab in its engine worker, the simple view's in its own): the simple view
+ * asks an age, the full view "years from now" (`years`, `startIn`) — the same question, the age worked out here.
  *
  * Plain data in, plain data out; no live gilt or share prices; the date arrives as `today`. The "years from now" the
  * planner's boxes take are made here from the ages V7 asks: the age at death less the person's age today, whole years.
@@ -44,6 +46,8 @@ const testOf = (now) => (settings, cfg, strategyId) => { void cfg; const p = pla
 const idOf = (s) => (s && s.strategyId) || 'pots-and-valves';
 const settingsOf = (plan, partner, now) => ({ a: effectiveStressSettings(plan, { now }), b: effectiveStressSettings(partner, { now }) });
 const namesOf = (plan, partner, now) => ({ a: nameOf(plan, now) || 'You', b: nameOf(partner, now) || 'Partner' });
+/** The names the household's words use, both views (the full view's Household tab says them beside this run's figures). */
+export const householdNamesOf = namesOf;
 /** The planner's "years from now" from an age V7 asks: never before this year. */
 export const yearsFromAge = (age, ageNow) => Math.max(0, Math.round((+age || 0) - (ageNow == null ? +age || 0 : ageNow)));
 
@@ -91,13 +95,15 @@ export function runHousehold(plan, partner, { today, limit = null, need = null, 
 /**
  * @param {{ today: string, who: 'a'|'b', atAge: number, spendPct: number, dbPct: number, onProgress?: Function }} o   `who` dies
  */
-export function runSurvivor(plan, partner, { today, who = 'a', atAge, spendPct = 70, dbPct = 50, onProgress = null } = {}) {
+export function runSurvivor(plan, partner, { today, who = 'a', atAge = null, years = null, spendPct = 70, dbPct = 50, onProgress = null } = {}) {
   const now = contextFor(plan, { today }).now;
   const tell = (done, total) => { if (typeof onProgress === 'function') onProgress(done, total); };
   const s = settingsOf(plan, partner, now);
   const names = namesOf(plan, partner, now);
   const deceased = who === 'b' ? s.b : s.a, survivor = who === 'b' ? s.a : s.b;
-  const deathYear = Math.max(1, yearsFromAge(atAge, ageNowOf(deceased, now)));
+  const ageNow = ageNowOf(deceased, now);
+  if (Number.isFinite(+years) && years != null && (atAge == null)) atAge = (ageNow == null ? 0 : ageNow) + Math.round(+years);
+  const deathYear = Math.max(1, yearsFromAge(atAge, ageNow));
   let runs = 0;
   tell(0, 3);
   const test = testOf(now);
@@ -111,13 +117,15 @@ export function runSurvivor(plan, partner, { today, who = 'a', atAge, spendPct =
 /**
  * @param {{ today: string, who: 'a'|'b', fromAge: number, years: number, cost: number, onProgress?: Function }} o   `who` needs care
  */
-export function runCare(plan, partner, { today, who = 'a', fromAge, years = 3, cost = 90000, onProgress = null } = {}) {
+export function runCare(plan, partner, { today, who = 'a', fromAge = null, startIn = null, years = 3, cost = 90000, onProgress = null } = {}) {
   const now = contextFor(plan, { today }).now;
   const tell = (done, total) => { if (typeof onProgress === 'function') onProgress(done, total); };
   const s = settingsOf(plan, partner, now);
   const names = namesOf(plan, partner, now);
   const cared = who === 'b' ? s.b : s.a;
-  const startYear = yearsFromAge(fromAge, ageNowOf(cared, now));
+  const ageNow = ageNowOf(cared, now);
+  if (Number.isFinite(+startIn) && startIn != null && fromAge == null) fromAge = (ageNow == null ? 0 : ageNow) + Math.round(+startIn);
+  const startYear = yearsFromAge(fromAge, ageNow);
   // each plan's draw need by plan year (the planner hands in its split's needs.own): the pooled verdict asks the other pot to cover it
   const needs = householdDrawSplit({ settings: s.a, name: names.a }, { settings: s.b, name: names.b }, { now }).needs.own;
   let runs = 0;

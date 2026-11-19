@@ -96,3 +96,32 @@ describe('one reader of the gilt and share prices: the one market (fix round 1)'
     expect(standInPays(line).amount).toBe(before.amount);
   });
 });
+
+describe('the full view\'s page prices nothing before the one market is in (fix round 1)', () => {
+  const page = readFileSync('index.html', 'utf8');
+  const bodyOf = (head) => { const at = page.indexOf(head); expect(at, head).toBeGreaterThan(-1); const end = page.indexOf('\n    }', at); return page.slice(at, end); };
+  it('the page\'s one plan builder refuses to price while the day\'s file loads (strategyPlanFor)', () => {
+    expect(bodyOf('    function strategyPlanFor(')).toMatch(/if \(!window\._marketIn\) throw/);
+    expect(page).toMatch(/window\._marketReady = loadMarket\([^\n]*window\._marketIn = true/);
+  });
+  it.each([
+    'window.runTryStrategyUI = async function', 'window.runHistoricalUI = async function', 'window.runScenariosUI = async function',
+    'window.runCompareStrategiesUI = async function', 'async function buildPlanDocumentNow(', 'async function ladderPositionForPlan(',
+    'async function genericStrategyPageHtml(', 'async function fullGiltPageHtml(', 'async function floorToAgePageHtml(',
+    'async function specStrategyPageHtml(', 'window.runHouseholdCheck = async function', 'window.runSurvivorUI = async function',
+    'window.runCareUI = async function', 'async function strategyScheduleNotice(', 'window.renderDecisionStrategyPanel = async function',
+    'window.showStrategyPage = async function', 'window.runRetireSweep = async function', 'async function oneTestFor(', 'async function cmpRun('
+  ])('%s waits for the one market before it prices anything', (head) => {
+    expect(bodyOf(head)).toMatch(/await window\._marketReady/);
+  });
+  it('what a way costs on the Stress settings and the ladder\'s trigger come from the plan\'s run (wayCostOf), never a sum of the boxes', () => {
+    const costs = bodyOf('    window.refreshStrategyCosts = async function');
+    expect(costs).toMatch(/wayCostOf\(r\)/);
+    expect(costs).not.toMatch(/realYieldForYear|- 57\b|readAlloc\('ss'\)[^\n]*\n[^\n]*cost/);
+    const trigger = bodyOf('    window.checkLadderTrigger = async function');
+    expect(trigger).toMatch(/oneTestFor\(/);
+    expect(trigger).toMatch(/sg\.glide|gl\.E0/);
+    expect(trigger).not.toMatch(/for \(let k = 1; k <=/);
+    expect(trigger).not.toMatch(/settings\.(equityMin|bondMin|cashTarget|baseSalary|spWeeklyAmount)/);
+  });
+});

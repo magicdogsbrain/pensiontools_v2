@@ -59,12 +59,13 @@ describe('the engine worker runs every job on the day it is handed', () => {
       expect(m.result.rows.length).toBeGreaterThanOrEqual(0);
     }
   }, 60000);
-  it('the survivor and care checks run in the worker when handed the day as a Date', async () => {
-    const a = planOf('retired-draft'), b = planOf('retired-locked-pots');
-    const setA = effectiveStressSettings(a, { now: NOW }), setB = effectiveStressSettings(b, { now: NOW });
-    const sv = await run('survivor', { survivorSettings: setA, deceasedSettings: setB, deathYear: 5, spendFraction: 0.7, dbSurvivorPct: 0.5, now: NOW });
+  it('the survivor and care checks run in the worker on the two plans and the day', async () => {
+    const f = FIXTURES.find((x) => x.key === 'couple');
+    const plans = f.plans().map((p) => upgradeScenario(JSON.parse(JSON.stringify(p)), { now: NOW }).scenario);
+    const own = plans.find((p) => p.id === f.subject), partner = plans.find((p) => p.id !== own.id && (own.household?.partnerScenarioId === p.id || p.household?.partnerScenarioId === own.id));
+    const sv = await run('householdSurvivor', { plan: own, partner, today: PARITY_DAY, boxes: { who: 'a', years: 5, spendPct: 70, dbPct: 50 }, now: NOW });
     expect(sv.error).toBeUndefined();
-    const care = await run('care', { setA, setB, who: 'A', startYear: 5, years: 2, annualCost: 50000, needs: null, now: NOW });
+    const care = await run('householdCare', { plan: own, partner, today: PARITY_DAY, boxes: { who: 'a', startIn: 5, years: 2, cost: 50000 }, now: NOW });
     expect(care.error).toBeUndefined();
   }, 120000);
 });

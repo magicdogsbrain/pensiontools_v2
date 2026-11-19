@@ -199,7 +199,9 @@ export function inTodaysMoney(amount, when, today) {
  *     implies to its maturity date — or, with none known, to the April of the first tax year it stands in for (`from`);
  *   an index-linked gilt — its nominal times today's index ratio (it rises with prices);
  *   anything else — its value today (it can change).
- * @returns {{ amount: number, real: number, payKind: 'conventional'|'indexLinked'|'value', fixed: boolean, matures: string|null, coupon: number|null, nominal: number|null }}
+ * A conventional gilt also says what it pays on the day it matures (`atMaturity`: the nominal and the last coupon) and the
+ * interest that comes before that day (`before`, on `couponDates`): `amount` is the two together, never all "on" one day.
+ * @returns {{ amount: number, real: number, payKind: 'conventional'|'indexLinked'|'value', fixed: boolean, matures: string|null, coupon: number|null, nominal: number|null, atMaturity?: number, before?: number, couponDates?: string[] }}
  */
 export function standInPays(h, { today = null, from = null } = {}) {
   const g = giltOfLine(h);
@@ -212,17 +214,25 @@ export function standInPays(h, { today = null, from = null } = {}) {
     const matures = gc && gc.maturity ? String(gc.maturity).slice(0, 10) : (maturityOfName(h && h.name) || null);
     // coupons still to come: every six months back from maturity, while after today; with no day to read against, the last one
     let couponsLeft = 1;
+    const couponDates = [];   // the coupons still to come BEFORE the day it matures (7.12.0, walks3 W5-M2), oldest first
     const now = today instanceof Date && !Number.isNaN(today.getTime()) ? today : null;
     if (matures && now) {
       const [y, m, d] = matures.split('-').map(Number);
       couponsLeft = 0;
-      for (let k = 0; k < 200; k++) { const at = Date.UTC(y, m - 1 - 6 * k, d); if (at <= now.getTime()) break; couponsLeft++; }
+      for (let k = 0; k < 200; k++) {
+        const at = Date.UTC(y, m - 1 - 6 * k, d); if (at <= now.getTime()) break; couponsLeft++;
+        if (k > 0) couponDates.unshift(new Date(at).toISOString().slice(0, 10));
+      }
       couponsLeft = Math.max(1, couponsLeft);   // the last coupon is paid with the nominal, even on a line kept past maturity
     }
-    const amount = nominal + (coupon ? nominal * coupon / 200 * couponsLeft : 0);
+    const each = coupon ? nominal * coupon / 200 : 0;
+    const amount = nominal + each * couponsLeft;
+    // what it pays on the day it matures (the nominal and the last coupon), and the interest that comes before that day
+    const atMaturity = nominal + each, before = each * couponDates.length;
     const when = matures ? new Date(matures + 'T12:00:00') : (+from > 2000 ? new Date(+from, 3, 6, 12) : null);
     const real = now && when ? inTodaysMoney(amount, when, now) : amount;
-    return { amount: Math.round(amount), real: Math.round(real), payKind: 'conventional', fixed: true, matures, coupon, nominal: Math.round(nominal) };
+    return { amount: Math.round(amount), real: Math.round(real), payKind: 'conventional', fixed: true, matures, coupon, nominal: Math.round(nominal),
+      atMaturity: Math.round(atMaturity), before: Math.round(before), couponDates };
   }
   const il = ilWords(h && h.name) || (!!g && g.type !== 'conventional');
   // the index ratio is a ratio (1.4…): a rung of N units pays N × the ratio (the ladder sizes its nominal so)

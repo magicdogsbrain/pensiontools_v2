@@ -181,9 +181,12 @@ describe('Ladder & ratchet: its ladder years are the years left of them from tod
 // twelve months from the pots' day: the bridge's cash year 26,500 x 5 / 12 = 11,041.67 less (104,471 -> 93,429), and the
 // base ladder's first rung likewise, less a little more for the year the State Pension starts in (11 May 2030: its share of
 // that tax year, 330 / 365, where it took a whole year off), 160,138 -> 150,150. The rest stays in the sleeve.
+// Retaken again (E8 fix round 1): that share is whole months, May to March, 11 / 12 (it was 330 / 365): a little more State
+// Pension that year, so the base ladder costs 150,150 -> 150,016 and Ladder & Ratchet leaves 461,079 -> 461,629 in the
+// middle; the bridge pays nothing that year (its cost is unchanged) and its sleeve leaves 908,792 -> 909,287.
 const PINS = {
-  'bridge-and-engine': { dials: { cashYears: 3 }, cost: 93429, E0: 371571, ruinHist: 0.13, ruinMc: 1.7, terminalP50: 908792 },
-  'ladder-and-ratchet': { dials: { ladderYears: 10 }, cost: 150150, E0: 314850, ruinHist: 21.9, ruinMc: 20.0, terminalP50: 461079 }
+  'bridge-and-engine': { dials: { cashYears: 3 }, cost: 93429, E0: 371571, ruinHist: 0.13, ruinMc: 1.7, terminalP50: 909287 },
+  'ladder-and-ratchet': { dials: { ladderYears: 10 }, cost: 150016, E0: 314984, ruinHist: 21.9, ruinMc: 20.0, terminalP50: 461629 }
 };
 describe('the pins: Alex two years in, for both ways', () => {
   for (const [id, pin] of Object.entries(PINS)) {

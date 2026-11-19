@@ -105,6 +105,12 @@ const ADDED_AFTER_THE_PINS = Object.freeze({
  * worst 12 months £11,973 → £25,082, left at the end (middle) £751,621 → £876,308, year 0's income £36,000 → £6,000 (two
  * months); 10 left at the end £416,180 → £457,085, year 0's income £18,000 → £4,500 (three months). The pots' engine
  * config's `year0Months` is read as the pins had it (asPinned).
+ * A retired plan's year 0 for the months it has (7.12.0, step P pass 4: PlanTiming.year0MonthsOf mode 'retired', a State
+ * Pension already paid pays every one of those months, one begun before year 0 a whole year 0 of it) retook 15 fixture ×
+ * clock pairs on both Nodes, the same 45 outputs on each (deriveCompareConfigs, fullGiltTest, buildPlanDocument): 02, 04,
+ * 07, 09, 11, 12 at corpus and lastBeforeApril, 07 and 11 at afterApril, 20 at afterApril. Every other entry came out
+ * byte-identical. The figures at the corpus clock are in tests/fixtures/plans/snapshot.json's retake (e.g. 02 ruin 2.4% →
+ * 2.1%, left at the end (middle) £623,839 → £668,385; 09 ruin 6.8% → 5.9%).
  */
 const NODE = String(process.versions.node).split('.')[0];
 // One pins file per Node major, each taken on the code before the change with that Node: simulated money can differ in

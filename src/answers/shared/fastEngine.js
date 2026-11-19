@@ -213,8 +213,10 @@ export function fastEligible(c) {
     && isZero(c.diversifierStart) && c.subAsset === undefined && c.isaMix === undefined && (c.isaReturn === undefined || finite(c.isaReturn))
     // (a plan's config names the default ISA strategy outright; the engines read an absent one as that default)
     && (c.isaDrawdownStrategy === undefined || c.isaDrawdownStrategy === 'minimiseEarlyTax') && ISA_DEFAULTS.DRAWDOWN_STRATEGY === 'minimiseEarlyTax' && (c.isaBalance === undefined || finite(c.isaBalance))
-    // year 0 for the months it has (7.12.0, SimulationEngine notYetMonths): `simulate`'s own; the replica has no such months
-    && !(c.year0Months > 0 && c.year0Months < 12)
+    // year 0 for the months it has (7.12.0, SimulationEngine notYetMonths): a whole number of months, on a run that closes
+    // nothing and covers nothing (the replica's not-yet months grow the pots and take nothing, as `simulate`'s do)
+    && (c.year0Months === undefined || !(c.year0Months > 0 && c.year0Months < 12)
+      || (Number.isInteger(c.year0Months) && !(c.lockedMonths > 0) && !(c.coverMonths > 0)))
     && isZero(c.taxableStart) && emptyList(c.windfalls)
     && (c.accessMethod === 'ufpls' || c.accessMethod === 'drawdown') && !c.ufplsYears && !c.ufplsThenPcls && !c.bandFillRecycle
     && (c.dbAmount === undefined || finite(c.dbAmount)) && (!(c.dbAmount > 0) || c.dbIndexation === 'cpi')
@@ -419,6 +421,9 @@ function runFast(config, pf, pr, start = null, hook = null, until = null, resume
   }
   const recBuf = record ? record.buf : null;
   const recFrom = record ? record.from : months + 1;
+  // Year 0 for the months it has (SimulationEngine notYetMonths): the months of year 0 before the plan starts paying grow the
+  // pots and take nothing — no draw, no pot moved, nothing tax-free. 0 for every other run, which is then the run it was.
+  const notYetMonths = config.year0Months > 0 && config.year0Months < 12 ? 12 - config.year0Months : 0;
 
   // planDrawdown, remembered within a year: with the default ISA strategy (uncapped) its answer depends on the ISA
   // balance only through min(net gap, balance), so a balance at or above the remembered gap gives the same plan.
@@ -497,6 +502,26 @@ function runFast(config, pf, pr, start = null, hook = null, until = null, resume
       bond = Math.max(0, bond);
       cash = Math.max(0, cash);
       if (failed) break;
+      continue;
+    }
+
+    if (month < notYetMonths) {
+      // not yet: this month's returns and charges, as `simulate` takes them, and nothing else
+      if (month >= pf.bondMonths) bondMonthsTo(pf, month);
+      equity *= pf.mEq[year];
+      bond *= pf.mBond[month];
+      cash *= pf.mCash[year];
+      if (isa > 0) isa = isaKind === 0 ? isa * isaFactor : isaKind === 1 ? isa * pf.mCash[year] : isa * investedIsaFactor(isaW, pf.mEq[year], pf.mBond[month], pf.mCash[year]);
+      if (chargeM !== 1) {
+        equity *= chargeM;
+        bond *= chargeM;
+        cash *= chargeM;
+        if (isa > 0) isa *= chargeM;
+      }
+      isa = Math.max(0, isa - Math.min(0, isa)) + 0;
+      equity = Math.max(0, equity);
+      bond = Math.max(0, bond);
+      cash = Math.max(0, cash);
       continue;
     }
 

@@ -151,6 +151,31 @@ describe('the engine replica is today\'s engine, run by run', () => {
     expect(dragged).toBeGreaterThan(100);   // the drag takes something off
   }, 120_000);
 
+  it('7.12.0 year 0 for the months it has (year0Months 1, 5, 7, 11): the fixtures and 40 random households, to the bit', () => {
+    const env = { today: TEST_ENV.today, seed: 0 };
+    const households = [...fixtures.map((f) => f.inputs), ...random(40, env)];
+    let compared = 0;
+    for (const inputs of households) {
+      const c = cases(inputs, env, 6, [0, 30, 200]);
+      if (!c) continue;
+      for (const configs of c.configsAtK) {
+        for (const { config } of configs) {
+          for (const m of [1, 5, 7, 11]) {
+            const yc = { ...config, year0Months: m };
+            expect(fastEligible(yc)).toBe(true);
+            for (const future of c.futures) {
+              const a = simulate(yc, future.returns, future.seed);
+              const b = simulateFast(yc, future);
+              if (!same(a, b)) expect.fail(`differs with year0Months ${m}: ${JSON.stringify(inputs)} in future ${future.id}`);
+              compared++;
+            }
+          }
+        }
+      }
+    }
+    expect(compared).toBeGreaterThan(1000);
+  }, 120_000);
+
   it('the runner shares a future\'s drivers between runs and gives the same outcome as a fresh replica', () => {
     const env = { today: TEST_ENV.today, seed: 0 };
     const c = cases(fixtures.find((f) => f.id === 'F2').inputs, env, 25, [40, 300, 450, 380]);

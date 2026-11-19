@@ -119,9 +119,16 @@ describe('the kept plan\'s config on the answers\' fast path', () => {
       expect([f.failed, f.failMonth]).toEqual([s.failed, s.failMonth]);
     }
   });
-  it('a config with year 0 for fewer than twelve months is simulate\'s own, never the replica\'s', () => {
+  it('a config with year 0 for fewer than twelve months (7 of them) is the fast path\'s too, and runs out in the month simulate does', () => {
     const pc = planCaseOf('d', checkInputs(SCHEMA_D, D1, ENV).inputs, ENV);
-    expect(fastEligible({ ...pc.runner.configsAtH(2100 * 12)[0].config, year0Months: 7 })).toBe(false);
+    const config = { ...pc.runner.configsAtH(2100 * 12)[0].config, year0Months: 7 };
+    expect(fastEligible(config)).toBe(true);
+    for (let i = 0; i < N; i++) {
+      const life = pc.sp.lives[i];
+      const s = simulate(config, sliceReturns(life, 0, config.years), life.seed);
+      const f = pc.runner.run(0, i, config);
+      expect([f.failed, f.failMonth, f.equity, f.isa]).toEqual([s.failed, s.failMonth, s.finalEquity, s.finalIsa]);
+    }
   });
 });
 

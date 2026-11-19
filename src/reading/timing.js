@@ -22,8 +22,8 @@ import { settingsOf } from './money.js';
 
 const nowOf = (ctx) => (ctx && ctx.now instanceof Date ? ctx.now : new Date());
 
-/** The three stage words (and a closed plan's), by LifeStage.stageOf's key. */
-export const STAGE_WORD = Object.freeze({ saving: 'Saving', moving: 'Moving', drawing: 'Living on it', closed: 'Closed' });
+// the three stage words (and a closed plan's), by LifeStage.stageOf's key: the label table's (src/reading/labels.js)
+import { STAGE_WORD_OF as STAGE_WORD } from './labels.js';
 
 function timingOf(plan, ctx) {
   const ss = settingsOf(plan, ctx);

@@ -14,6 +14,8 @@ import { FACT, patternOf } from './facts.js';
 const TODAY = "today's money";
 
 export const STAGE_WORDS = Object.freeze(['Saving', 'Moving', 'Living on it']);
+/** The stage words by LifeStage.stageOf's key (and a closed plan's): the reading's stage (src/reading/timing.js) draws these. */
+export const STAGE_WORD_OF = Object.freeze({ saving: STAGE_WORDS[0], moving: STAGE_WORDS[1], drawing: STAGE_WORDS[2], closed: 'Closed' });
 
 export const LABELS = Object.freeze({
   [FACT.STAGE]: { label: 'Stage', basis: 'words' },
@@ -21,7 +23,7 @@ export const LABELS = Object.freeze({
   [FACT.STOP_MONTH]: { label: 'You stop work in', basis: 'a month' },
   [FACT.YEARS_TO_GO]: { label: 'To go', basis: 'years and months' },
   [FACT.AGE_TODAY]: { label: 'Age today', basis: 'an age' },
-  [FACT.END_AGE]: { label: 'The plan runs to age', basis: 'an age' },
+  [FACT.END_AGE]: { label: 'Plan to age', basis: 'an age' },   // both views' box (step F1)
   [FACT.LOCKED]: { label: 'Locked', basis: 'words' },
   [FACT.LOCK_DATE]: { label: 'Locked on', basis: 'a day' },
   [FACT.DUE_NEXT]: { label: 'Next', basis: 'words' },
@@ -30,9 +32,9 @@ export const LABELS = Object.freeze({
   [FACT.GIA_TODAY]: { label: 'General account today', basis: TODAY },
   [FACT.CASH_TODAY]: { label: 'Cash today', basis: TODAY },
   [FACT.POT_AGAINST_PLAN]: { label: 'Your pot, against the plan', basis: "the prices the plan's figures are in" },
-  [FACT.POT_AT_STOP]: { label: 'Pension when you stop, middle case', basis: TODAY },
-  [FACT.POT_AT_STOP_LOW]: { label: 'Pension when you stop, bad case', basis: TODAY },
-  [FACT.POT_AT_STOP_HIGH]: { label: 'Pension when you stop, good case', basis: TODAY },
+  [FACT.POT_AT_STOP]: { label: 'Pension when you stop, middle', basis: TODAY },   // the band's words in both views
+  [FACT.POT_AT_STOP_LOW]: { label: 'Pension when you stop, low end', basis: TODAY },
+  [FACT.POT_AT_STOP_HIGH]: { label: 'Pension when you stop, high end', basis: TODAY },
   [FACT.PAY]: { label: 'Pay', basis: 'a year before tax' },
   [FACT.PAY_IN_TAKE_HOME]: { label: 'From your take-home pay', basis: 'a month' },
   [FACT.PAY_IN_EMPLOYER]: { label: 'From your employer', basis: 'a month' },

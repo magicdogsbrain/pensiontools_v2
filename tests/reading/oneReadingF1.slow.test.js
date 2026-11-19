@@ -161,3 +161,35 @@ describe('each F1 fact has one value whoever asks, for every parity fixture', ()
     expect(R.name).toBe(shownPlanName(plan, { now: NOW }));
   }, 300_000);
 });
+
+// The boxes of F1's facts (step F1, pass 3): the plan's end age and the ISA, as each view fills its box, for every fixture.
+import { boxesOf as aboutBoxesOf } from '../../src/answers/plan/about.js';
+import { paintEndAge } from '../../src/ui/endAgeBox.js';
+import { isaBoxOf } from '../../src/reading/money.js';
+
+/** A stand-in for the full view's Settings form: just the boxes paintEndAge reads and writes. */
+function fullForm(duration, startAge) {
+  const els = { ssDuration: { value: String(duration) }, ssEndAge: { value: '' }, shapeAgeNow: { value: String(startAge ?? '') }, ssDurationAgeHint: { textContent: '' } };
+  return { getElementById: (id) => els[id] || null, activeElement: null, els };
+}
+
+describe('the end age and the ISA boxes hold one value in both views, for every parity fixture', () => {
+  it.each(FIXTURES.map((f) => [f.key, f]))('%s', (key, f) => {
+    const plan = f.plans().map((p) => upgradeScenario(JSON.parse(JSON.stringify(p)), { now: NOW }).scenario).find((p) => p.id === f.subject);
+    if (plan.decisionTool && plan.decisionTool.settings && plan.decisionTool.settings.locked) return;   // a locked plan's boxes are the lock's
+    const ctx = { now: NOW };
+    const ss = settingsOf(plan, ctx);
+    const simple = aboutBoxesOf(plan, { today: PARITY_DAY });
+    // the full view fills the length from the plan's settings, then paints the end age on the plan's start age
+    const t = deriveTiming(ss, NOW);
+    const doc = fullForm(ss.duration, t && t.shapeAgeNow);
+    paintEndAge(doc, t);
+    expect(doc.els.ssEndAge.value, 'end age: full box = simple box').toBe(String(simple.endAge ?? ''));
+    const end = planEndAge(plan, ctx);
+    if (end != null) expect(doc.els.ssEndAge.value, 'end age: the reading').toBe(String(end));
+    // the ISA box: the simple view's (pots page) and the full view's fill (isaBoxOf when it says the ISA today, else the plan's)
+    const ib = isaBoxOf(plan, ctx);
+    const fullIsa = ib && ib.today ? ib.value : Math.round(+ss.isaBalance || 0);
+    expect(String(potsBoxesOf(plan, { today: PARITY_DAY }).isa), 'ISA: simple box = full box').toBe(String(fullIsa));
+  }, 120_000);
+});

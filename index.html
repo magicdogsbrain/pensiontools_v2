@@ -6138,7 +6138,7 @@
       const isaVal = Math.round(+((document.getElementById(p + 'IsaBalance') || {}).value) || 0);
       // the ISA today as every page reads it (src/reading/money.js, step F1) while the box holds the plan's own figure; a figure
       // typed and not yet saved as typed
-      const isaShown = window._isaToday && window._isaToday.box === isaVal ? window._isaToday.value : isaVal;
+      const isaShown = window._isaToday && window._isaToday.box && (p === 'ss' ? window._isaToday.box.ss : window._isaToday.box.own) === isaVal ? window._isaToday.value : isaVal;
       const isaTxt = isaShown > 0 ? '<br><span style="color:var(--text-muted);">+ ' + markFact('isa.today', formatFact('isa.today', isaShown)) + ' ISA kept separate (tax-free, drawn down to your State Pension)</span>' : '';
       if (amt) amt.innerHTML = '<strong>' + preset.label + '</strong> &mdash; ' + eq + '% shares &middot; ' + bd + '% bonds' + divPct + ' &middot; ' + csh + '% cash<br>' +
         '<span style="color:var(--text-muted);">£' + eqAmt.toLocaleString() + ' shares &middot; £' +
@@ -7323,8 +7323,8 @@
         // the stage in the three words of both views, and the time to the stop: the reading's (src/reading/timing.js, step F1)
         const rc = sc ? contextFor(sc, { now: todayOf() }) : null;
         window._lifeStage = stage; window._stageWord = sc ? readingStage(sc, rc) : null; window._yearsToGo = sc ? readingYearsToGo(sc, rc) : null;
-        window._isaToday = sc ? { value: Math.round(readingIsaToday(sc, rc).value), box: (() => { const ib = isaBoxOf(sc, rc); return ib ? ib.value : Math.round(+(ss && ss.isaBalance) || 0); })() } : null;
-        for (const p of ['ss', 'dd']) { try { if (document.getElementById(p + 'IsaBalance') && typeof window.updateAllocDisplay === 'function') window.updateAllocDisplay(p); } catch (e) { /* the echo is optional */ } }
+        window._isaToday = sc ? { value: Math.round(readingIsaToday(sc, rc).value), box: (() => { const own = Math.round(+(ss && ss.isaBalance) || 0); const ib = isaBoxOf(sc, rc); return { ss: ib ? ib.value : own, own }; })() } : null;   // what each ISA box was filled with: Settings' by isaBoxOf (step F1), the Decision settings' the plan's own
+        for (const p of ['ss', 'ds']) { try { if (document.getElementById(p + 'IsaBalance') && typeof window.updateAllocDisplay === 'function') window.updateAllocDisplay(p); } catch (e) { /* the echo is optional */ } }
         applyStageToTabs(stage); nameTransitionTab(document, () => getActiveScenarioAsStored(), sc).then((n) => { window._transitionName = n; }).catch(() => {});   // 7.11.1: the Transition tab by the phase V7's home reads
         try { updatePlanLockChip(); } catch (e) { /* chip optional */ }
         // Nothing is written on reading the stage (lead4.md R9): the journey's stage changes are written with the lock and
@@ -9638,7 +9638,7 @@
         const base = planState.stressFormBase;
         if (!base) { if (quiet) { fault(SAVE_OUTCOME_WORDS.opening); return false; } showToast(SAVE_OUTCOME_WORDS.opening, 'info', 6000); return false; }   // the form not yet filled from this plan: nothing of it is written (never the whole form)
         const form = stressFormSettings(_curSS);
-        let hadFigures = true; try { hadFigures = planHasFigures(await getActiveScenarioAsStored()); } catch (e) { hadFigures = true; }
+        let hadFigures = true, pensionWasUnset = false; try { const was = await getActiveScenarioAsStored(); hadFigures = planHasFigures(was); const pb = was ? pensionBoxOf(was, { now: todayOf() }) : null; pensionWasUnset = !!(pb && pb.value == null); } catch (e) { hadFigures = true; }   // a plan with no pension known: the first one typed is written as the simple view writes it (below)
         const patch = stressSavePatch({ base: base && base.form, form, hadFigures });
         if (!Object.keys(patch).length) { if (quiet) return true; { const t = saveOutcomeToast('nothing', 'Settings'); showToast(t.words, t.kind); } if (window._ssAutosave) window._ssAutosave.markSaved(); return 'nothing'; }   // "Saved" only when something was written
         if (touches(patch, STRATEGY_KEYS)) await setActiveStrategyChecked(form.strategyId, form.strategyParams);
@@ -9658,7 +9658,7 @@
         planState.stressFormBase = { form };   // what is saved now is the form as it stands
         try { await renderTiming(); } catch (e) { /* timing block optional */ }   // the Timing summary says the plan just saved before "Saved" is said (it reads the plan, not the boxes)
         if (!quiet) await repaintAfterWrite('save');   // a pressed Save, as the quiet one's afterSave: every figure worked out from the plan before the write goes
-        { const was = sippTodayOf(base.form), typed = sippTodayOf(ssAlloc); if (window._ssTiming?.mode === 'future' && typed > 0 && Math.round(typed) !== Math.round(was)) { await saveActivePensionToday(typed); invalidateStressCache(); } }
+        { const was = sippTodayOf(base.form), typed = sippTodayOf(ssAlloc); if ((window._ssTiming?.mode === 'future' || pensionWasUnset) && typed > 0 && Math.round(typed) !== Math.round(was)) { await saveActivePensionToday(typed); invalidateStressCache(); } }
         { const wasI = Math.round(+(base.form && base.form.isaBalance) || 0), typedI = Math.round(+form.isaBalance || 0); if (typedI !== wasI && (await saveActiveIsaToday(typedI)).written) invalidateStressCache(); }   // the ISA typed is the ISA today everywhere (a record or What you hold read before it), as the simple view writes it (step F1)   // a saver's pot typed here is the pension today everywhere (7.12.0); against the box as filled (the pension today), not the plan's stored pots
         // Refresh the Monte-Carlo / Historical starting-balance banners so they reflect the just-
         // saved allocation (they otherwise only re-render on load/tab-switch → stale after a save).

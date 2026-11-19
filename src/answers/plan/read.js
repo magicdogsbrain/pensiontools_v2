@@ -72,7 +72,8 @@ import { saverInputsOf } from './saverInputs.js';
 import { MONTHS, dateOf, ym, monthWords, monthName, dayWords, monthsBetween, localDay, timeLeftWords } from './dates.js';
 import { heldLadder } from './held.js';
 import { moveStatusOf, unlistedStatusOf } from './moveWords.js';
-import { isClosedPlan, closedReading, beforeReading, closedAtOf, monthRefusalWords } from '../../services/PlanClosed.js';
+import { isClosedPlan, closedAtOf, monthRefusalWords } from '../../services/PlanClosed.js';
+import { closedReading, beforeReading } from '../../services/PlanClosedReading.js';
 import { closeQuestionOf, successorName } from '../../services/PlanClose.js';
 import { startLaterOf, laterDraftLeftOf } from '../../services/PlanMove.js';
 import { shownPlanName } from '../../services/PlanName.js';
@@ -190,15 +191,15 @@ function closeOf(plan, list, now) {
   return {
     // each month with the new plan's default name from it (either reason): the name box follows the month chosen until
     // the person types over it
-    months: q.months.map((m) => ({ month: m.month, words: m.words, year: taxYearLabel(m.taxYear), name: successorName(plan, m.month), workingName: q.working ? successorName(plan, m.month, 'working') : null })),
+    months: q.months.map((m) => ({ month: m.month, words: m.words, year: taxYearLabel(m.taxYear), name: successorName(plan, m.month, 'plan', now), workingName: q.working ? successorName(plan, m.month, 'working', now) : null })),
     suggested: q.suggested,
-    name: successorName(plan, q.suggested),
+    name: successorName(plan, q.suggested, 'plan', now),
     asked: q.asked,
     held: q.held,
     pots: { pension: r0(q.pots.pension), isa: r0(q.pots.isa), gia: r0(q.pots.gia) },
     potsFrom: q.potsFrom,
     partner: q.partner,
-    working: q.working ? { name: successorName(plan, q.suggested, 'working'), ageNow: q.ageNow, flexibleAccess: q.flexibleAccess ? { month: q.flexibleAccess.month } : null } : null
+    working: q.working ? { name: successorName(plan, q.suggested, 'working', now), ageNow: q.ageNow, flexibleAccess: q.flexibleAccess ? { month: q.flexibleAccess.month } : null } : null
   };
 }
 
@@ -1082,7 +1083,7 @@ function rulesFor(C, built) {
   // its document's. Said on "Does it last?" and About; no longer a to-do (7.10.0)
   const answerStale = !locked ? answerAge(plan, ss) : null;
   const saverStage = SAVER_STAGES.includes(key);
-  const closed = key === 'closed' ? closedReading(plan, C.entries) : null;
+  const closed = key === 'closed' ? closedReading(plan, C.entries, now) : null;
   // a plan lived on until a close still to come: its reviews carry on with the plan that carries it on
   const closing = stage.closing === true || (plan.closedAt != null && key !== 'closed');
   // the check-in (release step R3): how often, whether it is due, and what the last one said — read from what is stored
@@ -1355,7 +1356,7 @@ export function planPage(entries, id, stepId, { today, source = 'account' } = {}
     closed: stage.key === 'closed' ? { ...closedReading(plan, list, now), hasDocument: !!plan.planDocument } : null,
     // closed at a change-over still to come: lived on until then, but never unlocked (the guard refuses it)
     closing: stage.closing === true,
-    before: beforeReading(plan, list),
+    before: beforeReading(plan, list, now),
     locked,
     lockedOn: locked ? dayWords(lockedAtOf(plan)) : null,
     // 7.12.0: locked when its gilt ladder cost more than its pots (an old document): said at the top of "Your plan as locked"

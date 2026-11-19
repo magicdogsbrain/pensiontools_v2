@@ -1488,7 +1488,7 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     else {
       const stamp = at.toISOString();
       try {
-        name = uniqueName((s.name || '').trim() || successorName(plan, s.month, reason), planNames(state));
+        name = uniqueName((s.name || '').trim() || successorName(plan, s.month, reason, at), planNames(state));
         made = readyPlan({ ...successorOf(plan, { month: s.month, name, now: at, pots: s.pots || null, keepPartner, reason, stop, plans }), createdAt: stamp, lastModified: stamp }, at);
       } catch { fail(planId, 'failed'); return; }
       if (place.kind === 'account') {

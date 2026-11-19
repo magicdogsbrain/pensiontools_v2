@@ -44,12 +44,14 @@ import { getActiveScenarioAsStored, getActiveScenarioAsync, switchScenario, inva
 import { loadAllScenarios, createScenario, saveScenario } from '../firebase/FirestoreService.js';
 import { closeQuestionOf, successorOf, closeWrite, partnerWrites, successorName, workingStopOf } from '../services/PlanClose.js';
 import { flexibleAccessWords } from '../services/FlexibleAccess.js';
-import { closedReading, beforeReading, closedWords, beforeWords, readDayOf, planNameOf, monthWordsOf, monthBefore, isClosedPlan, closedAtOf, closesAhead } from '../services/PlanClosed.js';
+import { closedWords, beforeWords, readDayOf, monthWordsOf, monthBefore, isClosedPlan, closedAtOf, closesAhead } from '../services/PlanClosed.js';
+import { closedReading, beforeReading } from '../services/PlanClosedReading.js';
 import { normaliseHoldings } from '../services/HoldingsRecord.js';
 import { uniqueName } from '../services/PlanFromSeed.js';
 import { taxYearLabel, deriveTiming, taxYearOfMonth } from '../services/PlanTiming.js';
 import { laterDraftSentence } from '../services/PlanMove.js';
 import { laterDraftReading } from '../services/PlanReading.js';
+import { storedPlanName, shownPlanName } from '../services/PlanName.js';
 import { isGuest, isLoggedIn } from '../firebase/AuthService.js';
 import { guestPlanRefusal } from '../services/GuestPlans.js';
 import { OPEN_PLACE_KEY, makeRequest } from '../services/OpenPlace.js';
@@ -94,14 +96,14 @@ export async function planReadDay() {
 export async function successorNameOf() {
   try {
     const sc = await getActiveScenarioAsync();
-    const r = sc ? closedReading(sc, await loadAllScenarios()) : null;
+    const r = sc ? closedReading(sc, await loadAllScenarios(), todayOf()) : null;
     return r && r.next ? r.next.name : null;
   } catch (e) { return null; }
 }
 
 /** The open plan's close (PlanClosed.closedReading, the plan that carries it on looked up), or null: not closed, or unread. */
 async function openClosedReading() {
-  try { const sc = await getActiveScenarioAsync(); return sc && isClosedPlan(sc) ? closedReading(sc, await loadAllScenarios()) : null; } catch (e) { return null; }
+  try { const sc = await getActiveScenarioAsync(); return sc && isClosedPlan(sc) ? closedReading(sc, await loadAllScenarios(), todayOf()) : null; } catch (e) { return null; }
 }
 /** The button that opens the plan that carries a closed one on (none when that plan is not here). */
 const openNextBtn = (reading, cls = '') => (reading && reading.next ? '<button type="button"' + (cls ? ' class="' + cls + '"' : '') + ' data-on-click="openPlanById(\'' + esc(reading.next.id) + '\')">Open ‘' + esc(reading.next.name) + '’</button>' : '');
@@ -174,8 +176,8 @@ export async function planNoticeHtml() {
     const sc = await getActiveScenarioAsync();
     if (!sc) return '';
     const all = await loadAllScenarios();
-    const closed = isClosedPlan(sc) ? closedReading(sc, all) : null;
-    const before = closed ? null : beforeReading(sc, all);
+    const closed = isClosedPlan(sc) ? closedReading(sc, all, todayOf()) : null;
+    const before = closed ? null : beforeReading(sc, all, todayOf());
     const text = closed ? closedWords(closed) : before ? beforeWords(before) : '';
     return text ? '<p class="pd-notice" data-testid="planNotice"><strong>' + esc(text) + '</strong></p>' : '';
   } catch (e) { return ''; }
@@ -389,7 +391,7 @@ export function installPlanClose(win, doc, deps = {}) {
       const sc = await getActiveScenarioAsStored();
       if (sc) {
         const all = await loadAllScenarios();
-        const closed = closedReading(sc, all), before = closed ? null : beforeReading(sc, all);
+        const closed = closedReading(sc, all, todayOf()), before = closed ? null : beforeReading(sc, all, todayOf());
         const q = closed ? null : closeQuestionOf(sc, { now: todayOf(), plans: all });
         // a closed plan's lock banner says it is closed (stressLockBannerHtml); a plan that carries one on says so here, and is
         // offered the move too once it has been lived on
@@ -419,7 +421,7 @@ export function installPlanClose(win, doc, deps = {}) {
 
   async function moveOnce(why) {
     await flushOpen();   // the plan closed and carried on from is the plan with what was typed in it
-    const now = new Date();
+    const now = todayOf();   // the one clock (lead4.md R5)
     const reason = why === 'working' ? 'working' : 'plan';
     let sc = null, all = [];
     try { sc = await getActiveScenarioAsStored(); all = await loadAllScenarios(); } catch (e) { sc = null; }
@@ -428,7 +430,7 @@ export function installPlanClose(win, doc, deps = {}) {
     const full = closeCapRefusal(all, isGuest());
     if (full) { toast(full, 'info', 8000); return; }
     const answers = { month: q.suggested, name: '', pension: null, isa: null, gia: null, partner: !!q.partner, stopMonth: '', stopAge: '' };
-    const nameFor = (m) => uniqueName(successorName(sc, m, reason), all.map(planNameOf));
+    const nameFor = (m) => uniqueName(successorName(sc, m, reason, now), all.map(storedPlanName));
     const asked = win.appConfirm({ html: planCloseQuestionHtml(q, { name: nameFor(q.suggested), reason }) }, { okLabel: reason === 'working' ? PLAN_CLOSE_WORDS.okWorking : PLAN_CLOSE_WORDS.ok, cancelLabel: PLAN_CLOSE_WORDS.cancel, danger: false });
     // the question is on the page now (appConfirm draws it at once): its boxes are read as they change, since it is gone after
     const g = (id) => doc.getElementById(id);
@@ -446,7 +448,7 @@ export function installPlanClose(win, doc, deps = {}) {
     read();
     for (const id of ['pcMonth', 'pcName', 'pcPension', 'pcIsa', 'pcGia', 'pcPartner', 'pcStopMonth', 'pcStopAge']) { const x = g(id); if (x) { x.addEventListener('input', read); x.addEventListener('change', read); } }
     if (!(await asked)) return;
-    const name = uniqueName((answers.name || '').trim() || successorName(sc, answers.month, reason), all.map(planNameOf));
+    const name = uniqueName((answers.name || '').trim() || successorName(sc, answers.month, reason, now), all.map(storedPlanName));
     const pots = potsFromAnswers(answers);
     if (!pots) { toast('Put in the pension pot you hold today (0 if none). Nothing was changed.', 'warning', 6000); return; }
     const stop = reason === 'working' ? stopFromAnswers(answers) : null;
@@ -465,7 +467,7 @@ export function installPlanClose(win, doc, deps = {}) {
         const w = partner ? partnerWrites(partner, { oldId: sc.id, newId }) : null;
         if (w) { try { await saveScenario(partner.id, w); } catch (e) { toast('The new plan was made, but ‘' + q.partner.name + '’ could not be linked to it: link it on the Household page.', 'warning', 8000); } }
       }
-      toast('‘' + planNameOf(sc) + '’ is closed; ‘' + name + '’ carries on from ' + monthWordsOf(answers.month) + (reason === 'working' ? ', saving until you stop again.' : '.'), 'success', 6000);
+      toast('‘' + shownPlanName(sc, { now }) + '’ is closed; ‘' + name + '’ carries on from ' + monthWordsOf(answers.month) + (reason === 'working' ? ', saving until you stop again.' : '.'), 'success', 6000);
       await reopenOn(newId, reason === 'working' ? 'saving' : 'about');
     } catch (e) {
       console.error('Move to a new plan:', e);

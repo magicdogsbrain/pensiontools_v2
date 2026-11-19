@@ -249,8 +249,6 @@ export function notBegunOf(plan, month) {
 
 // ---- the words both apps use (the planner's src/ui/planCloseUi.js, V7's copy/plan.js say the same) -------------------
 
-/** The plan's name as the readers take it. */
-export const planNameOf = (plan) => (plan && plan.planDetails && typeof plan.planDetails.name === 'string' && plan.planDetails.name) || (plan && typeof plan.name === 'string' && plan.name) || '';
 
 /** 'YYYY-MM' of a moment (local). */
 const monthOfDay = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
@@ -264,22 +262,6 @@ export function closesAhead(plan, now = new Date()) {
   return !!c && c >= monthOfDay(now);
 }
 
-/**
- * A closed plan's one line, and the plan that carries it on, found among `plans` (a list of plans, or of { plan }):
- * { closedAt, month: 'March 2029', next: { id, name }|null, ahead, working }. `ahead` while its last month is still to come
- * (closesAhead): the words then say it closes, not that it closed. `working` when the plan that carries it on is a saving
- * spell (back to work: its `before.kind` is 'working') — the reason lives on that plan, so the close writes nothing more on
- * this one; with that plan not at hand the reason is not known and not said. Null for a plan that is not closed.
- */
-export function closedReading(plan, plans = [], now = new Date()) {
-  const c = closedAtOf(plan);
-  if (!c) return null;
-  const id = nextPlanIdOf(plan);
-  const list = (Array.isArray(plans) ? plans : []).map((e) => (e && e.plan ? e.plan : e)).filter(isObj);
-  const next = id ? list.find((p) => String(p.id) === id) || null : null;
-  const working = !!next && (beforeOf(next) || {}).kind === 'working';
-  return { closedAt: c, month: monthWordsOf(c), next: next ? { id: String(next.id), name: planNameOf(next) } : null, ahead: closesAhead(plan, now), working };
-}
 
 /**
  * The plans `plan` may be paired with as a partner's (both apps' Household pickers, one rule): never itself, never a closed
@@ -297,19 +279,6 @@ export function partnerCandidates(list, plan) {
   });
 }
 
-/**
- * A successor's one line about what came before it: { from, until: 'March 2029', previous: { id, name }|null, kind }, the
- * previous plan found among `plans`. Either reason (a new plan, or a saving spell after going back to work) says the same:
- * the previous plan's months are there. Null for a plan that came from nowhere (no `before` of a known kind).
- */
-export function beforeReading(plan, plans = []) {
-  const b = beforeOf(plan);
-  if (!b || !BEFORE_KINDS.includes(b.kind)) return null;
-  const id = b.planId || previousPlanIdOf(plan);
-  const list = (Array.isArray(plans) ? plans : []).map((e) => (e && e.plan ? e.plan : e)).filter(isObj);
-  const prev = id ? list.find((p) => String(p.id) === id) || null : null;
-  return { from: b.from, fromMonth: monthWordsOf(b.from), until: monthWordsOf(monthBefore(b.from)), previous: prev ? { id: String(prev.id), name: planNameOf(prev) } : null, kind: b.kind };
-}
 
 /**
  * "Closed March 2029; carried on as ‘Shares and cash’." (or without the name when that plan is not at hand); while the last

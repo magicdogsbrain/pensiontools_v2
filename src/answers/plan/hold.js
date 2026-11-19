@@ -38,7 +38,8 @@ import { pounds } from './income.js';
 import { HOLD_FIELDS, HOLD_WRITES, HOLD_WRAPPERS, HOLD_WHATS, HOLD_KEEP_AS } from './schema.js';
 import { SAVER_STAGES } from './steps.js';
 import { dateOf, dayWords, monthWords, MONTHS } from './dates.js';
-import { isClosedPlan, closedReading } from '../../services/PlanClosed.js';
+import { isClosedPlan } from '../../services/PlanClosed.js';
+import { closedReading } from '../../services/PlanClosedReading.js';
 import { shownPlanNameOn } from '../../services/PlanName.js';
 
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);

@@ -3588,7 +3588,7 @@
                 </div>
                 <div class="form-group">
                   <label>Weekly Amount (£)</label>
-                  <input type="number" id="ssSpWeeklyAmount" step="0.01" placeholder="e.g. 221.20" data-on-input="callIfDefined('renderIncomeShapePreview')">
+                  <input type="number" id="ssSpWeeklyAmount" step="0.01" placeholder="e.g. 221.20" data-on-input="spWeeklyTyped()">
                 </div>
                 <div class="form-group">
                   <label>Annual Amount (£/yr)</label>
@@ -7712,6 +7712,12 @@
       const el = document.getElementById('ssAccessMethod'); const sec = el && el.closest('.settings-section');
       if (sec) { const d = sec.closest('details'); if (d) d.open = true; sec.scrollIntoView({ block: 'center' }); }
       return false;
+    };
+    // a weekly figure typed is a forecast (the simple view's rule: only "My forecast" takes a typed amount)
+    window.spWeeklyTyped = function () {
+      const k = document.getElementById('ssSpKind'), wk = +document.getElementById('ssSpWeeklyAmount')?.value || 0;
+      if (k && wk > 0 && Math.abs(wk - FULL_SP_WEEKLY) >= 0.005) k.value = 'forecast';
+      callIfDefined('renderIncomeShapePreview');
     };
     window.spKindChosen = function () {
       const k = document.getElementById('ssSpKind')?.value, wk = document.getElementById('ssSpWeeklyAmount');

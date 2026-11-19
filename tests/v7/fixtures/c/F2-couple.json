@@ -1148,7 +1148,7 @@
       ],
       "bridge": {
         "id": "c.bridge",
-        "text": "From when you are 62 until you are 67, all of it comes from your pots: 5 years, about £211,000 at today's prices. From then your State Pension and your final-salary pension pay £1,046 and £750 of it.",
+        "text": "From when you are 62 until you are 65, all of it comes from your pots: 3 years, about £127,000 at today's prices. From then your final-salary pension pays £750 of it.",
         "parts": [
           "From when you are ",
           {
@@ -1158,31 +1158,27 @@
           " until ",
           "you are ",
           {
-            "key": "phases.2.ages.you.from",
+            "key": "phases.1.ages.you.from",
             "kind": "age"
           },
           ", all of it comes from ",
           "your pots",
           ": ",
           {
-            "fixed": "5"
+            "fixed": "3"
           },
           " years",
           ", about ",
           {
-            "fixed": "£211,000"
+            "fixed": "£127,000"
           },
           " at today's prices. ",
           "From then ",
-          "your State Pension and your final-salary pension",
-          " pay ",
+          "your final-salary pension",
+          " ",
+          "pays ",
           {
-            "key": "phases.2.shown.statePension",
-            "kind": "money"
-          },
-          " and ",
-          {
-            "key": "phases.2.shown.finalSalary",
+            "key": "phases.1.shown.finalSalary",
             "kind": "money"
           },
           " of it."
@@ -1548,7 +1544,7 @@
       },
       "takeBridge": {
         "id": "c.take.bridge",
-        "text": "From when you are 62 until you are 67, all of it comes from your pots: 5 years, about £215,000 at today's prices. From then your State Pension and your final-salary pension pay £1,046 and £750 of it.",
+        "text": "From when you are 62 until you are 65, all of it comes from your pots: 3 years, about £129,000 at today's prices. From then your final-salary pension pays £750 of it.",
         "parts": [
           "From when you are ",
           {
@@ -1558,31 +1554,27 @@
           " until ",
           "you are ",
           {
-            "key": "take.phases.2.ages.you.from",
+            "key": "take.phases.1.ages.you.from",
             "kind": "age"
           },
           ", all of it comes from ",
           "your pots",
           ": ",
           {
-            "fixed": "5"
+            "fixed": "3"
           },
           " years",
           ", about ",
           {
-            "fixed": "£215,000"
+            "fixed": "£129,000"
           },
           " at today's prices. ",
           "From then ",
-          "your State Pension and your final-salary pension",
-          " pay ",
+          "your final-salary pension",
+          " ",
+          "pays ",
           {
-            "key": "take.phases.2.shown.statePension",
-            "kind": "money"
-          },
-          " and ",
-          {
-            "key": "take.phases.2.shown.finalSalary",
+            "key": "take.phases.1.shown.finalSalary",
             "kind": "money"
           },
           " of it."

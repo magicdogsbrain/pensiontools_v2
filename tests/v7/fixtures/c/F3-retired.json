@@ -23,13 +23,14 @@
     "futures": 40,
     "seed": 0
   },
+  "expectNote": "guaranteed.monthlyAfterTax is read from the plan keeping the answer writes (step P2): it holds the State Pension a week to the penny, £211.54 (11,000 ÷ 52 = 211.538…), £11,000.08 a year; with the £6,000 final-salary pension £17,000.08 before tax, £4,430.08 of it above the £12,570 allowance at 20% = £886.02 tax, £16,114.06 after tax = £1,342.84 a month (from the £11,000 as typed it was £1,342.83).",
   "expect": {
     "status": "ok",
     "values": {
       "basis.startAge": 68,
       "basis.endAge": 99,
       "basis.years": 31,
-      "guaranteed.monthlyAfterTax": 1342.83,
+      "guaranteed.monthlyAfterTax": 1342.84,
       "phases.0.statePension": 916.67,
       "phases.0.finalSalary": 500
     },
@@ -110,7 +111,7 @@
       "best": 192248
     },
     "guaranteed": {
-      "monthlyAfterTax": 1342.83
+      "monthlyAfterTax": 1342.84
     },
     "phases": [
       {
@@ -123,9 +124,9 @@
           }
         },
         "takeHome": 1810,
-        "fromPension": 549.61,
+        "fromPension": 549.6,
         "fromSavings": 0,
-        "fromPots": 549.61,
+        "fromPots": 549.6,
         "statePension": 916.67,
         "finalSalary": 500,
         "tax": 156.27,
@@ -134,7 +135,7 @@
             "who": "you",
             "statePension": 916.67,
             "finalSalary": 500,
-            "fromPension": 549.61,
+            "fromPension": 549.6,
             "fromSavings": 0,
             "tax": 156.27,
             "takeHome": 1810,
@@ -922,7 +923,7 @@
       },
       "takeHowLong": {
         "id": "c.take.howLong",
-        "text": "In the futures where it runs out before 99, it still pays for 18 of the 31 years to 99.",
+        "text": "In the futures where it runs out before 99, it still pays for 17 of the 31 years to 99.",
         "parts": [
           "In the futures where it runs out before ",
           {
@@ -930,7 +931,7 @@
           },
           ", it still pays for ",
           {
-            "fixed": "18"
+            "fixed": "17"
           },
           " of the ",
           {

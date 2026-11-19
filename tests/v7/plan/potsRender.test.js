@@ -131,7 +131,8 @@ describe('the lumpy plan (12): what the page says, and what typing does', () => 
     expect(text).toContain('Pension £440,000 and ISAs and savings £60,000 today; £85,000 in your ordinary account.');
     expect(text).toContain('Split as saved: £280,000 shares, £120,000 bonds, £40,000 cash. The split, the risk level and the funds to test are set with the way of drawing and mix (in the full view).');
     expect(text).toContain('Charges of 0.5% a year come off your funds and cash every month');
-    expect(text).toContain('Tax-free allowance £12,570; basic rate up to £50,270; higher rate up to £125,140; the thresholds rise with prices.');
+    // 7.12.0: the one sentence on the thresholds both views say (frozen in law until April 2031; what the test assumes)
+    expect(text).toContain('Tax-free allowance £12,570; basic rate up to £50,270; higher rate up to £125,140. The thresholds are frozen in law until April 2031; this test assumes they rise with prices every year from now');
     expect(text).toContain('Every draw from your pension is taxed in full: the tax-free part is kept separate, or already taken.');
     expect(text).toContain('What each choice saves in tax over the plan comes from ‘Does it last?’, later.');
     expect(root.querySelector('[data-not-used]')).toBe(null);

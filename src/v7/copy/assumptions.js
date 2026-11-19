@@ -67,7 +67,7 @@ export const ASSUMPTIONS = {
     },
     tax: {
       title: '6 · Tax',
-      bands: { name: 'The bands', value: 'Personal allowance £{pa}, basic-rate limit £{brl}, higher-rate limit £{hrl}; the allowance tapers above £{taper}', note: 'Rates 20%, 40% and 45%. Frozen (the default) or rising with prices — your choice in the plan’s settings. Scottish bands are not modelled.' },
+      bands: { name: 'The bands', value: 'Personal allowance £{pa}, basic-rate limit £{brl}, higher-rate limit £{hrl}; the allowance tapers above £{taper}', note: 'Rates 20%, 40% and 45%. The thresholds are frozen in law until April 2031; each plan’s “Your pots and tax” says what its test assumes of them (rising with prices unless the plan keeps them frozen). Scottish bands are not modelled.' },
       access: { name: 'Taking the pension', value: 'Drawdown, or lump sums with a quarter tax-free each time, with the tax-free lump sum as an option', note: 'The earliest age is 57 from April 2028; paying in more than £10,000 a year after taking money out is flagged on “What you pay in”.' },
       taxable: { name: 'The taxable account', value: 'Dividend allowance £500 (8.75% and 33.75% above it), savings allowance £1,000 or £500, capital gains exemption £3,000 (18% and 24%); gilts free of capital gains tax', note: 'Drawn before the ISA; a lump sum lands here once the £20,000 ISA allowance and the pension’s room (£10,000 a year after taking money out; a £3,600 floor with no earnings) are used. “Bed and ISA” moves £20,000 a year when switched on.' },
       notModelled: { name: 'Not modelled', value: 'National Insurance in retirement, tax on the estate, carrying a capital loss forward', note: 'The ISA is tax-free; what the pension pays out is income.' }

@@ -98,14 +98,20 @@ export const POTS = {
     'charges.some': 'Charges of {pct}% a year come off your funds and cash every month — not off gilts you hold directly, annuities, or final-salary and State Pensions.',
     'charges.none': 'No charges come off: 0% a year.',
     'charges.locked': 'No charges come off: this plan was locked before charges were added.',
-    'tax.bands': 'Tax-free allowance {pa}; basic rate up to {brl}; higher rate up to {hrl}; {mode}.',
+    'tax.bands': 'Tax-free allowance {pa}; basic rate up to {brl}; higher rate up to {hrl}. {mode}',
     'tax.free.drawdown': 'Every draw from your pension is taxed in full: the tax-free part is kept separate, or already taken.',
     'tax.free.ufpls': 'A quarter of every draw from your pension is tax-free{years}{then}.',
     'tax.bandFill': 'Extra is drawn up to the top of the basic-rate band and what is left after tax moved into your ISA.',
     'tax.saves': 'What each choice saves in tax over the plan comes from ‘Does it last?’, later.'
   },
-  /** Words for a derived line's slots. */
-  modes: { inflates: 'the thresholds rise with prices', frozen: 'the thresholds stay frozen' },
+  /**
+   * What the test assumes of the tax thresholds (7.12.0): ONE sentence each, read by both views (the simple view's pots page,
+   * the full view's plan document). The thresholds are frozen in law until April 2031; say exactly what the test does.
+   */
+  modes: {
+    inflates: 'The thresholds are frozen in law until April 2031; this test assumes they rise with prices every year from now, so for the years to April 2031 it counts a little less tax than the law takes.',
+    frozen: 'This test holds the thresholds at today’s pounds for the whole plan: frozen in law until April 2031, and assumed to stay frozen after that.'
+  },
   ufplsYears: { some: ' for {years} years', whole: ' for the whole plan' },
   ufplsThen: { yes: ', then the remaining quarter goes into your ISA tax-free', no: '' },
   partner: '{name}’s pots and tax are on {name}’s plan.',

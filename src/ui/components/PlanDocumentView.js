@@ -12,6 +12,7 @@ import { pctText as pctShare } from '../../services/OneAnswer.js';
 import { takenSentence, sentenceText } from '../../services/YearPlan.js';
 import { definitionOf, guaranteeSaid, timingWords } from '../../services/PlanDocument.js';
 import { successLineHtml } from '../oneAnswerView.js';
+import { POTS } from '../../v7/copy/pots.js';
 import { STRESS } from '../../v7/copy/stressPanel.js';
 import { PLAN } from '../../v7/copy/plan.js';
 import { lockedShortOf } from '../../services/PlanCommit.js';
@@ -213,7 +214,7 @@ export function planDocumentHtml(doc, r = {}) {
     [startedAtLock(d) ? 'Plan started' : 'Plan starts', startText],
     ['Duration', esc(String(A.duration || '')) + ' years'],
     ['State Pension', A.spStartDate ? esc(ukDate(A.spStartDate)) + ', ' + gbp(A.spWeeklyAmount) + '/week (' + gbp(A.spWeeklyAmount * 52) + '/yr)' : 'not entered' + (assumedStatePensionWords(d.strategy?.p) ? ' — ' + esc(assumedStatePensionWords(d.strategy?.p)) : '')],
-    ['Tax bands (year 0)', 'PA ' + gbp(A.pa) + ' · basic-rate limit ' + gbp(A.brl) + ' · higher ' + gbp(A.hrl) + ' · ' + (A.taxMode === 'frozen' ? 'frozen' : 'rise with inflation')],
+    ['Tax bands (year 0)', 'PA ' + gbp(A.pa) + ' · basic-rate limit ' + gbp(A.brl) + ' · higher ' + gbp(A.hrl) + '. ' + POTS.modes[A.taxMode === 'frozen' ? 'frozen' : 'inflates']],   // the one sentence both views say (7.12.0)
     ['Decision tool CPI assumption', ((A.cpiDecision || 0) * 100).toFixed(0) + '% a year until each year\'s CPI is entered'],
     // An older document's extra ladder cash beside the cash years is not printed (7.4.2): no run counts it any more, so the
     // figure would sit beside live figures that leave it out. The document itself keeps it as stored.

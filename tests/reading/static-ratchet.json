@@ -3,11 +3,11 @@
  "totals": {
   "getStressSettingsAsync": 53,
   "DEFAULT_TAX_BANDS": 11,
-  "grossToNet": 7,
+  "grossToNet": 6,
   "projectAccumulation": 0,
   "diffHoldings": 1,
-  "newDate": 45,
-  "boxValue": 98,
+  "newDate": 44,
+  "boxValue": 95,
   "engineImport": 22
  },
  "byRule": {
@@ -26,7 +26,6 @@
   "grossToNet": {
    "index.html": 2,
    "src/ui/components/NewPlanFromSeed.js": 1,
-   "src/ui/plannerWords.js": 1,
    "src/answers/plan/about.js": 1,
    "src/answers/plan/life.js": 2
   },
@@ -45,7 +44,7 @@
    "src/ui/keepHoldingsUi.js": 3,
    "src/ui/monthFillEntry.js": 1,
    "src/ui/monthlyEntry.js": 1,
-   "src/ui/planCloseUi.js": 3,
+   "src/ui/planCloseUi.js": 2,
    "src/ui/planStartUi.js": 2,
    "src/ui/saverAnswerUi.js": 1,
    "src/ui/savingPathForLock.js": 1,
@@ -59,7 +58,7 @@
    "src/v7/effects/planWrite.js": 1
   },
   "boxValue": {
-   "index.html": 95,
+   "index.html": 92,
    "src/ui/dbStartSetting.js": 2,
    "src/ui/planStartUi.js": 1
   },

@@ -288,7 +288,8 @@ const STRESS_NOT_FORM = ['shapeStartNumber', 'ssFundSearch'];
 /** The kind of check a Stress settings box gets (an income step's amount and its age included). */
 export function stressKindOf(el) {
   if (!el || !el.id) {
-    if (el && el.closest && el.closest('#incomeStepsEditor') && el.type === 'number') return el.getAttribute('step') === '1000' ? 'money' : 'age';
+    // a step's amount (a month after tax since step F2, marked data-step-amount) is money; its age box an age
+    if (el && el.closest && el.closest('#incomeStepsEditor') && el.type === 'number') return el.hasAttribute('data-step-amount') || el.getAttribute('step') === '1000' ? 'money' : 'age';
     return null;
   }
   if (STRESS_AGES.includes(el.id)) return 'age';

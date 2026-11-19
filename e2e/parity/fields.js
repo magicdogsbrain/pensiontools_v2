@@ -98,7 +98,8 @@ export const REGISTRY = Object.freeze([
   box(26, 'pots.bandFill', 'saver-draft', 'yes', 'pots', STRESS, { group: 'pots-taxfree' }),
   // 1c Money that comes in anyway
   box(28, 'income.spWeekly', 'saver-draft', '230', 'income', STRESS, { prep: { simple: [['income.spKind', 'forecast']] } }),
-  box(28, 'income.spKind', 'saver-draft', 'none', 'income', STRESS),   // (step F2) both views ask it: full, forecast, none, assumed
+  // (step F2) both views ask it: full, forecast, none, assumed — its own group: "none" takes away the weekly and date boxes
+  box(28, 'income.spKind', 'saver-draft', 'none', 'income', STRESS, { group: 'income-spkind' }),
   box(29, 'income.spDate', 'saver-draft', '1 May 2054', 'income', STRESS, { canon: { simple: dateOf, full: dateOf } }),
   box(30, 'income.other', 'saver-draft', '1500', 'income', STRESS),
   box(31, 'income.fs.0.amount', 'retired-everything', '9800', 'income', STRESS, { group: 'income-fs' }),

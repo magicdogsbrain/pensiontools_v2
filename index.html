@@ -2583,11 +2583,12 @@
             <div class="settings-section">
               <div class="section-title">How you'll take this pension</div>
 <div>
-                <label style="display:block; margin-bottom:6px;">Your 25% tax-free cash</label>
+                <label style="display:block; margin-bottom:6px;">How you take the tax-free part (a quarter of the pension)</label>
                 <div style="display:flex; gap:8px; flex-wrap:wrap;">
                   <button type="button" class="risk-btn" data-access="drawdown" data-on-click="setAccessMethod('ds','drawdown')">Kept separate / already taken</button>
                   <button type="button" class="risk-btn" data-access="ufpls" data-on-click="setAccessMethod('ds','ufpls')">Part of my income (UFPLS)</button>
                 </div>
+                <details style="margin:6px 0 0;"><summary class="hint" style="cursor:pointer;">What each choice means</summary>
                 <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
                   Do you intend to use your tax-free sum as part of your income, or keep it for
                   something else? <strong>Part of my income</strong> models a quarter of every
@@ -2600,31 +2601,36 @@
                   (limiting future pension contributions) and are first taxed on an emergency
                   basis (reclaimable from HMRC). Neither is modelled here.
                 </p>
+                </details>
                 <div id="dsUfplsPhase" style="display:none; margin-top:10px; padding:12px 14px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--card-alt);">
                   <label style="display:block; margin-bottom:4px;">UFPLS for how many years? <span style="color:var(--text-muted); font-weight:normal;">(blank = whole plan)</span></label>
                   <input type="number" id="dsUfplsYears" min="1" max="60" step="1" placeholder="e.g. 10" style="width:120px;">
                   <label style="display:flex; align-items:center; gap:8px; margin-top:8px; cursor:pointer;">
                     <input type="checkbox" id="dsUfplsPcls" style="width:auto;">
-                    <span>Then take the remaining 25% tax-free into my ISA before switching to drawdown</span>
+                    <span>Then take the rest of the tax-free part into my ISA before switching to drawdown</span>
                   </label>
+                  <details style="margin:6px 0 0;"><summary class="hint" style="cursor:pointer;">How the switch works</summary>
                   <p style="font-size:11px;color:var(--text-muted);margin:6px 0 0;">
                     UFPLS never crystallises the untouched pot, so at the switch 25% of whatever
                     remains is still available tax-free (up to your remaining £268,275 allowance).
                     The stress tester moves it into the ISA automatically; the decision tool will
                     remind you to do it when the year arrives.
                   </p>
+                  </details>
                 </div>
                 <input type="hidden" id="dsAccessMethod" value="drawdown">
                 <label style="display:flex; align-items:center; gap:8px; margin-top:10px; cursor:pointer;">
                   <input type="checkbox" id="dsBandFillRecycle" style="width:auto;" data-on-change="syncIsaHoldUI('ds')">
                   <span>Fill my basic-rate band &amp; recycle the surplus into my ISA</span>
                 </label>
+                <details style="margin:4px 0 0;"><summary class="hint" style="cursor:pointer;">What this does</summary>
                 <p style="font-size:11px;color:var(--text-muted);margin:4px 0 0;">
                   Draws extra SIPP up to the 20% band even when your spending doesn't need it, and
                   moves the net into your ISA (capped at the £20,000/yr ISA allowance) — paying 20%
                   now so that money comes out tax-free later. Pauses during protection months and
                   while UFPLS tax-free withdrawals are active.
                 </p>
+                </details>
               </div>
             </div>
 
@@ -2958,11 +2964,12 @@
             <div class="settings-section" data-pnv-only>
               <div class="section-title">How you'll take this pension</div>
 <div>
-                <label style="display:block; margin-bottom:6px;">Your 25% tax-free cash</label>
+                <label style="display:block; margin-bottom:6px;">How you take the tax-free part (a quarter of the pension)</label>
                 <div style="display:flex; gap:8px; flex-wrap:wrap;">
                   <button type="button" class="risk-btn" data-access="drawdown" data-on-click="setAccessMethod('ss','drawdown')">Kept separate / already taken</button>
                   <button type="button" class="risk-btn" data-access="ufpls" data-on-click="setAccessMethod('ss','ufpls')">Part of my income (UFPLS)</button>
                 </div>
+                <details style="margin:6px 0 0;"><summary class="hint" style="cursor:pointer;">What each choice means</summary>
                 <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
                   Do you intend to use your tax-free sum as part of your income, or keep it for
                   something else? <strong>Part of my income</strong> models a quarter of every
@@ -2975,19 +2982,22 @@
                   (limiting future pension contributions) and are first taxed on an emergency
                   basis (reclaimable from HMRC). Neither is modelled here.
                 </p>
+                </details>
                 <div id="ssUfplsPhase" style="display:none; margin-top:10px; padding:12px 14px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--card-alt);">
                   <label style="display:block; margin-bottom:4px;">UFPLS for how many years? <span style="color:var(--text-muted); font-weight:normal;">(blank = whole plan)</span></label>
                   <input type="number" id="ssUfplsYears" min="1" max="60" step="1" placeholder="e.g. 10" style="width:120px;">
                   <label style="display:flex; align-items:center; gap:8px; margin-top:8px; cursor:pointer;">
                     <input type="checkbox" id="ssUfplsPcls" style="width:auto;">
-                    <span>Then take the remaining 25% tax-free into my ISA before switching to drawdown</span>
+                    <span>Then take the rest of the tax-free part into my ISA before switching to drawdown</span>
                   </label>
+                  <details style="margin:6px 0 0;"><summary class="hint" style="cursor:pointer;">How the switch works</summary>
                   <p style="font-size:11px;color:var(--text-muted);margin:6px 0 0;">
                     UFPLS never crystallises the untouched pot, so at the switch 25% of whatever
                     remains is still available tax-free (up to your remaining £268,275 allowance).
                     The stress tester moves it into the ISA automatically; the decision tool will
                     remind you to do it when the year arrives.
                   </p>
+                  </details>
                 </div>
                 <input type="hidden" id="ssAccessMethod" value="drawdown">
                 <p id="ssAccessAssumed" class="hint" style="margin:6px 0 0;color:var(--warning);"></p>
@@ -2995,12 +3005,14 @@
                   <input type="checkbox" id="ssBandFillRecycle" style="width:auto;" data-on-change="syncIsaHoldUI('ss')">
                   <span>Fill my basic-rate band &amp; recycle the surplus into my ISA</span>
                 </label>
+                <details style="margin:4px 0 0;"><summary class="hint" style="cursor:pointer;">What this does</summary>
                 <p style="font-size:11px;color:var(--text-muted);margin:4px 0 0;">
                   Draws extra SIPP up to the 20% band even when your spending doesn't need it, and
                   moves the net into your ISA (capped at the £20,000/yr ISA allowance) — paying 20%
                   now so that money comes out tax-free later. Pauses during protection months and
                   while UFPLS tax-free withdrawals are active.
                 </p>
+                </details>
               </div>
             </div>
 
@@ -4285,7 +4297,7 @@
     import { isLoggedIn, logOut, getCurrentUser, deleteAccount, onAuthStateChange, viewNotesAtSignIn } from './src/firebase/index.js';
     import { hasCloudData, wipeAllUserData, loadUserProfile, saveUserProfile, guestSnapshot, loadAllScenarios, createScenario as createScenarioDoc, saveScenario as saveScenarioDoc, loadScenario as loadScenarioDoc } from './src/firebase/FirestoreService.js';
     import { startSeedEntry, planFromAnswer, planTargetGuide, budgetSummaryWords } from './src/ui/components/NewPlanFromSeed.js'; import { householdStartWords } from './src/services/PlanSeed.js';   // a plan from a V7 answer (V7 design: save-as-plan.md, C.2); the Household tab's line when one plan begins later (couples-different-years.md 7)
-    import { startSummaryHtml, potsAtRetirementLine } from './src/ui/startingPotsWords.js'; import { potAtStop } from './src/reading/atStop.js'; import { stepBoxValue, stepFromBox, firstStepNoteOfPlan, planBandsOf, documentStepsOf, accessAssumedNoteOf, spAssumedNoteOf } from './src/ui/incomeStepBox.js'; import { statePensionOf } from './src/reading/statePension.js'; import { spKindOfSettings, spKindForSave, FULL_SP_WEEKLY } from './src/ui/spKindBox.js'; import { stageWordsHtml, whereYouAreHtml } from './src/ui/stageWords.js'; import { stage as readingStage, yearsToGo as readingYearsToGo, ageToday as readingAgeToday, planName as readingPlanName } from './src/reading/timing.js'; import { formatFact, money as fmtMoney } from './src/reading/format.js'; import { isaToday as readingIsaToday, pensionBoxOf, isaBoxOf, settingsOf as readingSettingsOf } from './src/reading/money.js'; import { savingInputsOf } from './src/services/PotsAtStop.js'; import { shownPlanName } from './src/services/PlanName.js';
+    import { startSummaryHtml, potsAtRetirementLine } from './src/ui/startingPotsWords.js'; import { potAtStop } from './src/reading/atStop.js'; import { stepBoxValue, stepFromBox, firstStepNoteOfPlan, planBandsOf, documentStepsOf, accessAssumedNoteOf, spAssumedNoteOf } from './src/ui/incomeStepBox.js'; import { statePensionOf } from './src/reading/statePension.js'; import { spKindOfSettings, spKindForSave, FULL_SP_WEEKLY } from './src/ui/spKindBox.js'; import { stageWordsHtml, whereYouAreHtml } from './src/ui/stageWords.js'; import { stage as readingStage, yearsToGo as readingYearsToGo, ageToday as readingAgeToday, planName as readingPlanName } from './src/reading/timing.js'; import { formatFact, money as fmtMoney } from './src/reading/format.js'; import { budgetLineOf } from './src/reading/budget.js'; import { isaToday as readingIsaToday, pensionBoxOf, isaBoxOf, settingsOf as readingSettingsOf } from './src/reading/money.js'; import { savingInputsOf } from './src/services/PotsAtStop.js'; import { shownPlanName } from './src/services/PlanName.js';
     import { tick as guestTick, readMinutes as guestMinutes, pendingNag as guestPendingNag, markNagShown as guestMarkNag, isBlocked as guestBlocked, bannerText as guestBannerText, savedChipText, stashHandoff as guestStash, readHandoff as guestReadHandoff, clearHandoff as guestClearHandoff, GUEST_ALLOWANCE_MINUTES } from './src/services/GuestMeter.js';
     // Release notes: data + renderers (see RELEASING.md). The pop-up and the What's new page read the same entries.
     import { RELEASES, releasesSince, compareVersions } from './src/releases.js';
@@ -7642,7 +7654,7 @@
         + '<input type="number" value="' + (st.fromAge ?? '') + '" min="40" max="100" style="width:74px;"' + (i === 0 ? ' disabled title="The first step starts when the plan starts — set above in When your plan starts"' : '') + ' data-on-input="updIncomeStep(' + i + ',\'fromAge\',this.value)">'
         + (i === 0 && window._ssTiming ? '<span class="hint">(' + taxYearLabel(window._ssTiming.firstTaxYear) + ')</span>' : '')
         + '<span class="hint">take</span>'
-        + '<input type="number" value="' + stepBoxValue(st.amount, window._planBands) + '" step="50" style="width:110px;"' + (i === 0 ? fieldAttrOf('spend.first') : '') + ' data-on-input="updIncomeStep(' + i + ',\'amount\',this.value)">'
+        + '<input type="number" value="' + stepBoxValue(st.amount, window._planBands) + '" step="50" data-step-amount style="width:110px;"' + (i === 0 ? fieldAttrOf('spend.first') : '') + ' data-on-input="updIncomeStep(' + i + ',\'amount\',this.value)">'
         + '<span class="hint">£ a month after tax' + (window._shapeRefs.budgetGross && i > 0 && +st.amount > 0 ? ' — ' + Math.round(100 * +st.amount / window._shapeRefs.budgetGross) + '% of ' + (window._shapeRefs.budgetWords || 'today\'s budget') : '') + '</span>'
         + (i > 0 ? '<button type="button" class="risk-btn" title="Remove" data-on-click="rmIncomeStep(' + i + ')">✕</button>' : '')
         + '</div>'
@@ -10209,8 +10221,9 @@
       let html = '';
       // Headline figures
       html += '<div style="display:flex; gap:22px; flex-wrap:wrap; margin-bottom:14px;">';
-      html += '<div><div style="font-size:12px;color:var(--text-muted);">Essential (floor)' + (shared ? ' — your share' : '') + '</div><div style="font-size:22px;font-weight:700;">' + money(s.essentialMonthlyNet) + '<span style="font-size:13px;font-weight:400;color:var(--text-muted);">/mo</span></div></div>';
-      html += '<div><div style="font-size:12px;color:var(--text-muted);">' + (shared ? 'Your share (all-in)' : 'All-in comfortable') + '</div><div style="font-size:26px;font-weight:800;color:var(--primary,#6366f1);">' + money(s.allInComfortableMonthly) + '<span style="font-size:13px;font-weight:400;color:var(--text-muted);">/mo</span></div><div style="font-size:12px;color:var(--text-muted);">' + W.allInCaption + '</div></div>';
+      const bl = budgetLineOf(b);   // (step F2) the one budget line (src/reading/budget.js), marked as the simple view marks it
+      html += '<div><div style="font-size:12px;color:var(--text-muted);">Essential (floor)' + (shared ? ' — your share' : '') + '</div><div style="font-size:22px;font-weight:700;">' + markFact('spend.essentials', fmtMoney(bl.essentials)) + '<span style="font-size:13px;font-weight:400;color:var(--text-muted);">/mo</span></div></div>';
+      html += '<div><div style="font-size:12px;color:var(--text-muted);">' + (shared ? 'Your share (all-in)' : 'All-in comfortable') + '</div><div style="font-size:26px;font-weight:800;color:var(--primary,#6366f1);">' + markFact('spend.total', fmtMoney(bl.total)) + '<span style="font-size:13px;font-weight:400;color:var(--text-muted);">/mo</span></div><div style="font-size:12px;color:var(--text-muted);">' + W.allInCaption + '</div></div>';
       if (shared) {
         html += '<div><div style="font-size:12px;color:var(--text-muted);">Partner’s share</div><div style="font-size:22px;font-weight:700;">' + money(s.partnerAllInMonthly) + '<span style="font-size:13px;font-weight:400;color:var(--text-muted);">/mo</span></div><div style="font-size:12px;color:var(--text-muted);">' + money(s.partnerAllInAnnual) + '/yr — their side of this budget</div></div>';
         html += '<div><div style="font-size:12px;color:var(--text-muted);">Household all-in</div><div style="font-size:22px;font-weight:700;">' + money(s.householdComfortableMonthly) + '<span style="font-size:13px;font-weight:400;color:var(--text-muted);">/mo</span></div><div style="font-size:12px;color:var(--text-muted);">everything, both of you</div></div>';

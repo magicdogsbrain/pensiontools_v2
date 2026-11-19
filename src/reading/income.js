@@ -87,8 +87,8 @@ export function incomeStepsOf(plan, ctx = {}) {
   const ageNow = num(timing.shapeAgeNow);
   const access = accessOf(plan, ctx);
   const settings = { ...ss, accessMethod: access.method };
-  const incomeNotSet = !!ss.incomeNotSet;
-  const steps = incomeNotSet ? [] : storedSteps(plan, ss, timing).map((s) => {
+  // (a plan whose income is not set still reads the planner's figure, as every page did before: D2 for the income is step W's)
+  const steps = storedSteps(plan, ss, timing).map((s) => {
     let fixed = 0;
     if (ageNow != null && s.fromAge != null) { try { fixed = guaranteedAtYear(ss, timing, ageNow, Math.max(0, s.fromAge - ageNow), now); } catch { fixed = 0; } }
     const f = stepFiguresOf(s.amount, { settings, bands, fixed });

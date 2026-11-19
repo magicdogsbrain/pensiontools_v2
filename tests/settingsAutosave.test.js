@@ -171,9 +171,10 @@ describe('the form\'s own pieces', () => {
     expect(boxNameOf(document.getElementById('age'))).toBe('Age today');
   });
   it('the Stress settings checks: an age, an amount, the State Pension date, an income step\'s amount', () => {
-    document.body.innerHTML = '<input id="tmAge"><input id="ssPot"><input id="ssSpStartDate"><div id="incomeStepsEditor"><input type="number" step="1000"><input type="number" min="40"></div>';
-    const [age, pot, date, amount, from] = document.querySelectorAll('input');
-    expect([age, pot, date, amount, from].map(stressKindOf)).toEqual(['age', 'money', 'spDate', 'money', 'age']);
+    document.body.innerHTML = '<input id="tmAge"><input id="ssPot"><input id="ssSpStartDate"><div id="incomeStepsEditor"><input type="number" step="1000"><input type="number" min="40"><input type="number" step="50" data-step-amount></div>';
+    const [age, pot, date, amount, from, monthly] = document.querySelectorAll('input');
+    // (step F2) a step's amount as a month after tax is money too
+    expect([age, pot, date, amount, from, monthly].map(stressKindOf)).toEqual(['age', 'money', 'spDate', 'money', 'age', 'money']);
   });
 });
 

@@ -26,6 +26,7 @@
  * Every path written is in schema.js BUDGET_WRITES (tested). The budget is outside the lock (LockedPlanGuard.js), so a
  * locked plan's budget is still the person's to change, as it is in the planner.
  */
+import { budgetLineOf } from '../../reading/budget.js';
 import { defaultBudget, summariseBudget, typicalMonthlyFor, typicalSanityFlag, missingSuggestions, evalAmountExpr, breakdownAnnual, parseBudgetCsv, budgetToCsv, plsaTierOf, PLSA_2024,
   cleanBudgetForSave, budgetToSave, idMaker, blankLine, blankOneOff, fillTypicalAmounts, partnerCopyOf, resetBudgetLines, withSuggestion, importedBudget } from '../../services/BudgetModel.js';
 import { budgetSharedFromOf, sharedBudgetView, sharedBudgetWrites } from '../../services/PlanCommit.js';
@@ -358,8 +359,9 @@ const hasTotal = (d) => d.allInComfortableMonthly > 0 || d.householdComfortableM
  */
 export function budgetFiguresOf(plan, entries) {
   const read = readBudget(plan, (entries || []).filter((e) => e && e.plan && typeof e.plan === 'object'));
-  const d = summariseBudget(normalisedBudget(read.budget));
-  return { workedOut: hasTotal(d), monthly: d.allInComfortableMonthly, essentialsMonthly: d.essentialMonthlyNet, essentialsAnnualNet: d.essentialAnnualNet, shared: read.shared, holder: read.holder || null };
+  // (step F2) the one budget line (src/reading/budget.js): the plan holder's share, as the budget page shows it in both views
+  const L = budgetLineOf(normalisedBudget(read.budget));
+  return { workedOut: L.workedOut, monthly: L.total, essentialsMonthly: L.essentials, essentialsAnnualNet: L.essentialsAnnualNet, shared: read.shared, holder: read.holder || null };
 }
 
 /** The totals as the planner's summary says them (index.html updateBudgetSummary), in slots. */

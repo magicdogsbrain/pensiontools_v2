@@ -11,6 +11,8 @@
 import { PlanRail, changeAction, UndoToast, fill, Button, LinkButton } from '../../components/index.js';
 import { LOCK_DATE } from '../../components/facts.js';
 import { fillMarked } from '../../components/PlanFigures.jsx';
+// (step F2) the budget's spending line, marked as the full view's budget headline marks it (src/reading/budget.js)
+const BUDGET_LINE_FACTS = { monthly: 'spend.total', essentials: 'spend.essentials' };
 import { planView, planBudgetView } from '../../state/select.js';
 import { href } from '../../router/routes.js';
 import { PLAN } from '../../copy/plan.js';
@@ -229,7 +231,7 @@ export function BudgetScreen(state, dispatch) {
         <section class="headline plan-panel budget-totals" data-region="plan-budget-totals" data-testid={`${T}.totals`} data-has={t.has ? '1' : '0'}>
           <h2>{W.totals.title}</h2>
           {!t.has && <p class="note" data-testid={`${T}.totals.none`}>{W.totals.none}</p>}
-          {t.has && <p class="figure" data-testid={`${T}.totals.line`}>{fill(t.shared ? W.totals.monthlyShared : W.totals.monthly, t)}</p>}
+          {t.has && <p class="figure" data-testid={`${T}.totals.line`}>{fillMarked(t.shared ? W.totals.monthlyShared : W.totals.monthly, t, BUDGET_LINE_FACTS)}</p>}
           {t.has && <p class="note" data-testid={`${T}.totals.madeOf`}>{t.hasPeriodic ? fill(W.totals.madeOf, { recurring: t.recurringMonthly, periodic: t.periodicMonthly }) : W.totals.madeOfPlain}</p>}
           <p class="note" data-testid={`${T}.totals.levels`}>{fill(W.totals.levels, { who, ...t.levels })}{t.has ? ' ' + fill(W.totals.where[t.where], { spend: t.plsaSpendYearly }) : ''}</p>
           {t.recurring.length > 0 && (

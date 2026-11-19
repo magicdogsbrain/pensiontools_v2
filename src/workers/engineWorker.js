@@ -32,7 +32,9 @@ function oneTest(settings, cfg, strategyId) { const p = plan(settings, cfg); ret
 
 self.onmessage = async (e) => {
   const { id, type, payload } = e.data || {};
-  jobNow = payload && payload.now ? new Date(payload.now) : undefined;
+  // a Date or its ISO string (engineClient.jobPayload): one Date from here on, handed to every run of this job
+  jobNow = payload && payload.now ? new Date(payload.now instanceof Date ? payload.now.getTime() : payload.now) : undefined;
+  if (jobNow && !Number.isFinite(jobNow.getTime())) { self.postMessage({ id, error: 'the job carried no day' }); return; }
   try {
     const market = await loadMarket({ folder: payload && payload.market });
     const post = (m) => self.postMessage(m.result && typeof m.result === 'object' && !Array.isArray(m.result) ? { ...m, result: { ...m.result, market } } : m);
@@ -47,15 +49,15 @@ self.onmessage = async (e) => {
     } else if (type === 'household-ways') {   // who draws what (6.25.0): both plans, both ways, through the one test
       post({ id, result: cloneSafe(runHouseholdWays(payload.ways, payload.needs, payload.idA, payload.idB, oneTest)) });
     } else if (type === 'survivor') {   // each plan through its own strategy's one test (household sweep)
-      post({ id, result: cloneSafe(runSurvivorCheck(payload, oneTest)) });
+      post({ id, result: cloneSafe(runSurvivorCheck({ ...payload, now: jobNow }, oneTest)) });
     } else if (type === 'care') {
-      post({ id, result: cloneSafe(runCareCheck(payload, oneTest)) });
+      post({ id, result: cloneSafe(runCareCheck({ ...payload, now: jobNow }, oneTest)) });
     } else if (type === 'stressRow') {   // "Try the bad years" (7.9.0): one row on the plan as stored
       post({ id, result: cloneSafe(runStressRow(payload.plan, { today: payload.today, row: payload.row })) });
     } else if (type === 'saver') {   // "Am I on course?" (lead4.md R6): question B on the plan's figures, as the simple view's worker runs it
       post({ id, result: cloneSafe(answerB(payload.inputs, payload.env)) });
     } else if (type === 'sweep') {   // "when can I retire?" (6.10.0): one strategy run per candidate age, with progress
-      const out = sweepRetirementAges({ ...payload, onProgress: (i, n, age) => self.postMessage({ id, progress: { i, n, name: 'age ' + age } }) });
+      const out = sweepRetirementAges({ ...payload, now: jobNow, onProgress: (i, n, age) => self.postMessage({ id, progress: { i, n, name: 'age ' + age } }) });
       post({ id, result: cloneSafe(out) });
     } else {
       throw new Error('unknown job ' + type);

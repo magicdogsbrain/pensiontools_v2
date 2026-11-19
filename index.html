@@ -7090,7 +7090,8 @@
         const t = deriveTiming(settings);
         if (!(t.currentAge > 0)) { box.innerHTML = '<div class="alert alert-warning">Enter your age today in the Stress tester\'s Timing block first — the spin needs to know how many years of saving are left.</div>'; return; }
         let holdingsLines = []; try { holdingsLines = (await getActiveHoldings()).lines || []; } catch (e) { holdingsLines = []; }
-        const payload = { settings, accumulation: acc, holdings: holdingsLines, incomeOverride, mcRuns: 200, stride: 6 };
+        const payload = { settings, accumulation: acc, holdings: holdingsLines, incomeOverride, mcRuns: 200, stride: 6, now: todayOf() };   // the one clock, in the worker and on the page alike
+        await window._marketReady;   // the one market, as every run of the page
         let out;
         try { out = await runInWorker('sweep', payload, (pr) => { box.innerHTML = '<div class="loading"><div class="spinner"></div>Spinning ' + budEsc(pr.name || '') + ' (' + (pr.i + 1) + ' of ' + pr.n + ')…</div>'; }); }
         catch (e) { console.warn('sweep worker unavailable, running inline', e); const m = await import('./src/services/RetireSweep.js'); out = m.sweepRetirementAges(payload); }

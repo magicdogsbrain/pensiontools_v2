@@ -38,6 +38,15 @@ function get() {
   return worker;
 }
 
+/**
+ * What a job carries across to the worker: the payload as given, plus the one clock (src/reading/clock.js) when it names no
+ * day, and the site's one data folder; through cloneSafe (a Date stays a Date). The worker sees the plan from the page's day.
+ */
+export function jobPayload(payload) {
+  const withNow = payload && typeof payload === 'object' ? { ...payload, ...(payload.now == null ? { now: todayOf().toISOString() } : {}), ...(payload.market == null ? { market: folder() } : {}) } : payload;
+  return cloneSafe(withNow);
+}
+
 export function workerAvailable() { return typeof Worker !== 'undefined'; }
 
 export function runInWorker(type, payload, onProgress) {
@@ -47,8 +56,6 @@ export function runInWorker(type, payload, onProgress) {
     try { w = get(); } catch (e) { reject(e); return; }
     const id = ++seq;
     pending.set(id, { resolve, reject, onProgress });
-    // every job carries the one clock (src/reading/clock.js): the worker sees the plan from the page's day
-    const withNow = payload && typeof payload === 'object' ? { ...payload, ...(payload.now == null ? { now: todayOf().toISOString() } : {}), ...(payload.market == null ? { market: folder() } : {}) } : payload;
-    try { w.postMessage({ id, type, payload: cloneSafe(withNow) }); } catch (e) { pending.delete(id); reject(e); }
+    try { w.postMessage({ id, type, payload: jobPayload(payload) }); } catch (e) { pending.delete(id); reject(e); }
   }), 'worker');
 }

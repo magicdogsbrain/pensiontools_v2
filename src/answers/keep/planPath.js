@@ -141,12 +141,16 @@ function wordsPlanFrom({ p, settings, life, asGiven, planYears, planToAge }) {
   const net = (g) => (g > 0 ? grossToNet(g, pa, brl, hrl) : 0);
   const spStart = isNum(p.spStartYear) ? p.spStartYear : Infinity;
   const spAt = (y) => (p.spAnnual > 0 && y >= spStart ? p.spAnnual : 0);
-  // the income that comes anyway (a final-salary pension, income streams), as the plan reads it before anything else is put
+  // the income that comes anyway (a final-salary pension), as the plan reads it before anything else is put
   // with it (PlanNeed.lumpyByYear: the plan's otherIncomeByYear also carries the savings that pay a closed pension's years,
   // which are not income that comes anyway)
-  const lumpy = lumpyByYear(settings, cfg, p.durationYears).otherIncomeByYear;
+  // (an income stream of a kept answer is D's work tried on the plan, planSeed tryWork: work, not income that comes anyway)
+  const lumpy = lumpyByYear(settings, { ...cfg, extraIncomes: [] }, p.durationYears).otherIncomeByYear;
+  const withWork = lumpyByYear(settings, cfg, p.durationYears).otherIncomeByYear;
   const other = lumpy.length ? lumpy : [0];
-  const otherAt = (y) => +other[Math.max(0, Math.min(y, other.length - 1))] || 0;
+  const at = (list, y) => +list[Math.max(0, Math.min(y, list.length - 1))] || 0;
+  const otherAt = (y) => at(other, y);
+  const workAt = (y) => (withWork.length ? Math.max(0, at(withWork, y) - at(other, y)) : 0);
   const lockedYears = cfg.pensionLockedMonths > 0 ? Math.ceil(cfg.pensionLockedMonths / 12) : 0;
   const pension = (cfg.equityStart || 0) + (cfg.bondStart || 0) + (cfg.cashStart || 0);
   const isa = cfg.isaBalance || 0;
@@ -163,13 +167,13 @@ function wordsPlanFrom({ p, settings, life, asGiven, planYears, planToAge }) {
     ? [{ who: 'you', index: 0, role: 'pension', money: pension }, { who: 'you', index: 0, role: 'savings', money: isa }]
     : [{ who: 'you', index: 0, role: lockedYears > 0 ? 'pension' : kind, money: lockedYears > 0 && !asGiven ? pension : pension + isa, ...(lockedYears > 0 && asGiven ? { locked: true } : {}) }];
   const cuts = new Set([0, planYears]);
-  for (let y = 1; y < planYears; y++) if (spAt(y) !== spAt(y - 1) || otherAt(y) !== otherAt(y - 1) || y === lockedYears) cuts.add(y);
+  for (let y = 1; y < planYears; y++) if (spAt(y) !== spAt(y - 1) || otherAt(y) !== otherAt(y - 1) || workAt(y) !== workAt(y - 1) || y === lockedYears) cuts.add(y);
   const bounds = [...cuts].sort((a, b) => a - b);
   const periods = [];
   for (let i = 0; i + 1 < bounds.length; i++) {
     const from = bounds[i];
-    const sp = spAt(from), fs = otherAt(from), g = sp + fs;
-    const b = { who: 'you', statePension: sp, finalSalary: fs, ...(asGiven ? { work: 0 } : {}), gross: g, net: net(g), locked: from < lockedYears };
+    const sp = spAt(from), fs = otherAt(from), wk = asGiven ? workAt(from) : 0, g = sp + fs + wk;
+    const b = { who: 'you', statePension: sp, finalSalary: fs, ...(asGiven ? { work: wk } : {}), gross: g, net: net(g), locked: from < lockedYears, anyway: net(sp + fs) };
     // the pots' share between the runs, as enginePlan shares them: a closed pension draws on nothing until it opens
     const available = runs.map((r) => (r.role === 'pension' && b.locked ? (asGiven && r.locked ? isa : 0) : r.money));
     const total = available.reduce((s, v) => s + v, 0);
@@ -391,7 +395,8 @@ export function planCaseOf(source, ins, env, { lives = null, dragPct = 0, fromAg
     keptAt: (H) => at(H).kept, settingsAt: (H) => at(H).settings,
     floorAgeOf, worstAgeOf, leftOf, leftTermsOf, shortfallAt,
     get wordsPlan() { return wordsPlan(); },
-    // what comes in anyway at the start, a month after tax at today's prices, in whole £10 steps (band.js atLeastAnyway)
-    get anywayK() { return Math.floor(wordsPlan().periods[0].netTotal / 12 / STEP + 1e-9); }
+    // what comes in anyway, a month after tax at today's prices, in whole £10 steps (band.js atLeastAnyway)
+    // (the least over the plan's years: what comes in anyway for good — State Pension, final-salary — never work that ends)
+    get anywayK() { return Math.floor(Math.min(...wordsPlan().periods.map((per) => per.byPerson[0].anyway)) / 12 / STEP + 1e-9); }
   };
 }

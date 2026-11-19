@@ -250,6 +250,15 @@ describe('D and C from now: the words are the kept plan\'s (one reader of its in
 });
 
 describe('How much can I take never offers less than what comes in anyway (the lead\'s ruling D)', () => {
+  it('work that ends is not what comes in anyway: D7\'s work lever is not lifted to the State Pension and the work together', () => {
+    // D7 (66, the full State Pension being paid, £15,000 a year of work for 3 years): at the start the State Pension and
+    // the work give £27,547.60 a year before tax, £24,552.08 after (£14,977.60 above the allowance at 20%), £2,046.01 a
+    // month; what comes in for good is the State Pension alone, £1,045.63 a month, £1,040 in whole £10s. The lever's
+    // Balanced (£1,730 at 40 futures) is its own: lifted to £2,040 it would have offered the work's pay for life.
+    const d = answerD(D7, ENV);
+    expect(d.work.monthly).toBeLessThan(2040);
+    expect(d.work.monthly).toBeGreaterThan(d.levels.balanced.monthly);
+  });
   // Kim (made up), 68, a final-salary pension of £30,000 a year and the full State Pension (£12,547.60) both being paid:
   // £42,547.60 a year before tax, £29,977.60 of it above the £12,570 allowance at 20% = £5,995.52 tax, £36,552.08 a year
   // after tax = £3,046.01 a month, said in whole £10s: £3,040. Before, with £1 in a pension, every level was below it

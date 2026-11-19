@@ -78,15 +78,18 @@ function facts(doc, timing) {
 /**
  * Put a plan's saved start into the form: the hidden year (what the engines read) and the age box. The age is kept on
  * the year box as data-age until the plan's start age is known (renderTiming calls paintDbStart then).
+ * Only a `timing` for THIS plan paints the age now: the form's hidden start age is the plan before's (or the page's first
+ * value) until renderTiming has run for this plan, so it is never read here (lead4.md R2).
  */
 export function setDbStartFields(doc, settings, timing = null) {
   const s = settings || {};
-  const yearEl = doc.getElementById('ssDbStartYear'), ageEl = doc.getElementById('ssDbStartAge');
+  const yearEl = doc.getElementById('ssDbStartYear'), ageEl = doc.getElementById('ssDbStartAge'), hint = doc.getElementById('ssDbStartHint');
   if (!yearEl) return;
   yearEl.value = +s.dbStartYear || 0;
   if (+s.dbStartAge > 0) yearEl.dataset.age = String(Math.round(+s.dbStartAge)); else delete yearEl.dataset.age;
   if (ageEl) ageEl.value = '';
-  paintDbStart(doc, timing);
+  if (timing && +timing.shapeAgeNow > 0) paintDbStart(doc, timing);
+  else if (hint) hint.textContent = '';
 }
 
 /** The words beside the box, and the age box filled from the saved start the first time the start age is known. */

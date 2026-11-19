@@ -4184,6 +4184,8 @@
     import { isPlanNewerThanApp } from './src/storage/ScenarioRepository.js';
     import { getActivePlanDocument, getActivePlanDocumentArchive, saveActivePlanDocument, archivePlanDocument, getActiveJourney, saveActiveJourney, getActiveAccumulationHistory, saveActiveAccumulationHistory, getActiveTransition, saveActiveTransition, getActiveHoldings, saveActiveHoldings, getActiveDrawCadence, saveActiveDrawCadence, saveActivePlanAmendments, saveActivePlanTasks, saveActivePhases, saveActiveWant, saveActiveAccumulationTab, saveActivePensionToday } from './src/storage/ScenarioRepository.js';
     import { deriveStage, decisionEntryAllowed, arrivalCheck, journeyAppend } from './src/services/LifeStage.js';
+    import { protectionBoxValues, protectionFromBoxes } from './src/ui/stressProtectionBoxes.js';   // the cuts and reserve boxes, read as the simple view reads them
+    import { fillStrategyDials } from './src/ui/strategyDials.js';   // the ladder-and-ratchet and floor-and-flex dials filled from the plan open (lead4.md R2)
     import { setDbStartFields, paintDbStart, dbStartFromAgeInput, dbStartError, dbStartAgeForSave } from './src/ui/dbStartSetting.js';   // the final-salary start, asked by age (audit problem 3)
     import { pnvOnlySections, paintSettingUseNotes, heldIsaNote } from './src/ui/strategySettingsUse.js';   // the settings every strategy shows, and the notes beside them (audit problem 4)
     import { ukMonth, ukDay, ukDate } from './src/ui/ukDates.js';   // dates in UK words, never ISO or US order (audit problem 3)
@@ -4621,66 +4623,7 @@
         updateEntryTagPrompt();                                              // nudge to tag if none yet
         updateScheduleSpendNotes();
 
-        // Stress sims start from the Settings' Fund Minimums (single source of truth) — show a
-        // read-only summary on each tab rather than duplicate starting-value inputs.
-        renderStressStartSummary(stressSettings);
-
-        // Pre-fill Stress Settings tab
-        document.getElementById('ssBaseSalary').value = stressSettings.incomeNotSet ? 0 : stressSettings.baseSalary;
-        syncNetFromGross('ss');
-        writeAlloc('ss', stressSettings.equityMin, stressSettings.bondMin, stressSettings.cashTarget, stressSettings.diversifierStart || 0); blankUnsetPots(document, stressSettings);
-        restoreCustomAllocFromSettings('ss', stressSettings);   // rebuild a from-funds split if one was saved
-        window._taggedFunds.ss = (stressSettings.taggedFunds || []).map(f => ({ ...f }));  // the funds this strategy is tested on
-        // 6.13.0: each strategy's own inputs. A pre-6.13 flat bag is sorted into strategyState in memory here (each stray
-        // key goes under the strategy that owns it) and persisted by the next Save — nothing is dropped.
-        window._ssStrategyState = JSON.parse(JSON.stringify(sortLegacyParams(stressSettings).strategyState || {}));
-        // A saved fund list means the plan is in "My funds" mode; otherwise "Risk level".
-        setAllocMode('ss', stressSettings.allocMode || ((stressSettings.taggedFunds && stressSettings.taggedFunds.length) ? 'funds' : 'risk'));
-        document.getElementById('ssDuration').value = stressSettings.duration;
-        document.getElementById('ssPA').value = stressSettings.pa;
-        document.getElementById('ssBRL').value = stressSettings.brl;
-        document.getElementById('ssHRL').value = stressSettings.hrl;
-        document.getElementById('ssTaxMode').value = stressSettings.taxMode || 'inflates';
-        document.getElementById('ssOther').value = stressSettings.other || 0;
-        document.getElementById('ssDbAmount').value = stressSettings.dbAmount || 0;
-        setDbStartFields(document, stressSettings, window._ssTiming);   // the final-salary start: the year the engines read, and the age box (dbStartSetting.js)
-        document.getElementById('ssDbIndexation').value = stressSettings.dbIndexation || 'lpi5';
-        applyStrategyToUI(stressSettings.strategyId || 'pots-and-valves', activeParams(stressSettings));   // this strategy's own keys only (6.13.0)
-        window._ssIncomeSteps = Array.isArray(stressSettings.incomeSteps) && stressSettings.incomeSteps.length ? JSON.parse(JSON.stringify(stressSettings.incomeSteps)) : (stressSettings.incomeNotSet ? [{ fromAge: stressSettings.shapeAgeNow || 57, amount: '' }] : stressSettings.baseSalary > 0 ? [{ fromAge: stressSettings.shapeAgeNow || 57, amount: stressSettings.baseSalary }] : []);
-        refreshShapeRefs().then(() => renderIncomeSteps());
-        await loadTimingUI(stressSettings);
-        refreshStressLock().catch(() => {});
-        setIncomeShape(stressSettings.incomeShape === 'phases' ? 'phases' : 'level');
-        window._ssExtraIncomes = Array.isArray(stressSettings.extraIncomes) ? JSON.parse(JSON.stringify(stressSettings.extraIncomes)) : [];
-        updateScheduleSpendNotes();
-        window._ssWindfalls = Array.isArray(stressSettings.windfalls) ? JSON.parse(JSON.stringify(stressSettings.windfalls)) : [];
-        window._ssExtraWithdrawals = Array.isArray(stressSettings.extraWithdrawals) ? JSON.parse(JSON.stringify(stressSettings.extraWithdrawals)) : [];
-        renderExtraIncomes();
-        // State Pension (new fields)
-        document.getElementById('ssSpStartDate').value = stressSettings.spStartDate || '';
-        document.getElementById('ssSpWeeklyAmount').value = stressSettings.spWeeklyAmount || '';
-        updateSpAnnualDisplay('ss');
-        document.getElementById('ssConsecutiveLimit').value = stressSettings.consecutiveLimit || 3;
-        document.getElementById('ssProtectionMult').value = stressSettings.protectionMult || 0.8;
-        document.getElementById('ssDisableProtection').checked = stressSettings.disableProtection || false;
-        document.getElementById('ssRecoveryBuffer').value = stressSettings.recoveryBuffer || 15000;
-        { const e = document.getElementById('ssProtEscalate'); if (e) e.value = stressSettings.protectionEscalateMonths ?? 12; }
-        document.getElementById('ssHodlEnabled').checked = stressSettings.hodlEnabled || false;
-        document.getElementById('ssHodlValue').value = stressSettings.hodlValue || 25000;
-        document.getElementById('ssEquityGlide').checked = stressSettings.equityGlideEnabled || false;
-        updateAllocDisplay('ss');
-        document.getElementById('ssIsaBalance').value = stressSettings.isaBalance || 0;
-        { const p = document.getElementById('ssIsaPolicy'); if (p) p.value = stressSettings.isaDrawdownStrategy || 'minimiseEarlyTax'; }
-        loadGiaFields('ss', stressSettings);
-        document.getElementById('ssAccessMethod').value = stressSettings.accessMethod || 'drawdown';
-        document.getElementById('ssUfplsYears').value = stressSettings.ufplsYears || '';
-        document.getElementById('ssUfplsPcls').checked = !!stressSettings.ufplsThenPcls;
-        document.getElementById('ssBandFillRecycle').checked = !!stressSettings.bandFillRecycle;
-        syncAccessButtons('ss');
-
-        // Refresh number overlays after all values are set
-        refreshNumberOverlays();
-        markStressFormFilled(stressSettings);
+        await fillStressForm(stressSettings);   // the Stress settings form: the one filler (also the tab's own loader)
 
         console.log('All inputs initialized from stored settings');
       } catch (error) {
@@ -8328,22 +8271,7 @@
         const p = params || {}; const a = document.getElementById('giltCashYears'), c = document.getElementById('giltRotateCut');
         if (a && p.cashYears == null) a.value = LADDER_DEFAULTS.cashYears; if (c && p.rotateCutAge == null) c.value = 75; const sp = document.getElementById('giltSpare'); if (sp) sp.value = p.spareGrowth ? 'growth' : 'held';
       }
-      if (id === 'ladder-and-ratchet' && params) {
-        if (params.sippTotal) document.getElementById('stratSipp').value = params.sippTotal;
-        if (params.isaTotal) document.getElementById('stratIsa').value = params.isaTotal;
-        if (params.ladderYears) document.getElementById('lrLadderYears').value = params.ladderYears;
-        if (params.drawAnnual) document.getElementById('lrDraw').value = params.drawAnnual;
-        if (params.triggerMode) document.getElementById('lrTriggerMode').value = params.triggerMode;
-        if (params.bandThreshold) document.getElementById('lrBand').value = params.bandThreshold;
-      }
-      if (id === 'floor-and-flex' && params) {
-        if (params.sippTotal) document.getElementById('stratSippFf').value = params.sippTotal;
-        if (params.isaTotal) document.getElementById('stratIsaFf').value = params.isaTotal;
-        if (params.essentialsAnnual) document.getElementById('ffEssentials').value = params.essentialsAnnual;
-        if (params.horizonAge) document.getElementById('ffHorizon').value = params.horizonAge;
-        if (params.sleeveRate) document.getElementById('ffRate').value = params.sleeveRate * 100;
-        if (params.ratchet) document.getElementById('ffRatchet').value = params.ratchet;
-      }
+      fillStrategyDials(document, id, params);   // every dial box from this plan, or the page's start: never the plan before's (src/ui/strategyDials.js)
       refreshStrategyCosts();
     };
 
@@ -9502,68 +9430,75 @@
     };
 
     async function renderChargesField() { let st = {}, locked = false, ocf = 0; try { st = await getStressSettingsAsync(); locked = await planIsLocked(); ocf = holdingsProportions(await getActiveHoldings()).weightedOcf; } catch (e) { /* paint what is known */ } paintChargesField(document, chargesFieldState(st, { locked }), ocf); paintIsaGrowthField(document, isaGrowthFieldState(st, { locked })); }   // fund and platform charges (6.19.0, src/ui/chargesSetting.js) and how the ISA grows (6.22.0, src/ui/isaGrowthSetting.js): the box and the choice — or, on a plan locked before each was added, the words in its place
+    /**
+     * The Stress settings form filled from the plan's settings as read (lead4.md R1/R2): the ONE filler, used on every repaint
+     * (initializeAllInputsFromSettings) and by the tab's own loader. Every box shows what the plan holds: a 0 is 0, an empty
+     * value empties the box. The final-salary age waits for this plan's timing (renderTiming paints it, dbStartSetting.js), so
+     * the start age of the plan before is never read; the baseline a Save compares with is the form as filled.
+     */
+    async function fillStressForm(s) {
+      document.getElementById('ssBaseSalary').value = s.incomeNotSet ? 0 : s.baseSalary;   // none given: none (7.12.0)
+      syncNetFromGross('ss');
+      // FULL allocation restore: the tagged funds, custom split and mode, so a saved "My funds" plan doesn't revert to a risk
+      // preset, and a plan with no funds defaults to "Pick a risk level".
+      writeAlloc('ss', s.equityMin, s.bondMin, s.cashTarget, s.diversifierStart || 0); blankUnsetPots(document, s);   // no pension known anywhere: the box empty, never a default (7.12.0)
+      restoreCustomAllocFromSettings('ss', s);
+      window._taggedFunds.ss = (s.taggedFunds || []).map(f => ({ ...f }));   // the funds this strategy is tested on
+      // 6.13.0: each strategy's own inputs. A pre-6.13 flat bag is sorted into strategyState in memory here (each stray key
+      // goes under the strategy that owns it) and persisted by the next Save — nothing is dropped.
+      window._ssStrategyState = JSON.parse(JSON.stringify(sortLegacyParams(s).strategyState || {}));
+      setAllocMode('ss', s.allocMode || ((s.taggedFunds && s.taggedFunds.length) ? 'funds' : 'risk'));
+      document.getElementById('ssDuration').value = s.duration;
+      document.getElementById('ssPA').value = s.pa;
+      document.getElementById('ssBRL').value = s.brl;
+      document.getElementById('ssHRL').value = s.hrl;
+      document.getElementById('ssTaxMode').value = s.taxMode || 'inflates';
+      document.getElementById('ssOther').value = s.other || 0;
+      document.getElementById('ssDbAmount').value = s.dbAmount || 0;
+      setDbStartFields(document, s, null);   // the year the engines read; the age box waits for this plan's timing (loadTimingUI below)
+      document.getElementById('ssDbIndexation').value = s.dbIndexation || 'lpi5';
+      applyStrategyToUI(s.strategyId || 'pots-and-valves', activeParams(s));   // this strategy's own keys only (6.13.0)
+      window._ssIncomeSteps = Array.isArray(s.incomeSteps) && s.incomeSteps.length ? JSON.parse(JSON.stringify(s.incomeSteps)) : (s.incomeNotSet ? [{ fromAge: s.shapeAgeNow || 57, amount: '' }] : s.baseSalary > 0 ? [{ fromAge: s.shapeAgeNow || 57, amount: s.baseSalary }] : []);   // nobody gave an income: one empty step, never the default (7.12.0)
+      window._ssExtraIncomes = Array.isArray(s.extraIncomes) ? JSON.parse(JSON.stringify(s.extraIncomes)) : [];
+      window._ssWindfalls = Array.isArray(s.windfalls) ? JSON.parse(JSON.stringify(s.windfalls)) : [];
+      window._ssExtraWithdrawals = Array.isArray(s.extraWithdrawals) ? JSON.parse(JSON.stringify(s.extraWithdrawals)) : [];
+      // State Pension (new fields)
+      document.getElementById('ssSpStartDate').value = s.spStartDate || '';
+      document.getElementById('ssSpWeeklyAmount').value = s.spWeeklyAmount || '';
+      { const v = protectionBoxValues(s);   // the cuts and the reserve as the simple view's boxes read them: a 0 held is 0 (src/ui/stressProtectionBoxes.js)
+        for (const id of ['ssConsecutiveLimit', 'ssProtectionMult', 'ssRecoveryBuffer', 'ssProtEscalate', 'ssHodlValue']) { const e = document.getElementById(id); if (e) e.value = v[id]; }
+        document.getElementById('ssDisableProtection').checked = v.ssDisableProtection;
+        document.getElementById('ssHodlEnabled').checked = v.ssHodlEnabled; }
+      document.getElementById('ssEquityGlide').checked = s.equityGlideEnabled || false;
+      document.getElementById('ssIsaBalance').value = s.isaBalance || 0;
+      { const p = document.getElementById('ssIsaPolicy'); if (p) p.value = s.isaDrawdownStrategy || 'minimiseEarlyTax'; }
+      loadGiaFields('ss', s);
+      document.getElementById('ssAccessMethod').value = s.accessMethod || 'drawdown';
+      document.getElementById('ssUfplsYears').value = s.ufplsYears || '';
+      document.getElementById('ssUfplsPcls').checked = !!s.ufplsThenPcls;
+      document.getElementById('ssBandFillRecycle').checked = !!s.bandFillRecycle;
+      // every box above holds THIS plan's value before the Timing block is worked out from the form (its State Pension date, ISA
+      // and pots): nothing of the plan before goes into this plan's timing, its pots at the stop or the form's baseline
+      refreshShapeRefs().then(() => renderIncomeSteps());
+      await loadTimingUI(s); renderStressStartSummary(s);   // the starting balances read the settings just loaded, never the page's first ones (7.12.0)
+      refreshStressLock().catch(() => {});   // …which also paints the fund and platform charges box (renderChargesField, 6.19.0)
+      setIncomeShape(s.incomeShape === 'phases' ? 'phases' : 'level');
+      updateScheduleSpendNotes();
+      renderExtraIncomes();
+      updateSpAnnualDisplay('ss');
+      updateAllocDisplay('ss');
+      syncAccessButtons('ss');
+      refreshNumberOverlays();   // the number overlays after the values set here
+      markStressFormFilled(s);
+    }
     async function loadStressSettings() {
       if (window._ssAutosave) await window._ssAutosave.flush();   // a change waiting to go is saved before the form is drawn again
       showLoading('Loading settings...');
       try {
-        const s = await getStressSettingsAsync();
-        document.getElementById('ssBaseSalary').value = s.incomeNotSet ? 0 : s.baseSalary;   // none given: none (7.12.0)
-        syncNetFromGross('ss');
-        // FULL allocation restore (mirrors initializeAllInputsFromSettings / loadDecisionSettings) —
-        // restore the tagged funds, custom split, and mode so a saved "My funds" plan doesn't revert to
-        // a risk preset, and a plan with no funds defaults to "Pick a risk level".
-        writeAlloc('ss', s.equityMin, s.bondMin, s.cashTarget, s.diversifierStart || 0); blankUnsetPots(document, s);   // no pension known anywhere: the box empty, never a default (7.12.0)
-        restoreCustomAllocFromSettings('ss', s);
-        window._taggedFunds.ss = (s.taggedFunds || []).map(f => ({ ...f }));
-        setAllocMode('ss', s.allocMode || ((s.taggedFunds && s.taggedFunds.length) ? 'funds' : 'risk'));
-        document.getElementById('ssDuration').value = s.duration;
-        document.getElementById('ssPA').value = s.pa;
-        document.getElementById('ssBRL').value = s.brl;
-        document.getElementById('ssHRL').value = s.hrl;
-        document.getElementById('ssTaxMode').value = s.taxMode || 'inflates';
-        document.getElementById('ssOther').value = s.other || 0;
-        document.getElementById('ssDbAmount').value = s.dbAmount || 0;
-        setDbStartFields(document, s, window._ssTiming);
-        document.getElementById('ssDbIndexation').value = s.dbIndexation || 'lpi5';
-        window._ssStrategyState = JSON.parse(JSON.stringify(sortLegacyParams(s).strategyState || {}));   // legacy flat bag sorted per strategy (6.13.0)
-        applyStrategyToUI(s.strategyId || 'pots-and-valves', activeParams(s));   // this strategy's own keys only (6.13.0)
-        window._ssIncomeSteps = Array.isArray(s.incomeSteps) && s.incomeSteps.length ? JSON.parse(JSON.stringify(s.incomeSteps)) : (s.incomeNotSet ? [{ fromAge: s.shapeAgeNow || 57, amount: '' }] : s.baseSalary > 0 ? [{ fromAge: s.shapeAgeNow || 57, amount: s.baseSalary }] : []);   // nobody gave an income: one empty step, never the default (7.12.0)
-        refreshShapeRefs().then(() => renderIncomeSteps());
-        await loadTimingUI(s); renderStressStartSummary(s);   // the starting balances read the settings just loaded, never the page's first ones (7.12.0)
-        refreshStressLock().catch(() => {});   // …which also paints the fund and platform charges box (renderChargesField, 6.19.0)
-        setIncomeShape(s.incomeShape === 'phases' ? 'phases' : 'level');
-        window._ssExtraIncomes = Array.isArray(s.extraIncomes) ? JSON.parse(JSON.stringify(s.extraIncomes)) : [];
-        updateScheduleSpendNotes();
-        window._ssWindfalls = Array.isArray(s.windfalls) ? JSON.parse(JSON.stringify(s.windfalls)) : [];
-        window._ssExtraWithdrawals = Array.isArray(s.extraWithdrawals) ? JSON.parse(JSON.stringify(s.extraWithdrawals)) : [];
-        renderExtraIncomes();
-        // State Pension (new fields)
-        document.getElementById('ssSpStartDate').value = s.spStartDate || '';
-        document.getElementById('ssSpWeeklyAmount').value = s.spWeeklyAmount || '';
-        updateSpAnnualDisplay('ss');
-        document.getElementById('ssConsecutiveLimit').value = s.consecutiveLimit || 3;
-        document.getElementById('ssProtectionMult').value = s.protectionMult || 0.8;
-        document.getElementById('ssDisableProtection').checked = s.disableProtection || false;
-        document.getElementById('ssRecoveryBuffer').value = s.recoveryBuffer || 15000;
-        { const e = document.getElementById('ssProtEscalate'); if (e) e.value = s.protectionEscalateMonths ?? 12; }
-        document.getElementById('ssHodlEnabled').checked = s.hodlEnabled || false;
-        document.getElementById('ssHodlValue').value = s.hodlValue || 25000;
-        document.getElementById('ssEquityGlide').checked = s.equityGlideEnabled || false;
-        updateAllocDisplay('ss');
-        document.getElementById('ssIsaBalance').value = s.isaBalance || 0;
-        { const p = document.getElementById('ssIsaPolicy'); if (p) p.value = s.isaDrawdownStrategy || 'minimiseEarlyTax'; }
-        loadGiaFields('ss', s);
-        document.getElementById('ssAccessMethod').value = s.accessMethod || 'drawdown';
-        document.getElementById('ssUfplsYears').value = s.ufplsYears || '';
-        document.getElementById('ssUfplsPcls').checked = !!s.ufplsThenPcls;
-        document.getElementById('ssBandFillRecycle').checked = !!s.bandFillRecycle;
-        syncAccessButtons('ss');
-
-        // Refresh number overlays after programmatic value changes
-        refreshNumberOverlays();
-        markStressFormFilled(s);
+        await fillStressForm(await getStressSettingsAsync());
         if (window._ssAutosave) await window._ssAutosave.loaded();
       } catch (error) {
+        if (isPlanReadError(error)) sayReadFault(READ_FAULT_WORDS);   // the plan cannot be read: said in plain words, no other settings shown
         console.error('Error loading stress settings:', error);
       } finally {
         hideLoading();
@@ -9615,13 +9550,9 @@
         // State Pension (new fields)
         spStartDate: document.getElementById('ssSpStartDate').value.trim() || null,
         spWeeklyAmount: +document.getElementById('ssSpWeeklyAmount').value || 0,
-        consecutiveLimit: +document.getElementById('ssConsecutiveLimit').value,
-        protectionMult: +document.getElementById('ssProtectionMult').value,
-        protectionEscalateMonths: Math.max(0, +document.getElementById('ssProtEscalate')?.value ?? 12),
+        ...protectionFromBoxes((id) => document.getElementById(id)?.value),   // a box holding 0 is 0; an empty box is no value, never a default (src/ui/stressProtectionBoxes.js)
         disableProtection: document.getElementById('ssDisableProtection').checked,
-        recoveryBuffer: +document.getElementById('ssRecoveryBuffer').value || 15000,
         hodlEnabled: document.getElementById('ssHodlEnabled').checked,
-        hodlValue: +document.getElementById('ssHodlValue').value,
         isaBalance: +document.getElementById('ssIsaBalance').value || 0,
         isaDrawdownStrategy: document.getElementById('ssIsaPolicy')?.value || 'minimiseEarlyTax',
         ...readGiaFields('ss'), chargesPct: chargesForSave(document.getElementById('ssChargesPct')?.value, _curSS), isaGrowth: isaGrowthForSave(readIsaGrowthChoice(document), _curSS),   // charges (6.19.0): 0–3% on the 0.05 grid; empty keeps the plan's own; the ISA choice (6.22.0). Never reached when locked (refused above)

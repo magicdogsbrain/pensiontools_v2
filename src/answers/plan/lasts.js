@@ -92,6 +92,23 @@ export function runKeyOf(plan) {
 export const cutPctOf = (mult) => Math.round((1 - (num(mult) ?? SIMULATION_DEFAULTS.PROTECTION_MULTIPLIER)) * 100);
 export const multOf = (pct) => Math.round((100 - pct)) / 100;
 
+/**
+ * The cuts and the reserve as the plan's settings hold them (the settings as read), the one reading both views' boxes show
+ * (lead4.md R1): a value the plan holds, 0 included, is shown as held; one it lacks reads as the engines read it.
+ */
+export function cutsValuesOf(ss) {
+  const s = isObj(ss) ? ss : {};
+  return {
+    cutsOn: s.disableProtection ? 'no' : 'yes',
+    cutAfterMonths: num(s.consecutiveLimit) ?? DRAWDOWN_DEFAULTS.CONSECUTIVE_LIMIT,
+    cutPct: cutPctOf(s.protectionMult),
+    deeperAfterMonths: num(s.protectionEscalateMonths) ?? PROTECTION_ESCALATE_MONTHS,
+    buffer: num(s.recoveryBuffer) ?? DRAWDOWN_DEFAULTS.RECOVERY_BUFFER,
+    reserveOn: s.hodlEnabled ? 'yes' : 'no',
+    reserveAmount: num(s.hodlValue) > 0 ? r0(s.hodlValue) : null
+  };
+}
+
 /** The saved facts (10.1): from the effective settings (the lock freezes them, so a locked plan reads the same way). */
 export function savedLasts(plan, { today }) {
   const now = dateOf(today);
@@ -102,15 +119,7 @@ export function savedLasts(plan, { today }) {
   const timing = safeTiming(ss, now);
   const strategyId = (doc && doc.strategy && doc.strategy.id) || ss.strategyId || 'pots-and-valves';
   const bought = isBought(strategyId);
-  const values = {
-    cutsOn: ss.disableProtection ? 'no' : 'yes',
-    cutAfterMonths: num(ss.consecutiveLimit) ?? DRAWDOWN_DEFAULTS.CONSECUTIVE_LIMIT,
-    cutPct: cutPctOf(ss.protectionMult),
-    deeperAfterMonths: num(ss.protectionEscalateMonths) ?? PROTECTION_ESCALATE_MONTHS,
-    buffer: num(ss.recoveryBuffer) ?? DRAWDOWN_DEFAULTS.RECOVERY_BUFFER,
-    reserveOn: ss.hodlEnabled ? 'yes' : 'no',
-    reserveAmount: num(ss.hodlValue) > 0 ? r0(ss.hodlValue) : null
-  };
+  const values = cutsValuesOf(ss);
   // a locked plan's document keeps the figure it was locked with (6.24.0): read here, never run
   const docR = doc && doc.strategy && isObj(doc.strategy.r) ? doc.strategy.r : null;
   const docA = docR ? oneAnswer(docR, (doc.strategy && doc.strategy.p) || {}) : null;

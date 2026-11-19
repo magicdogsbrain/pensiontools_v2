@@ -136,9 +136,12 @@ export function prefillMonthlyEntry(history, opts) {
 /**
  * The entry card opened on a plan (7.12.0): the month box set to the one month to record (YearPlan.monthToRecord — the month
  * the simple view's home and Month by month name), then the boxes filled for it. With nothing to record the box is left as
- * it is.
+ * it is. The "already been made" tick starts off (the month it moved belongs to the card as it was before).
  */
 export function openMonthlyEntry(history, opts) {
+  // the card opens afresh on this plan: "This month's payment has already been made" is off, with no note, until it is ticked
+  // here (a tick left from the plan open before would mark this plan's record paid ahead, and its note name that plan's month)
+  { const tick = el('entryPaidThisMonth'); if (tick) tick.checked = false; const note = el('entryPaidNote'); if (note) note.textContent = ''; }
   const t = monthToRecord({ decisionTool: { history: Array.isArray(history) ? history : [] } }, thisMonth());
   // the box moved: tell the form, so the line under Calculate names the same month as the box (7.12.0 round 3, walker 10:
   // "Press Calculate to work out November 2026" beside a box set to October); an input event, so nothing is filled twice

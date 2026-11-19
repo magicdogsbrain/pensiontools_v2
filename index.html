@@ -7392,7 +7392,7 @@
     // 'payments to come' counts it (April = 12). Someone who has already taken this month's payment plans
     // from NEXT month instead: the entry moves one month on, balances are post-payment, and the tax-year
     // setup asks for income and tax to date including this month. Nothing in the engine changes.
-    window._entryMonthBeforePaid = null;
+    // the month the tick moved the entry from is the open plan's (planState.entryMonthBeforePaid, window._entryMonthBeforePaid)
     window.togglePaidThisMonth = function (checked) {
       const inp = document.getElementById('entryMonth'), note = document.getElementById('entryPaidNote'); if (!inp) return;
       const cur = inp.value || getCurrentMonth();
@@ -7734,7 +7734,7 @@
     // isn't "which pot pays" — it's "the rung pays; is the sleeve above its line, and should a
     // boom lock more on?" This panel answers THAT, from the same trigger maths the sims run.
     // The words and the figures are services/DecisionOverlay.js (7.2.0: the new app's Month by month says the same); the ladder is found here.
-    function decisionStrategyOverlay(decision, dateStr) { return decisionOverlayFor(decision, dateStr, { strategy: getActiveStrategy, settings: getStressSettingsAsync, ladderPos: ladderPositionForPlan, scenario: getActiveScenarioAsync, name: (id) => getStrategy(id).describe().name, firstRung: () => (_ladderPosCache ? firstRungOf(_ladderPosCache.plan) : null)  }); }
+    function decisionStrategyOverlay(decision, dateStr) { return decisionOverlayFor(decision, dateStr, { strategy: getActiveStrategy, settings: getStressSettingsAsync, ladderPos: ladderPositionForPlan, scenario: getActiveScenarioAsync, name: (id) => getStrategy(id).describe().name, firstRung: () => (planState.ladderPos ? firstRungOf(planState.ladderPos.plan) : null)  }); }
 
 
     // 6.13.5 — a LOCKED plan's ladder is the one in its plan document: the orders, units and costs fixed when the
@@ -7756,16 +7756,15 @@
       return '<div class="alert alert-info" style="font-size:13px;margin:8px 0;">🔒 <strong>This is your locked plan\'s ladder</strong> — the orders, units and costs in the plan document' + (when ? ', priced on ' + budEsc(when) : '') + '. It is not re-priced when gilt prices move.'
         + (cmp ? '<br><span class="hint">' + budEsc(cmp) + '</span>' : '') + '</div>';
     }
-    // The ladder plan of record, and where today sits in it. Cached per (plan document or settings, tax year) —
-    // buildGiltLadder is deterministic, so this is safe to memoise for the session.
-    let _ladderPosCache = null;
+    // The ladder plan of record, and where today sits in it. Kept in the open plan's state (planState.ladderPos: dropped on any
+    // change of plan and after every write, lead4.md R2), keyed by the plan, its document (locked) or its whole settings (draft) and the tax year.
     async function ladderPositionForPlan(settings, dateStr, extra) {
       try {
         const sid = settings.strategyId;
         const today = dateStr ? new Date(dateStr + (dateStr.length === 7 ? '-15' : '')) : new Date();
         const locked = await lockedPlanLadder(settings);
-        const key = (locked ? 'doc|' + (locked.doc.createdAt || '') : 'live') + '|' + sid + '|' + (settings.baseSalary || 0) + '|' + (settings.shapeAgeNow || 0) + '|' + (settings.firstTaxYear || 0) + '|' + (settings.duration || 0) + '|' + taxYearOf(today);
-        if (!_ladderPosCache || _ladderPosCache.key !== key) {
+        const key = String(planState.key || '') + '|' + (locked ? 'doc|' + (locked.doc.createdAt || '') : 'live|' + JSON.stringify(settings)) + '|' + taxYearOf(today);   // the plan, and every figure its draft ladder is built from (pots, cash years, State Pension…)
+        if (!planState.ladderPos || planState.ladderPos.key !== key) {
           // Locked: the document's ladder (the rebuild below is never run). Draft: built from the settings at today's prices.
           const shown = ladderForDisplay(locked ? locked.doc : null, sid, () => {
             const p = strategyPlanFor(settings);
@@ -7773,9 +7772,9 @@
             return r && r.plan;
           });
           if (!shown.plan) return null;
-          _ladderPosCache = { key, plan: shown.plan, source: shown.source };
+          planState.ladderPos = { key, plan: shown.plan, source: shown.source };
         }
-        return ladderPosition(_ladderPosCache.plan, {
+        return ladderPosition(planState.ladderPos.plan, {
           today, potsDay: potsDayOf(settings, { lockedAt: locked ? locked.doc.lockedAt : ((await getDecisionSettingsAsync().catch(() => ({}))) || {}).lockedAt, now: new Date() }),   // a first year begun before the pots' day: over twelve months (6.51.0)
           cashBalance: extra && extra.cashBalance != null ? extra.cashBalance : null,
           drawnThisYear: extra && extra.drawnThisYear != null ? extra.drawnThisYear : null, records: await getHistoryAsync({ sortDesc: false, limit: 500 }).catch(() => [])   // with nothing typed, the months recorded this tax year (7.12.0)
@@ -7843,7 +7842,7 @@
     // in a hurry. Everything is derived: the block from the plan of record (splitLadderAtAge),
     // the trigger status from the nightly equity feed. See research/rotation-plan-aug-2026.md.
     function rotationWatchHtml(planArg) {
-      const plan = planArg || (_ladderPosCache && _ladderPosCache.plan);
+      const plan = planArg || (planState.ladderPos && planState.ladderPos.plan);
       const cutAge = window._rotCutAge || 75;
       let blockLine = 'The long rungs are dry powder that earns its real yield while you hold it.';
       if (plan) {
@@ -7883,7 +7882,7 @@
       try {
         const settings = await getStressSettingsAsync();
         const cutAge = window._rotCutAge || 75;
-        const plan = _ladderPosCache && _ladderPosCache.plan;
+        const plan = planState.ladderPos && planState.ladderPos.plan;
         const blk = window._rotBlock;
         if (!plan || !blk || !blk.orders.length) { showToast('No rotation block on record — open the ladder card first.', 'error'); return; }
         const soldSet = new Set(blk.orders.map((o) => o.tidm));
@@ -7903,7 +7902,7 @@
         // The plan document records the escape too, so Transition and the rotation watch read "fired" whatever strategy is live.
         try { const doc = await getActivePlanDocument(); if (doc) await saveActivePlanDocument({ ...doc, rotation: { firedAt: bf.soldAt, borrowedFloor: bf } }); } catch (e) { /* document optional */ }
         try { await setActiveStrategyChecked('floor-to-age', { floorToAge: cutAge }); } catch (e) {}
-        invalidateStressCache(); _ladderPosCache = null;
+        invalidateStressCache(); planState.ladderPos = null;
         showToast('Plan switched to Floor to an age (' + cutAge + '). The borrowed floor is on record.', 'success');
         renderDecisionStrategyPanel();
       } catch (e) { showToast('Could not switch: ' + e.message, 'error'); }
@@ -11501,7 +11500,7 @@
     };
 
     // Current selected history entry
-    let selectedHistoryDate = null;
+    // the record chosen in History is the open plan's (planState.historyDate): another plan opens on its own latest
     let allHistoryData = [], historyTaxYears = null;   // the tax years beside the records: the delete button names what it takes (MonthFill.recordsToDelete)
 
     // Currently selected year filter for history
@@ -11630,7 +11629,7 @@
       // Render month tabs (chronological order)
       let tabsHtml = '';
       filteredHistory.forEach(h => {
-        const isActive = h.date === selectedHistoryDate;
+        const isActive = h.date === planState.historyDate;
         const classes = ['history-tab'];
         if (isActive) classes.push('active');
         if (h.inProtection) classes.push('protection');
@@ -11663,17 +11662,17 @@
       }
 
       // If no entry selected or selected entry not in filtered list, select the most recent one
-      if (!selectedHistoryDate || !filteredHistory.find(h => h.date === selectedHistoryDate)) {
-        selectedHistoryDate = filteredHistory[filteredHistory.length - 1].date;
+      if (!planState.historyDate || !filteredHistory.find(h => h.date === planState.historyDate)) {
+        planState.historyDate = filteredHistory[filteredHistory.length - 1].date;
       }
 
       // Update mobile selector value
       if (mobileSelector) {
-        mobileSelector.value = selectedHistoryDate;
+        mobileSelector.value = planState.historyDate;
       }
 
       // Render detail view for selected entry
-      renderHistoryDetail(selectedHistoryDate);
+      renderHistoryDetail(planState.historyDate);
 
       // Scroll to selected tab
       setTimeout(() => {
@@ -11687,7 +11686,7 @@
     // Filter history by year
     window.filterHistoryByYear = function(year) {
       planState.historyYear = year;
-      selectedHistoryDate = null; // Reset selection
+      planState.historyDate = null; // Reset selection
       renderHistory();
     };
 
@@ -11969,7 +11968,7 @@
 
     // Select a history entry
     window.selectHistoryEntry = function(dateStr) {
-      selectedHistoryDate = dateStr;
+      planState.historyDate = dateStr;
       renderHistoryDetail(dateStr);
 
       // Sync mobile dropdown
@@ -12054,7 +12053,7 @@
         try {
           await deleteHistoryEntriesWithIsaUpdate(entriesToDelete);
           showToast(`Deleted ${dateLabel}`, 'success');
-          selectedHistoryDate = null;
+          planState.historyDate = null;
           await renderHistory();
         } catch (error) {
           console.error('Delete error:', error);
@@ -12072,7 +12071,7 @@
         try {
           await deleteHistoryEntriesWithIsaUpdate(entriesToDelete);
           showToast(`Deleted ${entriesToDelete.length} entries`, 'success');
-          selectedHistoryDate = null;
+          planState.historyDate = null;
           await renderHistory();
         } catch (error) {
           console.error('Delete error:', error);
@@ -12111,7 +12110,7 @@
         }
 
         showToast(`Deleted all entries for ${taxYear}`, 'success');
-        selectedHistoryDate = null;
+        planState.historyDate = null;
         await renderHistory();
       } catch (error) {
         console.error('Delete error:', error);
@@ -12160,7 +12159,7 @@
         }
 
         showToast(`Deleted ${allHistory.length} entries`, 'success');
-        selectedHistoryDate = null;
+        planState.historyDate = null;
         await renderHistory();
       } catch (error) {
         console.error('Delete all error:', error);

@@ -363,3 +363,22 @@ describe('readMonthlyEntry carries the "This month\'s payment has already been m
     expect(readMonthlyEntry({ contract: false, hasDiversifiers: false }).paidAhead).toBe(false);
   });
 });
+
+describe('the entry card opened on a plan starts with the "already been made" tick off (check round 2)', () => {
+  // another plan opened after the tick was set in the plan before: its month was moved for that plan, not this one, and its
+  // record would have been marked paid ahead (readMonthlyEntry reads the tick)
+  const FORM = '<input type="month" id="entryMonth" value="2026-12"><input type="checkbox" id="entryPaidThisMonth" checked>'
+    + '<p id="entryPaidNote">Planning from December 2026: enter the balances as they are after November\'s payment.</p>'
+    + '<div id="entryPlatform"></div><div id="entryByType"><input type="number" id="entryEquity"><input type="number" id="entryBond"><input type="number" id="entryCash">'
+    + '<div id="entryDiversifierGroup"><input type="number" id="entryDiversifier" value="0"></div></div><p id="entryModeNote"></p>';
+  beforeEach(() => { document.body.innerHTML = FORM; try { localStorage.clear(); localStorage.setItem(ENTRY_MODE_KEY, 'type'); } catch (e) { /* jsdom */ } vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date(2026, 10, 3, 12)); });
+  afterEach(() => { vi.useRealTimers(); });
+  it('the tick, its note and the month it moved are those of the plan open now', async () => {
+    const { openMonthlyEntry } = await import('../src/ui/monthlyEntry.js');
+    openMonthlyEntry([{ date: '2026-10', equity: 1, bond: 1, cash: 1 }], { contract: false, hasDiversifiers: false });
+    expect(document.getElementById('entryPaidThisMonth').checked).toBe(false);
+    expect(document.getElementById('entryPaidNote').textContent).toBe('');
+    expect(document.getElementById('entryMonth').value).toBe('2026-11');
+    expect(readMonthlyEntry({ contract: false, hasDiversifiers: false }).paidAhead).toBe(false);
+  });
+});

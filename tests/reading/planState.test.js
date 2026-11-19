@@ -72,8 +72,20 @@ describe('the page\'s names are the one state', () => {
     expect(st.historyYear).toBe('all'); expect(st.taxYear).toBe(null); expect(st.budLastRemoved).toBe(null);
   });
 
+  it('nothing chosen in one plan is read in the next (fix round 2): the Overview\'s age, the History month, the paid-ahead month, the ladder worked out', () => {
+    const { bindPlanState } = require('../../src/ui/planState.js');
+    const win = {};
+    const st = bindPlanState(win, createPlanState().reset('a|1'));
+    win._cmpAge = 80; win._entryMonthBeforePaid = '2026-10'; st.historyDate = '2026-10-01'; st.ladderPos = { key: 'k', plan: {} };
+    st.reset('b|1');
+    expect(win._cmpAge).toBe(null); expect(win._entryMonthBeforePaid).toBe(null); expect(st.historyDate).toBe(null); expect(st.ladderPos).toBe(null);
+    st.ladderPos = { key: 'k', plan: {} }; st.historyDate = '2026-10-01';
+    st.dropWorked();   // a save or a record: the ladder worked out from the plan as it was goes; the month chosen in History stays
+    expect(st.ladderPos).toBe(null); expect(st.historyDate).toBe('2026-10-01');
+  });
+
   it('index.html keeps none of these as a page variable of its own', () => {
     const src = require('node:fs').readFileSync('index.html', 'utf8');
-    for (const re of [/let selectedHistoryYear\b/, /let selectedTaxYear\b/, /let _budLastRemoved\b/, /window\._stratDials = \{\}/, /window\._customAlloc = window\._customAlloc \|\| \{\}/, /window\._allocMode = window\._allocMode \|\| \{\}/, /\|\| window\._decisionAnchor/]) expect(src).not.toMatch(re);
+    for (const re of [/let selectedHistoryDate\b/, /let _ladderPosCache\b/, /^ {4}window\._entryMonthBeforePaid = null;/m, /let selectedHistoryYear\b/, /let selectedTaxYear\b/, /let _budLastRemoved\b/, /window\._stratDials = \{\}/, /window\._customAlloc = window\._customAlloc \|\| \{\}/, /window\._allocMode = window\._allocMode \|\| \{\}/, /\|\| window\._decisionAnchor/]) expect(src).not.toMatch(re);
   });
 });

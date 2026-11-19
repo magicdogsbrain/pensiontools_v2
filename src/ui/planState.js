@@ -26,11 +26,14 @@ export const PLAN_STATE_FIELDS = Object.freeze([
   // History and in Tax years, the custom split and allocation mode per surface, the Decision tool's year 0 — none of them
   // may be read for, or written into, another plan
   'stratDials', 'beAge', 'ffHorizon', 'hhLimit', 'budLastRemoved', 'budImportUndo', 'budPlusTen', 'historyYear', 'taxYear',
-  'customAlloc', 'allocMode', 'decisionAnchor'
+  'customAlloc', 'allocMode', 'decisionAnchor',
+  // the age chosen for the Strategies Overview's bars, the month chosen in History, the month a "payment already made" tick
+  // moved the entry from, and the gilt ladder worked out for the month's overlay (dropped after a write too)
+  'cmpAge', 'historyDate', 'entryMonthBeforePaid', 'ladderPos'
 ]);
 
 /** The fields worked out from the plan (dropped after a write); the rest are what is being edited. */
-const WORKED = Object.freeze(['budGuide', 'acProjection', 'acHoldingsProps', 'acMixOn', 'shapeRefs', 'oneTest', 'cmpCache', 'latestStrategyStress', 'lifeStage', 'transitionLast', 'beAge', 'ffHorizon']);
+const WORKED = Object.freeze(['budGuide', 'acProjection', 'acHoldingsProps', 'acMixOn', 'shapeRefs', 'oneTest', 'cmpCache', 'latestStrategyStress', 'lifeStage', 'transitionLast', 'beAge', 'ffHorizon', 'ladderPos']);
 
 const fresh = () => ({
   budget: null, budLoaded: false, budGuide: null, budFor: null,
@@ -39,7 +42,8 @@ const fresh = () => ({
   cmpCache: null, latestStrategyStress: null, chanceLevel: null, arrivalChecked: false,
   holdingsDraft: null, holdingsDraftFor: null, transitionLast: null, lifeStage: null, stressFormBase: null,
   stratDials: {}, beAge: null, ffHorizon: null, hhLimit: null, budLastRemoved: null, budImportUndo: null, budPlusTen: false,
-  historyYear: 'all', taxYear: null, customAlloc: {}, allocMode: {}, decisionAnchor: null
+  historyYear: 'all', taxYear: null, customAlloc: {}, allocMode: {}, decisionAnchor: null,
+  cmpAge: null, historyDate: null, entryMonthBeforePaid: null, ladderPos: null
 });
 
 /** A field's value for a plan just opened (a new object each time). */
@@ -75,7 +79,8 @@ export const PLAN_STATE_GLOBALS = Object.freeze({
   _chanceLevel: 'chanceLevel', _arrivalChecked: 'arrivalChecked', _holdingsDraft: 'holdingsDraft', _holdingsDraftFor: 'holdingsDraftFor',
   _transitionLast: 'transitionLast', _lifeStage: 'lifeStage',
   _stratDials: 'stratDials', _beAge: 'beAge', _ffHorizon: 'ffHorizon', _hhLimit: 'hhLimit', _budImportUndo: 'budImportUndo',
-  _budPlusTen: 'budPlusTen', _customAlloc: 'customAlloc', _allocMode: 'allocMode', _decisionAnchor: 'decisionAnchor'
+  _budPlusTen: 'budPlusTen', _customAlloc: 'customAlloc', _allocMode: 'allocMode', _decisionAnchor: 'decisionAnchor',
+  _cmpAge: 'cmpAge', _entryMonthBeforePaid: 'entryMonthBeforePaid'
 });
 
 /** Binds the page's names to the one state: `win._budget` is `state.budget`, and so on; nothing is kept beside it. */

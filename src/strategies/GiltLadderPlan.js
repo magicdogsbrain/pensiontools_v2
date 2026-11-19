@@ -109,10 +109,13 @@ export function buildGiltLadder(p) {
     .sort((a, b) => a.maturityDateIso.localeCompare(b.maturityDateIso));
   const cashYears = Math.max(0, p.cashYears ?? o.cashYears);
   const sedol = (isin) => (isin && isin.startsWith('GB') ? isin.slice(4, 11) : null);
-  const spIn = (age) => {
+  // The State Pension paid in a plan year that holds `share` of the tax year (its last months: year 0 from the stop month).
+  // Its first year is paid in the tax year's last months too (spFirstYearRatio of them), so a part year 0 gets only the
+  // months both hold: spAnnual × min(ratio, share). A whole year: spAnnual × ratio, as always.
+  const spIn = (age, share = 1) => {
     if (!(p.spAnnual > 0) || age < p.spStartAge) return 0;
-    if (age === p.spStartAge) return p.spAnnual * (p.spFirstYearRatio ?? 1);   // partial first year (SP starts on the birthday)
-    return p.spAnnual;
+    const ratio = age === p.spStartAge ? (p.spFirstYearRatio ?? 1) : 1;   // partial first year (SP starts on the birthday)
+    return p.spAnnual * Math.min(ratio, share);
   };
   const years = [];
   let cash = 0;
@@ -126,7 +129,7 @@ export function buildGiltLadder(p) {
     const Y = p.firstTaxYear + k - 1;
     const share = k === 1 && m0 ? m0 / 12 : 1;
     const gross = p.amountAtAge(age) * share;
-    const need = Math.max(0, p.amountAtAge(age) - spIn(age)) * share;
+    const need = Math.max(0, gross - spIn(age, share));
     const part = k === 1 && m0 ? { months: m0 } : {};
     if (k <= cashYears) { const cost = need * cashCostFactor(k, o.cashRealDrag, p.chargesPct, p.returnDragPct); cash += cost; cashYearsList.push({ Y, age, gross, need, cost, ...part }); years.push({ Y, age, gross, need, cost, from: 'cash', ...part }); continue; }
     const lo = (Y - 1) + '-04-01', hi = Y + '-03-31';

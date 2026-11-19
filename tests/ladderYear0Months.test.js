@@ -118,3 +118,31 @@ describe('the ladder buys year 0 for the months it has', () => {
     expect(before.upcoming.yearPays).toBeCloseTo(28000 * 5 / 12, 6);
   });
 });
+
+/**
+ * A State Pension that starts in the same tax year as the stop (the checker's case). Fictional: Jo stops work in November
+ * 2029 (year 0 holds November to March = 5 months) and draws £28,000 a year; a State Pension of £12,000 a year starts in
+ * that tax year. The State Pension is paid in the LAST months of the tax year, so in year 0 it pays only the months that
+ * are both in year 0 and after it starts. Worked by hand:
+ *   from January 2030 (3 of the tax year's 12 months)  paid in Nov–Mar: 12,000 × 3 ÷ 12 = 3,000
+ *                                                       need 28,000 × 5 ÷ 12 − 3,000 = 11,666.67 − 3,000 = 8,666.67
+ *                                                       (it bought (28,000 − 12,000 × 3/12) × 5/12 = 10,416.67: £1,750 too much)
+ *   from June 2029 (10 of 12)                           paid in Nov–Mar: all 5 months, 12,000 × 5 ÷ 12 = 5,000
+ *                                                       need 11,666.67 − 5,000 = 6,666.67 (it bought 7,500)
+ *   paid all year (a State Pension already started)    need (28,000 − 12,000) × 5 ÷ 12 = 6,666.67, as before
+ */
+describe('year 0 for its months when the State Pension starts in that tax year', () => {
+  const base = { todayIso: '2026-11-18', pot: 700000, startAge: 66, durationYears: 25, amountAtAge: () => 28000, spAnnual: 12000,
+    spStartAge: 66, firstTaxYear: 2029, linkers: [], cashYears: 2, firstYearMonths: 5 };
+  it('from January: £8,666.67', () => {
+    expect(buildGiltLadder({ ...base, spFirstYearRatio: 3 / 12 }).years[0].need).toBeCloseTo(8666.67, 2);
+  });
+  it('from June: £6,666.67', () => {
+    expect(buildGiltLadder({ ...base, spFirstYearRatio: 10 / 12 }).years[0].need).toBeCloseTo(6666.67, 2);
+  });
+  it('already paid: £6,666.67; the next year is whole, less the State Pension', () => {
+    const l = buildGiltLadder({ ...base, spStartAge: 65 });
+    expect(l.years[0].need).toBeCloseTo(6666.67, 2);
+    expect(l.years[1].need).toBe(16000);
+  });
+});

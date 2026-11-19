@@ -107,12 +107,15 @@ describe('the ladder buys year 0 for the months it has', () => {
     expect(part.cash).toBeLessThan(whole.cash - 16000);              // about 16,333 less cash bought
     expect(part.cash).toBeGreaterThan(whole.cash - 16500);
   });
-  it('a stored part-year ladder reads as a year\'s figures: £28,000 a year, £2,333 a month from November', () => {
+  it('a stored part-year ladder: a step of £28,000 a year, £2,333 a month from November, £11,667 in its 5 months', () => {
     const part = { years: [{ Y: 2029, age: 60, gross: 28000 * 5 / 12, need: 28000 * 5 / 12, months: 5, from: 'cash' }, { Y: 2030, age: 61, gross: 28000, need: 28000, from: 'cash' }], orders: [] };
     const lp = ladderPosition(part, { today: day(2029, 12), startsOn: '2029-11' });
     expect(lp.monthly).toBeCloseTo(28000 / 12, 6);
     expect(lp.gross).toBeCloseTo(28000, 6);
-    expect(lp.fromLadder).toBeCloseTo(28000, 6);
+    // the ladder's part is what the year's 5 months hold (28,000 × 5 ÷ 12), said beside `months`, so it and the State
+    // Pension add to the step for those months (checker round 2: a year's figure backed the State Pension out wrongly)
+    expect(lp.months).toBe(5);
+    expect(lp.fromLadder).toBeCloseTo(28000 * 5 / 12, 6);
     const before = ladderPosition(part, { today: day(2027, 1), startsOn: '2029-11' });
     expect(before.upcoming.gross).toBeCloseTo(28000, 6);
     expect(before.upcoming.yearPays).toBeCloseTo(28000 * 5 / 12, 6);
@@ -144,5 +147,51 @@ describe('year 0 for its months when the State Pension starts in that tax year',
     const l = buildGiltLadder({ ...base, spStartAge: 65 });
     expect(l.years[0].need).toBeCloseTo(6666.67, 2);
     expect(l.years[1].need).toBe(16000);
+  });
+});
+
+/**
+ * What the ladder position says of the State Pension in a part year 0 (checker round 2). The same fictional Jo: stops work
+ * in November 2029, £28,000 a year, State Pension £12,000 a year from January 2030. Worked by hand:
+ *   year 0 holds November 2029 to March 2030 = 5 months; the State Pension pays January to March = 3 months
+ *   State Pension paid in year 0      12,000 × 3 ÷ 12 = 3,000
+ *   what the ladder pays in year 0    28,000 × 5 ÷ 12 − 3,000 = 11,666.67 − 3,000 = 8,666.67
+ *   3,000 + 8,666.67 = 11,666.67, the year's income for its 5 months; the step is still £28,000 a year.
+ * It said "State Pension £7,200 + ladder £20,800": (11,666.67 − 8,666.67) × 12 ÷ 5 = 7,200, which is neither the £3,000
+ * paid in the year nor the £12,000 a year.
+ * With the State Pension from June 2029 (paid all of November to March): 12,000 × 5 ÷ 12 = 5,000; ladder 6,666.67.
+ */
+describe('a part year 0 says the State Pension it holds, not one backed out of a year', () => {
+  const base = { todayIso: '2026-11-18', pot: 700000, startAge: 66, durationYears: 25, amountAtAge: () => 28000, spAnnual: 12000,
+    spStartAge: 66, firstTaxYear: 2029, linkers: [], cashYears: 2, firstYearMonths: 5 };
+  it('the ladder year carries its State Pension: £3,000 from January, £5,000 from June', () => {
+    expect(buildGiltLadder({ ...base, spFirstYearRatio: 3 / 12 }).years[0].sp).toBeCloseTo(3000, 6);
+    expect(buildGiltLadder({ ...base, spFirstYearRatio: 10 / 12 }).years[0].sp).toBeCloseTo(5000, 6);
+    expect(buildGiltLadder({ ...base, spFirstYearRatio: 3 / 12 }).years[1].sp).toBe(12000);
+  });
+  it('before the stop: step £28,000 a year; in its 5 months State Pension £3,000 + ladder £8,666.67', () => {
+    const ladder = buildGiltLadder({ ...base, spFirstYearRatio: 3 / 12 });
+    const u = ladderPosition(ladder, { today: day(2027, 1), startsOn: '2029-11' }).upcoming;
+    expect(u.gross).toBeCloseTo(28000, 6);
+    expect(u.months).toBe(5);
+    expect(u.statePension).toBeCloseTo(3000, 6);                    // was 7,200
+    expect(u.fromLadder).toBeCloseTo(8666.67, 2);                   // was 20,800
+    expect(u.statePension + u.fromLadder).toBeCloseTo(28000 * 5 / 12, 6);
+  });
+  it('in year 0 after the stop: the same split; the next year is whole (£12,000 + £16,000, 12 months)', () => {
+    const ladder = buildGiltLadder({ ...base, spFirstYearRatio: 3 / 12 });
+    const lp = ladderPosition(ladder, { today: day(2030, 2), startsOn: '2029-11' });
+    expect(lp.months).toBe(5);
+    expect(lp.statePension).toBeCloseTo(3000, 6);
+    expect(lp.fromLadder).toBeCloseTo(8666.67, 2);
+    const next = ladderPosition(ladder, { today: day(2030, 6), startsOn: '2029-11' });
+    expect(next.months).toBe(12);
+    expect(next.statePension).toBe(12000);
+    expect(next.fromLadder).toBe(16000);
+  });
+  it('from June: State Pension £5,000 + ladder £6,666.67', () => {
+    const u = ladderPosition(buildGiltLadder({ ...base, spFirstYearRatio: 10 / 12 }), { today: day(2027, 1), startsOn: '2029-11' }).upcoming;
+    expect(u.statePension).toBeCloseTo(5000, 6);
+    expect(u.fromLadder).toBeCloseTo(6666.67, 2);
   });
 });

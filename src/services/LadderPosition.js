@@ -77,11 +77,15 @@ export function ladderPosition(plan, o = {}) {
   let phase = Y < first ? 'before' : Y > last ? 'after' : 'running';
 
   // What the ladder owes this tax year, and the monthly instruction. A first year built for part of the year (its `months`)
-  // owes that share; its gross and need are said as a year's (perYear), its month at the year's rate (rateOf below).
+  // owes that share: its income step is said as a year's (perYear), its month at the year's rate (rateOf below), and the
+  // State Pension and the ladder's part as what the year's months hold (they add to the step for those months). The State
+  // Pension is the year's own (`sp`, buildGiltLadder); a ladder stored without it: what the year's gross leaves over its need.
   const perYear = (y, v) => (y && y.months > 0 ? v * 12 / y.months : v);
+  const spOf = (y) => (y ? (Number.isFinite(+y.sp) ? +y.sp : Math.max(0, (+y.gross || 0) - (+y.need || 0))) : 0);
+  const monthsOf = (y) => (y && y.months > 0 ? y.months : 12);
   const need = cur ? cur.need : 0;
   const gross = cur ? perYear(cur, cur.gross) : 0;
-  const sp = Math.max(0, gross - perYear(cur, need));
+  const sp = spOf(cur);
   const monthsLeft = monthsLeftInTaxYear(Y, today);
   // What is still to pay: a figure typed for what was drawn, taken off the need; else the months recorded this tax year
   // before this one, each counted as a month the plan paid (the records are in pounds of their day and the need in today's
@@ -130,7 +134,7 @@ export function ladderPosition(plan, o = {}) {
   const firstPayments = startsLate ? paymentsOf(startDay) : 12;
   const upcoming = phase === 'before' ? {
     Y: firstYear.Y, label: `${firstYear.Y}/${String(firstYear.Y + 1).slice(2)}`, age: firstYear.age,
-    gross: perYear(firstYear, firstYear.gross), fromLadder: perYear(firstYear, firstYear.need), statePension: Math.max(0, perYear(firstYear, firstYear.gross - firstYear.need)),
+    gross: perYear(firstYear, firstYear.gross), months: monthsOf(firstYear), fromLadder: firstYear.need, statePension: spOf(firstYear),
     monthly: rateOf(firstYear), source: firstYear.from, startsOn: startsLate ? startDay : new Date(firstYear.Y, 3, 6),
     startsLabel: startsLate ? MONTHS[startDay.getMonth()] + ' ' + startDay.getFullYear() : '6 April ' + firstYear.Y,
     payments: firstPayments, yearPays: rateOf(firstYear) * firstPayments, startsLate,
@@ -141,7 +145,7 @@ export function ladderPosition(plan, o = {}) {
 
   return {
     taxYear: Y, taxYearLabel: `${Y}/${String(Y + 1).slice(2)}`, phase, upcoming,
-    age: cur ? cur.age : null, gross, statePension: sp, fromLadder: perYear(cur, need),
+    age: cur ? cur.age : null, gross, months: monthsOf(cur), statePension: sp, fromLadder: need,
     source: cur ? cur.from : null, sourceHeld: cur ? !!cur.held : false,
     monthsLeft, drawnThisYear: drawn, remaining, monthly,
     next: nextInfo, cashCheck,

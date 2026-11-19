@@ -129,15 +129,16 @@ export function buildGiltLadder(p) {
     const Y = p.firstTaxYear + k - 1;
     const share = k === 1 && m0 ? m0 / 12 : 1;
     const gross = p.amountAtAge(age) * share;
-    const need = Math.max(0, gross - spIn(age, share));
+    const sp = spIn(age, share);   // the State Pension this year holds (its months), carried so no reader backs it out
+    const need = Math.max(0, gross - sp);
     const part = k === 1 && m0 ? { months: m0 } : {};
-    if (k <= cashYears) { const cost = need * cashCostFactor(k, o.cashRealDrag, p.chargesPct, p.returnDragPct); cash += cost; cashYearsList.push({ Y, age, gross, need, cost, ...part }); years.push({ Y, age, gross, need, cost, from: 'cash', ...part }); continue; }
+    if (k <= cashYears) { const cost = need * cashCostFactor(k, o.cashRealDrag, p.chargesPct, p.returnDragPct); cash += cost; cashYearsList.push({ Y, age, gross, sp, need, cost, ...part }); years.push({ Y, age, gross, sp, need, cost, from: 'cash', ...part }); continue; }
     const lo = (Y - 1) + '-04-01', hi = Y + '-03-31';
     let g = il.filter((x) => x.maturityDateIso >= lo && x.maturityDateIso <= hi).pop();
     let held = false;
     if (!g) { g = il.filter((x) => x.maturityDateIso < lo).pop(); held = true; }
-    if (!g) { years.push({ Y, age, gross, need, from: 'none', ...part }); continue; }
-    years.push({ Y, age, gross, need, from: g.tidm, held, matures: g.maturityDateIso, ...part });
+    if (!g) { years.push({ Y, age, gross, sp, need, from: 'none', ...part }); continue; }
+    years.push({ Y, age, gross, sp, need, from: g.tidm, held, matures: g.maturityDateIso, ...part });
     const e = perGilt.get(g.tidm) || { g, pays: 0, taxYears: [] };
     e.pays += need; e.taxYears.push(Y); perGilt.set(g.tidm, e);
   }

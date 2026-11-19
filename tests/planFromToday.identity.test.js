@@ -184,7 +184,20 @@ function placed(obj, anchor, key, value, before = false) {
   if (!done) out[key] = value;
   return out;
 }
+/**
+ * 7.12.0 (check round 2): a ladder's year rows carry the State Pension they hold (`sp`, buildGiltLadder), which every
+ * row's need was already net of; a field, never a figure moved. The pins are read without it.
+ */
+function withoutYearSp(v) {
+  if (Array.isArray(v)) return v.map(withoutYearSp);
+  if (!isObj(v)) return v;
+  const isYear = 'Y' in v && 'gross' in v && 'need' in v && 'sp' in v;
+  const out = {};
+  for (const [k, x] of Object.entries(v)) if (!(isYear && k === 'sp')) out[k] = withoutYearSp(x);
+  return out;
+}
 function asPinned(outputs, stress, now) {
+  outputs = { ...outputs, fullGiltTest: withoutYearSp(outputs.fullGiltTest), buildPlanDocument: withoutYearSp(outputs.buildPlanDocument) };
   const p = outputs.planFromSettings;
   const t = deriveTiming(stress, now);
   const at = stress.potsAsOf;

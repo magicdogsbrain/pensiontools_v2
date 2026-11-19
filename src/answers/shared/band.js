@@ -593,6 +593,26 @@ export function leftAt({ runner, configsOf, months, toMonth, years }) {
   return out;
 }
 
+/**
+ * Never less than what comes in anyway (the lead's ruling D, 19 Nov 2026): a level whose amount is below `kAnyway` steps
+ * — what the incomes that come anyway (State Pension, final-salary, annuity) pay at the start, after tax, today's money,
+ * rounded down to £10 a month — is that amount instead, with ITS OWN chance on the same futures (the solver's run-out months
+ * at it), flagged `anyway`. It is lower only where those incomes buy less in some futures than they do today: a pension
+ * whose rises are capped (at most 5% a year) falls behind prices, and the pots pay what it no longer does. The levels at or
+ * above it are returned as they are. `levels`: levelsFromSolver's.
+ */
+export function atLeastAnyway(levels, solver, weigher, toMonth, kAnyway) {
+  if (!levels || !(kAnyway > 0) || !solver) return levels;
+  let months = null;
+  const out = {};
+  for (const [id, lv] of Object.entries(levels)) {
+    if (lv.k >= kAnyway) { out[id] = lv; continue; }
+    months = months || solver.runOutMonthsAt(kAnyway);
+    out[id] = { k: kAnyway, monthly: kAnyway * STEP, yearly: Math.round(kAnyway * STEP * 12 * 100) / 100, months, chance: chanceOf(weigher, months, toMonth), capped: false, floorHit: true, anyway: true };
+  }
+  return out;
+}
+
 export function levelsFromSolver(solver, solved, weigher, ids = LEVEL_IDS, toMonth = Infinity, reference = null, ratios = null) {
   const want = LEVEL_IDS.filter((id) => ids.includes(id));
   // the reference solver (tests: env.solver 'reference') has no solveLevels: its levels are bandReference.js's plain

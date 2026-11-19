@@ -23,7 +23,7 @@ import { simulate } from '../../services/SimulationEngine.js';
 import { validateHousehold, firstOpenAge } from '../shared/household.js';
 import { enginePlan, configsAt, breakdownAt, yearlyPlan, BANDS, ONE_NAME_SHARE } from '../shared/toEngine.js';
 import { futuresList, historyEnd, historyStartYear, priceIndexByYear, cappedIndexByYear } from '../shared/futures.js';
-import { createBandSolver, bandIndexes, STEP, levelsFromSolver, leftAt } from '../shared/band.js';
+import { createBandSolver, bandIndexes, STEP, levelsFromSolver, leftAt, atLeastAnyway } from '../shared/band.js';
 import { createFastRunner } from '../shared/fastEngine.js';
 import { livesList } from '../shared/lives.js';
 import { verdictAt, bandAt } from '../shared/stopAt.js';
@@ -539,7 +539,8 @@ function answerOnPlanPath(checked, now, env) {
   const { sp, runner, weigher, toMonth, pc } = c;
   const onProgress = typeof env.onProgress === 'function' ? env.onProgress : undefined;
   const band = bandAt(sp, runner, null, { weigher, levels: LEVEL_IDS, toMonth, onProgress });
-  const lv = band.levels;
+  // never less than what comes in anyway (the lead's ruling D): that amount, with its own chance, where a level is lower
+  const lv = atLeastAnyway(band.levels, band.solver, weigher, toMonth, pc.anywayK);
   const levels = Object.fromEntries(LEVEL_IDS.map((id) => [id, { monthly: lv[id].monthly, yearly: lv[id].yearly, weighted: lv[id].chance.weighted, fixedAge: lv[id].chance.fixedAge }]));
   const shownMonthly = lv[level].monthly;
   const H = shownMonthly * 12;
@@ -571,6 +572,9 @@ function answerOnPlanPath(checked, now, env) {
   if (typed) result.payIn = typed;
   const facts = factsOf(plan, checked, household, fullStatePensionAYear, env);
   facts.capped = Boolean(plan.capped) || c.chanceAges.horizonRule === 'capped';
+  // the amount shown is what comes in anyway because the pots would make it less (ruling D): a final-salary pension's
+  // capped rises are why, and the answer says so
+  facts.anywayCapped = Boolean(lv[level].anyway) && Boolean(ins.you.finalSalary && ins.you.finalSalary.has);
   // who moves money into drawdown before 6 April 2028: the kept plan's own (its age today from its date of birth)
   facts.drawdown2028 = before2028(c.words.people.map((p) => ({ who: p.who, age: p.ageToday, S: 0, pension: p.pension > 0 })), env.today);
   if (weigher.weighted) {

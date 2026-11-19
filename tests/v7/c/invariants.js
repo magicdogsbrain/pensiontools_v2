@@ -111,13 +111,8 @@ export function checkAnswer(answer, given) {
   const shapeAt = (q) => { const y = Array.isArray(answer.byYear) ? answer.byYear.find((r) => r.age === q.ages.you.from) : null; return y ? y.spend : null; };
   if (answer.status === 'ok' && ph && ph.length && !answer.apart) {
     const gap = ph[0].takeHome - shown.monthly;
-    // (7.12.0, the plan path: the kept plan's yearly step is its before-tax figure to the pound, so a take-home the pensions
-    // alone only just reach can ask the pots for pennies a year, and a pot of a pound or two then gives one £10 step less)
-    // (and a final-salary pension rises with prices only up to 5% a year in the kept plan, the rule it stores (the lead's
-    // ruling 5): in the futures where prices rise faster it falls behind, and the pots pay what it no longer does, so the
-    // headline can be below the first phase's take-home when the pots are small beside it)
-    const fsCapped = [answer.inputs.you, answer.inputs.partner].some((p) => p && p.finalSalary && p.finalSalary.has);
-    if (Math.abs(gap) > 0.005 && !(gap > 0 && gap < 20 && ph[0].fromPots <= 0.005) && !(gap > 0 && fsCapped)) fail('I5', `the level's monthly ${shown.monthly} ≠ phases[0].takeHome ${ph[0].takeHome}`);
+    // (on the plan path a level is never below what comes in anyway: the lead's ruling D, band.js atLeastAnyway)
+    if (Math.abs(gap) > 0.005 && !(gap > 0 && gap < 10 && ph[0].fromPots <= 0.005)) fail('I5', `the level's monthly ${shown.monthly} ≠ phases[0].takeHome ${ph[0].takeHome}`);
     for (let i = 1; i < ph.length; i++) {
       const floor = answer.byYear ? shapeAt(ph[i]) : ph[0].takeHome;
       if (floor === null) fail('I5', `phase ${i} has no year of its own in byYear`);

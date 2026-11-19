@@ -35,6 +35,7 @@
 import { SCHEMA_D, spendOf, FALL_SHARE } from './schema.js';
 import { checkInputs, defaults, flatten } from '../shared/validate.js';
 import { RULES, drawYearsCap } from '../shared/rules.js';
+import { atLeastAnyway } from '../shared/band.js';
 import { VERSION } from '../../constants.js';
 import { validateHousehold, firstOpenAge } from '../shared/household.js';
 import { historyEnd, historyStartYear } from '../shared/futures.js';
@@ -96,7 +97,9 @@ function caseOf(ins, env, lives, stopAge, spendAYear, { band = true, levels = [l
   const c = stopCaseOf(ins, env, lives, stopAge);
   const { sp, runner, weigher, toMonth } = c;
   const verdict = verdictAt(sp, runner, spendAYear, { weigher, level: levelOfInputs(ins), toMonth });
-  return { ...c, verdict, band: band ? bandAt(sp, runner, null, { weigher, levels, toMonth }) : null };
+  const b = band ? bandAt(sp, runner, null, { weigher, levels, toMonth }) : null;
+  // on the plan path a level is never less than what comes in anyway (the lead's ruling D, as How much can I take)
+  return { ...c, verdict, band: b && c.pc ? { ...b, levels: atLeastAnyway(b.levels, b.solver, weigher, toMonth, c.pc.anywayK) } : b };
 }
 
 /**

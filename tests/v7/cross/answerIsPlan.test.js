@@ -249,6 +249,28 @@ describe('D and C from now: the words are the kept plan\'s (one reader of its in
   });
 });
 
+describe('How much can I take never offers less than what comes in anyway (the lead\'s ruling D)', () => {
+  // Kim (made up), 68, a final-salary pension of £30,000 a year and the full State Pension (£12,547.60) both being paid:
+  // £42,547.60 a year before tax, £29,977.60 of it above the £12,570 allowance at 20% = £5,995.52 tax, £36,552.08 a year
+  // after tax = £3,046.01 a month, said in whole £10s: £3,040. Before, with £1 in a pension, every level was below it
+  // (careful £2,160, balanced £2,310, bold £2,620 at 40 futures): the kept plan's final-salary pension rises by at most 5%
+  // a year, falls behind prices in some futures, and the pots (£1) could not make up the gap.
+  for (const pot of [1, 10000]) {
+    it(`£${pot} in a pension: each level is at least £3,040, with the kept plan's own chance at it, and says why`, () => {
+      const KIM = { you: { age: 68, pot, finalSalary: { has: true, yearly: 30000, fromAge: 60 } } };
+      const c = answerC(KIM, ENV);
+      for (const id of ['careful', 'balanced', 'bold']) expect(c.levels[id].monthly, id).toBeGreaterThanOrEqual(3040);
+      expect(c.levels.balanced.monthly).toBe(3040);
+      // its own chance: the plan kept at £3,040 says the same weighted chance and count
+      const plan = planReading(keptPlansOf('c', c, ENV).yours);
+      expect({ weighted: c.levels.balanced.weighted, lasted: Math.round(c.levels.balanced.fixedAge * N) }).toEqual({ weighted: plan.weighted, lasted: plan.lasted });
+      expect(c.warnings.find((w) => w.id === 'final-salary-capped').text).toBe('Your pension from your final-salary scheme rises by at most 5% a year; in years when prices rise faster it buys less.');
+      // the first phase is what comes in anyway (the pots add nothing), within the £10 the amount is rounded down by
+      expect(c.phases[0].takeHome).toBe(3046.01);
+    });
+  }
+});
+
 /** The households of the C, A and B checks (made up). */
 const ALEX = { you: { pot: 250000, age: 58 } };
 const SAM = { household: 'single', you: { age: 45, pot: 60000, statePension: { kind: 'full' }, finalSalary: { has: false }, payIn: { kind: 'split', own: 500, employer: 300 } },

@@ -390,6 +390,8 @@ export function planCaseOf(source, ins, env, { lives = null, dragPct = 0, fromAg
     level: planLevelOf(first.kept), capped: plan.runCapped, reason,
     keptAt: (H) => at(H).kept, settingsAt: (H) => at(H).settings,
     floorAgeOf, worstAgeOf, leftOf, leftTermsOf, shortfallAt,
-    get wordsPlan() { return wordsPlan(); }
+    get wordsPlan() { return wordsPlan(); },
+    // what comes in anyway at the start, a month after tax at today's prices, in whole £10 steps (band.js atLeastAnyway)
+    get anywayK() { return Math.floor(wordsPlan().periods[0].netTotal / 12 / STEP + 1e-9); }
   };
 }

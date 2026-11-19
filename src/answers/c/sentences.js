@@ -845,6 +845,11 @@ export function warningsFor(result, facts) {
     else parts.push(' These figures start from when you are ', A('phases.0.ages.you.from'), '.');
     warn('pension-locked' + (you ? '' : '-partner'), 'important', parts);
   }
+  // the amount is what comes in anyway, the pots making it no more (the lead's ruling D): why, when a final-salary pension's
+  // rises are capped
+  if (facts.anywayCapped) {
+    warn('final-salary-capped', 'note', ['Your pension from your final-salary scheme rises by at most ', F('5'), '% a year; in years when prices rise faster it buys less.']);
+  }
   if (facts.startMoved && facts.lockedSavingsMonths > 0) {
     warn('savings-cover-gap', 'note', ['Your other savings would cover about ', F(facts.lockedSavingsMonths), facts.lockedSavingsMonths === 1 ? ' month' : ' months', ' at this level before then.']);
   }

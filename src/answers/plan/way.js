@@ -253,12 +253,13 @@ export function cardsOf(reading, W) {
       needsRun, tried: t ? { status: t.status, reason: t.reason || null, runs: t.result && t.result.basis ? t.result.basis.runs : 1, ms: t.ms == null ? null : t.ms } : null,
       table: tableRow(shownResult), compare,
       // a locked ladder's own way, read from its plan document (waysRun.lockedOwnOf): the day it was locked, said once
-      asLocked: shownResult && shownResult === ran && ran.asLocked ? ran.asLocked : null,
-      // what a bought way was priced on (the one market): the ways run's stamp, in the one label both views draw
-      market: isBought(id) && result && result.market && !(shownResult && shownResult === ran && ran.asLocked) ? marketLabel(result.market) : null
+      asLocked: shownResult && shownResult === ran && ran.asLocked ? ran.asLocked : null
     };
   });
-  return { found: true, cards, current, open, rankBy, ran: mine && w.ran ? w.ran : null, has: !!result };
+  // what the bought ways were priced on (the one market, src/reading/market.js): once under the list, in the one label both
+  // views draw (the full view's under its table of the ways), when a bought way is there to be priced
+  const market = result && result.market && cards.some((c) => c.bought && c.affordable && !c.asLocked) ? marketLabel(result.market) : null;
+  return { found: true, cards, current, open, rankBy, ran: mine && w.ran ? w.ran : null, has: !!result, market };
 }
 
 // ---- the write (2.4) -----------------------------------------------------------------------------------------------------------

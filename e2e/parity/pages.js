@@ -41,8 +41,8 @@ export const FULL_PAGES = Object.freeze([
   { name: 'plan document', tab: 'decision', sub: 'plandoc', openFolds: '#planDocumentPage' },
   { name: 'tax years', tab: 'decision', sub: 'taxyears' },
   { name: 'decision settings', tab: 'decision', sub: 'decisionsettings' },
-  // "Am I on course?" is worked out on a press in the full view ("Work it out"), on open in the simple view (lead4.md D24)
-  { name: 'accumulation', tab: 'accumulation', press: 'button[data-on-click="runOnTrackCheck()"]' },
+  // "Am I on course?" is worked out when the tab opens, in the worker, as in the simple view (lead4.md R6; step M): no press
+  { name: 'accumulation', tab: 'accumulation' },
   { name: 'transition', tab: 'transition' },
   { name: 'household', tab: 'household' }
 ]);

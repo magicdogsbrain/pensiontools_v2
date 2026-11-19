@@ -152,7 +152,8 @@ export function createWorkerClient({ makeWorker = defaultMakeWorker, market = pa
     if (!ensure()) return Promise.reject(refusal());
     return new Promise((resolve, reject) => {
       const id = nextId++;
-      const msg = { id, type: q, plan: cloneSafe(plan), env: cloneSafe(env), ...(extra ? cloneSafe(extra) : {}) };
+      // every plan run names the market folder itself: a run may be asked before the worker has been told the date (init)
+      const msg = { id, type: q, plan: cloneSafe(plan), env: cloneSafe(env), market: market(), ...(extra ? cloneSafe(extra) : {}) };
       pending.set(id, { kind: 'answer', q, msg, resolve, reject, onProgress });
       if (!post(msg)) {
         pending.delete(id);
@@ -196,7 +197,7 @@ export function createWorkerClient({ makeWorker = defaultMakeWorker, market = pa
       if (!ensure()) return Promise.reject(refusal());
       return new Promise((resolve, reject) => {
         const id = nextId++;
-        const msg = { id, type: 'lasts', plan: cloneSafe(plan), env: cloneSafe(env) };
+        const msg = { id, type: 'lasts', plan: cloneSafe(plan), env: cloneSafe(env), market: market() };
         pending.set(id, { kind: 'answer', q: 'lasts', msg, resolve, reject, onProgress });
         if (!post(msg)) {
           pending.delete(id);
@@ -214,7 +215,7 @@ export function createWorkerClient({ makeWorker = defaultMakeWorker, market = pa
       if (!ensure()) return Promise.reject(refusal());
       return new Promise((resolve, reject) => {
         const id = nextId++;
-        const msg = { id, type: 'document', plan: cloneSafe(plan), env: cloneSafe(env) };
+        const msg = { id, type: 'document', plan: cloneSafe(plan), env: cloneSafe(env), market: market() };
         pending.set(id, { kind: 'answer', q: 'document', msg, resolve, reject, onProgress });
         if (!post(msg)) {
           pending.delete(id);
@@ -232,7 +233,7 @@ export function createWorkerClient({ makeWorker = defaultMakeWorker, market = pa
       if (!ensure()) return Promise.reject(refusal());
       return new Promise((resolve, reject) => {
         const id = nextId++;
-        const msg = { id, type: 'lever', plan: cloneSafe(plan), env: cloneSafe(env) };
+        const msg = { id, type: 'lever', plan: cloneSafe(plan), env: cloneSafe(env), market: market() };
         pending.set(id, { kind: 'answer', q: 'lever', msg, resolve, reject, onProgress });
         if (!post(msg)) {
           pending.delete(id);
@@ -250,7 +251,7 @@ export function createWorkerClient({ makeWorker = defaultMakeWorker, market = pa
       if (!ensure()) return Promise.reject(refusal());
       return new Promise((resolve, reject) => {
         const id = nextId++;
-        const msg = { id, type: 'ways', plan: cloneSafe(plan), env: cloneSafe(env) };
+        const msg = { id, type: 'ways', plan: cloneSafe(plan), env: cloneSafe(env), market: market() };
         pending.set(id, { kind: 'answer', q: 'ways', msg, resolve, reject, onProgress });
         if (!post(msg)) {
           pending.delete(id);
@@ -262,7 +263,7 @@ export function createWorkerClient({ makeWorker = defaultMakeWorker, market = pa
       if (!ensure()) return Promise.reject(refusal());
       return new Promise((resolve, reject) => {
         const id = nextId++;
-        const msg = { id, type: 'way', plan: cloneSafe(plan), env: cloneSafe(env) };
+        const msg = { id, type: 'way', plan: cloneSafe(plan), env: cloneSafe(env), market: market() };
         pending.set(id, { kind: 'answer', q: 'way', msg, resolve, reject, onProgress });
         if (!post(msg)) {
           pending.delete(id);

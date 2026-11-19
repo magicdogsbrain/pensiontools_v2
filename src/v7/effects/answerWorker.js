@@ -6,6 +6,7 @@
  *
  *   page → worker                                   worker → page
  *   { id, type: 'init', today, market }             { id, ready: true, historyEnd, engineVersion }
+ *   (every plan run's message carries `market` too, the folder, as a run can be asked before `init`)
  *   { id, type: 'answer', q: 'c', inputs, env }     { id, progress: { done, total } } …  then  { id, result }  or  { id, error }
  *   { id, type: 'lasts', plan, env: { today } }     the same shape: a saved plan's one test (answers/plan/lastsRun.js, loaded lazily)
  *   { id, type: 'document', plan, env: { today, essentials } }
@@ -98,7 +99,7 @@ export function createHandler(answers = ANSWERS, { lasts = null, document = null
     const env = { ...(msg.env || {}) };
     if (!env.today && today) env.today = today;
     // the one market, as the full view's worker loads it (a test's fakes run without it)
-    await loadMarketFor(folder);
+    await loadMarketFor(typeof msg.market === 'string' && msg.market ? msg.market : folder);
     let lastStep = -1;
     const onProgress = (done, total) => {
       const step = total > 0 ? Math.floor((done * PROGRESS_STEPS) / total) : 0;

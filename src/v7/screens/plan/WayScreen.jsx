@@ -121,7 +121,6 @@ function Card({ card, V, planId, dispatch, held = false }) {
           {card.compare && <p class="note" data-testid="plan.way.compare">{fill(WAY.card.compare, { ...card.compare.slots, docWay: name(card.compare.slots.docWay), way: name(card.compare.slots.way) })}</p>}
           {card.family && <p class="note"><span data-line="way.mix">{WAY.card.mix}</span> <a href={href.plan(planId, 'mix')} data-testid={`plan.way.${id}.mixLink`}>{WAY.card.mixLink}</a></p>}
           {id === 'buckets-in-order' && <p class="note" data-line="way.noTent">{WAY.card.noTent}</p>}
-          {card.bought && card.affordable && card.market && <p class="note" data-line="way.market"><Fact id="market.gilts">{card.market}</Fact></p>}
           <Dials card={card} locked={V.locked} dispatch={dispatch} />
           {t && t.status === 'working' && <p class="working-note" role="status" data-testid={`plan.way.${id}.trying`}>{WAY.working.one}</p>}
           {t && t.status === 'failed' && <p class="notice" role="alert" data-testid={`plan.way.${id}.tryFailed`}>{t.reason === 'noWorker' ? WAY.failed.noWorker : WAY.failed.one}</p>}
@@ -276,6 +275,7 @@ export function WayScreen(state, dispatch) {
             </div>
           )}
           {V.has && !held && V.ran && <p class="plan-source" data-testid="plan.way.ran">{fill(WAY.ran.nine, { s: seconds(V.ran.ms) })}</p>}
+          {V.has && !held && V.market && <p class="note" data-line="way.market"><Fact id="market.gilts">{V.market}</Fact></p>}
         </section>
         {yours && (
           <section class="plan-section way-yours" data-section="yours">

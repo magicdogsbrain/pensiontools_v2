@@ -4147,8 +4147,7 @@
               "tried": null,
               "table": null,
               "compare": null,
-              "asLocked": null,
-              "market": null
+              "asLocked": null
             },
             {
               "id": "buckets-in-order",
@@ -4224,8 +4223,7 @@
               "tried": null,
               "table": null,
               "compare": null,
-              "asLocked": null,
-              "market": null
+              "asLocked": null
             },
             {
               "id": "ladder-and-ratchet",
@@ -4301,8 +4299,7 @@
               "tried": null,
               "table": null,
               "compare": null,
-              "asLocked": null,
-              "market": "Gilts priced at the prices of 12 November 2026 (the copy built into the site: the day’s file could not be read)."
+              "asLocked": null
             },
             {
               "id": "bridge-and-engine",
@@ -4351,8 +4348,7 @@
               "tried": null,
               "table": null,
               "compare": null,
-              "asLocked": null,
-              "market": "Gilts priced at the prices of 12 November 2026 (the copy built into the site: the day’s file could not be read)."
+              "asLocked": null
             },
             {
               "id": "floor-and-flex",
@@ -4444,8 +4440,7 @@
               "tried": null,
               "table": null,
               "compare": null,
-              "asLocked": null,
-              "market": "Gilts priced at the prices of 12 November 2026 (the copy built into the site: the day’s file could not be read)."
+              "asLocked": null
             },
             {
               "id": "floor-the-schedule",
@@ -4468,8 +4463,7 @@
               "tried": null,
               "table": null,
               "compare": null,
-              "asLocked": null,
-              "market": "Gilts priced at the prices of 12 November 2026 (the copy built into the site: the day’s file could not be read)."
+              "asLocked": null
             },
             {
               "id": "floor-to-age",
@@ -4506,8 +4500,7 @@
               "tried": null,
               "table": null,
               "compare": null,
-              "asLocked": null,
-              "market": "Gilts priced at the prices of 12 November 2026 (the copy built into the site: the day’s file could not be read)."
+              "asLocked": null
             },
             {
               "id": "full-il-gilt",
@@ -4559,8 +4552,7 @@
               "tried": null,
               "table": null,
               "compare": null,
-              "asLocked": null,
-              "market": "Gilts priced at the prices of 12 November 2026 (the copy built into the site: the day’s file could not be read)."
+              "asLocked": null
             },
             {
               "id": "gilt-rotation",
@@ -4648,15 +4640,15 @@
               "tried": null,
               "table": null,
               "compare": null,
-              "asLocked": null,
-              "market": "Gilts priced at the prices of 12 November 2026 (the copy built into the site: the day’s file could not be read)."
+              "asLocked": null
             }
           ],
           "current": "pots-and-valves",
           "open": "pots-and-valves",
           "rankBy": "lasts",
           "ran": null,
-          "has": false
+          "has": false,
+          "market": null
         }
       }
     }

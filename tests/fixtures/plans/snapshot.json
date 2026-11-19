@@ -35,13 +35,13 @@
     "ruinHist": 44.96,
     "ruinMc": 34.4,
     "coverage": 93.64,
-    "worst12Min": 0,
+    "worst12Min": 12000,
     "worst12Median": 24000,
     "terminalP10": 0,
     "terminalP50": 37464,
     "terminalP90": 815303,
     "spentMedian": 1038001,
-    "guaranteedToAge": "State Pension only (from age 69, assumed — none entered)",
+    "guaranteedToAge": "State Pension (from age 69, assumed — none entered)",
     "cone": {
      "years": [
       0,
@@ -117,7 +117,7 @@
     "terminalP50": 623839,
     "terminalP90": 2922127,
     "spentMedian": 1123033,
-    "guaranteedToAge": "State Pension only (from age 67)",
+    "guaranteedToAge": "State Pension (from age 67)",
     "cone": {
      "years": [
       0,
@@ -293,7 +293,7 @@
     "terminalP50": 968682,
     "terminalP90": 3967896,
     "spentMedian": 928500,
-    "guaranteedToAge": "State Pension only (from age 67)",
+    "guaranteedToAge": "State Pension (from age 67)",
     "cone": {
      "years": [
       0,
@@ -373,13 +373,13 @@
     "ruinHist": 0.99,
     "ruinMc": 5.1,
     "coverage": 99.11,
-    "worst12Min": 0,
+    "worst12Min": 11973,
     "worst12Median": 28800,
     "terminalP10": 67975,
     "terminalP50": 751621,
     "terminalP90": 3361233,
     "spentMedian": 1147307,
-    "guaranteedToAge": "State Pension only (from age 68)",
+    "guaranteedToAge": "State Pension (from age 68)",
     "cone": {
      "years": [
       0,
@@ -457,7 +457,7 @@
     "terminalP50": 1251232,
     "terminalP90": 5434550,
     "spentMedian": 1231098,
-    "guaranteedToAge": "State Pension only (from age 67, assumed — none entered)",
+    "guaranteedToAge": "State Pension (from age 67, assumed — none entered)",
     "cone": {
      "years": [
       0,
@@ -611,7 +611,7 @@
     "terminalP50": 371522,
     "terminalP90": 1313119,
     "spentMedian": 794846,
-    "guaranteedToAge": "State Pension only (from age 67, assumed — none entered)",
+    "guaranteedToAge": "State Pension (from age 67, assumed — none entered)",
     "cone": {
      "years": [
       0,
@@ -681,13 +681,13 @@
     "ruinHist": 7.27,
     "ruinMc": 6.8,
     "coverage": 99.06,
-    "worst12Min": 0,
+    "worst12Min": 10317,
     "worst12Median": 21263,
     "terminalP10": 16345,
     "terminalP50": 203684,
     "terminalP90": 1083032,
     "spentMedian": 764421,
-    "guaranteedToAge": "State Pension only (from age 67)",
+    "guaranteedToAge": "State Pension (from age 67)",
     "cone": {
      "years": [
       0,
@@ -763,7 +763,7 @@
     "terminalP50": 416180,
     "terminalP90": 1580134,
     "spentMedian": 591150,
-    "guaranteedToAge": "State Pension only (from age 67)",
+    "guaranteedToAge": "State Pension (from age 67)",
     "cone": {
      "years": [
       0,
@@ -839,7 +839,7 @@
     "terminalP50": 1287917,
     "terminalP90": 7645841,
     "spentMedian": 1597000,
-    "guaranteedToAge": "State Pension only (from age 67, assumed — none entered)",
+    "guaranteedToAge": "State Pension (from age 67, assumed — none entered)",
     "cone": {
      "years": [
       0,
@@ -915,7 +915,7 @@
     "terminalP50": 686658,
     "terminalP90": 2342192,
     "spentMedian": 1422467,
-    "guaranteedToAge": "State Pension only (from age 67)",
+    "guaranteedToAge": "State Pension (from age 67), final-salary pension £9,400 a year (from age 65), Rental flat £7,200 a year (from age 60 to age 74), Part-time consulting £12,000 a year (from age 60 to age 63) and other income £1,200 a year",
     "cone": {
      "years": [
       0,
@@ -1094,7 +1094,7 @@
     "terminalP50": 348140,
     "terminalP90": 1148485,
     "spentMedian": 708482,
-    "guaranteedToAge": "State Pension only (from age 67)",
+    "guaranteedToAge": "State Pension (from age 67)",
     "cone": {
      "years": [
       0,
@@ -1170,7 +1170,7 @@
     "terminalP50": 484094,
     "terminalP90": 1466227,
     "spentMedian": 635588,
-    "guaranteedToAge": "State Pension only (from age 67)",
+    "guaranteedToAge": "State Pension (from age 67)",
     "cone": {
      "years": [
       0,
@@ -1254,13 +1254,13 @@
     "ruinHist": 0.42,
     "ruinMc": 3.1,
     "coverage": 99.52,
-    "worst12Min": 0,
+    "worst12Min": 11825,
     "worst12Median": 15256,
     "terminalP10": 52405,
     "terminalP50": 213412,
     "terminalP90": 742392,
     "spentMedian": 617438,
-    "guaranteedToAge": "State Pension only (from age 67)",
+    "guaranteedToAge": "State Pension (from age 67)",
     "cone": {
      "years": [
       0,
@@ -1336,7 +1336,7 @@
     "terminalP50": 605380,
     "terminalP90": 1787243,
     "spentMedian": 522135,
-    "guaranteedToAge": "State Pension only (from age 67)",
+    "guaranteedToAge": "State Pension (from age 67)",
     "cone": {
      "years": [
       0,

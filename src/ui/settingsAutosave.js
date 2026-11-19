@@ -316,9 +316,14 @@ export function installStressSettingsAutosave(win, doc, deps) {
     }),
     kindOf: stressKindOf,
     extraProblems: () => {
+      const out = [];
       const words = deps.dbStartError ? deps.dbStartError() : null;
       const el = doc.getElementById('ssDbStartAge');
-      return words && el ? [{ el, words, blocks: true }] : [];
+      if (words && el) out.push({ el, words, blocks: true });
+      const endWords = deps.endAgeError ? deps.endAgeError() : null;   // "Plan to age" (src/ui/endAgeBox.js)
+      const endEl = doc.getElementById('ssEndAge');
+      if (endWords && endEl) out.push({ el: endEl, words: endWords, blocks: true });
+      return out;
     },
     notAPress: '#ssSaveBtn, #ssLockBtn, #ssLockBanner, #tmLockedStart',
     canSave: async () => !!deps.isLoggedIn() && !(await deps.planIsLocked()),

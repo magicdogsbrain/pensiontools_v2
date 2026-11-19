@@ -18,6 +18,11 @@
  *     box empty, never a default pot). A plan already drawing shows its own pots, which its runs start from (today: false).
  *     Null for a locked plan (its pots are the lock's) and a plan whose pots a funds list sets (no box is drawn).
  *
+ *   isaBoxOf(plan, ctx) → null | { value, today }
+ *     what the ISA box (field pots.isa) holds in both views, by the pension box's rule: a saver's plan not locked shows the
+ *     ISA today (isaToday: a record, What you hold or the plan's own); a plan already drawing its own ISA (what its runs start
+ *     from); null for a locked plan. Its write is the plan's ISA plus PensionToday.isaTodayPatch.
+ *
  * Pure (the plan's settings are read once, by PlanReading, on ctx.now).
  */
 import { pensionTodayOf, isaTodayOf } from '../services/PensionToday.js';
@@ -77,4 +82,12 @@ export function pensionBoxOf(plan, ctx = {}) {
     }
   }
   return { value: own, today: false, pots: potsOf(ss) };
+}
+
+export function isaBoxOf(plan, ctx = {}) {
+  if (!plan || isLocked(plan)) return null;
+  const ss = settingsOf(plan, ctx);
+  if (!isObj(ss) || ss.readFault) return null;
+  if (ss.retired === false) return { value: Math.round(isaToday(plan, { ...ctx, settings: ss }).value), today: true };
+  return { value: Math.round(Math.max(0, num(ss.isaBalance) || 0)), today: false };
 }

@@ -20,6 +20,7 @@
  *   pensionTodayPatch(plan, value, { now, settings }) → the paths one write sets so the pot typed is the one read next:
  *     the saving settings with `potNow`, and this month's pot record (any ISA and other savings already recorded this month
  *     kept). An unchanged figure writes nothing.
+ *   isaTodayPatch(plan, value, { now, history }) → the write that makes `value` the ISA today read next (step F1)
  *
  * Pure: no storage, no clock (the caller hands in `now`).
  */
@@ -127,6 +128,30 @@ export function pensionTodayPatch(plan, value, { now = new Date(), settings = nu
   const rec = { date: month, sipp: v, isa, gia, total: v + (+isa || 0) + gia, recordedAt: now.toISOString(), ...(old && old.isaEntered ? { isaEntered: true } : {}) };
   out['accumulationTool.history'] = hist.filter((r) => r.date !== month).concat([rec]).sort((a, b) => String(a.date).localeCompare(String(b.date))).slice(-RECORDS_KEPT);
   return out;
+}
+
+/**
+ * The write that makes `value` the ISA today (lead4.md D3, R3; step F1), beside the plan's own ISA (`isaBalance`, which the
+ * caller writes): when the ISA today is read from a pot record or the ISA lines under What you hold, this month's pot record
+ * carries the ISA typed (the pension in it kept, or the pension today when the month has no record yet), so the next read is
+ * the figure typed. `history` is the record list another write in the same save leaves (pensionTodayPatch's), else the plan's.
+ * {} when the figure read is already it, when it is read from the plan's own ISA, or when no pension today is known.
+ */
+export function isaTodayPatch(plan, value, { now = new Date(), history = null } = {}) {
+  const v = figureOrNull(value);
+  if (v == null || v < 0) return {};
+  const acc = plan && isObj(plan.accumulationTool) ? plan.accumulationTool : {};
+  const hist = (Array.isArray(history) ? history : Array.isArray(acc.history) ? acc.history : []).filter(isObj);
+  const next = { ...(plan || {}), accumulationTool: { ...acc, history: hist } };
+  const read = isaTodayOf(next, { now });
+  if (read.value === v || read.from === 'plan') return {};
+  const month = monthKey(now);
+  const old = hist.find((r) => r.date === month) || null;
+  const pension = old && isNum(+old.sipp) && old.sipp != null ? +old.sipp : pensionTodayOf(next, { now }).value;
+  if (!isNum(pension)) return {};
+  const gia = old ? +old.gia || 0 : 0;
+  const rec = { date: month, sipp: pension, isa: v, gia, total: pension + v + gia, recordedAt: now.toISOString(), isaEntered: true };
+  return { 'accumulationTool.history': hist.filter((r) => r.date !== month).concat([rec]).sort((a, b) => String(a.date).localeCompare(String(b.date))).slice(-RECORDS_KEPT) };
 }
 
 /** Where a saving path's pension today came from, in the words a plan document keeps (SavingPath potSource). */

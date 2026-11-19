@@ -26,8 +26,8 @@ export const FIELDS = Object.freeze([
   F('about.stopAge', S + 'retireAge', ['about', 'stopAge'], ['tmRetireAge', 'acRetireAge']),
   F('about.stopMonth', S + 'stoppedWork', ['about', 'stopMonth'], ['tmStopMonth']),
   F('about.startWhen', S + 'firstTaxYear', ['about', 'startWhen'], ['tmStartYear']),
-  // the simple view asks the age the plan ends, the full view the years it runs (the same stored figure, two quantities)
-  F('about.endAge', S + 'duration', ['about', 'endAge'], ['ssDuration']),
+  // both views ask the age the plan runs to (the stored length follows it: the full view's hidden #ssDuration)
+  F('about.endAge', S + 'duration', ['about', 'endAge'], ['ssEndAge']),
   // Pots and tax (1b)
   F('pots.pension', S + 'equityMin…', ['pots', 'pension'], ['ssPot']),
   F('pots.isa', S + 'isaBalance', ['pots', 'isa'], ['ssIsaBalance']),

@@ -49,7 +49,8 @@ import { OPEN_PLAN_KEY } from '../services/OpenPlace.js';
 import { copyOf as planCopyOf } from '../services/PlanCopy.js';
 import { withoutPotsAsOf } from '../services/PlanFromToday.js';
 import { isClosedPlan, monthRefusal, monthRefusalWords, nextPlanIdOf } from '../services/PlanClosed.js';
-import { pensionTodayPatch } from '../services/PensionToday.js';
+import { pensionTodayPatch, isaTodayPatch } from '../services/PensionToday.js';
+import { isaBoxOf } from '../reading/money.js';
 import { partnerOf } from '../services/HouseholdLink.js';
 import { withV7Keys } from '../services/SaverPayIn.js';
 
@@ -1011,6 +1012,26 @@ export async function saveActivePensionToday(value, { now = new Date() } = {}) {
   const plan = upgradeScenario(JSON.parse(JSON.stringify(stored)), { now }).scenario;
   if (isLockedSettings(plan.decisionTool && plan.decisionTool.settings)) return { written: false };
   const patch = pensionTodayPatch(plan, value, { now });
+  if (!Object.keys(patch).length) return { written: false };
+  await saveScenario(active.id, patch);
+  invalidateScenarioCache();
+  return { written: true };
+}
+
+/**
+ * The ISA typed in the full view's ISA box (field pots.isa) made the ISA today every page reads (step F1, lead4.md D3): on a
+ * saver's plan not locked whose ISA today is read from a record or What you hold, this month's record carries it
+ * (PensionToday.isaTodayPatch), as the simple view's pots page writes it. The plan's own ISA is written by the form's save.
+ */
+export async function saveActiveIsaToday(value, { now = new Date() } = {}) {
+  const active = await getActiveScenarioAsync();
+  if (!active) throw new Error('No active scenario');
+  const stored = (await loadScenario(active.id)) || active;
+  const plan = upgradeScenario(JSON.parse(JSON.stringify(stored)), { now }).scenario;
+  if (isLockedSettings(plan.decisionTool && plan.decisionTool.settings)) return { written: false };
+  const box = isaBoxOf(plan, { now });
+  if (!box || !box.today) return { written: false };
+  const patch = isaTodayPatch(plan, value, { now });
   if (!Object.keys(patch).length) return { written: false };
   await saveScenario(active.id, patch);
   invalidateScenarioCache();

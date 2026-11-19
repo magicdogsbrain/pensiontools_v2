@@ -71,8 +71,8 @@ export const REGISTRY = Object.freeze([
   box(4, 'about.stopMonth', 'retired-everything', '2026-06', 'about', STRESS, { canon: { simple: monthOf, full: monthOf } }),
   // the start year between a stop two years ago and this one (the stop moved first, in the same view)
   box(5, 'about.startWhen', 'retired-everything', { simple: 'y2025', full: '2025' }, 'about', STRESS, { group: 'about-start', prep: { simple: [['about.stopMonth', '2024-06']], full: [['about.stopMonth', '2024-06']] }, canon: { simple: startYearOf } }),
-  // the simple view asks an age, the full view the years from the plan's start (two quantities for one stored figure)
-  box(6, 'about.endAge', 'saver-draft', { simple: '97', full: '36' }, 'about', STRESS, { group: 'about-end' }),
+  // both views ask the age the plan runs to (step F1: the full view's box was the years from the plan's start)
+  box(6, 'about.endAge', 'saver-draft', '97', 'about', STRESS, { group: 'about-end' }),
   action(7, 'about.suggestEnd', 'about', STRESS, { why: 'fills the end age box; nothing of its own is saved in either view' }),
   action(8, 'about.staleDraft', 'about', STRESS, { why: '"Leave it" / "Update the plan": a press on an out-of-date draft' }),
   // 1b Pots and tax

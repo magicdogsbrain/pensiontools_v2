@@ -22,8 +22,8 @@ import { chargesPctOf, isChargesPct, normaliseChargesPct } from '../../services/
 import { isaGrowthOf } from '../../services/IsaGrowth.js';
 import { isaFundsDecide } from '../../services/IsaFunds.js';
 import { sippTodayOf } from '../../services/PotsAtRetirement.js';
-import { pensionToday, isaToday, giaToday, pensionBoxOf } from '../../reading/money.js';
-import { pensionTodayPatch } from '../../services/PensionToday.js';
+import { pensionToday, isaToday, giaToday, pensionBoxOf, isaBoxOf } from '../../reading/money.js';
+import { pensionTodayPatch, isaTodayPatch } from '../../services/PensionToday.js';
 import { potAtStop } from '../../reading/atStop.js';
 import { moneyK } from '../../reading/format.js';
 import { TAX_DEFAULTS, ISA_DEFAULTS } from '../../constants.js';
@@ -113,6 +113,8 @@ export function savedPots(plan, { today }) {
   // locked shows the pension today, nothing known an empty box; a locked plan the lock's pots
   const box = locked ? null : pensionBoxOf(plan, { now, settings: ss });
   const pensionNotSet = !!(box && box.value == null);
+  // and the ISA box by the same rule (isaBoxOf): a saver's plan not locked shows the ISA today, read back as typed
+  const isaBox = locked ? null : isaBoxOf(plan, { now, settings: ss });
   const potsFrom = box && box.pots ? box.pots : (pensionNotSet ? {} : alloc);
   const pots = { equity: r0(potsFrom.equityMin), bond: r0(potsFrom.bondMin), cash: r0(potsFrom.cashTarget), div: r0(potsFrom.diversifierStart) };
   const pension = docPots && num(docPots.sipp) != null ? r0(docPots.sipp) : pots.equity + pots.bond + pots.cash + pots.div;
@@ -131,7 +133,7 @@ export function savedPots(plan, { today }) {
   const source = locked ? { kind: 'locked', at: dayWords(lockedAtOf(plan)) } : { kind: 'saved', at: plan && plan.lastModified ? dayWords(plan.lastModified) : null };
   const values = {
     pension, pots, shares: sharesOf(pots),
-    isa: docPots && num(docPots.isa) != null ? r0(docPots.isa) : r0(ss.isaBalance),
+    isa: docPots && num(docPots.isa) != null ? r0(docPots.isa) : isaBox ? r0(isaBox.value) : r0(ss.isaBalance),
     isaGrowth,
     isaUse: (docPots && docPots.isaPolicy) || ss.isaDrawdownStrategy || ISA_DEFAULTS.DRAWDOWN_STRATEGY,
     taxable: docPots && num(docPots.gia) != null ? r0(docPots.gia) : r0(ss.taxableStart),
@@ -155,7 +157,7 @@ export function savedPots(plan, { today }) {
   return {
     today: moneyToday,
     locked, lockedOn: locked ? dayWords(lockedAtOf(plan)) : null, ss, stored, timing, later, strategyId, bought, pinned, fundsMode,
-    atStop, hasIsaGrowthKey, isaFunds, hasChargesKey, source, values, now, pensionNotSet, pensionIsToday: !!(box && box.today)
+    atStop, hasIsaGrowthKey, isaFunds, hasChargesKey, source, values, now, pensionNotSet, pensionIsToday: !!(box && box.today), isaIsToday: !!(isaBox && isaBox.today)
   };
 }
 
@@ -271,6 +273,9 @@ export function potsPatch(plan, typed, { today }) {
     if (s.later || s.pensionIsToday || s.pensionNotSet) Object.assign(want, pensionTodayPatch(plan, v.pension, { now: s.now }));
   }
   want[S + 'isaBalance'] = v.isa || 0;
+  // the ISA typed is the ISA today every page reads (step F1, lead4.md D3): this month's record carries it when the ISA today
+  // is read from a record or What you hold (after any pension record the same save writes)
+  if (s.isaIsToday && (v.isa || 0) !== sv.isa) Object.assign(want, isaTodayPatch(plan, v.isa || 0, { now: s.now, history: want['accumulationTool.history'] || null }));
   if (c.applies.isaGrowth) want[S + 'isaGrowth'] = v.isaGrowth;
   want[S + 'isaDrawdownStrategy'] = v.isaUse;
   want[S + 'taxableStart'] = v.taxable || 0;

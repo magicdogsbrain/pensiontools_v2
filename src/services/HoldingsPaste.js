@@ -115,7 +115,7 @@ export function detectColumns(rows) {
 export function giltFromName(name) {
   const s = up(name);
   if (!/TREASURY|GILT|T\d{2}|TR\d{2}|TG\d{2}/.test(s)) return null;
-  const il = /I\/L|INDEX[- ]LINKED|IL\b|INDEX LINKED/.test(s);
+  const il = ilWords(name);   // the one reading of index-linked words (GiltName.IL_WORDS): 'April' is not 'IL'
   const y4 = s.match(/\b(20\d{2}|2[0-9]{3})\b/); const dmy = s.match(/\d{2}\/\d{2}\/(20\d{2})/);
   const year = dmy ? +dmy[1] : (y4 ? +y4[1] : null);
   return { year, il };
@@ -138,8 +138,9 @@ export function parsePaste(text) {
     const sedol = [cell('sedol'), ...r].map((c) => c.trim()).find((c) => SEDOL_RE.test(c) && /\d/.test(c) && !/^[A-Z]+$/.test(c)) || '';
     const isin = [cell('isin'), ...r].map((c) => c.trim()).find((c) => ISIN_RE.test(c)) || '';
     let ticker = cell('ticker'); if (!TICKER_RE.test(up(ticker)) || up(ticker) === up(sedol)) ticker = '';
-    const value = parseMoney(cell('value'));
     const units = map.units != null ? parseMoney(cell('units')) : null;
+    // a cash line with its amount in the units column alone (a platform lists cash as so many pounds): that is its value
+    const value = parseMoney(cell('value')) ?? (/^cash\b/i.test(name) && units != null ? units : null);
     const price = map.price != null ? parseMoney(cell('price')) : null;
     const skip = (why) => { warnings.push('Row ' + (i + 1) + ' skipped: ' + why); leftOut.push({ line: i + 1, text: (name || r.join(' ')).trim().slice(0, 60), why }); };
     if (!name && !ticker && !sedol) { skip('no name, ticker or SEDOL'); return; }
@@ -276,14 +277,17 @@ export function matchRows(rows, { catalogue = FUND_CATALOGUE, orders = [], wrapp
       // line can never be keyed on a fund's ticker and folded into that fund (6.13.5; the rest of the 6.12.5 fix).
       // A conventional gilt its name names (its coupon and date, GiltName) takes its own code (7.6.0): the guess "T" + the
       // year is an index-linked gilt's code for 2027, 2028 and 2029, and would price and match it as one.
-      const named = !ilWords(r.name) ? giltOfName(r.name) : null;
-      const own = named && named.type === 'conventional' ? up(named.tidm) : '';
+      // 7.12.0 (walks3 W7-H1): the gilt its name names, of either kind (GiltName.giltOfName: no index-linked words = an ordinary
+      // gilt; a code in the name; its year and coupon), never a code guessed from the year: a name that fits more than one
+      // gilt is a gilt with no code, its kind from its words
+      const named = giltOfName(r.name);
+      const own = named ? up(named.tidm) : '';
       // the row's own SEDOL names the gilt (7.11.1): its code and its kind, never a code guessed from the year ("T29" is an
       // index-linked gilt's, and would fold a conventional gilt into that rung's line)
       const bySedol = r.sedol ? GILT_BY_SEDOL.get(up(r.sedol)) : null;
       const sedolCode = bySedol && bySedol.tidm ? up(bySedol.tidm) : '';
-      const ticker = bySedol ? (sedolCode || '') : isGiltCode(r.ticker) ? r.ticker : own || (g.year ? 'T' + String(g.year).slice(2) : '');
-      const il = bySedol ? bySedol.type !== 'conventional' : g.il;
+      const ticker = bySedol ? (sedolCode || '') : isGiltCode(r.ticker) ? r.ticker : own;
+      const il = bySedol ? bySedol.type !== 'conventional' : named ? named.type !== 'conventional' : g.il;
       match = { kind: 'gilt', ticker, name: r.name, sedol: r.sedol, confidence: bySedol ? 'sedol' : 'name-only', subClass: il ? 'indexLinked' : 'longGilts' };
     }
     if (!match && /\bCASH\b|MONEY MARKET|CSH2|LIQUIDITY|OVERNIGHT|ULTRASHORT|TREASURY BILL|STERLING LIQUID/i.test(r.name)) match = { kind: 'cash', ticker: 'CSH2', name: r.name, subClass: 'moneyMarket', confidence: 'name' };
@@ -333,6 +337,15 @@ function cashLineIndex(out, m, { ticker, inAccount, seen }) {
   return i;
 }
 
+/** A holding's name as an identity for a paste: the company or fund, its share-class and legal words left out. */
+const holdingKey = (s) => up(s).replace(/\b(PLC|LTD|LIMITED|ORD|ORDINARY|SHARES?|GBP|\d+(\.\d+)?P|CLASS [A-Z]|ACC|INC|THE)\b/g, '').replace(/[^A-Z0-9]/g, '');
+/** Do two names name one holding? The same key, or one key the start of the other (at least five letters). */
+function sameHolding(a, b) {
+  const x = holdingKey(a), y = holdingKey(b);
+  if (x.length < 5 || y.length < 5) return x.length > 0 && x === y;
+  return x === y || x.startsWith(y) || y.startsWith(x);
+}
+
 /**
  * Merge matched rows into the ledger: update lines we recognise (by ticker, else SEDOL; a cash row by its name:
  * cashLineIndex), add the rest, and report lines in the same wrapper that were not in the paste (probably sold). A gilt and
@@ -354,10 +367,14 @@ export function mergeLedger(ledger, matched, { wrapper = 'SIPP' } = {}) {
     const inAccount = (l) => (l.wrapper || 'SIPP').toUpperCase() === wrapper && sameKind(l);
     const cash = m.match.kind === 'cash';
     const key = (l) => inAccount(l) && ((ticker && up(l.ticker) === ticker) || (m.sedol && up(l.sedol) === m.sedol));
-    const idx = cash ? cashLineIndex(out, m, { ticker, inAccount, seen }) : out.findIndex(key);
+    // a row with no code of its own is the line held under its name (7.12.0, walks3 W7-H1: "Unilever plc" is the Unilever
+    // line held as ULVR): pasting the same holdings again updates them, never adds them twice
+    const byName = (l) => inAccount(l) && !seen.has(l) && sameHolding(l.name, m.match.name || m.name);
+    let idx = cash ? cashLineIndex(out, m, { ticker, inAccount, seen }) : out.findIndex(key);
+    if (idx < 0 && !cash && !ticker && !m.sedol) idx = out.findIndex(byName);
     // No `undefined` values: Firestore refuses them and the whole settings save fails (6.10.5). A cash line updated keeps
     // its own ticker (none, for a line typed as cash): the stand-in is never its identity.
-    const line = { ticker: cash && idx >= 0 ? (out[idx].ticker ?? null) : ticker, name: m.match.name || m.name || '', wrapper, value: m.value != null ? m.value : (idx >= 0 ? out[idx].value : 0), units: m.units != null ? m.units : (idx >= 0 ? (out[idx].units ?? null) : null), sedol: m.match.sedol || m.sedol || null };
+    const line = { ticker: (cash || !ticker) && idx >= 0 ? (out[idx].ticker ?? null) : ticker, name: m.match.name || m.name || '', wrapper, value: m.value != null ? m.value : (idx >= 0 ? out[idx].value : 0), units: m.units != null ? m.units : (idx >= 0 ? (out[idx].units ?? null) : null), sedol: m.match.sedol || m.sedol || null };
     const sc = m.match.subClass || (idx >= 0 ? out[idx].subClass : null); line.subClass = sc || null;   // null, never missing: a "don't know" line is on the record, unplaced (6.23)
     const kind = m.match.kind === 'gilt' ? 'gilt' : m.match.kind === 'cash' ? 'cash' : null; if (kind) line.kind = kind;
     if (idx >= 0) { out[idx] = { ...out[idx], ...line }; updated.push(line); seen.add(out[idx]); }

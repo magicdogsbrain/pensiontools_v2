@@ -53,8 +53,9 @@ describe('a gilt read by its own name', () => {
     expect(giltOfName('Treasury 4.25% 07/12/2027')).toMatchObject({ tidm: 'TR27', type: 'conventional' });
     expect(giltOfName('UK Treasury Gilt 0.125% 22/03/2029')).toMatchObject({ tidm: 'T29' });
     expect(giltOfName('4% Treasury Gilt 2029')).toMatchObject({ tidm: 'T29K', type: 'conventional' });
-    // two gilts of 2027 pay 1¼%: one conventional, one index-linked — the name alone cannot tell, unless it says IL
-    expect(giltOfName('Treasury 1.25% 2027')).toBe(null);
+    // two gilts of 2027 pay 1¼%: one conventional, one index-linked. 7.12.0 (walks3 W7-H1): a name with no index-linked
+    // words is the ordinary gilt (it was left unknown, and the paste then guessed an index-linked code from the year)
+    expect(giltOfName('Treasury 1.25% 2027')).toMatchObject({ tidm: 'TG27', type: 'conventional' });
     expect(giltOfName('Treasury 1.25% IL 2027')).toMatchObject({ tidm: 'T27' });
   });
   it('a guessed code its name contradicts is not the line\'s gilt: a conventional gilt under "T29" is still conventional', () => {

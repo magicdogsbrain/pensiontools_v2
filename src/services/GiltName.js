@@ -62,15 +62,23 @@ export function giltOfName(name) {
   const date = maturityOfName(s);
   const coupon = couponOfName(s);
   const il = ilWords(s);
+  // A name that says nothing of index-linking is an ordinary gilt's (7.12.0, walks3 W7-H1): "Treasury 0.125% 2028" is the
+  // 0 1/8% Treasury Gilt 2028, never the index-linked gilt of the same coupon and year. Index-linked words: only those.
+  const kindOk = (g) => (il ? isIl(g) : !isIl(g));
   const narrow = (xs) => {
     let c = xs;
-    if (c.length > 1 && il) c = c.filter(isIl);
+    if (c.length > 1) c = c.filter(kindOk);
     if (c.length > 1 && coupon != null) c = c.filter((g) => sameCoupon(g, coupon));
     return c.length === 1 ? c[0] : null;
   };
   if (date) return narrow(GILTS.filter((g) => String(g.maturity || '').slice(0, 10) === date));
+  // the gilt's own code written in its name ("TR28", "Gilt TR31"): that gilt, unless the name's words say the other kind
+  const code = /\b(T[A-Z]?\d{2}[A-Z]?)\b/i.exec(s);
+  const byCode = code ? GILTS.find((g) => String(g.tidm || '').toUpperCase() === code[1].toUpperCase()) : null;
+  if (byCode && (!il || isIl(byCode)) && (coupon == null || sameCoupon(byCode, coupon))) return byCode;
   const y = /\b(20\d{2})\b/.exec(s);
-  if (!y || coupon == null) return null;
-  const byYear = GILTS.filter((g) => String(g.maturity || '').slice(0, 4) === y[1] && sameCoupon(g, coupon) && (il ? isIl(g) : true));
+  if (!y) return null;
+  // by its year and kind, and its coupon when the name gives one: only when exactly one fits
+  const byYear = GILTS.filter((g) => String(g.maturity || '').slice(0, 4) === y[1] && kindOk(g) && (coupon == null || sameCoupon(g, coupon)));
   return byYear.length === 1 ? byYear[0] : null;
 }

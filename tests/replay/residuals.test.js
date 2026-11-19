@@ -100,7 +100,8 @@ describe('pasting a statement — the rest of R6.12.5-c', () => {
 
   it('R6.12.5-c — a gilt recognised by its name does not keep a stray code as its ticker', () => {
     const m = matchRows([gilt, trust, { ticker: 'PNL', name: 'Treasury 4.25% 2040', value: 1000 }, { ticker: 'CGT', name: 'UK Gilt (no year)', value: 1 }]);
-    expect(m[0].match).toMatchObject({ kind: 'gilt', ticker: 'T31', confidence: 'name-only' });   // was 'CGT'
+    // was 'CGT'; then 'T31', guessed from the year, which is the ordinary 4% gilt of 2031: 7.12.0 reads the gilt its name names
+    expect(m[0].match).toMatchObject({ kind: 'gilt', ticker: 'TR31', confidence: 'name-only', subClass: 'indexLinked' });
     expect(m[1].match).toMatchObject({ kind: 'catalogue', ticker: 'CGT' });                        // the real trust is untouched
     expect(m[2].match.ticker).toBe('T40');                                                        // was 'PNL'
     expect(m[3].match).toMatchObject({ kind: 'gilt', ticker: '' });                               // no year to derive from: no ticker, not the stray one

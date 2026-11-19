@@ -4290,7 +4290,7 @@
     import { whatsNewHtml, versionsPageHtml, safeAffects } from './src/ui/components/ReleaseNotesView.js';
 
     import { getChartStyles } from './src/ui/Charts.js';
-    import { createPlanState, bindPlanState } from './src/ui/planState.js'; import { installRepaint } from './src/ui/repaintPlan.js'; import { formatNumberBoxes } from './src/ui/numberOverlays.js'; import { stressSavePatch, settingsFromForm, ownPotAtRetirement, touches, INCOME_KEYS, TIMING_KEYS, STRATEGY_KEYS } from './src/ui/settingsChanged.js'; import { todayOf } from './src/reading/clock.js'; import { READ_FAULT_WORDS, isPlanReadError } from './src/reading/readFault.js';
+    import { createPlanState, bindPlanState } from './src/ui/planState.js'; import { fillDecisionBoxes, decisionPotsOf } from './src/ui/decisionForm.js'; import { installRepaint } from './src/ui/repaintPlan.js'; import { formatNumberBoxes } from './src/ui/numberOverlays.js'; import { stressSavePatch, settingsFromForm, ownPotAtRetirement, touches, INCOME_KEYS, TIMING_KEYS, STRATEGY_KEYS } from './src/ui/settingsChanged.js'; import { todayOf } from './src/reading/clock.js'; import { READ_FAULT_WORDS, isPlanReadError } from './src/reading/readFault.js';
     // Everything the page knows about the open plan, in ONE object (src/ui/planState.js, lead4.md R2): window._budget,
     // window._oneTest and the rest are its fields. repaintPlan drops it and makes it again on any change of plan.
     const planState = bindPlanState(window, createPlanState());
@@ -4615,37 +4615,11 @@
         prefillGiaBasis();
         monthEntry.refreshOffer();   // the offer to fill in the missed months, against the records just read (3 Nov 2026)
 
-        // Pre-fill Decision Tool settings (Pot + allocation control; bond tent drives the plan's glide)
-        document.getElementById('dsDuration').value = decisionSettings.duration || 35;
-        refreshDsPlanStartNote(decisionSettings);
-        writeAlloc('ds', decisionSettings.equityMin ?? 250000, decisionSettings.bondMin ?? 200000, decisionSettings.cashTarget ?? 50000, decisionSettings.diversifierStart || 0);
-        restoreCustomAllocFromSettings('ds', decisionSettings);              // rebuild a from-funds split if saved
-        window._taggedFunds.ds = (decisionSettings.taggedFunds || []).map(f => ({ ...f }));
-        try { window._holdingsLines = ((await getActiveHoldings()).lines || []).slice(); } catch (e) { window._holdingsLines = []; }   // what you hold (6.13.0)  // restore the plan's funds
-        setAllocMode('ds', decisionSettings.allocMode || ((decisionSettings.taggedFunds && decisionSettings.taggedFunds.length) ? 'funds' : 'risk'));
+        // Pre-fill Decision Tool settings (Pot + allocation control; bond tent drives the plan's glide): the one filler (fillDecisionForm)
+        try { window._holdingsLines = ((await getActiveHoldings()).lines || []).slice(); } catch (e) { window._holdingsLines = []; }   // what you hold (6.13.0)
+        fillDecisionForm(decisionSettings);
         updateEntryTagPrompt();                                              // nudge to tag if none yet
-        document.getElementById('dsEquityGlide').checked = decisionSettings.equityGlideEnabled || false;
-        updateAllocDisplay('ds');
-        document.getElementById('dsBaseSalary').value = decisionSettings.baseSalary || 30000;
-        syncNetFromGross('ds');
-        document.getElementById('dsIsaBalance').value = decisionSettings.isaBalance || 0;
-        { const p = document.getElementById('dsIsaPolicy'); if (p) p.value = decisionSettings.isaDrawdownStrategy || 'minimiseEarlyTax'; }
-        loadGiaFields('ds', decisionSettings);
-        document.getElementById('dsAccessMethod').value = decisionSettings.accessMethod || 'drawdown';
-        document.getElementById('dsUfplsYears').value = decisionSettings.ufplsYears || '';
-        document.getElementById('dsUfplsPcls').checked = !!decisionSettings.ufplsThenPcls;
-        document.getElementById('dsBandFillRecycle').checked = !!decisionSettings.bandFillRecycle;
-        syncAccessButtons('ds');
         updateScheduleSpendNotes();
-        // State Pension (new fields)
-        document.getElementById('dsSpStartDate').value = decisionSettings.spStartDate || '';
-        document.getElementById('dsSpWeeklyAmount').value = decisionSettings.spWeeklyAmount || '';
-        updateSpAnnualDisplay('ds');
-        document.getElementById('dsProtectionFactor').value = decisionSettings.protectionFactor || 20;
-        document.getElementById('dsRecoveryBuffer').value = decisionSettings.recoveryBuffer || 15000;
-        { const e = document.getElementById('dsProtEscalate'); if (e) e.value = decisionSettings.protectionEscalateMonths ?? 12; }
-        document.getElementById('dsDisableProtection').checked = decisionSettings.disableProtection || false;
-        document.getElementById('dsConsecutiveLimit').value = decisionSettings.consecutiveLimit || 3;
 
         // Stress sims start from the Settings' Fund Minimums (single source of truth) — show a
         // read-only summary on each tab rather than duplicate starting-value inputs.
@@ -9751,6 +9725,30 @@
       }
     };
 
+    // The Decision settings boxes, filled from the plan as read: the ONE filler both loaders use (lead4.md R2). A value the plan
+    // does not hold empties its box (src/ui/decisionForm.js), never a factory figure shown as the plan's.
+    function fillDecisionForm(s) {
+      fillDecisionBoxes(document, s);
+      refreshDsPlanStartNote(s);
+      const pots = decisionPotsOf(s);
+      writeAlloc('ds', pots.equityMin, pots.bondMin, pots.cashTarget, pots.diversifierStart);
+      restoreCustomAllocFromSettings('ds', s);              // rebuild a from-funds split if saved
+      window._taggedFunds.ds = (s.taggedFunds || []).map(f => ({ ...f }));
+      setAllocMode('ds', s.allocMode || ((s.taggedFunds && s.taggedFunds.length) ? 'funds' : 'risk'));
+      document.getElementById('dsEquityGlide').checked = !!s.equityGlideEnabled;
+      updateAllocDisplay('ds');
+      if (!pots.set) { const box = document.getElementById('dsPot'); if (box) box.value = ''; }   // no pots in the plan: no pot shown
+      syncNetFromGross('ds');
+      { const p = document.getElementById('dsIsaPolicy'); if (p) p.value = s.isaDrawdownStrategy || 'minimiseEarlyTax'; }
+      loadGiaFields('ds', s);
+      document.getElementById('dsAccessMethod').value = s.accessMethod || 'drawdown';
+      document.getElementById('dsUfplsPcls').checked = !!s.ufplsThenPcls;
+      document.getElementById('dsBandFillRecycle').checked = !!s.bandFillRecycle;
+      syncAccessButtons('ds');
+      updateSpAnnualDisplay('ds');
+      document.getElementById('dsDisableProtection').checked = !!s.disableProtection;
+    }
+
     // Load decision settings into UI
     async function loadDecisionSettings() {
       try { await loadCadenceUI(); } catch (e) { /* cosmetic */ }
@@ -9758,33 +9756,7 @@
       showLoading('Loading settings...');
       try {
         const s = await getDecisionSettingsAsync();
-        document.getElementById('dsDuration').value = s.duration || 35;
-        refreshDsPlanStartNote(s);
-        // FULL allocation restore (mirrors initializeAllInputsFromSettings) — restore the tagged funds,
-        // the custom split, and the mode, so a saved "My funds" plan doesn't revert to a risk preset.
-        writeAlloc('ds', s.equityMin ?? 250000, s.bondMin ?? 200000, s.cashTarget ?? 50000, s.diversifierStart || 0);
-        restoreCustomAllocFromSettings('ds', s);
-        window._taggedFunds.ds = (s.taggedFunds || []).map(f => ({ ...f }));
-        setAllocMode('ds', s.allocMode || ((s.taggedFunds && s.taggedFunds.length) ? 'funds' : 'risk'));
-        document.getElementById('dsEquityGlide').checked = s.equityGlideEnabled || false;
-        updateAllocDisplay('ds');
-        document.getElementById('dsBaseSalary').value = s.baseSalary || 30000;
-        const dsSpD = document.getElementById('dsSpStartDate'); if (dsSpD) dsSpD.value = s.spStartDate || '';
-        const dsSpW = document.getElementById('dsSpWeeklyAmount'); if (dsSpW) dsSpW.value = s.spWeeklyAmount || '';
-        syncNetFromGross('ds');
-        document.getElementById('dsProtectionFactor').value = s.protectionFactor || 20;
-        document.getElementById('dsRecoveryBuffer').value = s.recoveryBuffer || 15000;
-        { const e = document.getElementById('dsProtEscalate'); if (e) e.value = s.protectionEscalateMonths ?? 12; }
-        document.getElementById('dsDisableProtection').checked = s.disableProtection || false;
-        document.getElementById('dsConsecutiveLimit').value = s.consecutiveLimit || 3;
-        document.getElementById('dsIsaBalance').value = s.isaBalance || 0;
-        { const p = document.getElementById('dsIsaPolicy'); if (p) p.value = s.isaDrawdownStrategy || 'minimiseEarlyTax'; }
-        loadGiaFields('ds', s);
-        document.getElementById('dsAccessMethod').value = s.accessMethod || 'drawdown';
-        document.getElementById('dsUfplsYears').value = s.ufplsYears || '';
-        document.getElementById('dsUfplsPcls').checked = !!s.ufplsThenPcls;
-        document.getElementById('dsBandFillRecycle').checked = !!s.bandFillRecycle;
-        syncAccessButtons('ds');
+        fillDecisionForm(s);   // the same filler as the page's first fill: the tagged funds, the custom split and the mode restored too
 
         // Monthly Entry captures THIS MONTH's values — last month's record pre-filled, never the plan's starting minimums (6.23).
         configureMonthlyEntry({ hasDiversifiers: s.diversifierStart > 0 || !!s.diversifiers }); openMonthlyEntry(await getHistoryAsync({ limit: 1000 }).catch(() => []));

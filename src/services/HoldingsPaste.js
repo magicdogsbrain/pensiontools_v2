@@ -115,6 +115,8 @@ export function detectColumns(rows) {
 export function giltFromName(name) {
   const s = up(name);
   if (!/TREASURY|GILT|T\d{2}|TR\d{2}|TG\d{2}/.test(s)) return null;
+  // a Treasury bill is short-term money-market cash, not a gilt: the cash rule reads it (7.12.0, check round 2)
+  if (/\bTREASURY BILLS?\b/.test(s)) return null;
   const il = ilWords(name);   // the one reading of index-linked words (GiltName.IL_WORDS): 'April' is not 'IL'
   const y4 = s.match(/\b(20\d{2}|2[0-9]{3})\b/); const dmy = s.match(/\d{2}\/\d{2}\/(20\d{2})/);
   const year = dmy ? +dmy[1] : (y4 ? +y4[1] : null);

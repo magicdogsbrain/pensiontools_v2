@@ -69,7 +69,8 @@ export function giltOfName(name) {
     let c = xs;
     if (c.length > 1) c = c.filter(kindOk);
     if (c.length > 1 && coupon != null) c = c.filter((g) => sameCoupon(g, coupon));
-    return c.length === 1 ? c[0] : null;
+    // index-linked words never name an ordinary gilt, though it is the only one that day (as the year and code branches)
+    return c.length === 1 && (!il || isIl(c[0])) ? c[0] : null;
   };
   if (date) return narrow(GILTS.filter((g) => String(g.maturity || '').slice(0, 10) === date));
   // the gilt's own code written in its name ("TR28", "Gilt TR31"): that gilt, unless the name's words say the other kind

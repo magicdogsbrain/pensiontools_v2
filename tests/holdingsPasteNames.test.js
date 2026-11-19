@@ -14,6 +14,7 @@
 import { describe, it, expect } from 'vitest';
 import { parsePaste, matchRows, applyPaste } from '../src/services/HoldingsPaste.js';
 import { holdingsLines } from '../src/services/HoldingsRecord.js';
+import { giltOfName } from '../src/services/GiltName.js';
 
 const read = (name) => matchRows([{ line: 1, name, ticker: '', sedol: null, units: 100, value: 100 }])[0].match;
 
@@ -38,6 +39,14 @@ describe('a gilt known by its name', () => {
     expect([read('Treasury 0.75% 2034').ticker, read('Treasury 0.75% 2034').subClass]).toEqual(['TRTQ', 'indexLinked']);
     expect(read('Treasury 4% IL 2031').ticker).toBe('');      // index-linked words never name the ordinary 4% 2031
   });
+  // Named by its full date (check round 2): 22 October 2031 is the maturity of the ordinary 4% Treasury Gilt 2031 (T31) and of
+  // no index-linked gilt, so "Treasury 4% IL 22/10/2031" names no gilt in the list: a gilt with no code, index-linked by its
+  // words (it came back as T31, an ordinary gilt, read as longGilts). Without the index-linked words the date names T31.
+  it('index-linked words never name an ordinary gilt by its date either', () => {
+    expect(giltOfName('Treasury 4% IL 22/10/2031')).toBeNull();
+    expect([read('Treasury 4% IL 22/10/2031').ticker, read('Treasury 4% IL 22/10/2031').subClass]).toEqual(['', 'indexLinked']);
+    expect(giltOfName('Treasury 4% 22/10/2031').tidm).toBe('T31');
+  });
   it('a code in the name is the gilt\'s own', () => {
     expect([read('TR28').kind, read('TR28').ticker, read('TR28').subClass]).toEqual(['gilt', 'TR28', 'longGilts']);
     expect([read('Gilt TR31').ticker, read('Gilt TR31').subClass]).toEqual(['TR31', 'indexLinked']);
@@ -55,6 +64,14 @@ describe('a gilt known by its name', () => {
 });
 
 describe('a cash line is read', () => {
+  // A Treasury bill is the government's short-term borrowing (months, not years): money-market cash, not a gilt. Its name has
+  // "Treasury", which the gilt rule matched first, so "UK Treasury Bill 0% 2027" was a gilt with no code (longGilts) and the
+  // cash rule's TREASURY BILL could never be reached (check round 2).
+  it('a Treasury bill is cash, not a gilt', () => {
+    for (const n of ['UK Treasury Bill 0% 2027', 'Treasury Bills GBP', 'UK TREASURY BILL 0% 15/03/2027']) {
+      expect([n, read(n).kind, read(n).subClass]).toEqual([n, 'cash', 'moneyMarket']);
+    }
+  });
   it('with its amount in the value column or, alone, in the units column', () => {
     const p = parsePaste('Investment\tUnits\tValue\nCash\t\t£25,000.00\nCash\t25000\t\n');
     expect(p.rows.map((r) => r.value)).toEqual([25000, 25000]);

@@ -34,6 +34,18 @@ describe('the life tables read the age in calendar days', () => {
     expect(read.UTC.by).toBeCloseTo(1960 + 59 / 365, 9);
   });
 
+  // The plan's day arrives at noon (plan/dates.js dateOf). The time of day is no part of the age: on the birthday itself
+  // (here 1 March 2027, a year on) the age is the whole 67, not 67 and half a day (which moved one weighting age 103 → 104).
+  it('the time of day is no part of the age: at noon on the birthday the age is whole', () => {
+    const code = `import { lifeOfSettings } from '${LIFE}';
+      const a = lifeOfSettings(${JSON.stringify(SETTINGS)}, new Date(2027, 2, 1, 12), { sex: 'f' });
+      const b = lifeOfSettings(${JSON.stringify(SETTINGS)}, new Date(2026, 8, 30, 12), { sex: 'f' });
+      process.stdout.write(JSON.stringify([a.ageNow, b.ageNow]));`;
+    const [onBirthday, onDay] = JSON.parse(execFileSync(process.execPath, ['--input-type=module', '-e', code], { env: { ...process.env, TZ: 'Europe/London' } }).toString());
+    expect(onBirthday).toBe(67);
+    expect(onDay).toBe(read.UTC.ageNow);
+  });
+
   for (const z of zones.slice(1)) {
     it(`is the same to the last bit in ${z} as in UTC`, () => {
       expect(read[z]).toEqual(read.UTC);

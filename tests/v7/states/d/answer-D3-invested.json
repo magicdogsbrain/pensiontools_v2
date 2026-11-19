@@ -157,29 +157,29 @@
           "careful": {
             "monthly": 1690,
             "yearly": 20280,
-            "weighted": 0.9520259963348507,
+            "weighted": 0.9522461669975891,
             "fixedAge": 0.871
           },
           "balanced": {
             "monthly": 1780,
             "yearly": 21360,
-            "weighted": 0.9029767600065097,
+            "weighted": 0.9032772127678618,
             "fixedAge": 0.761
           },
           "bold": {
             "monthly": 2010,
             "yearly": 24120,
-            "weighted": 0.7089911232264712,
+            "weighted": 0.7092130199056119,
             "fixedAge": 0.452
           }
         },
         "chance": {
-          "weighted": 0.7182317973645405,
+          "weighted": 0.7185735484836623,
           "fixedAge": 0.464,
           "fails": 536,
           "n": 1000,
           "planToAge": 99,
-          "weightToAge": 104,
+          "weightToAge": 103,
           "horizonRule": "survival"
         },
         "headroom": {
@@ -400,7 +400,7 @@
             "field": "endAge",
             "source": "default",
             "value": 99,
-            "text": "Your plan runs to 99, when fewer than 1 in 10 women your age are still alive. We follow each future on to 104, when fewer than 1 in 50 are.",
+            "text": "Your plan runs to 99, when fewer than 1 in 10 women your age are still alive. We follow each future on to 103, when fewer than 1 in 50 are.",
             "parts": [
               "Your plan runs to ",
               {
@@ -419,7 +419,7 @@
               " are still alive.",
               " We follow each future on to ",
               {
-                "fixed": "104"
+                "fixed": "103"
               },
               ", when fewer than ",
               {
@@ -576,11 +576,11 @@
           },
           "bad": {
             "id": "d.when",
-            "text": "We follow each future on to 104. In the futures where the money runs out before then, it typically runs out at 90. In the worst 1 in 10 of all the futures, by 83.",
+            "text": "We follow each future on to 103. In the futures where the money runs out before then, it typically runs out at 90. In the worst 1 in 10 of all the futures, by 83.",
             "parts": [
               "We follow each future on to ",
               {
-                "fixed": "104"
+                "fixed": "103"
               },
               ". In the futures where the money runs out before then",
               ", it typically runs out ",
@@ -886,7 +886,7 @@
           "level": "balanced",
           "levelFails20": 2,
           "planToAge": 99,
-          "weightToAge": 104,
+          "weightToAge": 103,
           "tablesVersion": "ons-ew-2024-cohort/1",
           "sexUsed": {
             "you": "f"

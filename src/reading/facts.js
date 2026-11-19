@@ -5,7 +5,7 @@
  * the parity sweep (e2e/parity/) can hold each fact to one value across every place.
  *
  * Ids are the reading's keys. A fact with an index (an income step, a final-salary pension, a lump sum, a mix bucket, a
- * wrapper) is written with `#` in its pattern and made by `factId(pattern, n)`: `income.step.#.beforeTax` → the first step
+ * wrapper, a way of drawing) is written with `#` in its pattern and made by `factId(pattern, n)`: `income.step.#.beforeTax` → the first step
  * is `income.step.0.beforeTax`.
  *
  * Tables carry `data-fact-table="<id>"` with `data-row`/`data-col` keys on their cells (TABLES).
@@ -84,7 +84,8 @@ export const FACT = Object.freeze({
   TAKEN_YEAR: 'taken.againstPlan',
   // the way of drawing
   WAY_NAME: 'way.name',
-  WAY_COST: 'way.cost',
+  // what a bought way costs (compareRunner.wayCostOf), one fact per way: the way's id is the key (way.full-il-gilt.cost)
+  WAY_COST: 'way.#.cost',
   // what a bought way was priced on (src/reading/market.js marketLabel): the prices' date and source
   MARKET_GILTS: 'market.gilts',
   WITHDRAWAL_RATE: 'withdrawal.rate',
@@ -128,7 +129,7 @@ export function patternOf(id) {
     const [a, b] = p.split('#');
     if (s.startsWith(a) && s.endsWith(b)) {
       const key = s.slice(a.length, s.length - b.length);
-      if (/^[a-z0-9]+$/i.test(key)) return p;
+      if (/^[a-z0-9]+(-[a-z0-9]+)*$/i.test(key)) return p;   // a number, a bucket, a wrapper, or a way's id (full-il-gilt)
     }
   }
   return null;

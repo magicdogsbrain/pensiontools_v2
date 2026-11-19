@@ -3992,6 +3992,7 @@
         ],
         "current": "plan",
         "answerStale": null,
+        "readFault": null,
         "next": {
           "id": "P.reviewAny",
           "slots": {
@@ -4157,6 +4158,7 @@
               "tried": null,
               "table": null,
               "compare": null,
+              "costFact": null,
               "asLocked": null
             },
             {
@@ -4233,6 +4235,7 @@
               "tried": null,
               "table": null,
               "compare": null,
+              "costFact": null,
               "asLocked": null
             },
             {
@@ -4309,6 +4312,7 @@
               "tried": null,
               "table": null,
               "compare": null,
+              "costFact": null,
               "asLocked": null
             },
             {
@@ -4358,6 +4362,7 @@
               "tried": null,
               "table": null,
               "compare": null,
+              "costFact": null,
               "asLocked": null
             },
             {
@@ -4450,6 +4455,7 @@
               "tried": null,
               "table": null,
               "compare": null,
+              "costFact": null,
               "asLocked": null
             },
             {
@@ -4473,6 +4479,7 @@
               "tried": null,
               "table": null,
               "compare": null,
+              "costFact": null,
               "asLocked": null
             },
             {
@@ -4510,6 +4517,7 @@
               "tried": null,
               "table": null,
               "compare": null,
+              "costFact": null,
               "asLocked": null
             },
             {
@@ -4562,6 +4570,7 @@
               "tried": null,
               "table": null,
               "compare": null,
+              "costFact": null,
               "asLocked": null
             },
             {
@@ -4650,6 +4659,7 @@
               "tried": null,
               "table": null,
               "compare": null,
+              "costFact": null,
               "asLocked": null
             }
           ],

@@ -17,6 +17,7 @@
  * planner's strategy page sends only the dials turned), so a key the plan lacks stays absent unless it was set.
  */
 import { marketLabel } from '../../reading/marketPlain.js';
+import { FACT, factId } from '../../reading/facts.js';
 import { futuresOutOfTen, pctText, CHANCE_BARS, rankWays } from '../../services/OneAnswer.js';
 import { restoredParamsFor, switchPatch } from '../../services/PlanCommit.js';
 import { get, applyPatch, safeSettings, safeTiming } from './about.js';
@@ -252,6 +253,9 @@ export function cardsOf(reading, W) {
       dials, values: c.ok ? c.values : null, ok: c.ok, errors: c.errors, typed: Object.keys(typed).length > 0,
       needsRun, tried: t ? { status: t.status, reason: t.reason || null, runs: t.result && t.result.basis ? t.result.basis.runs : 1, ms: t.ms == null ? null : t.ms } : null,
       table: tableRow(shownResult), compare,
+      // the cost line's figure is the fact way.<id>.cost when it is the plan's own run (the full view's overview draws the
+      // same one, compareRunner.wayCostOf); a try on other dials is a what-if, never marked as the plan's
+      costFact: shownResult && shownResult === ran && ran.affordable && ran.bought ? factId(FACT.WAY_COST, id) : null,
       // a locked ladder's own way, read from its plan document (waysRun.lockedOwnOf): the day it was locked, said once
       asLocked: shownResult && shownResult === ran && ran.asLocked ? ran.asLocked : null
     };

@@ -4610,6 +4610,7 @@
         ],
         "current": "month",
         "answerStale": null,
+        "readFault": null,
         "next": {
           "id": "P.idle",
           "slots": {
@@ -4801,6 +4802,7 @@
                 "score": "49.7"
               },
               "compare": null,
+              "costFact": "way.full-il-gilt.cost",
               "asLocked": "1 July 2026"
             },
             {
@@ -4909,6 +4911,7 @@
                   "words": "in every future it tried"
                 }
               },
+              "costFact": null,
               "asLocked": null
             },
             {
@@ -5029,6 +5032,7 @@
                   "words": "in every future it tried"
                 }
               },
+              "costFact": null,
               "asLocked": null
             },
             {
@@ -5102,6 +5106,7 @@
                   "words": "in every future it tried"
                 }
               },
+              "costFact": "way.floor-the-schedule.cost",
               "asLocked": null
             },
             {
@@ -5241,6 +5246,7 @@
                   "words": "in every future it tried"
                 }
               },
+              "costFact": "way.gilt-rotation.cost",
               "asLocked": null
             },
             {
@@ -5334,6 +5340,7 @@
                   "words": "in every future it tried"
                 }
               },
+              "costFact": null,
               "asLocked": null
             },
             {
@@ -5434,6 +5441,7 @@
                   "words": "in more than 9 futures out of 10"
                 }
               },
+              "costFact": "way.bridge-and-engine.cost",
               "asLocked": null
             },
             {
@@ -5561,6 +5569,7 @@
                   "words": "in more than 9 futures out of 10"
                 }
               },
+              "costFact": "way.ladder-and-ratchet.cost",
               "asLocked": null
             },
             {
@@ -5704,6 +5713,7 @@
                   "words": "in 9 futures out of 10"
                 }
               },
+              "costFact": "way.floor-and-flex.cost",
               "asLocked": null
             }
           ],

@@ -25,6 +25,8 @@ const w = PLAN.page;
 const keepFocus = { onMouseDown: (e) => e.preventDefault() };
 const name = (id) => WAY.names[id] || id;
 const seconds = (ms) => (Math.round((ms || 0) / 100) / 10).toFixed(1);
+/** The lines whose {cost} is what the way costs (way.js cardLines; not 'cannot', the price a pot could not pay). */
+const COST_LINES = ['cost', 'costAll', 'costAtStop', 'costAllAtStop'];
 
 function Head({ view }) {
   return (
@@ -46,7 +48,7 @@ function Figures({ card }) {
       data-affordable={card.affordable ? '1' : '0'} data-chance={v ? v.chancePct : undefined} data-typical={v ? v.typicalLeft : undefined} data-bad={v ? v.badCaseLeft : undefined}>
       {v && <p class="lasts-bar"><span class={`verdict-word is-${v.word}`} data-verdict={v.word}>{WAY.card.verdictWord[v.word]}</span> <OutOfTenBar source={v} k="share" /></p>}
       <ul class="plan-lines">
-        {card.lines.map((l, i) => <li key={i} class="plan-line" data-line={'way.' + l.id}>{fill(WAY.card[l.id] || '', { ...l.slots, docWay: l.slots.docWay ? name(l.slots.docWay) : undefined, way: l.slots.way ? name(l.slots.way) : undefined })}</li>)}
+        {card.lines.map((l, i) => <li key={i} class="plan-line" data-line={'way.' + l.id}>{fillMarked(WAY.card[l.id] || '', { ...l.slots, docWay: l.slots.docWay ? name(l.slots.docWay) : undefined, way: l.slots.way ? name(l.slots.way) : undefined }, COST_LINES.includes(l.id) && card.costFact ? { cost: card.costFact } : {})}</li>)}
       </ul>
     </div>
   );

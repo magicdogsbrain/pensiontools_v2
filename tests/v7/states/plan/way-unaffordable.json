@@ -3806,6 +3806,7 @@
         ],
         "current": "plan",
         "answerStale": null,
+        "readFault": null,
         "next": {
           "id": "P.noAge",
           "slots": {
@@ -4023,6 +4024,7 @@
                 "score": "9.6"
               },
               "compare": null,
+              "costFact": null,
               "asLocked": null
             },
             {
@@ -4135,6 +4137,7 @@
                 "score": "10.5"
               },
               "compare": null,
+              "costFact": null,
               "asLocked": null
             },
             {
@@ -4227,6 +4230,7 @@
                 "score": "7.9"
               },
               "compare": null,
+              "costFact": "way.bridge-and-engine.cost",
               "asLocked": null
             },
             {
@@ -4307,6 +4311,7 @@
                 "score": "8.5"
               },
               "compare": null,
+              "costFact": "way.floor-to-age.cost",
               "asLocked": null
             },
             {
@@ -4426,6 +4431,7 @@
                 "score": "6.0"
               },
               "compare": null,
+              "costFact": "way.ladder-and-ratchet.cost",
               "asLocked": null
             },
             {
@@ -4561,6 +4567,7 @@
                 "score": "10.6"
               },
               "compare": null,
+              "costFact": "way.floor-and-flex.cost",
               "asLocked": null
             },
             {
@@ -4592,6 +4599,7 @@
               "tried": null,
               "table": null,
               "compare": null,
+              "costFact": null,
               "asLocked": null
             },
             {
@@ -4652,6 +4660,7 @@
               "tried": null,
               "table": null,
               "compare": null,
+              "costFact": null,
               "asLocked": null
             },
             {
@@ -4748,6 +4757,7 @@
               "tried": null,
               "table": null,
               "compare": null,
+              "costFact": null,
               "asLocked": null
             }
           ],

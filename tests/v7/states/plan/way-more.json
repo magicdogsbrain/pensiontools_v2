@@ -3992,6 +3992,7 @@
         ],
         "current": "plan",
         "answerStale": null,
+        "readFault": null,
         "next": {
           "id": "P.reviewAny",
           "slots": {
@@ -4193,6 +4194,7 @@
                 "score": "17.1"
               },
               "compare": null,
+              "costFact": null,
               "asLocked": null
             },
             {
@@ -4285,6 +4287,7 @@
                 "score": "16.1"
               },
               "compare": null,
+              "costFact": "way.bridge-and-engine.cost",
               "asLocked": null
             },
             {
@@ -4365,6 +4368,7 @@
                 "score": "16.8"
               },
               "compare": null,
+              "costFact": "way.floor-to-age.cost",
               "asLocked": null
             },
             {
@@ -4477,6 +4481,7 @@
                 "score": "17.3"
               },
               "compare": null,
+              "costFact": null,
               "asLocked": null
             },
             {
@@ -4542,6 +4547,7 @@
                 "score": "17.3"
               },
               "compare": null,
+              "costFact": "way.floor-the-schedule.cost",
               "asLocked": null
             },
             {
@@ -4661,6 +4667,7 @@
                 "score": "14.1"
               },
               "compare": null,
+              "costFact": "way.ladder-and-ratchet.cost",
               "asLocked": null
             },
             {
@@ -4796,6 +4803,7 @@
                 "score": "11.9"
               },
               "compare": null,
+              "costFact": "way.floor-and-flex.cost",
               "asLocked": null
             },
             {
@@ -4890,6 +4898,7 @@
                 "score": "35.9"
               },
               "compare": null,
+              "costFact": "way.full-il-gilt.cost",
               "asLocked": null
             },
             {
@@ -5021,6 +5030,7 @@
                 "score": "28.6"
               },
               "compare": null,
+              "costFact": "way.gilt-rotation.cost",
               "asLocked": null
             }
           ],

@@ -3986,6 +3986,7 @@
         ],
         "current": "plan",
         "answerStale": null,
+        "readFault": null,
         "next": {
           "id": "P.readonly",
           "slots": {
@@ -4147,6 +4148,7 @@
               "tried": null,
               "table": null,
               "compare": null,
+              "costFact": null,
               "asLocked": null
             },
             {
@@ -4223,6 +4225,7 @@
               "tried": null,
               "table": null,
               "compare": null,
+              "costFact": null,
               "asLocked": null
             },
             {
@@ -4299,6 +4302,7 @@
               "tried": null,
               "table": null,
               "compare": null,
+              "costFact": null,
               "asLocked": null
             },
             {
@@ -4348,6 +4352,7 @@
               "tried": null,
               "table": null,
               "compare": null,
+              "costFact": null,
               "asLocked": null
             },
             {
@@ -4440,6 +4445,7 @@
               "tried": null,
               "table": null,
               "compare": null,
+              "costFact": null,
               "asLocked": null
             },
             {
@@ -4463,6 +4469,7 @@
               "tried": null,
               "table": null,
               "compare": null,
+              "costFact": null,
               "asLocked": null
             },
             {
@@ -4500,6 +4507,7 @@
               "tried": null,
               "table": null,
               "compare": null,
+              "costFact": null,
               "asLocked": null
             },
             {
@@ -4552,6 +4560,7 @@
               "tried": null,
               "table": null,
               "compare": null,
+              "costFact": null,
               "asLocked": null
             },
             {
@@ -4640,6 +4649,7 @@
               "tried": null,
               "table": null,
               "compare": null,
+              "costFact": null,
               "asLocked": null
             }
           ],

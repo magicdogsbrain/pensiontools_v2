@@ -117,6 +117,16 @@ describe('the cards', () => {
     expect(one(root, 'plan.way.full-il-gilt.spareGrowth.kept').checked).toBe(true);
     const open = cs.find((c) => c.getAttribute('data-way') === 'full-il-gilt');
     expect(open.querySelector('[data-line="way.cost"], [data-line="way.costAll"]')).not.toBe(null);
+    // every bought way the plan's run could pay draws its cost as the fact way.<id>.cost, exactly the figure the line says
+    const s0 = load('way-open-ladder');
+    const bought = s0.ways.result.ways.filter((x) => x.affordable && x.bought);
+    expect(bought.length).toBeGreaterThan(0);
+    for (const x of bought) {
+      const m = root.querySelector(`[data-way="${x.id}"] [data-fact="way.${x.id}.cost"]`);
+      expect(m, x.id).not.toBe(null);
+      expect(m.textContent).toBe('£' + String(x.cost).replace(/\B(?=(\d{3})+(?!\d))/g, ','));
+    }
+    expect(root.querySelector('[data-fact="way.pots-and-valves.cost"]')).toBe(null);
     expect(root.querySelector('[data-line="way.market"] [data-fact="market.gilts"]')).not.toBe(null);   // what the bought ways were priced on: the one market's label, once
     expect(open.textContent).toContain(WAY.card.wrongTitle);
     expect(one(root, 'plan.way.full-il-gilt.wrong').textContent).toBe(WAY.wrong['full-il-gilt']);
@@ -150,6 +160,8 @@ describe('the cards', () => {
     const s = load('way-tried');
     const t = s.ways.tried['floor-to-age'].result;
     expect(one(tried.root, 'plan.way.floor-to-age.figures').getAttribute('data-chance')).toBe(String(t.a.chancePct));
+    // a try's cost is a what-if: never marked as the plan's way.<id>.cost (the full view's overview draws the plan's)
+    expect(tried.root.querySelector('[data-fact="way.floor-to-age.cost"]')).toBe(null);
     const failed = draw(load('way-try-failed'));
     expect(one(failed.root, 'plan.way.floor-to-age.tryFailed').textContent).toBe(WAY.failed.one);
   });

@@ -27,7 +27,7 @@
  */
 import { effectiveStressSettings } from '../../services/PlanReading.js';
 import { stressTestStrategy, scoreStrategy, STRATEGY_NAMES } from '../../strategies/stressTest.js';
-import { deriveCompareConfigs, compareAll } from '../../strategies/compareRunner.js';
+import { deriveCompareConfigs, compareAll, wayCostOf } from '../../strategies/compareRunner.js';
 import { ladderYearsFromYear0 } from '../../services/PlanFromToday.js';
 import { oneAnswer } from '../../services/OneAnswer.js';
 import { restoredParamsFor, dialParams } from '../../services/PlanCommit.js';
@@ -98,18 +98,6 @@ export function ranWith(id, p, defaults) {
   return out;
 }
 
-/** What a bought way costs today (index.html strategyOverviewHtml costOf), 0 for the Pots & Valves family. */
-function costOf(r) {
-  const sg = (r && r.signature) || {};
-  switch (r && r.strategyId) {
-    case 'full-il-gilt': case 'gilt-rotation': return num(sg.total) || 0;
-    case 'bridge-and-engine': return num(sg.bridgeCost) || 0;
-    case 'floor-the-schedule': case 'floor-to-age': case 'floor-and-flex': return num(sg.floorCost) || 0;
-    case 'ladder-and-ratchet': return num(sg.baseLadderCost) || 0;
-    default: return 0;
-  }
-}
-
 /** Why a way cannot be bought: the cost the configs priced (or the ladder's own) against the pot, or no gilt long enough. */
 function unaffordableReason(id, r, p, configs) {
   const c = configs || {};
@@ -128,7 +116,7 @@ export function wayResult(id, r, p, configs = null) {
   if (!r || !r.affordable) return { id, affordable: false, reason: unaffordableReason(id, r, p, configs), a: null, bought: BOUGHT.includes(id), dials };
   const a = oneAnswer(r, p);
   const sc = scoreStrategy(r, p);
-  const cost = costOf(r);
+  const cost = wayCostOf(r);   // the one reader, the full view's overview reads it too
   const bought = BOUGHT.includes(id);
   const spare = r.signature && num(r.signature.spare);
   const left = !bought ? null : (id === 'full-il-gilt' || id === 'gilt-rotation') && spare != null ? r0(spare) : r0(Math.max(0, availablePot(p) - cost));

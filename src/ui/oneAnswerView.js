@@ -4,11 +4,11 @@
  * and the locked document's "earlier test" line. HTML strings only; no DOM, no storage, no engine.
  */
 import { inflationDecadesSvg } from './giltLadderGraphic.js';
-import { futuresOutOfTen, pctText, tenthsOutOfTen, CHANCE_BARS, rankWays, oneAnswer, boldConsequenceOf } from '../services/OneAnswer.js';
+import { futuresOutOfTen, pctText, tenthsOutOfTen, CHANCE_BARS, rankWays, oneAnswer, boldConsequenceOf, leftText } from '../services/OneAnswer.js';
 import { decadeFigures } from '../services/NamedStarts.js';
 import { LEGACY_DEFINITION, planToAgeOfDefinition } from '../services/PlanDocument.js';
 import { LIFE_TABLE, HORIZON } from '../services/LongevityModel.js';
-import { chanceWords, fixedAgeWords } from '../answers/shared/format.js';
+import { chanceWords, fixedAgeWords, twentiethsOfFutures } from '../answers/shared/format.js';
 import { LEVEL_IDS } from '../answers/shared/shown.js';
 import { SUCCESS, planToAgeOf } from '../answers/shared/rules.js';
 import { withSavingChance } from '../answers/shared/savingChance.js';
@@ -23,10 +23,10 @@ const n0 = (v) => Math.round(+v || 0).toLocaleString('en-GB');
 const pc = (v) => Math.round(+v || 0) + '%';
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
-/** "Left at the end" — typical, bad case (the worst 1 in 10), good case. */
+/** "Left at the end" — typical, bad case (the worst 1 in 10), good case: to the nearest £1,000, as every place says it (OneAnswer.leftText). */
 export function leftRowHtml(a) {
   if (!a) return '';
-  return '<tr><td>Left at the end (today\'s money)</td><td>typically <strong>' + markFact('left.typically', gbp(a.typicalLeft)) + '</strong>; in a bad case (the worst 1 in 10) <strong>' + markFact('left.badCase', gbp(a.badCaseLeft)) + '</strong>; in a good case (the best 1 in 10) ' + markFact('left.goodCase', gbp(a.goodCaseLeft)) + '</td></tr>';
+  return '<tr><td>Left at the end (today\'s money)</td><td>typically <strong>' + markFact('left.typically', leftText(a.typicalLeft)) + '</strong>; in a bad case (the worst 1 in 10) <strong>' + markFact('left.badCase', leftText(a.badCaseLeft)) + '</strong>; in a good case (the best 1 in 10) ' + markFact('left.goodCase', leftText(a.goodCaseLeft)) + '</td></tr>';
 }
 
 /** The income cuts: how many futures, by how much, for how long. '' for a strategy that does not cut. */
@@ -328,7 +328,7 @@ export function verdictBlockView(r, p, o = {}) {
   const bold = a.level === 'bold' ? ' ' + boldConsequenceOf(a) : '';
   const hero = a.weighted !== null
     ? '<div data-weighted="' + a.weighted + '"' + (saving ? ' data-chance-from="saving"' : '') + '><span class="hero" style="font-size:30px;">' + markFact('lasts.chance', esc(chanceWords(a.weighted, typeof a.sumW === 'number' ? { sumW: a.sumW, n: a.n } : {}))) + '</span><span class="hero-sub">' + esc(w.headline) + esc(bold) + '</span></div>'
-    : '<div><span class="hero" style="font-size:30px;">' + markFact('lasts.fixedChance', esc(fixedShort(a.fixedAge))) + '</span><span class="hero-sub">' + markWithin(esc(w.fixed), LASTS_FINDS.fixed) + esc(bold) + '</span></div>';
+    : '<div><span class="hero" style="font-size:30px;">' + markFact('lasts.fixedChance', esc(twentiethsOfFutures(a.fixedAge))) + '</span><span class="hero-sub">' + markWithin(esc(w.fixed), LASTS_FINDS.fixed) + esc(bold) + '</span></div>';
   const cov = r.coverage != null ? r.coverage : (r.failAges && r.failAges.length === 0 ? 100 : 100 - (r.ruin.mc || 0));
   // ("How careful?" straight under the title, beside the figure it changes)
   return '<div class="verdict verdict-' + tone + '" data-chance-block="1" data-level="' + a.level + '"><div class="verdict-title">' + (r.ruinLabel ? 'Will you get what you planned? — ' : 'Will your money last? — ') + markFact('lasts.verdict', VERDICT_TITLE[a.verdict]) + ' at ' + markFact('lasts.level', name) + '</div>'
@@ -351,8 +351,6 @@ export function fromStopWords(p) {
     + 'Everything below starts from ' + (pot ? pot + ' in your pension' : 'the middling pot') + ' on the day work stops (the middling case) and leaves out the saving years, so it can differ.';
 }
 
-/** A fixed-age share as a hero figure: "16 in 20". */
-const fixedShort = (s) => { const k = Math.round(Math.max(0, Math.min(1, +s || 0)) * 20); return (s < 1 && k >= 20 ? 'over 19' : s > 0 && k <= 0 ? 'under 1' : String(k)) + ' in 20'; };
 
 /** A document locked with the weighted definition: its own words, at its own lines, never today's. */
 function documentBlockHtml(r, p, def) {
@@ -364,7 +362,7 @@ function documentBlockHtml(r, p, def) {
   const name = LEVEL_NAMES[def.level] || 'Balanced';
   const head = typeof w.chance === 'number'
     ? '<div data-weighted="' + w.chance + '"><span class="hero" style="font-size:30px;">' + esc(chanceWords(w.chance)) + '</span><span class="hero-sub">When the plan was locked, counting how long people your age live, ' + esc(LASTS_AS_LONG[kind]) + ' ' + esc(chanceWords(w.chance)) + '.</span></div>'
-    : '<div><span class="hero" style="font-size:30px;">' + esc(fixedShort(w.fixedAge)) + '</span><span class="hero-sub">When the plan was locked.</span></div>';
+    : '<div><span class="hero" style="font-size:30px;">' + esc(twentiethsOfFutures(w.fixedAge)) + '</span><span class="hero-sub">When the plan was locked.</span></div>';
   return '<div class="verdict verdict-' + tone + '" data-level="' + esc(def.level) + '"><div class="verdict-title">' + (r.ruinLabel ? 'Will you get what you planned? — ' : 'Will your money last? — ') + VERDICT_TITLE[v] + ' at ' + name + ', when it was locked</div>'
     + '<div class="verdict-heroes">' + head + '</div>'
     + '<p class="verdict-fixed" data-fixed="1">' + esc(fixedAgeWords(typeof w.fixedAge === 'number' ? w.fixedAge : 1 - (r.ruin.mc || 0) / 100, age, { kind })) + '</p>'
@@ -372,17 +370,37 @@ function documentBlockHtml(r, p, def) {
 }
 
 /**
- * The classic page's session-only level (window.setChanceLevel, called by the block's control): kept for this visit only
- * (never saved: saving a level is 7.9.0's amendment), and every block on the page drawn again at it from the one test held.
+ * The classic page's "How careful?" (window.setChanceLevel, called by the block's control): the plan's level, saved
+ * (lead4.md R5: phases.level, the same one write as the simple view's strip, through deps.writeLevel), then every block on
+ * the page drawn again at it from the one test held (a level changes only what counts as on course, never the run). A
+ * write that is refused draws the blocks back at the plan's level. Never a page variable.
  */
-export function installChanceLevel(win, doc) {
-  win.setChanceLevel = (level) => {
-    if (!LEVEL_IDS.includes(level)) return;
-    win._chanceLevel = level;
+/** Why the plan's level was not saved (review.js phaseChoicePatch's problems), in the simple view's words. */
+export const LEVEL_REFUSED = Object.freeze({
+  example: 'This is an example plan, so nothing was changed.',
+  closed: 'This plan is closed, so nothing was changed.',
+  notNow: 'This plan has nothing to judge yet, so nothing was changed.',
+  notHere: 'That plan is not in this account. Nothing was changed.',
+  locked: 'This plan would not take the change. Nothing was changed.',
+  problems: 'The level could not be saved. Nothing was changed.'
+});
+
+export function installChanceLevel(win, doc, { writeLevel = null } = {}) {
+  const redraw = (level) => {
     const t = win._oneTest;
     if (!t || !t.chance) return;
     t.chance = { ...t.chance, level };
     for (const el of doc.querySelectorAll('[data-chance-block]')) el.outerHTML = verdictBlockView(t.r, t.p, t.chance);
+  };
+  win.setChanceLevel = async (level) => {
+    if (!LEVEL_IDS.includes(level) || typeof writeLevel !== 'function') return false;
+    const t = win._oneTest;
+    const was = t && t.chance ? t.chance.level : null;
+    redraw(level);
+    let ok = false;
+    try { ok = (await writeLevel(level)) === true; } catch { ok = false; }
+    if (!ok && was) redraw(was);
+    return ok;
   };
 }
 

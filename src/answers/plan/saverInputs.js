@@ -54,6 +54,7 @@ import { SCHEMA_B } from '../b/schema.js';
 import { checkInputs, draftTextOf } from '../shared/validate.js';
 import { fullStatePensionYearly, SAVING, LEVEL_DEFAULT } from '../shared/rules.js';
 import { keptSexOf, planLevelOf } from './life.js';
+import { planLevelChosen } from '../../services/Phases.js';
 import { effectiveStressSettings, planStage } from '../../services/PlanReading.js';
 import { deriveTiming } from '../../services/PlanTiming.js';
 import { proportions } from '../../services/Holdings.js';
@@ -288,7 +289,7 @@ export function saverInputsOf(plan, { today, checkIn = null, plans = [] } = {}) 
   // stored before 7.8.0 ("9 in 10" was everyone's default) is Balanced. No figure of the plan's, so it stays the answer's
   // for as long as the plan keeps the record of it — with a check-in too
   // whatever answer the plan was kept from (A, B, C or D), as "Does it last?" reads it (life.planLevelOf)
-  if (isObj(plan && plan.fromAnswer) && isObj(plan.fromAnswer.answer) && plan.fromAnswer.answer.levelChosen === true) inputs.confidence = planLevelOf(plan);
+  if (planLevelChosen(plan)) inputs.confidence = planLevelOf(plan);
   // which figures for how long people live (7.8.0): the kept answer's, only when it said one (a plan saves none of its own);
   // else the box's default, not said (the figures for women). The saver's plan is read for one person, so `you` alone —
   // that person's own figures, from whatever answer the plan was kept from (life.keptSexOf, as "Does it last?" reads them)

@@ -117,7 +117,7 @@ describe('the cards', () => {
     expect(one(root, 'plan.way.full-il-gilt.spareGrowth.kept').checked).toBe(true);
     const open = cs.find((c) => c.getAttribute('data-way') === 'full-il-gilt');
     expect(open.querySelector('[data-line="way.cost"], [data-line="way.costAll"]')).not.toBe(null);
-    expect(open.querySelector('[data-line="way.bundled"]')).not.toBe(null);
+    expect(open.querySelector('[data-line="way.market"] [data-fact="market.gilts"]')).not.toBe(null);   // what it was priced on: the one market's label
     expect(open.textContent).toContain(WAY.card.wrongTitle);
     expect(one(root, 'plan.way.full-il-gilt.wrong').textContent).toBe(WAY.wrong['full-il-gilt']);
     one(root, 'plan.way.use.full-il-gilt').click();

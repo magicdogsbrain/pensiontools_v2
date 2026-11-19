@@ -1,15 +1,16 @@
 /**
  * The full view's "Am I on course?" on the Accumulation tab (7.12.0, research P2.4): the same answer block as the simple
  * view's plan home — the same reader (v7/state/saverBlock.js saverBlockOf) on the same reading of the plan
- * (answers/plan/saving.js saverVerdictOf: question B on the plan's own figures) and the same run (question B at 1,000
- * futures, seed 0, as the simple view's runner asks it) — so the two views say the same words. The full view's own second
+ * (answers/plan/saving.js saverVerdictOf: question B on the plan's own figures) and the same run (question B once, at the
+ * futures and seed of src/reading/runs.js SAVER_RUN, as the simple view's runner asks it; in the engine worker, deps.run,
+ * when the page has one) — so the two views say the same words. It runs when the tab opens: nothing to press. The full view's own second
  * check (a fixed-rate table against a required pot) is gone. What you want and the age you stop are changed here too
  * (7.12.0: two boxes and Save, the same one write as the simple view's "What you pay in"), or there, one press away.
  *
  *   saverAnswerBlock(entries, planId, { today, answer })   the block, pure: null for a plan not saving
  *   saverBlockText(line)                                   one line's words
  *   saverBlockHtml(block, planId)                          the block as HTML (escaped)
- *   paintSaverAnswer(doc, deps)                            index.html: reads the plans, draws "Working…", runs B, draws the block
+ *   paintSaverAnswer(doc, deps)                            index.html: reads the plans, draws "Working…", runs B (deps.run), draws the block
  *
  * Nothing is written but by the want's Save (deps.saveWant).
  */
@@ -21,22 +22,27 @@ import { entriesOf, dayOf, simpleLinkHref } from './homeBannerUi.js';
 import { SAVER_MARKS, saverSlotsOf, sentenceHtml } from '../reading/sentenceMarks.js';
 import { markFact } from '../reading/mark.js';
 import { fieldAttrOf } from '../reading/fields.js';
+import { SAVER_RUN } from '../reading/runs.js';
 
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const fill = (text, slots) => String(text || '').replace(/\{(\w+)\}/g, (m, k) => (slots && slots[k] != null ? String(slots[k]) : m));
-/** The run the simple view's runner makes (v7/effects/saver.js): 1,000 futures, the published seed, the answer's detail. */
-export const SAVER_ENV = Object.freeze({ futures: 1000, seed: 0, trace: false, detail: 'answer' });
+/** The run the simple view's runner makes (v7/effects/saver.js): the one SAVER_RUN of both views. */
+export const SAVER_ENV = SAVER_RUN;
 
 /**
  * (7.12.0) One run per plan as it stands: question B's answer on the plan's figures, kept for the page's life by what it
  * was run on, so the Accumulation tab's answer and the Stress tester's "Will it last?" read the same run (one chance).
+ * `run(inputs, env)` is the page's (index.html: the engine worker's 'saver' job, else B on the page); by default B on the
+ * page, loaded when first needed.
  */
 const RUNS = new Map();
-function keptAnswer(answer) {
+const onPage = async (inputs, env) => (await import('../answers/b/answer.js')).answerB(inputs, env);
+function keptRun(run = onPage) {
   return (inputs, env) => {
     const key = JSON.stringify([inputs, env]);
     if (RUNS.has(key)) return RUNS.get(key);
-    const out = answer(inputs, env);
+    const out = Promise.resolve().then(() => run(inputs, env));
+    out.catch(() => RUNS.delete(key));
     if (RUNS.size >= 8) RUNS.delete(RUNS.keys().next().value);
     RUNS.set(key, out);
     return out;
@@ -48,26 +54,25 @@ function keptAnswer(answer) {
  * the Accumulation tab say — for the full view's "Will it last?" to lead with. Null for a plan not saving, one that cannot
  * be read, or one whose own way of drawing buys its income (`family`: the run draws from pots, as the plan's way must).
  */
-export async function savingChanceFor(plans, id, now, { family = true } = {}) {
+export async function savingChanceFor(plans, id, now, { family = true, run = undefined } = {}) {
   if (!family) return null;
   try {
     const entries = entriesOf(plans, now);
     const v = saverVerdictOf(entries, id, { today: dayOf(now) });
     if (!v || !v.ok) return null;
-    const { answerB } = await import('../answers/b/answer.js');
-    const res = keptAnswer(answerB)(v.inputs, { today: dayOf(now), ...SAVER_ENV, ...(v.env || {}) });
+    const res = await keptRun(run)(v.inputs, { today: dayOf(now), ...SAVER_ENV, ...(v.env || {}) });
     const w = res && res.verdict && res.verdict.weighted;
     return typeof w === 'number' && Number.isFinite(w) ? w : null;
   } catch { return null; }
 }
 
 /** The block for a plan: its verdict reading and, when given, the answer function run on it. Null for a plan not saving. */
-export function saverAnswerBlock(entries, planId, { today, answer = null }) {
+export async function saverAnswerBlock(entries, planId, { today, answer = null }) {
   const v = saverVerdictOf(entries, planId, { today });
   if (!v) return null;
   if (!v.ok || typeof answer !== 'function') return saverBlockOf(v, v.ok ? { status: 'working', result: null } : null);
   let result = null;
-  try { result = answer(v.inputs, { today, ...SAVER_ENV, ...(v.env || {}) }); } catch (e) { return saverBlockOf(v, { status: 'failed', result: null, reason: null }); }
+  try { result = await answer(v.inputs, { today, ...SAVER_ENV, ...(v.env || {}) }); } catch (e) { return saverBlockOf(v, { status: 'failed', result: null, reason: null }); }
   return saverBlockOf(v, { status: 'final', result });
 }
 
@@ -131,8 +136,8 @@ export function saverBlockHtml(block, planId, form = '') {
 }
 
 /**
- * index.html: the Accumulation tab's answer. `deps`: listScenariosAsync, getActiveScenarioId, now (optional). The answer
- * function is loaded only when it is needed, as the worker's lanes load theirs.
+ * index.html: the Accumulation tab's answer, drawn when the tab opens. `deps`: listScenariosAsync, getActiveScenarioId, now
+ * and run (optional: B in the engine worker; without it B runs on the page, loaded only when needed).
  */
 export async function paintSaverAnswer(doc, deps, problem = null) {
   const el = doc.getElementById('acOnTrack');
@@ -142,7 +147,7 @@ export async function paintSaverAnswer(doc, deps, problem = null) {
     const today = dayOf(now);
     const [plans, id] = await Promise.all([deps.listScenariosAsync(), deps.getActiveScenarioId()]);
     const entries = entriesOf(plans, now);
-    const first = saverAnswerBlock(entries, id, { today });
+    const first = await saverAnswerBlock(entries, id, { today });
     if (!first) { el.innerHTML = '<p style="font-size:13px;color:var(--text-muted);">' + esc(SAVING.stopped) + '</p>'; return null; }
     // what you want, changeable here (7.12.0): the boxes, and Save through the one write (deps.saveWant)
     const entry = entries.find((e) => e && e.plan && String(e.plan.id) === String(id));
@@ -160,9 +165,8 @@ export async function paintSaverAnswer(doc, deps, problem = null) {
     };
     el.innerHTML = saverBlockHtml(first, id, form); wire();
     if (first.state !== 'working') return first;
-    await new Promise((r) => setTimeout(r, 30));   // let "Working…" paint
-    const { answerB } = await import('../answers/b/answer.js');
-    const block = saverAnswerBlock(entries, id, { today, answer: keptAnswer(answerB) });
+    // the one run (deps.run: the engine worker), never a first pass on fewer futures; "Working…" stands until it lands
+    const block = await saverAnswerBlock(entries, id, { today, answer: keptRun(deps.run) });
     el.innerHTML = saverBlockHtml(block, id, form); wire();
     return block;
   } catch (e) {

@@ -43,7 +43,7 @@ export const LASTS = {
     'cuts.notCounted': 'Income cuts: not counted in this figure; today’s test below counts them.',
     'ran.cuts': 'Run with the spending cuts you set: up to {pct}% after {months} month{s} in a row below the plan’s line.',
     'ran.cutsOff': 'Run with the spending cuts switched off in this plan’s settings: the plan is paid in full until the money runs out.',
-    'ran.bundled': 'Gilts priced on the bundled yield curve here; the full view prices them on the day’s live figures when it has them, so a ladder’s cost can differ there.',
+    'ran.market': '{label} The full view uses the same prices.',
     /** 7.8.0: the floor, what is left at the plan's age, and what we assumed (OneAnswer.js weightedWordsOf) */
     floorW: '{words}',
     leftW: '{words}',
@@ -170,7 +170,8 @@ export const LASTS = {
   toast: {
     lasts: 'Saved. Cuts of up to {pct}% after {months} months; {reserve}. The test is running again on the saved plan.',
     lastsOff: 'Saved. No cuts; {reserve}. The test is running again on the saved plan.',
-    savedShort: 'Saved.', undone: 'Put back as it was.', unchanged: 'Nothing has changed.'
+    savedShort: 'Saved.', undone: 'Put back as it was.', unchanged: 'Nothing has changed.',
+    level: 'Saved: your plan is judged at {level}, here and in the full view.'
   },
   problems: {
     locked: 'This plan is locked, so nothing was changed. To change it, unlock it from “Your plan as locked”.',

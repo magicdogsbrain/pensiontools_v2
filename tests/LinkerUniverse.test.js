@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   coverage, giltsForYear, orderSheet, isStale, setLinkersOverride, setLiveGilts, activeLinkers,
-  realYieldForYear, loadLiveGilts, dataProvenance, FLAT_REAL_YIELD_FALLBACK
+  realYieldForYear, dataProvenance, FLAT_REAL_YIELD_FALLBACK
 } from '../src/services/LinkerUniverse.js';
 
 describe('LinkerUniverse (Appendix C semantics, live-data edition)', () => {
@@ -71,22 +71,6 @@ describe('LinkerUniverse (Appendix C semantics, live-data edition)', () => {
     expect(realYieldForYear(10)).not.toBe(FLAT_REAL_YIELD_FALLBACK);
   });
 
-  it('loadLiveGilts swaps in a newer fetched file and ignores failures/older files', async () => {
-    const bundled = activeLinkers();
-    const newer = { ...JSON.parse(JSON.stringify(bundled)), generated_at: new Date(Date.now() + 1000).toISOString(),
-      realCurve: [{ years: 1, yield: 0.01 }, { years: 30, yield: 0.03 }] };
-    const okFetch = async () => ({ ok: true, json: async () => newer });
-    await loadLiveGilts('./data/gilts.json', okFetch);
-    expect(realYieldForYear(30)).toBe(0.03);
-    setLiveGilts(null);
-    const badFetch = async () => { throw new Error('offline'); };
-    expect(await loadLiveGilts('./data/gilts.json', badFetch)).toBeNull();
-    expect(activeLinkers()).toBe(bundled);
-    const older = { ...newer, generated_at: '2000-01-01T00:00:00Z' };
-    await loadLiveGilts('./data/gilts.json', async () => ({ ok: true, json: async () => older }));
-    expect(activeLinkers()).toBe(bundled);
-    expect(dataProvenance().source).toMatch(/DMO/);
-  });
 });
 
 import { nominalYieldForYear } from '../src/services/LinkerUniverse.js';

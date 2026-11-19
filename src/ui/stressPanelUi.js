@@ -22,9 +22,11 @@ import { LASTS } from '../v7/copy/lasts.js';
 import { HOLD } from '../v7/copy/hold.js';
 import { runInWorker, workerAvailable } from '../workers/engineClient.js';
 import { esc } from './components/ReleaseNotesView.js';
+import { stressRowInputOf } from '../reading/gather.js';
+import { contextFor } from '../reading/context.js';
+import { todayOf, dayKeyOf } from '../reading/clock.js';
 
-const pad = (n) => String(n).padStart(2, '0');
-const dayOf = (d) => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+const dayOf = (d) => dayKeyOf(todayOf(d));   // the one clock (src/reading/clock.js)
 const say = (part) => esc(sayStress(part, STRESS));
 
 /** The Scenarios card's own words when the panel is switched off (rules.js STRESS.panel false: the page as before 7.9.0). */
@@ -187,7 +189,7 @@ export function installStressPanel(w, { scenario, persist, toast, named = null, 
         const sc = await scenario();
         // another plan, or this one changed under the run (its key moved): stopped; the rows so far stay under their key
         if (idOf(sc) !== memory.planId || stressKeyOf(sc, day) !== v.key || memory.key !== v.key) { if (memory.key === v.key) memory.status = 'idle'; break; }
-        const result = await run('stressRow', { plan: sc, today: day, row: id });
+        const result = await run('stressRow', stressRowInputOf(sc, contextFor(sc, { today: day }), id));   // the one gatherer, as the simple view's worker is handed it
         if (memory.key !== v.key) break;
         if (!result || typeof result !== 'object') throw new Error('no result');
         memory.rows[id] = result;

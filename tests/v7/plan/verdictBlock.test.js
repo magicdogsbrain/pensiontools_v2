@@ -124,17 +124,23 @@ describe('a document locked with the weighted definition reads its own figures a
   });
 });
 
-describe('the session\'s level, and the page\'s own wiring', { timeout: 120_000 }, () => {
-  it('window.setChanceLevel draws every block again at the level; an unknown level does nothing', () => {
+describe('the plan\'s level, and the page\'s own wiring', { timeout: 120_000 }, () => {
+  it('window.setChanceLevel writes the plan\'s level and draws every block again at it; an unknown level does nothing; a refused write puts the blocks back', async () => {
     const r = fake('pots-and-valves', 3);
     const win = { _oneTest: { r, p: P, chance: { life: LIFE, level: 'balanced' } } };
     document.body.innerHTML = '<div id="a">' + verdictBlockView(r, P, win._oneTest.chance) + '</div><div id="b">' + verdictBlockView(r, P, win._oneTest.chance) + '</div>';
-    installChanceLevel(win, document);
-    win.setChanceLevel('bold');
-    expect(win._chanceLevel).toBe('bold');
+    const written = [];
+    let accept = true;
+    installChanceLevel(win, document, { writeLevel: async (level) => { written.push(level); return accept; } });
+    expect(await win.setChanceLevel('bold')).toBe(true);
+    expect(written).toEqual(['bold']);
+    expect(win._chanceLevel).toBeUndefined();
     expect([...document.querySelectorAll('[data-chance-block]')].map((x) => x.getAttribute('data-level'))).toEqual(['bold', 'bold']);
-    win.setChanceLevel('reckless');
-    expect(win._chanceLevel).toBe('bold');
+    expect(await win.setChanceLevel('reckless')).toBe(false);
+    expect(written).toEqual(['bold']);
+    accept = false;
+    expect(await win.setChanceLevel('careful')).toBe(false);
+    expect([...document.querySelectorAll('[data-chance-block]')].map((x) => x.getAttribute('data-level'))).toEqual(['bold', 'bold']);
     expect(chanceOptsOf(r, {}, win._oneTest)).toBe(win._oneTest.chance);
     // (7.12.0) the plan's own way run again, figure for figure, reads the one test's own reading; a run with other figures
     // is judged for the same person at the same level (never the block before 7.8.0)
@@ -163,7 +169,7 @@ describe('the session\'s level, and the page\'s own wiring', { timeout: 120_000 
     expect(script).toMatch(/function verdictBlockHtml\(r, p, o\) \{ return verdictBlockView\(r, p, o \|\| \{\}\); \}/);
     expect(script).not.toMatch(/verdict-heroes/);
     expect(script).not.toMatch(/ruinMc <= 5 \? 'alert-success'/);
-    expect(script).toMatch(/installChanceLevel\(window, document\)/);
+    expect(script).toMatch(/installChanceLevel\(window, document, \{ writeLevel:/);
     expect(script).toMatch(/ch = chanceRunOf\(sc, /);
     // the classic About suggestion: not said selected, no half-way age (both apps)
     expect(html).toMatch(/<option value="notSaid" selected>Not said<\/option>/);

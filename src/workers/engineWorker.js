@@ -1,27 +1,30 @@
 /**
  * Engine Web Worker — runs the heavy, synchronous strategy maths off the main thread so a phone
  * never freezes: the six-strategy overview, a single strategy stress test, the household checks, a row of "Try the bad
- * years" (the plan as stored: answers/plan/stressPanelRun.js).
+ * years" (the plan as stored: answers/plan/stressPanelRun.js), the saver's verdict (question B, src/reading/runs.js SAVER_RUN).
  * Inputs are plain settings/config objects; the plan is rebuilt here (planFromSettings) because a
- * plan carries pricing closures that cannot cross the worker boundary. Live gilt data is loaded
- * once per worker so ladder prices match the main thread.
+ * plan carries pricing closures that cannot cross the worker boundary. The market is the one loader's (src/reading/market.js),
+ * from the data folder the page hands in with every job (`market`), so ladder prices match the page and the simple view's
+ * worker; every result says what it was priced on (`market`: marketStamp).
  */
-import { stressTestStrategy, planFromSettings, STRATEGY_NAMES } from '../strategies/stressTest.js';
+import { stressTestStrategy, STRATEGY_NAMES } from '../strategies/stressTest.js';
+import { enginePlanOf } from '../reading/gather.js';
 import { compareAll } from '../strategies/compareRunner.js';
 import { runSurvivorCheck, runCareCheck, runHouseholdWays } from '../services/HouseholdService.js';
-import { loadLiveGilts, realYieldForYear } from '../services/LinkerUniverse.js';
-import { loadLiveEquity } from '../services/EquityIndex.js';
+import { loadMarket } from '../reading/market.js';
 import { cloneSafe } from '../utils/cloneSafe.js';
 import { sweepRetirementAges } from '../services/RetireSweep.js';
 // (static: this worker is built as one classic-format file, which cannot split off a lazy chunk; it carries the engine already)
 import { runStressRow } from '../answers/plan/stressPanelRun.js';
+import { answerB } from '../answers/b/answer.js';
 
-let giltsReady = null;
 // The page's one clock (src/reading/clock.js), handed in with every job (engineClient.runInWorker): the plan is seen from the
 // same day as every other figure on the page, never from the worker's own clock.
 let jobNow;
+// The plan is built by the one builder both views' workers use (src/reading/gather.js enginePlanOf): from the settings and the
+// page's day, the engine config made here from them — never a config sent beside them.
 function plan(settings, cfg, essentialsAnnual) {
-  return planFromSettings(settings, cfg, { yieldForYear: realYieldForYear, essentialsAnnual, startAge: +settings.shapeAgeNow || 57, now: jobNow });
+  return enginePlanOf({ settings, essentialsAnnual, now: jobNow ? jobNow.toISOString() : undefined });
 }
 
 /** One plan through its own strategy's one test (what the household checks hand to HouseholdService). */
@@ -31,27 +34,29 @@ self.onmessage = async (e) => {
   const { id, type, payload } = e.data || {};
   jobNow = payload && payload.now ? new Date(payload.now) : undefined;
   try {
-    if (!giltsReady) giltsReady = Promise.resolve().then(() => Promise.all([loadLiveGilts(), loadLiveEquity()])).catch(() => null);
-    await giltsReady;
+    const market = await loadMarket({ folder: payload && payload.market });
+    const post = (m) => self.postMessage(m.result && typeof m.result === 'object' && !Array.isArray(m.result) ? { ...m, result: { ...m.result, market } } : m);
     if (type === 'overview') {
       const p = plan(payload.settings, payload.cfg, payload.essentialsAnnual);
       // the one loop over the nine (compareRunner.compareAll, 6.40.0): the configs derived once, progress before each way
       const all = compareAll(p, Object.keys(STRATEGY_NAMES), { onProgress: (i, n, sid) => self.postMessage({ id, progress: { i, n, name: STRATEGY_NAMES[sid] } }) });
-      self.postMessage({ id, result: cloneSafe({ p, all }) });
+      post({ id, result: cloneSafe({ p, all }) });
     } else if (type === 'strategy') {
       const p = plan(payload.settings, payload.cfg, payload.essentialsAnnual);
-      self.postMessage({ id, result: cloneSafe({ p, r: stressTestStrategy(payload.strategyId, p) }) });
+      post({ id, result: cloneSafe({ p, r: stressTestStrategy(payload.strategyId, p) }) });
     } else if (type === 'household-ways') {   // who draws what (6.25.0): both plans, both ways, through the one test
-      self.postMessage({ id, result: cloneSafe(runHouseholdWays(payload.ways, payload.needs, payload.idA, payload.idB, oneTest)) });
+      post({ id, result: cloneSafe(runHouseholdWays(payload.ways, payload.needs, payload.idA, payload.idB, oneTest)) });
     } else if (type === 'survivor') {   // each plan through its own strategy's one test (household sweep)
-      self.postMessage({ id, result: cloneSafe(runSurvivorCheck(payload, oneTest)) });
+      post({ id, result: cloneSafe(runSurvivorCheck(payload, oneTest)) });
     } else if (type === 'care') {
-      self.postMessage({ id, result: cloneSafe(runCareCheck(payload, oneTest)) });
+      post({ id, result: cloneSafe(runCareCheck(payload, oneTest)) });
     } else if (type === 'stressRow') {   // "Try the bad years" (7.9.0): one row on the plan as stored
-      self.postMessage({ id, result: cloneSafe(runStressRow(payload.plan, { today: payload.today, row: payload.row })) });
+      post({ id, result: cloneSafe(runStressRow(payload.plan, { today: payload.today, row: payload.row })) });
+    } else if (type === 'saver') {   // "Am I on course?" (lead4.md R6): question B on the plan's figures, as the simple view's worker runs it
+      post({ id, result: cloneSafe(answerB(payload.inputs, payload.env)) });
     } else if (type === 'sweep') {   // "when can I retire?" (6.10.0): one strategy run per candidate age, with progress
       const out = sweepRetirementAges({ ...payload, onProgress: (i, n, age) => self.postMessage({ id, progress: { i, n, name: 'age ' + age } }) });
-      self.postMessage({ id, result: cloneSafe(out) });
+      post({ id, result: cloneSafe(out) });
     } else {
       throw new Error('unknown job ' + type);
     }

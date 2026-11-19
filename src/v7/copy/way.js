@@ -72,7 +72,6 @@ export const WAY = {
     mix: 'Its mix, the split between shares, bonds, gold and trend funds, and cash, is on ‘The mix’.',
     mixLink: 'Open ‘The mix’',
     noTent: 'The bond tent is not used by this way of drawing.',
-    bundled: 'Gilts priced on the bundled yield curve here; the full view prices them on the day’s live figures when it has them.',
     wrongTitle: 'What can go wrong',
     verdictWord: { yes: 'On course', close: 'Close', no: 'Not yet' }
   },

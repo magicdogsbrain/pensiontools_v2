@@ -6,6 +6,11 @@
 import { cloneSafe } from '../utils/cloneSafe.js';
 import { trackBusy } from '../reading/busy.js';
 import { todayOf } from '../reading/clock.js';
+import { marketFolderOf } from '../reading/marketPlain.js';
+import { LAYOUT } from '../appLayout.js';
+
+/** The site's one data folder, as this page's address resolves it (src/reading/market.js): handed to the worker with every job. */
+const folder = () => (typeof document !== 'undefined' ? marketFolderOf(document.baseURI, LAYOUT.classic.data) : null);
 
 let worker = null;
 let seq = 0;
@@ -43,7 +48,7 @@ export function runInWorker(type, payload, onProgress) {
     const id = ++seq;
     pending.set(id, { resolve, reject, onProgress });
     // every job carries the one clock (src/reading/clock.js): the worker sees the plan from the page's day
-    const withNow = payload && typeof payload === 'object' && payload.now == null ? { ...payload, now: todayOf().toISOString() } : payload;
+    const withNow = payload && typeof payload === 'object' ? { ...payload, ...(payload.now == null ? { now: todayOf().toISOString() } : {}), ...(payload.market == null ? { market: folder() } : {}) } : payload;
     try { w.postMessage({ id, type, payload: cloneSafe(withNow) }); } catch (e) { pending.delete(id); reject(e); }
   }), 'worker');
 }

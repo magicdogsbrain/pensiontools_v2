@@ -63,7 +63,7 @@ describe('the worker\'s "saver" message: B\'s own answer, in its own lane', () =
 });
 
 describe('the runner on "What you pay in"', () => {
-  it('asks at 100 futures then 1,000 for the key the reading names, with the plan\'s own mixes; ready only at the final figure; nothing written', async () => {
+  it('asks ONCE, at 1,000 futures and seed 0 (the full view\'s run, src/reading/runs.js), for the key the reading names, with the plan\'s own mixes; ready only at that figure; nothing written', async () => {
     const { store, verdict } = pageOn(C['05-saver-committed'], 'SamSaver01');
     expect(verdict.ok).toBe(true);
     expect(readyMark(store.getState()).ready).toBe('0');   // due before the runner starts
@@ -71,7 +71,7 @@ describe('the runner on "What you pay in"', () => {
     const client = fakeClient((inputs, env) => { calls.push({ inputs, env }); return Promise.resolve(RESULT(env.futures)); });
     const stop = startSaverRunner({ store, client });
     await tick();
-    expect(calls.map((c) => c.env.futures)).toEqual([100, 1000]);
+    expect(calls.map((c) => c.env.futures)).toEqual([1000]);   // no first pass on fewer futures is ever shown (lead4.md R6)
     expect(calls[0].inputs).toEqual(verdict.inputs);
     expect(calls[0].env).toMatchObject({ today: TODAY, seed: 0, detail: 'answer', ...verdict.env });
     const S = store.getState().saver;

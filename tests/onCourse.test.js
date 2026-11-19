@@ -70,12 +70,15 @@ describe('"Am I on course?" on the Accumulation planner', () => {
     expect(SRC).not.toMatch(/85% Monte-Carlo success/);
   });
   it('the check is the simple view\'s answer block, from the same reader and the same run (7.12.0): no second model of "on course"', () => {
-    const at = script.indexOf('window.runOnTrackCheck');
+    const at = script.indexOf('window.runOnTrackCheck = ');
     expect(at).toBeGreaterThan(-1);
     const body = script.slice(at, script.indexOf('\n', at));
     // (7.12.0: what you want is changed on the tab too, through the same one write as What you pay in)
     // (7.12.0: the tab's boxes saved first, so the answer reads what they show)
-    expect(body).toBe("window.runOnTrackCheck = async () => { if (window._acAutosave) await window._acAutosave.flush(); return paintSaverAnswer(document, { listScenariosAsync, getActiveScenarioId, saveWant: saveActiveWant, afterSave: () => window.loadAccumulationUI && window.loadAccumulationUI() }); };");
+    // (lead4.md R6: the one clock, and the run in the engine worker, as the simple view's; it runs when the tab opens)
+    expect(body).toBe("window.runOnTrackCheck = async () => { if (window._acAutosave) await window._acAutosave.flush(); return paintSaverAnswer(document, { listScenariosAsync, getActiveScenarioId, now: todayOf, run: saverRun, saveWant: saveActiveWant, afterSave: () => window.loadAccumulationUI && window.loadAccumulationUI() }); };");
+    expect(script).toMatch(/window\.runOnTrackCheck\(\);   \/\/ "Am I on course\?" runs when the tab opens/);
+    expect(script).not.toMatch(/>Work it out<\/button>/);
     expect(script).not.toMatch(/onCourseCheckHtml|requiredPotForSuccess/);
     expect(read('src/ui/saverAnswerUi.js')).toMatch(/import \{ saverBlockOf \} from '\.\.\/v7\/state\/saverBlock\.js';/);
   });

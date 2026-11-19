@@ -40,6 +40,8 @@
  */
 import { cloneSafe } from '../../utils/cloneSafe.js';
 import { STALE_BUILD } from '../../utils/staleBuild.js';
+import { marketFolderOf } from '../../reading/marketPlain.js';
+import { LAYOUT } from '../../appLayout.js';
 
 export const NO_WORKER = 'no-worker';
 export { STALE_BUILD };
@@ -51,7 +53,10 @@ function defaultMakeWorker() {
   return new Worker(new URL('./answerWorker.js', import.meta.url), { type: 'module' });
 }
 
-export function createWorkerClient({ makeWorker = defaultMakeWorker } = {}) {
+/** The site's one market data folder from this page (src/reading/market.js): told to the worker with the date. */
+const pageMarketFolder = () => (typeof document !== 'undefined' ? marketFolderOf(document.baseURI, LAYOUT.v7.data) : null);
+
+export function createWorkerClient({ makeWorker = defaultMakeWorker, market = pageMarketFolder } = {}) {
   let worker = null;
   let broken = false;          // no worker can start: stop trying
   let everReady = false;       // some worker has answered `init`
@@ -129,7 +134,7 @@ export function createWorkerClient({ makeWorker = defaultMakeWorker } = {}) {
     worker.onmessage = (e) => onMessage(e.data);
     worker.onerror = onError;
     worker.onmessageerror = onError;
-    if (today) post({ id: nextId++, type: 'init', today });
+    if (today) post({ id: nextId++, type: 'init', today, market: market() });
     return worker;
   }
 
@@ -166,7 +171,7 @@ export function createWorkerClient({ makeWorker = defaultMakeWorker } = {}) {
       return new Promise((resolve, reject) => {
         pending.set(nextId++, { kind: 'init', resolve, reject });
         // A worker made just now has already been sent the date by ensure().
-        if (!fresh && !post({ id: nextId++, type: 'init', today })) onError();
+        if (!fresh && !post({ id: nextId++, type: 'init', today, market: market() })) onError();
       });
     },
 

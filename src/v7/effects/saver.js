@@ -3,9 +3,10 @@
  * On the step `#/plan/<id>/saving` and on the home of a plan still saving (7.12.0), whenever the state changes: if the page's reading names a run (answers/plan/saving.js
  * `verdict`: the plan's figures as question B's inputs, saverInputs.js, and their key) and state.saver holds nothing for
  * that key — or a failed run that has been asked to try again — dispatch saver/working, run question B on those inputs in
- * the worker's own 'saver' lane with 100 futures (saver/first), then with 1,000 (saver/final), as V7's questions run
- * (run.js PASSES). A result for a key no longer wanted is dropped here and by the reducer; the figures changing under a
- * run end it.
+ * the worker's own 'saver' lane ONCE, at the futures and seed the full view's run takes (src/reading/runs.js SAVER_RUN:
+ * 1,000, seed 0), then saver/final. No first pass on fewer futures is ever shown as the figure (lead4.md R6): the page
+ * says it is working until the run lands. A result for a key no longer wanted is dropped here and by the reducer; the
+ * figures changing under a run end it.
  *
  * No page fallback, as for the plan's other runs: a browser that cannot start a worker gets saver/failed with reason
  * 'noWorker', and the screen says so (the planner's own check stays a link away). Nothing is written: the verdict lives
@@ -16,9 +17,7 @@
  */
 import { A } from '../state/actions.js';
 import { NO_WORKER } from './workerClient.js';
-import { PASSES as SAVER_PASSES } from './run.js';
-
-const SEED = 0;   // the published seed, as every V7 answer
+import { SAVER_RUN } from '../../reading/runs.js';
 
 /**
  * The page's reading of the verdict: on the saving step, and (7.12.0) on the home of a plan still saving — the same key,
@@ -47,13 +46,11 @@ export function startSaverRunner({ store, client }) {
     store.dispatch({ type: A.SAVER_WORKING, key: v.key });
     try {
       if (!client || typeof client.saver !== 'function') throw Object.assign(new Error('no saver lane'), { code: NO_WORKER });
-      for (const futures of SAVER_PASSES) {
-        const env = { today: store.getState().env.today, futures, seed: SEED, trace: false, detail: 'answer', ...(v.env || {}) };
-        const result = await client.saver(v.inputs, env);
-        if (!live()) return;
-        if (!result || typeof result !== 'object') throw new Error('no result');
-        store.dispatch({ type: futures === SAVER_PASSES[SAVER_PASSES.length - 1] ? A.SAVER_FINAL : A.SAVER_FIRST, key: v.key, result });
-      }
+      const env = { today: store.getState().env.today, ...SAVER_RUN, ...(v.env || {}) };
+      const result = await client.saver(v.inputs, env);
+      if (!live()) return;
+      if (!result || typeof result !== 'object') throw new Error('no result');
+      store.dispatch({ type: A.SAVER_FINAL, key: v.key, result });
     } catch (e) {
       if (live()) store.dispatch({ type: A.SAVER_FAILED, key: v.key, reason: e && e.code === NO_WORKER ? 'noWorker' : null });
     } finally {

@@ -16,6 +16,7 @@
  * Every path written is in schema.js WAY_WRITES (tested); only the dials typed on the card go into the switch (as the
  * planner's strategy page sends only the dials turned), so a key the plan lacks stays absent unless it was set.
  */
+import { marketLabel } from '../../reading/marketPlain.js';
 import { futuresOutOfTen, pctText, CHANCE_BARS, rankWays } from '../../services/OneAnswer.js';
 import { restoredParamsFor, switchPatch } from '../../services/PlanCommit.js';
 import { get, applyPatch, safeSettings, safeTiming } from './about.js';
@@ -252,7 +253,9 @@ export function cardsOf(reading, W) {
       needsRun, tried: t ? { status: t.status, reason: t.reason || null, runs: t.result && t.result.basis ? t.result.basis.runs : 1, ms: t.ms == null ? null : t.ms } : null,
       table: tableRow(shownResult), compare,
       // a locked ladder's own way, read from its plan document (waysRun.lockedOwnOf): the day it was locked, said once
-      asLocked: shownResult && shownResult === ran && ran.asLocked ? ran.asLocked : null
+      asLocked: shownResult && shownResult === ran && ran.asLocked ? ran.asLocked : null,
+      // what a bought way was priced on (the one market): the ways run's stamp, in the one label both views draw
+      market: isBought(id) && result && result.market && !(shownResult && shownResult === ran && ran.asLocked) ? marketLabel(result.market) : null
     };
   });
   return { found: true, cards, current, open, rankBy, ran: mine && w.ran ? w.ran : null, has: !!result };

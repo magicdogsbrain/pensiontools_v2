@@ -36,7 +36,7 @@ import { incomeStaircaseSvg, suggestSteps, amountAtAge as shapeAmountAtAge } fro
 import { ladderRatchetSvg, floorFlexSvg, floorScheduleSvg, potsValvesSvg, LR_FRAMES, FF_FRAMES, FS_FRAMES, PV_FRAMES } from './ui/strategyMachines.js';
 import { getRtr } from './strategies/ladderEngine.js';
 import { getCpi } from './strategies/ladderEngine.js';
-import { orderSheet, realYieldForYear, nominalYieldForYear, loadLiveGilts, dataProvenance, activeLinkers } from './services/LinkerUniverse.js';
+import { orderSheet, realYieldForYear, nominalYieldForYear, dataProvenance, activeLinkers } from './services/LinkerUniverse.js';
 import { runLadderWindows, runLadderMonteCarlo } from './strategies/LadderAndRatchet.js';
 import { runFlexWindows } from './strategies/FloorAndFlex.js';
 
@@ -410,7 +410,6 @@ export {
   PV_FRAMES,
   realYieldForYear,
   nominalYieldForYear,
-  loadLiveGilts,
   dataProvenance,
   activeLinkers,
   runLadderWindows,

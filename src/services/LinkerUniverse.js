@@ -5,7 +5,7 @@
  *
  * Data: `public/data/gilts.json`, rebuilt nightly by scripts/fetch-gilt-data.mjs from the DMO
  * gilts-in-issue report and Tradeweb FTSE closing prices (T+1). `src/data/giltsSnapshot.js` is
- * the bundled copy for offline/tests; `loadLiveGilts()` swaps in the fetched file at runtime; an
+ * the bundled copy for offline/tests; the one market loader (src/reading/market.js) swaps in the day's file; an
  * admin override (Firestore admin/linkers) sits above both. For 3-month-lag linkers the quoted
  * clean price is a real price, so a solved YTM is a real yield — but the curve that PRICES the
  * rungs is the Bank of England's daily real spot curve (realCurve in the file), with the per-gilt
@@ -13,7 +13,6 @@
  */
 
 import snapshot from '../data/giltsSnapshot.js';
-import { LAYOUT } from '../appLayout.js';
 
 export const FLAT_REAL_YIELD_FALLBACK = 0.023;
 
@@ -70,23 +69,6 @@ let _live = null;       // fetched at runtime
 export function setLinkersOverride(data, now = new Date()) { _override = data && data.gilts ? normalise(data, now) : null; }
 export function setLiveGilts(data, now = new Date()) { _live = data && data.gilts ? normalise(data, now) : null; }
 export function activeLinkers() { return _override || _live || BUNDLED; }
-
-/**
- * Fetch the nightly file (same origin; by default from the site's data folder as the classic page sees it, src/appLayout.js:
- * './data/' today, '../data/' from /classic/ at 7.0) — silent fallback to the snapshot. The engine worker asks with the same
- * address, which it resolves from its own script in assets/: /assets/data/ today, where there is no file, so it keeps the
- * snapshot (known; e2e/full-view-unchanged.spec.js); /classic/data/ at 7.0, where it reads whatever copy that build made.
- */
-export async function loadLiveGilts(url = LAYOUT.classic.data + 'gilts.json', fetchImpl = globalThis.fetch) {
-  if (!fetchImpl) return null;
-  try {
-    const r = await fetchImpl(url, { cache: 'no-cache' });
-    if (!r.ok) return null;
-    const data = await r.json();
-    if (Date.parse(data.generated_at || 0) >= Date.parse(BUNDLED.generated_at || 0)) setLiveGilts(data);
-    return activeLinkers();
-  } catch (e) { return null; }
-}
 
 export function isStale(nowMs = Date.now(), maxAgeHours = 48) {
   const gen = Date.parse(activeLinkers().generated_at || 0);

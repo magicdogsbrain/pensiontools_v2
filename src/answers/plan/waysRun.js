@@ -3,14 +3,14 @@
  * the one test on THIS plan — the planner's Overview run, line for line (index.html cmpRun: strategyPlanFor, then
  * compareRunner.compareAll over STRATEGY_NAMES in order, the configs derived once so every way reads the ACTIVE way's
  * parameter bag) — and one way tried on its own dials (index.html specStrategyPageHtml's what-if). Nothing is reimplemented:
- * the plan is lastsRun.js planFor's (the bundled yield curve), the runs are stressTestStrategy's, the figures OneAnswer's and
+ * the plan is lastsRun.js planFor's (the one market, src/reading/market.js), the runs are stressTestStrategy's, the figures OneAnswer's and
  * scoreStrategy's.
  *
  * Loaded LAZILY, like lastsRun.js (a dynamic import in effects/answerWorker.js, the worker's alone): this file is a door
  * from V7 to the strategies, so the shell and the plan pages' chunk never carry them (tests/v7/boundaries.test.js).
  *
  *   runWays(plan, { today, onProgress }) → {
- *     strategyId, priced: 'bundled', ways: [wayResult × 9 in WAY_IDS order], basis: { today, engine: 'one-test', runs: 9 }
+ *     strategyId, market: marketStamp(), ways: [wayResult × 9 in WAY_IDS order], basis: { today, engine: 'one-test', runs: 9 }
  *   }
  *   runWay(plan, { today, id, dials, onProgress }) → the same wayResult for ONE way run on `dials` (dial units, way.js) over
  *     the way's restored params, the plan's cut dials set from them for the Pots & Valves family — "Tried in 1 run"
@@ -21,9 +21,9 @@
  *     `dials`: for each of the way's dials (schema.js WAY_DIALS) the ENGINE's default on this plan and the value the run
  *     read (the active bag's, else the default), in dial units — so the screen can say which values a figure is for.
  *
- * Plain data in, plain data out (the plan after the in-memory upgrade; the result through cloneSafe in the worker). No live
- * gilt or share prices: a ladder is priced on the bundled curve. Pure but for the engine's own deterministic futures; the
- * date arrives as `today`.
+ * Plain data in, plain data out (the plan after the in-memory upgrade; the result through cloneSafe in the worker). A ladder is
+ * priced on the one market (src/reading/market.js), as in the full view; the result says which (`market`). Pure but for the
+ * engine's own deterministic futures; the date arrives as `today`.
  */
 import { effectiveStressSettings } from '../../services/PlanReading.js';
 import { stressTestStrategy, scoreStrategy, STRATEGY_NAMES } from '../../strategies/stressTest.js';
@@ -32,6 +32,8 @@ import { ladderYearsFromYear0 } from '../../services/PlanFromToday.js';
 import { oneAnswer } from '../../services/OneAnswer.js';
 import { restoredParamsFor, dialParams } from '../../services/PlanCommit.js';
 import { planFor } from './lastsRun.js';
+import { contextFor } from '../../reading/context.js';
+import { waysInputOf, enginePlanOf } from '../../reading/gather.js';
 import { dateOf, dayWords } from './dates.js';
 import { documentLadder } from '../../services/LadderPosition.js';
 import { WAY_IDS, WAY_DIALS } from './schema.js';
@@ -162,18 +164,20 @@ export function lockedOwnOf(plan, strategyId) {
  * @param {{ today: string, onProgress?: (done: number, total: number) => void }} o
  */
 export function runWays(plan, { today, onProgress = null } = {}) {
-  const now = dateOf(today);
+  // the one context and the one gatherer (src/reading/): the input the full view's worker is handed for the same plan
+  const ctx = contextFor(plan, { today });
   const tell = (done, total) => { if (typeof onProgress === 'function') onProgress(done, total); };
-  const settings = effectiveStressSettings(plan, { now });
+  const input = waysInputOf(plan, ctx);
+  const settings = input.settings;
   const strategyId = settings.strategyId || 'pots-and-valves';
-  const p = planFor(settings, now);
+  const p = enginePlanOf(input);
   const ids = Object.keys(STRATEGY_NAMES);
   const all = compareAll(p, ids, { onProgress: (i, n) => tell(i, n) });
   tell(ids.length, ids.length);
   // a locked gilt ladder's own way is its document's result, as "Does it last?" reads it (lastsRun.runLasts): never run again
   const own = lockedOwnOf(plan, strategyId);
   const ways = ids.map((id) => (own && id === strategyId ? { ...wayResult(id, own.r, own.p, all.configs), asLocked: own.on } : wayResult(id, all.strategies[id], p, all.configs)));
-  return plain({ strategyId, priced: 'bundled', ways, basis: { today, engine: 'one-test', runs: ids.length } });
+  return plain({ strategyId, market: ctx.market, ways, basis: { today, engine: 'one-test', runs: ids.length } });
 }
 
 /**

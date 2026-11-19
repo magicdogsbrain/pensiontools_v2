@@ -18,8 +18,7 @@ import { EQUITY_URL } from '../src/v7/effects/move.js';
 import { COMMON } from '../src/v7/copy/common.js';
 import { PREVIEW_PATH } from '../src/ui/components/OpenPlace.js';
 import { questionHref } from '../src/services/PlanSeed.js';
-import { loadLiveGilts } from '../src/services/LinkerUniverse.js';
-import { loadLiveEquity } from '../src/services/EquityIndex.js';
+import { loadMarket, forgetMarket, marketFolderOf } from '../src/reading/market.js';
 import { V7_PATH, CLASSIC_PATH, atClassic, LAYOUT_UNDER_TEST, CLASSIC_WORKER_DATA, WORKER_DATA_LINE, WORKER_DATA_MISSING } from '../e2e/helpers/paths.js';
 
 const ROOT = process.cwd();
@@ -32,14 +31,14 @@ describe('the two layouts', () => {
   it('preview is the layout before 7.0, exactly (the rollback): the classic page at /, V7 at /v7/', () => {
     expect(LAYOUTS.preview).toEqual({
       name: 'preview',
-      v7: { at: '/v7/', classic: '../', privacy: '../privacy.html', equity: '../data/equity.json' },
+      v7: { at: '/v7/', classic: '../', privacy: '../privacy.html', equity: '../data/equity.json', data: '../data/' },
       classic: { at: '/', v7: 'v7/', privacy: 'privacy.html', data: './data/' }
     });
   });
   it('switch is 7.0: V7 at /, the classic page at /classic/, one data folder at the root', () => {
     expect(LAYOUTS.switch).toEqual({
       name: 'switch',
-      v7: { at: '/', classic: './classic/', privacy: './privacy.html', equity: './data/equity.json' },
+      v7: { at: '/', classic: './classic/', privacy: './privacy.html', equity: './data/equity.json', data: './data/' },
       classic: { at: '/classic/', v7: '../', privacy: '../privacy.html', data: '../data/' }
     });
   });
@@ -50,6 +49,7 @@ describe('the two layouts', () => {
       expect(from(v7Page, L.v7.classic + '?signin=1')).toBe(L.classic.at + '?signin=1');
       expect(from(v7Page, L.v7.privacy)).toBe('/privacy.html');
       expect(from(v7Page, L.v7.equity)).toBe('/data/equity.json');
+      expect(from(v7Page, L.v7.data)).toBe('/data/');
     }
     for (const classicPage of [L.classic.at, L.classic.at + 'index.html']) {
       expect(from(classicPage, L.classic.v7), classicPage).toBe(L.v7.at);
@@ -100,19 +100,22 @@ describe('every cross-app link reads the module', () => {
     expect(read('src/ui/components/LandingPage.js')).toContain('<a href="${LAYOUT.classic.v7}#/" id="landingPreviewLink">');
     // the two footers' policy links: the landing page's and the sign-in screen's
     for (const f of ['src/ui/components/LandingPage.js', 'src/ui/components/AuthScreen.js']) expect(read(f), f).toContain('<a href="${LAYOUT.classic.privacy}" target="_blank" rel="noopener">Privacy Policy</a>');
-    // the market data: the page asks with the services' own addresses, which are the layout's data folder
+    // the market data: the page asks the one loader (src/reading/market.js) for its layout's data folder
     const html = read('index.html');
-    expect(html).toContain('loadLiveGilts().then(');
-    expect(html).toContain('loadLiveEquity();');
+    expect(html).toContain('loadMarket({ folder: marketFolderOf(document.baseURI, LAYOUT.classic.data) })');
   });
-  it('the classic page\'s market data: both loads ask the layout\'s data folder', async () => {
+  it('both views\' market data: the one data folder, from either page, in either layout', async () => {
+    for (const L of Object.values(LAYOUTS)) {
+      const site = 'https://example.test';
+      expect(marketFolderOf(site + L.v7.at, L.v7.data)).toBe(site + '/data/');
+      expect(marketFolderOf(site + L.classic.at, L.classic.data)).toBe(site + '/data/');
+    }
     const asked = [];
     const fetchStub = async (url) => { asked.push(url); return { ok: false }; };
-    await loadLiveGilts(undefined, fetchStub);
-    const before = globalThis.fetch;
-    globalThis.fetch = fetchStub;
-    try { await loadLiveEquity(); } finally { globalThis.fetch = before; }
-    expect(asked).toEqual([LAYOUT.classic.data + 'gilts.json', LAYOUT.classic.data + 'equity.json']);
+    forgetMarket();
+    await loadMarket({ folder: 'https://example.test/data/', fetchImpl: fetchStub });
+    expect(asked.sort()).toEqual(['https://example.test/data/equity.json', 'https://example.test/data/gilts.json']);
+    forgetMarket();
   });
   it('no copy of a path is left in the files that link the two apps', () => {
     const files = ['src/v7/effects/openPlace.js', 'src/v7/effects/move.js', 'src/v7/copy/common.js', 'src/ui/components/OpenPlace.js', 'src/ui/components/LandingPage.js', 'src/ui/components/AuthScreen.js', 'src/services/PlanSeed.js', 'src/services/LinkerUniverse.js', 'src/services/EquityIndex.js'];
@@ -133,7 +136,13 @@ describe('the browser tests\' two addresses', () => {
     expect(atClassic('http://127.0.0.1:4173' + CLASSIC_PATH + 'index.html')).toBe(true);
     expect(atClassic('http://127.0.0.1:4173' + V7_PATH + '#/plans')).toBe(false);
   });
-  it('the classic engine worker\'s market files: the classic page\'s data address read from the worker\'s own script in assets/ (/classic/data/ at 7.0, /assets/data/ for the rollback)', () => {
+  it('both workers read the folder their page hands them (src/reading/market.js), never one resolved from their own script', () => {
+    expect(read('src/workers/engineClient.js')).toContain('marketFolderOf(document.baseURI, LAYOUT.classic.data)');
+    expect(read('src/v7/effects/workerClient.js')).toContain('marketFolderOf(document.baseURI, LAYOUT.v7.data)');
+    expect(read('src/workers/engineWorker.js')).toContain('loadMarket({ folder: payload && payload.market })');
+    expect(read('src/v7/effects/answerWorker.js')).toContain("loadMarket({ folder })");
+  });
+  it('(kept for the rollback\'s watch) the classic page\'s data address read from a script in assets/ (/classic/data/ at 7.0, /assets/data/ for the rollback)', () => {
     const worker = (L) => from(L.classic.at + 'assets/engineWorker-H.js', L.classic.data);
     expect(worker(LAYOUTS.preview)).toBe('/assets/data/');
     expect(worker(LAYOUTS.switch)).toBe('/classic/data/');

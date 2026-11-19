@@ -173,8 +173,8 @@ describe('the Strategies ranking lists strategies by how many futures out of 10 
 describe('the Monte Carlo tab\'s card rows: money left, and the income cuts', () => {
   it('money left: typical, bad case (the worst 1 in 10), good case', () => {
     const t = plain(leftRowHtml(oneAnswer(R, P)));
-    expect(t).toContain('typically £1,806,699');
-    expect(t).toContain('bad case (the worst 1 in 10) £135,978');
+    expect(t).toContain('typically £1,807,000');   // to the nearest £1,000, as the sentences say it
+    expect(t).toContain('bad case (the worst 1 in 10) £136,000');
     expect(t).not.toMatch(/worst of 1,000|unluckiest/);
   });
   it('the cuts: how many futures, by how much, for how long — and nothing for a strategy without cuts', () => {

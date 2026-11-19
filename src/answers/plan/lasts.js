@@ -42,6 +42,7 @@ import { whereAmIFor } from '../../services/PlanReading.js';
 import { earlyPensionDrawOf } from '../../services/PlanTiming.js';
 import { partnersOf } from '../../services/HouseholdLink.js';
 import { shownPlanNameOn } from '../../services/PlanName.js';
+import { marketLabel } from '../../reading/marketPlain.js';
 
 export { applyPatch };
 
@@ -397,7 +398,7 @@ export function verdictOf(result, saved, { level = null, chance = null } = {}) {
   const ran = result.ran && typeof result.ran === 'object' ? result.ran : {};
   if (ran.cutsOn) rows.push({ id: 'ran.cuts', slots: { pct: String(ran.cutPct), months: String(ran.months), s: ran.months === 1 ? '' : 's' } });
   else if (ran.family) rows.push({ id: 'ran.cutsOff', slots: {} });
-  if (result.priced === 'bundled') rows.push({ id: 'ran.bundled', slots: {} });
+  if (result.market && result.market.gilts) rows.push({ id: 'ran.market', slots: { label: marketLabel(result.market) } });
   // the other savings cannot pay the years before the pension opens (7.4.1, lastsRun closedOf): said beside the answer
   const closedShort = result.closed && result.closed.short ? { age: String(result.closed.age), amount: pounds(result.closed.short.perYear), years: result.closed.short.years } : null;
   const worst = Array.isArray(result.history && result.history.worst) ? result.history.worst.map(startRow) : [];

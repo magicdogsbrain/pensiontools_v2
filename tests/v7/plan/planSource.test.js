@@ -226,9 +226,10 @@ describe('memory only (T6): pagehide, becoming nobody, sign-out and idle clear t
   });
 });
 
-describe('"How careful?" on "Does it last?" (7.8.0): page memory only, and the page reads the band again', () => {
-  it('a press judges the run held for this plan at the page\'s level, at once; nothing is written', { timeout: 240_000 }, async () => {
-    const text = JSON.stringify([C['02-pnv-draft']]);
+describe('"How careful?" on "Does it last?": the page reads the plan\'s own level (lead4.md R5)', () => {
+  it('a plan that holds a level is judged at it, by the run and the band; nothing is written by reading it', { timeout: 240_000 }, async () => {
+    const plan0 = JSON.parse(JSON.stringify(C['02-pnv-draft']));
+    const text = JSON.stringify([{ ...plan0, phases: { ...(plan0.phases || {}), level: { level: 'bold', at: '2026-11-01T10:00:00.000Z' } } }]);
     const session = storage({ [GUEST_PLANS_KEY]: text });
     const fb = fakeFirebase({ user: null });
     const { store, stop } = page({ fb, session });
@@ -237,14 +238,12 @@ describe('"How careful?" on "Does it last?" (7.8.0): page memory only, and the p
     store.dispatch({ type: A.ROUTE_SET, route: { screen: 'plan', planId: entry.plan.id, step: 'lasts' } });
     const key = runKeyOf(entry.plan);
     store.dispatch({ type: A.LASTS_WORKING, key });
-    store.dispatch({ type: A.LASTS_DONE, key, result: runLasts(entry.plan, { today: TODAY, weighted: true }) });
+    const result = runLasts(entry.plan, { today: TODAY, weighted: true });
+    expect(result.level).toBe('bold');
+    store.dispatch({ type: A.LASTS_DONE, key, result });
     const verdict = () => store.getState().plans.view.page.lasts.verdict;
-    expect(verdict().level).toBe('balanced');
-    store.dispatch({ type: A.UI_LEVEL, level: 'bold' });
     expect(verdict().level).toBe('bold');
     expect(verdict().slots.bold).toMatch(/while you are alive/);
-    store.dispatch({ type: A.UI_LEVEL, level: 'careful' });
-    expect(verdict().level).toBe('careful');
     expect(session.raw(GUEST_PLANS_KEY)).toBe(text);
     expect(session.calls.some((c) => c[0] !== 'getItem')).toBe(false);
     stop();

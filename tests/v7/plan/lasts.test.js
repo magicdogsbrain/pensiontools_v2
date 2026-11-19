@@ -52,7 +52,7 @@ const R = {
 };
 const P = { durationYears: 39, startAge: 56, targetAnnual: 40000 };
 const fakeResult = (strategyId = 'pots-and-valves', more = {}) => ({
-  strategyId, ran: { family: FAMILY.includes(strategyId), cutsOn: FAMILY.includes(strategyId), cutPct: 20, months: 3 }, priced: FAMILY.includes(strategyId) ? null : 'bundled',
+  strategyId, ran: { family: FAMILY.includes(strategyId), cutsOn: FAMILY.includes(strategyId), cutPct: 20, months: 3 }, market: FAMILY.includes(strategyId) ? null : { gilts: { source: 'builtIn', asOf: '2026-11-12' }, equity: { source: 'builtIn', asOf: '2026-11-11' } },
   a: oneAnswer({ ...R, strategyId, cuts: FAMILY.includes(strategyId) ? R.cuts : null }, P), reason: null,
   history: {
     worst: [{ year: 1929, month: 9, s: 704, failed: true, failAge: 84, terminal: 0, worst12: 31000, unfair: true }, { year: 1966, month: 1, s: 1140, failed: false, terminal: 20000, worst12: 33000, cutYears: 4, cutReal: 16000, unfair: true }],
@@ -268,11 +268,12 @@ describe('L1 — the words of a result, and the run key', () => {
     expect(v.history.named.map((r) => r.id)).toEqual(['hist.lastedCut', 'hist.tooShort']);
     expect(v.history.named[0]).toMatchObject({ when: '1929', label: 'the Great Depression', slots: { n: '4', s: 's', total: '£16,000' } });
     for (const r of [...v.history.worst, ...v.history.named]) expect(LASTS.history.rows[r.id], r.id).toBeTypeOf('string');
-    // a bought strategy: no cuts row of its own, the bundled curve said; a contract strategy: its own sub line
+    // a bought strategy: no cuts row of its own, the market it was priced on said (one label, src/reading/marketPlain.js); a contract strategy: its own sub line
     const b = verdictOf(fakeResult('ladder-and-ratchet'), saved);
-    expect(b.rows.map((r) => r.id)).toEqual(['left', 'cuts.bought', 'ran.bundled']);
+    expect(b.rows.map((r) => r.id)).toEqual(['left', 'cuts.bought', 'ran.market']);
+    expect(b.rows[2].slots.label).toBe('Gilts priced at the prices of 12 November 2026 (the copy built into the site: the day’s file could not be read).');
     const f = verdictOf(fakeResult('floor-and-flex'), saved);
-    expect(f.rows.map((r) => r.id)).toEqual(['left', 'cuts.flex', 'ran.bundled']);
+    expect(f.rows.map((r) => r.id)).toEqual(['left', 'cuts.flex', 'ran.market']);
     const g = verdictOf(fakeResult('full-il-gilt'), saved);
     expect(g.sub.id).toBe('lasts.subContract');
     expect(g.history.contract).toBe(true);

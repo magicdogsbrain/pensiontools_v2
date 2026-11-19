@@ -10,6 +10,7 @@
  *     saving:  { strategy: { level: 'cautious'|'balanced'|'adventurous', endTarget: 'drawdown', at } },
  *     moving:  { window: { years: 1..5, at },          // from and to are always derived (windowOf)
  *                agreed: { at, strategyId, how: 'done'|'asHeld'|'nothing', heldPct: 0..100|null, entryAt, carriedFrom? } },
+ *     level:   { level: 'careful'|'balanced'|'bold', at },   // how careful the plan is judged (both views' "How careful?")
  *     review:  { every: 'year'|'quarter'|'month', rule: { kind: 'success', floor } | { kind: 'guardrails', drift, step },
  *                log: [entry] },                      // at most REVIEW_LOG_MAX entries; no next date is ever stored
  *     history: [{ at, what, from, to }] }             // what: a part's name (PHASE_PARTS, less review.log)
@@ -61,7 +62,7 @@ export const REVIEW_EVERY = CADENCES;
 /** How a move was agreed: complete inside the band, what is held as it is, or with no pension record to read. */
 export const AGREED_HOWS = Object.freeze(['done', 'asHeld', 'nothing']);
 /** The parts phasesPatch writes, each by name; every one but the log is a history `what` too. */
-export const PHASE_PARTS = Object.freeze(['window', 'saving.level', 'review.every', 'review.rule', 'moving.agreed', 'moving.withdrawn', 'review.log']);
+export const PHASE_PARTS = Object.freeze(['level', 'window', 'saving.level', 'review.every', 'review.rule', 'moving.agreed', 'moving.withdrawn', 'review.log']);
 export const HISTORY_WHATS = Object.freeze(PHASE_PARTS.filter((p) => p !== 'review.log'));
 /** The phases a review entry is made in (Saving's review is its check-in, kept where it always was). */
 export const ENTRY_PHASES = Object.freeze(['moving', 'drawing']);
@@ -102,13 +103,29 @@ export function ruleOrNull(r) {
 }
 const agreedOrNull = (a) => (isObj(a) && typeof a.strategyId === 'string' && a.strategyId && AGREED_HOWS.includes(a.how) && typeof a.at === 'string' ? a : null);
 
+/** The plan's own level as chosen on it ("How careful?" in either view: phases.level), or null. */
+const ownLevelOf = (plan) => {
+  const l = plan && isObj(plan.phases) && isObj(plan.phases.level) ? plan.phases.level.level : null;
+  return Object.prototype.hasOwnProperty.call(LEVEL_FAILS20, l) ? l : null;
+};
+
 /**
- * The plan's level for "the money lasts as long as you do" (B's, kept with the answer the plan came from when the person
- * chose one; else Balanced). answers/plan/life.js reads it from here: one rule.
+ * The plan's level for "the money lasts as long as you do" (lead4.md R5, both views): the level chosen on the plan
+ * (phases.level), else the one chosen with the answer it was kept from, else Balanced. answers/plan/life.js and
+ * src/reading/context.js read it from here: one rule.
  */
 export function planLevelOf(plan) {
+  const own = ownLevelOf(plan);
+  if (own) return own;
   const row = plan && isObj(plan.fromAnswer) && isObj(plan.fromAnswer.answer) ? plan.fromAnswer.answer : null;
   return row && row.levelChosen === true ? levelOf(row.level, { stored: true }) : LEVEL_DEFAULT;
+}
+
+/** Whether the person chose the plan's level (on the plan, or with the answer it was kept from), not the default. */
+export function planLevelChosen(plan) {
+  if (ownLevelOf(plan)) return true;
+  const row = plan && isObj(plan.fromAnswer) && isObj(plan.fromAnswer.answer) ? plan.fromAnswer.answer : null;
+  return !!row && row.levelChosen === true;
 }
 
 /** The off-course floor that follows a level: one twentieth below it (careful .90, balanced .85, bold .65). */
@@ -366,6 +383,13 @@ export function phasesPatch(plan, part, value, { at } = {}) {
   };
   const moving = () => (isObj(ph.moving) ? ph.moving : {});
   switch (part) {
+    case 'level': {
+      if (!Object.prototype.hasOwnProperty.call(LEVEL_FAILS20, value)) throw new Error('phasesPatch: ' + value + ' is not a level');
+      const was = ownLevelOf({ phases: ph });
+      ph.level = { level: value, at: when };
+      note('level', was, value);
+      break;
+    }
     case 'window': {
       const years = windowYearsOrNull(value);
       if (years == null) throw new Error('phasesPatch: a window is ' + WINDOW.min + ' to ' + WINDOW.max + ' years');

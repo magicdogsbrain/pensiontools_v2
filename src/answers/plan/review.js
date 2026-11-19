@@ -556,7 +556,7 @@ export function reviewSavePatch(plan, { today, typed = {}, at, reading = undefin
 }
 
 /** The parts a person chooses on the review, and how a pressed value is read. */
-export const CHOICE_PARTS = Object.freeze(['window', 'saving.level', 'review.every', 'review.rule']);
+export const CHOICE_PARTS = Object.freeze(['level', 'window', 'saving.level', 'review.every', 'review.rule']);
 /** A pressed rule ('success:17', 'guardrails') as Phases reads one; null when it is not one. */
 export function ruleOfChoice(value) {
   if (value === 'guardrails') return { kind: 'guardrails' };
@@ -575,6 +575,7 @@ export function phaseChoicePatch(plan, part, value, { at, today } = {}) {
   let v = value;
   if (part === 'window') { v = windowYearsOrNull(+value); if (v == null) return fail('problems'); }
   if (part === 'saving.level' && !SAVING_LEVELS.includes(value)) return fail('problems');
+  if (part === 'level' && !['careful', 'balanced', 'bold'].includes(value)) return fail('problems');
   if (part === 'review.every' && !REVIEW_EVERY.includes(value)) return fail('problems');
   if (part === 'review.rule') { v = ruleOfChoice(value); if (!v) return fail('problems'); }
   let patch;

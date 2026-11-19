@@ -175,6 +175,8 @@ const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
 const gbpW = (v) => '£' + String(Math.abs(Math.round(+v || 0))).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 /** Pounds to the nearest £1,000 (money left: a spread of futures, never a balance to the pound). */
 const gbpK = (v) => gbpW(Math.round((+v || 0) / 1000) * 1000);
+/** What is left at the end, as every place in both views says it: to the nearest £1,000 (one precision, lead4.md D8). */
+export const leftText = gbpK;
 /** What failing means, in the words of each kind (OneAnswer.failKind). */
 const LASTS_AS_LONG = { 'ran-out': 'the money lasts as long as you do', cut: 'your income is paid in full as long as you live', lean: 'you have no lean year while you are alive' };
 const RUNS_OUT = { 'ran-out': 'the money ran out', cut: 'your income was first cut', lean: 'you had your first lean year' };

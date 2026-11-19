@@ -31,7 +31,7 @@ const R = { strategyId: 'pots-and-valves', name: 'Pots & Valves', affordable: tr
   cones: { wealth: { p10: [1], p50: [1], p90: [1] }, income: { p10: [1], p50: [1], p90: [1] } },
   cuts: { futures: 1000, cutN: 190, cutPct: 19, ranOutN: 41, typicalCutPerYear: 4000, typicalCutYears: 3, typicalCutTotal: 12000, worstCutTotal: 31000 }, guaranteedToAge: 'State Pension only (from age 67)' };
 const P = { durationYears: 39, startAge: 56 };
-const fakeResult = (strategyId) => ({ strategyId, ran: { family: true, cutsOn: true, cutPct: 20, months: 3 }, priced: null, a: oneAnswer({ ...R, strategyId }, P), reason: null, history: { worst: [], named: [] }, stored: null, basis: { today: TODAY, engine: 'one-test' } });
+const fakeResult = (strategyId) => ({ strategyId, ran: { family: true, cutsOn: true, cutPct: 20, months: 3 }, market: null, a: oneAnswer({ ...R, strategyId }, P), reason: null, history: { worst: [], named: [] }, stored: null, basis: { today: TODAY, engine: 'one-test' } });
 const AT = { share: 0.91, chancePct: 91.2, typicalLeft: 200000, badCaseLeft: 0, years: 30, lasts: true };
 const BASE = { share: 0.927, chancePct: 92.7, typicalLeft: 1806699, badCaseLeft: 135978, years: 39, lasts: true };
 const LEVER_RESULTS = {

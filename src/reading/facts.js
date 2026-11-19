@@ -85,6 +85,8 @@ export const FACT = Object.freeze({
   // the way of drawing
   WAY_NAME: 'way.name',
   WAY_COST: 'way.cost',
+  // what a bought way was priced on (src/reading/market.js marketLabel): the prices' date and source
+  MARKET_GILTS: 'market.gilts',
   WITHDRAWAL_RATE: 'withdrawal.rate',
   // what is held
   GILTS_HELD: 'gilts.held',

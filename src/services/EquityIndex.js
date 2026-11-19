@@ -1,11 +1,10 @@
 /**
  * Equity index level + all-time high — the rotation trigger's data. Same three-layer pattern as
- * LinkerUniverse: bundled snapshot (build time), live fetch of ./data/equity.json (refreshed
- * nightly by scripts/fetch-gilt-data.mjs), optional test override. The rotation rule
+ * LinkerUniverse: bundled snapshot (build time), the day's equity.json (refreshed nightly by
+ * scripts/fetch-gilt-data.mjs) set by the one market loader (src/reading/market.js), optional test override. The rotation rule
  * (research/rotation-plan-aug-2026.md) fires when the index closes >=30% below its all-time high.
  */
 import snapshot from '../data/equitySnapshot.js';
-import { LAYOUT } from '../appLayout.js';
 
 let _live = null;
 let _override = null;
@@ -13,17 +12,10 @@ let _override = null;
 export function activeEquity() { return _override || _live || snapshot; }
 export function setEquityOverride(o) { _override = o; }   // tests / what-ifs only
 
-/** The nightly file, by default from the site's data folder as the classic page sees it (src/appLayout.js), as loadLiveGilts. */
-export async function loadLiveEquity(url = LAYOUT.classic.data + 'equity.json') {
-  try {
-    const r = await fetch(url, { cache: 'no-cache' });
-    if (!r.ok) return null;
-    const data = await r.json();
-    if (!data || !Number.isFinite(data.level) || !Number.isFinite(data.ath)) return null;
-    if (!snapshot.generated_at || data.generated_at >= snapshot.generated_at) _live = data;
-    return _live;
-  } catch (e) { return null; }
-}
+/** The day's file, as the one market loader (src/reading/market.js loadMarket) found it; null puts the built-in copy back. */
+export function setLiveEquity(data) { _live = data || null; }
+/** The copy built into the site. */
+export const BUNDLED_EQUITY = snapshot;
 
 /** Drawdown from the all-time high (negative number, e.g. -0.31). */
 export function equityDrawdown() { const e = activeEquity(); return e && e.ath > 0 ? e.level / e.ath - 1 : null; }

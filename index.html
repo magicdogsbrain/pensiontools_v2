@@ -3743,7 +3743,6 @@
               enough and how often the money lasts, and what would be enough. The figures above are saved as you type them;
               what you want a month is changed in the boxes under the answer.
             </p>
-            <button type="button" data-on-click="runOnTrackCheck()">Work it out</button>
             <div id="acOnTrack" style="margin-top:10px;"></div>
           </div>
 
@@ -4098,7 +4097,6 @@
       orderSheet,
       realYieldForYear,
       nominalYieldForYear,
-      loadLiveGilts,
       dataProvenance,
       activeLinkers,
       runLadderWindows as runLadderWindowsX,
@@ -4164,7 +4162,7 @@
     // One answer per plan (6.24.0; usability audit decision 2): every "will it last" figure is the one test's, read through these.
     import { oneAnswer, worstStarts, earlierTestNote, cutsSettingWords, futuresOutOfTen, pctText, CHANCE_BARS, RUIN_BARS } from './src/services/OneAnswer.js';
     import { namedStartRows, SCENARIO_START } from './src/services/NamedStarts.js';   // the named stresses' start years, lifted (6.45.0): the preview reads the same
-    import { leftRowHtml, cutsRowHtml, withoutCutsLineHtml, historyTabHtml, scenariosTabHtml, rankingCardHtml, allocationGridHtml, earlierTestNoteHtml, verdictBlockView, cardToneOf, chanceOptsOf, countAgeHtml, installChanceLevel, lifeAssumptionsRows } from './src/ui/oneAnswerView.js';
+    import { leftRowHtml, cutsRowHtml, withoutCutsLineHtml, historyTabHtml, scenariosTabHtml, rankingCardHtml, allocationGridHtml, earlierTestNoteHtml, verdictBlockView, cardToneOf, chanceOptsOf, countAgeHtml, installChanceLevel, lifeAssumptionsRows, LEVEL_REFUSED } from './src/ui/oneAnswerView.js';
     import { DECISION_ASSUMED_CPI } from './src/services/InflationModel.js';
     import { LADDER_DEFAULTS, orderSheetRows } from './src/strategies/GiltLadderPlan.js';
 
@@ -4220,7 +4218,7 @@
     import { switchPatch, restoredParamsFor, dialParams } from './src/services/PlanCommit.js';   // the strategy switch as one pure patch (6.40.0)
     import { compareAll, mixCells, ladderYearsOfPlan, rankedWays } from './src/strategies/compareRunner.js';   // the nine ways through the one test, one loop (6.40.0); the Compare allocations cells (6.41.0)
     import { rotationStatus, rotationBlock, rotationMarket, sellTicketRows } from './src/services/RotationStatus.js';
-    import { activeEquity, loadLiveEquity, equityDrawdown, equityProvenance, setEquityOverride } from './src/services/EquityIndex.js';
+    import { activeEquity, equityDrawdown, equityProvenance, setEquityOverride } from './src/services/EquityIndex.js'; import { loadMarket, marketStamp, marketLabel } from './src/reading/market.js'; import { marketFolderOf } from './src/reading/marketPlain.js'; import { LAYOUT } from './src/appLayout.js';
     import { enterGuestMode, isGuest, leaveGuestMode, clearGuestData } from './src/firebase/index.js';
 
     // De-inlined decision engine (was inline calcDecisionPWA).
@@ -4238,10 +4236,10 @@
     window.setDisplay = function (id, v) { const e = document.getElementById(id); if (e) e.style.display = v; };
     // Read-only debug hooks (no writes): lets a console inspect what the plan lock sees.
     if (import.meta.env.DEV) window._ptDebug = { getDecisionSettingsAsync, getHistoryAsync, decisionSettingsChecksum, planDependents, getAllTaxYearsAsync, getStressSettingsAsync };
-    // Nightly gilt closing prices (public/data/gilts.json) → real-yield curve for the ladder
-    // strategies. Fire-and-forget; the bundled snapshot serves until it lands or if it fails.
-    loadLiveGilts().then((d) => { if (d) window.refreshStrategyCosts?.(); });
-    loadLiveEquity();   // rotation-trigger data; silent if offline (bundled snapshot stands in)
+    // The one market (src/reading/market.js, lead4.md R5): the site's data folder, the same file the engine worker and the
+    // simple view's worker read (gilt prices for the ladders, the share index for the rotation watch); the copy built into
+    // the site when the file cannot be read. Every run on this page waits for it (window._marketReady).
+    window._marketReady = loadMarket({ folder: marketFolderOf(document.baseURI, LAYOUT.classic.data) }).then((m) => { if (m.gilts.source === 'file') window.refreshStrategyCosts?.(); return m; });
     window.setEquityOverride = setEquityOverride;   // dev/what-if: fake a drawdown from the console
     window._mathUtils = { seededRng };
 
@@ -4292,7 +4290,7 @@
     import { whatsNewHtml, versionsPageHtml, safeAffects } from './src/ui/components/ReleaseNotesView.js';
 
     import { getChartStyles } from './src/ui/Charts.js';
-    import { createPlanState, bindPlanState } from './src/ui/planState.js'; import { fillDecisionBoxes, decisionPotsOf } from './src/ui/decisionForm.js'; import { installRepaint } from './src/ui/repaintPlan.js'; import { formatNumberBoxes } from './src/ui/numberOverlays.js'; import { stressSavePatch, settingsFromForm, ownPotAtRetirement, touches, INCOME_KEYS, TIMING_KEYS, STRATEGY_KEYS } from './src/ui/settingsChanged.js'; import { todayOf } from './src/reading/clock.js'; import { READ_FAULT_WORDS, isPlanReadError } from './src/reading/readFault.js';
+    import { createPlanState, bindPlanState } from './src/ui/planState.js'; import { fillDecisionBoxes, decisionPotsOf } from './src/ui/decisionForm.js'; import { installRepaint } from './src/ui/repaintPlan.js'; import { formatNumberBoxes } from './src/ui/numberOverlays.js'; import { stressSavePatch, settingsFromForm, ownPotAtRetirement, touches, INCOME_KEYS, TIMING_KEYS, STRATEGY_KEYS } from './src/ui/settingsChanged.js'; import { todayOf, dayKeyOf } from './src/reading/clock.js'; import { phaseChoicePatch } from './src/answers/plan/review.js'; import { isPlanLockedError } from './src/services/LockedPlanGuard.js'; import { contextFor } from './src/reading/context.js'; import { lastsInputOf, waysInputOf, enginePlanOf } from './src/reading/gather.js'; import { READ_FAULT_WORDS, isPlanReadError } from './src/reading/readFault.js';
     // Everything the page knows about the open plan, in ONE object (src/ui/planState.js, lead4.md R2): window._budget,
     // window._oneTest and the rest are its fields. repaintPlan drops it and makes it again on any change of plan.
     const planState = bindPlanState(window, createPlanState());
@@ -5559,9 +5557,8 @@
     // ONE renderer for ONE result shape (stressTestStrategy) — whatever strategy the plan is
     // switched to, the cones and the headline are drawn from the same numbers the compare shows.
     function strategyPlanFor(settings, essentialsOverride) {
-      const cfg = createSimulationConfigFromSettings({}, settings, todayOf());
-      // The plan starts at the income shape's first age (retirement), not a hard-coded 57.
-      return planFromSettings(settings, cfg, { yieldForYear: realYieldForYear, essentialsAnnual: essentialsOverride, startAge: +settings.shapeAgeNow || 57 });
+      // the one builder of the engine's plan (src/reading/gather.js), on the page's one clock, as both views' workers build it
+      return enginePlanOf({ settings, essentialsAnnual: essentialsOverride, now: todayOf().toISOString() });
     }
     // The worker returns results through structured clone, which STRIPS the function-valued
     // config fields (floorDraw, drawNetOfSp, amountAt). Rebuild the per-year draw from the plan's
@@ -5744,8 +5741,8 @@
       target.innerHTML = '<div class="loading"><div class="spinner"></div>Running ' + budEsc(STRATEGY_NAMES[settings.strategyId] || settings.strategyId || 'Pots & Valves') + ' over every history and 1,000 futures…</div>';
       await new Promise((r) => setTimeout(r, 30));
       try {
-        const { p, r, lockedNote } = await oneTestFor(settings);
-        target.innerHTML = lockedNote + strategyResultCard(r, p, { docSheet: !!lockedNote });
+        const { p, r, lockedNote, market } = await oneTestFor(settings);
+        target.innerHTML = lockedNote + strategyResultCard(r, p, { docSheet: !!lockedNote }) + (market ? '<p class="hint" data-line="ran.market">' + markFact('market.gilts', budEsc(marketLabel(market))) + '</p>' : '');
         withoutCutsTwin(settings, r, p, target);
       } catch (e) {
         if (e && e.noFigures) { target.innerHTML = '<div class="alert alert-info">' + budEsc(e.message) + ' <button type="button" class="risk-btn" data-on-click="openStressSettingsTab()">' + budEsc(DRAFT_WORDS.openSettings) + '</button></div>'; return; }
@@ -5755,12 +5752,24 @@
     }
     // ONE test per plan (6.24.0): every tab reads this cached result — the plan's own strategy, its own cuts setting, its
     // full length — so the first tab, History, Scenarios, the strategy page and the plan document never disagree.
-    async function oneTestFor(settings) {
+    // The saver's verdict (question B on the plan's figures, src/reading/runs.js SAVER_RUN) in the engine worker, as the simple
+    // view's worker runs it; on the page only when no worker can start.
+    const saverRun = (inputs, env) => runInWorker('saver', { inputs, env }).catch(async (e) => { if (workerAvailable()) throw e; return (await import('./src/answers/b/answer.js')).answerB(inputs, env); });
+    // The key of the one test held: the settings it ran on and the level it is judged at (the plan's: src/reading/context.js).
+    const oneTestKeyOf = (settingsKey, level) => settingsKey + '|' + level;
+    async function oneTestFor(settings) {   // (settings: the open plan's reading, as the caller holds it; the run reads the plan itself)
       { const missing = missingWords(settings); if (missing) throw Object.assign(new Error(missing), { noFigures: true }); }   // nothing to run on: said, never a default (7.12.0)
-      const key = JSON.stringify(settings);
+      // the one context (lead4.md R5): the day, the market, the plan's level — as the simple view's run is handed it
+      await window._marketReady;
+      const [sc, plans] = await Promise.all([getActiveScenarioAsync().catch(() => null), listScenariosAsync().catch(() => [])]);
+      const ctx = contextFor(sc, { now: todayOf(), plans });
+      // the one gatherer (src/reading/gather.js): the input the simple view's worker is handed for the same plan
+      const input = lastsInputOf(sc, ctx);
+      settings = input.settings;
+      const settingsKey = JSON.stringify(settings), key = oneTestKeyOf(settingsKey, ctx.level);
       if (window._oneTest && window._oneTest.key === key) return window._oneTest;
       const sid = settings.strategyId || 'pots-and-valves';
-      let p, r, lockedNote = '';
+      let p, r, lockedNote = '', market = null;
       // 6.13.5 — a locked gilt-ladder plan shows the result stored in its plan document: the ladder is NOT rebuilt
       // from today's gilt prices (the order sheet, cost and spare used to move every day). Today's prices appear
       // only in the labelled comparison line. Drafts, and every other strategy, run live as before.
@@ -5769,16 +5778,18 @@
         p = locked.doc.strategy.p; r = locked.doc.strategy.r; lockedNote = lockedLadderNoteHtml(locked);
       } else {
         try {
-          const res = await runInWorker('strategy', { settings, cfg: createSimulationConfigFromSettings({}, settings, todayOf()), strategyId: sid, essentialsAnnual: undefined });
-          p = res.p; r = res.r;
+          const res = await runInWorker('strategy', input);
+          p = res.p; r = res.r; market = res.market || null;
         } catch (e) {
           console.warn('engine worker unavailable, running inline', e);
           p = strategyPlanFor(settings);   // same runs/stride as the Strategies compare → identical numbers
-          r = stressTestStrategy(sid, p);
+          r = stressTestStrategy(sid, p); market = marketStamp();
         }
       }
       window._latestStrategyStress = r;
-      const sc = await getActiveScenarioAsync().catch(() => null), ch = chanceRunOf(sc, { settings, strategyId: sid, p, r, now: new Date(), level: window._chanceLevel || null, locked }); window._oneTest = { key, p, r, lockedNote, chance: ch && { ...ch, savingChance: await savingChanceFor(await listScenariosAsync(), sc && sc.id, new Date(), { family: PNV_FAMILY.includes(sid) }) } };   // 7.8.0 weighed; 7.12.0 a saving plan leads with the saver run's chance
+      const ch = chanceRunOf(sc, { settings, strategyId: sid, p, r, now: ctx.now, level: ctx.level, locked });
+      // what a bought way was priced on (the one market), said under the card as the simple view says it; a locked ladder is its document's
+      window._oneTest = { key, settingsKey, p, r, lockedNote, market: !PNV_FAMILY.includes(sid) && !lockedNote ? market : null, chance: ch && { ...ch, savingChance: await savingChanceFor(plans, sc && sc.id, ctx.now, { family: PNV_FAMILY.includes(sid), run: saverRun }) } };   // 7.8.0 weighed; 7.12.0 a saving plan leads with the saver run's chance
       return window._oneTest;
     }
     // The "without the cuts" twin: the same futures with the cuts off, as one line of explanation under the one figure.
@@ -5786,7 +5797,7 @@
       const a = oneAnswer(r, p);
       if (!a || !a.cuts || settings.disableProtection || !PNV_FAMILY.includes(settings.strategyId || 'pots-and-valves')) return;
       const twin = { ...settings, disableProtection: true };
-      runInWorker('strategy', { settings: twin, cfg: createSimulationConfigFromSettings({}, twin, todayOf()), strategyId: settings.strategyId || 'pots-and-valves', essentialsAnnual: undefined })
+      runInWorker('strategy', { settings: twin, strategyId: settings.strategyId || 'pots-and-valves', essentialsAnnual: undefined })
         .then((res) => { const el = target.querySelector('.without-cuts'); if (el) el.innerHTML = withoutCutsLineHtml(a, res.r); })
         .catch(() => {});
     }
@@ -5863,7 +5874,7 @@
       try {
         let p, r;
         try {
-          const res = await runInWorker('strategy', { settings: c, cfg: createSimulationConfigFromSettings({}, c, todayOf()), strategyId: c.strategyId, essentialsAnnual: undefined });
+          const res = await runInWorker('strategy', { settings: c, strategyId: c.strategyId, essentialsAnnual: undefined });
           p = res.p; r = res.r;
         } catch (e) {
           console.warn('engine worker unavailable, running inline', e);
@@ -6640,7 +6651,7 @@
         for (const cell of mixCells(s, { own: false })) {
           const alloc = cell.settings;
           let r;
-          try { r = (await runInWorker('strategy', { settings: alloc, cfg: createSimulationConfigFromSettings({}, alloc, todayOf()), strategyId: alloc.strategyId, essentialsAnnual: undefined })).r; }
+          try { r = (await runInWorker('strategy', { settings: alloc, strategyId: alloc.strategyId, essentialsAnnual: undefined })).r; }
           catch (e) { console.warn('engine worker unavailable, running inline', e); r = stressTestStrategy(alloc.strategyId, strategyPlanFor(alloc)); }
           (grid[cell.key] = grid[cell.key] || {})[cell.tent ? 'tent' : 'flat'] = r;
           say('Running the one test on six splits… ' + (++n) + ' of 6');
@@ -6946,8 +6957,8 @@
     async function strategyResultForDocument(settings) {
       const sid = settings.strategyId || 'pots-and-valves';
       const ess = (window._shapeRefs && window._shapeRefs.essentials) || undefined;
-      const cfg = createSimulationConfigFromSettings({}, settings, todayOf());
-      try { const out = await runInWorker('strategy', { settings, cfg, strategyId: sid, essentialsAnnual: ess }); if (out && out.r) return out.r; } catch (e) { /* inline below */ }
+      await window._marketReady;   // the one market, as every run of the page
+      try { const out = await runInWorker('strategy', { settings, strategyId: sid, essentialsAnnual: ess }); if (out && out.r) return out.r; } catch (e) { /* inline below */ }
       return stressTestStrategy(sid, strategyPlanFor(settings, ess));
     }
     async function buildPlanDocumentNow(reason, rGiven = null) {
@@ -7377,7 +7388,14 @@
       h.textContent = dur > 0 && a > 0 ? '— to age ' + (a + dur) : '';
     };
     window.dbStartAgeChanged = function () { dbStartFromAgeInput(document, window._ssTiming); renderIncomeShapePreview(); };
-    installStopMonth(window, document); installChanceLevel(window, document); installLockedStart(window, document, { loadStressSettings: () => loadStressSettings(), showLoading, hideLoading });   // the month work stopped or stops: the Timing block's month box (6.51.0); a locked plan's stop month (6.53.0, src/ui/lockedStartUi.js)
+    installStopMonth(window, document); installChanceLevel(window, document, { writeLevel: async (level) => {   // the plan's level (lead4.md R5): phases.level, the simple view's one write
+      const sc = await getActiveScenarioAsStored().catch(() => null);
+      const p = sc ? phaseChoicePatch(sc, 'level', level, { at: new Date().toISOString(), today: dayKeyOf(todayOf()) }) : { ok: false, problem: 'notHere' };
+      if (!p.ok) { showToast(LEVEL_REFUSED[p.problem] || LEVEL_REFUSED.problems, 'error'); return false; }
+      try { await saveActivePhases(p.patch.phases); } catch (e) { showToast(isPlanLockedError(e) ? LEVEL_REFUSED.locked : LEVEL_REFUSED.problems, 'error'); return false; }
+      const held = window._oneTest; await repaintAfterWrite('save'); if (held && held.chance) window._oneTest = { ...held, key: oneTestKeyOf(held.settingsKey, level), chance: { ...held.chance, level } };   // the run stays: a level judges it, never runs it again
+      showToast('Saved: your plan is judged at ' + ({ careful: 'Careful', balanced: 'Balanced', bold: 'Bold' })[level] + ', here and in the simple view.', 'success'); return true;
+    } }); installLockedStart(window, document, { loadStressSettings: () => loadStressSettings(), showLoading, hideLoading });   // the month work stopped or stops: the Timing block's month box (6.51.0); a locked plan's stop month (6.53.0, src/ui/lockedStartUi.js)
     function timingSettingsFromForm() {
       const base = window._ssTimingBase || {};
       const g = (id) => document.getElementById(id);
@@ -8461,7 +8479,11 @@
       'gilt-rotation':     { fail: 'a 1929 arriving late: the rotated years can be cut — the floor to the cut age never fails', doWhat: 'the ladder runs itself; ONE watch: is the market 30% below its high?', exit: 'never triggers → it is the full ladder; triggered → sell the sleeve any day' }
     };
     async function cmpRun() {
-      const settings = await getStressSettingsAsync();
+      // the one context and the one gatherer (src/reading/): the ways run on the input the simple view's worker is handed
+      await window._marketReady;
+      const [sc, plans] = await Promise.all([getActiveScenarioAsync().catch(() => null), listScenariosAsync().catch(() => [])]);
+      const input = waysInputOf(sc, contextFor(sc, { now: todayOf(), plans }));
+      const settings = input.settings;
       const eff = settings;
       const key = JSON.stringify(eff);
       if (window._cmpCache && window._cmpCache.key === key) return window._cmpCache;
@@ -8469,16 +8491,15 @@
       const say = (t) => { if (prog) prog.textContent = t; };
       // Off the main thread when we can (a phone must not freeze); the synchronous loop is the fallback.
       try {
-        const cfg = createSimulationConfigFromSettings({}, eff, todayOf());
-        const res = await runInWorker('overview', { settings: eff, cfg, essentialsAnnual: undefined },
+        const res = await runInWorker('overview', input,
           (pr) => say('Running ' + pr.name + ' (' + (pr.i + 1) + ' of ' + pr.n + ')…'));
-        window._cmpCache = { key, p: res.p, all: res.all, settings };
+        window._cmpCache = { key, p: res.p, all: res.all, settings, market: res.market || null };
         return window._cmpCache;
       } catch (e) { console.warn('engine worker unavailable, running inline', e); }
       const p = strategyPlanFor(eff);
       // the one loop over the nine (compareRunner.compareAll, 6.40.0): the same configs, the same order; the progress words are said before each way
       const all = compareAll(p, Object.keys(STRATEGY_NAMES), { onProgress: (i, n, sid) => say('Running ' + STRATEGY_NAMES[sid] + ' (' + (i + 1) + ' of ' + n + ')…') });
-      window._cmpCache = { key, p, all, settings };
+      window._cmpCache = { key, p, all, settings, market: marketStamp() };
       return window._cmpCache;
     }
     window.setCmpRank = async function (k) { window._cmpRankBy = k; document.getElementById('stratPage').innerHTML = await strategyOverviewHtml(); window.scrollTo({ top: 0 }); };
@@ -8540,6 +8561,7 @@
           + '<td class="hint" data-label="What you do">' + budEsc(w.doWhat) + '</td><td class="hint" data-label="How you get out">' + budEsc(w.exit) + '</td></tr>';
       }
       h += '</tbody></table></div>';
+      if (c.market && Object.entries(c.all.strategies).some(([id, r]) => !PNV_FAMILY.includes(id) && r && r.affordable)) h += '<p class="hint" data-line="way.market">' + markFact('market.gilts', budEsc(marketLabel(c.market))) + '</p>';   // what the bought ways were priced on: the one market, the simple view's words
       h += '</div><div class="card"><h2>Four questions, one picture each</h2><div id="cmpCones">' + cmpConesHtml(c) + '</div>';
       h += '<p class="hint" style="margin-top:8px;">All ran the same plan (income shape, State Pension, full length and cuts setting from Settings) through the one test: Shiller 1871–2023 adjusted to world equity, every window plus 1,000 bootstrapped futures each carrying its own inflation; ladders priced on the Bank of England real curve and today\'s gilt prices. Results in today\'s money. An illustration, not advice.</p></div>';
       return h;
@@ -9212,6 +9234,7 @@
         recalcAccumulation();
         renderAccumulationRecords().catch(() => {});
         if (window._acAutosave) await window._acAutosave.loaded();
+        window.runOnTrackCheck();   // "Am I on course?" runs when the tab opens, in the worker, as the simple view's home does (lead4.md R6)
       } catch (e) { console.error('Accumulation load error:', e); }
     };
 
@@ -9263,10 +9286,10 @@
     };
 
     // "Am I on course?" (7.12.0, src/ui/saverAnswerUi.js): the simple view's answer block, from the same reader and the same run
-    window.runOnTrackCheck = async () => { if (window._acAutosave) await window._acAutosave.flush(); return paintSaverAnswer(document, { listScenariosAsync, getActiveScenarioId, saveWant: saveActiveWant, afterSave: () => window.loadAccumulationUI && window.loadAccumulationUI() }); };
+    window.runOnTrackCheck = async () => { if (window._acAutosave) await window._acAutosave.flush(); return paintSaverAnswer(document, { listScenariosAsync, getActiveScenarioId, now: todayOf, run: saverRun, saveWant: saveActiveWant, afterSave: () => window.loadAccumulationUI && window.loadAccumulationUI() }); };
     window._ssAutosave = installStressSettingsAutosave(window, document, { save: (o) => saveStressSettingsUI(o), planIsLocked, isLoggedIn, getActiveScenarioId, dbStartError: () => dbStartError(document, window._ssTiming), afterSave: async () => { await repaintAfterWrite('save'); renderTiming(); } });   // the pots-at-stop line and the plan menu's name follow what was just saved
     window._acAutosave = installAccumulationAutosave(window, document, { saveTab: (b) => saveActiveAccumulationTab(b), planIsLocked, isLoggedIn, getActiveScenarioId,
-      afterSave: async () => { await repaintAfterWrite('save'); if (document.getElementById('acOnTrack')?.textContent.trim()) window.runOnTrackCheck(); } }); document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushSettings(); });   // the answer on the card follows the boxes; Settings reads the new ages; a page hidden sends what is typed
+      afterSave: async () => { await repaintAfterWrite('save'); window.runOnTrackCheck(); } }); document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushSettings(); });   // the answer on the card follows the boxes; Settings reads the new ages; a page hidden sends what is typed
 
     // In-app confirm modal — replaces window.confirm(), which BLOCKS the whole renderer (and any
     // browser automation) with a native dialog. Promise<boolean>; Escape/backdrop = cancel.

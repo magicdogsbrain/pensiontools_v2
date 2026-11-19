@@ -84,6 +84,7 @@ const SLOTS = Object.freeze({
   'about.monthAs': { month: 'stop.month' },
   'about.runs': { endAge: 'plan.endAge' },
   'lasts.left': { pounds: 'left.typically', typical: 'left.typically', bad: 'left.badCase', good: 'left.goodCase' },
+  'lasts.ran.market': { label: 'market.gilts' },
   'pots.pots.today': { pension: 'pot.today', isa: 'isa.today' },
   'pots.pots.todayTaxable': { pension: 'pot.today', isa: 'isa.today', taxable: 'gia.today' },
   'pots.stop.typed': { sipp: 'pot.atStop' },

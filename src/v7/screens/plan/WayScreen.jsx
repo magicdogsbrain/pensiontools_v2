@@ -14,6 +14,7 @@
 import { PlanRail, changeAction, UndoToast, OutOfTenBar, fill, Button, LinkButton, RunRing, Held } from '../../components/index.js';
 import { LOCK_DATE } from '../../components/facts.js';
 import { fillMarked } from '../../components/PlanFigures.jsx';
+import { Fact } from '../../../reading/Mark.jsx';
 import { planView, planWayView } from '../../state/select.js';
 import { href } from '../../router/routes.js';
 import { PLAN } from '../../copy/plan.js';
@@ -120,7 +121,7 @@ function Card({ card, V, planId, dispatch, held = false }) {
           {card.compare && <p class="note" data-testid="plan.way.compare">{fill(WAY.card.compare, { ...card.compare.slots, docWay: name(card.compare.slots.docWay), way: name(card.compare.slots.way) })}</p>}
           {card.family && <p class="note"><span data-line="way.mix">{WAY.card.mix}</span> <a href={href.plan(planId, 'mix')} data-testid={`plan.way.${id}.mixLink`}>{WAY.card.mixLink}</a></p>}
           {id === 'buckets-in-order' && <p class="note" data-line="way.noTent">{WAY.card.noTent}</p>}
-          {card.bought && card.affordable && <p class="note" data-line="way.bundled">{WAY.card.bundled}</p>}
+          {card.bought && card.affordable && card.market && <p class="note" data-line="way.market"><Fact id="market.gilts">{card.market}</Fact></p>}
           <Dials card={card} locked={V.locked} dispatch={dispatch} />
           {t && t.status === 'working' && <p class="working-note" role="status" data-testid={`plan.way.${id}.trying`}>{WAY.working.one}</p>}
           {t && t.status === 'failed' && <p class="notice" role="alert" data-testid={`plan.way.${id}.tryFailed`}>{t.reason === 'noWorker' ? WAY.failed.noWorker : WAY.failed.one}</p>}

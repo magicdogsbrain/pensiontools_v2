@@ -45,19 +45,19 @@ function Head({ view }) {
 }
 
 /**
- * "How careful?" on a plan (7.8.0): the three levels, each label leading with what it asks for; a press judges this page at
- * that level (ui.level, page memory only — never saved: a plan's level is its kept answer's until 7.9.0 saves one). Inside
- * the band, beside its fixed-age line (the render rule).
+ * "How careful?" on a plan (7.8.0): the three levels, each label leading with what it asks for; a press saves the plan's
+ * level (lead4.md R5: one write, phases.level through plan/phaseSet, the same write as the full view's "How careful?"), and
+ * every page of both views judges the plan at it. Inside the band, beside its fixed-age line (the render rule).
  */
-export function PlanLevelStrip({ v, dispatch }) {
-  if (!dispatch || !v || !v.level || !v.weighted) return null;
+export function PlanLevelStrip({ v, dispatch, planId }) {
+  if (!dispatch || !planId || !v || !v.level || !v.weighted) return null;
   return (
     <div class="level-strip" role="group" aria-labelledby="plan-level-title" data-testid="plan.lasts.level" data-level={v.level} data-weighted="1">
       <span class="level-label" id="plan-level-title">{LEVELS_WORDS.label}</span>
       <div class="level-choices">
         {LEVEL_IDS.map((k) => (
           <Button key={k} testid={`plan.lasts.level.${k}`} kind="choice" aria-pressed={v.level === k ? 'true' : 'false'}
-            onClick={() => dispatch({ type: 'ui/level', level: k })} {...keepFocus}>{LEVELS_WORDS.options[k]}</Button>
+            onClick={() => (v.level === k ? null : dispatch({ type: 'plan/phaseSet', planId, part: 'level', value: k }))} {...keepFocus}>{LEVELS_WORDS.options[k]}</Button>
         ))}
       </div>
       {/* (the plan's figures stay as they are: a level changes only what counts as on course; with no weighted figure, on the count) */}
@@ -67,7 +67,7 @@ export function PlanLevelStrip({ v, dispatch }) {
 }
 
 /** The band of one result (verdictOf): the word, the bar, the headline, the rows. `stale`: an older run's, greyed. */
-function Band({ v, stale = false, testid, dispatch = null }) {
+function Band({ v, stale = false, testid, dispatch = null, planId = null }) {
   if (!v) return null;
   if (!v.ok) return <p class="notice" role="status" data-testid={testid} data-ok="0">{fill(LASTS.verdict[v.id] || '', v.slots)}</p>;
   const f = v.figures || {};
@@ -81,7 +81,7 @@ function Band({ v, stale = false, testid, dispatch = null }) {
       <ul class="plan-lines">
         {v.rows.map((r, i) => <li key={i} class="plan-line" data-line={'lasts.' + r.id} {...(r.id === 'fixedW' ? { 'data-fixed': 'age' } : {})}>{v.record ? fill(LASTS.rows[r.id] || '', r.slots) : lastsRowFindsOf(r.id) ? markIn(fill(LASTS.rows[r.id], r.slots), lastsRowFindsOf(r.id)) : fillMarked(LASTS.rows[r.id] || '', r.slots, slotFactsOf('lasts.' + r.id, r.slots))}</li>)}
       </ul>
-      {!stale && !v.record && <PlanLevelStrip v={v} dispatch={dispatch} />}
+      {!stale && !v.record && <PlanLevelStrip v={v} dispatch={dispatch} planId={planId} />}
     </div>
   );
 }
@@ -219,7 +219,7 @@ function Answer({ L, onChange, dispatch, view }) {
       )}
       {v && !run.fresh && <Band v={v} stale testid="plan.lasts.result" />}
       <AtLeast busy={working} working={null}>
-        {v && run.fresh && <Band v={v} stale={false} testid="plan.lasts.result" dispatch={dispatch} />}
+        {v && run.fresh && <Band v={v} stale={false} testid="plan.lasts.result" dispatch={dispatch} planId={L.id} />}
         {v && run.fresh && v.ok && <p class="plan-source" data-testid="plan.lasts.ran">{sourceLine}</p>}
         {v && run.fresh && v.ok && v.chanceFrom === 'saving' && <p class="note" data-testid="plan.lasts.chanceFrom">{LASTS.chanceFromSaving}</p>}
         {v && run.fresh && L.note && <p class="notice" role="status" data-testid="plan.lasts.earlierTest">{L.note}</p>}
@@ -435,6 +435,7 @@ const toastText = (toast) => {
   if (toast.kind === 'undone') return LASTS.toast.undone;
   if (toast.kind === 'unchanged') return LASTS.toast.unchanged;
   if (!toast.line) return LASTS.toast.savedShort;
+  if (toast.line.id === 'phase.level') return fill(LASTS.toast.level, { level: LEVELS_WORDS.names[toast.line.slots.value] || toast.line.slots.value });
   if (toast.line.id === 'try') return fill(LASTS.try.toast.try, { n: toast.line.slots.n, s: toast.line.slots.n === '1' ? '' : 's' });
   return fill(LASTS.toast[toast.line.id] || LASTS.toast.savedShort, toast.line.slots);
 };

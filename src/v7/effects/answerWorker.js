@@ -1,9 +1,11 @@
 /**
  * The V7 worker (V7 build brief 4.10). Its own file and its own bundle: the current app's engineWorker.js is not
- * touched. It reads no live gilt or share prices and no clock — the date arrives as an input.
+ * touched. It reads no clock — the date arrives as an input. The market (gilt prices, the share index) is the one loader's
+ * (src/reading/market.js, loaded lazily with the plan's runs), from the data folder the page names at `init`, as the full
+ * view's worker reads it; a plan run's result says what it was priced on (`market`, src/reading/market.js marketStamp).
  *
  *   page → worker                                   worker → page
- *   { id, type: 'init', today }                     { id, ready: true, historyEnd, engineVersion }
+ *   { id, type: 'init', today, market }             { id, ready: true, historyEnd, engineVersion }
  *   { id, type: 'answer', q: 'c', inputs, env }     { id, progress: { done, total } } …  then  { id, result }  or  { id, error }
  *   { id, type: 'lasts', plan, env: { today } }     the same shape: a saved plan's one test (answers/plan/lastsRun.js, loaded lazily)
  *   { id, type: 'document', plan, env: { today, essentials } }
@@ -84,14 +86,19 @@ const loadMove = () => import('../../answers/plan/moveRun.js');
 const loadKeep = () => import('../../answers/plan/keepRun.js');
 /** "Try the bad years" (7.9.0): one row on a saved plan, loaded lazily the same way. */
 const loadStress = () => import('../../answers/plan/stressPanelRun.js');
+/** The one market (src/reading/market.js), loaded lazily beside the plan's runs: the gilt and share data never reach the shell. */
+const loadMarketFor = async (folder) => (await import('../../reading/market.js')).loadMarket({ folder });
 
 export function createHandler(answers = ANSWERS, { lasts = null, document = null, lever = null, ways = null, way = null, mixTry = null, mixCompare = null, tryOne = null, household = null, householdSurvivor = null, householdCare = null, moveHeld = null, keepRetest = null, stressRow = null, stressStrip = runStressStrip } = {}) {
   let today = null;
+  let folder = null;           // the site's market data folder (init)
   const last = new Map();      // question → its last result (offered to its next answer as env.reuse)
   /** `lasts`, `document`, `lever`, `try`, `ways`, `way`, `mixTry` and `mixCompare` share the lazy engine: the one test, or the run the plan document is built from, or the nine ways, or the mix's runs. */
   const runLazy = async (msg, post, id, which) => {
     const env = { ...(msg.env || {}) };
     if (!env.today && today) env.today = today;
+    // the one market, as the full view's worker loads it (a test's fakes run without it)
+    await loadMarketFor(folder);
     let lastStep = -1;
     const onProgress = (done, total) => {
       const step = total > 0 ? Math.floor((done * PROGRESS_STEPS) / total) : 0;
@@ -127,6 +134,7 @@ export function createHandler(answers = ANSWERS, { lasts = null, document = null
       if (!msg || typeof msg !== 'object') throw new Error('not a message');
       if (msg.type === 'init') {
         today = msg.today;
+        folder = typeof msg.market === 'string' && msg.market ? msg.market : null;
         post({ id, ready: true, historyEnd: historyEndOf(answers), engineVersion: VERSION });
         return;
       }

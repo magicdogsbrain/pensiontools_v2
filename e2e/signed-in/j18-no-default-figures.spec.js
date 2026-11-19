@@ -42,7 +42,7 @@ test('a new plan from the wizard: no income, no ticked bed-and-ISA, empty what-i
   await page.locator('#acPotNow').fill('120000');
   await page.keyboard.press('Tab');
   await expect(page.getByTestId('accumulation.saveState')).toHaveText('Saved', { timeout: 30_000 });
-  await page.getByRole('button', { name: 'Work it out' }).click();
+  // (the answer runs by itself once the tab has the saved figures: nothing to press, lead4.md R6)
   const answer = page.getByTestId('ac.saver');
   await expect(answer).toHaveAttribute('data-why', 'noAim', { timeout: 60_000 });
   await expect(answer).not.toContainText('You want');

@@ -51,7 +51,7 @@ const P = { durationYears: 39, startAge: 56 };
 function fakeResult(strategyId, { stored = null, affordable = true } = {}) {
   const family = FAMILY.includes(strategyId);
   return {
-    strategyId, ran: { family, cutsOn: family, cutPct: 20, months: 3 }, priced: family ? null : 'bundled',
+    strategyId, ran: { family, cutsOn: family, cutPct: 20, months: 3 }, market: family ? null : { gilts: { source: 'builtIn', asOf: '2026-11-12' }, equity: { source: 'builtIn', asOf: '2026-11-11' } },
     a: affordable ? oneAnswer({ ...R, strategyId, cuts: family ? R.cuts : null }, P) : null, reason: affordable ? null : 'the base ladder costs more than the pot',
     history: affordable ? {
       worst: [{ year: 1929, month: 9, s: 704, failed: true, failAge: 84, terminal: 0, worst12: 31000, unfair: true }, { year: 1966, month: 1, s: 1140, failed: false, terminal: 20000, worst12: 33000, cutYears: 4, cutReal: 16000, unfair: true }],
@@ -281,11 +281,11 @@ describe('the lumpy plan (12): what the page says, and what typing does', () => 
     expect(root.querySelector('[data-section="history"]')).toBe(null);
     expect(text).not.toContain('bridge');
   });
-  it('a bought strategy (07): "not used" under every dial, the bundled-curve line, no cuts row of its own', () => {
+  it('a bought strategy (07): "not used" under every dial, the line naming the prices it was bought at, no cuts row of its own', () => {
     const { root, text } = draw(lastsState(entries, ROTATION.id));
     expect(root.querySelectorAll('[data-not-used]').length).toBe(LASTS_FIELDS.filter((f) => !f.when || f.when.cutsOn === 'yes').length);
     expect(text).toContain('Income cuts: none — this way of drawing pays the plan in full until it cannot.');
-    expect(text).toContain('Gilts priced on the bundled yield curve here');
+    expect(text).toMatch(/Gilts priced at the prices of \d+ \w+ \d{4} \(.+\)\. The full view uses the same prices\./);   // the one market's label (src/reading/marketPlain.js)
     expect(text).toContain('Not used by this way of drawing: it pays the plan in full until it cannot.');
   });
   it('the toast after a save, with Undo; "Saving…" while a write is under way; a problem from the write in plain words', () => {

@@ -226,7 +226,6 @@ const anyAction = fc.oneof(
   fc.boolean().map((open) => ({ type: A.UI_RAIL, open })),
   fc.boolean().map((online) => ({ type: A.UI_ONLINE, online })),
   // 7.8.0: "How careful?" on a plan's "Does it last?" (page memory only)
-  fc.constantFrom('careful', 'balanced', 'bold').map((level) => ({ type: A.UI_LEVEL, level })),
   fc.constantFrom('2026-09-30', '2028-04-06').map((today) => ({ type: A.ENV_SET, patch: { today } })),
   // a page opened before the site was updated (effects/staleBuild.js): the plain words, and "Reload the page"
   fc.constant({ type: A.ENV_SET, patch: { stale: true } }),

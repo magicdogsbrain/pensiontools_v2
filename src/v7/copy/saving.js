@@ -103,7 +103,7 @@ export const SAVING = {
   },
   /** What the pot could be by the stop: the regulator's three rates, at today's prices. */
   pot: {
-    lead: 'At today’s prices, over the same futures every test of your plan uses, with what you pay in rising with prices: the low end (one future in ten ends lower), the middle and the high end (one in ten ends higher) at each age.',
+    lead: 'At today’s prices, over the same futures every test of your plan uses, with what you pay in raised each year as your plan says: the low end (one future in ten ends lower), the middle and the high end (one in ten ends higher) at each age.',
     charges: 'After fund and platform charges of {charges}% a year, your plan’s own setting.',
     chargesNone: 'No fund or platform charges taken off: your plan has none set.',
     /** Where the pot the table starts from comes from (services/PensionToday.js), said once. */

@@ -4,8 +4,9 @@
  * Keeping an answer used to write the middling pot at the stop into the plan as if the person had typed it, and nothing
  * replaced it: not a later stop, not a new pay-in, not a check-in. Every run then tested a plan the person no longer had.
  * Now a plan still saving reads its pots at the stop from its own facts (services/SaverFacts.js) on the saving path
- * (services/SavingPath.js: the answer's lives, seed and mixes, what goes in rising with each future's own prices, as the
- * answer has it), so the figure is the answer's own "middling" pot for the same plan.
+ * (services/SavingPath.js: the answer's lives, seed and mixes, what goes in raised each year as the plan
+ * says, the price rise a kept answer stores being each future's own prices), so a plan kept from an answer has the answer's
+ * own "middling" pot.
  *
  *   potsAtStopOf(plan, settings, { now, env }) →
  *     null                                                     not stopping later
@@ -34,18 +35,18 @@ let builds = 0;
 export const potsAtStopBuilds = () => builds;
 
 /**
- * The saving lives' path to `timing.shapeAgeNow` (services/SavingPath.js buildSavingPath, what goes in rising with each
- * future's own prices): the one model of the pot at a stop, for the plan's own stop (potsAtStopOf) and for another age the
+ * The saving lives' path to `timing.shapeAgeNow` (services/SavingPath.js buildSavingPath, what goes in raised each year as
+ * the plan says): the one model of the pot at a stop, for the plan's own stop (potsAtStopOf) and for another age the
  * "When could I retire?" spin asks about (services/RetireSweep.js). Memoised by its inputs and the month.
  */
 export function savingPathAt({ settings = {}, timing, accumulation = {}, holdings = null, phases = null, explicit, now = new Date(), env = {} } = {}) {
   const s = settings || {};
-  const key = JSON.stringify([monthKey(now), timing.currentAge, timing.shapeAgeNow, explicit, s.chargesPct, s.isaGrowth, s.isaReturn, s.equityMin, s.bondMin, s.cashTarget, s.taggedFunds || null, s.allocMode || null,
+  const key = JSON.stringify([monthKey(now), timing.currentAge, timing.shapeAgeNow, explicit, (accumulation || {}).escalationPct ?? null, s.chargesPct, s.isaGrowth, s.isaReturn, s.equityMin, s.bondMin, s.cashTarget, s.taggedFunds || null, s.allocMode || null,
     (accumulation || {}).savingMix || null, phases && phases.saving ? phases.saving : null, holdings, env && env.futureReturns ? 'env' : null]);
   let path = env && env.futureReturns ? null : MEMO.get(key);
   if (!path) {
     builds++;
-    path = buildSavingPath({ settings: s, timing, accumulation: accumulation || {}, holdings, now, explicit, phases, env: env || {}, risePrices: true, pensionBand: true });
+    path = buildSavingPath({ settings: s, timing, accumulation: accumulation || {}, holdings, now, explicit, phases, env: env || {}, pensionBand: true });
     if (!(env && env.futureReturns)) {
       MEMO.set(key, path);
       while (MEMO.size > MEMO_SIZE) MEMO.delete(MEMO.keys().next().value);

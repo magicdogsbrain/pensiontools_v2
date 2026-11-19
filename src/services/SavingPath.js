@@ -34,7 +34,7 @@ import { chargesPctOf, monthlyChargeFactor } from './Charges.js';
 import { isaGrowthOf } from './IsaGrowth.js';
 import { isaFundsSavingMix } from './IsaFunds.js';
 import { RISK_PRESETS } from './GlidepathService.js';
-import { savingMixOf } from './SaverPayIn.js';
+import { savingMixOf, PRICE_RISE_PCT } from './SaverPayIn.js';
 import { ISA_DEFAULTS } from '../constants.js';
 
 export const SAVING_PATH_VERSION = 3;
@@ -106,7 +106,6 @@ const given = (v) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v 
  * Draw the path.
  * @param {object} a  { settings (Stress), timing (deriveTiming), accumulation (the planner's saved inputs), holdings (the
  *                    record or its lines), now, lives?, env? ({ futureReturns } for tests: V7's lives.js), explicit?, phases? }
- *   risePrices  true: what goes in rises with each future's own prices (the answer's rule), not the plan's yearly rise
  *   pensionBand true: each year also carries the pension's bad and good cases in today's money (realCareful, realGood)
  *   phases    the plan's `phases` root (7.10.0): a saving level the person chose decides the saving mix (savingPathMixes)
  *   explicit  { potNow, isaNow, totalMonthly, isaMonthly } (research/saving-enough-and-check-in.md 5.3): each one given is
@@ -117,7 +116,7 @@ const given = (v) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v 
  *             'record' or 'plan'.
  * @returns {null | object}  null unless retiring later; the block stored as `planDocument.accumulation`
  */
-export function buildSavingPath({ settings = {}, timing, accumulation = null, holdings = null, now = new Date(), lives: count = SAVING_PATH_LIVES, env = {}, explicit = null, phases = null, risePrices = false, pensionBand = false } = {}) {
+export function buildSavingPath({ settings = {}, timing, accumulation = null, holdings = null, now = new Date(), lives: count = SAVING_PATH_LIVES, env = {}, explicit = null, phases = null, pensionBand = false } = {}) {
   if (!timing || timing.mode !== 'future' || !(timing.currentAge > 0)) return null;
   const s = settings || {};
   const a = accumulation || {};
@@ -163,8 +162,12 @@ export function buildSavingPath({ settings = {}, timing, accumulation = null, ho
   const plan = savingPlan(household, years, { mix: mixes.drawing, savingMix: mixes.saving });
   const lives = livesList(count, years + 1, { seed: SAVING_PATH_SEED, ...(env.futureReturns ? { futureReturns: env.futureReturns } : {}) });
   const esc = escalationPct / 100;
-  // risePrices (7.12.0, services/PotsAtStop.js): what goes in rises with each future's own prices, as the answer has it
-  const out = savingYearsByLife(plan, 0, lives, { ...(risePrices ? {} : { escalation: esc }), ...(fundsMix ? { savingsMix: fundsMix } : {}) });
+  // what goes in is raised each year as the plan says (lead4.md D16, step F1): the price rise every saving figure assumes
+  // (PRICE_RISE_PCT, what a plan kept from an answer stores) is each future's own prices, as the answer has it; any other rise
+  // is that share a year in pounds of the day; none, the same pounds each year (the words beside the saver's check say so).
+  // One rule for the pot at the stop on every page and for the path a lock keeps.
+  const withPrices = Math.abs((+escalationPct || 0) - PRICE_RISE_PCT) < 1e-9;
+  const out = savingYearsByLife(plan, 0, lives, { ...(withPrices ? {} : { escalation: esc }), ...(fundsMix ? { savingsMix: fundsMix } : {}) });
   const W = years + 1;
   if (!isaGrowth && !fundsMix) {
     // No choice (a plan locked before it, unlocked again without one): the ISA at the fixed rate the engines run such a

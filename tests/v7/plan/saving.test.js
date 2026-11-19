@@ -115,12 +115,12 @@ describe('"What you pay in" — the writes', () => {
     expect(Object.keys(next).sort()).toEqual([...SETTINGS_KEYS].sort());
     expect(next).toEqual({ ...SAVER.accumulationTool.settings, escalationPct: 2.5, isaMonthly: 0 });
     expect(p.previous['accumulationTool.settings']).toEqual(SAVER.accumulationTool.settings);
-    // the rows are the one model's (step F1): what goes in rises with each future's own prices there, as the answer has it, so
-    // a yearly rise typed does not move them yet (said in the step F1 handover: the pay-in maths are step F4's)
+    // the rows are the one model's (step F1): what goes in is raised each year as the plan says (lead4.md D16), so a yearly
+    // rise typed moves the pot at the stop, here and on the full view's Accumulation tab alike
     const after = applyPatch(plan, p.patch);
     const before = savingOf([{ plan }], SAVER.id, { today: TODAY }).rows;
     const then = savingOf([{ plan: after }], SAVER.id, { today: TODAY }).rows;
-    expect(then[then.length - 1].raw.mid).toBeGreaterThanOrEqual(before[before.length - 1].raw.mid);
+    expect(then[then.length - 1].raw.mid).toBeGreaterThan(before[before.length - 1].raw.mid);
     // blank boxes are the planner's `+value || 0`; the scheme its own word
     const blanked = savingPatch(plan, { netMonthly: '', employerMonthly: '', schemeType: 'salsac' }, { today: TODAY }).patch['accumulationTool.settings'];
     expect(blanked.netMonthly).toBe(0); expect(blanked.employerMonthly).toBe(0); expect(blanked.schemeType).toBe('salsac');

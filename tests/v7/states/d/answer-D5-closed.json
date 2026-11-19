@@ -156,24 +156,24 @@
           "careful": {
             "monthly": 1320,
             "yearly": 15840,
-            "weighted": 0.9511551459487527,
+            "weighted": 0.9512472409186885,
             "fixedAge": 0.922
           },
           "balanced": {
             "monthly": 1390,
             "yearly": 16680,
-            "weighted": 0.9044157094964758,
+            "weighted": 0.9044396897191181,
             "fixedAge": 0.843
           },
           "bold": {
             "monthly": 1570,
             "yearly": 18840,
-            "weighted": 0.7104266160018742,
+            "weighted": 0.7104594501471146,
             "fixedAge": 0.578
           }
         },
         "chance": {
-          "weighted": 0.46032748349756003,
+          "weighted": 0.46033938495162874,
           "fixedAge": 0.283,
           "fails": 717,
           "n": 1000,

@@ -142,15 +142,15 @@
           "level": null
         },
         "verdict": "no",
-        "fails": 977,
-        "lasted": 0.023,
-        "runOutAge": 78,
+        "fails": 969,
+        "lasted": 0.031,
+        "runOutAge": 79,
         "outOfTen": {
           "words": "in fewer than 1 future out of 10",
           "only": true,
           "count": 1
         },
-        "floorAge": 82,
+        "floorAge": 83,
         "left": {
           "age": 99,
           "typical": 0,
@@ -159,28 +159,28 @@
         "level": "balanced",
         "levels": {
           "careful": {
-            "monthly": 1560,
-            "yearly": 18720,
-            "weighted": 0.9558596147689968,
-            "fixedAge": 0.868
+            "monthly": 1590,
+            "yearly": 19080,
+            "weighted": 0.9510801537530497,
+            "fixedAge": 0.859
           },
           "balanced": {
-            "monthly": 1630,
-            "yearly": 19560,
-            "weighted": 0.9047235440323129,
-            "fixedAge": 0.739
+            "monthly": 1660,
+            "yearly": 19920,
+            "weighted": 0.9010860314061865,
+            "fixedAge": 0.728
           },
           "bold": {
-            "monthly": 1800,
-            "yearly": 21600,
-            "weighted": 0.7072635938888416,
-            "fixedAge": 0.357
+            "monthly": 1840,
+            "yearly": 22080,
+            "weighted": 0.7035602902751417,
+            "fixedAge": 0.352
           }
         },
         "chance": {
-          "weighted": 0.2888201474864036,
-          "fixedAge": 0.023,
-          "fails": 977,
+          "weighted": 0.3325976089658216,
+          "fixedAge": 0.031,
+          "fails": 969,
           "n": 1000,
           "planToAge": 99,
           "weightToAge": 103,
@@ -188,7 +188,7 @@
         },
         "headroom": {
           "kind": "less",
-          "perMonth": 570
+          "perMonth": 540
         },
         "guaranteed": {
           "monthlyAfterTax": 1045.63
@@ -248,8 +248,8 @@
           "fromAge": 66,
           "toAge": 69,
           "verdict": "no",
-          "fails": 894,
-          "lasted": 0.106,
+          "fails": 876,
+          "lasted": 0.124,
           "runOutAge": 81,
           "monthly": 1720,
           "extra": 0,
@@ -258,40 +258,40 @@
               "years": 1,
               "toAge": 67,
               "verdict": "no",
-              "fails": 965,
-              "lasted": 0.035,
+              "fails": 950,
+              "lasted": 0.05,
               "runOutAge": 79
             },
             {
               "years": 2,
               "toAge": 68,
               "verdict": "no",
-              "fails": 931,
-              "lasted": 0.069,
+              "fails": 917,
+              "lasted": 0.083,
               "runOutAge": 80
             },
             {
               "years": 3,
               "toAge": 69,
               "verdict": "no",
-              "fails": 894,
-              "lasted": 0.106,
+              "fails": 876,
+              "lasted": 0.124,
               "runOutAge": 81
             },
             {
               "years": 4,
               "toAge": 70,
               "verdict": "no",
-              "fails": 864,
-              "lasted": 0.136,
+              "fails": 838,
+              "lasted": 0.162,
               "runOutAge": 82
             },
             {
               "years": 5,
               "toAge": 71,
               "verdict": "no",
-              "fails": 821,
-              "lasted": 0.179,
+              "fails": 798,
+              "lasted": 0.202,
               "runOutAge": 83
             }
           ]
@@ -578,7 +578,7 @@
           },
           "line": {
             "id": "d.line.weighted",
-            "text": "Counting how long people your age live, £2,200 a month after tax lasts as long as you do 6 times in 20.",
+            "text": "Counting how long people your age live, £2,200 a month after tax lasts as long as you do 7 times in 20.",
             "parts": [
               "Counting how long people your age live",
               ", ",
@@ -590,7 +590,7 @@
               "as long as you do",
               " ",
               {
-                "fixed": "6"
+                "fixed": "7"
               },
               " times in ",
               {
@@ -602,7 +602,7 @@
           },
           "bad": {
             "id": "d.when",
-            "text": "We follow each future on to 103. In the futures where the money runs out before then, it typically runs out at 82. In the worst 1 in 10 of all the futures, by 78.",
+            "text": "We follow each future on to 103. In the futures where the money runs out before then, it typically runs out at 83. In the worst 1 in 10 of all the futures, by 79.",
             "parts": [
               "We follow each future on to ",
               {
@@ -612,7 +612,7 @@
               ", it typically runs out ",
               "at ",
               {
-                "fixed": "82"
+                "fixed": "83"
               },
               ". ",
               "In the worst ",
@@ -626,14 +626,14 @@
               " of all the futures, ",
               "by ",
               {
-                "fixed": "78"
+                "fixed": "79"
               },
               "."
             ]
           },
           "headroom": {
             "id": "d.less",
-            "text": "At Balanced, about £1,630 a month lasts as long as you do 18 times in 20. That is £570 a month less than you spend now.",
+            "text": "At Balanced, about £1,660 a month lasts as long as you do 18 times in 20. That is £540 a month less than you spend now.",
             "parts": [
               "At ",
               "Balanced",
@@ -664,7 +664,7 @@
           },
           "levels": {
             "id": "d.levels",
-            "text": "At Careful, about £1,560 a month. At Bold, about £1,800 a month.",
+            "text": "At Careful, about £1,590 a month. At Bold, about £1,840 a month.",
             "parts": [
               "At Careful, about ",
               {
@@ -751,7 +751,7 @@
           },
           "workBad": {
             "id": "d.work.bad",
-            "text": "In a bad case (the worst 1 in 10) it would run out at age 81 instead of 78.",
+            "text": "In a bad case (the worst 1 in 10) it would run out at age 81 instead of 79.",
             "parts": [
               "In a bad case (the worst ",
               {
@@ -793,7 +793,7 @@
           "workRows": [
             {
               "id": "d.work.row",
-              "text": "Until 67: lasted in fewer than 1 future out of 10; in a bad case (the worst 1 in 10) it would run out at age 79.",
+              "text": "Until 67: lasted in only 1 future out of 10; in a bad case (the worst 1 in 10) it would run out at age 79.",
               "parts": [
                 "Until ",
                 {
@@ -801,7 +801,7 @@
                   "kind": "age"
                 },
                 ": lasted ",
-                "in fewer than ",
+                "in only ",
                 {
                   "fixed": "1"
                 },
@@ -901,7 +901,7 @@
             },
             {
               "id": "d.work.row",
-              "text": "Until 70: lasted in only 1 future out of 10; in a bad case (the worst 1 in 10) it would run out at age 82.",
+              "text": "Until 70: lasted in only 2 futures out of 10; in a bad case (the worst 1 in 10) it would run out at age 82.",
               "parts": [
                 "Until ",
                 {
@@ -911,9 +911,9 @@
                 ": lasted ",
                 "in only ",
                 {
-                  "fixed": "1"
+                  "fixed": "2"
                 },
-                " future out of ",
+                " futures out of ",
                 {
                   "fixed": "10"
                 },
@@ -990,13 +990,13 @@
           },
           "fixed": {
             "id": "d.fixed",
-            "text": "If you live to 99, the money lasts that long in fewer than 1 of 20 futures we tried.",
+            "text": "If you live to 99, the money lasts that long in 1 of 20 futures we tried.",
             "parts": [
               "If you live to ",
               {
                 "fixed": "99"
               },
-              ", the money lasts that long in fewer than ",
+              ", the money lasts that long in ",
               {
                 "fixed": "1"
               },
@@ -1010,7 +1010,7 @@
           },
           "howLong": {
             "id": "d.howLong",
-            "text": "In the futures where it runs out before 99, it still pays for 16 of the 33 years to 99.",
+            "text": "In the futures where it runs out before 99, it still pays for 18 of the 33 years to 99.",
             "parts": [
               "In the futures where it runs out before ",
               {
@@ -1018,7 +1018,7 @@
               },
               ", it still pays for ",
               {
-                "fixed": "16"
+                "fixed": "18"
               },
               " of the ",
               {
@@ -1048,12 +1048,12 @@
           },
           "floor": {
             "id": "d.floor",
-            "text": "If the money ran out at 82, you would still have £12,548 a year after tax, from your State Pension.",
+            "text": "If the money ran out at 83, you would still have £12,548 a year after tax, from your State Pension.",
             "parts": [
               "If the money ran out ",
               "at ",
               {
-                "fixed": "82"
+                "fixed": "83"
               },
               ", ",
               "you would still have ",
@@ -1080,7 +1080,7 @@
           },
           "cost": {
             "id": "d.cost",
-            "text": "Careful asks for £70 a month less than Balanced. Bold would let you take £170 a month more.",
+            "text": "Careful asks for £70 a month less than Balanced. Bold would let you take £180 a month more.",
             "parts": [
               "Careful asks for ",
               {
@@ -1090,14 +1090,14 @@
               " ",
               "Bold would let you take ",
               {
-                "fixed": "£170"
+                "fixed": "£180"
               },
               " a month more."
             ]
           },
           "headroomFixed": {
             "id": "d.more.fixed",
-            "text": "At £1,630 a month: if you live to 99, the money lasts that long in 15 of 20 futures we tried.",
+            "text": "At £1,660 a month: if you live to 99, the money lasts that long in 15 of 20 futures we tried.",
             "parts": [
               "At ",
               {

@@ -50,7 +50,7 @@
         "you.pot": "300,000",
         "you.taxFreeTaken": "no",
         "savings": "40,000",
-        "spend.amount": "2,050"
+        "spend.amount": "2,075"
       },
       "touched": [],
       "asked": true,
@@ -94,7 +94,7 @@
     },
     "d": {
       "status": "final",
-      "inputsKey": "{\"charge\":0.5,\"confidence\":\"balanced\",\"endAge\":99,\"fall\":{\"has\":false},\"household\":\"single\",\"isaGrowth\":\"cash\",\"risk\":\"balanced\",\"savings\":40000,\"spend\":{\"amount\":2050,\"kind\":\"amount\"},\"stopped\":\"yes\",\"work\":{\"has\":false},\"you\":{\"age\":68,\"finalSalary\":{\"has\":false},\"pot\":300000,\"sex\":\"notSaid\",\"statePension\":{\"kind\":\"full\"},\"taxFreeTaken\":\"no\"}}|2026-09-30|7.11.1",
+      "inputsKey": "{\"charge\":0.5,\"confidence\":\"balanced\",\"endAge\":99,\"fall\":{\"has\":false},\"household\":\"single\",\"isaGrowth\":\"cash\",\"risk\":\"balanced\",\"savings\":40000,\"spend\":{\"amount\":2075,\"kind\":\"amount\"},\"stopped\":\"yes\",\"work\":{\"has\":false},\"you\":{\"age\":68,\"finalSalary\":{\"has\":false},\"pot\":300000,\"sex\":\"notSaid\",\"statePension\":{\"kind\":\"full\"},\"taxFreeTaken\":\"no\"}}|2026-09-30|7.11.1",
       "result": {
         "status": "ok",
         "inputs": {
@@ -116,7 +116,7 @@
           "isaGrowth": "cash",
           "spend": {
             "kind": "amount",
-            "amount": 2050
+            "amount": 2075
           },
           "risk": "balanced",
           "charge": 0.5,
@@ -131,51 +131,51 @@
         },
         "whose": "you",
         "spend": {
-          "perMonth": 2050,
-          "perYear": 24600,
+          "perMonth": 2075,
+          "perYear": 24900,
           "kind": "amount",
           "level": null
         },
         "verdict": "close",
-        "fails": 351,
-        "lasted": 0.649,
-        "runOutAge": 91,
+        "fails": 337,
+        "lasted": 0.663,
+        "runOutAge": 92,
         "outOfTen": {
-          "words": "in only 6 futures out of 10",
+          "words": "in only 7 futures out of 10",
           "only": true,
-          "count": 6
+          "count": 7
         },
         "floorAge": 96,
         "left": {
           "age": 99,
-          "typical": 50605,
-          "best": 534415
+          "typical": 56657,
+          "best": 585902
         },
         "level": "balanced",
         "levels": {
           "careful": {
-            "monthly": 1910,
-            "yearly": 22920,
-            "weighted": 0.9528602271275595,
-            "fixedAge": 0.843
+            "monthly": 1940,
+            "yearly": 23280,
+            "weighted": 0.9524934440059587,
+            "fixedAge": 0.842
           },
           "balanced": {
-            "monthly": 2010,
-            "yearly": 24120,
-            "weighted": 0.9053699504304678,
-            "fixedAge": 0.705
+            "monthly": 2050,
+            "yearly": 24600,
+            "weighted": 0.9020934311188757,
+            "fixedAge": 0.692
           },
           "bold": {
-            "monthly": 2290,
-            "yearly": 27480,
-            "weighted": 0.7004552456811071,
-            "fixedAge": 0.306
+            "monthly": 2340,
+            "yearly": 28080,
+            "weighted": 0.7017067867815494,
+            "fixedAge": 0.308
           }
         },
         "chance": {
-          "weighted": 0.8809327147947624,
-          "fixedAge": 0.649,
-          "fails": 351,
+          "weighted": 0.8876412409162149,
+          "fixedAge": 0.663,
+          "fails": 337,
           "n": 1000,
           "planToAge": 99,
           "weightToAge": 103,
@@ -183,7 +183,7 @@
         },
         "headroom": {
           "kind": "less",
-          "perMonth": 40
+          "perMonth": 30
         },
         "guaranteed": {
           "monthlyAfterTax": 1045.63
@@ -198,13 +198,13 @@
                 "to": 99
               }
             },
-            "takeHome": 2050,
-            "fromPension": 1181.17,
+            "takeHome": 2075,
+            "fromPension": 1210.58,
             "fromSavings": 0,
-            "fromPots": 1181.17,
+            "fromPots": 1210.58,
             "statePension": 1045.63,
             "finalSalary": 0,
-            "tax": 176.8,
+            "tax": 181.21,
             "work": 0,
             "fromWork": 0,
             "byPerson": [
@@ -214,10 +214,10 @@
                 "finalSalary": 0,
                 "work": 0,
                 "fromWork": 0,
-                "fromPension": 1181.17,
+                "fromPension": 1210.58,
                 "fromSavings": 0,
-                "tax": 176.8,
-                "takeHome": 2050,
+                "tax": 181.21,
+                "takeHome": 2075,
                 "higherRate": false,
                 "locked": false,
                 "pensionOpen": true
@@ -226,8 +226,8 @@
             "beforeStatePension": false,
             "pensionOpen": true,
             "shown": {
-              "takeHome": 2050,
-              "fromPots": 1004,
+              "takeHome": 2075,
+              "fromPots": 1029,
               "statePension": 1046,
               "finalSalary": 0,
               "fromWork": 0
@@ -254,8 +254,8 @@
             "id": "d-spend",
             "field": "spend.amount",
             "source": "entered",
-            "value": 2050,
-            "text": "You spend £2,050 a month after tax, going up with prices, until you are 99. No cuts in bad years.",
+            "value": 2075,
+            "text": "You spend £2,075 a month after tax, going up with prices, until you are 99. No cuts in bad years.",
             "parts": [
               "You spend ",
               {
@@ -473,7 +473,7 @@
         "sentences": {
           "head": {
             "id": "d.head.close",
-            "text": "Close — £2,050 a month is tight",
+            "text": "Close — £2,075 a month is tight",
             "parts": [
               "Close — ",
               {
@@ -497,7 +497,7 @@
           },
           "line": {
             "id": "d.line.weighted",
-            "text": "Counting how long people your age live, £2,050 a month after tax lasts as long as you do 17 times in 20; Balanced asks for 18.",
+            "text": "Counting how long people your age live, £2,075 a month after tax lasts as long as you do 17 times in 20; Balanced asks for 18.",
             "parts": [
               "Counting how long people your age live",
               ", ",
@@ -527,7 +527,7 @@
           },
           "bad": {
             "id": "d.when",
-            "text": "We follow each future on to 103. In the futures where the money runs out before then, it typically runs out at 96. In the worst 1 in 10 of all the futures, by 91.",
+            "text": "We follow each future on to 103. In the futures where the money runs out before then, it typically runs out at 96. In the worst 1 in 10 of all the futures, by 92.",
             "parts": [
               "We follow each future on to ",
               {
@@ -551,14 +551,14 @@
               " of all the futures, ",
               "by ",
               {
-                "fixed": "91"
+                "fixed": "92"
               },
               "."
             ]
           },
           "headroom": {
             "id": "d.less",
-            "text": "At Balanced, about £2,010 a month lasts as long as you do 18 times in 20. That is £40 a month less than you spend now.",
+            "text": "At Balanced, about £2,050 a month lasts as long as you do 18 times in 20. That is £30 a month less than you spend now.",
             "parts": [
               "At ",
               "Balanced",
@@ -589,7 +589,7 @@
           },
           "levels": {
             "id": "d.levels",
-            "text": "At Careful, about £1,910 a month. At Bold, about £2,290 a month.",
+            "text": "At Careful, about £1,940 a month. At Bold, about £2,340 a month.",
             "parts": [
               "At Careful, about ",
               {
@@ -607,7 +607,7 @@
           "madeOf": [
             {
               "id": "d.madeOf.mixed",
-              "text": "£1,046 State Pension + £1,004 from your pot and savings.",
+              "text": "£1,046 State Pension + £1,029 from your pot and savings.",
               "parts": [
                 {
                   "key": "phases.0.shown.statePension",
@@ -627,7 +627,7 @@
             },
             {
               "id": "d.madeOf.tax",
-              "text": "Tax of £177 a month is already taken off.",
+              "text": "Tax of £181 a month is already taken off.",
               "parts": [
                 "Tax of ",
                 {
@@ -640,7 +640,7 @@
           ],
           "change": {
             "id": "d.change",
-            "text": "Now: close at £2,050 a month, at Balanced.",
+            "text": "Now: close at £2,075 a month, at Balanced.",
             "parts": [
               "Now: ",
               "close",
@@ -734,7 +734,7 @@
           },
           "left": {
             "id": "d.left",
-            "text": "If you live to 99, what is typically left then is £48,000 at today's prices. In the best 1 in 10 futures it is £530,000 or more.",
+            "text": "If you live to 99, what is typically left then is £54,000 at today's prices. In the best 1 in 10 futures it is £582,000 or more.",
             "parts": [
               "If you live to ",
               {
@@ -742,7 +742,7 @@
               },
               ", what is typically left then is ",
               {
-                "fixed": "£48,000"
+                "fixed": "£54,000"
               },
               " at today's prices. In the best ",
               {
@@ -754,31 +754,31 @@
               },
               " futures it is ",
               {
-                "fixed": "£530,000"
+                "fixed": "£582,000"
               },
               " or more."
             ]
           },
           "cost": {
             "id": "d.cost",
-            "text": "Careful asks for £100 a month less than Balanced. Bold would let you take £280 a month more.",
+            "text": "Careful asks for £110 a month less than Balanced. Bold would let you take £290 a month more.",
             "parts": [
               "Careful asks for ",
               {
-                "fixed": "£100"
+                "fixed": "£110"
               },
               " a month less than Balanced.",
               " ",
               "Bold would let you take ",
               {
-                "fixed": "£280"
+                "fixed": "£290"
               },
               " a month more."
             ]
           },
           "headroomFixed": {
             "id": "d.more.fixed",
-            "text": "At £2,010 a month: if you live to 99, the money lasts that long in 14 of 20 futures we tried.",
+            "text": "At £2,050 a month: if you live to 99, the money lasts that long in 14 of 20 futures we tried.",
             "parts": [
               "At ",
               {
@@ -1005,7 +1005,7 @@
   },
   "stressStrip": {
     "q": "d",
-    "key": "{\"charge\":0.5,\"confidence\":\"balanced\",\"endAge\":99,\"fall\":{\"has\":false},\"household\":\"single\",\"isaGrowth\":\"cash\",\"risk\":\"balanced\",\"savings\":40000,\"spend\":{\"amount\":2050,\"kind\":\"amount\"},\"stopped\":\"yes\",\"work\":{\"has\":false},\"you\":{\"age\":68,\"finalSalary\":{\"has\":false},\"pot\":300000,\"sex\":\"notSaid\",\"statePension\":{\"kind\":\"full\"},\"taxFreeTaken\":\"no\"}}|2026-09-30|7.11.1",
+    "key": "{\"charge\":0.5,\"confidence\":\"balanced\",\"endAge\":99,\"fall\":{\"has\":false},\"household\":\"single\",\"isaGrowth\":\"cash\",\"risk\":\"balanced\",\"savings\":40000,\"spend\":{\"amount\":2075,\"kind\":\"amount\"},\"stopped\":\"yes\",\"work\":{\"has\":false},\"you\":{\"age\":68,\"finalSalary\":{\"has\":false},\"pot\":300000,\"sex\":\"notSaid\",\"statePension\":{\"kind\":\"full\"},\"taxFreeTaken\":\"no\"}}|2026-09-30|7.11.1",
     "status": "working",
     "result": null,
     "reason": null

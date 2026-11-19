@@ -432,9 +432,10 @@ function buildDStates({ today, futures, inputsKey: keyOf }) {
     states['answer-working'] = s;
   }
   states['answer-first'] = answered('answer-first', 'answer', D1, { status: 'first', n: 100 });
-  // (7.12.0: on the plan path the worked example's £2,100 a month is a "no" at 1,000 futures — 0.848 weighted, as the plan
-  // kept from it says — so the "close" states take £2,050, which the kept plan calls close: 0.881)
-  const D1_CLOSE = { ...D1, 'spend.amount': '2,050' };
+  // (7.12.0: on the plan path, with a retired plan's year 0 for the months it has (September to March on 30 September),
+  // the "close" states take £2,075 a month, which the kept plan calls close: 0.888 weighted, the bad case at 92. £2,050 is
+  // now a "yes" (0.902))
+  const D1_CLOSE = { ...D1, 'spend.amount': '2,075' };
   states['answer-D1'] = answered('answer-D1', 'answer', D1_CLOSE, { kind: 'close' });
   states['answer-stress-done'] = withStrip(answered('answer-stress-done', 'answer', D1_CLOSE, { kind: 'close' }), 'd');
   states['answer-stress-working'] = withStrip(answered('answer-stress-working', 'answer', D1_CLOSE, { kind: 'close' }), 'd', 'working');

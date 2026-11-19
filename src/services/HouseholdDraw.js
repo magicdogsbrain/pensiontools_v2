@@ -75,7 +75,7 @@ export function personProfile(settings, { now = new Date(), years } = {}) {
     const active = !working && y <= dur;
     const planYear = Math.max(0, y);
     const target = active ? targetForYear(s, planYear) : 0;
-    const spNow = active && y >= sp.startYear ? sp.annual : 0;
+    const spNow = active && (y >= sp.startYear || sp.paidNow) ? sp.annual : 0;   // a State Pension already being paid counts this year (7.12.0)
     const db = active && +s.dbAmount > 0 && y >= (+s.dbStartYear || 0) ? +s.dbAmount : 0;
     const other = active ? (+s.other || 0) : 0;
     rows.push({ c, y, planYear, active, target, fixed: spNow + db + other, sp: spNow, db, other, f: ufplsFraction(s, planYear), age: startAge + y, yearsUntilSp: Math.max(0, sp.startYear - y), ...(closedYears > 0 && active && y < closedYears ? { closed: true } : {}) });

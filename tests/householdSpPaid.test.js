@@ -30,3 +30,12 @@ describe('the household years count a State Pension already paid', () => {
     expect(rows.find((r) => r.spB > 0).calendarYear).toBeGreaterThanOrEqual(2033);
   });
 });
+
+import { personProfile } from '../src/services/HouseholdDraw.js';
+describe('the household split\'s years read the same', () => {
+  it('Kim\'s row this year carries her State Pension', () => {
+    const r0 = personProfile(kim, { now: NOW, years: 3 }).rows[0];
+    expect(r0.sp).toBeCloseTo(11973, 6);
+    expect(r0.fixed).toBeCloseTo(11973 + 6000, 6);
+  });
+});

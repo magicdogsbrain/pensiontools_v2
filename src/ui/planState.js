@@ -20,19 +20,30 @@ export const PLAN_STATE_FIELDS = Object.freeze([
   'budget', 'budLoaded', 'budGuide', 'budFor',
   'acProjection', 'acHoldingsProps', 'acMixOn',
   'shapeRefs', 'oneTest', 'cmpCache', 'latestStrategyStress', 'chanceLevel', 'arrivalChecked',
-  'holdingsDraft', 'holdingsDraftFor', 'transitionLast', 'lifeStage', 'stressFormBase'
+  'holdingsDraft', 'holdingsDraftFor', 'transitionLast', 'lifeStage', 'stressFormBase',
+  // what was chosen or turned on a page of this plan: a strategy page's dials and the defaults its last run gave them, the
+  // household's limit, the budget's last removal and import (each offered back for a while), its +10%, the year chosen in
+  // History and in Tax years, the custom split and allocation mode per surface, the Decision tool's year 0 — none of them
+  // may be read for, or written into, another plan
+  'stratDials', 'beAge', 'ffHorizon', 'hhLimit', 'budLastRemoved', 'budImportUndo', 'budPlusTen', 'historyYear', 'taxYear',
+  'customAlloc', 'allocMode', 'decisionAnchor'
 ]);
 
 /** The fields worked out from the plan (dropped after a write); the rest are what is being edited. */
-const WORKED = Object.freeze(['budGuide', 'acProjection', 'acHoldingsProps', 'acMixOn', 'shapeRefs', 'oneTest', 'cmpCache', 'latestStrategyStress', 'lifeStage', 'transitionLast']);
+const WORKED = Object.freeze(['budGuide', 'acProjection', 'acHoldingsProps', 'acMixOn', 'shapeRefs', 'oneTest', 'cmpCache', 'latestStrategyStress', 'lifeStage', 'transitionLast', 'beAge', 'ffHorizon']);
 
 const fresh = () => ({
   budget: null, budLoaded: false, budGuide: null, budFor: null,
   acProjection: null, acHoldingsProps: null, acMixOn: false,
   shapeRefs: { essentials: 0, budgetGross: 0 }, oneTest: null,   // no budget essentials known: none (as the page has always started)
   cmpCache: null, latestStrategyStress: null, chanceLevel: null, arrivalChecked: false,
-  holdingsDraft: null, holdingsDraftFor: null, transitionLast: null, lifeStage: null, stressFormBase: null
+  holdingsDraft: null, holdingsDraftFor: null, transitionLast: null, lifeStage: null, stressFormBase: null,
+  stratDials: {}, beAge: null, ffHorizon: null, hhLimit: null, budLastRemoved: null, budImportUndo: null, budPlusTen: false,
+  historyYear: 'all', taxYear: null, customAlloc: {}, allocMode: {}, decisionAnchor: null
 });
+
+/** A field's value for a plan just opened (a new object each time). */
+export const emptyPlanField = (field) => fresh()[field];
 
 export function planKeyOf(plan) {
   if (!plan || plan.id == null) return '';
@@ -62,7 +73,9 @@ export const PLAN_STATE_GLOBALS = Object.freeze({
   _budget: 'budget', _budGuide: 'budGuide', _acProjection: 'acProjection', _acHoldingsProps: 'acHoldingsProps', _acMixOn: 'acMixOn',
   _shapeRefs: 'shapeRefs', _oneTest: 'oneTest', _cmpCache: 'cmpCache', _latestStrategyStress: 'latestStrategyStress',
   _chanceLevel: 'chanceLevel', _arrivalChecked: 'arrivalChecked', _holdingsDraft: 'holdingsDraft', _holdingsDraftFor: 'holdingsDraftFor',
-  _transitionLast: 'transitionLast', _lifeStage: 'lifeStage'
+  _transitionLast: 'transitionLast', _lifeStage: 'lifeStage',
+  _stratDials: 'stratDials', _beAge: 'beAge', _ffHorizon: 'ffHorizon', _hhLimit: 'hhLimit', _budImportUndo: 'budImportUndo',
+  _budPlusTen: 'budPlusTen', _customAlloc: 'customAlloc', _allocMode: 'allocMode', _decisionAnchor: 'decisionAnchor'
 });
 
 /** Binds the page's names to the one state: `win._budget` is `state.budget`, and so on; nothing is kept beside it. */

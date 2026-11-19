@@ -362,6 +362,8 @@ export function nameAfterMonth(current, { from, to, nameFor }) {
  */
 export function installPlanClose(win, doc, deps = {}) {
   const toast = (m, t, ms) => win.showToast(m, t, ms);
+  /** Any save still waiting (Settings, Accumulation, Budget: index.html flushSettings), sent now. */
+  const flushOpen = async () => { try { if (typeof win.flushSettings === 'function') await win.flushSettings(); } catch (e) { /* each save says why it was not made */ } };
 
   /**
    * Open another plan, as the plan menu does (switch, then the page loaded again). Without an account the page would open
@@ -370,6 +372,7 @@ export function installPlanClose(win, doc, deps = {}) {
    * saving plan made on going back to work, at its Accumulation page (`place` 'saving'), where what goes in is asked.
    */
   async function reopenOn(id, place = 'about') {
+    await flushOpen();   // what was typed goes to the plan it was typed in, before another opens (lead4.md R3)
     await switchScenario(String(id));
     invalidateScenarioCache();
     if (isGuest()) { try { win.sessionStorage.setItem(OPEN_PLACE_KEY, makeRequest({ planId: String(id), place, back: '#/plan/' + String(id), at: new Date().toISOString() })); } catch (e) { /* the landing page then: the plan is still the open one */ } }
@@ -412,6 +415,7 @@ export function installPlanClose(win, doc, deps = {}) {
   };
 
   async function moveOnce(why) {
+    await flushOpen();   // the plan closed and carried on from is the plan with what was typed in it
     const now = new Date();
     const reason = why === 'working' ? 'working' : 'plan';
     let sc = null, all = [];

@@ -51,7 +51,7 @@ export function installRepaint(win, doc, d) {
     st.key = planKeyOf(plan);
     win._holdingsLines = []; win._planDocLast = null; d.resetCurrentDecision();
     doc.getElementById('openPlaceNote')?.remove();   // a note that names a plan names the plan it was written for
-    { const n = doc.getElementById('seedNote'); if (n && reason !== 'load') n.style.display = 'none'; }
+    { const n = doc.getElementById('seedNote'); if (n) n.style.display = 'none'; }   // on every repaint: the plan just kept from an answer shows its note AFTER the page opens on it (NewPlanFromSeed.keepIfWaiting)
     clear('acOnTrack'); clear('acSweepResult');   // "Am I on course?" and "when could I stop" are answered for the plan open, when asked
     sayReadFault(null);
     d.clearStressResults();

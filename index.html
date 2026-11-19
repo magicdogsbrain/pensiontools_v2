@@ -4566,7 +4566,7 @@
           const demoId = existing.id;
           setTimeout(async () => {
             const ok = await appConfirm('"' + demo.name + '" has been added to your plans. Your current plan is untouched.\n\nOpen the demo plan now?', { okLabel: 'Open it', cancelLabel: 'Stay here' });
-            if (ok) { try { await switchScenario(demoId); try { sessionStorage.setItem('pt_open_tab', 'strategies'); } catch (e) {} location.href = location.pathname; } catch (e) { showToast('Could not open the demo plan: ' + e.message, 'error'); } }
+            if (ok) { try { await flushSettings(); await switchScenario(demoId); try { sessionStorage.setItem('pt_open_tab', 'strategies'); } catch (e) {} location.href = location.pathname; } catch (e) { showToast('Could not open the demo plan: ' + e.message, 'error'); } }
           }, 800);
         } catch (e) { console.warn('demo link', e); }
       }
@@ -5196,6 +5196,7 @@
     // Duplicate Plan button
     document.getElementById('scenarioDuplicateBtn').addEventListener('click', async () => {
       document.getElementById('scenarioDropdown').classList.remove('open');
+      await flushSettings();   // what was typed goes to this plan first, so the copy carries it and nothing is left to land in the copy
       if (await guestPlanGate()) return;
       const active = await getActiveScenarioAsync();
       if (!active) {
@@ -6137,9 +6138,9 @@
       return !!(el && el.checked);
     }
     // Custom allocations built from tagged funds, per surface. When set, it overrides the presets.
-    window._customAlloc = window._customAlloc || {};
+    // (window._customAlloc is the open plan's: src/ui/planState.js, dropped with the plan)
     // Allocation mode per surface: 'risk' (a preset/custom %) or 'funds' (your tagged funds ARE the plan).
-    window._allocMode = window._allocMode || {};
+    // (window._allocMode, per surface, is the open plan's too)
     function allocMode(p) { return window._allocMode[p] || 'risk'; }
     // The active preset. A custom (from-funds) allocation wins; else with the Diversifiers sleeve on
     // the 4-way table is used, otherwise the classic 3-way RISK_PRESETS — so a preset always carries a
@@ -8217,6 +8218,7 @@
         const newName = ((cur?.planDetails?.name || 'Plan') + ' — ' + (names[id] || 'copy')).slice(0, 40);
         const ok = await appConfirm('Create "' + newName + '" as a copy of this plan and switch to it?\n\nYour current plan stays exactly as it is. The copy starts on ' + (names[id] || id) + ' with your pot totals carried over.', { okLabel: 'Create the copy', danger: false });
         if (!ok) return;
+        await flushSettings();   // what was typed goes to this plan first: the copy carries it, and none of it lands in the copy afterwards
         showLoading('Copying plan…');
         const copy = await duplicateScenario(activeId, newName);
         await switchScenario(copy?.id || copy);
@@ -8443,7 +8445,7 @@
     // =====================================================================================
     window._stratPage = 'overview';
     window._stratFrame = 4;
-    window._stratDials = {};
+    // window._stratDials: the dials turned on a strategy page, the open plan's (src/ui/planState.js): another plan opens with none turned
     window.loadStrategiesPage = async function () { await showStrategyPage(window._stratPage || 'overview'); };
 
     // ---- Assumptions & data: every number the engines rest on, in one place, computed from the
@@ -9271,6 +9273,7 @@
       const name = (document.getElementById('hhNewPlanName').value || '').trim();
       if (!name) { showToast('Give the plan a name first (e.g. their first name)', 'warning'); return; }
       try {
+        await flushSettings();   // what was typed goes to this plan first: none of it may land in the partner's plan once it is the open one
         showLoading('Creating ' + name + '…');
         // Their plan starts from what THIS plan already knows about them: ages from the plan wizard,
         // sharing on, and this person as their partner — not the 45/60 defaults.
@@ -10279,26 +10282,27 @@
     let _budSaveTimer = null;
 
     function budSetStatus(txt) {
-      if (_budLastRemoved) return; // an Undo offer owns the status slot until it expires
+      if (planState.budLastRemoved) return; // an Undo offer owns the status slot until it expires
       const el = document.getElementById('budSaveStatus');
       if (el) el.textContent = txt;
     }
 
     // Removal undo: with autosave, an accidental × would otherwise be instantly permanent
     // (live-test finding: a deleted Rent/mortgage line simply "disappeared from the wizard").
-    let _budLastRemoved = null;
+    // the line just removed, offered back (planState.budLastRemoved): it goes with the plan it was removed from
     let _budUndoTimer = null;
 
     function budOfferUndo(kind, item, index) {
-      _budLastRemoved = { kind, item, index };
+      planState.budLastRemoved = { kind, item, index };
       clearTimeout(_budUndoTimer);
-      _budUndoTimer = setTimeout(() => { _budLastRemoved = null; budRenderUndoChips(); }, 12000);
+      const offered = planState.budLastRemoved;
+      _budUndoTimer = setTimeout(() => { if (planState.budLastRemoved !== offered) return; planState.budLastRemoved = null; budRenderUndoChips(); }, 12000);   // only this offer, in the plan it was made in
       budRenderUndoChips();
     }
 
     function budRenderUndoChips() {
-      const label = _budLastRemoved ? (_budLastRemoved.item.label || 'item') : null;
-      const html = _budLastRemoved
+      const label = planState.budLastRemoved ? (planState.budLastRemoved.item.label || 'item') : null;
+      const html = planState.budLastRemoved
         ? 'Removed \u201C' + budEsc(label) + '\u201D \u2014 <button type="button" class="budwiz-chip" data-on-click="budUndoRemove()">Undo</button>'
         : null;
       const statusEl = document.getElementById('budSaveStatus');
@@ -10309,9 +10313,9 @@
     }
 
     window.budUndoRemove = function () {
-      if (!_budLastRemoved) return;
-      const { kind, item, index } = _budLastRemoved;
-      _budLastRemoved = null;
+      if (!planState.budLastRemoved) return;
+      const { kind, item, index } = planState.budLastRemoved;
+      planState.budLastRemoved = null;
       clearTimeout(_budUndoTimer);
       const arr = kind === 'line' ? window._budget.lines : window._budget.oneOffs;
       arr.splice(Math.min(index, arr.length), 0, item);
@@ -10408,7 +10412,7 @@
           showToast('Imported ' + b.lines.length + ' items. Undo available for 60s via the button below.', 'success', 8000);
           const st = document.getElementById('budSaveStatus');
           if (st) st.innerHTML = 'Imported — <a href="#" data-on-click="undoBudgetImport();return false;" style="color:var(--primary);">Undo</a>';
-          setTimeout(() => { window._budImportUndo = null; }, 60000);
+          setTimeout(() => { if (window._budImportUndo === before) window._budImportUndo = null; }, 60000);   // only this import's offer (another plan opened since has none)
         } catch (e) {
           console.error('Budget import error:', e);
           showToast('Import failed: ' + e.message, 'error', 6000);
@@ -11529,7 +11533,7 @@
     let allHistoryData = [], historyTaxYears = null;   // the tax years beside the records: the delete button names what it takes (MonthFill.recordsToDelete)
 
     // Currently selected year filter for history
-    let selectedHistoryYear = 'all';
+    // the year chosen in History is the open plan's (planState.historyYear): a plan opened after it starts on 'all'
 
     // Render history with full-page tabbed view
     // Plan vs actual: measure the saved history against the projection FROZEN when the plan was
@@ -11586,7 +11590,7 @@
       // here rather than relying on the Monthly Entry panel having rendered first (6.5.3).
       try { const st = await getActiveStrategy(); if (st && st.id) window._activeStrategyId = st.id; } catch (e) { /* keep whatever we had */ }
       // the labels' year 0 before any record is drawn (plan vs actual is not awaited; a start moved since the page opened, 6.53.0)
-      try { window._decisionAnchor = decisionAnchorYear(await getDecisionSettingsAsync(), historyTaxYears || {}, null, await getStressSettingsAsync()) || window._decisionAnchor; } catch (e) { /* kept */ }
+      try { window._decisionAnchor = decisionAnchorYear(await getDecisionSettingsAsync(), historyTaxYears || {}, null, await getStressSettingsAsync()) || null; } catch (e) { window._decisionAnchor = null; }   // this plan's year 0, or none: never the plan open before
       renderPlanVsActual(allHistoryData);
       // Entries recorded under previous settings (only possible once the plan has been unlocked and
       // re-saved — same rule as PlanLock.planDependents). Kept, but said so.
@@ -11627,24 +11631,24 @@
           yearOptionsHtml += `<option value="${y}">${y}</option>`;
         });
         yearFilter.innerHTML = yearOptionsHtml;
-        yearFilter.value = selectedHistoryYear;
+        yearFilter.value = planState.historyYear;
       }
 
       // Show/hide delete year button based on selection
       if (deleteYearBtn) {
-        deleteYearBtn.style.display = (selectedHistoryYear !== 'all' && allHistoryData.length > 0) ? '' : 'none';
+        deleteYearBtn.style.display = (planState.historyYear !== 'all' && allHistoryData.length > 0) ? '' : 'none';
       }
 
       // Filter by selected year
-      const filteredHistory = selectedHistoryYear === 'all'
+      const filteredHistory = planState.historyYear === 'all'
         ? allHistoryData
-        : allHistoryData.filter(h => h.date.startsWith(selectedHistoryYear));
+        : allHistoryData.filter(h => h.date.startsWith(planState.historyYear));
 
       if (filteredHistory.length === 0) {
         tabsContainer.innerHTML = '';
         detailContainer.innerHTML = `
           <div class="no-history-message">
-            <h3>No entries for ${selectedHistoryYear}</h3>
+            <h3>No entries for ${planState.historyYear}</h3>
             <p>Select a different year or "All Years".</p>
           </div>
         `;
@@ -11664,7 +11668,7 @@
         // Format date for display - just month if year filter is active
         const [year, month] = h.date.split('-').map(Number);
         const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        const dateLabel = selectedHistoryYear === 'all'
+        const dateLabel = planState.historyYear === 'all'
           ? `${monthNames[month - 1]} ${year}`
           : monthNames[month - 1];
 
@@ -11710,7 +11714,7 @@
 
     // Filter history by year
     window.filterHistoryByYear = function(year) {
-      selectedHistoryYear = year;
+      planState.historyYear = year;
       selectedHistoryDate = null; // Reset selection
       renderHistory();
     };
@@ -12147,12 +12151,12 @@
 
     // Delete history for currently selected year filter
     window.deleteHistoryForSelectedYear = async function() {
-      if (selectedHistoryYear === 'all') {
+      if (planState.historyYear === 'all') {
         showToast('Select a specific year first', 'error');
         return;
       }
       // Convert calendar year to tax year format
-      const taxYear = `${parseInt(selectedHistoryYear) % 100}/${(parseInt(selectedHistoryYear) + 1) % 100}`;
+      const taxYear = `${parseInt(planState.historyYear) % 100}/${(parseInt(planState.historyYear) + 1) % 100}`;
       await deleteHistoryForTaxYear(taxYear);
     };
 
@@ -12206,7 +12210,7 @@
     }
 
     // Current selected tax year for the detail view
-    let selectedTaxYear = null;
+    // the tax year chosen is the open plan's (planState.taxYear): a plan opened after it starts on its own latest year
 
     // Render tax years with full-page tabbed view
     async function renderTaxYears() {
@@ -12230,7 +12234,7 @@
       allYears.forEach(ty => {
         const config = taxYears[ty];
         const isSetup = config && config.yearSetupComplete;
-        const isActive = ty === selectedTaxYear;
+        const isActive = ty === planState.taxYear;
         const classes = ['tax-year-tab'];
         if (isActive) classes.push('active');
         if (!isSetup) classes.push('not-setup');
@@ -12254,18 +12258,18 @@
       }
 
       // If no year selected, select the first configured one or current year
-      if (!selectedTaxYear) {
+      if (!planState.taxYear) {
         const configuredYears = sortedYears.filter(ty => taxYears[ty]?.yearSetupComplete);
-        selectedTaxYear = configuredYears.length > 0 ? configuredYears[configuredYears.length - 1] : currentTaxYear;
+        planState.taxYear = configuredYears.length > 0 ? configuredYears[configuredYears.length - 1] : currentTaxYear;
       }
 
       // Update mobile selector value
       if (mobileSelector) {
-        mobileSelector.value = selectedTaxYear;
+        mobileSelector.value = planState.taxYear;
       }
 
       // Render detail view for selected year
-      await renderTaxYearDetail(selectedTaxYear, taxYears, decisionSettings);
+      await renderTaxYearDetail(planState.taxYear, taxYears, decisionSettings);
 
       // Scroll to selected tab
       const activeTab = tabsContainer.querySelector('.tax-year-tab.active');
@@ -12540,7 +12544,7 @@
 
     // Select a tax year
     window.selectTaxYear = async function(taxYear) {
-      selectedTaxYear = taxYear;
+      planState.taxYear = taxYear;
       const taxYears = await getAllTaxYearsAsync();
       const decisionSettings = await getDecisionSettingsAsync();
       await renderTaxYearDetail(taxYear, taxYears, decisionSettings);
@@ -12653,7 +12657,7 @@
         await saveDecisionDB(db);
 
         // Reset selected year and re-render
-        selectedTaxYear = null;
+        planState.taxYear = null;
         await renderTaxYears();
       } catch (error) {
         console.error('Error deleting tax year:', error);

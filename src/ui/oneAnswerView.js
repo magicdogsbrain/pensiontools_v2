@@ -197,6 +197,9 @@ export function rankingCardHtml({ scored, names, colors, rankBy = 'lasts', more 
  * the plan's own mix and the three levels, tent off and on — in the words answers/plan/mix.js mixCompareView gives them, the
  * simple view's words for each cell (lead4.md R6, R7). `view` is mixCompareView's.
  */
+/** What the page says while the eight cells run (the simple view's words). */
+export const MIX_COMPARE_WORKING = MIX.compare.working;
+
 export function mixGridHtml(view) {
   const C = MIX.compare;
   const fill = (t, slots) => String(t).replace(/\{(\w+)\}/g, (m, k) => (slots[k] != null ? String(slots[k]) : m));

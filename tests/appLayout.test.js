@@ -14,7 +14,6 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { LAYOUTS, LAYOUT, layoutNamed } from '../src/appLayout.js';
 import { PLANNER, SIGN_IN_DOOR } from '../src/v7/effects/openPlace.js';
-import { EQUITY_URL } from '../src/v7/effects/move.js';
 import { COMMON } from '../src/v7/copy/common.js';
 import { PREVIEW_PATH } from '../src/ui/components/OpenPlace.js';
 import { questionHref } from '../src/services/PlanSeed.js';
@@ -31,14 +30,14 @@ describe('the two layouts', () => {
   it('preview is the layout before 7.0, exactly (the rollback): the classic page at /, V7 at /v7/', () => {
     expect(LAYOUTS.preview).toEqual({
       name: 'preview',
-      v7: { at: '/v7/', classic: '../', privacy: '../privacy.html', equity: '../data/equity.json', data: '../data/' },
+      v7: { at: '/v7/', classic: '../', privacy: '../privacy.html', data: '../data/' },
       classic: { at: '/', v7: 'v7/', privacy: 'privacy.html', data: './data/' }
     });
   });
   it('switch is 7.0: V7 at /, the classic page at /classic/, one data folder at the root', () => {
     expect(LAYOUTS.switch).toEqual({
       name: 'switch',
-      v7: { at: '/', classic: './classic/', privacy: './privacy.html', equity: './data/equity.json', data: './data/' },
+      v7: { at: '/', classic: './classic/', privacy: './privacy.html', data: './data/' },
       classic: { at: '/classic/', v7: '../', privacy: '../privacy.html', data: '../data/' }
     });
   });
@@ -48,7 +47,6 @@ describe('the two layouts', () => {
       expect(from(v7Page, L.v7.classic), v7Page).toBe(L.classic.at);
       expect(from(v7Page, L.v7.classic + '?signin=1')).toBe(L.classic.at + '?signin=1');
       expect(from(v7Page, L.v7.privacy)).toBe('/privacy.html');
-      expect(from(v7Page, L.v7.equity)).toBe('/data/equity.json');
       expect(from(v7Page, L.v7.data)).toBe('/data/');
     }
     for (const classicPage of [L.classic.at, L.classic.at + 'index.html']) {
@@ -88,11 +86,10 @@ describe('the build flag', () => {
 });
 
 describe('every cross-app link reads the module', () => {
-  it('V7: the hand-over to the classic planner, its sign-in door, the line to the previous version, the privacy link, the equity file', () => {
+  it('V7: the hand-over to the classic planner, its sign-in door, the line to the previous version, the privacy link', () => {
     expect(PLANNER).toBe(LAYOUT.v7.classic);
     expect(SIGN_IN_DOOR).toBe(LAYOUT.v7.classic + '?signin=1');
     expect(COMMON.links).toEqual({ classic: LAYOUT.v7.classic, privacy: LAYOUT.v7.privacy });
-    expect(EQUITY_URL).toBe(LAYOUT.v7.equity);
   });
   it('the classic page: the way back to V7, the landing page\'s line, the way back to a question, the privacy links, the market data', () => {
     expect(PREVIEW_PATH).toBe(LAYOUT.classic.v7);
@@ -138,7 +135,9 @@ describe('the browser tests\' two addresses', () => {
   });
   it('both workers read the folder their page hands them (src/reading/market.js), never one resolved from their own script', () => {
     expect(read('src/workers/engineClient.js')).toContain('marketFolderOf(document.baseURI, LAYOUT.classic.data)');
-    expect(read('src/v7/effects/workerClient.js')).toContain('marketFolderOf(document.baseURI, LAYOUT.v7.data)');
+    // the simple view's page folder is pageMarket.js's, the one its worker is told and its own pages load (move, Assumptions)
+    expect(read('src/v7/effects/pageMarket.js')).toContain('marketFolderOf(document.baseURI, LAYOUT.v7.data)');
+    expect(read('src/v7/effects/workerClient.js')).toContain("import { pageMarketFolder } from './pageMarket.js'");
     expect(read('src/workers/engineWorker.js')).toContain('loadMarket({ folder: payload && payload.market })');
     expect(read('src/v7/effects/answerWorker.js')).toContain("loadMarket({ folder })");
   });

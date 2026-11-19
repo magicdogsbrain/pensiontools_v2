@@ -56,9 +56,9 @@ describe('the Household tab: a line when one plan begins later than the other (H
     expect(raw).toMatch(/import \{ householdStartWords \} from '\.\/src\/services\/PlanSeed\.js';/);
     // no line added to the inline script (tests/v7/shellRatchet.test.js): the import and the call share existing lines
     const check = raw.slice(raw.indexOf('window.runHouseholdCheck = async function'), raw.indexOf('window.rerunHouseholdSplit = function'));
-    expect(check).toMatch(/householdStartWords\(\{ offset: offsets\.a, firstTaxYear: deriveTiming\(ownSettings\)\.firstTaxYear \}, \{ offset: offsets\.b, firstTaxYear: deriveTiming\(partnerSettings\)\.firstTaxYear \}\)/);
+    expect(check).toMatch(/householdStartWords\(\{ offset: offsets\.a, firstTaxYear: deriveTiming\(ownSettings, now\)\.firstTaxYear \}, \{ offset: offsets\.b, firstTaxYear: deriveTiming\(partnerSettings, now\)\.firstTaxYear \}\)/);
     // 6.25.0: the verdict's HTML is built by src/ui/householdView.js (verdictSectionHtml), which shows the line beside the result
-    expect(check).toMatch(/verdictSectionHtml\(\{ r, ownName, pName, stratNote, startsNote, setA: ownSettings, setB: partnerSettings, offsets \}\)/);
+    expect(check).toMatch(/verdictSectionHtml\(\{ r, ownName, pName, stratNote, startsNote, setA: ownSettings, setB: partnerSettings, offsets, now \}\)/);   // the one clock for the starts line (lead4.md R5)
     const view = readFileSync(resolve(process.cwd(), 'src/ui/householdView.js'), 'utf8');
     expect(view).toMatch(/startsNote \? '<p class="hint" id="hhStartsNote"[^']*>' \+ esc\(startsNote\) \+ '<\/p>' : ''/);
   });

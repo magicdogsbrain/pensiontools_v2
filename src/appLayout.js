@@ -33,7 +33,6 @@ const PREVIEW = Object.freeze({
     at: '/v7/',
     classic: '../',                      // the classic page, from V7's page: "Change this", "Record a month", the banner's link
     privacy: '../privacy.html',          // the published privacy policy
-    equity: '../data/equity.json',       // the nightly equity index, for the rotation watch on "Moving to your plan's mix"
     data: '../data/'                     // the nightly market data folder, for V7's worker (src/reading/market.js): the same folder as the classic page's
   }),
   classic: Object.freeze({
@@ -50,7 +49,6 @@ const SWITCH = Object.freeze({
     at: '/',
     classic: './classic/',
     privacy: './privacy.html',
-    equity: './data/equity.json',
     data: './data/'
   }),
   classic: Object.freeze({

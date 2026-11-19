@@ -4157,7 +4157,7 @@
     // One answer per plan (6.24.0; usability audit decision 2): every "will it last" figure is the one test's, read through these.
     import { oneAnswer, worstStarts, earlierTestNote, cutsSettingWords, futuresOutOfTen, pctText, CHANCE_BARS, RUIN_BARS } from './src/services/OneAnswer.js';
     import { namedStartRows, SCENARIO_START } from './src/services/NamedStarts.js';   // the named stresses' start years, lifted (6.45.0): the preview reads the same
-    import { leftRowHtml, cutsRowHtml, withoutCutsLineHtml, historyTabHtml, scenariosTabHtml, rankingCardHtml, mixGridHtml, earlierTestNoteHtml, verdictBlockView, cardToneOf, chanceOptsOf, countAgeHtml, installChanceLevel, lifeAssumptionsRows, LEVEL_REFUSED } from './src/ui/oneAnswerView.js';
+    import { leftRowHtml, cutsRowHtml, withoutCutsLineHtml, historyTabHtml, scenariosTabHtml, rankingCardHtml, mixGridHtml, MIX_COMPARE_WORKING, earlierTestNoteHtml, verdictBlockView, cardToneOf, chanceOptsOf, countAgeHtml, installChanceLevel, lifeAssumptionsRows, LEVEL_REFUSED } from './src/ui/oneAnswerView.js';
     import { DECISION_ASSUMED_CPI } from './src/services/InflationModel.js';
     import { LADDER_DEFAULTS, orderSheetRows } from './src/strategies/GiltLadderPlan.js';
 
@@ -4193,7 +4193,7 @@
     // Who draws what (6.25.0, household-draw-split.md): the rule, the writes, the words — the tab only gathers and calls
     import { householdDrawSplit, limitFrom } from './src/services/HouseholdDraw.js';
     import { splitWriteMode, splitChanges, applySplit, dismissalFor, isSplitDismissed } from './src/services/HouseholdSplitApply.js';
-    import { runHousehold, runSurvivor, runCare, householdNamesOf } from './src/answers/plan/householdRun.js'; import { runMixCompare } from './src/answers/plan/mixRun.js'; import { mixCompareView } from './src/answers/plan/mix.js'; import { MIX } from './src/v7/copy/mix.js';   // Compare allocations: the simple view's own   // the household checks: the simple view's own (lead4.md D20) import { effectiveStressSettings, planMoneyOf } from './src/services/PlanReading.js';   // the partner's plan read as its own tools read it (6.42.0)
+    import { runHousehold, runSurvivor, runCare, householdNamesOf } from './src/answers/plan/householdRun.js'; import { runMixCompare } from './src/answers/plan/mixRun.js'; import { mixCompareView } from './src/answers/plan/mix.js';   // Compare allocations: the simple view's own   // the household checks: the simple view's own (lead4.md D20) import { effectiveStressSettings, planMoneyOf } from './src/services/PlanReading.js';   // the partner's plan read as its own tools read it (6.42.0)
     import { splitSectionHtml, splitNoneHtml, splitDismissedHtml, splitConfirmHtml, verdictSectionHtml, timelineSectionHtml, wealthSectionHtml, whatToDoHtml, survivorCareHtml, survivorResultHtml, careResultHtml, budgetShareHtml, budgetSharedLineHtml, householdNotSetWords } from './src/ui/householdView.js';
     import { shareBudgetWith, stopSharingBudget, getHouseholdSplitDismissed, setHouseholdSplitDismissed, budgetSharedFromOf } from './src/storage/ScenarioRepository.js';
     import { guestPlanRefusal, isExamplePlanError, DEMO_PLANS, EXAMPLE_PLAN_KEY, EXAMPLE_PLAN_DESCRIPTION } from './src/services/GuestPlans.js';   // three plans without an account; the read-only example (6.23.0)
@@ -6639,7 +6639,7 @@
       const resultsDiv = document.getElementById('optimiseResultsMC');
       if (btn) { btn.disabled = true; btn.textContent = 'Comparing...'; }
       const say = (t) => { if (resultsDiv) resultsDiv.innerHTML = '<div class="loading"><div class="spinner"></div>' + t + '</div>'; };
-      say(budEsc(MIX.compare.working));
+      say(budEsc(MIX_COMPARE_WORKING));
       const s = await getStressSettingsAsync();
       const done = () => { if (btn) { btn.disabled = false; btn.textContent = 'Compare allocations (Pots & Valves)'; } };
       if (s.strategyId && !PNV_FAMILY.includes(s.strategyId)) {
@@ -6650,7 +6650,7 @@
         const sc = await getActiveScenarioAsync();
         const today = dayKeyOf(todayOf());
         let res;
-        try { res = await runInWorker('mixCompare', { plan: sc, today }, (pr) => say(budEsc(MIX.compare.working) + ' ' + (pr.i + 1) + ' of ' + pr.n)); }
+        try { res = await runInWorker('mixCompare', { plan: sc, today }, (pr) => say(budEsc(MIX_COMPARE_WORKING) + ' ' + (pr.i + 1) + ' of ' + pr.n)); }
         catch (e) { console.warn('engine worker unavailable, running inline', e); res = runMixCompare(sc, { today }); }
         if (resultsDiv) resultsDiv.innerHTML = mixGridHtml(mixCompareView(res.cells, sc, { today }));
       } catch (e) { console.error('compare allocations', e); if (resultsDiv) resultsDiv.innerHTML = '<div class="alert alert-danger">Could not compare: ' + budEsc(e.message) + '</div>'; }
@@ -8016,7 +8016,7 @@
       if (!V) { box.innerHTML = '<p class="hint">Enter your sleeve value first.</p>'; return; }
       // The sleeve the plan started with, its glide and its band are the plan's own run's (oneTestFor: the one gatherer, the one
       // market, compareRunner's base ladder cost), never sums of the boxes on this page (lead4.md R1, R2, R6).
-      let t = null; try { t = await oneTestFor(await getStressSettingsAsync()); } catch (e) { t = null; }
+      let t = null; try { t = await oneTestFor((window._lrCtx || {}).settings || {}); } catch (e) { t = null; }   // (the plan's reading, as the panel above read it)
       const r = t && t.r, sg = (r && r.signature) || {}, gl = sg.glide || {};
       if (!r || r.strategyId !== 'ladder-and-ratchet' || !r.affordable || !(gl.E0 > 0)) { box.innerHTML = '<p class="hint">The plan as saved has no base ladder to check the sleeve against.</p>'; return; }
       const E0 = gl.E0, b = gl.b || 1.2, gp = Number.isFinite(gl.gp) ? gl.gp : 0.05;
@@ -8183,9 +8183,9 @@
         }
         if (way !== 'ladder-and-ratchet' && way !== 'floor-and-flex') return;
         const lr = way === 'ladder-and-ratchet';
-        const line = document.getElementById(lr ? 'lrCostLine' : 'ffCostLine'), table = document.getElementById(lr ? 'lrGiltTable' : 'ffGiltTable');
-        if (!line) return;
-        line.innerHTML = '<span class="hint">Pricing the plan as saved…</span>';
+        const costLine = document.getElementById(lr ? 'lrCostLine' : 'ffCostLine'), table = document.getElementById(lr ? 'lrGiltTable' : 'ffGiltTable');
+        if (!costLine) return;
+        costLine.innerHTML = '<span class="hint">Pricing the plan as saved…</span>';
         // the plan's own way: its one test (oneTestFor, shared with the Stress tab's card); another way: the ways run (cmpRun)
         let c = null;
         try {
@@ -8195,12 +8195,12 @@
         } catch (e) { c = null; }
         if (window._ssStrategy !== way) return;   // the way was changed while it ran
         const r = c ? c.r : null;
-        if (!r) { line.innerHTML = ''; if (table) table.innerHTML = ''; return; }
-        if (!r.affordable) { line.innerHTML = '<span style="color:var(--danger);">Not affordable on the plan as saved — ' + budEsc(r.reason || '') + '.</span>'; if (table) table.innerHTML = ''; return; }
+        if (!r) { costLine.innerHTML = ''; if (table) table.innerHTML = ''; return; }
+        if (!r.affordable) { costLine.innerHTML = '<span style="color:var(--danger);">Not affordable on the plan as saved — ' + budEsc(r.reason || '') + '.</span>'; if (table) table.innerHTML = ''; return; }
         const sg = r.signature || {}, cost = wayCostOf(r), costHtml = markFact(factId(FACT.WAY_COST, way), gbp(Math.round(cost)));
         if (lr) {
           const n = sg.ladderYears || 0, net = Array.isArray(sg.drawNet) ? sg.drawNet : [];
-          line.innerHTML = 'On the plan as saved, the base ladder costs <strong>' + costHtml + '</strong> → equity sleeve <strong>' + gbp(Math.round(Math.max(0, (sg.glide && sg.glide.E0) || 0))) + '</strong>.';
+          costLine.innerHTML = 'On the plan as saved, the base ladder costs <strong>' + costHtml + '</strong> → equity sleeve <strong>' + gbp(Math.round(Math.max(0, (sg.glide && sg.glide.E0) || 0))) + '</strong>.';
           const sched = Array.isArray(c.p.targetSchedule) && c.p.targetSchedule.length ? c.p.targetSchedule : null, el = document.getElementById('lrDrawSteppedText');
           if (el && sched && n) {
             const parts = [];
@@ -8211,7 +8211,7 @@
           if (table) table.innerHTML = n ? exampleLadderHtml(Array.from({ length: n }, (_, i) => i + 1), (k) => net[k - 1] || 0, 'this shows only what the base ladder\'s rungs might cost, sized net of your State Pension.') : '';
         } else {
           const floor = Array.isArray(sg.floorByYear) ? sg.floorByYear : [], sleeve = Math.max(0, sg.sleeveE0 || 0);
-          line.innerHTML = 'On the plan as saved, the floor to ' + budEsc(String(sg.horizonAge ?? '')) + ' costs <strong>' + costHtml + '</strong> → flex sleeve <strong>' + gbp(Math.round(sleeve)) + '</strong>, year-1 treats ≈ <strong>' + gbp(Math.round(sleeve * (sg.rate || 0))) + '</strong>.';
+          costLine.innerHTML = 'On the plan as saved, the floor to ' + budEsc(String(sg.horizonAge ?? '')) + ' costs <strong>' + costHtml + '</strong> → flex sleeve <strong>' + gbp(Math.round(sleeve)) + '</strong>, year-1 treats ≈ <strong>' + gbp(Math.round(sleeve * (sg.rate || 0))) + '</strong>.';
           if (table) table.innerHTML = floor.length ? exampleLadderHtml(Array.from({ length: Math.min(floor.length, 45) }, (_, i) => i + 1), (k) => floor[k - 1] || 0, 'this shows only what the essentials floor might cost, sized net of your State Pension.') : '';
         }
       } catch (e) { /* fields not ready */ }
@@ -9044,10 +9044,11 @@
       out.innerHTML = '<p style="font-size:13px;">Running both plans through the same 1,000 possible futures…</p>';
       await new Promise((r) => setTimeout(r, 30));
       try {
-        const [scenarios, stored, activeId] = await Promise.all([listScenariosAsync(), getStressSettingsAsync(), getActiveScenarioId()]);
+        const [scenarios, activeId] = await Promise.all([listScenariosAsync(), getActiveScenarioId()]);
         const own = scenarios.find((sc) => sc.id === activeId), partner = scenarios.find((sc) => sc.id === partnerId);
         const now = contextFor(own, { now: todayOf(), plans: scenarios }).now;   // the one day both plans are seen from, as the simple view's household checks see them
-        const ownSettings = own ? effectiveStressSettings(own, { now }) : stored;
+        if (!own) { out.innerHTML = ''; return; }
+        const ownSettings = effectiveStressSettings(own, { now });
         // Both plans as their own tools read them (6.42.0; this plan's too from 7.12.0, as the simple view reads it): the Budget's age folded in, brought up to date
         const partnerSettings = partner ? effectiveStressSettings(partner, { now }) : null, unset = [[own, ownSettings], [partner, partnerSettings]].map(([p, st]) => ({ p, r: testReadyOf(p, st) })).find((x) => !x.r.ready);   // never run on defaults; the Accumulation tab's figures count, and what is missing is named (7.12.0)
         if (unset) { out.innerHTML = '<div class="alert alert-warning">' + budEsc(householdNotSetWords(unset.p ? shownPlanName(unset.p) || unset.p.planDetails?.name : '', unset.r.missing)) + '</div>'; return; }

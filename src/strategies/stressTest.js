@@ -30,7 +30,7 @@ import { LEVEL_FAILS20, levelOf, passes as passesLevel } from '../answers/shared
 import { planToAgeOf } from '../services/AgeConvention.js';   // the income cuts, counted from the same futures (6.24.0: one answer)
 import { pensionLockOf, pensionPotOf } from '../services/PensionLock.js';
 import { planNeedOf, lockOfNeed } from '../services/PlanNeed.js';
-import { withIncomeAnyway, worstTwelveOf, incomeAnywayWords, NO_INCOME_ANYWAY } from './incomeAnyway.js';
+import { withIncomeAnyway, worstTwelveOf, incomeAnywayWords, NO_INCOME_ANYWAY, notYetMonthsOf } from './incomeAnyway.js';
 // the closed years as a plan's run sees them, with no test run (services/PlanNeed.js): re-exported, as both apps read it here
 export { pensionLockForSettings } from '../services/PlanNeed.js';
 
@@ -180,7 +180,8 @@ export function planFromSettings(settings, cfg, { yieldForYear, essentialsAnnual
     // a plan locked before charges has none → 0). Pots & Valves reads it from pnvCfg (the same config); the bought
     // strategies get its monthly factor on their sleeves (compareRunner.deriveCompareConfigs) and the gilt ladders' cash years.
     chargesPct: chargesPctOf(cfg),
-    pnvCfg: { ...cfg, startAge, targetSchedule: rawSchedule, ...(pnvLock ? { pensionLockedMonths: pnvLock.years * 12 } : {}) },   // the plan's own tax mode / ISA rate: it runs nominally now; it applies DB/extras itself
+    pnvCfg: { ...cfg, startAge, targetSchedule: rawSchedule, ...(pnvLock ? { pensionLockedMonths: pnvLock.years * 12 } : {}),
+      ...(lived > 0 || year0MonthsOf(timing) >= 12 ? {} : { year0Months: year0MonthsOf(timing) }) },   // year 0 for the months it has   // the plan's own tax mode / ISA rate: it runs nominally now; it applies DB/extras itself
     yieldForYear,
     ...(now ? { now } : {})   // only when injected: the plan object is otherwise byte-identical to before
   };
@@ -212,9 +213,12 @@ function pnvRun(cfg, returns, seed, planYears, startAge) {
   // After the money runs out the person still has the income that comes anyway (State Pension, a final-salary pension,
   // other income): the months the run did not reach are that, never £0 (strategies/incomeAnyway.js).
   const lived = r.failed ? withIncomeAnyway(inc, cfg, returns, planYears * 12) : inc;
-  const worst12 = worstTwelveOf(lived);
+  // Year 0 for the months it has (7.12.0): the months before the plan starts paying are not lived on the plan, so they are
+  // neither a lean 12 months nor part of year 0's income.
+  const notYet = notYetMonthsOf(cfg);
+  const worst12 = worstTwelveOf(lived.slice(notYet));
   const incomeByYear = [];
-  for (let y = 0; y < planYears; y++) { let s = 0; for (let m = 0; m < 12; m++) s += lived[12 * y + m] || 0; incomeByYear.push(s); }
+  for (let y = 0; y < planYears; y++) { let s = 0; for (let m = y === 0 ? notYet : 0; m < 12; m++) s += lived[12 * y + m] || 0; incomeByYear.push(s); }
   incomeByYear.push(incomeByYear[incomeByYear.length - 1] || 0);
   const wealth = (r.potByYear || []).map((v, y) => (v == null ? 0 : v) + (r.isaByYear && r.isaByYear[y] != null ? r.isaByYear[y] : 0));
   return {

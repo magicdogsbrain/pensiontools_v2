@@ -30,6 +30,12 @@ export function worstTwelveOf(inc) {
   return Number.isFinite(worst) ? worst : 0;
 }
 
+/**
+ * The months of year 0 before the plan starts paying (a first year that starts in the month work stops: the engine's
+ * `year0Months`, SimulationEngine.simulate): 12 − its months, else 0.
+ */
+export const notYetMonthsOf = (cfg) => (cfg && cfg.year0Months > 0 && cfg.year0Months < 12 ? 12 - Math.round(cfg.year0Months) : 0);
+
 /** The words for a plan with no income that comes anyway. */
 export const NO_INCOME_ANYWAY = 'None — market-dependent';
 

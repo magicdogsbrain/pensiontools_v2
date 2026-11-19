@@ -52,8 +52,14 @@
  *           first tax year only for the months from the month work stops to March (PlanTiming.year0MonthsOf), less the
  *           State Pension paid in those same months (a State Pension that starts in that tax year pays only the months
  *           both hold). The ladder costs less and the money left over is more, by the months not bought; a plan whose
- *           first year is a whole tax year runs exactly as before. Pots & Valves, Buckets in order, Ladder & Ratchet and
- *           the question answers still pay a whole year 0 (not changed yet).
+ *           first year is a whole tax year runs exactly as before. Pots & Valves and Buckets in order do the same
+ *           (SimulationEngine `year0Months`): the months of year 0 before the stop month take nothing from the pots, and
+ *           their worst 12 months and year 0's income count only the months from the stop; the other bought ways (the
+ *           floors, Bridge & engine, Ladder & Ratchet's base ladder) buy and pay that share of year 0 (compareRunner).
+ *           A saver whose stop falls after April: less drawn in year 0, so more left at the end and fewer futures run
+ *           out. Not yet: the question answers (fastEngine), the full view's runMonteCarlo / runHistorical tables
+ *           (their config comes from the settings without year0Months), and the plan document's year-by-year table
+ *           (buildTimeline says year 0's need for a whole year).
  *           The household split counts a retired person's years from this tax year, and a State Pension already being
  *           paid as paid (never years away).
  */

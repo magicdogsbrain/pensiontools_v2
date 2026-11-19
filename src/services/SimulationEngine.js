@@ -105,6 +105,10 @@ export function simulate(config, returns, seed = 0) {
   // (cutYears, cutReal) — never a run out, since the pension is still there. Absent or 0 (every plan whose holder can
   // already draw, every golden and pin): the run it always was.
   const closedMonths = config.pensionLockedMonths > 0 ? Math.floor(config.pensionLockedMonths) : 0;
+  // Year 0 for the months it has (7.12.0, PlanTiming.year0MonthsOf): a first plan year that starts in the month work stops
+  // pays from that month to March. The months of year 0 before it take nothing from the pots or the ISA (the person is still
+  // at work): no draw, no protection, no tax-boost, no pot moved, no tax counted. Absent or 12: the run it always was.
+  const notYetMonths = config.year0Months > 0 && config.year0Months < 12 ? 12 - Math.round(config.year0Months) : 0;
   // UFPLS lifetime Lump Sum Allowance headroom (nominal, frozen). Irrelevant (0) for drawdown.
   let lsaRemaining = config.accessMethod === 'ufpls' ? 268275 : 0;
   // Phased access: PCLS-at-switch. UFPLS never crystallises the untouched pot, so at the end of
@@ -182,6 +186,7 @@ export function simulate(config, returns, seed = 0) {
     const year = Math.floor(month / 12);
     const monthInYear = month % 12;
     const closed = month < closedMonths;   // the pension cannot be touched this month (above)
+    const notYet = month < notYetMonths;   // year 0 before the month the plan starts paying (above)
 
     // Tax year is aligned with the simulation year (annual cycle == tax year), so the shortfall
     // reset, target-inflation and boost remaining-months all share ONE boundary — matching the
@@ -277,7 +282,7 @@ export function simulate(config, returns, seed = 0) {
     if (ordered) consecBelowTrack = isBelow(equity + bond + cash, trackLine) ? consecBelowTrack + 1 : 0;
     // A closed month (7.4.1) is never in protection: its need is paid from the money outside the pension, which a slump in the
     // pension's pots does not touch, so no protection month is counted and no streak carries into the month the pension opens.
-    prot = config.disableProtection || closed ? false : assessProtection({
+    prot = config.disableProtection || closed || notYet ? false : assessProtection({
       totalGrowth: ordered ? equity + bond + cash : vsGlide.growth,
       minGrowth: ordered ? trackLine : vsGlide.glide,
       consecBelowGlide: ordered ? Math.max(0, consecBelowTrack - 1) : consecBelowGlide,
@@ -350,9 +355,12 @@ export function simulate(config, returns, seed = 0) {
     // (policy 'hold') stays untouched — a taxable sleeve never is.
     const topUpPot = isaHeld ? gia.value : isa + gia.value;
     const topUpStrategy = (isaHeld && gia.value > 0) ? 'minimiseEarlyTax' : null;
-    const { sippMonthly, isaMonthly, planInputs, taxAnnual, higherRate, taxFreeMonthly, recycleGrossMonthly, recycleNetMonthly } = calculateMonthlyDraw(
+    const monthDrawPlan = calculateMonthlyDraw(
       config, year, cumInf, yearlyInf, topUpPot, lsaRemaining,
       Math.max(0, RECYCLE_DEFAULTS.ISA_ANNUAL_ALLOWANCE - isaLumpsThisYear), topUpStrategy);
+    const { sippMonthly, isaMonthly, planInputs, taxAnnual, higherRate, taxFreeMonthly, recycleGrossMonthly, recycleNetMonthly } = notYet
+      ? { ...monthDrawPlan, sippMonthly: 0, isaMonthly: 0, taxAnnual: 0, higherRate: false, taxFreeMonthly: 0, recycleGrossMonthly: 0, recycleNetMonthly: 0 }
+      : monthDrawPlan;
 
     // ISA analytics: capture start-of-year ISA balance, accumulate projected income tax (in
     // today's money) and count inefficient-drawdown months (SIPP forced into the higher-rate band).
@@ -361,7 +369,7 @@ export function simulate(config, returns, seed = 0) {
       potByYear[year] = (equity + bond + cash + diversifier + gia.value) / cumInf;    // today's money (GIA included)
     }
     // A closed month draws nothing taxable from the pension: the tax is on the other income alone.
-    totalTaxReal += ((closed ? calculateTax(planInputs.fixed, planInputs.pa, planInputs.brl, planInputs.hrl) : taxAnnual) / 12) / cumInf;
+    if (!notYet) totalTaxReal += ((closed ? calculateTax(planInputs.fixed, planInputs.pa, planInputs.brl, planInputs.hrl) : taxAnnual) / 12) / cumInf;
     if (higherRate && !closed) higherRateMonths++;
 
     const draw = sippMonthly;
@@ -545,7 +553,7 @@ export function simulate(config, returns, seed = 0) {
     // per-month cap and BRL headroom as the Decision engine). Months remaining in the tax year =
     // 12 - monthInYear (April..March under the year-aligned tax year).
     let boostAmount = 0;
-    if (!prot && !closed) {
+    if (!prot && !closed && !notYet) {
       const monthsRemaining = 12 - monthInYear;
       const projectedAnnualTaxable = annualSippSoFar + standardMonthDraw * monthsRemaining + planInputs.fixed;
       boostAmount = planTaxBoost({
@@ -594,7 +602,9 @@ export function simulate(config, returns, seed = 0) {
     // equity pot inflated and depleted like the floors); else cash, then the defensive sleeve.
     if (traceRow) traceRow.diversifierTarget = sourcingInputs.diversifierTarget;   // what the sleeve was ranked against
     // A closed month takes nothing from the pension's pots: the whole draw is a shortfall the money outside it pays below.
-    const sourcing = closed
+    const sourcing = notYet
+      ? { fromEquity: 0, fromBond: 0, fromCash: 0, fromDiversifier: 0, fromHodl: 0, shortfall: 0, replenish: 0, transfers: { equityToBond: 0, bondToCash: 0 }, source: 'Not yet', reason: 'before the plan starts' }
+      : closed
       ? { fromEquity: 0, fromBond: 0, fromCash: 0, fromDiversifier: 0, fromHodl: 0, shortfall: monthDraw, replenish: 0, transfers: { equityToBond: 0, bondToCash: 0 }, source: 'Other savings', reason: 'pension closed' }
       : config.sourcingMode === 'ordered'
       ? planSourcingOrdered({ ...sourcingInputs, eqPath: calculateGlidepath(config.equityStart || 0, year, config.duration, cumInf, true), bdTarget: calculateGlidepath(config.bondStart || 0, year, config.duration, cumInf, true), band: config.bucketBand ?? 0.10 })

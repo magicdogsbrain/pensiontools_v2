@@ -146,7 +146,10 @@ describe('a row on the plan (lastsRun.rowPlanOf), and never on a document', () =
     const plain = rowPlanOf(p, {});
     expect(plain).toEqual({ ...p, stride: WEIGHTED_HIST_STRIDE, perFutureCuts: true });
     const fall = rowPlanOf(p, { shock: FALL });
-    expect(fall.shock).toEqual(FALL);
+    // (E8 fix round 2: the fall starts in the first paying month. Fixture 02 is read in October: its year 0 pays October to
+    // March, 6 months, and April to September give the pots nothing, so the fall starts at month 12 − 6 = 6)
+    expect(p.year0Months).toBe(6);
+    expect(fall.shock).toEqual({ ...FALL, from: 6 });
     expect(fall).not.toHaveProperty('returnDragPct');
     expect(fall.pnvCfg).toBe(p.pnvCfg);
     const lower = rowPlanOf(p, { returnDragPct: 1 });
@@ -169,7 +172,7 @@ describe('a row on the plan (lastsRun.rowPlanOf), and never on a document', () =
     expect(rf.histWindows).toEqual(r0.histWindows);
     expect(rf.ruin.hist).toBe(r0.ruin.hist);
     expect(rf.ruin.mc).toBeGreaterThanOrEqual(r0.ruin.mc);
-    expect(pnvFamilyPlan('buckets-in-order', rowPlanOf(p, { shock: FALL })).shock).toEqual(FALL);   // the buckets row moves too
+    expect(pnvFamilyPlan('buckets-in-order', rowPlanOf(p, { shock: FALL })).shock).toEqual({ ...FALL, from: 6 });   // the buckets row moves too
     expect(r0.futuresMc.cutReal).toHaveLength(r0.survivedMc.length);   // a row keeps each future's cut (planShortfallOf)
     expect(stressTestStrategy('pots-and-valves', { ...p, stride: WEIGHTED_HIST_STRIDE }).futuresMc).not.toHaveProperty('cutReal');
     // a plan that ends before the weighting age: the run followed on carries the drag, and counts more weighted failures

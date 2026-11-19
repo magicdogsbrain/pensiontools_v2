@@ -135,7 +135,10 @@ describe('order on the same futures', { timeout: 600_000 }, () => {
   // what the bought ways buy (one sum for a part year; a State Pension's first year as the share of the tax year it is paid
   // in, here 6% of it); before, the futures drawn happened to keep the order. When the ratchet is made to keep the order,
   // this flips to a failure: make it an `it` again.
-  it.fails('cuts off on Ladder & Ratchet too (known open: the ratchet depends on the path)', () => {
+  // E8 fix round 2: the order holds again on these futures (the sleeve no longer grows in the months of year 0 before the
+  // pots' day, and a fall starts in the first paying month), so this is an `it` again. The ratchet itself is unchanged and
+  // still depends on the path (lead question 1): another plan or another set of futures can show it.
+  it('cuts off on Ladder & Ratchet too (the ratchet depends on the path: it holds on these futures)', () => {
     orderHolds([['02-pnv-draft', 'ladder-and-ratchet']]);
   });
   it('spending a tenth more never raises the chance; a fall and lower returns on plans with the cuts on, in aggregate', () => {
@@ -167,10 +170,12 @@ describe('order on the same futures', { timeout: 600_000 }, () => {
     const p = planFor(s, now);
     const base = stressTestStrategy('gilt-rotation', rowPlanOf(p, {}));
     const fall = stressTestStrategy('gilt-rotation', rowPlanOf(p, FALL));
-    expect(base.signature.triggeredShare).toBe(0.395);
+    // (E8 fix round 2: 0.395 -> 0.372 as planned, 0.993 -> 0.986 with the fall: the rotation cannot fire in the months of year
+    // 0 before the pots' day, and the market's high is counted from the first paying month, where the fall now starts)
+    expect(base.signature.triggeredShare).toBe(0.372);
     // (whether a future's fall lands on the trigger is decided by the last bit, so it is pinned per engine: Node 20's maths
-    // fires one future fewer of the 1,000 than Node 24's — the reason the rotation is an exception to the order tests)
-    expect(fall.signature.triggeredShare).toBe(+process.versions.node.split('.')[0] <= 20 ? 0.992 : 0.993);
+    // fires one future more of the 1,000 than Node 24's — the reason the rotation is an exception to the order tests)
+    expect(fall.signature.triggeredShare).toBe(+process.versions.node.split('.')[0] <= 20 ? 0.987 : 0.986);
   });
 });
 

@@ -91,3 +91,20 @@ describe('the bought ways buy year 0 for the months it has', () => {
     expect(part.lr.drawNetOfSp(1)).toBeCloseTo(16666.67, 2);
   });
 });
+
+describe('a part year 0 is never the worst 12 months on the bought ways', () => {
+  // Pat's £40,000 a year with year 0 for 5 months: year 0 pays 5 × £3,333.33 = £16,666.67, but those are not 12 months
+  // lived on the plan (April to October were not the plan's to pay). The worst 12 months are whole years: £40,000 here
+  // (was £16,666.67 on these three ways; Pots & Valves and the full gilt ladder already left the months out).
+  const rich = { ...pat, equityMin: 950000, bondMin: 200000, cashTarget: 100000 };
+  const big = planFromSettings(rich, createSimulationConfigFromSettings({}, rich), { now: NOW });
+  for (const id of ['floor-to-age', 'bridge-and-engine', 'gilt-rotation']) {
+    it(id + ': the worst 12 months of the part-year plan are no lower than the whole-year plan\'s', () => {
+      const whole = stressTestStrategy(id, { ...big, mcRuns: 20, stride: 12 });
+      const part = stressTestStrategy(id, { ...big, year0Months: 5, pnvCfg: { ...big.pnvCfg, year0Months: 5 }, mcRuns: 20, stride: 12 });
+      expect(whole.affordable).toBe(true);
+      expect(part.worst12.min).toBeGreaterThan(16666.67 + 1);
+      expect(part.worst12.min).toBeGreaterThanOrEqual(whole.worst12.min - 1);
+    });
+  }
+});

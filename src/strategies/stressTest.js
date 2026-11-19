@@ -280,6 +280,15 @@ function pnvTest(p, configs) {
  * NOT the bought amount alone. The bought amount is £0 in a year a lump sum pays, and net of a DB
  * pension, so the old figure read "£0" or "£28,000" on a plan whose income never dipped.
  */
+/**
+ * How many years at the front of a run's yearly income are not a whole year lived on the plan: 1 when year 0 pays for fewer
+ * than twelve months (7.12.0, p.year0Months; a plan seen from today runs its current year whole), else 0. A part year 0 is
+ * never the worst 12 months: the months before it were not the plan's to pay (Pots & Valves slices the same months off).
+ */
+const partYearsAtFront = (p) => (!(p.yearOffset > 0) && p.year0Months > 0 && p.year0Months < 12 ? 1 : 0);
+/** The lowest whole year of a run's income: from year `from` on (partYearsAtFront), to year `to` (exclusive) when given. */
+const lowestYear = (income, from, to = income.length) => { const v = income.slice(from, to); return v.length ? Math.min(...v) : Math.min(...income.slice(0, to)); };
+
 function worst12Of(series) {
   const mins = series.map((inc) => Math.min(...inc.slice(1)));
   return { min: mins.length ? Math.min(...mins) : 0, median: mins.length ? pct(mins, 0.5) : 0 };
@@ -471,7 +480,7 @@ function floorToAgeTest(p, configs) {
         income.push((full ? Math.max(0, c.amountAt(y + 1) - spAt(y)) : level) + spAt(y) + otherAt(p, y));
       }
     }
-    return { sA, full, level, leftover, wealth, income, worst: Math.min(...income) };
+    return { sA, full, level, leftover, wealth, income, worst: lowestYear(income, partYearsAtFront(p)) };
   };
   const hE = h.windows.map(decide), mcE = mc.windows.map(decide);
   const pctCut = (arr) => 100 * arr.filter((e) => !e.full).length / arr.length;
@@ -549,7 +558,7 @@ function bridgeTest(p, configs) {
       else { if (failAge == null) failAge = p.startAge + y; income.push(Math.max(0, eng) + spAt(y) + otherAt(p, y)); eng = 0; }
       wealth.push(Math.max(0, eng));
     }
-    return { engineAtB: w.sleeveByYear[B] ?? 0, failed: failAge != null, failAge, wealth, income, worst: Math.min(...income) };
+    return { engineAtB: w.sleeveByYear[B] ?? 0, failed: failAge != null, failAge, wealth, income, worst: lowestYear(income, partYearsAtFront(p)) };
   };
   const hE = h.windows.map(run), mcE = mc.windows.map(run);
   const pctFail = (arr) => 100 * arr.filter((e) => e.failed).length / arr.length;
@@ -697,7 +706,7 @@ export function rotationReplay(p, startYear, configs = deriveCompareConfigs(p)) 
   if (off < 0 || off + (ctx.N + 1) * 12 >= hist.length) return { tooShort: true };
   const w = runRotationPath(hist, off, ctx);
   const N = ctx.N;
-  return { failAge: w.failAge, triggeredYear: w.triggeredYear, terminal: w.wealth[N], worst12: Math.min(...w.income.slice(0, N)), startAge: ctx.startAge, rotates: ctx.split.soldOrders.length > 0 };
+  return { failAge: w.failAge, triggeredYear: w.triggeredYear, terminal: w.wealth[N], worst12: lowestYear(w.income, partYearsAtFront(p), N), startAge: ctx.startAge, rotates: ctx.split.soldOrders.length > 0 };
 }
 
 function rotationTest(p, configs) {
@@ -714,7 +723,7 @@ function rotationTest(p, configs) {
   const terminals = mc.map((r) => r.wealth[N]).sort((a, b) => a - b);
   const q = (arr, pr) => arr[Math.floor(arr.length * pr)] ?? 0;
   const histTerm = hist.map((r) => r.wealth[N]).sort((a, b) => a - b);
-  const worstInc = mc.map((r) => Math.min(...r.income.slice(0, N))).sort((a, b) => a - b);
+  const worstInc = mc.map((r) => lowestYear(r.income, partYearsAtFront(p), N)).sort((a, b) => a - b);
   const owed = mc[0] ? mc[0].owed : 0;
   const coverage = 100 * (1 - (mc.reduce((s2, r) => s2 + r.paidShort, 0) / Math.max(1, mc.length * Math.max(1, owed))) * (owed / Math.max(1, mc[0] ? mc[0].income.slice(0, N).reduce((a, b) => a + b, 0) : 1)));   // the plan's N years (point N repeats the last)
   const triggeredShare = mc.filter((r) => r.triggeredYear != null).length / Math.max(1, mc.length);

@@ -15,6 +15,8 @@
  *   formatFact(id, value)   the value as every place shows it ('' for nothing known)
  */
 
+import { patternOf } from './facts.js';
+
 const group = (v) => String(v).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 
 export function money(n) {
@@ -66,13 +68,20 @@ export const FACT_FORMAT = Object.freeze({
   'stop.month': monthText,
   yearsToGo: spanText,
   stage: asIs,
-  'plan.name': asIs
+  'plan.name': asIs,
+  // step F2: income steps (indexed: the pattern's rule), the State Pension (its start in the person's own day words)
+  'income.step.#.beforeTax': money,
+  'income.step.#.monthAfterTax': money,
+  'statePension.week': (v) => '£' + (Math.round((+v || 0) * 100) / 100).toFixed(2),
+  'statePension.amount': money,
+  'statePension.age': ageText,
+  'statePension.start': asIs
 });
 
 /** The value of a fact as every place writes it; '' when nothing is known. */
 export function formatFact(id, value) {
   if (value == null || value === '') return '';
-  const f = FACT_FORMAT[id];
+  const f = FACT_FORMAT[id] || FACT_FORMAT[patternOf(id)];
   if (!f) throw new Error('format: no rule for "' + id + '" (src/reading/format.js FACT_FORMAT)');
   return f(value);
 }

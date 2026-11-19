@@ -5,6 +5,7 @@
  * retired stages, the saver rules on saving ones), no countdown. A locked plan: no box, "Fixed when…" once, the unlock
  * sentence once. A plan shown as saved: no box. A plan not found. The toast with Undo. The plan page's section and link.
  */
+import { statePensionOf, spAssumedWords, SP_CHANGE_IT } from '../../../src/reading/statePension.js';
 import { describe, it, expect } from 'vitest';
 import { h, render } from 'preact';
 import { App } from '../../../src/v7/App.jsx';
@@ -229,9 +230,12 @@ describe('a plan with no State Pension figure, the locked ladder, a plan shown a
   const entries = entriesAt(TODAY);
   it('01 (no age, nothing entered): the planner\'s assumed figure in its own words; "Leave it as assumed" offered; choosing none works', () => {
     const { root, text } = draw(incomeState(entries, C['01-fresh-default'].id));
-    expect(root.querySelector('[data-testid="plan.income.assumed"]').textContent).toBe('Nothing entered: every run assumes £12,000 a year before tax from age 67, and every figure that uses the State Pension says so. Choose the full amount, your forecast, or none.');
+    // (step F2) the words both views say, from the one reading of the State Pension
+    const sp = statePensionOf(entries.find((e) => e.plan.id === C['01-fresh-default'].id).plan, { today: TODAY });
+    expect(spAssumedWords(sp)).toBe('We assumed £12,000 a year before tax from age 67: no State Pension was entered.');
+    expect(root.querySelector('[data-testid="plan.income.assumed"]').textContent).toBe(spAssumedWords(sp) + ' ' + SP_CHANGE_IT);
     expect(root.querySelector('[data-testid="plan.income.spKind.assumed"]').checked).toBe(true);
-    expect(text).toContain('State Pension: nothing entered, so every run assumes £12,000 a year before tax from age 67.');
+    expect(text).toContain(spAssumedWords(sp));
     const none = draw(incomeState(entries, C['01-fresh-default'].id, { typed: { spKind: 'none' } }));
     expect(none.text).toContain('No State Pension: the plan counts none.');
   });

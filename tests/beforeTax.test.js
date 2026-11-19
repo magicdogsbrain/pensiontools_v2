@@ -42,11 +42,13 @@ import { firstStepNoteHtml } from '../src/ui/plannerWords.js';
 import { unmarked } from '../src/reading/mark.js';   // the marks are markup only (lead4.md G1): the words are read without them
 
 describe('the pages that say a year before tax, with a quarter of each payment tax-free', () => {
-  it('the Stress settings line: the shape as held, and what is taken before tax for it', () => {
-    const ufpls = firstStepNoteHtml(TARGET, { access: 'ufpls' });
-    expect(unmarked(ufpls)).toContain('First step £32,858/yr gross ≈ £2,400/mo take-home');
-    expect(ufpls).toContain('you take £30,925 a year before tax for it');
-    expect(firstStepNoteHtml(TARGET, { access: 'drawdown' })).not.toContain('a year before tax for it');
+  it('the Stress settings line: the reading\'s first step, what is taken and what reaches the bank (step F2)', () => {
+    const ufpls = firstStepNoteHtml({ beforeTax: 30925, monthAfterTax: 2400 }, { access: { method: 'ufpls', chosen: true } });
+    expect(unmarked(ufpls)).toContain('First step: taken £30,925 a year before tax, reaches your bank £2,400 a month after tax');
+    expect(ufpls).toContain('A quarter of each payment tax-free.');
+    expect(ufpls).not.toContain('/yr gross');
+    expect(firstStepNoteHtml({ beforeTax: 32858, monthAfterTax: 2400 }, { access: { method: 'ufpls', chosen: false } })).toContain('We assumed a quarter of each payment is tax-free');
+    expect(firstStepNoteHtml(null)).toBe('');
   });
 
   it('a set-up in November after £21,000 of pay: what reaches the bank, and what the pension would pay for £2,400 to', () => {

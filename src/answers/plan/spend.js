@@ -22,7 +22,7 @@
  * that figure while the box still says its month after tax (liftedGross), so the steps written are the planner's to the pound
  * and not the month's rounding grossed up again. A figure typed over the box is grossed up as ever.
  */
-import { takenOfTarget } from '../../services/BeforeTax.js';
+import { stepFiguresOf } from '../../reading/income.js';
 import { taxYearLabel } from '../../services/PlanTiming.js';
 import { amountAtAge, cleanSteps, lumpIntoSteps } from '../../services/IncomeSchedule.js';
 import { spSimConfigFromSettings } from '../../utils/StatePensionUtils.js';
@@ -500,7 +500,8 @@ export function derivedLines(rows, schedule, costs, saved) {
   list.forEach((st, i) => {
     // (7.12.0) "a year before tax" is what is taken (services/BeforeTax.js): a quarter of each payment tax-free counted, and
     // the income that comes in anyway that year taken as it is — the figure the months and the plan document take
-    const slots = { age: st.fromAge, monthly: pounds(st.perMonth), yearly: pounds(takenOfTarget(st.yearly, ss, { fixed: guaranteedAtYear(ss, timing, ageNow, st.fromAge - ageNow, now), bands })) };
+    // (step F2) the one figure of a step (src/reading/income.js stepFiguresOf), for the rows as typed
+    const slots = { age: st.fromAge, monthly: pounds(st.perMonth), yearly: pounds(stepFiguresOf(st.yearly, { settings: ss, bands, fixed: guaranteedAtYear(ss, timing, ageNow, st.fromAge - ageNow, now) }).beforeTax) };
     if (st.then === 'falls') lines.push({ id: i === 0 ? 'first.falls' : 'step.falls', slots: { ...slots, pct: String(st.fallsPct), endMonthly: pounds(st.endPerMonth), endAge: st.endAge } });
     else if (st.then === 'glides') lines.push({ id: i === 0 ? 'first.glides' : 'step.glides', slots: { ...slots, toMonthly: pounds(st.endPerMonth), toAge: st.endAge } });
     else lines.push({ id: i === 0 ? 'first.level' : 'step.level', slots });
@@ -564,7 +565,7 @@ export function spendOf(entries, id, { today, typed = null } = {}) {
   const firstMonthly = c.values.first.amount != null ? c.values.first.amount : saved.first.monthly;
   const firstGross = c.values.first.gross != null ? c.values.first.gross : c.values.first.amount != null && c.values.first.amount !== saved.first.monthly ? yearlyGross(c.values.first.amount, b) : saved.first.amount;
   const share = (m, of) => (of > 0 && m != null ? Math.round((m / of) * 100) : null);
-  const takenAtAge = (gross, age) => takenOfTarget(gross, saved.ss, { fixed: guaranteedAtYear(saved.ss, saved.timing, saved.ageNow, Math.max(0, (num(age) ?? saved.ageNow) - saved.ageNow), saved.now), bands: b });
+  const takenAtAge = (gross, age) => stepFiguresOf(gross, { settings: saved.ss, bands: b, fixed: guaranteedAtYear(saved.ss, saved.timing, saved.ageNow, Math.max(0, (num(age) ?? saved.ageNow) - saved.ageNow), saved.now) }).beforeTax;
   const lists = {};
   for (const L of SPEND_LIST_IDS) {
     lists[L] = { ids: c.lists[L].ids, cards: c.lists[L].cards.map((card) => {

@@ -218,10 +218,11 @@ describe('T1 — the write: the planner\'s keys, as its Save writes them', () =>
     expect(fresh.stressTool.settings.taxableStart).toBeUndefined();
     expect(fresh.stressTool.settings.accessMethod).toBeUndefined();
     expect(fresh.stressTool.settings.bedAndIsa).toBeUndefined();
-    const same = potsPatch(fresh, { taxable: '0', bedAndIsa: 'yes', taxFree: 'drawdown', bandFill: 'no', earnings: '0' }, { today: TODAY });
+    // (step F2, lead4.md D6) nothing chosen reads as the one default rule: a quarter of each payment tax-free
+    const same = potsPatch(fresh, { taxable: '0', bedAndIsa: 'yes', taxFree: 'ufpls', bandFill: 'no', earnings: '0' }, { today: TODAY });
     expect(same.patch).toEqual({});
-    const chosen = potsPatch(fresh, { bedAndIsa: 'no', taxFree: 'ufpls', earnings: '20,000' }, { today: TODAY });
-    expect(chosen.patch).toEqual({ [S + 'bedAndIsa']: false, [S + 'accessMethod']: 'ufpls', [S + 'relevantEarnings']: 20000 });
+    const chosen = potsPatch(fresh, { bedAndIsa: 'no', taxFree: 'drawdown', earnings: '20,000' }, { today: TODAY });
+    expect(chosen.patch).toEqual({ [S + 'bedAndIsa']: false, [S + 'accessMethod']: 'drawdown', [S + 'relevantEarnings']: 20000 });
     expect(chosen.previous).toEqual({ [S + 'bedAndIsa']: undefined, [S + 'accessMethod']: undefined, [S + 'relevantEarnings']: undefined });
     // the migration gave the unlocked plan its charge and its ISA choice: the box shows them, and the same value writes nothing
     expect(fresh.stressTool.settings.chargesPct).toBe(0.5);

@@ -98,7 +98,7 @@ export const REGISTRY = Object.freeze([
   box(26, 'pots.bandFill', 'saver-draft', 'yes', 'pots', STRESS, { group: 'pots-taxfree' }),
   // 1c Money that comes in anyway
   box(28, 'income.spWeekly', 'saver-draft', '230', 'income', STRESS, { prep: { simple: [['income.spKind', 'forecast']] } }),
-  box(28, 'income.spKind', 'saver-draft', 'none', 'income', null, { why: 'the full view has no "full", "forecast" or "none" choice for the State Pension, only the weekly box (map-edits #28)' }),
+  box(28, 'income.spKind', 'saver-draft', 'none', 'income', STRESS),   // (step F2) both views ask it: full, forecast, none, assumed
   box(29, 'income.spDate', 'saver-draft', '1 May 2054', 'income', STRESS, { canon: { simple: dateOf, full: dateOf } }),
   box(30, 'income.other', 'saver-draft', '1500', 'income', STRESS),
   box(31, 'income.fs.0.amount', 'retired-everything', '9800', 'income', STRESS, { group: 'income-fs' }),
@@ -106,8 +106,8 @@ export const REGISTRY = Object.freeze([
   box(31, 'income.fs.0.rises', 'retired-everything', 'cpi', 'income', STRESS, { group: 'income-fs' }),
   list(32, 'income.streams', 'retired-everything', 'income', STRESS, { why: 'more final-salary pensions and incomes for some years: cards in the simple view, an editor of rows in the full view' }),
   list(33, 'income.lumps', 'retired-everything', 'income', STRESS, { why: 'lump sums: cards in the simple view, rows in the full view' }),
-  // 1d What you spend: the simple view's first figure a month after tax, the full view's first step a year before tax
-  box(34, 'spend.first', 'saver-draft', { simple: '1900', full: '30000' }, 'spend', STRESS),
+  // 1d What you spend: both views ask the first figure a month after tax (step F2, lead4.md D6)
+  box(34, 'spend.first', 'saver-draft', '1900', 'spend', STRESS),
   list(35, 'spend.steps', 'retired-everything', 'spend', STRESS, { why: 'later steps: cards in the simple view, rows in the full view' }),
   list(36, 'spend.costs', 'retired-everything', 'spend', STRESS, { why: 'one-off costs: cards in the simple view, rows in the full view' }),
   action(37, 'spend.shape', null, STRESS, { why: 'level income or steps: a hidden pair of buttons in the full view, none in the simple view (it follows the steps)' }),

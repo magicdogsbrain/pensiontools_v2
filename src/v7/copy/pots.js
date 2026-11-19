@@ -94,6 +94,7 @@ export const POTS = {
     'charges.locked': 'No charges come off: this plan was locked before charges were added.',
     'tax.bands': 'Tax-free allowance {pa}; basic rate up to {brl}; higher rate up to {hrl}; {mode}.',
     'tax.free.drawdown': 'Every draw from your pension is taxed in full: the tax-free part is kept separate, or already taken.',
+    'tax.free.assumed': 'We assumed a quarter of each payment is tax-free: nothing was chosen. Change it in the box above.',   // = access.js accessAssumedWords('ufpls'), the full view's words
     'tax.free.ufpls': 'A quarter of every draw from your pension is tax-free{years}{then}.',
     'tax.bandFill': 'Extra is drawn up to the top of the basic-rate band and what is left after tax moved into your ISA.',
     'tax.saves': 'What each choice saves in tax over the plan comes from ‘Does it last?’, later.'

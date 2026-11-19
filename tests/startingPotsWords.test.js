@@ -50,8 +50,10 @@ describe('the line above the runs', () => {
     expect(plain(startSummaryHtml({ equityMin: 1, bondMin: 2, cashTarget: 3 }))).toBe('Starting balances come from your Settings (Fund Minimums): Equity £1 · Bond £2 · Cash £3. Edit them in the Settings tab.');
     expect(plain(startSummaryHtml({ ...S, spWeeklyAmount: 241.3, spStartDate: '2031-10-01' }, { fromAnswer: plan.fromAnswer }))).toContain('These runs are the planner\'s own test, so they can differ.');
   });
-  it('the State Pension note is kept as it was', () => {
-    expect(plain(startSummaryHtml({ equityMin: 1, bondMin: 2, cashTarget: 3, statePension: 12000, spStartDate: null, shapeAgeNow: 60 }))).toMatch(/State Pension not entered — assuming £12,000\/yr from age 67 \(plan year 7\)/);
+  it('an assumed State Pension is said in the words both views use, from the reading (step F2)', () => {
+    const sp = { assumed: true, year: 12000, startAge: 67 };
+    expect(plain(startSummaryHtml({ equityMin: 1, bondMin: 2, cashTarget: 3 }, { sp }))).toContain('We assumed £12,000 a year before tax from age 67: no State Pension was entered. Change it: choose the full amount, your forecast, or none.');
+    expect(plain(startSummaryHtml({ equityMin: 1, bondMin: 2, cashTarget: 3, statePension: 12000 }))).not.toContain('assum');
   });
 });
 

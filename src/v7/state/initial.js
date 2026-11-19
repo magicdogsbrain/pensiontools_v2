@@ -134,7 +134,7 @@ export function cleanPlanMix(x) {
   };
   const mix = mixOf(x.mix), savingMix = mixOf(x.savingMix);
   if (!RISK_LEVELS.includes(x.risk) || !RISK_LEVELS.includes(x.savingRisk) || !mix || !savingMix) return null;
-  return { risk: x.risk, savingRisk: x.savingRisk, mix, savingMix };
+  return { risk: x.risk, savingRisk: x.savingRisk, mix, savingMix, ...(x.taxFreeTaken === true ? { taxFreeTaken: true } : {}) };   // (step F2) the plan's access method
 }
 
 const MONTH = /^\d{4}-(0[1-9]|1[0-2])$/;

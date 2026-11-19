@@ -18,6 +18,8 @@ import { PLAN } from '../../v7/copy/plan.js';
 import { lockedShortOf } from '../../services/PlanCommit.js';
 import { STRESS as STRESS_ON } from '../../answers/shared/rules.js';
 import { markFact } from '../../reading/mark.js';
+import { LABELS } from '../../reading/labels.js';
+import { FACT } from '../../reading/facts.js';
 import { GUARDRAIL_FACTS, TAKEN_FACTS, PLAN_MIX_SLOTS, sentenceHtml } from '../../reading/sentenceMarks.js';
 
 const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
@@ -148,8 +150,15 @@ export function planDocumentHtml(doc, r = {}) {
     } catch (e) { /* picture optional */ }
   }
   if (d.steps?.length) {
-    tl += '<div class="section-title" style="font-size:13px;margin-top:10px;">Income steps (today\'s money, gross)</div>'
-      + table(['From age', 'Tax year', 'Take', 'Then'], d.steps.map((s) => [esc(String(s.fromAge)), esc(s.taxYear || ''), gbp(s.amount) + '/yr', esc(s.slope || '')]));
+    // (step F2, lead4.md D6) each step as the one reader of the steps gives it (src/reading/income.js, handed in as `r.steps`):
+    // what is taken a year before tax and what reaches the bank a month, each with its one label; an archived version (no
+    // reading) says the step as it was locked, labelled so
+    const read = Array.isArray(r.steps) && r.steps.length === d.steps.length ? r.steps : null;
+    const B = LABELS[FACT.STEP_BEFORE_TAX], M = LABELS[FACT.STEP_MONTH_AFTER_TAX];
+    tl += '<div class="section-title" style="font-size:13px;margin-top:10px;">Income steps (today\'s money)</div>'
+      + (read
+        ? table(['From age', 'Tax year', B.label + ', ' + B.basis, M.label + ', ' + M.basis, 'Then'], d.steps.map((s, i) => [esc(String(s.fromAge)), esc(s.taxYear || ''), markFact('income.step.' + i + '.beforeTax', money(read[i].beforeTax)), markFact('income.step.' + i + '.monthAfterTax', money(read[i].monthAfterTax)), esc(s.slope || '')]))
+        : table(['From age', 'Tax year', 'As locked, counted as if every pound were taxed', 'Then'], d.steps.map((s) => [esc(String(s.fromAge)), esc(s.taxYear || ''), money(s.amount) + ' a year', esc(s.slope || '')])));
   }
   if (d.timeline?.length) {
     const anyContract = d.timeline.some((x) => x.contract > 0), anyLump = d.timeline.some((x) => x.lumpIn?.length || x.lumpOut?.length), anyLumpUse = d.timeline.some((x) => x.lump > 0);

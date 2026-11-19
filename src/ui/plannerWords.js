@@ -9,8 +9,10 @@
  */
 import { listStrategies } from '../strategies/registry.js';
 import { LOCK } from '../v7/copy/lock.js';
-import { grossToNet } from '../services/TaxCalculator.js';
-import { takenBeforeTax, taxFreeShareOf } from '../services/BeforeTax.js';
+import { LABELS } from '../reading/labels.js';
+import { FACT } from '../reading/facts.js';
+import { money } from '../reading/format.js';
+import { ACCESS_WORDS, accessAssumedWords } from '../reading/access.js';
 import { markFact } from '../reading/mark.js';
 
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -52,14 +54,6 @@ export function assumedStatePensionAlertHtml(p) {
   return '<div class="alert alert-warning" style="font-size:12px;margin-top:8px;"><strong>State Pension ' + esc(w) + '.</strong> The rungs below are sized on it: enter your forecast date and weekly amount in Settings for a real answer.</div>';
 }
 
-/**
- * The note under the State Pension boxes in Settings when nothing is entered: the figure every run then assumes
- * (StressRepository's default £12,000 a year; IncomeSchedule.defaultSpYear puts it at age 67).
- */
-export function assumedStatePensionSettingsNote(entered) {
-  if (entered) return '';
-  return 'Nothing entered: every run assumes ' + gbp(12000) + ' a year from age 67, and every figure that uses the State Pension says so. Enter your forecast date and weekly amount for a real answer.';
-}
 
 /** The "+ SP £x" cell note: ' (assumed)' when the figure is the engine's default. */
 export function assumedStatePensionTag(p) {
@@ -107,16 +101,16 @@ export function lockFromStressQuestion() {
 }
 
 /**
- * The Stress settings' line under the income shape (7.12.0): the first step as the shape holds it (a year gross, counted as
- * if every pound were taxed, the figure the engines read) and what reaches the bank a month; with a quarter of each
- * withdrawal tax-free, also what is taken before tax for it (services/BeforeTax.js, the figure the months and the plan
- * document take). `access`: the form's access method.
+ * The Stress settings' line under the income shape (step F2, lead4.md D6): the first step as the ONE reader of the steps
+ * gives it (src/reading/income.js incomeStepsOf on the plan as saved) — what is taken a year before tax and what reaches the
+ * bank a month, each with its one label (src/reading/labels.js), and how the tax-free part is taken (src/reading/access.js),
+ * said as an assumption when nothing was chosen. Never the raw stored step, never the page's boxes or default bands.
+ * `step`: { beforeTax, monthAfterTax } (null: nothing set, nothing said); `access`: { method, chosen }.
  */
-export function firstStepNoteHtml(amount, { pa = 12570, brl = 50270, hrl = 125140, access = 'drawdown' } = {}) {
-  const gross = +amount || 0;
-  const netMo = grossToNet(gross, pa, brl, hrl) / 12;
-  const f = taxFreeShareOf({ accessMethod: access });
-  const taken = f > 0 ? takenBeforeTax(gross, { taxFreeFraction: f, pa, brl, hrl }) : null;
-  return '<strong>First step ' + markFact('income.step.0.beforeTax', gbp(gross)) + '/yr gross ≈ ' + markFact('income.step.0.monthAfterTax', gbp(netMo)) + '/mo take-home</strong> at today\'s bands. '
-    + (taken != null && Math.round(taken) !== Math.round(gross) ? 'With a quarter of each payment tax-free, you take ' + gbp(taken) + ' a year before tax for it. ' : '');
+export function firstStepNoteHtml(step, { access = null } = {}) {
+  if (!step) return '';
+  const b = LABELS[FACT.STEP_BEFORE_TAX], m = LABELS[FACT.STEP_MONTH_AFTER_TAX];
+  const how = access ? ' ' + esc(ACCESS_WORDS[access.method] || '') + (access.chosen ? '.' : ': ' + esc(accessAssumedWords(access.method)) + ' <a href="#" data-on-click="openAccessMethod()">Change it</a>.') : '';
+  return '<strong>First step: ' + b.label.toLowerCase() + ' ' + markFact('income.step.0.beforeTax', money(step.beforeTax)) + ' ' + b.basis + ', '
+    + m.label.toLowerCase() + ' ' + markFact('income.step.0.monthAfterTax', money(step.monthAfterTax)) + ' ' + m.basis + '</strong>, on your plan\'s tax bands.' + how + ' ';
 }

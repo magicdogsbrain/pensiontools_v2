@@ -334,6 +334,7 @@ export const PLAN = {
     'about.firstYear': 'First tax year: {year}.',
     'about.runs': 'The plan runs',
     'pays.step': '',
+    'pays.notSet': 'No income set yet: say what you want to spend.',
     'pots.pension': 'Pension pot',
     'pots.split': 'Split',
     'pots.isa': 'ISA',

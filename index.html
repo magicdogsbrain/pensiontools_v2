@@ -2990,6 +2990,7 @@
                   </p>
                 </div>
                 <input type="hidden" id="ssAccessMethod" value="drawdown">
+                <p id="ssAccessAssumed" class="hint" style="margin:6px 0 0;color:var(--warning);"></p>
                 <label style="display:flex; align-items:center; gap:8px; margin-top:10px; cursor:pointer;">
                   <input type="checkbox" id="ssBandFillRecycle" style="width:auto;" data-on-change="syncIsaHoldUI('ss')">
                   <span>Fill my basic-rate band &amp; recycle the surplus into my ISA</span>
@@ -3560,6 +3561,15 @@
             <div class="settings-section">
               <div class="section-title">State Pension</div>
               <div class="form-grid">
+                <div class="form-group">
+                  <label for="ssSpKind">Your State Pension</label>
+                  <select id="ssSpKind" data-on-change="spKindChosen()">
+                    <option value="full">The full amount</option>
+                    <option value="forecast">My forecast</option>
+                    <option value="none">None</option>
+                    <option value="assumed">Leave it as assumed for now</option>
+                  </select>
+                </div>
                 <div class="form-group">
                   <label for="ssSpStartDate">State Pension start date</label>
                   <input type="text" id="ssSpStartDate" placeholder="e.g. 6 May 2040" data-on-input="callIfDefined('renderTiming')">
@@ -4179,7 +4189,7 @@
     import { paintEndAge, endAgeTyped, endAgeError } from './src/ui/endAgeBox.js';   // "Plan to age", the simple view's quantity (step F1)   // the final-salary start, asked by age (audit problem 3)
     import { pnvOnlySections, paintSettingUseNotes, heldIsaNote } from './src/ui/strategySettingsUse.js';   // the settings every strategy shows, and the notes beside them (audit problem 4)
     import { ukMonth, ukDay, ukDate } from './src/ui/ukDates.js';   // dates in UK words, never ISO or US order (audit problem 3)
-    import { strategyCountWord, firstStepNoteHtml, paintStrategyCounts, assumedStatePensionAlertHtml, assumedStatePensionTag, assumedStatePensionSettingsNote, newDocumentVersionQuestion } from './src/ui/plannerWords.js'; import { installLockFromStress } from './src/ui/lockFromStressUi.js';
+    import { strategyCountWord, paintStrategyCounts, assumedStatePensionAlertHtml, assumedStatePensionTag, newDocumentVersionQuestion } from './src/ui/plannerWords.js'; import { installLockFromStress } from './src/ui/lockFromStressUi.js';
     import { cadenceMonths, cadenceNote } from './src/services/DrawCadence.js';   // how often you draw: a preference at decisionTool.cadence (audit decision 4)
     import { isFilledIn, filledInLabel, filledInNote, historyForEngine, refusedMonthWords, recordsToDelete, deleteButtonWords } from './src/services/MonthFill.js';   // the History view's mark on a month filled in later and its delete; the records the engine is handed; a month Calculate refuses (3 Nov 2026)
     import { createMonthEntry } from './src/ui/monthFillEntry.js';   // why Save is off; a failed Calculate kept on the page; the missed months filled in (3 Nov 2026)
@@ -4275,7 +4285,7 @@
     import { isLoggedIn, logOut, getCurrentUser, deleteAccount, onAuthStateChange, viewNotesAtSignIn } from './src/firebase/index.js';
     import { hasCloudData, wipeAllUserData, loadUserProfile, saveUserProfile, guestSnapshot, loadAllScenarios, createScenario as createScenarioDoc, saveScenario as saveScenarioDoc, loadScenario as loadScenarioDoc } from './src/firebase/FirestoreService.js';
     import { startSeedEntry, planFromAnswer, planTargetGuide, budgetSummaryWords } from './src/ui/components/NewPlanFromSeed.js'; import { householdStartWords } from './src/services/PlanSeed.js';   // a plan from a V7 answer (V7 design: save-as-plan.md, C.2); the Household tab's line when one plan begins later (couples-different-years.md 7)
-    import { startSummaryHtml, potsAtRetirementLine } from './src/ui/startingPotsWords.js'; import { potAtStop } from './src/reading/atStop.js'; import { stageWordsHtml, whereYouAreHtml } from './src/ui/stageWords.js'; import { stage as readingStage, yearsToGo as readingYearsToGo, ageToday as readingAgeToday, planName as readingPlanName } from './src/reading/timing.js'; import { formatFact } from './src/reading/format.js'; import { isaToday as readingIsaToday, pensionBoxOf, isaBoxOf, settingsOf as readingSettingsOf } from './src/reading/money.js'; import { savingInputsOf } from './src/services/PotsAtStop.js'; import { shownPlanName } from './src/services/PlanName.js';
+    import { startSummaryHtml, potsAtRetirementLine } from './src/ui/startingPotsWords.js'; import { potAtStop } from './src/reading/atStop.js'; import { stepBoxValue, stepFromBox, firstStepNoteOfPlan, planBandsOf, documentStepsOf, accessAssumedNoteOf, spAssumedNoteOf } from './src/ui/incomeStepBox.js'; import { statePensionOf } from './src/reading/statePension.js'; import { spKindOfSettings, spKindForSave, FULL_SP_WEEKLY } from './src/ui/spKindBox.js'; import { stageWordsHtml, whereYouAreHtml } from './src/ui/stageWords.js'; import { stage as readingStage, yearsToGo as readingYearsToGo, ageToday as readingAgeToday, planName as readingPlanName } from './src/reading/timing.js'; import { formatFact, money as fmtMoney } from './src/reading/format.js'; import { isaToday as readingIsaToday, pensionBoxOf, isaBoxOf, settingsOf as readingSettingsOf } from './src/reading/money.js'; import { savingInputsOf } from './src/services/PotsAtStop.js'; import { shownPlanName } from './src/services/PlanName.js';
     import { tick as guestTick, readMinutes as guestMinutes, pendingNag as guestPendingNag, markNagShown as guestMarkNag, isBlocked as guestBlocked, bannerText as guestBannerText, savedChipText, stashHandoff as guestStash, readHandoff as guestReadHandoff, clearHandoff as guestClearHandoff, GUEST_ALLOWANCE_MINUTES } from './src/services/GuestMeter.js';
     // Release notes: data + renderers (see RELEASING.md). The pop-up and the What's new page read the same entries.
     import { RELEASES, releasesSince, compareVersions } from './src/releases.js';
@@ -5535,9 +5545,11 @@
       }
       // The words (src/ui/startingPotsWords.js): retiring later, the pots at retirement every run starts from; a plan made from a V7 answer, the answer's own figure too.
       // a plan still saving: the pot at the stop and the pension today are the reading's (src/reading/atStop.js, step F1), marked
-      const paint = (fromAnswer, locked, atStop) => ['mcStartSummary', 'histStartSummary', 'scenStartSummary'].forEach((id) => { const el = document.getElementById(id); if (el) el.innerHTML = startSummaryHtml(s, { fromAnswer, locked, atStop }); });   // + the charge the runs take (6.19.0)
+      // (step F2) the State Pension note is the reading's (src/reading/statePension.js): said only when it is assumed, in both views' words
+      const paint = (fromAnswer, locked, atStop, sp) => ['mcStartSummary', 'histStartSummary', 'scenStartSummary'].forEach((id) => { const el = document.getElementById(id); if (el) el.innerHTML = startSummaryHtml(s, { fromAnswer, locked, atStop, sp }); });   // + the charge the runs take (6.19.0)
       const atStopOf = async () => { const sc = await getActiveScenarioAsync(); return sc ? potAtStop(sc, contextFor(sc, { now: todayOf() })) : null; };
-      paint(null, null, null); Promise.all([planFromAnswer().catch(() => null), planIsLocked().catch(() => null), atStopOf().catch(() => null)]).then(([fa, locked, at]) => paint(fa || null, locked, at));
+      const spOf = async () => { const sc = await getActiveScenarioAsync(); return sc ? statePensionOf(sc, contextFor(sc, { now: todayOf() })) : null; };
+      paint(null, null, null, null); Promise.all([planFromAnswer().catch(() => null), planIsLocked().catch(() => null), atStopOf().catch(() => null), spOf().catch(() => null)]).then(([fa, locked, at, sp]) => paint(fa || null, locked, at, sp));
     }
 
     // Refresh the stress sub-tab summaries from current settings (called on tab switch).
@@ -6840,7 +6852,6 @@
         const cfgSp = spSimConfigFromSettings({ spStartDate: document.getElementById('ssSpStartDate')?.value, spWeeklyAmount: wk || 1, shapeAgeNow: ageNow, currentAge: +document.getElementById('shapeAgeNow')?.dataset.currentAge || ageNow, firstTaxYear: window._ssTiming?.firstTaxYear || undefined });
         if (wk > 0 && cfgSp) sp = { annual: wk * 52, fromAge: ageNow + cfgSp.spStartYear };
         else { const sa = +document.getElementById('ssSpAnnualAmount')?.value || 0; if (sa > 0 && cfgSp) sp = { annual: sa, fromAge: ageNow + cfgSp.spStartYear }; }
-        { const n = document.getElementById('ssSpAssumedNote'); if (n) n.textContent = assumedStatePensionSettingsNote(!!sp || +document.getElementById('ssSpAnnualAmount')?.value > 0); }   // said here, where it is assumed (audit 2.5)
         const oth = +document.getElementById('ssOther')?.value || 0; if (oth > 0) other.push({ annual: oth, fromAge: 0, label: 'other income' });
         const db = +document.getElementById('ssDbAmount')?.value || 0; if (db > 0) other.push({ annual: db, fromAge: ageNow + (+document.getElementById('ssDbStartYear')?.value || 0), label: 'DB pension' });
         // Income streams (rent, part-time work…) are guaranteed-income layers for their years.
@@ -6879,9 +6890,10 @@
       if (finalVals) window._shapePrev = { key: ageNow + ':' + dur, vals: finalVals };
       const note = document.getElementById('incomeShapeNote');
       const ess = window._shapeRefs.essentials || 0; const low = ess > 0 && steps.some((st) => +st.amount < ess);
-      const first = steps[0]; const pa = +document.getElementById('ssPA')?.value || 12570, brl = +document.getElementById('ssBRL')?.value || 50270, hrl = +document.getElementById('ssHRL')?.value || 125140;
+      const first = steps[0];
       note.innerHTML = (window._shapeFlooredFrom ? '<span style="color:var(--warning);">From age ' + window._shapeFlooredFrom + ' the shape would fall below your guaranteed income (State Pension + other income), so it is held there — the pot simply supplies nothing in those years.</span> ' : '')
-        + (low ? '<span style="color:var(--warning);">A step is below your budget\'s essentials (' + gbp(ess) + '/yr gross). That is allowed, but the floor strategies will not buy less than the bills.</span> ' : '') + (first ? firstStepNoteHtml(+first.amount, { pa, brl, hrl, access: document.getElementById('ssAccessMethod')?.value }) : '') + 'Every strategy, the Stress Tester and the Decision tool read this shape. Gross, today\'s money; tax comes out of it.';
+        + (low ? '<span style="color:var(--warning);">A step is below your budget\'s essentials (' + gbp(ess) + '/yr gross). That is allowed, but the floor strategies will not buy less than the bills.</span> ' : '') + (first ? '<span id="firstStepNote"></span>' : '') + 'Every strategy, the Stress Tester and the Decision tool read this shape, in today\'s money.';
+      if (first) paintFirstStepNote();
     };
     // Turn a lump sum into income: a step at its age raised by what it supports per year, every later
     // step raised the same. The lump-sum entry stays — it is the money that pays for the new steps.
@@ -7037,7 +7049,7 @@
         }
         const w = await whereAmINow(doc);
         await paintPlanDocumentTools(document);   // no new version of a closed plan's document (6.56.0)
-        let html = planDocumentHtml(doc, { ...planDocumentRenderers(), whereAmI: whereAmIHtml(w, guardrailOf(doc, w)) + keepLineHtml(await getActiveScenarioAsStored().catch(() => null)), notice: await planNoticeHtml() });   // 7.7.0: what was kept and agreed, one line   // the closed / carried-on line (6.56.0)
+        let html = planDocumentHtml(doc, { ...planDocumentRenderers(), steps: documentStepsOf(await getActiveScenarioAsync().catch(() => null), todayOf(), doc), whereAmI: whereAmIHtml(w, guardrailOf(doc, w)) + keepLineHtml(await getActiveScenarioAsStored().catch(() => null)), notice: await planNoticeHtml() });   // 7.7.0: what was kept and agreed, one line   // the closed / carried-on line (6.56.0)
         const archive = await getActivePlanDocumentArchive();
         if (archive.length) {
           html += '<details class="card" style="margin-top:12px;"><summary class="hint" style="cursor:pointer;">Previous versions (' + archive.length + ')</summary>'
@@ -7072,7 +7084,7 @@
       const doc = window._planDocLast || await getActivePlanDocument();
       if (!doc) { showToast('No plan document yet.', 'info'); return; }
       const w = await whereAmINow(doc);
-      const html = planDocumentHtml(doc, { ...planDocumentRenderers(), whereAmI: whereAmIHtml(w, guardrailOf(doc, w)), notice: await planNoticeHtml() }).replace(/<details class="pd-section"(?! open)/g, '<details class="pd-section" open');
+      const html = planDocumentHtml(doc, { ...planDocumentRenderers(), steps: documentStepsOf(await getActiveScenarioAsync().catch(() => null), todayOf(), doc), whereAmI: whereAmIHtml(w, guardrailOf(doc, w)), notice: await planNoticeHtml() }).replace(/<details class="pd-section"(?! open)/g, '<details class="pd-section" open');
       printPortal(html);
     };
     window.renderWhereAmILine = async function () {
@@ -7481,7 +7493,7 @@
       if (paint !== window._tmPaint) return;
       summary = paintStopMonth(document, t, s, closed);   // the month box's label and warning
       if (sumT.mode === 'future' && sumT.yearsToStart > 0) summary += ' Gilt ladders are priced at today\'s real yields as a guide — the rungs are bought at retirement. The "Funds to test" list sets only the starting mix the strategy is tested on — it is not a record of what you hold (that is the Transition tab); the plan is priced on the pots at retirement.';
-      g('tmSummary').innerHTML = markWithin(String(summary).replace(/&/g, '&amp;').replace(/</g, '&lt;'), [[/(?:stop work|retire|stopped work) in ([A-Z][a-z]+ \d{4})/, 'stop.month'], [/ at \d+, (\d+ years?(?: \d+ months?)?|\d+ months?) away/, 'yearsToGo'], [/Plan runs to age (\d+)/, 'plan.endAge'], [/State Pension from (\d{4}\/\d{2})/, 'statePension.start']]);   // marked for the parity sweep (lead4.md G1)
+      g('tmSummary').innerHTML = markWithin(String(summary).replace(/&/g, '&amp;').replace(/</g, '&lt;'), [[/(?:stop work|retire|stopped work) in ([A-Z][a-z]+ \d{4})/, 'stop.month'], [/ at \d+, (\d+ years?(?: \d+ months?)?|\d+ months?) away/, 'yearsToGo'], [/Plan runs to age (\d+)/, 'plan.endAge'], [/State Pension from (\d{1,2} [A-Z][a-z]+ \d{4})/, 'statePension.start']]);   // marked for the parity sweep (lead4.md G1)
       // The first income step starts when the plan starts.
       if (Array.isArray(window._ssIncomeSteps) && window._ssIncomeSteps.length) window._ssIncomeSteps[0].fromAge = t.shapeAgeNow;
       updateDurationHint(); paintDbStart(document, window._ssTiming);   // the start age is known now: the final-salary age box and its words
@@ -7630,8 +7642,8 @@
         + '<input type="number" value="' + (st.fromAge ?? '') + '" min="40" max="100" style="width:74px;"' + (i === 0 ? ' disabled title="The first step starts when the plan starts — set above in When your plan starts"' : '') + ' data-on-input="updIncomeStep(' + i + ',\'fromAge\',this.value)">'
         + (i === 0 && window._ssTiming ? '<span class="hint">(' + taxYearLabel(window._ssTiming.firstTaxYear) + ')</span>' : '')
         + '<span class="hint">take</span>'
-        + '<input type="number" value="' + (st.amount ?? '') + '" step="1000" style="width:110px;"' + (i === 0 ? fieldAttrOf('spend.first') : '') + ' data-on-input="updIncomeStep(' + i + ',\'amount\',this.value)">'
-        + '<span class="hint">£/yr gross' + (window._shapeRefs.budgetGross && i > 0 && +st.amount > 0 ? ' — ' + Math.round(100 * +st.amount / window._shapeRefs.budgetGross) + '% of ' + (window._shapeRefs.budgetWords || 'today\'s budget') : '') + '</span>'
+        + '<input type="number" value="' + stepBoxValue(st.amount, window._planBands) + '" step="50" style="width:110px;"' + (i === 0 ? fieldAttrOf('spend.first') : '') + ' data-on-input="updIncomeStep(' + i + ',\'amount\',this.value)">'
+        + '<span class="hint">£ a month after tax' + (window._shapeRefs.budgetGross && i > 0 && +st.amount > 0 ? ' — ' + Math.round(100 * +st.amount / window._shapeRefs.budgetGross) + '% of ' + (window._shapeRefs.budgetWords || 'today\'s budget') : '') + '</span>'
         + (i > 0 ? '<button type="button" class="risk-btn" title="Remove" data-on-click="rmIncomeStep(' + i + ')">✕</button>' : '')
         + '</div>'
         // The slope within the step: a real % per year (compounding), or a straight-line glide to the
@@ -7643,7 +7655,7 @@
         + (i < steps.length - 1 ? '<label class="hint" style="display:flex;align-items:center;gap:4px;"><input type="checkbox" style="width:auto;"' + (st.glideToNext ? ' checked' : '') + ' data-on-change="updIncomeStep(' + i + ',\'glideToNext\',this.checked)">glide evenly to the next step</label>' : '')
         + '</div>').join('')
         + '<button type="button" class="risk-btn" style="margin-top:6px;padding:4px 12px;font-size:12px;" data-on-click="addIncomeStep()">+ Add a step</button>'
-        + '<p class="hint" style="margin:6px 0 0;">Each step is your TOTAL gross income for the year — State Pension, other pensions and the pot together (the picture shows the layers). One row = level for life. e.g. £60,000 until 72 → £50,000 until 80 → £40,000 after: three rows, ages 62 / 72 / 80. The slider lets a step drift down each year in today\'s money (retirement spending usually does, about 1% a year through the middle years); "glide" walks smoothly down to the next step instead of a cliff.</p>';
+        + '<p class="hint" data-example style="margin:6px 0 0;">Each step is what you want to reach your bank a month, after tax, from everything together — State Pension, other pensions and the pot (the picture shows the layers); the line below says what that takes a year before tax. One row = level for life. e.g. £3,000 a month until 72 → £2,500 until 80 → £2,000 after: three rows, ages 62 / 72 / 80. The slider lets a step drift down each year in today\'s money (retirement spending usually does, about 1% a year through the middle years); "glide" walks smoothly down to the next step instead of a cliff.</p>';
       renderIncomeShapePreview();
       refreshStrategyCosts();
     };
@@ -7668,7 +7680,31 @@
         return;
       }
       if (k === 'glideToNext') { st.glideToNext = !!v; renderIncomeSteps(); return; }
-      if (window._ssIncomeSteps[i]) { window._ssIncomeSteps[i][k] = v === '' ? '' : +v; if (i === 0 && k === 'amount') { const ssb = document.getElementById('ssBaseSalary'); if (ssb) { ssb.value = +v || 0; syncNetFromGross('ss'); } } renderIncomeShapePreview(); refreshStrategyCosts(); }
+      // (step F2) a step's box is a month after tax (the simple view's spend page asks the same): the stored step is what pays it
+      if (window._ssIncomeSteps[i]) { window._ssIncomeSteps[i][k] = k === 'amount' ? stepFromBox(window._ssIncomeSteps[i].amount, v, window._planBands) : v === '' ? '' : +v; v = window._ssIncomeSteps[i][k]; if (i === 0 && k === 'amount') { const ssb = document.getElementById('ssBaseSalary'); if (ssb) { ssb.value = +v || 0; syncNetFromGross('ss'); } } renderIncomeShapePreview(); refreshStrategyCosts(); }
+    };
+    // The line under the shape (step F2, lead4.md D6): the one reader's first step, from the plan as saved (the step boxes save
+    // at once and the save paints this again), never the boxes or default bands; only the newest paint draws.
+    window.paintFirstStepNote = async function () {
+      const paint = (window._fsnPaint = (window._fsnPaint || 0) + 1);
+      let html = '';
+      let assumed = '', spNote = '';
+      try { const sc = await getActiveScenarioAsync(); html = firstStepNoteOfPlan(sc, todayOf()); assumed = accessAssumedNoteOf(sc); spNote = spAssumedNoteOf(sc, todayOf()); } catch (e) { html = ''; }
+      if (paint !== window._fsnPaint) return;
+      const el = document.getElementById('firstStepNote');
+      if (el) el.innerHTML = html;
+      const an = document.getElementById('ssAccessAssumed'); if (an) an.textContent = assumed;   // said beside the choice, the same words as the simple view
+      const sn = document.getElementById('ssSpAssumedNote'); if (sn) sn.textContent = spNote;   // (step F2, D2) the assumed State Pension, said where it is entered, in the simple view's words
+    };
+    window.openAccessMethod = function () {
+      const el = document.getElementById('ssAccessMethod'); const sec = el && el.closest('.settings-section');
+      if (sec) { const d = sec.closest('details'); if (d) d.open = true; sec.scrollIntoView({ block: 'center' }); }
+      return false;
+    };
+    window.spKindChosen = function () {
+      const k = document.getElementById('ssSpKind')?.value, wk = document.getElementById('ssSpWeeklyAmount');
+      if (wk && k === 'full') wk.value = FULL_SP_WEEKLY; else if (wk && k === 'none') wk.value = '';
+      callIfDefined('renderIncomeShapePreview');
     };
     window.rmIncomeStep = function (i) { window._ssIncomeSteps.splice(i, 1); renderIncomeSteps(); };
 
@@ -9383,6 +9419,7 @@
     window.setAccessMethod = function (p, v) {
       const el = document.getElementById(p + 'AccessMethod');
       if (el) el.value = v;
+      if (p === 'ss') { const an = document.getElementById('ssAccessAssumed'); if (an) an.textContent = ''; }   // chosen now
       syncAccessButtons(p);
     };
     window.syncAccessButtons = function (p) {
@@ -9488,7 +9525,7 @@
       document.getElementById('ssBRL').value = s.brl;
       document.getElementById('ssHRL').value = s.hrl;
       document.getElementById('ssTaxMode').value = s.taxMode || 'inflates';
-      document.getElementById('ssOther').value = s.other || 0;
+      document.getElementById('ssOther').value = +s.other > 0 ? s.other : '';   // (step F2) nothing other is an empty box, as the simple view shows it
       document.getElementById('ssDbAmount').value = s.dbAmount || 0;
       setDbStartFields(document, s, null);   // the year the engines read; the age box waits for this plan's timing (loadTimingUI below)
       document.getElementById('ssDbIndexation').value = s.dbIndexation || 'lpi5';
@@ -9500,6 +9537,7 @@
       // State Pension (new fields)
       document.getElementById('ssSpStartDate').value = s.spStartDate || '';
       document.getElementById('ssSpWeeklyAmount').value = s.spWeeklyAmount || '';
+      { const k = document.getElementById('ssSpKind'); if (k) k.value = spKindOfSettings(s); }   // (step F2) full / forecast / none / assumed, as the simple view reads it
       { const v = protectionBoxValues(s);   // the cuts and the reserve as the simple view's boxes read them: a 0 held is 0 (src/ui/stressProtectionBoxes.js)
         for (const id of ['ssConsecutiveLimit', 'ssProtectionMult', 'ssRecoveryBuffer', 'ssProtEscalate', 'ssHodlValue']) { const e = document.getElementById(id); if (e) e.value = v[id]; }
         document.getElementById('ssDisableProtection').checked = v.ssDisableProtection;
@@ -9508,7 +9546,8 @@
       document.getElementById('ssIsaBalance').value = s.isaBalance || 0;
       { const p = document.getElementById('ssIsaPolicy'); if (p) p.value = s.isaDrawdownStrategy || 'minimiseEarlyTax'; }
       loadGiaFields('ss', s);
-      document.getElementById('ssAccessMethod').value = s.accessMethod || 'drawdown';
+      window._planBands = planBandsOf(s);   // the plan's own bands: the step boxes are a month after tax on them (step F2)
+      document.getElementById('ssAccessMethod').value = s.accessMethod || 'drawdown';   // the effective settings carry the one default rule (src/reading/access.js)
       document.getElementById('ssUfplsYears').value = s.ufplsYears || '';
       document.getElementById('ssUfplsPcls').checked = !!s.ufplsThenPcls;
       document.getElementById('ssBandFillRecycle').checked = !!s.bandFillRecycle;
@@ -9584,7 +9623,7 @@
         extraWithdrawals: (window._ssExtraWithdrawals || []).filter((r) => r.amount > 0 && r.year != null),
         // State Pension (new fields)
         spStartDate: document.getElementById('ssSpStartDate').value.trim() || null,
-        spWeeklyAmount: +document.getElementById('ssSpWeeklyAmount').value || 0,
+        ...spKindForSave(document.getElementById('ssSpKind')?.value, document.getElementById('ssSpWeeklyAmount').value, _curSS),   // (step F2) the State Pension as the simple view writes it: none is none
         ...protectionFromBoxes((id) => document.getElementById(id)?.value),   // a box holding 0 is 0; an empty box is no value, never a default (src/ui/stressProtectionBoxes.js)
         disableProtection: document.getElementById('ssDisableProtection').checked,
         hodlEnabled: document.getElementById('ssHodlEnabled').checked,
@@ -11377,7 +11416,7 @@
             <td${cellAttr(row.year, 'year')}>${row.year}</td>
             <td${cellAttr(row.year, 'pension')} style="color: var(--primary); font-weight: 600;">${formatCurrency(row.sippDraw)}</td>
             <td${cellAttr(row.year, 'state')}>${formatCurrency(row.statePension)}</td>
-            <td${cellAttr(row.year, 'tax')} style="color: var(--danger);">-${formatCurrency(row.tax)}</td>
+            <td${cellAttr(row.year, 'tax')} style="color: var(--danger);">${fmtMoney(row.tax)}</td>
             <td${cellAttr(row.year, 'net')}>${formatCurrency(row.netIncome)}</td>
             <td${cellAttr(row.year, 'isa')} style="color: var(--info);">${formatCurrency(row.isaDraw)}</td>
             <td${cellAttr(row.year, 'spendable')} style="color: var(--success); font-weight: 600;">${formatCurrency(row.spendable)}</td>

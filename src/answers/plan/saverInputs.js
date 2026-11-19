@@ -50,6 +50,7 @@
  * lands a month) and a pause still running (nothing going in now) — checkInPayIn turns it into B's pay-in. The check-in's
  * verdict is this same test on its figures: no second model.
  */
+import { accessOf } from '../../reading/access.js';
 import { SCHEMA_B } from '../b/schema.js';
 import { checkInputs, draftTextOf } from '../shared/validate.js';
 import { fullStatePensionYearly, SAVING, LEVEL_DEFAULT } from '../shared/rules.js';
@@ -255,7 +256,11 @@ export function saverInputsOf(plan, { today, checkIn = null, plans = [] } = {}) 
   };
   // how the tax is added back, so what leaves take-home pay is said exactly (7.12.0): the plan's own scheme, with its pay
   const scheme = hasSavingSettings(plan) ? { kind: facts.payIn.scheme, salary: facts.payIn.salary } : null;
-  let env = { mix: mixes.drawing, savingMix: mixes.saving, ...(scheme ? { scheme } : {}) };
+  // how the tax-free part is taken (step F2, lead4.md D6; src/reading/access.js): the plan's one field, so the verdict and the
+  // plan's own test count the same tax — every pound taxed is "already had the tax-free part" to question B
+  const everyPoundTaxed = accessOf(plan).method === 'drawdown';
+  const taxEnv = everyPoundTaxed ? { taxFreeTaken: true } : {};
+  let env = { mix: mixes.drawing, savingMix: mixes.saving, ...(scheme ? { scheme } : {}), ...taxEnv };
   const from = {};
 
   // The answer the plan was kept from, group by group, while the plan still holds what keeping it wrote (the round trip).
@@ -280,7 +285,7 @@ export function saverInputsOf(plan, { today, checkIn = null, plans = [] } = {}) 
     // the mix: the answer's levels while the plan still holds the mixes it was kept with — but a saving level the person
     // chose since (phases.saving.strategy.level, savingPathMixes `fromLevel`) is the saving years' level, as the check-in's
     // path and the lock's path read it: one mix for the path and the verdict
-    if (noHoldings && S(['equityMin', 'bondMin', 'cashTarget']) && A(['savingMix'])) { inputs.risk = b.risk; inputs.savingRisk = mixes.fromLevel || b.savingRisk; env = scheme ? { scheme } : {}; from.mix = true; }
+    if (noHoldings && S(['equityMin', 'bondMin', 'cashTarget']) && A(['savingMix'])) { inputs.risk = b.risk; inputs.savingRisk = mixes.fromLevel || b.savingRisk; env = { ...(scheme ? { scheme } : {}), ...taxEnv }; from.mix = true; }
     if (noRecords && noHoldings && S(['isaBalance']) && A(['isaMonthly'])) { inputs.savings = b.savings; inputs.savingsIn = b.savingsIn; from.savings = true; }
     if (S(['chargesPct'])) inputs.charge = b.charge;
     if (S(['isaGrowth'])) { if (b.isaGrowth !== undefined) inputs.isaGrowth = b.isaGrowth; else delete inputs.isaGrowth; }
@@ -346,7 +351,8 @@ export function saverDraftOf(plan, { today, plans = [] } = {}) {
   const read = saverInputsOf(plan, { today, plans });
   if (!read.ok) return { ok: false, why: read.why };
   const exactMix = !read.env || !read.env.mix;
-  const mixes = exactMix ? null : { risk: read.inputs.risk, savingRisk: read.inputs.savingRisk, mix: read.env.mix, savingMix: read.env.savingMix || read.env.mix };
+  // (step F2) a plan that takes every pound taxed carries that too, so B opened from it counts the plan's own tax
+  const mixes = exactMix ? null : { risk: read.inputs.risk, savingRisk: read.inputs.savingRisk, mix: read.env.mix, savingMix: read.env.savingMix || read.env.mix, ...(read.env.taxFreeTaken ? { taxFreeTaken: true } : {}) };
   // (a plan's part in pounds is what lands: with no way said, B reads it so — payIn.js — and the line under the boxes says it)
   return { ok: true, values: draftTextOf(SCHEMA_B, read.inputs), exactMix, mixes };
 }

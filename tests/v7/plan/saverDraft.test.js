@@ -231,7 +231,7 @@ describe('a saver\'s plan whose mixes are not a level\'s: B opened from its rail
     expect(planMixOf(changed, 'b')).toBe(null);
     expect(currentKey(changed, 'b')).not.toBe(currentKey(s, 'b'));
     const back = reduce(changed, { type: A.DRAFT_SET, q: 'b', path: 'risk', value: pm.risk });
-    expect(planMixOf(back, 'b')).toEqual({ mix: pm.mix, savingMix: pm.savingMix });
+    expect(planMixOf(back, 'b')).toEqual({ mix: pm.mix, savingMix: pm.savingMix, ...(pm.taxFreeTaken ? { taxFreeTaken: true } : {}) });   // (step F2) with the plan's access method
     expect(currentKey(back, 'b')).toBe(currentKey(s, 'b'));
     expect(reduce(s, { type: A.DRAFT_RESET, q: 'b' }).draft.b.planMix).toBeUndefined();
   });

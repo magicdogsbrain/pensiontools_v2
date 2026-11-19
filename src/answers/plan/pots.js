@@ -33,6 +33,7 @@ import { POTS_FIELDS, POTS_WRITES } from './schema.js';
 import { dateOf, dayWords } from './dates.js';
 import { partnersOf } from '../../services/HouseholdLink.js';
 import { shownPlanNameOn } from '../../services/PlanName.js';
+import { DEFAULT_ACCESS_METHOD, ACCESS_METHODS } from '../../reading/access.js';
 
 export { applyPatch };
 
@@ -73,7 +74,7 @@ const ABSENT_READS = Object.freeze({
   'stressTool.settings.brl': TAX_DEFAULTS.BASIC_RATE_LIMIT,
   'stressTool.settings.hrl': TAX_DEFAULTS.HIGHER_RATE_LIMIT,
   'stressTool.settings.taxMode': 'inflates',
-  'stressTool.settings.accessMethod': 'drawdown',
+  'stressTool.settings.accessMethod': DEFAULT_ACCESS_METHOD,   // the one default rule (src/reading/access.js)
   'stressTool.settings.ufplsYears': null,
   'stressTool.settings.ufplsThenPcls': false,
   'stressTool.settings.bandFillRecycle': false
@@ -345,6 +346,8 @@ export function derivedLines(v, s) {
   lines.push({ id: 'tax.bands', slots: { pa: pounds(v.pa), brl: pounds(v.brl), hrl: pounds(v.hrl), mode: v.taxMode } });
   if (v.taxFree === 'ufpls') lines.push({ id: 'tax.free.ufpls', slots: { years: v.ufplsYears != null ? String(v.ufplsYears) : '', then: v.ufplsThenIsa } });
   else lines.push({ id: 'tax.free.drawdown', slots: {} });
+  // (step F2, lead4.md D6) nothing chosen: the one default rule, said as an assumption in the full view's words too
+  if (!s.locked && !ACCESS_METHODS.includes(s.stored && s.stored.accessMethod) && v.taxFree === s.ss.accessMethod) lines.push({ id: 'tax.free.assumed', slots: {} });
   if (v.bandFill === 'yes') lines.push({ id: 'tax.bandFill', slots: {} });
   lines.push({ id: 'tax.saves', slots: {} });
   return lines;

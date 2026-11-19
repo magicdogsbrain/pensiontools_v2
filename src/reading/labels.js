@@ -65,7 +65,7 @@ export const LABELS = Object.freeze({
   [FACT.SP_WEEK]: { label: 'State Pension', basis: 'a week' },
   [FACT.SP_YEAR]: { label: 'State Pension', basis: 'a year' },
   [FACT.SP_AGE]: { label: 'State Pension from age', basis: 'an age' },
-  [FACT.SP_START]: { label: 'State Pension from', basis: 'a tax year' },
+  [FACT.SP_START]: { label: 'State Pension from', basis: 'a day' },   // the person's own date (step F2)
   [FACT.DB_AMOUNT]: { label: 'Final-salary pension', basis: 'a year' },
   [FACT.DB_AGE]: { label: 'Final-salary pension from age', basis: 'an age' },
   [FACT.LUMP_AMOUNT]: { label: 'Lump sum', basis: TODAY },

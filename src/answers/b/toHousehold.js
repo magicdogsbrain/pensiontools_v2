@@ -68,7 +68,10 @@ export function toHousehold(inputs, env, stopAge) {
   const S = askedAbout(inputs) === 'partner' ? stops.partner : stops.you;
   const shares = savingsInShares(inputs.savingsIn || 0, stops, couple);
   const stopWork = stopWorksOf(inputs, stops);
-  const people = [person('you', inputs.you, stopWork[0], shares[0])];
+  // a kept plan that takes every pound taxed (env.taxFreeTaken, its access method: answers/plan/saverInputs.js) is read as
+  // "already had the tax-free part", whatever the boxes asked (step F2, lead4.md D6)
+  const you = env && env.taxFreeTaken === true ? { ...inputs.you, taxFreeTaken: true } : inputs.you;
+  const people = [person('you', you, stopWork[0], shares[0])];
   if (couple) people.push(person('partner', inputs.partner, stopWork[1], shares[1]));
   const spending = inputs.spend.kind === 'level'
     ? { kind: 'lifestyle', level: inputs.spend.level }

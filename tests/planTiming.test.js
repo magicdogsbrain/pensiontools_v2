@@ -240,10 +240,10 @@ describe('describeTiming', () => {
     const text = describeTiming(deriveTiming(s, NOW), s, NOW);
     expect(text).toContain('Plan starts 6 April 2027 (tax year 2027/28), in 7 months.');
     expect(text).toContain('Income steps start at age 64.');
-    expect(text).toContain('State Pension from 2030/31 (plan year 3).');
+    expect(text).toMatch(/State Pension from \d{1,2} [A-Z][a-z]+ \d{4} \(tax year 2030\/31, plan year 3\)\./);
     expect(text).toContain('Plan runs to age 94.');
     // with nothing saved (7.4.0): this tax year
     const n = migrateTiming(alex, null, NOW);
-    expect(describeTiming(deriveTiming(n, NOW), n, NOW)).toContain('State Pension from 2030/31 (plan year 4).');
+    expect(describeTiming(deriveTiming(n, NOW), n, NOW)).toMatch(/State Pension from \d{1,2} [A-Z][a-z]+ \d{4} \(tax year 2030\/31, plan year 4\)\./);
   });
 });

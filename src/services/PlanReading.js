@@ -40,6 +40,7 @@ import { potsAtStopOf } from './PotsAtStop.js';
 import { planHasFigures } from './PlanFigures.js';
 import { isaTodayOf, pensionTodayOf } from './PensionToday.js';
 import { sippTodayOf } from './PotsAtRetirement.js';
+import { accessMethodOf } from '../reading/access.js';
 
 /**
  * Default stress database structure.
@@ -176,6 +177,11 @@ export function storedStressSettings(scenario) {
  */
 export function effectiveStressSettings(scenario, { now = new Date(), env = {} } = {}) {
   let out = migratedStressSettings(scenario, now);
+  // how the tax-free part is taken (lead4.md D6; src/reading/access.js): the plan's choice, else the one default rule — the
+  // same for every route, whichever door made the plan
+  const storedSs = scenario && scenario.stressTool && scenario.stressTool.settings && typeof scenario.stressTool.settings === 'object' ? scenario.stressTool.settings : {};
+  // (a locked plan with nothing stored keeps reading what it was locked on: the key is left as it is)
+  if (!isLockedScenario(scenario)) out = { ...out, accessMethod: accessMethodOf(storedSs) };
   // A retired draft saved with a later start than it should have (7.4.0, PlanMove.laterDraftOf) is read from the tax year
   // work stopped, or this one, every figure counted from year 0 keeping its age and tax year: written only by its next Save.
   const later = laterDraftOf(scenario, out, now);

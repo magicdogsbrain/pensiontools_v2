@@ -470,7 +470,8 @@ export function describeTiming(t, settings, now = new Date()) {
   if (access) parts.push(access);
   if (s.spStartDate) {
     const sp = parseStatePensionDate(s.spStartDate);
-    if (sp) { const y = taxYearStartOf(sp) - t.firstTaxYear; parts.push('State Pension from ' + taxYearLabel(taxYearStartOf(sp)) + (y >= 0 ? ' (plan year ' + y + ')' : started ? ' (already paid when the plan started)' : t.mode === 'future' ? ' (before you stop work)' : ' (already being paid when the plan starts)') + '.'); }
+    // (step F2) the person's own date, in the words every place says it (src/reading/statePension.js spDayWords), then its tax year
+    if (sp) { const y = taxYearStartOf(sp) - t.firstTaxYear; parts.push('State Pension from ' + sp.getDate() + ' ' + MONTH_NAMES[sp.getMonth()] + ' ' + sp.getFullYear() + ' (tax year ' + taxYearLabel(taxYearStartOf(sp)) + (y >= 0 ? ', plan year ' + y + ')' : started ? '; already paid when the plan started)' : t.mode === 'future' ? '; before you stop work)' : '; already being paid when the plan starts)') + '.'); }
   }
   if (+s.duration > 0) parts.push('Plan runs to age ' + planToAgeOf(t.shapeAgeNow, +s.duration) + '.');   // the one end age (AgeConvention.planToAgeOf)
   return parts.join(' ');

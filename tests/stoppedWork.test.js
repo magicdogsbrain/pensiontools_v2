@@ -327,7 +327,7 @@ describe('the Timing block\'s words for a plan that has started say what is past
     const t = words(sam);
     expect(t).toContain('Plan started 6 April 2023 (tax year 2023/24); today is plan year 3 of 30.');
     expect(t).toContain('Income steps started at age 67.');
-    expect(t).toContain('State Pension from 2022/23 (already paid when the plan started).');
+    expect(t).toMatch(/State Pension from \d{1,2} [A-Z][a-z]+ \d{4} \(tax year 2022\/23; already paid when the plan started\)\./);
     expect(t).not.toContain('before the plan starts');
   });
   it('a stop to come said by its month reads "You stop work"; one said by an age alone reads as it always has', () => {
@@ -339,7 +339,7 @@ describe('the Timing block\'s words for a plan that has started say what is past
     const later = { currentAge: 70, currentAgeAsOf: '2026-09-30', retired: true, firstTaxYear: 2027, spStartDate: '2022-05-10', duration: 25 };
     const t = words(later);
     expect(t).toContain('Income steps start at age 71.');
-    expect(t).toContain('State Pension from 2022/23 (already being paid when the plan starts).');   // 7.3.3
+    expect(t).toMatch(/State Pension from \d{1,2} [A-Z][a-z]+ \d{4} \(tax year 2022\/23; already being paid when the plan starts\)\./);   // 7.3.3
   });
   it('stopped before the pension can be drawn: the age it can be, and the tax year to choose (55 before 6 April 2028, else 57)', () => {
     // research/plan-start.md §8, "stopping before 55 (57 from April 2028) and bridging on savings"

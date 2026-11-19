@@ -33,9 +33,9 @@ import { monthsWanted } from '../../services/DrawCadence.js';
 import { defaultSpYear } from '../../services/IncomeSchedule.js';
 import { taskKeyOf, isPutOff } from './tasks.js';
 import { optionsFor } from './options.js';
-import { answerAge, bandsOf, netOf, safeTiming } from './about.js';
-import { stepLines, guaranteedAtYear } from './spend.js';
-import { takenOfTarget } from '../../services/BeforeTax.js';
+import { answerAge, safeTiming } from './about.js';
+import { incomeStepsOf } from '../../reading/income.js';
+import { spDayOf, spDayWords } from '../../reading/statePension.js';
 import { isBought } from './pots.js';
 import { WAY_DIALS } from './schema.js';
 import { savedLasts } from './lasts.js';
@@ -508,21 +508,6 @@ function whereStep(C) {
 }
 
 /** The income steps as the plan has them: the document's (locked), else the effective settings'. */
-function incomeSteps(plan, ss, locked, now) {
-  if (locked && plan.planDocument && Array.isArray(plan.planDocument.steps) && plan.planDocument.steps.length) return plan.planDocument.steps.map((s) => ({ fromAge: +s.fromAge, amount: r0(s.amount), taxYear: s.taxYear || null, decline: +s.decline || 0, glideToNext: !!s.glideToNext }));
-  const ageNow = num(ss.shapeAgeNow) || null;
-  if (ss.incomeShape === 'phases' && Array.isArray(ss.incomeSteps) && ss.incomeSteps.length) {
-    // read as the Spend page reads them (7.12.0, spend.js stepLines): from the plan's own start, so a stop moved later moves
-    // the first step with it; nothing is written
-    const from = num(safeTiming(ss, now).shapeAgeNow) || ageNow;
-    const shown = from ? stepLines(ss.incomeSteps, from, num(ss.duration) || 1, bandsOf(ss)) : [];
-    if (shown.length) return shown.map((st) => ({ fromAge: st.fromAge, amount: r0(st.yearly), taxYear: null, decline: st.then === 'falls' ? +st.fallsPct || 0 : 0, glideToNext: st.then === 'glides' }));
-    return ss.incomeSteps.filter((s) => s && num(s.amount) != null).map((s) => ({ fromAge: +s.fromAge, amount: r0(s.amount), taxYear: null, decline: +s.decline || 0, glideToNext: !!s.glideToNext }));
-  }
-  const first = Array.isArray(ss.targetSchedule) && ss.targetSchedule.length ? r0(ss.targetSchedule[0]) : r0(ss.baseSalary);
-  return ageNow ? [{ fromAge: ageNow, amount: first, taxYear: null, decline: 0, glideToNext: false }] : [{ fromAge: null, amount: first, taxYear: null, decline: 0, glideToNext: false }];
-}
-
 /**
  * "Pots when you stop" (step F1, lead4.md D4): the one model (src/reading/atStop.js) — worked out from your pot and what goes
  * in, the middling case — or the figure the plan was locked with; to the nearest £1,000 either way.
@@ -560,30 +545,25 @@ function planStep(C) {
   const figures = {};
   const lines = [];
   const notes = [];
-  const steps = incomeSteps(plan, ss, locked, now);
+  // (step F2, lead4.md D6) the income steps through the one reader (src/reading/income.js): for each step what is TAKEN a
+  // year before tax (a quarter of each payment tax-free when the plan takes it so; the income that comes in anyway that year
+  // taken as it is) and what reaches the bank a month, on the plan's own bands (a locked plan's document's)
+  const read = incomeStepsOf(plan, { now, settings: ss });
+  const steps = read.steps.map((st) => ({ ...st, amount: st.stored }));
   const first = steps[0] || null;
   const src = locked ? sourceOf('locked', lockedAt, now) : sourceOf('saved', null, now);
   const timing = doc && doc.timing ? doc.timing : null;
   const startMonth = (timing && timing.startMonth) || stage.startMonth || null;
   const firstTaxYear = (timing && timing.firstTaxYear) || stage.firstTaxYear || null;
   const ladder = isLadderPlan(plan, ss);
-  // (7.12.0) "a year before tax" is what is taken (services/BeforeTax.js): a quarter of each payment tax-free counted, and
-  // the income that comes in anyway at that age taken as it is — the figure the months and the Decision tool take
-  const docSp = locked && doc && doc.layers && doc.layers.sp && num(doc.layers.sp.annual) > 0 ? doc.layers.sp : null;
-  const aNow = timing && num(timing.shapeAgeNow) != null ? timing.shapeAgeNow : num(ss.shapeAgeNow);
-  const takenAt = (amount, fromAge) => {
-    let fixed = 0;
-    try { fixed = docSp ? (fromAge != null && num(docSp.fromAge) != null && fromAge >= docSp.fromAge ? +docSp.annual : 0) : (aNow != null && fromAge != null && timing ? guaranteedAtYear(ss, timing, aNow, Math.max(0, fromAge - aNow), now) : 0); } catch { fixed = 0; }
-    return takenOfTarget(amount, ss, { fixed, bands: bandsOf(ss) });
-  };
+  if (first) figures.yearly = first.beforeTax;
   // the one-line result
   let result;
-  if (first) figures.yearly = takenAt(first.amount, first.fromAge);
   if (locked && first) {
     result = stage.timingMode === 'future'
       // (7.12.0) someone still saving reads what they will spend, a month after tax, as they set it: never a drawing year's
       // figure before tax ahead of the stop
-      ? sentence('plan.lockedSaver', [money('monthlyNet'), ' a month after tax from ' + (monthWords(startMonth) || taxYearLabel(firstTaxYear)) + ' (tax year ' + taxYearLabel(firstTaxYear) + ')'], Object.assign(figures, { monthlyNet: Math.round(netOf(first.amount, bandsOf(ss)) / 12) }))
+      ? sentence('plan.lockedSaver', [money('monthlyNet'), ' a month after tax from ' + (monthWords(startMonth) || taxYearLabel(firstTaxYear)) + ' (tax year ' + taxYearLabel(firstTaxYear) + ')'], Object.assign(figures, { monthlyNet: first.monthAfterTax }))
       // the first month it paid, never April by assumption (7.12.0); a ladder's own first year from the document (6.51.0)
       : sentence(ladder ? 'plan.lockedLadder' : 'plan.lockedPlan', [money('yearly'), paysFromWords(firstPaymentMonth(plan, { now, settings: ss }).month, firstTaxYear, ladder ? lockedLadderOf(plan, ss) : null, ladder)], figures);
   } else if (stage.timingMode === 'future' && num(ss.retireAge)) {
@@ -600,9 +580,8 @@ function planStep(C) {
   // whether it is assumed, the bad case (the worst 1 in 10, from the document's own verdict) and the rules for cutting
   // income (the settings the lock froze, or "no cuts" for a bought strategy). The document only, never a live run.
   if (locked && doc) {
-    const bands = bandsOf(doc.assumptions && num(doc.assumptions.pa) != null ? { pa: doc.assumptions.pa, brl: doc.assumptions.brl, hrl: doc.assumptions.hrl } : ss);
     steps.forEach((st, i) => {
-      figures['saysGross' + i] = takenAt(st.amount, st.fromAge); figures['saysNet' + i] = Math.round(netOf(st.amount, bands) / 12);
+      figures['saysGross' + i] = st.beforeTax; figures['saysNet' + i] = st.monthAfterTax;
       const parts = [];
       if (st.fromAge != null) { figures['saysAge' + i] = st.fromAge; parts.push('From age ', age('saysAge' + i), ': '); }
       parts.push(money('saysGross' + i), ' a year before tax, ', money('saysNet' + i), ' a month after tax');
@@ -662,7 +641,7 @@ function planStep(C) {
   // What the plan pays
   const pays = [];
   steps.forEach((s, i) => {
-    figures['step' + i] = takenAt(s.amount, s.fromAge);
+    figures['step' + i] = s.beforeTax;
     const parts = [];
     if (s.fromAge != null) { figures['stepAge' + i] = s.fromAge; parts.push('From age ', age('stepAge' + i), ': '); }
     parts.push(money('step' + i), ' a year before tax');
@@ -671,6 +650,7 @@ function planStep(C) {
     else if (s.glideToNext && i < steps.length - 1) parts.push(', sloping to the next step');
     pays.push(line('pays.step', parts, figures, src));
   });
+  if (!steps.length) pays.push(line('pays.notSet', [], figures, src));
   if (locked) notes.push({ id: 'prices', slots: { month: monthWords(lockedAt) || dayWords(lockedAt) } });
   else notes.push({ id: 'pricesToday', slots: {} });
 
@@ -703,7 +683,7 @@ function planStep(C) {
   const income = [];
   const spWeekly = locked && doc && doc.assumptions ? num(doc.assumptions.spWeeklyAmount) : num(ss.spWeeklyAmount);
   const spDate = locked && doc && doc.assumptions ? doc.assumptions.spStartDate : ss.spStartDate;
-  if (spWeekly > 0) { figures.spWeekly = r0(spWeekly); income.push(line('pots.statePension', [money('spWeekly'), ' a week'], figures, src, { from: spDate ? (/^\d{4}-\d{2}-\d{2}$/.test(String(spDate)) ? dayWords(spDate) : String(spDate)) : '' })); }   // (a start date kept from an answer as a date is said in words)
+  if (spWeekly > 0) { figures.spWeekly = r0(spWeekly); income.push(line('pots.statePension', [money('spWeekly'), ' a week'], figures, src, { from: spDate ? (spDayWords(spDayOf(spDate)) || String(spDate)) : '' })); }   // (step F2) the date in the one form of words both views use (src/reading/statePension.js)
   else if (num(ss.statePension) > 0) {
     // (7.12.0) the plan year the runs start it in (IncomeSchedule.defaultSpYear: the stored 12 is the old default, read as age
     // 67), never the first tax year plus the stored 12 — which put it five years late for someone stopping at 60

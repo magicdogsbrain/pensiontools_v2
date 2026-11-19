@@ -9,7 +9,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { JSDOM } from 'jsdom';
-import { strategyCount, strategyCountWord, paintStrategyCounts, assumedStatePensionWords, assumedStatePensionAlertHtml, assumedStatePensionTag, assumedStatePensionSettingsNote, NEW_DOCUMENT_VERSION_LABEL, newDocumentVersionQuestion, lockFromStressQuestion } from '../src/ui/plannerWords.js';
+import { strategyCount, strategyCountWord, paintStrategyCounts, assumedStatePensionWords, assumedStatePensionAlertHtml, assumedStatePensionTag, NEW_DOCUMENT_VERSION_LABEL, newDocumentVersionQuestion, lockFromStressQuestion } from '../src/ui/plannerWords.js';
 import { listStrategies } from '../src/strategies/registry.js';
 import { planFromSettings } from '../src/strategies/stressTest.js';
 import { createSimulationConfigFromSettings } from '../src/storage/StressRepository.js';
@@ -63,10 +63,9 @@ describe('the State Pension the plan assumes when none was entered', () => {
     expect(assumedStatePensionWords(null)).toBe('');
   });
   it('the Settings page says it under the boxes when nothing is entered', () => {
-    expect(assumedStatePensionSettingsNote(false)).toContain('every run assumes £12,000 a year from age 67');
-    expect(assumedStatePensionSettingsNote(true)).toBe('');
+    // (step F2) the words are the reading's (src/reading/statePension.js spAssumedWords), painted from the plan
     expect(html).toContain('id="ssSpAssumedNote"');
-    expect(html).toContain('assumedStatePensionSettingsNote(');
+    expect(html).toContain('spAssumedNoteOf(sc, todayOf())');
   });
   it('the order sheet is told the plan, on both pages that draw it, and marks the "+ SP" cells', () => {
     expect(html).toContain("let h = assumedStatePensionAlertHtml(opts.p) + '<div class=\"alert alert-warning\"");

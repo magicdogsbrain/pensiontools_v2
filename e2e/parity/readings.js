@@ -9,6 +9,8 @@ import { pensionToday, isaToday } from '../../src/reading/money.js';
 import { potAtStop } from '../../src/reading/atStop.js';
 import { ageToday, yearsToGo, stage, planName } from '../../src/reading/timing.js';
 import { formatFact } from '../../src/reading/format.js';
+import { incomeStepsOf } from '../../src/reading/income.js';
+import { statePensionOf } from '../../src/reading/statePension.js';
 
 /** [{ fact, want }] for a plan on the day both views run on. */
 export function readingsFor(raw, { now }) {
@@ -26,5 +28,8 @@ export function readingsFor(raw, { now }) {
   put('age.today', ageToday(plan, ctx));
   put('yearsToGo', yearsToGo(plan, ctx));
   put('stage', stage(plan, ctx));
+  // step F2: each income step's two figures, and the State Pension's start (the person's own day)
+  try { incomeStepsOf(plan, ctx).steps.forEach((st, i) => { put('income.step.' + i + '.beforeTax', st.beforeTax); put('income.step.' + i + '.monthAfterTax', st.monthAfterTax); }); } catch { /* no steps */ }
+  try { const sp = statePensionOf(plan, ctx); if (sp.startWords) put('statePension.start', sp.startWords); } catch { /* none */ }
   return out;
 }

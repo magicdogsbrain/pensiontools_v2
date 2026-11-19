@@ -53,7 +53,7 @@ export const FIELDS = Object.freeze([
   F('pots.boughtSipp', S + 'strategyParams.sippTotal', null, ['miniSipp', 'stratSipp', 'stratSippFf']),
   F('pots.boughtIsa', S + 'strategyParams.isaTotal', null, ['miniIsa', 'stratIsa', 'stratIsaFf']),
   // Money that comes in anyway (1c)
-  F('income.spKind', S + 'spWeeklyAmount…', ['income', 'spKind'], null),
+  F('income.spKind', S + 'spWeeklyAmount…', ['income', 'spKind'], ['ssSpKind']),   // (step F2) both views ask it
   F('income.spWeekly', S + 'spWeeklyAmount', ['income', 'spWeekly'], ['ssSpWeeklyAmount']),
   F('income.spDate', S + 'spStartDate', ['income', 'spDate'], ['ssSpStartDate']),
   F('income.other', S + 'other', ['income', 'other'], ['ssOther']),

@@ -22,31 +22,33 @@ describe('Stress tester → Settings, in the order a first visit needs', () => {
   it('opens on the income strategy block (age today and income), then the pot, the State Pension and other income', () => {
     const card = doc.getElementById('stress-stresssettings').querySelector('.card');
     const shown = [...card.children].filter((c) => c.classList.contains('settings-section') && c.style.display !== 'none');
-    expect(shown.map(title).map((t) => t.split(' — ')[0].split(' (')[0])).toEqual(['Income strategy', 'Your allocation', 'State Pension', 'Other income', 'More detail']);
+    // (step F2) how the tax-free part is taken is asked in the open, after the State Pension
+    expect(shown.map(title).map((t) => t.split(' — ')[0].split(' (')[0])).toEqual(['Income strategy', 'Your allocation', 'State Pension', 'How you\'ll take this pension', 'Other income', 'More detail']);
     const strategy = shown[0];
     expect(strategy.querySelector('#tmAge')).not.toBeNull();            // age today
     expect(strategy.querySelector('#incomeStepsEditor')).not.toBeNull(); // what you want a year
     expect(shown[1].querySelector('#ssPot')).not.toBeNull();             // the pot
   });
 
-  it('UFPLS, the Money Purchase Annual Allowance and bed-and-ISA are only under the closed "More detail"', () => {
+  it('bed-and-ISA, a taxable account, the thresholds, cuts and the reserve are under the closed "More detail"; the tax-free choice is in the open (step F2)', () => {
     const more = doc.getElementById('ssMoreDetail');
     expect(more.tagName).toBe('DETAILS');
     expect(more.open).toBe(false);
     expect(more.querySelector('summary').textContent).toBe('More detail');
-    for (const sel of ['[data-access="ufpls"]', '#ssUfplsYears', '#ssBandFillRecycle', '#ssBedAndIsa', '#ssTaxableStart', '#ssPA', '#ssConsecutiveLimit', '#ssHodlEnabled']) {
+    for (const sel of ['#ssBedAndIsa', '#ssTaxableStart', '#ssPA', '#ssConsecutiveLimit', '#ssHodlEnabled']) {
       expect(more.querySelector(sel), sel).not.toBeNull();
     }
+    for (const sel of ['[data-access="ufpls"]', '#ssAccessMethod', '#ssAccessAssumed']) expect(more.querySelector(sel), sel).toBeNull();
     const card = doc.getElementById('stress-stresssettings').querySelector('.card');
     const outside = [...card.children].filter((c) => c !== more).map((c) => c.textContent).join(' ');
-    expect(outside).not.toMatch(/UFPLS|Money Purchase Annual Allowance|bed-and-ISA/);
+    expect(outside).not.toMatch(/bed-and-ISA/);
   });
 
   it('the Decision tool\'s own settings stay where they are', () => {
     const ss = doc.getElementById('stress-stresssettings');
     expect(ss.querySelector('[data-on-click="setAccessMethod(\'ds\',\'ufpls\')"]')).toBeNull();
     expect(ss.querySelector('#dsTaxableBlock, #dsPA, #dsBedAndIsa')).toBeNull();
-    expect(doc.getElementById('ssMoreDetail').querySelector('[data-on-click="setAccessMethod(\'ss\',\'ufpls\')"]')).not.toBeNull();
+    expect(ss.querySelector('[data-on-click="setAccessMethod(\'ss\',\'ufpls\')"]')).not.toBeNull();
   });
 
   it('every box keeps its id, once', () => {

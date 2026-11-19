@@ -13,6 +13,8 @@
  */
 import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
+import { incomeStepsOf } from '../../../src/reading/income.js';
+import { dateOf as dateOfDay } from '../../../src/answers/plan/dates.js';
 import { spendOf, spendPatch, applyPatch, boxesOf, savedSpend, checkSpend, compiledSchedule, guaranteedAtYear, plannerSuggest, suggestion, monthlyNet, yearlyGross, stepLines } from '../../../src/answers/plan/spend.js';
 import { answerAge, bandsOf, netOf, grossOf, firstStepGross } from '../../../src/answers/plan/about.js';
 import { yearOfAge } from '../../../src/answers/plan/income.js';
@@ -68,8 +70,10 @@ describe('S1 — the reading, on every corpus plan at three dates', () => {
         for (const y of a.chart.years) { expect(y.value).toBeGreaterThanOrEqual(0); expect(y.income).toBeLessThanOrEqual(y.value + 0.001); }
         expect(a.chart.list.length).toBeGreaterThan(0);
         expect(a.chart.list[0].fromAge).toBe(s.ageNow);
-        // the first row: the saved before-tax figure shown, never re-derived
-        expect(a.firstGross).toBe(a.firstGrossSaved);
+        // the first row: what is taken a year before tax, as the one reader of the steps says it (step F2, lead4.md D6:
+        // src/reading/income.js), never a figure of the page's own
+        const read = incomeStepsOf(e.plan, { now: dateOfDay(today) });
+        if (read.steps.length && !a.locked) expect(a.firstGross, e.plan.id).toBe('£' + read.steps[0].beforeTax.toLocaleString('en-GB'));
       }
     });
   }

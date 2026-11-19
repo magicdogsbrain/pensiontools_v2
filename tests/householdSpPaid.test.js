@@ -39,3 +39,24 @@ describe('the household split\'s years read the same', () => {
     expect(r0.fixed).toBeCloseTo(11973 + 6000, 6);
   });
 });
+
+/**
+ * A row that counts the State Pension as paid also says it is not years away (the checker's case). Fictional: Pat, retired,
+ * whose plan's year 0 is 2024/25 and runs as committed (no later position recorded), so this tax year (2026/27) is the
+ * plan's row 0. Pat's State Pension has been paid since 6 June 2026: by the plan's own count it starts in plan year
+ * 2026 − 2024 = 2. Worked by hand for row 0 (today, 18 November 2026):
+ *   State Pension        paid now: 230.25 × 52 = £11,973 counted (as the row already does)
+ *   years until it       0 (it said 2 − 0 = 2, so the longevity ISA was levelled over two years: at most ISA ÷ 2 a year)
+ */
+describe('a State Pension paid now is not years away', () => {
+  const pat = { retired: true, currentAge: 68, shapeAgeNow: 66, firstTaxYear: 2024, spStartDate: '2026-06-06', spWeeklyAmount: 230.25,
+    baseSalary: 30000, duration: 25, other: 0, isaDrawdownStrategy: 'longevity' };
+  it('row 0 counts it and says 0 years until it', () => {
+    const p = personProfile(pat, { now: NOW, years: 3 });
+    expect(p.sp.startYear).toBe(2);
+    expect(p.sp.paidNow).toBe(true);
+    expect(p.rows[0].sp).toBeCloseTo(11973, 6);
+    expect(p.rows[0].yearsUntilSp).toBe(0);
+    expect(p.rows[1].yearsUntilSp).toBe(0);
+  });
+});

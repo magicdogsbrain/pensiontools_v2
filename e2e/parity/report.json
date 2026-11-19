@@ -1,5 +1,5 @@
 {
- "at": "2026-11-19T15:18:23.221Z",
+ "at": "2026-11-19T15:43:39.108Z",
  "fixtures": [
   "age-only",
   "budget",
@@ -31,12 +31,7 @@
  "readingMismatches": 0,
  "roundTripsFailed": 68,
  "rose": [],
- "shrank": [
-  "agrees now, take it out of known-disagreements.json: age-only|field:pots.pension",
-  "agrees now, take it out of known-disagreements.json: wizard-defaults|field:pots.pension",
-  "unmarked figures fell on age-only|simple:pots: 34 → 33",
-  "unmarked figures fell on wizard-defaults|simple:pots: 33 → 32"
- ],
+ "shrank": [],
  "grew": [],
  "notQuiet": [],
  "detail": {

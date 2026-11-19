@@ -13,6 +13,7 @@ import { deriveIsaMix } from '../services/IsaFunds.js';
 import { scheduleFromSteps, defaultSpYear } from '../services/IncomeSchedule.js';
 import { getDefaultStressDB as defaultStressDB, effectiveStressSettings } from '../services/PlanReading.js';
 import { timingPinPatch } from '../services/PlanTiming.js';
+import { settingsWithPatch } from '../services/DraftDecision.js';
 import { DEFAULT_CHARGES_PCT } from '../services/Charges.js';
 import { simulationConfigFromSettings } from '../services/SimulationConfig.js';
 import { DEFAULT_ISA_GROWTH } from '../services/IsaGrowth.js';
@@ -171,7 +172,7 @@ export async function saveStressSettings(settings) {
   try {
     // a locked plan with none saved is measured against the defaults (the guard's yardstick); a draft with none adds only its own
     const asStored = (await storedActiveSettings('stress')) || (locked ? getDefaultStressSettings() : {});
-    await saveActiveStressSettings({ ...asStored, ...(timingPinPatch(asStored, db.settings) || {}), ...settings });
+    await saveActiveStressSettings(settingsWithPatch(asStored, { ...(timingPinPatch(asStored, db.settings) || {}), ...settings }));   // a key given as undefined is taken out (an Undo of a key that was not there)
   } catch (error) {
     if (error && (error.code === 'plan-newer-than-app' || isPlanLockedError(error))) throw error;
     console.error('Error saving stress data:', error);

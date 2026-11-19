@@ -7054,7 +7054,7 @@
       showLoading('Locking the plan and writing the plan document…');
       try {
         // Locking IS the commit: the Decision tool must run THIS plan — its pots, floors, ISA, State Pension, strategy — not the defaults it was created with (a £380k plan was judged against £500k floors, 6.10.4).
-        if (!(await planIsLocked())) { await saveLaterDraftFirst(); await saveDecisionSettings(seedDecisionFromStress(await getStressSettingsAsync(), await getDecisionSettingsAsync())); invalidateCache(); }
+        if (!(await planIsLocked())) { await saveLaterDraftFirst(); await saveDecisionSettings(seedDecisionFromStress(await getStressSettingsAsync(), (await getActiveScenarioAsStored())?.decisionTool?.settings || {})); invalidateCache(); }   // seeded over the Decision copy AS STORED, as the simple view's lockPatch: never over a reading of it
         const fresh = await lockPlanIfNeeded(reason);
         await buildPlanDocumentNow(reason, rGiven);
         await noteJourney();   // the stage the lock causes, dated, with the lock (as the simple view's lockPatch)
@@ -10470,20 +10470,22 @@
       const monthly = window._budPlusTen ? plusTenth(s.allInComfortableMonthly) : Math.round(s.allInComfortableMonthly);
       const gross = Math.round(grossUpAnnual(monthly * 12));
       if (!gross) { showToast('Add some spending first', 'warning'); return; }
-      const stressNow = await getStressSettingsAsync();
-      const decisionNow = await getDecisionSettingsAsync();
+      const stressNow = await getStressSettingsAsync();   // the reading: the age at the plan's start, its length, the figure it has now
+      const asStored = await getActiveScenarioAsStored();   // what the patch changes and Undo puts back: the plan as stored, never the reading
+      const storedStress = asStored?.stressTool?.settings || {}, storedDecision = asStored?.decisionTool?.settings || {};
       const wasGross = +(stressNow.baseSalary || 0);
       const wasMonthly = wasGross > 0 ? Math.round(grossToNet(wasGross, DEFAULT_TAX_BANDS.pa, DEFAULT_TAX_BANDS.brl, DEFAULT_TAX_BANDS.hrl) / 12) : null;
       const words = useSpendingWords({ monthly, wasMonthly, plusTen: !!window._budPlusTen }, gbp);
       if (!await appConfirm(words.ask, { okLabel: 'Use it', cancelLabel: 'Keep the plan as it is' })) return;
       showLoading('Using it…');
       try {
-        const before = spendingBefore(stressNow, decisionNow);
-        await saveStressSettings(budgetSpendingPatch(window._budget, stressNow, gross));
+        const before = spendingBefore(storedStress, storedDecision), forPlan = await getActiveScenarioId();
+        await saveStressSettings(budgetSpendingPatch(window._budget, storedStress, gross, stressNow));
         await saveDecisionSettings({ baseSalary: gross });
         await spendingWritten(gross);
         showUndoToast(words.done, async () => {
           try {
+            if ((await getActiveScenarioId()) !== forPlan) { showToast('Not put back: another plan is open now. Open the plan it was used in to change its spending.', 'warning', 6000); return; }   // Undo puts back only the plan it was pressed in
             await saveStressSettings(before.stress);
             await saveDecisionSettings(before.decision);
             await spendingWritten(before.stress.baseSalary);
@@ -11394,16 +11396,8 @@
 
       showLoading('Resetting settings...');
       try {
-        await saveDecisionSettings({
-          equityMin: 250000,
-          bondMin: 200000,
-          cashTarget: 50000,
-          duration: 35,
-          baseSalary: 30000,
-          protectionFactor: 20,
-          recoveryBuffer: 15000,
-          consecutiveLimit: 3
-        });
+        // Taken out of the plan, never stored as if typed (lead4.md D2): a draft reads them from its Stress settings again.
+        await saveDecisionSettings({ equityMin: undefined, bondMin: undefined, cashTarget: undefined, duration: undefined, baseSalary: undefined, protectionFactor: undefined, recoveryBuffer: undefined, consecutiveLimit: undefined });
         await loadDecisionSettings();
         showToast('Settings reset to defaults', 'success');
       } catch (error) {

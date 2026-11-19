@@ -17,34 +17,37 @@ import { amountAtAge } from './IncomeSchedule.js';
 
 const copy = (v) => JSON.parse(JSON.stringify(v));
 
-/** The Stress settings keys the button writes — and so the keys Undo puts back. */
-export const SPENDING_KEYS = Object.freeze(['baseSalary', 'incomeShape', 'incomeSteps', 'shapeAgeNow', 'targetSchedule']);
+/** The Stress settings keys the button writes — and so the keys Undo puts back. (No age: an age worked out from the plan is never stored as if typed.) */
+export const SPENDING_KEYS = Object.freeze(['baseSalary', 'incomeShape', 'incomeSteps', 'targetSchedule']);
 
 /**
  * @param {object} budget       the Budget (the page's working copy)
- * @param {object} stressNow    the plan's Stress settings as loaded
+ * @param {object} stored       the plan's Stress settings AS STORED (the steps the person gave; never the reading's)
  * @param {number} gross        the figure to use, grossed up: £ a year before tax
+ * @param {object} [reading]    the plan's Stress settings as read (PlanReading.effectiveStressSettings): the age at the
+ *                              plan's start and its length, which the schedule is worked over (default: `stored`)
  * @returns {object} the Stress settings patch to save (SPENDING_KEYS only)
  */
-export function budgetSpendingPatch(budget, stressNow, gross) {
+export function budgetSpendingPatch(budget, stored, gross, reading = stored) {
+  const st = stored || {}, rd = reading || {};
   // Income starts at retirement — or NOW if already retired (year 0 is today for a retiree). Placeholders are not an age (6.13.5).
-  const ageNow = stressNow.shapeAgeNow || Math.max(budgetRetirementAge(budget) || 0, budgetAgeToday(budget) || 0) || 57;
-  const steps = Array.isArray(stressNow.incomeSteps) && stressNow.incomeSteps.length ? copy(stressNow.incomeSteps) : [];
+  const ageNow = rd.shapeAgeNow || st.shapeAgeNow || Math.max(budgetRetirementAge(budget) || 0, budgetAgeToday(budget) || 0) || 57;
+  const steps = Array.isArray(st.incomeSteps) && st.incomeSteps.length ? copy(st.incomeSteps) : [];
   if (steps.length) steps[0] = { ...steps[0], fromAge: steps[0].fromAge || ageNow, amount: gross }; else steps.push({ fromAge: ageNow, amount: gross });
-  const dur = stressNow.duration || 35;
+  const dur = rd.duration || st.duration || 35;
   const targetSchedule = Array.from({ length: dur + 1 }, (_, y) => Math.round(amountAtAge(steps, ageNow + y, gross)));
-  return { baseSalary: gross, incomeShape: 'phases', incomeSteps: steps, shapeAgeNow: ageNow, targetSchedule };
+  return { baseSalary: gross, incomeShape: 'phases', incomeSteps: steps, targetSchedule };
 }
 
 /**
- * What Undo puts back: the same keys as they were before the button (absent keys come back as null, which every reader
- * treats as "not set"), and the Decision tool's target.
- * @returns {{ stress: object, decision: { baseSalary: number|null } }}
+ * What Undo puts back, from the plan AS STORED: the same keys as they were before the button (a key that was not there is
+ * undefined, which the repositories take out again — never a null stored as if typed), and the Decision tool's target.
+ * @returns {{ stress: object, decision: { baseSalary: number|undefined } }}
  */
-export function spendingBefore(stressNow, decisionNow) {
+export function spendingBefore(storedStress, storedDecision) {
   const stress = {};
-  for (const k of SPENDING_KEYS) stress[k] = stressNow && stressNow[k] !== undefined ? copy(stressNow[k]) : null;
-  return { stress, decision: { baseSalary: decisionNow && decisionNow.baseSalary !== undefined ? decisionNow.baseSalary : null } };
+  for (const k of SPENDING_KEYS) stress[k] = storedStress && storedStress[k] !== undefined ? copy(storedStress[k]) : undefined;
+  return { stress, decision: { baseSalary: storedDecision && storedDecision.baseSalary !== undefined ? storedDecision.baseSalary : undefined } };
 }
 
 /** The "+10%" button: the figure with a tenth on top, to the pound. */

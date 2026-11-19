@@ -74,6 +74,7 @@ import { reviewOf } from '../../answers/plan/review.js';
 import { agreementViewOf } from '../../answers/plan/agree.js';
 import { monthOf } from '../../answers/plan/month.js';
 import { startPlanWrite } from './planWrite.js';
+import { loadPageMarket } from './pageMarket.js';
 import { startAccount } from './account.js';
 
 export const GUEST_PLANS_KEY = 'pt_guest_scenarios';
@@ -259,8 +260,11 @@ export function viewFor(state) {
  * @param {() => Date} [o.now]
  * @param {object} [o.fb]             the Firebase functions (the tests hand in fakes); the real ones otherwise
  * @param {object} [o.client]         the worker client (effects/workerClient.js): the lock runs the plan's own test in it before its one write
+ * @param {() => Promise} [o.market]  the page's one market (pageMarket.loadPageMarket; lead4.md R5): loaded at once, and no page
+ *                                    is read until it has landed (or failed: the built-in copy then stands), so what a held or
+ *                                    stand-in gilt pays, the gilt list and the inflation curve are the day's, as in the full view
  */
-export function startPlanSource(store, { win, local = null, session = null, now = () => new Date(), fb = null, fbWrite = null, fbAccount = null, client = null }) {
+export function startPlanSource(store, { win, local = null, session = null, now = () => new Date(), fb = null, fbWrite = null, fbAccount = null, client = null, market = loadPageMarket }) {
   const F = fb || { initializeApp, initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence, onAuthStateChanged, signOut, getFirestore, collection, getDocs, isFirebaseConfigured, connectAuthEmulator, connectFirestoreEmulator, updateCurrentUser };
   const stops = [];
   let user = undefined;          // undefined: not known yet; null: nobody
@@ -368,9 +372,15 @@ export function startPlanSource(store, { win, local = null, session = null, now 
     else listen();
   }
 
+  // The one market on this page (lead4.md R5): asked at once; the plans are read only once it is in, so no page is ever read on
+  // the built-in gilt list and then again on the day's file. A market that cannot load leaves the built-in copy, said by the stamp.
+  let marketIn = false;
+  Promise.resolve().then(() => market()).catch(() => null).then(() => { if (stopped) return; marketIn = true; lastRead = null; refresh(store.getState()); });
+
   // The reading for the screen: after every change of the plans, the address, the date or the plan draft (never of the view itself).
   let lastRead = null;
   const refresh = (state) => {
+    if (!marketIn) return;
     const key = state.plans && state.plans.status === 'read' ? [state.plans.list, state.route, state.env.today, state.draft && state.draft.plan, state.lasts && state.lasts.result, state.lasts && state.lasts.levers, state.lasts && state.lasts.workDraft, state.ways, state.mix, state.lasts && state.lasts.tried, state.lasts && state.lasts.kept, state.household, state.move, state.keepTest, state.stressPanel, state.review] : null;
     if (!key) { lastRead = null; return; }
     if (lastRead && key.every((v, i) => v === lastRead[i])) return;

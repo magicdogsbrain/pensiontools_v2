@@ -16,6 +16,9 @@ import { ACTIVITY_KEY } from '../../../src/v7/effects/activity.js';
 import { corpus, TODAY } from './_plans.js';
 import { runKeyOf } from '../../../src/answers/plan/lasts.js';
 import { runLasts } from '../../../src/answers/plan/lastsRun.js';
+import { setLiveGilts, activeGiltsFile, BUNDLED_LINKERS } from '../../../src/services/LinkerUniverse.js';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 const C = corpus();
 
@@ -53,7 +56,7 @@ function fakeFirebase({ user = null, docs = [], fail = false } = {}) {
   return fb;
 }
 
-function page({ fb, local = storage(), session = storage(), hash = '#/plans' } = {}) {
+function page({ fb, local = storage(), session = storage(), hash = '#/plans', market } = {}) {
   const store = createStore(initialState({ today: TODAY, build: 'test' }), reduce);
   const listeners = {};
   const win = {
@@ -65,7 +68,7 @@ function page({ fb, local = storage(), session = storage(), hash = '#/plans' } =
   };
   const fire = (e, ev = {}) => (listeners[e] || []).forEach((fn) => fn(ev));
   const nowMs = Date.parse(TODAY + 'T14:03:00');
-  const stop = startPlanSource(store, { win, local, session, now: () => new Date(nowMs), fb });
+  const stop = startPlanSource(store, { win, local, session, now: () => new Date(nowMs), fb, ...(market ? { market } : {}) });
   return { store, win, fire, listeners, stop, local, session };
 }
 const tick = () => new Promise((r) => setTimeout(r, 0));
@@ -247,5 +250,41 @@ describe('"How careful?" on "Does it last?": the page reads the plan\'s own leve
     expect(session.raw(GUEST_PLANS_KEY)).toBe(text);
     expect(session.calls.some((c) => c[0] !== 'getItem')).toBe(false);
     stop();
+  });
+});
+
+describe('the plan pages are read on the one market (lead4.md R5): the day\'s prices are in before any page is read', () => {
+  it('no reading is drawn until the page\'s market has landed; the first reading sees the day\'s gilt file', async () => {
+    let land;
+    const pending = new Promise((r) => { land = r; });
+    const dayFile = { ...BUNDLED_LINKERS, generated_at: '2099-01-01T00:00:00Z', as_of: '2099-01-01' };
+    const market = () => pending.then(() => { setLiveGilts(dayFile); });
+    const seen = [];
+    const fb = fakeFirebase({ user: { uid: 'u1', email: 'a@b.c', emailVerified: true }, docs: Object.values(C) });
+    const { store, stop } = page({ fb, market });
+    store.subscribe((state, action) => { if (action.type === A.PLANS_VIEW) seen.push(activeGiltsFile()); });
+    try {
+      await tick(); await tick();
+      expect(store.getState().plans.status).toBe('read');
+      expect(store.getState().plans.view).toBeUndefined();   // the list says it is still reading
+      expect(seen).toEqual([]);
+      land();
+      await tick(); await tick();
+      expect(store.getState().plans.view).toBeTruthy();
+      expect(seen.length).toBeGreaterThan(0);
+      for (const f of seen) expect(f).toBe(dayFile);
+    } finally { stop(); setLiveGilts(null); }
+  });
+  it('a market that fails to load leaves the built-in copy, and the plans are read on it', async () => {
+    const fb = fakeFirebase({ user: { uid: 'u1', email: 'a@b.c', emailVerified: true }, docs: Object.values(C) });
+    const { store, stop } = page({ fb, market: () => Promise.reject(new Error('offline')) });
+    await tick(); await tick(); await tick();
+    expect(store.getState().plans.view).toBeTruthy();
+    stop();
+  });
+  it('the plan source loads the page\'s one market itself (pageMarket.loadPageMarket) — not only the move step and Assumptions', () => {
+    const src = readFileSync(join(process.cwd(), 'src', 'v7', 'effects', 'planSource.js'), 'utf8');
+    expect(src).toMatch(/import \{ loadPageMarket \} from '\.\/pageMarket\.js'/);
+    expect(src).toMatch(/market = loadPageMarket/);
   });
 });

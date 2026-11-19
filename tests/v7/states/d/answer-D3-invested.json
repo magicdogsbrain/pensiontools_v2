@@ -138,45 +138,45 @@
           "level": null
         },
         "verdict": "no",
-        "fails": 534,
-        "lasted": 0.466,
-        "runOutAge": 83,
+        "fails": 553,
+        "lasted": 0.447,
+        "runOutAge": 84,
         "outOfTen": {
-          "words": "in only 5 futures out of 10",
+          "words": "in only 4 futures out of 10",
           "only": true,
-          "count": 5
+          "count": 4
         },
         "floorAge": 90,
         "left": {
           "age": 99,
           "typical": 0,
-          "best": 398350
+          "best": 379066
         },
         "level": "balanced",
         "levels": {
           "careful": {
-            "monthly": 1690,
-            "yearly": 20280,
-            "weighted": 0.9528399634286762,
-            "fixedAge": 0.873
+            "monthly": 1700,
+            "yearly": 20400,
+            "weighted": 0.9509923441391438,
+            "fixedAge": 0.864
           },
           "balanced": {
             "monthly": 1780,
             "yearly": 21360,
-            "weighted": 0.904581756577827,
-            "fixedAge": 0.768
+            "weighted": 0.9049882491864264,
+            "fixedAge": 0.761
           },
           "bold": {
-            "monthly": 2020,
-            "yearly": 24240,
-            "weighted": 0.7021024753851817,
-            "fixedAge": 0.444
+            "monthly": 2010,
+            "yearly": 24120,
+            "weighted": 0.701959177182056,
+            "fixedAge": 0.434
           }
         },
         "chance": {
-          "weighted": 0.7214087403770536,
-          "fixedAge": 0.466,
-          "fails": 534,
+          "weighted": 0.7117896866854281,
+          "fixedAge": 0.447,
+          "fails": 553,
           "n": 1000,
           "planToAge": 99,
           "weightToAge": 103,
@@ -576,7 +576,7 @@
           },
           "bad": {
             "id": "d.when",
-            "text": "We follow each future on to 103. In the futures where the money runs out before then, it typically runs out at 90. In the worst 1 in 10 of all the futures, by 83.",
+            "text": "We follow each future on to 103. In the futures where the money runs out before then, it typically runs out at 90. In the worst 1 in 10 of all the futures, by 84.",
             "parts": [
               "We follow each future on to ",
               {
@@ -600,7 +600,7 @@
               " of all the futures, ",
               "by ",
               {
-                "fixed": "83"
+                "fixed": "84"
               },
               "."
             ]
@@ -638,7 +638,7 @@
           },
           "levels": {
             "id": "d.levels",
-            "text": "At Careful, about £1,690 a month. At Bold, about £2,020 a month.",
+            "text": "At Careful, about £1,700 a month. At Bold, about £2,010 a month.",
             "parts": [
               "At Careful, about ",
               {
@@ -767,7 +767,7 @@
           },
           "howLong": {
             "id": "d.howLong",
-            "text": "In the futures where it runs out before 99, it still pays for 26 of the 37 years to 99.",
+            "text": "In the futures where it runs out before 99, it still pays for 27 of the 37 years to 99.",
             "parts": [
               "In the futures where it runs out before ",
               {
@@ -775,7 +775,7 @@
               },
               ", it still pays for ",
               {
-                "fixed": "26"
+                "fixed": "27"
               },
               " of the ",
               {
@@ -837,17 +837,17 @@
           },
           "cost": {
             "id": "d.cost",
-            "text": "Careful asks for £90 a month less than Balanced. Bold would let you take £240 a month more.",
+            "text": "Careful asks for £80 a month less than Balanced. Bold would let you take £230 a month more.",
             "parts": [
               "Careful asks for ",
               {
-                "fixed": "£90"
+                "fixed": "£80"
               },
               " a month less than Balanced.",
               " ",
               "Bold would let you take ",
               {
-                "fixed": "£240"
+                "fixed": "£230"
               },
               " a month more."
             ]

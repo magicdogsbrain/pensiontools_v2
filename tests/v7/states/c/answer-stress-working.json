@@ -107,37 +107,37 @@
           "careful": {
             "monthly": 1330,
             "yearly": 15960,
-            "weighted": 0.9501834452785551,
-            "fixedAge": 0.906
+            "weighted": 0.953637578795664,
+            "fixedAge": 0.904
           },
           "balanced": {
             "monthly": 1380,
             "yearly": 16560,
-            "weighted": 0.9038380141826347,
-            "fixedAge": 0.813
+            "weighted": 0.9075145567012951,
+            "fixedAge": 0.815
           },
           "bold": {
-            "monthly": 1520,
-            "yearly": 18240,
-            "weighted": 0.7027887196661904,
-            "fixedAge": 0.524
+            "monthly": 1510,
+            "yearly": 18120,
+            "weighted": 0.7052010028613731,
+            "fixedAge": 0.522
           }
         },
         "chance": {
-          "weighted": 0.9038380141826347,
-          "fixedAge": 0.813,
-          "fails": 187,
+          "weighted": 0.9075145567012951,
+          "fixedAge": 0.815,
+          "fails": 185,
           "n": 1000,
           "planToAge": 99,
           "weightToAge": 104,
           "horizonRule": "survival"
         },
         "whose": "you",
-        "floorAge": 92,
+        "floorAge": 93,
         "left": {
           "age": 99,
-          "typical": 154388,
-          "best": 938433
+          "typical": 141666,
+          "best": 850305
         },
         "guaranteed": {
           "monthlyAfterTax": 1045.63
@@ -517,7 +517,7 @@
           },
           "bad": {
             "id": "c.when",
-            "text": "We follow each future on to 104. In the futures where the money runs out before then, it typically runs out at 92. In the worst 1 in 10 of all the futures, by 90.",
+            "text": "We follow each future on to 104. In the futures where the money runs out before then, it typically runs out at 93. In the worst 1 in 10 of all the futures, by 91.",
             "parts": [
               "We follow each future on to ",
               {
@@ -527,7 +527,7 @@
               ", it typically runs out ",
               "at ",
               {
-                "fixed": "92"
+                "fixed": "93"
               },
               ". ",
               "In the worst ",
@@ -541,14 +541,14 @@
               " of all the futures, ",
               "by ",
               {
-                "fixed": "90"
+                "fixed": "91"
               },
               "."
             ]
           },
           "range": {
             "id": "c.range",
-            "text": "You could take: Careful £1,330, Balanced £1,380, Bold £1,520 a month.",
+            "text": "You could take: Careful £1,330, Balanced £1,380, Bold £1,510 a month.",
             "parts": [
               "You could take: Careful ",
               {
@@ -691,7 +691,7 @@
           },
           "howLong": {
             "id": "c.howLong",
-            "text": "In the futures where it runs out before 99, it still pays for 30 of the 41 years to 99.",
+            "text": "In the futures where it runs out before 99, it still pays for 31 of the 41 years to 99.",
             "parts": [
               "In the futures where it runs out before ",
               {
@@ -699,7 +699,7 @@
               },
               ", it still pays for ",
               {
-                "fixed": "30"
+                "fixed": "31"
               },
               " of the ",
               {
@@ -729,12 +729,12 @@
           },
           "floor": {
             "id": "c.floor",
-            "text": "If the money ran out at 92, you would still have £12,548 a year after tax, from your State Pension.",
+            "text": "If the money ran out at 93, you would still have £12,548 a year after tax, from your State Pension.",
             "parts": [
               "If the money ran out ",
               "at ",
               {
-                "fixed": "92"
+                "fixed": "93"
               },
               ", ",
               "you would still have ",
@@ -749,7 +749,7 @@
           },
           "left": {
             "id": "c.left",
-            "text": "If you live to 99, what is typically left then is £154,000 at today's prices. In the best 1 in 10 futures it is £938,000 or more.",
+            "text": "If you live to 99, what is typically left then is £142,000 at today's prices. In the best 1 in 10 futures it is £850,000 or more.",
             "parts": [
               "If you live to ",
               {
@@ -757,7 +757,7 @@
               },
               ", what is typically left then is ",
               {
-                "fixed": "£154,000"
+                "fixed": "£142,000"
               },
               " at today's prices. In the best ",
               {
@@ -769,14 +769,14 @@
               },
               " futures it is ",
               {
-                "fixed": "£938,000"
+                "fixed": "£850,000"
               },
               " or more."
             ]
           },
           "cost": {
             "id": "c.cost",
-            "text": "Careful asks for £50 a month less than Balanced. Bold would let you take £140 a month more.",
+            "text": "Careful asks for £50 a month less than Balanced. Bold would let you take £130 a month more.",
             "parts": [
               "Careful asks for ",
               {
@@ -786,7 +786,7 @@
               " ",
               "Bold would let you take ",
               {
-                "fixed": "£140"
+                "fixed": "£130"
               },
               " a month more."
             ]

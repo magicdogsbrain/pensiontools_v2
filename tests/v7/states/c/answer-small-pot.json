@@ -95,26 +95,26 @@
           "careful": {
             "monthly": 100,
             "yearly": 1200,
-            "weighted": 0.9626149149211124,
-            "fixedAge": 0.961
+            "weighted": 0.9722072276799009,
+            "fixedAge": 0.971
           },
           "balanced": {
             "monthly": 100,
             "yearly": 1200,
-            "weighted": 0.9626149149211124,
-            "fixedAge": 0.961
+            "weighted": 0.9722072276799009,
+            "fixedAge": 0.971
           },
           "bold": {
             "monthly": 120,
             "yearly": 1440,
-            "weighted": 0.7637171141579747,
-            "fixedAge": 0.754
+            "weighted": 0.754228959498927,
+            "fixedAge": 0.744
           }
         },
         "chance": {
-          "weighted": 0.9626149149211124,
-          "fixedAge": 0.961,
-          "fails": 39,
+          "weighted": 0.9722072276799009,
+          "fixedAge": 0.971,
+          "fails": 29,
           "n": 1000,
           "planToAge": 99,
           "weightToAge": 104,
@@ -124,8 +124,8 @@
         "floorAge": 66,
         "left": {
           "age": 99,
-          "typical": 11523,
-          "best": 42337
+          "typical": 10910,
+          "best": 40245
         },
         "guaranteed": {
           "monthlyAfterTax": 1045.63
@@ -762,7 +762,7 @@
           },
           "left": {
             "id": "c.left",
-            "text": "If you live to 99, what is typically left then is £12,000 at today's prices. In the best 1 in 10 futures it is £42,000 or more.",
+            "text": "If you live to 99, what is typically left then is £11,000 at today's prices. In the best 1 in 10 futures it is £40,000 or more.",
             "parts": [
               "If you live to ",
               {
@@ -770,7 +770,7 @@
               },
               ", what is typically left then is ",
               {
-                "fixed": "£12,000"
+                "fixed": "£11,000"
               },
               " at today's prices. In the best ",
               {
@@ -782,7 +782,7 @@
               },
               " futures it is ",
               {
-                "fixed": "£42,000"
+                "fixed": "£40,000"
               },
               " or more."
             ]

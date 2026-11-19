@@ -65,21 +65,30 @@ export const STRATEGY_LIFE = Object.freeze({
 });
 export const DURATION_SHAPED = Object.freeze(Object.keys(STRATEGY_LIFE).filter((k) => STRATEGY_LIFE[k] === 'durationShaped'));
 
-/** The decimal year of a day: 2026-07-02 → 2026.5. Local calendar days, as the plan's dates are kept. */
+/**
+ * A local calendar day as a whole day number (days since 1 January 1970). The plan's dates are local calendar days; counting
+ * whole days, not milliseconds between local midnights, keeps a clock change out of every span, so the reading is the same
+ * in every time zone (tests/v7/plan/lifeZone.test.js).
+ */
+const dayNo = (y, m, d) => Date.UTC(y, m, d) / 86400000;
+const dayOfDate = (at) => dayNo(at.getFullYear(), at.getMonth(), at.getDate());
+
+/** The decimal year of a day: 2026-07-02 → 2026.5. Calendar days, as the plan's dates are kept. */
 function decimalYear(at) {
   const y = at.getFullYear();
-  const from = new Date(y, 0, 1).getTime(), to = new Date(y + 1, 0, 1).getTime();
-  return y + (at.getTime() - from) / (to - from);
+  const from = dayNo(y, 0, 1), to = dayNo(y + 1, 0, 1);
+  return y + (dayOfDate(at) - from) / (to - from);
 }
 
 /** The part of a year since the last birthday the settings know (0 when they know none: the age was given today). */
 function sinceBirthday(settings, at) {
   const bd = birthdayOf(settings, at);
   if (bd.source === 'today') return 0;
-  let last = new Date(at.getFullYear(), bd.month, bd.day);
-  if (last.getTime() > at.getTime()) last = new Date(at.getFullYear() - 1, bd.month, bd.day);
-  const next = new Date(last.getFullYear() + 1, bd.month, bd.day);
-  return Math.max(0, Math.min(0.999999, (at.getTime() - last.getTime()) / (next.getTime() - last.getTime())));
+  const today = dayOfDate(at);
+  let y = at.getFullYear();
+  if (dayOfDate(new Date(y, bd.month, bd.day)) > today) y -= 1;
+  const last = dayOfDate(new Date(y, bd.month, bd.day)), next = dayOfDate(new Date(y + 1, bd.month, bd.day));
+  return Math.max(0, Math.min(0.999999, (today - last) / (next - last)));
 }
 
 /** 'm' | 'f' from how a sex is said, and whether it was said at all (not said reads the women's figures). */

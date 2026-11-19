@@ -20,7 +20,8 @@ import { rotationPathsCtx, runRotationWindows, runRotationMonteCarlo, splitLadde
 import { deriveCompareConfigs, compareAll } from './compareRunner.js';
 import { spTaxYearFirstRatio } from '../utils/StatePensionUtils.js';
 import { taxYearStartOf, year0MonthsOf, year0SpMonthsOf } from '../services/PlanTiming.js';
-import { spPaidBefore, ladderAsSeenFromToday } from '../services/PlanFromToday.js';
+import { spIn, otherIn, monthsOf, needAtK, paidYearOf } from '../services/PaidYear.js';
+import { spPaidBefore, ladderAsSeenFromToday, runPositionOf } from '../services/PlanFromToday.js';
 import { grossToNet, netToGross } from '../services/TaxCalculator.js';
 import { cashCostFactor, buildGiltLadder, ladderWealthByYear } from './GiltLadderPlan.js';
 import { activeLinkers } from '../services/LinkerUniverse.js';
@@ -95,7 +96,6 @@ function cutFromIncome(income, plannedAt, N, minShare) {
 }
 
 /** DB pension / income streams / 'other' for plan year y, today's money (0 when the plan has none). */
-const otherAt = (p, y) => (p.otherIncomeByYear && p.otherIncomeByYear[y]) || 0;
 
 export function coneOf(seriesList, years) {
   const out = { years: Array.from({ length: years + 1 }, (_, i) => i), p10: [], p25: [], p50: [], p75: [], p90: [] };
@@ -142,10 +142,15 @@ export function planFromSettings(settings, cfg, { yieldForYear, essentialsAnnual
     ? closedParked.map((v, y) => v + ((windfallUse && windfallUse.carryByYear[y]) || 0))
     : windfallUse ? windfallUse.carryByYear : null;
   const pnvLock = cfg.pensionLockedMonths === undefined ? pensionLockOf(settings, { now, fromTaxYear: timing.firstTaxYear + lived, pensionPot: pensionPotOf(cfg) }) : null;
-  // Year 0 for the months it has (7.12.0, PlanTiming.year0MonthsOf): a plan still to start, from its stop month; a retired
-  // plan in its year 0, from the month of its pots (a locked plan's recorded position, else this month). 12: a whole year.
-  const y0 = lived > 0 ? 12 : year0MonthsOf(timing, settings.potsAsOf && typeof settings.potsAsOf === 'object' ? settings.potsAsOf : null);
-  const y0Sp = spAnnual > 0 && spStartYear === 0 ? year0SpMonthsOf(settings.spStartDate, timing.firstTaxYear, y0) : null;   // the State Pension's months of it
+  // The run's first year for the months it has (7.12.0, PlanTiming.year0MonthsOf; services/PaidYear.js): a plan still to
+  // start, from its stop month; a retired plan, from the month of its pots — this month, a locked plan's recorded position,
+  // or the month it was locked — to March, whether that year is its year 0 or a later one (one axis: a plan two years in and
+  // the same plan made today agree). 12: a whole year.
+  // (the months gone are read on this run's own clock, `now`, as the timing is: a config built on another clock — the
+  // planner's, which passes none — carries that clock's month, R5)
+  const monthsGone = lived > 0 ? runPositionOf(settings, timing).monthsIntoYear : 0;
+  const y0 = lived > 0 ? 12 - monthsGone : year0MonthsOf(timing, settings.potsAsOf && typeof settings.potsAsOf === 'object' ? settings.potsAsOf : null);
+  const y0Sp = spAnnual > 0 && spStartYear === 0 ? year0SpMonthsOf(settings.spStartDate, timing.firstTaxYear + lived, y0) : null;   // the State Pension's months of it
   return {
     pot, isa: closedPay ? closedPay.left : isa, targetAnnual: target,
     otherIncomeByYear, extraNeedByYear, needByYear, rawSchedule, windfallByYear,
@@ -179,7 +184,7 @@ export function planFromSettings(settings, cfg, { yieldForYear, essentialsAnnual
     yearsToStart: timing.yearsToStart, timingMode: timing.mode,
     // a first year that starts in the month work stops (7.12.0): the months it has, only when fewer than twelve
     ...(y0 < 12 ? { year0Months: y0 } : {}),
-    ...(lived > 0 ? { yearOffset: lived, monthsIntoYear: cfg.monthsIntoYear || 0, runFirstTaxYear: timing.firstTaxYear + lived } : {}),
+    ...(lived > 0 ? { yearOffset: lived, monthsIntoYear: monthsGone, runFirstTaxYear: timing.firstTaxYear + lived } : {}),
     stride: 2, mcRuns: 1000,   // identical on both surfaces: compare row == locked-plan run
     isaHold: settings.isaDrawdownStrategy === 'hold',   // powder-dry ISA: never funds rungs/floors
     // Fund and platform charges (6.19.0): the plan's percent a year, from its engine config (createSimulationConfigFromSettings;
@@ -282,10 +287,11 @@ function pnvTest(p, configs) {
  */
 /**
  * How many years at the front of a run's yearly income are not a whole year lived on the plan: 1 when year 0 pays for fewer
- * than twelve months (7.12.0, p.year0Months; a plan seen from today runs its current year whole), else 0. A part year 0 is
- * never the worst 12 months: the months before it were not the plan's to pay (Pots & Valves slices the same months off).
+ * than twelve months (7.12.0, planYear.monthsOf: from the stop month, or from the month of the pots' day, a plan seen from
+ * today included), else 0. A part year 0 is never the worst 12 months: the months before it were not the plan's to pay
+ * (Pots & Valves slices the same months off).
  */
-const partYearsAtFront = (p) => (!(p.yearOffset > 0) && p.year0Months > 0 && p.year0Months < 12 ? 1 : 0);
+const partYearsAtFront = (p) => (monthsOf(p, 0) < 12 ? 1 : 0);
 /** The lowest whole year of a run's income: from year `from` on (partYearsAtFront), to year `to` (exclusive) when given. */
 const lowestYear = (income, from, to = income.length) => { const v = income.slice(from, to); return v.length ? Math.min(...v) : Math.min(...income.slice(0, to)); };
 
@@ -320,7 +326,7 @@ function ladderTest(p, configs) {
       wealth.push(sleeve + ladderPvAt(y, lastRung, drawForYear, pricer));
       const failedBy = w.survived === false && w.failAge != null && (p.startAge + y) >= w.failAge;
       // Run out: the rungs and the sleeve pay nothing more; the State Pension and other income still come.
-      income.push((failedBy ? 0 : drawForYear(y + 1)) + ((y >= (p.spStartYear ?? 99)) ? p.spAnnual : 0) + otherAt(p, y));
+      income.push((failedBy ? 0 : drawForYear(y + 1)) + spIn(p, y) + otherIn(p, y));   // what arrives in the year's months (services/PaidYear.js)
     }
     return { wealth, income };
   };
@@ -370,7 +376,8 @@ function flexTest(p, configs) {
     for (let y = 0; y <= planYears; y++) {
       // Unpaid rungs are valued only to the floor's horizon (what was actually bought), never to the plan end.
       wealth.push((w.sleeveByYear[y] ?? 0) + ladderPvAt(y, Math.min(planYears, (ff.horizonAge || (p.startAge + planYears)) - p.startAge), floorDraw, pricer));
-      income.push(floorDraw(y + 1) + ((y >= (p.spStartYear ?? 99)) ? p.spAnnual : 0) + (w.dByYear[Math.min(y, w.dByYear.length - 1)] ?? 0) + otherAt(p, y));
+      // the treats are a rate a year: a part year pays its months of them (the sleeve pays none before the plan starts)
+      income.push(floorDraw(y + 1) + spIn(p, y) + (w.dByYear[Math.min(y, w.dByYear.length - 1)] ?? 0) * monthsOf(p, y) / 12 + otherIn(p, y));
     }
     return { wealth, income };
   };
@@ -381,8 +388,8 @@ function flexTest(p, configs) {
   const treatsCone = bandOf(mc.windows, (w, y) => w.dByYear[Math.min(y, w.dByYear.length - 1)], planYears);
   // The bills cannot fail, so "ruin" here is the honest risk: a year that pays LESS THAN THE PLAN
   // (essentials + treats below the income the plan asked for). Coverage = share of planned income delivered.
-  const sched = Array.isArray(p.targetSchedule) && p.targetSchedule.length ? p.targetSchedule : null;
-  const plannedAt = (y) => (sched ? (sched[Math.min(y, sched.length - 1)] ?? p.targetAnnual) : p.targetAnnual) + otherAt(p, y);
+  // the plan's spending for the year's months (services/PaidYear.js): a part year 0 is planned for the months it has
+  const plannedAt = (y) => paidYearOf(p, y).spending;
   // A "lean year" is one paying more than 10% under the plan; a strategy built to flex should not be
   // marked down for a £200 dip. Coverage (below) still counts every pound of shortfall.
   const paidInFull = (e) => e.income.every((v, y) => v >= plannedAt(y) * 0.90);
@@ -405,7 +412,7 @@ function flexTest(p, configs) {
       year1Flex: h.stats.year1D, worstFlexMedian: h.stats.worstMedian, worstFlexP10: h.stats.worstP10,
       shareLeanYears: h.stats.shareYearsUnder(10000), floorCost: configs.ffFloorCost, horizonAge: ff.horizonAge,
       sleeveCone, treatsCone, rate: ff.rate, sleeveE0: ff.E0, treatsRule: ff.treatsRule || 'share', fixedTreats: ff.flexMax ?? null, floorByYear: Array.from({ length: planYears }, (_, k) => floorDraw(k + 1)),
-      amountsByAge: Array.from({ length: planYears }, (_, k) => ({ age: p.startAge + k, gross: p.essentialsAnnual, sp: (k >= (p.spStartYear ?? 99)) ? p.spAnnual : 0 }))
+      amountsByAge: Array.from({ length: planYears }, (_, k) => ({ age: p.startAge + k, gross: p.essentialsAnnual, sp: spIn(p, k) }))
     },
     n: { hist: h.stats.n, mc: mc.windows.length },
     wealthLabel: 'Flex sleeve + unpaid floor rungs, today\'s money'
@@ -423,7 +430,7 @@ function scheduleFloorTest(p, configs) {
     const wealth = [], income = [];
     for (let y = 0; y <= planYears; y++) {
       wealth.push((w.sleeveByYear[y] ?? 0) + ladderPvAt(y, planYears, c.floorDraw, pricer));
-      income.push(c.floorDraw(y + 1) + ((y >= (p.spStartYear ?? 99)) ? p.spAnnual : 0) + otherAt(p, y));   // = the schedule, by contract
+      income.push(c.floorDraw(y + 1) + spIn(p, y) + otherIn(p, y));   // = the schedule for the year's months, by contract
     }
     return { wealth, income };
   };
@@ -444,7 +451,7 @@ function scheduleFloorTest(p, configs) {
     signature: {
       floorCost: configs.fsFloorCost, sleeveE0: c.E0, shareOfPot: configs.fsFloorCost / availablePot(p),
       sleeveAt10: sleeveAt(10), sleeveAt23: sleeveAt(23), sleeveAtEnd: sleeveAt(planYears), horizonAge: c.horizonAge, reserveCone,
-      amountsByAge: Array.from({ length: planYears }, (_, k) => ({ age: p.startAge + k, gross: c.amountAt(k + 1), sp: (k >= (p.spStartYear ?? 99)) ? p.spAnnual : 0 })),
+      amountsByAge: Array.from({ length: planYears }, (_, k) => ({ age: p.startAge + k, gross: c.amountAt(k + 1), sp: spIn(p, k) })),
       rule: 'Once a year: if the reserve is more than double its glide line (starting value x 1.05^years), spend the excess on rungs beyond the horizon or on raising the later years; otherwise leave it.'
     },
     n: { hist: h.stats.n, mc: mc.windows.length },
@@ -457,7 +464,7 @@ function floorToAgeTest(p, configs) {
   if (!c) return { affordable: false, reason: `buying the schedule to ${p.params?.floorToAge || 80} costs £${Math.round(configs.faFloorCost).toLocaleString()} — £${Math.round(configs.faFloorCost - availablePot(p)).toLocaleString()} more than the pot`, shortfall: configs.faFloorCost - availablePot(p) };
   const N = p.durationYears, A = c.A;
   const pricer = c.yieldForYear ? curvePricer(c.floorDraw, c.yieldForYear) : flatYieldPricer(c.floorDraw, 0.023);
-  const spAt = (y) => ((y >= (p.spStartYear ?? 99)) ? p.spAnnual : 0);
+  const spAt = (y) => spIn(p, y);   // what arrives in the year's months (services/PaidYear.js)
   const h = runFlexWindows(c);
   const mc = runFlexMonteCarlo(c, p.mcRuns || 400);
   // AT age A the reserve buys the rest of the schedule if it can; else the level income it can buy.
@@ -470,14 +477,14 @@ function floorToAgeTest(p, configs) {
     for (let y = 0; y <= N; y++) {
       if (y <= A) {
         wealth.push((w.sleeveByYear[y] ?? 0) + ladderPvAt(y, A, c.floorDraw, pricer));
-        income.push(c.floorDraw(y + 1) + spAt(y) + otherAt(p, y));
+        income.push(c.floorDraw(y + 1) + spAt(y) + otherIn(p, y));
       } else {
         const grow = (w.sleeveByYear[y] ?? 0) / Math.max(1e-9, sA);
         const rungsPv = full
-          ? (() => { let v = 0; for (let k = y + 1; k <= N; k++) v += Math.max(0, c.amountAt(k) - (k > (p.spStartYear ?? Infinity) ? p.spAnnual : 0)) * Math.pow(1 + (c.yieldForYear ? c.yieldForYear(k - y) : 0.023), -(k - y)); return v; })()
+          ? (() => { let v = 0; for (let k = y + 1; k <= N; k++) v += needAtK(p, k, c.amountAt(k)) * Math.pow(1 + (c.yieldForYear ? c.yieldForYear(k - y) : 0.023), -(k - y)); return v; })()
           : (() => { let v = 0; for (let k = y + 1; k <= N; k++) v += level * Math.pow(1 + (c.yieldForYear ? c.yieldForYear(k - y) : 0.023), -(k - y)); return v; })();
         wealth.push(leftover * grow + rungsPv);
-        income.push((full ? Math.max(0, c.amountAt(y + 1) - spAt(y)) : level) + spAt(y) + otherAt(p, y));
+        income.push((full ? needAtK(p, y + 1, c.amountAt(y + 1)) : level) + spAt(y) + otherIn(p, y));
       }
     }
     return { sA, full, level, leftover, wealth, income, worst: lowestYear(income, partYearsAtFront(p)) };
@@ -489,7 +496,7 @@ function floorToAgeTest(p, configs) {
   const canBuy = (amount) => { const cost = c.restCost(() => amount); return { amount, cost, hist: 100 * hE.filter((e) => e.sA >= cost).length / hE.length, mc: 100 * mcE.filter((e) => e.sA >= cost).length / mcE.length }; };
   const lowest = Math.min(...Array.from({ length: N - A }, (_, i) => c.amountAt(A + 1 + i)));
   const terms = mcE.map((e) => e.wealth[N]);
-  const planned = Array.from({ length: N + 1 }, (_, y) => c.amountAt(Math.min(N, y + 1)) + otherAt(p, y));
+  const planned = Array.from({ length: N + 1 }, (_, y) => c.amountAt(Math.min(N, y + 1)) + otherIn(p, y));
   const coverage = 100 * mcE.reduce((t, e) => t + e.income.reduce((a, v, y) => a + Math.min(1, v / Math.max(1, planned[y])), 0) / (N + 1), 0) / mcE.length;
   const cutAfterA = (e) => {
     if (e.full) return { fy: null, unpaid: 0 };
@@ -537,7 +544,7 @@ function bridgeTest(p, configs) {
   if (!c) return { affordable: false, reason: `buying the gilts to ${configs.beBridgeAge} costs £${Math.round(configs.beCost).toLocaleString()} — £${Math.round(configs.beCost - availablePot(p)).toLocaleString()} more than the pot`, shortfall: configs.beCost - availablePot(p) };
   const N = p.durationYears, B = c.B;
   const yf = c.yieldForYear || (() => 0.023);
-  const spAt = (y) => ((y >= (p.spStartYear ?? 99)) ? p.spAnnual : 0);
+  const spAt = (y) => spIn(p, y);   // what arrives in the year's months (services/PaidYear.js)
   // Value at plan year y of the unpaid bridge: cash years at face, gilt years discounted from y.
   const bridgePvAt = (y) => { let v = 0; for (let k = y + 1; k <= B; k++) v += c.floorDraw(k) * (k <= c.cashYears ? cashCostFactor(k - y, undefined, p.chargesPct, p.returnDragPct) : Math.pow(1 + yf(k - y), -(k - y))); return v; };
   const h = runFlexWindows(c);
@@ -549,13 +556,13 @@ function bridgeTest(p, configs) {
     for (let y = 0; y <= N; y++) {
       if (y < B) {
         wealth.push((w.sleeveByYear[y] ?? 0) + bridgePvAt(y));
-        income.push(c.floorDraw(y + 1) + spAt(y) + otherAt(p, y));
+        income.push(c.floorDraw(y + 1) + spAt(y) + otherIn(p, y));
         continue;
       }
       if (y > B) eng *= (w.sleeveByYear[y] ?? 0) / Math.max(1e-9, w.sleeveByYear[y - 1] ?? 1e-9);
       const need = c.floorDraw(y + 1);            // this year's schedule net of the State Pension
-      if (eng >= need) { eng -= need; income.push(c.amountAt(y + 1) + otherAt(p, y)); }
-      else { if (failAge == null) failAge = p.startAge + y; income.push(Math.max(0, eng) + spAt(y) + otherAt(p, y)); eng = 0; }
+      if (eng >= need) { eng -= need; income.push(c.amountAt(y + 1) + otherIn(p, y)); }
+      else { if (failAge == null) failAge = p.startAge + y; income.push(Math.max(0, eng) + spAt(y) + otherIn(p, y)); eng = 0; }
       wealth.push(Math.max(0, eng));
     }
     return { engineAtB: w.sleeveByYear[B] ?? 0, failed: failAge != null, failAge, wealth, income, worst: lowestYear(income, partYearsAtFront(p)) };
@@ -625,7 +632,7 @@ function fullGiltTest(p, configs, { spareRuns = true } = {}) {
     spAnnual: p.spAnnual, spStartAge: p.startAge + (p.spStartYear ?? 99), spFirstYearRatio: p.spFirstYearRatioTaxYear ?? p.spFirstYearRatio ?? 1,
     firstTaxYear, linkers: fromToday ? fromToday.linkers : activeLinkers().gilts,
     cashYears: fromToday ? fromToday.cashYears : cashYears,
-    ...(!fromToday && p.year0Months > 0 && p.year0Months < 12 ? { firstYearMonths: p.year0Months } : {}),   // year 0 for the months it has
+    ...(p.year0Months > 0 && p.year0Months < 12 ? { firstYearMonths: p.year0Months } : {}),   // the run's first year for the months it has (services/PaidYear.js)
     chargesPct: p.chargesPct,   // the cash years sit in a money-market fund: charged (6.19.0); the gilts are not
     ...(p.returnDragPct > 0 ? { returnDragPct: p.returnDragPct } : {}),   // "lower returns" (7.9.0): on the cash years too
     ...(fromToday ? { lifeFromPricing: true } : {})
@@ -636,10 +643,11 @@ function fullGiltTest(p, configs, { spareRuns = true } = {}) {
   const income = [];
   const wealth = ladderWealthByYear(plan, N);
   for (let y = 0; y <= N; y++) {
-    const age = p.startAge + y; income.push(amountAtAge(Math.min(age, p.startAge + N - 1)) + otherAt(p, y));
+    // what the ladder pays in the year's months, State Pension included (its year rows: a part year 0 holds its months)
+    const age = p.startAge + y; income.push((y < N && plan.years[y] ? plan.years[y].gross : amountAtAge(Math.min(age, p.startAge + N - 1))) + otherIn(p, y));
   }
   const flat = (arr) => ({ years: arr.map((_, i) => i), p10: arr, p25: arr, p50: arr, p75: arr, p90: arr });
-  const minInc = Math.min(...income.slice(0, N));
+  const minInc = lowestYear(income, partYearsAtFront(p), N);   // a part year 0 is never the worst 12 months
   // The spare in the growth part (strategyParams.spareGrowth, 6.35.0): the income stays bought by contract; what is
   // left rides the market, on the test's own histories and futures (GiltRotation spareGrowthRuns).
   const grow = spareRuns && !!(p.params && p.params.spareGrowth) && plan.spare > 0;

@@ -19,6 +19,7 @@ import { accretedValue, yearsToMaturity, ladderWealthByYear } from './GiltLadder
 // The split of a ladder at the cut age lives with the rotation watch's pure reading (services/RotationStatus.js, 6.43.0),
 // so the preview's page can read the block without the engine; it keeps its name here for the engine and the planner.
 import { splitLadderAtAge } from '../services/RotationStatus.js';
+import { spIn, otherIn } from '../services/PaidYear.js';
 export { splitLadderAtAge };
 
 /**
@@ -155,8 +156,9 @@ export function rotationPathsCtx(plan, p, { cutAge, trigger }) {
     chargeM: monthlyCostFactor(p),   // the plan's fund and platform charges, on the sleeve after a rotation (6.19.0); with a row's lower returns (7.9.0)
     ...(p.shock ? { shock: p.shock } : {}),   // a row's shock, on the futures only (7.9.0)
     lastRotateYear: Math.max(0, (cutAge - disarm) - p.startAge),
-    otherAtY: (y) => (p.otherIncomeByYear && p.otherIncomeByYear[y]) || 0,
-    spAtY: (y) => { const yr = plan.years[Math.min(y, plan.years.length - 1)]; return yr ? Math.max(0, yr.gross - yr.need) : 0; } };
+    // what arrives in the year's months (services/PaidYear.js): the ladder's own year rows carry the State Pension they hold
+    otherAtY: (y) => otherIn(p, y),
+    spAtY: (y) => { const yr = plan.years[Math.min(y, plan.years.length - 1)]; return yr && yr.sp != null ? yr.sp : spIn(p, y); } };
 }
 
 export function runRotationWindows(ctx) {

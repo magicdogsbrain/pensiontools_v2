@@ -56,10 +56,10 @@ export function drawnFromRecords(records, Y, month) {
  * @param {Array}  [o.records]  the Decision history: with no drawnThisYear, what its months of this tax year before today's
  *   month took (drawnFromRecords), so the month's figure is what is still to pay over the months still to come
  * @param {Date|string} [o.potsDay]  the day the run's pots belong to, when they belong to a plan year already begun
- *   (PlanFromToday.potsDayOf). The engines run the year that day falls in as the twelve months from it, at that year's
- *   figures (PlanFromToday.js, "The run's years"), so the ladder's first year, begun before it, is paid at its need over
- *   twelve months from that day — not squeezed into the months left to 5 April (6.51.0: someone who stopped work this tax
- *   year or earlier). Absent: every year over the months left to its 5 April, as always.
+ *   (PlanFromToday.potsDayOf). The engines run the year that day falls in for its months from that day's month to March
+ *   (7.12.0, PlanFromToday.js "The run's years"; services/PaidYear.js), so the ladder's first year, begun before it, is
+ *   paid a month at the year's rate from that month — never its whole year squeezed into the months left to 5 April
+ *   (6.51.0: someone who stopped work this tax year or earlier). Absent: every year over the months left to its 5 April.
  * @param {Date|string} [o.startsOn]  the month the plan's first payment is due ('YYYY-MM'): the month work stops, when it
  *   falls after April in the ladder's first tax year (the plan's timing.startMonth, mode 'future'). That year pays for the
  *   months it has, at the year's monthly rate (its need ÷ 12, or ÷ the months a ladder built for a part year holds): nothing

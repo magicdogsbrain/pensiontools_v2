@@ -57,9 +57,21 @@
  *           their worst 12 months and year 0's income count only the months from the stop; the other bought ways (the
  *           floors, Bridge & engine, Ladder & Ratchet's base ladder) buy and pay that share of year 0 (compareRunner).
  *           A saver whose stop falls after April: less drawn in year 0, so more left at the end and fewer futures run
- *           out. Not yet: the question answers (fastEngine), the full view's runMonteCarlo / runHistorical tables
- *           (their config comes from the settings without year0Months), and the plan document's year-by-year table
- *           (buildTimeline says year 0's need for a whole year).
+ *           out.
+ *           A part year is one sum in every way (services/PaidYear.js paidYearOf): for a plan year of m months, the
+ *           spending for those months, the State Pension and other income that arrive in them, and so what the pots or
+ *           the contract pay. The floors, Bridge & engine, Floor & Flex and Ladder & Ratchet took a whole year's State
+ *           Pension off a part year 0 and then scaled it (stop in November, State Pension from January: they bought
+ *           £6,667 where the ladder and the pots pay £8,667); now every way asks the same need. In any year a State
+ *           Pension starts in, the bought ways count the share of that tax year it is paid in, as the ladder and the pots
+ *           always did (they took off a whole year's): those years cost a little more to buy. Every way's income cone shows
+ *           a part year 0 for its months (with its State Pension and other income for those months; the full gilt ladder's
+ *           cone said a whole year), the plan document's year-by-year table says the same year 0 as its cone, Floor & Flex
+ *           pays no treats in the months before the plan starts, and no way reads a part year 0 as its worst 12 months.
+ *           One axis for the current plan year: a plan whose year 0 is behind it runs its current year from the month of
+ *           its pots' day to March, then whole tax years, as the same plan made today does (it ran the twelve months from
+ *           the pots' day). A retired plan locked in its year 0 with no position recorded runs year 0 from the month it was
+ *           locked (its pots are that day's; it was read from today's month), derived on read.
  *           The household split counts a retired person's years from this tax year, and a State Pension already being
  *           paid as paid (never years away).
  *           A retired plan's year 0 pays for the months it has too: its pots are today's, so year 0 runs from this month (or

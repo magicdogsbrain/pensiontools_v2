@@ -70,6 +70,9 @@ function runFlexCore(cfg, mcPaths, isMc) {
   // The years the pension cannot yet be touched (7.4.1, compareRunner closedYears): the sleeve is pension money, so it pays
   // no treats in them; the ISA pays those years (stressTest.planFromSettings). 0 = none: today's figures exactly.
   const closedYears = cfg.closedYears > 0 ? cfg.closedYears : 0;
+  // A first plan year of fewer than twelve months (7.12.0, compareRunner notYetMonths: services/PaidYear.js): the months
+  // of it before the plan starts pay no treats (the person is still at work, or the months were paid before the pots' day).
+  const notYet = cfg.notYetMonths > 0 && cfg.notYetMonths < 12 ? Math.round(cfg.notYetMonths) : 0;
 
   for (let s = 0; s < n; s++) {
     const series = isMc ? mcPaths[s] : rtr;
@@ -127,7 +130,7 @@ function runFlexCore(cfg, mcPaths, isMc) {
       if (cfg.annuitySwap && !annuitySwapDone && m === (cfg.annuitySwap.atYear ?? 20) * 12) {
         if (V > cfg.annuitySwap.cost) { V -= cfg.annuitySwap.cost; annuitySwapDone = true; }
       }
-      V -= d / 12;
+      if (m >= notYet) V -= d / 12;
       if (V <= 0) { V = 0; d = 0; }   // a depleted sleeve pays nothing more (matters when treats are a fixed £)
       const t = m + 1;
       if (R && R.mode === 'band') fireRatchet(t);

@@ -34,13 +34,11 @@
  *    year 0, as every plan always was.
  * It is never saved (withoutPotsAsOf: ScenarioRepository.saveActiveStressSettings, and the preview's copies).
  *
- * The run's years. The run's year k is the twelve months from the pots' day plus k years, and carries plan year
- * elapsedYears + k's figures whole: its income, its State Pension and its other income. So a step, a State Pension or an
- * income that changes on 6 April changes in the run `monthsIntoYear` months later, and the pots are asked for the current
- * plan year's figure over the twelve months from their day — the same money in the same months when the figure does not
- * change at 6 April, and the way a plan in its year 0 read after April has always been run. Every engine, cone and
- * reading shares this one axis (the plan document reads its band on it: PlanDocument potReading); none is handed a part
- * of a year as if it were a whole one. A first run year shorter than twelve months would need every engine to run one.
+ * The run's years (7.12.0, the lead's ruling C: one axis for the current plan year). The run's year 0 is the current plan
+ * year (elapsedYears) for the months left in it from the pots' day's month to March, and every later run year k is plan
+ * year elapsedYears + k, a whole tax year — the same axis as a plan in its year 0 (stressTest.planFromSettings
+ * `year0Months`; services/PaidYear.js reads each year's months), so a plan two years in and the same plan made today
+ * agree. Each year carries its plan year's figures: its income, its State Pension and its other income, for its months.
  *
  * With no year lived (no `potsAsOf`, or one at year 0: every plan whose year 0 is this tax year or later, every plan
  * locked until now) planAsSeenFromToday and settingsAsSeenFromToday return what they are given, untouched, and
@@ -50,7 +48,7 @@
  * Pure: no storage, no clock (the caller's timing, or `now`, carries the date).
  */
 import { parseStatePensionDate } from '../utils/StatePensionUtils.js';
-import { taxYearStartOf, deriveTiming, stoppedWorkOf, monthKeyOf } from './PlanTiming.js';
+import { taxYearStartOf, deriveTiming, stoppedWorkOf, monthKeyOf, taxYearMonthsGone } from './PlanTiming.js';
 import { beforeOf } from './PlanClosed.js';
 
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
@@ -83,6 +81,11 @@ export function runPositionOf(settings, timing) {
  * pots. A document written afterwards is run from the same position and records it. A lock made before 6.51.0 recorded
  * nothing and is read as it always was, from year 0 — never re-derived from its date, which would move the figures of a
  * plan locked under an earlier version.
+ *
+ * A retired plan locked in its year 0 with no position recorded (7.12.0, the lead's ruling B): its pots are the lock day's,
+ * so its year 0 pays from the month it was locked to March — { elapsedYears: 0, monthsIntoYear: the lock's month }, derived
+ * on read from the lock's date (nothing written, nothing migrated). No year is shifted (stressTest.planFromSettings reads
+ * only the months: PlanTiming.year0MonthsOf). A saver's plan is never placed so: its year 0 starts in the month work stops.
  * @param {object} scenario  a saved plan
  * @returns {{ elapsedYears: number, monthsIntoYear: number }|null}
  */
@@ -90,11 +93,21 @@ export function lockedPotsAsOf(scenario) {
   const ds = scenario && scenario.decisionTool && scenario.decisionTool.settings;
   if (!(isObj(ds) && ds.locked)) return null;
   const doc = isObj(scenario.planDocument) ? scenario.planDocument : null;
-  if (!doc) return positionOf(ds.lockedPosition);
+  const ss = scenario.stressTool && isObj(scenario.stressTool.settings) ? scenario.stressTool.settings : {};
+  const lockMonth = () => (ss.retired === false ? null
+    : lockMonthPosition((doc && doc.lockedAt) || ds.lockedAt, (doc && doc.timing && +doc.timing.firstTaxYear) || +ss.firstTaxYear));
+  if (!doc) return positionOf(ds.lockedPosition) || lockMonth();
   const pots = isObj(doc.pots) ? doc.pots : {};
   if (+pots.asOfPlanYear > 0) return { elapsedYears: Math.round(+pots.asOfPlanYear), monthsIntoYear: wholeMonths(doc.timing && doc.timing.monthsIntoYear) };
   // asOfPlanYear 0, written: a plan that says when work stopped, locked in its year 0 after that year's 6 April (6.51.0)
-  return pots.asOfPlanYear === 0 ? { elapsedYears: 0, monthsIntoYear: wholeMonths(doc.timing && doc.timing.monthsIntoYear) } : null;
+  return pots.asOfPlanYear === 0 ? { elapsedYears: 0, monthsIntoYear: wholeMonths(doc.timing && doc.timing.monthsIntoYear) } : lockMonth();
+}
+
+/** The lock's month in its plan's year 0 (ruling B above), or null when the lock was not in year 0 or has no date. */
+function lockMonthPosition(lockedAt, firstTaxYear) {
+  const d = lockedAt ? new Date(lockedAt) : null;
+  if (!d || !Number.isFinite(d.getTime()) || !(firstTaxYear > 0) || taxYearStartOf(d) !== firstTaxYear) return null;
+  return { elapsedYears: 0, monthsIntoYear: wholeMonths(taxYearMonthsGone(d)) };
 }
 
 /** A recorded position ({ elapsedYears, monthsIntoYear }) read back, or null when there is none. */

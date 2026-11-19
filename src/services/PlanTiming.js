@@ -83,16 +83,18 @@ export function taxYearOfMonth(ym) {
  * The months a plan's first tax year has (7.12.0: year 0 pays for the months it has), counted in whole months:
  *  - a plan still to start (timing mode 'future') whose stop month falls after April in its first tax year: from the stop
  *    month to March (November → 5);
- *  - a retired plan in its year 0 (mode 'retired', year 0 this tax year): from the month its pots belong to — this month,
- *    or the month a locked plan's recorded position says (`position.monthsIntoYear`) — to March (September → 7). The
- *    months of this tax year already gone were paid before the pots were counted;
- *  - 12 otherwise. A plan whose year 0 is behind it keeps its year as it always was (PlanFromToday's twelve months from
- *    the pots' day).
+ *  - a retired plan run from year 0: from the month its pots belong to — the month a locked plan's position says
+ *    (`position.monthsIntoYear`: recorded at the lock, or the month it was locked: PlanFromToday.lockedPotsAsOf), else this
+ *    month while year 0 is this tax year — to March (September → 7). The months of the year already gone were paid before
+ *    the pots were counted;
+ *  - 12 otherwise. A plan whose year 0 is behind it runs its current year the same way, from the month of its pots' day to
+ *    March (stressTest.planFromSettings: one axis for the current plan year).
  */
 export function year0MonthsOf(timing, position = null) {
   if (timing && timing.mode === 'retired') {
-    if (timing.planYearNow !== 0) return 12;
-    const gone = position && position.monthsIntoYear != null ? +position.monthsIntoYear : +timing.monthsIntoYear;
+    const at = position && position.monthsIntoYear != null && !(+position.elapsedYears > 0) ? +position.monthsIntoYear : null;
+    if (at == null && timing.planYearNow !== 0) return 12;
+    const gone = at != null ? at : +timing.monthsIntoYear;
     return 12 - Math.max(0, Math.min(11, Math.round(gone || 0)));
   }
   const ym = timing && timing.mode === 'future' ? String(timing.startMonth || '') : '';

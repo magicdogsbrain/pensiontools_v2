@@ -16,6 +16,7 @@
 import { isChargesPct } from '../services/Charges.js';
 import { targetHoldings, diffHoldings, yearNeedsOf, isRungRow } from '../services/TransitionPlanner.js';
 import { holdingsLines } from '../services/HoldingsRecord.js';
+import { spIn as spInYear } from '../services/PaidYear.js';
 
 /**
  * The order sheet's rows, as the planner's giltOrderSheetHtml prints them (6.43.0, lifted pure; research/v7/holdings-and-move.md
@@ -109,27 +110,22 @@ export function buildGiltLadder(p) {
     .sort((a, b) => a.maturityDateIso.localeCompare(b.maturityDateIso));
   const cashYears = Math.max(0, p.cashYears ?? o.cashYears);
   const sedol = (isin) => (isin && isin.startsWith('GB') ? isin.slice(4, 11) : null);
-  // The State Pension paid in a plan year that holds `share` of the tax year (its last months: year 0 from the stop month).
-  // Its first year is paid in the tax year's last months too (spFirstYearRatio of them), so a part year 0 gets only the
-  // months both hold: spAnnual × min(ratio, share). A whole year: spAnnual × ratio, as always.
-  const spIn = (age, share = 1) => {
-    if (!(p.spAnnual > 0) || age < p.spStartAge) return 0;
-    const ratio = age === p.spStartAge ? (p.spFirstYearRatio ?? 1) : 1;   // partial first year (SP starts on the birthday)
-    return p.spAnnual * Math.min(ratio, share);
-  };
   const years = [];
   let cash = 0;
   const cashYearsList = [];
   const perGilt = new Map();
-  // Year 0 pays for the months it has (7.12.0): a first year that starts in the month work stops buys that share of the
-  // year (firstYearMonths, PlanTiming.year0MonthsOf) and says how many months it holds; absent or 12, a whole year.
+  // Year 0 pays for the months it has (7.12.0): a first year that starts in the month work stops (or the month of the pots'
+  // day) buys that share of the year (firstYearMonths, PlanTiming.year0MonthsOf) and says how many months it holds; absent
+  // or 12, a whole year. The State Pension a year holds is the one reading every way uses (services/PaidYear.js spIn): its
+  // first year's share of the tax year (spFirstYearRatio), never more than the year's own months.
   const m0 = p.firstYearMonths > 0 && p.firstYearMonths < 12 ? Math.round(p.firstYearMonths) : 0;
+  const spPlan = { spAnnual: p.spAnnual, spStartYear: p.spStartAge - p.startAge, spFirstYearRatioTaxYear: p.spFirstYearRatio ?? 1, year0Months: m0 };
   for (let k = 1; k <= p.durationYears; k++) {
     const age = p.startAge + k - 1;
     const Y = p.firstTaxYear + k - 1;
     const share = k === 1 && m0 ? m0 / 12 : 1;
     const gross = p.amountAtAge(age) * share;
-    const sp = spIn(age, share);   // the State Pension this year holds (its months), carried so no reader backs it out
+    const sp = spInYear(spPlan, k - 1);   // the State Pension this year holds (its months), carried so no reader backs it out
     const need = Math.max(0, gross - sp);
     const part = k === 1 && m0 ? { months: m0 } : {};
     if (k <= cashYears) { const cost = need * cashCostFactor(k, o.cashRealDrag, p.chargesPct, p.returnDragPct); cash += cost; cashYearsList.push({ Y, age, gross, sp, need, cost, ...part }); years.push({ Y, age, gross, sp, need, cost, from: 'cash', ...part }); continue; }

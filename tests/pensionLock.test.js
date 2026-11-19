@@ -6,6 +6,7 @@
  *
  * Fictional people only: Alex stopped work at 50, Sam is the partner. Every figure here is made up for the test.
  */
+import { otherIn } from '../src/services/PaidYear.js';
 import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
 import { readFileSync } from 'node:fs';
@@ -251,7 +252,8 @@ describe('the bought strategies buy nothing from the pension for the closed year
     for (const id of ['ladder-and-ratchet', 'bridge-and-engine', 'floor-and-flex', 'floor-the-schedule', 'floor-to-age', 'full-il-gilt', 'gilt-rotation']) {
       const r = stressTestStrategy(id, p, configs);
       if (!r.affordable) continue;
-      for (let y = 0; y < L; y++) expect(r.cones.income.p90[y], id + ' year ' + y).toBeCloseTo(p.otherIncomeByYear[y], 6);
+      // what the ISA pays in each closed year's months (7.12.0, services/PaidYear.js otherIn): a part year 0 its months' share
+      for (let y = 0; y < L; y++) expect(r.cones.income.p90[y], id + ' year ' + y).toBeCloseTo(otherIn(p, y), 6);
       if (r.plan && r.plan.years) for (const yr of r.plan.years.slice(0, L)) expect(yr.need, id).toBe(0);
     }
   });

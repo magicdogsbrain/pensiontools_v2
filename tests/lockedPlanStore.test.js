@@ -207,9 +207,11 @@ describe('signed in: where a plan\'s pots belong is said on the copy in memory, 
   beforeEach(() => { vi.useFakeTimers({ toFake: ['Date'], now: NOW }); });
   afterEach(() => { vi.useRealTimers(); });
 
-  it('locked in its year 0: nothing (it runs as committed, from year 0); locked in its year 2: that day; a draft past its year 0: today', async () => {
+  it('locked in its year 0: year 0 from the lock\'s month (it runs from year 0); locked in its year 2: that day; a draft past its year 0: today', async () => {
+    // 7.12.0, the lead's ruling B: Alex was locked on 12 November 2024, in year 0 (2024/25), with no position recorded: its
+    // pots are that day's, so year 0 pays from November (7 months of 2024/25 gone). Nothing is shifted (elapsedYears 0).
     await open(alex());
-    expect((await getStressSettingsAsync()).potsAsOf).toBeUndefined();
+    expect((await getStressSettingsAsync()).potsAsOf).toEqual({ elapsedYears: 0, monthsIntoYear: 7 });
     await open(relocked());
     expect((await getStressSettingsAsync()).potsAsOf).toEqual({ elapsedYears: 2, monthsIntoYear: 5 });
     await open(draft());

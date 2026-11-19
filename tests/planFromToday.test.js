@@ -118,9 +118,11 @@ describe('where today stands in the plan (deriveTiming: planYearNow, elapsedYear
 });
 
 describe('which plan year the pots belong to: what the readers say (potsAsOf)', () => {
-  it('a plan locked in its year 0 says nothing, on any day: it runs from year 0, as committed', () => {
-    for (const now of [IN_YEAR_0, CORPUS_DAY, AFTER_T27]) expect(at(now, () => settingsOf(ALEX, now)).potsAsOf).toBeUndefined();
-    expect(lockedPotsAsOf(ALEX)).toBeNull();
+  it('a plan locked in its year 0 runs from year 0, on any day: its year 0 from the month it was locked', () => {
+    // 7.12.0, the lead's ruling B: Alex was locked on 12 November 2024 in year 0 with no position recorded; its pots are that
+    // day's, so year 0 pays from November (7 months gone). Nothing is shifted, on any day.
+    for (const now of [IN_YEAR_0, CORPUS_DAY, AFTER_T27]) expect(at(now, () => settingsOf(ALEX, now)).potsAsOf).toEqual({ elapsedYears: 0, monthsIntoYear: 7 });
+    expect(lockedPotsAsOf(ALEX)).toEqual({ elapsedYears: 0, monthsIntoYear: 7 });
   });
   it('a draft whose year 0 is behind it is seen from today; one in its year 0 or before says nothing', () => {
     for (const now of [CORPUS_DAY, IN_YEAR_1]) expect(at(now, () => settingsOf(draftOf(ALEX), now)).potsAsOf).toBe(POTS_TODAY);
@@ -135,12 +137,12 @@ describe('which plan year the pots belong to: what the readers say (potsAsOf)', 
   });
   it('the readers derive it every time: one saved by mistake decides nothing, and it is never what is saved', () => {
     const stray = { ...ALEX, stressTool: { ...ALEX.stressTool, settings: { ...ALEX.stressTool.settings, potsAsOf: { elapsedYears: 3, monthsIntoYear: 2 } } } };
-    expect(at(CORPUS_DAY, () => settingsOf(stray, CORPUS_DAY)).potsAsOf).toBeUndefined();
+    expect(at(CORPUS_DAY, () => settingsOf(stray, CORPUS_DAY)).potsAsOf).toEqual({ elapsedYears: 0, monthsIntoYear: 7 });   // the lock's month (ruling B), never the stray
     const s = { a: 1, potsAsOf: POTS_TODAY };
     expect(withoutPotsAsOf(s)).toEqual({ a: 1 });
     const plain = { a: 1 };
     expect(withoutPotsAsOf(plain)).toBe(plain);
-    expect(potsAsOfFor(ALEX, ALEX.stressTool.settings, CORPUS_DAY)).toBeNull();
+    expect(potsAsOfFor(ALEX, ALEX.stressTool.settings, CORPUS_DAY)).toEqual({ elapsedYears: 0, monthsIntoYear: 7 });   // the lock's month (ruling B)
   });
   it('settings with no word on it run from year 0, whatever the clock; "today" reads the run\'s own clock', () => {
     expect(runPositionOf({}, { elapsedYears: 2, monthsIntoYear: 4 })).toEqual({ elapsedYears: 0, monthsIntoYear: 0 });
@@ -224,7 +226,9 @@ describe('the plan as seen from today — fixture 13 as a draft on 30 September 
     expect(ladder.firstTaxYear).toBe(2026);
     expect(ladder.years.every((y) => y.Y >= 2026)).toBe(true);   // neither 2024/25 nor 2025/26 is bought again
     expect(ladder.years[0]).toMatchObject({ Y: 2026, age: 63, from: 'cash' });
-    expect(Math.round(ladder.years[0].need)).toBe(26500);      // the current plan year whole, over the twelve months from today
+    // 7.12.0, ruling C: the current plan year for its months from the pots' day, September to March: 26,500 × 7 ÷ 12 = 15,458.33
+    expect(Math.round(ladder.years[0].need)).toBe(15458);
+    expect(ladder.years[0].months).toBe(7);
     expect(ladder.years.filter((y) => y.from === 'cash').map((y) => y.Y)).toEqual([2026, 2027]);
     const locked = ALEX.planDocument.strategy.r.plan;
     expect(ladder.years.find((y) => y.from !== 'cash')).toMatchObject({ Y: 2028, from: locked.years.find((y) => y.Y === 2028).from });
@@ -254,22 +258,25 @@ describe('the plan as seen from today — fixture 13 as a draft on 30 September 
     expect(later.plan.orders.every((o) => o.matures > '2027-12-15')).toBe(true);
   });
 
-  it('the bought strategies cost the years from today: year k of the run is plan year k + 2, whole', () => {
+  it('the bought strategies cost the years from today: year k of the run is plan year k + 2, the current one for its months', () => {
     // The same plan at the same clock run the old way, from year 0: the same settings with no word on where the pots belong.
     const fromZero = at(now, () => planOf(withoutPotsAsOf(s), now));
     expect(fromZero.yearOffset).toBeUndefined();
     const c = deriveCompareConfigs(p), c0 = deriveCompareConfigs(fromZero);
-    for (let k = 1; k <= c.lr.ladderYears; k++) expect(c.lr.drawNetOfSp(k)).toBe(c0.lr.drawNetOfSp(k + 2));
+    // 7.12.0, ruling C: run year 1 is the current plan year's 7 months (September to March): 26,500 × 7 ÷ 12 = 15,458.33
+    expect(c.lr.drawNetOfSp(1)).toBeCloseTo(c0.lr.drawNetOfSp(3) * 7 / 12, 6);
+    for (let k = 2; k <= c.lr.ladderYears; k++) expect(c.lr.drawNetOfSp(k)).toBe(c0.lr.drawNetOfSp(k + 2));
     expect(c.baseLadderCost).toBeLessThan(c0.baseLadderCost);
   });
 
-  it('the cones: index 0 is the pots\' day in plan year 2; one row per year left; the first year a whole one (worst 12 months too)', () => {
+  it('the cones: index 0 is the pots\' day in plan year 2; one row per year left; the first year for its months, never the worst 12', () => {
     const pv = { ...s, strategyId: 'pots-and-valves', strategyParams: {} };
     const r = at(now, () => stressTestStrategy('pots-and-valves', quick(planOf(pv, now))));
     expect(r.cones.wealth.p50).toHaveLength(28);
     expect(r.cones.wealth.p50[0]).toBeCloseTo(450000 + 15000, 6);   // the pots entered, not year 0's
-    expect(r.cones.income.p50[0]).toBeCloseTo(26500, 6);
-    expect(gilt.cones.income.p50[0]).toBeCloseTo(26500, 6);
+    // 7.12.0, ruling C: the current year's 7 months, 26,500 × 7 ÷ 12 = 15,458.33 (it said the twelve months from today)
+    expect(r.cones.income.p50[0]).toBeCloseTo(26500 * 7 / 12, 6);
+    expect(gilt.cones.income.p50[0]).toBeCloseTo(26500 * 7 / 12, 6);
     // The worst twelve months is the plan's smallest step, never the part of a year still to come (finding: 7/12 of the year's figure).
     expect(gilt.worst12.min).toBe(22000);
   });
@@ -310,27 +317,32 @@ describe('every strategy is asked for the same whole years (findings: a made-up 
   const APRIL = new Date('2026-04-10T11:00:00.000Z'), MAY = new Date('2026-05-10T11:00:00.000Z'), MARCH = new Date('2027-03-10T11:00:00.000Z');
   const configsOn = (settings, now) => at(now, () => { const p = planOf(settings, now); return { p, c: deriveCompareConfigs(p) }; });
 
-  it('a flat plan stays flat: Ladder & ratchet draws its own yearly figure in May as in April', () => {
+  it('a flat plan stays flat: Ladder & ratchet draws its own yearly figure in May as in April (the current year for its months)', () => {
     const flat = { ...SAM, strategyId: 'ladder-and-ratchet', strategyParams: { drawAnnual: 20000 } };
     const april = configsOn(flat, APRIL), may = configsOn(flat, MAY);
     expect([april.p.yearOffset, april.p.monthsIntoYear, may.p.monthsIntoYear]).toEqual([1, 0, 1]);
     expect(may.p.targetSchedule == null || may.p.targetSchedule.length === 0).toBe(true);
     const draws = (x) => [1, 2, 3, 4].map((k) => x.c.lr.drawNetOfSp(k));
-    expect(draws(may)).toEqual(draws(april));
-    expect(may.c.lr.drawNetOfSp(1)).toBe(20000);
-    expect(may.c.lr.baseLadderCost).toBe(april.c.lr.baseLadderCost);
+    // 7.12.0, ruling C: the current plan year pays its months from the pots' day: April 12 (20,000), May 11 (20,000 × 11 ÷ 12 =
+    // 18,333.33); every later year 20,000 in both
+    expect(april.c.lr.drawNetOfSp(1)).toBe(20000);
+    expect(may.c.lr.drawNetOfSp(1)).toBeCloseTo(20000 * 11 / 12, 6);
+    expect(draws(may).slice(1)).toEqual(draws(april).slice(1));
+    expect(may.c.lr.baseLadderCost).toBeLessThan(april.c.lr.baseLadderCost);
   });
 
-  it('the floors: Floor the schedule and Floor & flex both buy a whole first year, in April and in March alike', () => {
+  it('the floors: Floor the schedule and Floor & flex both buy the current year for its months, in April and in March alike', () => {
     const stepped = { ...SAM, strategyId: 'floor-and-flex', strategyParams: { essentialsAnnual: 18000 }, incomeShape: 'phases', incomeSteps: [{ fromAge: 65, amount: 30000 }] };
     const floorsOf = (x) => Object.values(x.c).filter((v) => v && typeof v.floorDraw === 'function');
-    for (const now of [APRIL, MARCH]) {
+    // 7.12.0, ruling C: April has 12 months (30,000 and 18,000); March 1 (30,000 ÷ 12 = 2,500 and 18,000 ÷ 12 = 1,500)
+    for (const [now, months] of [[APRIL, 12], [MARCH, 1]]) {
       const x = configsOn(stepped, now);
       expect(x.p.targetSchedule[0]).toBe(30000);
       const draws = floorsOf(x).map((f) => f.floorDraw(1)).sort((a, b) => a - b);
-      expect(draws).toContain(30000);                           // the schedule's floor
-      expect(draws).toContain(18000);                           // the essentials floor
-      expect(draws.every((d) => d === 30000 || d === 18000)).toBe(true);
+      const [sched, ess] = [30000 * months / 12, 18000 * months / 12];
+      expect(draws).toContain(sched);                           // the schedule's floor
+      expect(draws).toContain(ess);                             // the essentials floor
+      expect(draws.every((d) => d === sched || d === ess)).toBe(true);
     }
   });
 });
@@ -352,7 +364,7 @@ describe('the document, the plan of record and the household read the offset', (
     expect(doc.timeline).toHaveLength(29);
     expect(doc.timeline[0]).toMatchObject({ y: 0, taxYear: '2024/25', age: 61, gross: 26500, lived: true });
     expect(doc.timeline[1]).toMatchObject({ y: 1, taxYear: '2025/26', age: 62, gross: 26500, lived: true });
-    expect(doc.timeline[2]).toMatchObject({ y: 2, taxYear: '2026/27', age: 63, gross: 26500 });
+    expect(doc.timeline[2]).toMatchObject({ y: 2, taxYear: '2026/27', age: 63, gross: 15458 });   // its 7 months (ruling C): 26,500 × 7 ÷ 12
     expect(doc.timeline[2].lived).toBeUndefined();
     expect(doc.timeline[2].monthsLeft).toBeUndefined();
     expect(doc.timeline[13]).toMatchObject({ y: 13, age: 74, gross: 26500 });
@@ -365,7 +377,7 @@ describe('the document, the plan of record and the household read the offset', (
 
   it('a running ladder\'s current-year row adds up; an older plan\'s extra cash is in no document and no run (7.4.2)', () => {
     const row = giltDoc.timeline[2];
-    expect(row).toMatchObject({ y: 2, gross: 26500, sp: 0, other: 0, contract: 26500, market: 0 });
+    expect(row).toMatchObject({ y: 2, gross: 15458, sp: 0, other: 0, contract: 15458, market: 0 });   // its 7 months (ruling C)
     expect(row.contract).toBe(Math.round(giltDoc.strategy.r.plan.years[0].need));
     expect('bridgeCash' in giltDoc.assumptions).toBe(false);
     expect(gp.params.bridgeCash).toBeUndefined();              // the run is never handed it
@@ -399,7 +411,8 @@ describe('the document, the plan of record and the household read the offset', (
     const later = runOn(lockedInYear0, new Date('2025-03-15T12:00:00.000Z'), '2024-12-15T12:00:00.000Z');
     expect([later.q.yearOffset, later.doc.pots.asOfPlanYear, later.doc.strategy.r.plan.cash]).toEqual([undefined, 0, noCash]);
     // Locked before its year 0 (its document says nothing of year 0's pots): run from year 0, no position written
-    const lockedBefore = { ...stopped(ALEX), planDocument: { ...ALEX.planDocument, pots: { ...ALEX.planDocument.pots } } };
+    const lockedBefore = { ...stopped(ALEX), planDocument: { ...ALEX.planDocument, lockedAt: '2024-03-15T12:00:00.000Z', pots: { ...ALEX.planDocument.pots } } };
+    lockedBefore.decisionTool = { ...ALEX.decisionTool, settings: { ...ALEX.decisionTool.settings, lockedAt: '2024-03-15T12:00:00.000Z' } };
     delete lockedBefore.planDocument.pots.asOfPlanYear;
     expect(lockedPotsAsOf(lockedBefore)).toBeNull();
     const before = runOn(lockedBefore, IN_YEAR_0, '2024-03-15T12:00:00.000Z');

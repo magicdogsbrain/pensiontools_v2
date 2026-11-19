@@ -6,6 +6,8 @@
  *
  * rows: [{ age, sp, other, contract, market, need, p10 }]
  */
+import { spIn, otherIn, monthsOf } from '../services/PaidYear.js';
+
 const gbpK = (v) => '£' + Math.round(v / 1000) + 'k';
 export const LAYER_COLORS = { sp: '#94a3b8', other: '#2dd4bf', contract: '#f59e0b', market: '#60a5fa' };
 export const LAYER_LABELS = { sp: 'State Pension', other: 'Other / DB income', contract: 'By contract (gilts)', market: 'From the market (median)' };
@@ -53,14 +55,15 @@ export function incomeLayersSvg({ rows }, o = {}) {
  */
 export function incomeLayersRows(r, p) {
   const N = p.durationYears;
-  const sp = (y) => (y >= (p.spStartYear ?? 99)) ? p.spAnnual * (y === p.spStartYear ? (p.spFirstYearRatio ?? 1) : 1) : 0;
-  const other = (y) => (p.otherIncomeByYear && p.otherIncomeByYear[y]) || 0;
+  // what arrives in the year's months, and the need for them: the one reading every way uses (services/PaidYear.js)
+  const sp = (y) => spIn(p, y);
+  const other = (y) => otherIn(p, y);
   // A lump sum (house sale, inheritance) the bought strategies spend is folded into otherIncomeByYear so the
   // stack sums; split it back out here so the plan document can say "from the lump sum" rather than "other
   // income" (6.11.3). used[y] = what the lump paid that year, from the arrivals and the year-end carry.
   const wf = Array.isArray(p.windfallByYear) ? p.windfallByYear : null, carry = Array.isArray(p.windfallCarryByYear) ? p.windfallCarryByYear : null;
   const lumpUsed = (y) => (wf && carry) ? Math.max(0, Math.min(other(y), ((y > 0 ? carry[y - 1] : 0) || 0) + (wf[y] || 0) - (carry[y] || 0))) : 0;
-  const needAt = (y) => (p.needByYear && p.needByYear[y] != null) ? p.needByYear[y] : (Array.isArray(p.targetSchedule) && p.targetSchedule[y] != null ? p.targetSchedule[y] : p.targetAnnual);
+  const needAt = (y) => ((p.needByYear && p.needByYear[y] != null) ? p.needByYear[y] : (Array.isArray(p.targetSchedule) && p.targetSchedule[y] != null ? p.targetSchedule[y] : p.targetAnnual)) * monthsOf(p, y) / 12;
   const p50 = r.cones?.income?.p50 || [], p10 = r.cones?.income?.p10 || [];
   const sig = r.signature || {};
   const rows = [];
@@ -74,7 +77,7 @@ export function incomeLayersRows(r, p) {
       case 'gilt-rotation': contract = y <= ((sig.rotateCutAge || 75) - p.startAge) ? netNeed : 0; break;   // above the cut it depends on whether the path rotated
       case 'floor-to-age': contract = y < ((sig.floorToAge || 80) - p.startAge) ? netNeed : 0; break;
       case 'bridge-and-engine': contract = y < (sig.B ?? ((sig.bridgeAge || 67) - p.startAge)) ? netNeed : 0; break;
-      case 'floor-and-flex': contract = Math.max(0, (p.essentialsAnnual || 0) - s - o); break;
+      case 'floor-and-flex': contract = Math.max(0, (p.essentialsAnnual || 0) * monthsOf(p, y) / 12 - s - o); break;
       case 'ladder-and-ratchet': contract = y < (sig.ladderYears || 0) ? Math.min(netNeed, sig.minDraw || p.params?.drawAnnual || netNeed) : 0; break;
       default: contract = 0;
     }

@@ -9,6 +9,7 @@ import { describe, it, expect, vi } from 'vitest';
 vi.mock('../src/firebase/index.js', () => ({ isFirebaseConfigured: () => false, isLoggedIn: () => false }));
 import { stressTestStrategy, planFromSettings, futuresOf } from '../src/strategies/stressTest.js';
 import { createSimulationConfigFromSettings } from '../src/storage/StressRepository.js';
+import { paidYearOf } from '../src/services/PaidYear.js';
 import { combineHouseholdStrategies, POOLED_TAX_UPLIFT } from '../src/services/HouseholdService.js';
 
 const NOW = new Date('2026-10-17T10:00:00Z');
@@ -21,7 +22,9 @@ const runOf = (id) => {
   const p = { ...planFromSettings(st, createSimulationConfigFromSettings({}, st), { startAge: 62, now: NOW }), mcRuns: 80, stride: 24 };
   return { p, r: stressTestStrategy(id, p) };
 };
-const plannedOf = (p) => (y) => (p.targetSchedule?.[Math.min(y, p.targetSchedule.length - 1)] ?? p.targetAnnual) + ((p.otherIncomeByYear && p.otherIncomeByYear[y]) || 0);
+// the plan's spending for each year's months (7.12.0, services/PaidYear.js): read on 17 October, year 0 has October to
+// March, 6 months, so it plans 60,000 × 6 ÷ 12 = 30,000 for them (a whole year's 60,000 read every future as lean in year 0)
+const plannedOf = (p) => (y) => paidYearOf(p, y).spending;
 const cutIdx = (r) => r.survivedMc.map((ok, i) => (ok ? null : i)).filter((i) => i != null);
 
 describe('each future says the year it was first cut', () => {

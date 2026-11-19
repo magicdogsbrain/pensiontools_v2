@@ -135,10 +135,14 @@ describe('every lock path records where the pots stood (the engines step\'s hand
     expect(doc.timing.monthsIntoYear).toBe(6);                // the lock's, though written ten months into the year
     expect(lockedPotsAsOf({ ...locked, planDocument: doc })).toEqual({ elapsedYears: 2, monthsIntoYear: 6 });
   });
-  it('a plan locked in its year 0 or before, with or without a document, runs from year 0 as it always did', () => {
-    expect(lockedPotsAsOf(ALEX)).toBeNull();                                                     // locked in year 0, with its document
+  it('a plan locked in its year 0 runs from year 0, its year 0 from the month it was locked; locked before it, from year 0 as always', () => {
+    // 7.12.0, the lead's ruling B: a retired plan locked in its year 0 with no position recorded has the lock day's pots, so
+    // its year 0 pays from the lock's month to March. Alex was locked on 12 November 2024, in plan year 0 (2024/25): April
+    // to October are gone, 7 months, so year 0 pays November to March, 5 (it was read from today's month, or as a whole year).
+    // Derived on read: nothing is written, and nothing is shifted (elapsedYears 0).
+    expect(lockedPotsAsOf(ALEX)).toEqual({ elapsedYears: 0, monthsIntoYear: 7 });               // locked in year 0, with its document
     const { planDocument, ...noDoc } = ALEX;
-    expect(lockedPotsAsOf(noDoc)).toBeNull();                                                    // locked 12 November 2024: plan year 0
+    expect(lockedPotsAsOf(noDoc)).toEqual({ elapsedYears: 0, monthsIntoYear: 7 });              // and with none
     // Re-written in review (6.51.0): the same draft, which says when work stopped, locked in December of its year 0 records
     // year 0 with its months gone — nothing is shifted (elapsedYears 0), but its pots are year 0's, after that year's April,
     // so its ladder sets no cash aside to it on any later day (PlanFromToday.runUpCashSpent)
@@ -277,7 +281,7 @@ describe('the ladder\'s month in the Decision tool is placed by the ladder\'s ow
   });
 });
 
-describe('the ladder\'s month for someone who stopped this tax year or earlier: the year begun before the pots\' day over twelve months', () => {
+describe('the ladder\'s month for someone who stopped this tax year or earlier: the year begun before the pots\' day, a month at the year\'s rate', () => {
   // A review of 6.51.0: the engines run the year the pots' day falls in as the twelve months from it, at that year's
   // figures; the Decision tool told the person to draw the whole year's need over the months left to 5 April (£7,600 a
   // month on a £38,000 year with five months left). Fixture 02's shape (Sam, fictional) on the full ladder, read on
@@ -307,9 +311,15 @@ describe('the ladder\'s month for someone who stopped this tax year or earlier: 
     expect(lp.remaining).toBeCloseTo(need, 6);                 // the year's money not yet drawn is all still held
   });
   it('stopped in an earlier tax year: the ladder bought from this tax year is paid the same way', () => {
+    // 7.12.0, the lead's ruling C (one axis for the current plan year): the plan two years in buys its current year for the
+    // months left from the pots' day, November to March (5), as the same plan made today does: need = £38,000 × 5 ÷ 12 =
+    // £15,833.33 (it bought the twelve months from November, £38,000), paid £3,166.67 a month (38,000 ÷ 12), as before.
     const { s, lp, need, firstY } = position('2024-07');
     expect([s.potsAsOf, firstY, lp.phase]).toEqual(['today', 2026, 'running']);
-    expect(lp.monthly).toBeCloseTo(need / 12, 6);
+    expect(need).toBeCloseTo(38000 * 5 / 12, 2);
+    expect(lp.monthly).toBeCloseTo(need / 5, 6);
+    expect(lp.monthly).toBeCloseTo(38000 / 12, 2);
+    expect(lp.instruction).toContain('in 2026/27 that is 5 payments, November 2026 to March 2027');
   });
   it('no stop month (year 0 this tax year, 7.4.0) and any later tax year: over the months left to 5 April, as always', () => {
     // 7.4.0: a retiree with no saved year and no stop month starts this tax year (it was next April, with nothing to draw

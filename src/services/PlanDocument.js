@@ -14,6 +14,7 @@ import { deriveTiming, describeTiming, taxYearLabel, taxYearKey, planYearOf, tax
 import { cleanSteps, amountAtAge, scheduleFromSteps } from './IncomeSchedule.js';
 import { spSimConfigFromSettings } from '../utils/StatePensionUtils.js';
 import { incomeLayersRows } from '../ui/incomeLayersGraphic.js';
+import { monthsOf } from './PaidYear.js';
 import { targetMixForYear, equityGlideFromRisk } from './GlidepathService.js';
 import { projectAccumulation, contributionBreakdown } from './AccumulationEngine.js';
 import { saverReading, saverPotOf } from './SaverReading.js';
@@ -155,10 +156,11 @@ export function buildTimeline({ settings, timing, p, r, layers }) {
   for (let y = 0; y < N; y++) {
     const age = startAge + y;
     const k = y - lived;   // the run's year
+    // the run's year for the months it has (services/PaidYear.js): a part first year says its months' figure, as its cone does
     const gross = k < 0 ? planGross(y)
-      : (p?.needByYear && p.needByYear[k] != null) ? p.needByYear[k]
+      : ((p?.needByYear && p.needByYear[k] != null) ? p.needByYear[k]
       : (Array.isArray(p?.targetSchedule) && p.targetSchedule[k] != null ? p.targetSchedule[k] + ((p.otherIncomeByYear && p.otherIncomeByYear[k]) || 0)
-      : amountAtAge(layers.steps, age, +s.baseSalary || 0));
+      : amountAtAge(layers.steps, age, +s.baseSalary || 0))) * (p ? monthsOf(p, k) : 12) / 12;
     const lr = (k >= 0 && rows[k]) || {};
     const sp = lr.sp ?? ((layers.sp && age >= layers.sp.fromAge) ? layers.sp.annual * (age === layers.sp.fromAge ? layers.sp.firstYearRatio : 1) : 0);
     const other = lr.otherPure ?? lr.other ?? layers.other.reduce((t, o) => t + (age >= o.fromAge && age <= o.toAge ? o.annual : 0), 0);

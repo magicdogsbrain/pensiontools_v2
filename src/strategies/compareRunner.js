@@ -24,6 +24,7 @@ import { profileTargetForYear } from '../services/IncomeProfile.js';
 import { stressTestAll, stressTestStrategy, STRATEGY_NAMES } from './stressTest.js';
 import { mixCells } from '../services/GlidepathService.js';
 import { withIncomeAnyway, worstTwelveOf, notYetMonthsOf } from './incomeAnyway.js';
+import { monthsOf, needAtK } from '../services/PaidYear.js';
 export { mixCells };
 
 
@@ -113,19 +114,20 @@ export function deriveCompareConfigs(p) {
   const ladderDraw = prm.drawAnnual > 0 ? prm.drawAnnual : p.targetAnnual;
   // Per-year income for plan-year k (1-based): the stepped/budget schedule when present, else flat.
   const sched0 = Array.isArray(p.targetSchedule) && p.targetSchedule.length ? p.targetSchedule : null;
-  // Year 0 for the months it has (7.12.0, planFromSettings p.year0Months): a first plan year that starts in the month work
-  // stops pays from that month to March, so every way buys and pays that share of year 1 (k = 1), as the full gilt ladder
-  // and Pots & Valves do; its State Pension likewise (drawNet). The lowest year drawn (minDraw) reads the year's rate.
-  const share1 = !(lived > 0) && p.year0Months > 0 && p.year0Months < 12 ? p.year0Months / 12 : 1;
-  const shareOf = (k) => (k === 1 ? share1 : 1);
+  // A plan year as the plan pays it (7.12.0, services/PaidYear.js): the run's first year pays for the months it has (from
+  // the month work stops, or the month of the pots' day, to March: planFromSettings p.year0Months), so every way buys and
+  // pays that share of year 1 (k = 1), and every year's State Pension is what arrives in it (its first year's share), as
+  // the full gilt ladder and Pots & Valves count it (drawNet, floorDraw, restCost). The lowest year drawn (minDraw) reads
+  // the year's rate.
+  const share1 = monthsOf(p, 0) / 12;
   const rateAt = (k) => (sched0 ? (sched0[Math.min(k - 1, sched0.length - 1)] ?? ladderDraw) : ladderDraw);
-  const amountAt = (k) => rateAt(k) * shareOf(k);
+  const amountAt = (k) => rateAt(k) * (k === 1 ? share1 : 1);
   const sched = share1 < 1 ? Array.from({ length: Math.max(1, p.durationYears, sched0 ? sched0.length : 0) }, (_, i) => amountAt(i + 1)) : sched0;
   // The years the pension cannot yet be touched (7.4.1, planFromSettings p.pensionLock): their need is paid from the ISA, so
   // the schedule is nothing in them and nothing is bought for them; the lowest year drawn is the lowest open one.
   const closedYears = p.pensionLock && p.pensionLock.years > 0 ? Math.min(p.pensionLock.years, p.durationYears - 1) : 0;
   const minDraw = Math.min(...Array.from({ length: p.durationYears - closedYears }, (_, i) => rateAt(closedYears + i + 1)));
-  const drawNet = (k) => shareOf(k) * Math.max(0, rateAt(k) - (k > (p.spStartYear ?? Infinity) ? (p.spAnnual || 0) : 0));
+  const drawNet = (k) => needAtK(p, k, rateAt(k));
   const baseLadderCost = (() => { let c = 0; for (let k = 1; k <= ladderYears; k++) c += drawNet(k) * Math.pow(1 + yf(k), -k); return c; })();
   const lrE0 = total - baseLadderCost;
   const lr = lrE0 > 0 ? {
@@ -146,7 +148,7 @@ export function deriveCompareConfigs(p) {
 
   // Floor & Flex: essentials floor (net of SP) to the horizon; remainder is the flex sleeve.
   // Closed years (above): no floor is bought for them, and the sleeve pays no treats in them (cfg.closedYears).
-  const floorDraw = (k) => (closedYears > 0 && k <= closedYears ? 0 : shareOf(k) * Math.max(0, p.essentialsAnnual - (k > (p.spStartYear ?? Infinity) ? (p.spAnnual || 0) : 0)));
+  const floorDraw = (k) => (closedYears > 0 && k <= closedYears ? 0 : needAtK(p, k, p.essentialsAnnual));
   const ffYears = prm.horizonAge > p.startAge ? Math.min(prm.horizonAge - p.startAge, p.durationYears) : p.durationYears;
   const ffFloorCost = floorCost({ drawForYear: floorDraw, years: ffYears, realYield, yieldForYear: p.yieldForYear });
   const ffE0 = total - ffFloorCost;
@@ -158,6 +160,7 @@ export function deriveCompareConfigs(p) {
     horizonAge: p.startAge + ffYears,
     ...(fixedTreats != null ? { flexMin: fixedTreats, flexMax: fixedTreats, treatsRule: 'fixed' } : {}),
     ...(closedYears > 0 ? { closedYears } : {}),
+    ...(share1 < 1 ? { notYetMonths: 12 - monthsOf(p, 0) } : {}),   // a part year 0 pays its months of the treats
     ...charged, ...shocked
   } : null;
 
@@ -177,7 +180,7 @@ export function deriveCompareConfigs(p) {
   const faE0 = total - faCost;
   // Cost AT age A (today's money) of buying years A+1..N at the schedule, and the annuity factor
   // for a level £1/yr over the same years — both priced on the curve by years-from-A.
-  const restCost = (amountFn) => { let c = 0; for (let k = A + 1; k <= p.durationYears; k++) c += Math.max(0, amountFn(k) - (k > (p.spStartYear ?? Infinity) ? (p.spAnnual || 0) : 0)) * Math.pow(1 + yf(k - A), -(k - A)); return c; };
+  const restCost = (amountFn) => { let c = 0; for (let k = A + 1; k <= p.durationYears; k++) c += needAtK(p, k, amountFn(k)) * Math.pow(1 + yf(k - A), -(k - A)); return c; };
   let annuityFactor = 0; for (let k = A + 1; k <= p.durationYears; k++) annuityFactor += Math.pow(1 + yf(k - A), -(k - A));
   const fa = faE0 > 0 ? {
     E0: faE0, rate: 0, END, floorCost: faCost, floorDraw: drawNet, yieldForYear: p.yieldForYear,

@@ -49,7 +49,8 @@ describe('a retired plan\'s year 0 pays for the months it has', () => {
     expect(year0MonthsOf(deriveTiming(pat, new Date(2026, 3, 20)))).toBe(12);
     expect(year0MonthsOf(deriveTiming(pat, new Date(2027, 2, 10)))).toBe(1);
     expect(year0MonthsOf(deriveTiming(pat, NOW), { elapsedYears: 0, monthsIntoYear: 2 })).toBe(10);
-    // a year 0 behind it: the twelve months from the pots' day, as always
+    // a year 0 behind it and no position: year0MonthsOf says nothing of it (12); its current year is counted from the pots'
+    // day by planFromSettings, the same months (7.12.0, ruling C: tests/partYearOneSum.test.js)
     expect(year0MonthsOf(deriveTiming({ ...pat, firstTaxYear: 2025 }, NOW))).toBe(12);
   });
 

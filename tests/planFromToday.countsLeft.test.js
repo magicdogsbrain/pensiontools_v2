@@ -65,10 +65,9 @@ afterAll(() => { setLinkersOverride(null); setEquityOverride(null); vi.useRealTi
 /** Alex's plan with a way of drawing and its dials (the pinned totals kept). */
 const withWay = (settings, id, dials) => ({ ...settings, strategyId: id, strategyParams: { sippTotal: 450000, isaTotal: 15000, ...dials } });
 /** The same plan made today: year 0 the current tax year, the age reached, two years shorter, the income from plan year 2. */
-// 7.12.0: a retired plan's year 0 read after April pays only the months left of it; a plan whose year 0 is behind it still
-// runs its current year as the twelve months from the pots' day (PlanFromToday). So "made today" is read with its pots at
-// the start of its year 0 (a recorded position of no months), the axis the plan seen from today runs on.
-const madeToday = (settings) => ({ ...withoutPotsAsOf(settings), firstTaxYear: 2026, shapeAgeNow: settings.shapeAgeNow + 2, duration: settings.duration - 2, targetSchedule: settings.targetSchedule.slice(2), potsAsOf: { elapsedYears: 0, monthsIntoYear: 0 } });
+// 7.12.0, ruling C (one axis for the current plan year): both read their current year for the months left from the pots'
+// day, September to March (7), so "made today" is read as made today, with nothing said of where its pots belong.
+const madeToday = (settings) => ({ ...withoutPotsAsOf(settings), firstTaxYear: 2026, shapeAgeNow: settings.shapeAgeNow + 2, duration: settings.duration - 2, targetSchedule: settings.targetSchedule.slice(2) });
 
 describe('the subject: Alex two tax years into the plan, seen from today', () => {
   it('runs from plan year 2: two years lived, at 63, for 27 years', () => {

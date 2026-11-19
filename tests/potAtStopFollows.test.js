@@ -76,7 +76,7 @@ describe('the household starts from the pot at the new stop', () => {
   }, 60000);
   it('the full view\'s Household tab reads both plans the same way, so it starts from the same figure', () => {
     const html = readFileSync('index.html', 'utf8');
-    expect(html).toMatch(/ownSettings = own \? effectiveStressSettings\(own, \{ now \}\)/);   // from the one day (contextFor), as the simple view's household run
+    expect(html).toMatch(/const ownSettings = effectiveStressSettings\(own, \{ now \}\)/);   // from the one day (contextFor), as the simple view's household run (which the tab now runs: householdRun.js)
     expect(html).toMatch(/partnerSettings = partner \? effectiveStressSettings\(partner, \{ now \}\) : null/);   // read before the one rule asks whether it can be tested (7.12.0)
   });
 });

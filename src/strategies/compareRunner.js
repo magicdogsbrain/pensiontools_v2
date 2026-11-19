@@ -146,9 +146,12 @@ export function deriveCompareConfigs(p) {
     ...charged, ...shocked
   } : null;
 
-  // Floor & Flex: essentials floor (net of SP) to the horizon; remainder is the flex sleeve.
+  // Floor & Flex: essentials floor to the horizon, net of the income that comes anyway (the State Pension in the year's
+  // months, and the other income and money paid before the pots, p.otherIncomeByYear, as every other way's schedule is);
+  // remainder is the flex sleeve.
   // Closed years (above): no floor is bought for them, and the sleeve pays no treats in them (cfg.closedYears).
-  const floorDraw = (k) => (closedYears > 0 && k <= closedYears ? 0 : needAtK(p, k, p.essentialsAnnual));
+  const otherRate = (k) => (Array.isArray(p.otherIncomeByYear) && p.otherIncomeByYear[k - 1]) || 0;
+  const floorDraw = (k) => (closedYears > 0 && k <= closedYears ? 0 : needAtK(p, k, Math.max(0, p.essentialsAnnual - otherRate(k))));
   const ffYears = prm.horizonAge > p.startAge ? Math.min(prm.horizonAge - p.startAge, p.durationYears) : p.durationYears;
   const ffFloorCost = floorCost({ drawForYear: floorDraw, years: ffYears, realYield, yieldForYear: p.yieldForYear });
   const ffE0 = total - ffFloorCost;

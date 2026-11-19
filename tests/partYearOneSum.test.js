@@ -145,6 +145,22 @@ describe('one axis for the current plan year: a plan two years in and the same p
   });
 });
 
+describe('Floor & Flex\'s floor takes off the income that comes anyway, as every other way does (check of E8, fault 2)', () => {
+  const planOf = (s) => planFromSettings(s, createSimulationConfigFromSettings({}, s), { now: NOW });
+  it('a final-salary pension of £6,000 from year 0: 6,166.67 then 10,000, as the others ask', () => {
+    // essentials £28,000 (Jo's strategyParams): year 0 (28,000 − 6,000) × 5 ÷ 12 − 3,000 = 6,166.67; year 1 22,000 − 12,000
+    const q = planOf({ ...jo, dbAmount: 6000, dbStartYear: 0 });
+    const c = deriveCompareConfigs(q);
+    expect(c.ff.floorDraw(1)).toBeCloseTo(6166.67, 2);
+    expect(c.ff.floorDraw(2)).toBeCloseTo(10000, 6);
+    expect(c.ff.floorDraw(1)).toBeCloseTo(c.fs.floorDraw(1), 6);
+  });
+  it('a general account of £50,000: nothing bought in years 0 and 1, as the others', () => {
+    const c = deriveCompareConfigs(planOf({ ...jo, taxableStart: 50000 }));
+    expect([c.ff.floorDraw(1), c.ff.floorDraw(2)]).toEqual([0, 0]);
+  });
+});
+
 describe('the State Pension\'s first year is whole months in every year, not only a part year 0 (check of E8, fault 3)', () => {
   // State Pension from 6 January 2028: its first tax year (2027/28) pays January, February and March, 3 × 1,000 = 3,000, the
   // first month counted whole (ruling C). It was 91 ÷ 366 × 12,000 = 2,983.61 whenever 2027/28 was a whole year.

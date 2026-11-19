@@ -4148,8 +4148,7 @@
     import {
       initAdminConfig, activeFundCatalogue, liveCatalogueEntry, isAdminUser, adminPassphrase,
       listFundSuggestions, submitFundSuggestion, deleteFundSuggestion,
-      saveFundCatalogueOverride, clearFundCatalogueOverride, saveProfileOverrides, activeProfileOverrides,
-      saveLinkersOverride
+      saveFundCatalogueOverride, clearFundCatalogueOverride, saveProfileOverrides, activeProfileOverrides
     } from './src/firebase/AdminConfigService.js';
     import { SUB_ASSET_PROFILE_DEFAULTS, TUNABLE_PROFILE_FIELDS } from './src/services/SubAssetModel.js';
 
@@ -11043,17 +11042,6 @@
     };
 
     window.adminSetTab = function (t) { _adminTab = t; renderAdminPanel(true); };
-    window.adminSaveLinkers = async function () {
-      const txt = (document.getElementById('adminLinkersCsv').value || '').trim();
-      const rows = txt.split('\n').map((l) => l.split(',').map((x) => x.trim())).filter((r) => r.length >= 3);
-      if (!rows.length) { showToast('Paste CSV rows first (name,coupon,maturity,lag)', 'warning'); return; }
-      try {
-        const n = await saveLinkersOverride(rows.map((r) => ({ name: r[0], coupon: +r[1], maturity: +r[2], lag: +r[3] || 3 })));
-        document.getElementById('adminLinkersStatus').textContent = n + ' gilts published ✓';
-        showToast('Linker universe updated (' + n + ' gilts)', 'success');
-      } catch (e) { showToast('Import failed: ' + e.message, 'error'); }
-    };
-
     function adminSubClassSelect(i, selected) {
       const groups = subClassOptionsByBucket();
       let opts = '';
@@ -11153,15 +11141,6 @@
           '<thead><tr><th style="text-align:left;">Ticker</th><th style="text-align:left;">Name</th><th style="text-align:left;">Category (model)</th><th></th></tr></thead>' +
           '<tbody>' + rows + '</tbody></table></div>';
       }
-      if (_adminTab === 'linkers') {
-        return '<div style="padding:4px 2px;">'
-          + '<p class="hint">Index-linked gilt universe (Appendix C). Paste CSV rows: <code>name,coupon,maturity,lag</code>. '
-          + 'Saving overrides the nightly DMO/BoE file (public/data/gilts.json) for all users. A bare CSV has no curve, so rungs fall back to a flat 2.3% real yield — prefer fixing the nightly job.</p>'
-          + '<textarea id="adminLinkersCsv" style="width:100%;min-height:180px;font-family:monospace;font-size:12px;" placeholder="0⅛% IL Treasury Gilt 2036,0.125,2036,3"></textarea>'
-          + '<div class="row-flex" style="margin-top:8px;">'
-          + '<button type="button" data-on-click="adminSaveLinkers()">Import &amp; publish</button>'
-          + '<span class="hint" id="adminLinkersStatus"></span></div></div>';
-      }
       if (_adminTab === 'categories') {
         const fields = ['nominalReturn', 'yield', 'vol', 'eqCorr', 'duration', 'inflationBeta', 'creditBeta', 'idioVol'];
         const rows = Object.entries(SUB_ASSET_PROFILE_DEFAULTS).map(([key, def]) => {
@@ -11205,7 +11184,7 @@
         '<div class="budwiz-shell">' +
           '<div class="budwiz-head" style="display:flex; justify-content:space-between; align-items:center;">' +
             '<div style="display:flex; gap:8px; align-items:center;"><strong>\u2699 Administration</strong>' +
-            tabBtn('funds', 'Funds') + tabBtn('categories', 'Category models') + tabBtn('suggestions', 'Suggestions') + tabBtn('linkers', 'Linkers') + '</div>' +
+            tabBtn('funds', 'Funds') + tabBtn('categories', 'Category models') + tabBtn('suggestions', 'Suggestions') + '</div>' +
             '<button type="button" class="risk-btn" style="padding:4px 12px;" data-on-click="closeAdminPanel()">&times;</button>' +
           '</div>' +
           '<div class="budwiz-body">' + adminBodyHtml() + '</div>' +

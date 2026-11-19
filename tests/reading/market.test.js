@@ -3,6 +3,8 @@
  * loads and is no older than the copy built in, else the copy built in; a stamp that says which and its date; one label.
  */
 import { describe, it, expect, afterEach } from 'vitest';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { join } from 'node:path';
 import { loadMarket, marketStamp, marketLabel, forgetMarket } from '../../src/reading/market.js';
 import { activeLinkers, realYieldForYear, BUNDLED_LINKERS } from '../../src/services/LinkerUniverse.js';
 import { activeEquity, BUNDLED_EQUITY } from '../../src/services/EquityIndex.js';
@@ -46,5 +48,23 @@ describe('the one market loader', () => {
     expect(marketLabel({ gilts: { source: 'file', asOf: '2026-11-12' } })).toBe('Gilts priced at the prices of 12 November 2026 (the day’s file).');
     expect(marketLabel({ gilts: { source: 'builtIn', asOf: '2026-11-12' } })).toMatch(/^Gilts priced at the prices of 12 November 2026 \(the copy built into the site/);
     expect(marketStamp().gilts.source).toBe('builtIn');
+  });
+});
+
+/** Every source file the site ships (src and the full view's page), for the one-writer check below. */
+function shipped(dir = 'src', out = []) {
+  for (const n of readdirSync(dir)) {
+    const p = join(dir, n);
+    if (statSync(p).isDirectory()) shipped(p, out);
+    else if (/\.(js|jsx|mjs)$/.test(n)) out.push(p);
+  }
+  return out;
+}
+
+describe('one writer of what a run is priced on', () => {
+  it('only the one market loader sets the gilts and the share index: no page-only override (the admin import is gone)', () => {
+    const writers = [...shipped(), 'index.html'].filter((f) => !/src[\\/](reading[\\/]market\.js|services[\\/](LinkerUniverse|EquityIndex)\.js)$/.test(f))
+      .filter((f) => /\b(setLinkersOverride|setLiveGilts|setLiveEquity|setEquityOverride)\s*\(/.test(readFileSync(f, 'utf8')));
+    expect(writers).toEqual([]);
   });
 });

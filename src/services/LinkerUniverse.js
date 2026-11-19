@@ -5,8 +5,8 @@
  *
  * Data: `public/data/gilts.json`, rebuilt nightly by scripts/fetch-gilt-data.mjs from the DMO
  * gilts-in-issue report and Tradeweb FTSE closing prices (T+1). `src/data/giltsSnapshot.js` is
- * the bundled copy for offline/tests; the one market loader (src/reading/market.js) swaps in the day's file; an
- * admin override (Firestore admin/linkers) sits above both. For 3-month-lag linkers the quoted
+ * the bundled copy for offline/tests; the one market loader (src/reading/market.js) swaps in the day's file, the
+ * same in both views' pages and workers. For 3-month-lag linkers the quoted
  * clean price is a real price, so a solved YTM is a real yield — but the curve that PRICES the
  * rungs is the Bank of England's daily real spot curve (realCurve in the file), with the per-gilt
  * YTMs as the fallback. That replaces the old flat 2.3% assumption. Everything shown from it is labelled indicative, never a recommendation.
@@ -65,7 +65,7 @@ export const BUNDLED_LINKERS = BUNDLED;
 let _override = null;   // admin-published
 let _live = null;       // fetched at runtime
 
-/** Admin CSV import applies here (persisted via AdminConfigService admin/linkers). */
+/** For the tests only: pins the gilts this JS context prices on (the site itself prices only through src/reading/market.js). */
 export function setLinkersOverride(data, now = new Date()) { _override = data && data.gilts ? normalise(data, now) : null; }
 export function setLiveGilts(data, now = new Date()) { _live = data && data.gilts ? normalise(data, now) : null; }
 export function activeLinkers() { return _override || _live || BUNDLED; }

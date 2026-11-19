@@ -227,7 +227,9 @@ export function weightedOptsOf(plan, { settings, strategyId, p, r, now, essentia
   const w = weightedYearsOf(life, p);
   let rW = r, wYears = p.durationYears, runs = 0, pRun = p;
   if (!stored && !reason && w.extend) {
-    const pW = row ? rowPlanOf(weightedPlanFor(settings, p, w.years, now, essentials), row) : weightedPlanFor(settings, p, w.years, now, essentials);
+    const pW0 = row ? rowPlanOf(weightedPlanFor(settings, p, w.years, now, essentials), row) : weightedPlanFor(settings, p, w.years, now, essentials);
+    // the futures followed on are the plan run's own, as many as it ran (lastsOf `futures`)
+    const pW = pW0.mcRuns === p.mcRuns ? pW0 : { ...pW0, mcRuns: p.mcRuns };
     rW = stressTestStrategy(strategyId, pW);
     wYears = pW.durationYears;
     runs = 1;
@@ -280,15 +282,21 @@ export function runForDocument(plan, { today, essentials = 0, onProgress = null,
 }
 
 /**
- * @param {object} plan   a saved plan, brought up to date in memory (scenarioMigration.upgradeScenario)
- * @param {{ today: string, onProgress?: (done: number, total: number) => void }} o
+ * THE ONE RUNNER of "does it last" on a saved plan (7.12.0, one answer for the same household): the effective settings, the
+ * plan every screen runs (planFor), the plan's own way of drawing (stressTestStrategy), the weighted part to the weighting
+ * age (weightedOptsOf) and the figures every screen reads (OneAnswer.oneAnswer). "Does it last?" (runLasts) is this; so is
+ * the question answers' crossing test, on the plan keeping an answer would write (answers/keep/keptPlan.js keptPlansOf).
+ *   futures    how many futures (the plan's own 1,000 when not given): the answers run at their own count, and the plan
+ *              followed on to the weighting age runs the same futures
+ *   histories  false: the real histories are left at one window (no figure of the chance, the run-out age or what is left
+ *              reads them); the plan's own stride when not given
+ * → { settings, strategyId, p, r, a, level, ladder, doc, storedR, docSuccess, weigh }
  */
-export function runLasts(plan, { today, onProgress = null, weighted = undefined } = {}) {
+export function lastsOf(plan, { today, onProgress = null, weighted = undefined, futures = null, histories = true } = {}) {
   const now = dateOf(today);
   const tell = (done, total) => { if (typeof onProgress === 'function') onProgress(done, total); };
   const settings = effectiveStressSettings(plan, { now });
   const strategyId = settings.strategyId || 'pots-and-valves';
-  const family = FAMILY.includes(strategyId);
   const locked = isLocked(plan);
   const doc = locked && isObj(plan.planDocument) ? plan.planDocument : null;
   const storedR = doc && doc.strategy && isObj(doc.strategy.r) ? doc.strategy.r : null;
@@ -304,6 +312,8 @@ export function runLasts(plan, { today, onProgress = null, weighted = undefined 
     p = doc.strategy.p; r = storedR;
   } else {
     p = planFor(settings, now);
+    if (Number.isInteger(futures) && futures > 0) p.mcRuns = futures;
+    if (histories === false) p.stride = WEIGHTED_HIST_STRIDE;
     r = stressTestStrategy(strategyId, p);
   }
   tell(1, total);
@@ -317,6 +327,17 @@ export function runLasts(plan, { today, onProgress = null, weighted = undefined 
     level = a.level;
   }
   if (weigh) tell(2, total);
+  return { settings, strategyId, p, r, a, level, ladder, doc, storedR, docSuccess, weigh };
+}
+
+/**
+ * @param {object} plan   a saved plan, brought up to date in memory (scenarioMigration.upgradeScenario)
+ * @param {{ today: string, onProgress?: (done: number, total: number) => void }} o
+ */
+export function runLasts(plan, { today, onProgress = null, weighted = undefined } = {}) {
+  const now = dateOf(today);
+  const { settings, strategyId, p, r, a, level, ladder, doc, storedR, docSuccess, weigh } = lastsOf(plan, { today, onProgress, weighted });
+  const family = FAMILY.includes(strategyId);
   const history = a
     ? { worst: worstStarts(r.histWindows, 5), named: namedStartRows(strategyId, p) }
     : { worst: [], named: [] };

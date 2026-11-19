@@ -66,8 +66,8 @@ test.describe(`the published build of ${V7_PATH}`, () => {
   });
 
   test('the files asked for by name are served as files, never the front page in their place', async ({ page }) => {
-    const worker = new URL(LAYOUT_UNDER_TEST.classic.data, PROD + CLASSIC_PATH + 'assets/').pathname;
-    const files = ['/privacy.html', '/data/gilts.json', '/data/equity.json', '/sw.js', ...(SWITCHED ? ['/manifest.json', worker + 'gilts.json', worker + 'equity.json'] : [])];
+    // (the market files are the site's one data folder: both pages hand it to their workers, so nothing sits beside the full view)
+    const files = ['/privacy.html', '/data/gilts.json', '/data/equity.json', '/sw.js', ...(SWITCHED ? ['/manifest.json'] : [])];
     for (const f of files) {
       const r = await page.request.get(PROD + f);
       expect(r.status(), f).toBe(200);

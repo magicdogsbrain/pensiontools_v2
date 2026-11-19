@@ -1,5 +1,5 @@
 {
- "at": "2026-11-19T00:15:25.171Z",
+ "at": "2026-11-19T01:50:00.980Z",
  "fixtures": [
   "age-only",
   "budget",
@@ -27575,7 +27575,7 @@
    {
     "key": "newPlan|£60,000",
     "kind": "carried over",
-    "detail": "seen on full stress settings"
+    "detail": "seen on full stress settings; full accumulation"
    },
    {
     "key": "pots.bandFill|s2f",

@@ -460,7 +460,7 @@ test.describe('parity round trips: a new plan after another', () => {
         }
         return found;
       }, look);
-      for (const f of got) if (!hits.has(f)) hits.set(f, where);
+      for (const f of got) { if (!hits.has(f)) hits.set(f, []); if (!hits.get(f).includes(where)) hits.get(f).push(where); }   // every place a figure is seen (check round 2 of step S: the first place alone hid a carry-over on a later page)
     };
     for (const p of FULL_PAGES) {
       if (!(await fullTab(page, p))) continue;
@@ -471,7 +471,7 @@ test.describe('parity round trips: a new plan after another', () => {
       await openSimplePage(page, stored.id, step);
       await scan(`simple ${step || 'home'}`);
     }
-    const entries = [...hits].map(([f, where]) => ({ key: `newPlan|${f}`, kind: 'carried over', press: false, detail: `seen on ${where}` }));
+    const entries = [...hits].map(([f, where]) => ({ key: `newPlan|${f}`, kind: 'carried over', press: false, detail: `seen on ${where.join('; ')}` }));
     if (!entries.length) entries.push({ key: 'newPlan|all', kind: 'ok', press: false });
     write('new-plan', fx.key, entries);
     await page.close();

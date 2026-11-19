@@ -211,7 +211,7 @@ function pnvRun(cfg, returns, seed, planYears, startAge) {
   });
   // After the money runs out the person still has the income that comes anyway (State Pension, a final-salary pension,
   // other income): the months the run did not reach are that, never £0 (strategies/incomeAnyway.js).
-  const lived = (r.failed && !process.env.OLDE1) ? withIncomeAnyway(inc, cfg, returns, planYears * 12) : inc;
+  const lived = r.failed ? withIncomeAnyway(inc, cfg, returns, planYears * 12) : inc;
   const worst12 = worstTwelveOf(lived);
   const incomeByYear = [];
   for (let y = 0; y < planYears; y++) { let s = 0; for (let m = 0; m < 12; m++) s += lived[12 * y + m] || 0; incomeByYear.push(s); }

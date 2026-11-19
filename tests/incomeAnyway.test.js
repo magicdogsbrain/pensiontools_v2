@@ -39,6 +39,14 @@ describe('worst 12 months include the income that comes anyway', () => {
     expect(Math.round(r.worst12.median)).toBe(20000);
   });
 
+  it('runs in a browser that has no `process` (the dev server defines none): a run that runs out still lives on £20,000', () => {
+    const p = plan(pat);
+    const keep = globalThis.process;
+    let r;
+    try { globalThis.process = undefined; r = stressTestStrategy('pots-and-valves', p); } finally { globalThis.process = keep; }
+    expect(Math.round(r.worst12.min)).toBe(20000);
+  });
+
   it('Buckets in order: the same £20,000', () => {
     const r = stressTestStrategy('buckets-in-order', plan(pat));
     expect(Math.round(r.worst12.min)).toBe(20000);

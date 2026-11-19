@@ -118,18 +118,23 @@ export function buildGiltLadder(p) {
   let cash = 0;
   const cashYearsList = [];
   const perGilt = new Map();
+  // Year 0 pays for the months it has (7.12.0): a first year that starts in the month work stops buys that share of the
+  // year (firstYearMonths, PlanTiming.year0MonthsOf) and says how many months it holds; absent or 12, a whole year.
+  const m0 = p.firstYearMonths > 0 && p.firstYearMonths < 12 ? Math.round(p.firstYearMonths) : 0;
   for (let k = 1; k <= p.durationYears; k++) {
     const age = p.startAge + k - 1;
     const Y = p.firstTaxYear + k - 1;
-    const gross = p.amountAtAge(age);
-    const need = Math.max(0, gross - spIn(age));
-    if (k <= cashYears) { const cost = need * cashCostFactor(k, o.cashRealDrag, p.chargesPct, p.returnDragPct); cash += cost; cashYearsList.push({ Y, age, gross, need, cost }); years.push({ Y, age, gross, need, cost, from: 'cash' }); continue; }
+    const share = k === 1 && m0 ? m0 / 12 : 1;
+    const gross = p.amountAtAge(age) * share;
+    const need = Math.max(0, p.amountAtAge(age) - spIn(age)) * share;
+    const part = k === 1 && m0 ? { months: m0 } : {};
+    if (k <= cashYears) { const cost = need * cashCostFactor(k, o.cashRealDrag, p.chargesPct, p.returnDragPct); cash += cost; cashYearsList.push({ Y, age, gross, need, cost, ...part }); years.push({ Y, age, gross, need, cost, from: 'cash', ...part }); continue; }
     const lo = (Y - 1) + '-04-01', hi = Y + '-03-31';
     let g = il.filter((x) => x.maturityDateIso >= lo && x.maturityDateIso <= hi).pop();
     let held = false;
     if (!g) { g = il.filter((x) => x.maturityDateIso < lo).pop(); held = true; }
-    if (!g) { years.push({ Y, age, gross, need, from: 'none' }); continue; }
-    years.push({ Y, age, gross, need, from: g.tidm, held, matures: g.maturityDateIso });
+    if (!g) { years.push({ Y, age, gross, need, from: 'none', ...part }); continue; }
+    years.push({ Y, age, gross, need, from: g.tidm, held, matures: g.maturityDateIso, ...part });
     const e = perGilt.get(g.tidm) || { g, pays: 0, taxYears: [] };
     e.pays += need; e.taxYears.push(Y); perGilt.set(g.tidm, e);
   }

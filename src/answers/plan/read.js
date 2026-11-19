@@ -479,6 +479,8 @@ function whereStep(C) {
   if (w.contract && !inputs.ladderInDocument) notes.push('where.ladderNotInDocument');
   if (w.ladder && typeof w.ladder.monthly === 'number' && w.ladder.monthly > 0 && !lines.some((l) => l.id === 'where.yearPlan')) {   // the month's figure once: the year as set up says it (7.12.0)
     figures.ladderMonthly = r0(w.ladder.monthly); lines.push(line('where.ladderMonthly', [money('ladderMonthly'), ' a month before tax'], figures, sourceOf('locked', lockedAt, now))); }
+  else if (w.ladder && w.ladder.starts && w.ladder.starts.monthly > 0 && !lines.some((l) => l.id === 'where.yearPlan')) {   // not paying yet: when it starts, and the month then
+    figures.ladderStarts = r0(w.ladder.starts.monthly); lines.push(line('where.ladderStarts', [w.ladder.starts.label + ': ', money('ladderStarts'), ' a month before tax'], figures, sourceOf('locked', lockedAt, now))); }
   // the records by tax year, a spreadsheet per year and the printed documents stay on the classic page (road-to-7.md step 11b, month.exports)
   const older = !w.saving && !!C.startLater && C.startLater.start > C.ty;
   const startHere = older && !C.readonly ? [link('aboutWhen', '#/plan/' + plan.id + '/about')] : [];

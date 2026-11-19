@@ -318,6 +318,8 @@ export const PLAN = {
     /** The band counts the ISA and no figure for it exists anywhere (7.12.0). */
     'where.potNoIsa': '',
     'where.ladderMonthly': 'Your plan pays',
+    /** A ladder not paying yet (year 0 starts in the month work stops): the month it starts, and the month's figure then. */
+    'where.ladderStarts': 'Your ladder pays from',
     'says.pays': '',
     'says.sp': '',
     'says.spAssumed': '',

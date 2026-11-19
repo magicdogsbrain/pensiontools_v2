@@ -12,7 +12,7 @@
  */
 import { deriveTiming, planYearOf } from './PlanTiming.js';
 import { spSimConfigFromSettings } from '../utils/StatePensionUtils.js';
-import { ladderMonthAdvice, ladderPosition, documentLadder, firstRungOf } from './LadderPosition.js';
+import { ladderMonthAdvice, ladderPosition, documentLadder, firstRungOf, startsOnOf } from './LadderPosition.js';
 import { ladderYearsFromYear0, planYearsOf, potsDayOf } from './PlanFromToday.js';
 
 /** The strategies that are bought by contract: a ladder of gilts held to pay (index.html CONTRACT_IDS). */
@@ -98,7 +98,7 @@ export function ladderFromDocument(planDocument, stressSettings, dateStr, now, r
     const plan = documentLadder(planDocument, stressSettings && stressSettings.strategyId);
     if (!plan) return null;
     const today = new Date(dateStr + (dateStr.length === 7 ? '-15' : ''));
-    const lp = ladderPosition(plan, { today, potsDay: potsDayOf(stressSettings, { lockedAt: planDocument.lockedAt, now }), cashBalance: null, records });
+    const lp = ladderPosition(plan, { today, potsDay: potsDayOf(stressSettings, { lockedAt: planDocument.lockedAt, now }), cashBalance: null, records, startsOn: startsOnOf(planDocument.timing) });
     return { lp, firstRung: lp ? firstRungOf(plan) : null };
   } catch { return null; }
 }

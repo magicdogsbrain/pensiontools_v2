@@ -1,0 +1,120 @@
+/**
+ * Year 0 pays for the months it has (walks3 W5-H3, W7-M1). A fictional plan: Sam stops work in October 2027; the plan pays
+ * £25,000 a year before tax from the ladder, its first tax year 2027/28.
+ *
+ * Worked by hand:
+ *   a month at the year's rate     25,000 ÷ 12 = 2,083.33 → £2,083
+ *   months year 0 has              October 2027 to March 2028 = 6
+ *   what year 0 pays               6 × 2,083.33 = 12,500
+ * In June 2027 Sam is still at work: nothing is paid yet (it said £2,500 a month: 25,000 over the 10 months left).
+ * In November 2027 the month is £2,083 (it said 25,000 over the 5 months left = £5,000).
+ *
+ * Alex (fictional) entered his pots in July 2026 on a ladder paying £34,000 a year: a month is 34,000 ÷ 12 = 2,833.33;
+ * 2026/27 has July 2026 to March 2027 = 9 payments, 9 × 2,833.33 = 25,500. The words say that, never "twelve months from
+ * July" (which reads as a year running to June 2027).
+ */
+import { describe, it, expect } from 'vitest';
+import { ladderPosition } from '../src/services/LadderPosition.js';
+
+const sam = {
+  years: [
+    { Y: 2027, age: 60, gross: 25000, need: 25000, from: 'cash' },
+    { Y: 2028, age: 61, gross: 25000, need: 25000, from: 'cash' },
+    { Y: 2029, age: 62, gross: 25000, need: 25000, from: 'T29' }
+  ],
+  orders: []
+};
+const day = (y, m, d = 15) => new Date(y, m - 1, d, 12);
+
+describe('a first tax year that starts in the month work stops', () => {
+  it('before the stop month nothing is paid yet; the plan says when it starts and what the year pays', () => {
+    const lp = ladderPosition(sam, { today: day(2027, 6), startsOn: '2027-10' });
+    expect(lp.phase).toBe('before');
+    expect(lp.monthly).toBe(0);                                    // was 25,000 ÷ 10 = £2,500
+    expect(lp.upcoming.monthly).toBeCloseTo(25000 / 12, 6);       // £2,083
+    expect(lp.upcoming.payments).toBe(6);
+    expect(lp.upcoming.yearPays).toBeCloseTo(12500, 6);
+    expect(lp.upcoming.startsLabel).toBe('October 2027');
+    expect(lp.instruction).toBe('The plan starts paying in October 2027: £2,083 a month, 6 payments to March 2028, £12,500.');
+  });
+
+  it('from the stop month the year is paid at its monthly rate for the months it has', () => {
+    const lp = ladderPosition(sam, { today: day(2027, 11), startsOn: '2027-10' });
+    expect(lp.phase).toBe('running');
+    expect(lp.monthly).toBeCloseTo(25000 / 12, 6);                 // was 25,000 ÷ 5 = £5,000
+    expect(lp.cashCheck).toBeNull();
+    expect(lp.instruction).toBe('The plan pays £2,083 a month: in 2027/28 that is 6 payments, October 2027 to March 2028, £12,500.');
+  });
+
+  it('a ladder built for a part year (its first year holds the months it pays) pays its need over those months', () => {
+    const part = { ...sam, years: [{ ...sam.years[0], need: 12500, months: 6 }, ...sam.years.slice(1)] };
+    expect(ladderPosition(part, { today: day(2027, 11), startsOn: '2027-10' }).monthly).toBeCloseTo(12500 / 6, 6);
+    expect(ladderPosition(part, { today: day(2027, 6), startsOn: '2027-10' }).upcoming.yearPays).toBeCloseTo(12500, 6);
+  });
+
+  it('a saver years before the first tax year is told the month it starts', () => {
+    const lp = ladderPosition(sam, { today: day(2026, 1), startsOn: '2027-10' });
+    expect(lp.phase).toBe('before');
+    expect(lp.upcoming.startsLabel).toBe('October 2027');
+    expect(lp.upcoming.payments).toBe(6);
+  });
+
+  it('later years and a stop in April are as always', () => {
+    expect(ladderPosition(sam, { today: day(2028, 5), startsOn: '2027-10' }).monthly).toBeCloseTo(25000 / 11, 6);
+    const april = ladderPosition(sam, { today: day(2027, 6), startsOn: '2027-04' });
+    expect(april.phase).toBe('running');
+    expect(april.monthly).toBeCloseTo(25000 / 10, 6);
+  });
+});
+
+describe('pots entered part-way through the first tax year: the payments this tax year, said as they are', () => {
+  const alex = { years: [{ Y: 2026, age: 64, gross: 34000, need: 34000, from: 'cash' }, { Y: 2027, age: 65, gross: 34000, need: 34000, from: 'cash' }], orders: [] };
+  it('£2,833 a month: 9 payments, July 2026 to March 2027, £25,500', () => {
+    const lp = ladderPosition(alex, { today: day(2026, 8), potsDay: '2026-07-10' });
+    expect(lp.monthly).toBeCloseTo(34000 / 12, 6);
+    expect(lp.instruction).toBe('The plan pays £2,833 a month: in 2026/27 that is 9 payments, July 2026 to March 2027, £25,500.');
+    expect(lp.instruction).not.toMatch(/twelve months/);
+  });
+});
+
+/**
+ * The ladder buys year 0 for the months it has (walks3 W4-M5). A fictional plan: Alex, 57 today, stops work in November 2029
+ * and draws £28,000 a year from a full index-linked ladder, its first two years from cash. Worked by hand:
+ *   months year 0 has     November 2029 to March 2030 = 5
+ *   year 0's need         28,000 × 5 ÷ 12 = 11,666.67 (it bought the whole £28,000, about £16,000 more)
+ *   year 1's need         28,000, a whole year
+ */
+import { buildGiltLadder } from '../src/strategies/GiltLadderPlan.js';
+import { year0MonthsOf } from '../src/services/PlanTiming.js';
+
+describe('the ladder buys year 0 for the months it has', () => {
+  it('months a first tax year has, from the month work stops', () => {
+    expect(year0MonthsOf({ mode: 'future', startMonth: '2029-11', firstTaxYear: 2029 })).toBe(5);
+    expect(year0MonthsOf({ mode: 'future', startMonth: '2030-02', firstTaxYear: 2029 })).toBe(2);
+    expect(year0MonthsOf({ mode: 'future', startMonth: '2029-04', firstTaxYear: 2029 })).toBe(12);
+    expect(year0MonthsOf({ mode: 'retired', startMonth: '2029-04', firstTaxYear: 2029 })).toBe(12);
+    expect(year0MonthsOf({ mode: 'future', startMonth: '2030-05', firstTaxYear: 2029 })).toBe(12);   // not in that year
+  });
+  it('year 0 is 5/12 of £28,000 and says so; the next year is whole', () => {
+    const base = { todayIso: '2026-11-18', pot: 700000, startAge: 60, durationYears: 30, amountAtAge: () => 28000, spAnnual: 0, spStartAge: 99,
+      firstTaxYear: 2029, linkers: [], cashYears: 2 };
+    const whole = buildGiltLadder(base);
+    const part = buildGiltLadder({ ...base, firstYearMonths: 5 });
+    expect(whole.years[0].need).toBe(28000);
+    expect(part.years[0].need).toBeCloseTo(28000 * 5 / 12, 6);
+    expect(part.years[0].months).toBe(5);
+    expect(part.years[1].need).toBe(28000);
+    expect(part.cash).toBeLessThan(whole.cash - 16000);              // about 16,333 less cash bought
+    expect(part.cash).toBeGreaterThan(whole.cash - 16500);
+  });
+  it('a stored part-year ladder reads as a year\'s figures: £28,000 a year, £2,333 a month from November', () => {
+    const part = { years: [{ Y: 2029, age: 60, gross: 28000 * 5 / 12, need: 28000 * 5 / 12, months: 5, from: 'cash' }, { Y: 2030, age: 61, gross: 28000, need: 28000, from: 'cash' }], orders: [] };
+    const lp = ladderPosition(part, { today: day(2029, 12), startsOn: '2029-11' });
+    expect(lp.monthly).toBeCloseTo(28000 / 12, 6);
+    expect(lp.gross).toBeCloseTo(28000, 6);
+    expect(lp.fromLadder).toBeCloseTo(28000, 6);
+    const before = ladderPosition(part, { today: day(2027, 1), startsOn: '2029-11' });
+    expect(before.upcoming.gross).toBeCloseTo(28000, 6);
+    expect(before.upcoming.yearPays).toBeCloseTo(28000 * 5 / 12, 6);
+  });
+});

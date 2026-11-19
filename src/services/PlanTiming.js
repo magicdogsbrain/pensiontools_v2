@@ -79,6 +79,17 @@ export function taxYearOfMonth(ym) {
   const [y, m] = String(ym).split('-').map(Number);
   return m >= 4 ? y : y - 1;
 }
+/**
+ * The months a plan's first tax year has (7.12.0: year 0 pays for the months it has): from the month work stops, for a plan
+ * still to start (timing mode 'future') whose stop month falls after April in its first tax year, to March (November → 5);
+ * 12 otherwise. A plan already running keeps its year as it always was.
+ */
+export function year0MonthsOf(timing) {
+  const ym = timing && timing.mode === 'future' ? String(timing.startMonth || '') : '';
+  if (!/^\d{4}-\d{2}$/.test(ym) || taxYearOfMonth(ym) !== +timing.firstTaxYear) return 12;
+  const m = +ym.slice(5, 7);
+  return m >= 4 ? 16 - m : 4 - m;
+}
 /** 'YYYY-MM' of `now`'s local month. */
 export function monthKeyOf(now = new Date()) { return now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0'); }
 /** Has work stopped by `now`? A stop in the current month has: the person is not saving any more. */

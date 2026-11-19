@@ -30,7 +30,7 @@ import { DEFAULT_ISA_GROWTH } from './IsaGrowth.js';
 import { isLockedSettings } from './LockedPlanGuard.js';
 import { deriveStage } from './LifeStage.js';
 import { whereAmI, buildTargetMix, CONTRACT_STRATEGIES } from './PlanDocument.js';
-import { documentLadder, ladderPosition } from './LadderPosition.js';
+import { documentLadder, ladderPosition, startsOnOf } from './LadderPosition.js';
 import { targetHoldings, diffHoldings, progress, yearNeedsOf } from './TransitionPlanner.js';
 import { normaliseHoldings } from './HoldingsRecord.js';
 import { potsAsOfFor, withoutPotsAsOf, lockedPotsAsOf, potsDayOf } from './PlanFromToday.js';
@@ -305,7 +305,8 @@ export function whereAmIInputs(scenario, { now = new Date() } = {}) {
     const plan = documentLadder(doc, doc.strategy.id || null);
     // a first year begun before the pots' day is paid over twelve months from it, as the planner's reading does (6.51.0)
     const potsDay = potsDayOf({ potsAsOf: lockedPotsAsOf(sc) }, { lockedAt: doc.lockedAt || null, now });
-    ladderPos = plan ? ladderPosition(plan, { today: now, potsDay, records: history }) : null;   // the months recorded this tax year (7.12.0)
+    // year 0 pays for the months it has: from the month work stops (startsOnOf, the document's timing)
+    ladderPos = plan ? ladderPosition(plan, { today: now, potsDay, records: history, startsOn: startsOnOf(doc.timing) }) : null;   // the months recorded this tax year (7.12.0)
   }
   const accHistory = doc && doc.accumulation && Array.isArray(sc.accumulationTool && sc.accumulationTool.history) ? sc.accumulationTool.history : [];
   const holdings = normaliseHoldings(sc.holdings);

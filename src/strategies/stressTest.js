@@ -19,7 +19,7 @@ import { runFlexWindows, runFlexMonteCarlo } from './FloorAndFlex.js';
 import { rotationPathsCtx, runRotationWindows, runRotationMonteCarlo, splitLadderAtAge, runRotationPath, spareGrowthRuns } from './GiltRotation.js';
 import { deriveCompareConfigs, compareAll } from './compareRunner.js';
 import { spTaxYearFirstRatio } from '../utils/StatePensionUtils.js';
-import { taxYearStartOf } from '../services/PlanTiming.js';
+import { taxYearStartOf, year0MonthsOf } from '../services/PlanTiming.js';
 import { spPaidBefore, ladderAsSeenFromToday } from '../services/PlanFromToday.js';
 import { grossToNet, netToGross } from '../services/TaxCalculator.js';
 import { cashCostFactor, buildGiltLadder, ladderWealthByYear } from './GiltLadderPlan.js';
@@ -171,6 +171,8 @@ export function planFromSettings(settings, cfg, { yieldForYear, essentialsAnnual
     spFirstYearRatioTaxYear: (lived > 0 && spPaidBefore(settings, timing.firstTaxYear + lived)) ? 1 : (spTaxYearFirstRatio(settings) ?? cfg.spFirstYearRatio ?? 1),
     firstTaxYear: timing.firstTaxYear,   // saved with the plan (6.4.0) — it no longer slides each January
     yearsToStart: timing.yearsToStart, timingMode: timing.mode,
+    // a first year that starts in the month work stops (7.12.0): the months it has, only when fewer than twelve
+    ...(lived > 0 || year0MonthsOf(timing) >= 12 ? {} : { year0Months: year0MonthsOf(timing) }),
     ...(lived > 0 ? { yearOffset: lived, monthsIntoYear: cfg.monthsIntoYear || 0, runFirstTaxYear: timing.firstTaxYear + lived } : {}),
     stride: 2, mcRuns: 1000,   // identical on both surfaces: compare row == locked-plan run
     isaHold: settings.isaDrawdownStrategy === 'hold',   // powder-dry ISA: never funds rungs/floors
@@ -602,6 +604,7 @@ function fullGiltTest(p, configs, { spareRuns = true } = {}) {
     spAnnual: p.spAnnual, spStartAge: p.startAge + (p.spStartYear ?? 99), spFirstYearRatio: p.spFirstYearRatioTaxYear ?? p.spFirstYearRatio ?? 1,
     firstTaxYear, linkers: fromToday ? fromToday.linkers : activeLinkers().gilts,
     cashYears: fromToday ? fromToday.cashYears : cashYears,
+    ...(!fromToday && p.year0Months > 0 && p.year0Months < 12 ? { firstYearMonths: p.year0Months } : {}),   // year 0 for the months it has
     chargesPct: p.chargesPct,   // the cash years sit in a money-market fund: charged (6.19.0); the gilts are not
     ...(p.returnDragPct > 0 ? { returnDragPct: p.returnDragPct } : {}),   // "lower returns" (7.9.0): on the cash years too
     ...(fromToday ? { lifeFromPricing: true } : {})

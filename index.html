@@ -4173,7 +4173,7 @@
 
     // State Pension date validation (guards against entering a date of birth)
     import { validateStatePensionDate, spSimConfigFromSettings } from './src/utils/StatePensionUtils.js';
-    import { ladderPosition, taxYearOf, borrowedFloorStatus, documentLadder, ladderForDisplay, repriceComparisonText, firstRungOf, ladderMonthAdvice, ladderCheckWords } from './src/services/LadderPosition.js';
+    import { ladderPosition, taxYearOf, borrowedFloorStatus, documentLadder, ladderForDisplay, repriceComparisonText, firstRungOf, ladderMonthAdvice, ladderCheckWords, startsOnOf } from './src/services/LadderPosition.js';
     import { repriceLadder } from './src/strategies/GiltLadderPlan.js';
     import { deriveTiming, migrateTiming, describeTiming, taxYearLabel, planYearOf, taxYearStartOf, decisionAnchorYear, staleDraft, staleDraftMessage, startYearChoices, stoppedWorkOf, taxYearOfMonth } from './src/services/PlanTiming.js';
     import { installStopMonth, stopMonthFromForm, paintStopMonth, wizardStop, recordBeforeStart, recordYearLabel as recordYearLabelFor, recordSourceWords, yearRowHtml, firstSetUpPlanYear, potsDayOf, planVsActualWords } from './src/ui/planStartUi.js';   // when the plan's income starts (6.51.0)
@@ -7803,7 +7803,8 @@
         return ladderPosition(_ladderPosCache.plan, {
           today, potsDay: potsDayOf(settings, { lockedAt: locked ? locked.doc.lockedAt : ((await getDecisionSettingsAsync().catch(() => ({}))) || {}).lockedAt, now: new Date() }),   // a first year begun before the pots' day: over twelve months (6.51.0)
           cashBalance: extra && extra.cashBalance != null ? extra.cashBalance : null,
-          drawnThisYear: extra && extra.drawnThisYear != null ? extra.drawnThisYear : null, records: await getHistoryAsync({ sortDesc: false, limit: 500 }).catch(() => [])   // with nothing typed, the months recorded this tax year (7.12.0)
+          drawnThisYear: extra && extra.drawnThisYear != null ? extra.drawnThisYear : null, records: await getHistoryAsync({ sortDesc: false, limit: 500 }).catch(() => []),   // with nothing typed, the months recorded this tax year (7.12.0)
+          startsOn: startsOnOf(locked ? locked.doc.timing : (() => { try { return deriveTiming(settings); } catch (e) { return null; } })())   // year 0 pays from the month work stops
         });
       } catch (e) { return null; }
     }
@@ -7820,12 +7821,12 @@
         let hb = '<div class="settings-section" style="border-color:var(--accent);">'
           + '<div class="section-title">Your gilt ladder — not drawing yet</div>';
         if (u) {
-          hb += '<p style="font-size:14px;">The ladder starts on <strong>6 April ' + u.Y + '</strong> (tax year ' + budEsc(u.label) + ', age ' + u.age + '). '
+          hb += '<p style="font-size:14px;">The ladder starts ' + (u.startsLabel && !/^6 April/.test(u.startsLabel) ? 'paying in <strong>' + budEsc(u.startsLabel) + '</strong>' : 'on <strong>6 April ' + u.Y + '</strong>') + ' (tax year ' + budEsc(u.label) + ', age ' + u.age + '). '
             + 'Nothing to instruct the broker until then.</p>'
             + '<div class="row-flex" style="gap:18px;flex-wrap:wrap;align-items:flex-start;">'
             + '<div><div class="hint">First income step</div><div style="font-size:20px;font-weight:600;">' + g(u.gross) + '</div>'
             + '<div class="hint">' + (u.statePension > 0 ? 'State Pension ' + g(u.statePension) + ' + ladder ' + g(u.fromLadder) : 'all from the ladder') + '</div></div>'
-            + '<div><div class="hint">Will be, from April</div><div style="font-size:20px;font-weight:600;color:var(--accent);">' + g(u.monthly) + ' / month</div>'
+            + '<div><div class="hint">Will be, from ' + budEsc(u.startsLabel && !/^6 April/.test(u.startsLabel) ? u.startsLabel : 'April') + '</div><div style="font-size:20px;font-weight:600;color:var(--accent);">' + g(u.monthly) + ' / month</div>'
             + '<div class="hint">paid by ' + (u.source === 'cash' ? 'the cash bucket' : 'rung ' + budEsc(u.source)) + '</div></div>'
             + '<div><div class="hint">Cash bucket</div><div style="font-size:20px;font-weight:600;">' + g(u.cashBucket) + '</div>'
             + '<div class="hint">' + u.cashYears + ' year' + (u.cashYears === 1 ? '' : 's') + ' before the first rung matures</div></div>'

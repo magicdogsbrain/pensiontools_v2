@@ -60,6 +60,11 @@ export function drawnFromRecords(records, Y, month) {
  *   figures (PlanFromToday.js, "The run's years"), so the ladder's first year, begun before it, is paid at its need over
  *   twelve months from that day — not squeezed into the months left to 5 April (6.51.0: someone who stopped work this tax
  *   year or earlier). Absent: every year over the months left to its 5 April, as always.
+ * @param {Date|string} [o.startsOn]  the month the plan's first payment is due ('YYYY-MM'): the month work stops, when it
+ *   falls after April in the ladder's first tax year (the plan's timing.startMonth, mode 'future'). That year pays for the
+ *   months it has, at the year's monthly rate (its need ÷ 12, or ÷ the months a ladder built for a part year holds): nothing
+ *   before that month (phase 'before', said with the month it starts), then a twelfth a month to March. Absent or April:
+ *   as always.
  * @returns {object|null} null when the plan has no years
  */
 export function ladderPosition(plan, o = {}) {
@@ -69,12 +74,14 @@ export function ladderPosition(plan, o = {}) {
   const years = plan.years;
   const first = years[0].Y, last = years[years.length - 1].Y;
   const cur = years.find((y) => y.Y === Y) || null;
-  const phase = Y < first ? 'before' : Y > last ? 'after' : 'running';
+  let phase = Y < first ? 'before' : Y > last ? 'after' : 'running';
 
-  // What the ladder owes this tax year, and the monthly instruction.
+  // What the ladder owes this tax year, and the monthly instruction. A first year built for part of the year (its `months`)
+  // owes that share; its gross and need are said as a year's (perYear), its month at the year's rate (rateOf below).
+  const perYear = (y, v) => (y && y.months > 0 ? v * 12 / y.months : v);
   const need = cur ? cur.need : 0;
-  const gross = cur ? cur.gross : 0;
-  const sp = Math.max(0, gross - need);
+  const gross = cur ? perYear(cur, cur.gross) : 0;
+  const sp = Math.max(0, gross - perYear(cur, need));
   const monthsLeft = monthsLeftInTaxYear(Y, today);
   // What is still to pay: a figure typed for what was drawn, taken off the need; else the months recorded this tax year
   // before this one, each counted as a month the plan paid (the records are in pounds of their day and the need in today's
@@ -85,7 +92,17 @@ export function ladderPosition(plan, o = {}) {
   const remaining = typed != null ? Math.max(0, need - typed) : need * monthsLeft / Math.max(monthsLeft, Math.min(12, monthsLeft + paidMonths));
   const potsDay = o.potsDay ? new Date(o.potsDay) : null;
   const spread = !!cur && Y === first && !!potsDay && Number.isFinite(potsDay.getTime()) && taxYearOf(potsDay) === Y;
-  const monthly = spread ? need / 12 : monthsLeft > 0 ? remaining / monthsLeft : 0;
+  // Year 0 pays for the months it has (7.12.0): a first tax year that starts in the month work stops pays nothing before
+  // that month and a month at the year's rate from it; a year begun before the pots' day likewise from that day's month.
+  const startDay = monthStartOf(o.startsOn);
+  const startsLate = !!startDay && taxYearOf(startDay) === first && startDay > new Date(first, 3, 6);
+  const notYet = startsLate && Y === first && ymOf(today) < ymOf(startDay);
+  const rateOf = (y) => (y ? (+y.need || 0) / (y.months > 0 ? y.months : 12) : 0);
+  const partYear = !!cur && Y === first && (spread || startsLate) && !notYet;
+  const monthly = notYet ? 0 : partYear ? rateOf(cur) : monthsLeft > 0 ? remaining / monthsLeft : 0;
+  // the month this tax year's payments began (part year): the later of the stop month and the pots' month
+  const paidFrom = partYear ? [startsLate ? startDay : null, spread ? new Date(potsDay.getFullYear(), potsDay.getMonth(), 15) : null].filter(Boolean).sort((a, b) => b - a)[0] : null;
+  const paymentsOf = (d) => monthsLeftInTaxYear(first, new Date(d.getFullYear(), d.getMonth(), 15));
 
   // What the cash years still need (7.12.0, as "Your plan's mix" reads it, answers/plan/held.js): this year's payments still
   // to come (the month's payment times the months left), and every later year the plan pays from cash. A gilt that has
@@ -108,32 +125,54 @@ export function ladderPosition(plan, o = {}) {
   const cashCheck = bal == null ? null : { balance: bal, dueThisYear, laterCashYears, need: dueThisYear + laterCashYears, diff: bal - (dueThisYear + laterCashYears) };
 
   // The first year of the ladder, for a plan that has not started drawing yet.
+  if (notYet) phase = 'before';
   const firstYear = years[0];
+  const firstPayments = startsLate ? paymentsOf(startDay) : 12;
   const upcoming = phase === 'before' ? {
     Y: firstYear.Y, label: `${firstYear.Y}/${String(firstYear.Y + 1).slice(2)}`, age: firstYear.age,
-    gross: firstYear.gross, fromLadder: firstYear.need, statePension: Math.max(0, firstYear.gross - firstYear.need),
-    monthly: firstYear.need / 12, source: firstYear.from, startsOn: new Date(firstYear.Y, 3, 6),
+    gross: perYear(firstYear, firstYear.gross), fromLadder: perYear(firstYear, firstYear.need), statePension: Math.max(0, perYear(firstYear, firstYear.gross - firstYear.need)),
+    monthly: rateOf(firstYear), source: firstYear.from, startsOn: startsLate ? startDay : new Date(firstYear.Y, 3, 6),
+    startsLabel: startsLate ? MONTHS[startDay.getMonth()] + ' ' + startDay.getFullYear() : '6 April ' + firstYear.Y,
+    payments: firstPayments, yearPays: rateOf(firstYear) * firstPayments, startsLate,
     cashBucket: plan.cash || 0,
     cashYears: years.filter((y) => y.from === 'cash').length
   } : null;
+  const toMarch = 'March ' + (Y + 1);
 
   return {
     taxYear: Y, taxYearLabel: `${Y}/${String(Y + 1).slice(2)}`, phase, upcoming,
-    age: cur ? cur.age : null, gross, statePension: sp, fromLadder: need,
+    age: cur ? cur.age : null, gross, statePension: sp, fromLadder: perYear(cur, need),
     source: cur ? cur.from : null, sourceHeld: cur ? !!cur.held : false,
     monthsLeft, drawnThisYear: drawn, remaining, monthly,
     next: nextInfo, cashCheck,
     yearsLeft: Math.max(0, last - Y),
     spread,
-    instruction: cur
+    instruction: phase === 'before' && startsLate
+      ? `The plan starts paying in ${upcoming.startsLabel}: ${fmt(upcoming.monthly)} a month, ${firstPayments} payment${firstPayments === 1 ? '' : 's'} to March ${first + 1}, ${fmt(upcoming.yearPays)}.`
+      : cur
       // what the plan's rule does this month, never an order to give (7.12.0 round 3, decision 6)
-      ? (spread ? `The plan pays ${fmt(monthly)} a month: it pays this tax year's income over the twelve months from ${MONTHS[potsDay.getMonth()]} ${potsDay.getFullYear()}, the month its pots were entered.`
+      ? (partYear ? `The plan pays ${fmt(monthly)} a month: in ${Y}/${String(Y + 1).slice(2)} that is ${paymentsOf(paidFrom)} payment${paymentsOf(paidFrom) === 1 ? '' : 's'}, ${paymentsOf(paidFrom) === 1 ? toMarch : MONTHS[paidFrom.getMonth()] + ' ' + paidFrom.getFullYear() + ' to ' + toMarch}, ${fmt(monthly * paymentsOf(paidFrom))}.`
         : `The plan pays ${fmt(monthly)} a month for the ${monthsLeft} month${monthsLeft === 1 ? '' : 's'} to 5 April ${Y + 1}.`)
       : (phase === 'before' ? `The ladder starts in ${first}/${String(first + 1).slice(2)}.` : 'The ladder has paid its last year.')
   };
 }
 
 function fmt(v) { return '£' + Math.round(v).toLocaleString('en-GB'); }
+/**
+ * The month a plan's first payment is due, from its timing (deriveTiming, or a plan document's copy of it): the month work
+ * stops for a plan still to start (mode 'future'), else null (a plan already running: its year began as it always did).
+ */
+export function startsOnOf(timing) {
+  return timing && timing.mode === 'future' && /^\d{4}-\d{2}$/.test(String(timing.startMonth || '')) ? timing.startMonth : null;
+}
+/** The first day of a month given as 'YYYY-MM', a date string or a Date (6 April for April); null when unreadable. */
+function monthStartOf(v) {
+  if (!v) return null;
+  const m = /^(\d{4})-(\d{2})$/.exec(String(v));
+  const d = m ? new Date(+m[1], +m[2] - 1, 1) : new Date(v);
+  if (!Number.isFinite(d.getTime())) return null;
+  return d.getMonth() === 3 ? new Date(d.getFullYear(), 3, 6) : new Date(d.getFullYear(), d.getMonth(), 1);
+}
 
 /**
  * The ladder box's check in words (7.12.0), one sentence a line: this year's payments still to come, then — with a cash

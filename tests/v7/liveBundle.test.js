@@ -44,7 +44,7 @@ describe('the classic page\'s build', () => {
     expect(live.root).toBe('.');
     expect(live.base).toBe('./');
     expect(live.publicDir).toBe('public');
-    expect(pluginNames(live)).toEqual(['pt:empty-own-folder', 'pt:classic-head-before', 'pt:classic-head-after', 'pt:classic-data']);
+    expect(pluginNames(live)).toEqual(['pt:empty-own-folder', 'pt:classic-head-before', 'pt:classic-head-after']);   // no copy of data/ beside the page: both workers read the site's one data folder
   });
   it('the rollback (LAYOUT=preview) writes docs/ as before 7.0, with the public folder, and leaves V7\'s docs/v7 alone', () => {
     const back = made(classicConfig, { layout: 'preview' });

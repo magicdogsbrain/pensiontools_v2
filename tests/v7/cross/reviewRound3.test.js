@@ -262,8 +262,10 @@ describe('R10 — 85% to under 90% is "just under 9" everywhere', () => {
     }
     expect(b.sentences.change.text).toBe('Now: not on course for 67, lasted in just under 9 futures out of 10.');
   });
-  it('C\'s take at 87.5% (58, £250,000, taking £1,360): "just under 9"', () => {
-    const c = answerC({ you: { age: 58, pot: 250000 }, take: 1360 }, COUNT);
+  // (7.12.0, E8 fix round 1: the take that gives 35 of 40 moved with the State Pension's first year counted in whole months
+  // — a little more State Pension that year, so £1,360 lasts in 36 of 40 and £1,370 in 35)
+  it('C\'s take at 87.5% (58, £250,000, taking £1,370): "just under 9"', () => {
+    const c = answerC({ you: { age: 58, pot: 250000 }, take: 1370 }, COUNT);
     expect(c.take.lasted).toBe(0.875);
     expect(c.sentences.take.text).toContain('the money lasted to 95 in just under 9 futures out of 10.');
   });

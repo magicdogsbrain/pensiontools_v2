@@ -177,9 +177,13 @@ describe('Ladder & ratchet: its ladder years are the years left of them from tod
  * percent: Node majors may differ in the last bit of a figure). Before it, the bridge held two more years in cash than its
  * dial gives, and the base ladder bought plan years 2 to 11 for a plan whose ladder ends with plan year 9.
  */
+// Retaken in 7.12.0 (step E8, ruling C): the current plan year is bought for its 7 months (September to March), not the
+// twelve months from the pots' day: the bridge's cash year 26,500 x 5 / 12 = 11,041.67 less (104,471 -> 93,429), and the
+// base ladder's first rung likewise, less a little more for the year the State Pension starts in (11 May 2030: its share of
+// that tax year, 330 / 365, where it took a whole year off), 160,138 -> 150,150. The rest stays in the sleeve.
 const PINS = {
-  'bridge-and-engine': { dials: { cashYears: 3 }, cost: 104471, E0: 360529, ruinHist: 0.3, ruinMc: 3.3, terminalP50: 867209 },
-  'ladder-and-ratchet': { dials: { ladderYears: 10 }, cost: 160138, E0: 304862, ruinHist: 23.4, ruinMc: 21.7, terminalP50: 420044 }
+  'bridge-and-engine': { dials: { cashYears: 3 }, cost: 93429, E0: 371571, ruinHist: 0.13, ruinMc: 1.7, terminalP50: 908792 },
+  'ladder-and-ratchet': { dials: { ladderYears: 10 }, cost: 150150, E0: 314850, ruinHist: 21.9, ruinMc: 20.0, terminalP50: 461079 }
 };
 describe('the pins: Alex two years in, for both ways', () => {
   for (const [id, pin] of Object.entries(PINS)) {

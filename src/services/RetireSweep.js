@@ -1,8 +1,8 @@
 /**
  * "When can I retire?" — the quick spin (6.10.0).
  *
- * For each candidate retirement age: project today's pension pot and contributions to that age (today's
- * money, at the holder's own mix when known, else the FCA middle band), then run the plan's strategy from
+ * For each candidate retirement age: the pots at that age from the plan's own saving lives (today's money; the one model of
+ * the pot at the stop, step F1), then run the plan's strategy from
  * that age on the plan's income shape (or a flat income the user types), and read the chance the money lasts. Reads
  * as "at £40,000 a year you could retire at 61 and be on course: the money lasted in 92% of futures, or at 58 if lasting
  * in 3 futures out of 4 is enough" (6.22.0: "on course" = 9 in 10, OnCourse.js). Each age is judged on the ONE engine
@@ -13,13 +13,8 @@
  */
 import { stressTestStrategy } from '../strategies/stressTest.js';
 import { enginePlanOf } from '../reading/gather.js';
-import { projectAccumulation, contributionBreakdown } from './AccumulationEngine.js';
-import { proportions as holdingsProportions, pensionPotFromHoldings } from './Holdings.js';
-import { holdingsLines } from './HoldingsRecord.js';
-import { deriveTiming, taxYearLabel, isaProjectionOf } from './PlanTiming.js';
-import { chargesPctOf, yearlyChargeFactor } from './Charges.js';
-import { cashProjectionRate } from './IsaGrowth.js';
-import { INFLATION_DEFAULTS } from '../constants.js';
+import { savingPathAt } from './PotsAtStop.js';
+import { deriveTiming, taxYearLabel } from './PlanTiming.js';
 import { ON_COURSE_PCT, confidenceWords } from './OnCourse.js';
 import { pctText } from './OneAnswer.js';
 import { SUCCESS } from '../answers/shared/rules.js';
@@ -37,91 +32,41 @@ export function candidateAges(currentAge, retireAge = null, { step = 1, max = 75
 }
 
 /**
- * Pot at a candidate age in today's money — the same projection the Accumulation planner shows.
- * `holdings` is the holdings record (or its lines) — what the person holds; the pension pot is its
- * SIPP-wrapped total, else the Accumulation planner's "pot today", else null. Never the Stress settings'
- * equityMin/bondMin/cashTarget or taggedFunds: those are the pots a strategy is TESTED on (6.13.0).
- * @returns {{ potNow, totalMonthly, years, pot, low, high, basis }} — pot/low/high/basis null when no pot is on record
+ * The pots at a candidate age, in today's money (step F1, lead4.md D4): the one model — the plan's saving lives to that age
+ * (services/PotsAtStop.js savingPathAt, the same lives, seed and mixes as the plan's own pot at the stop), the pension's
+ * middle with its bad and good cases, and the ISA's middle. `inputs` is PotsAtStop.savingInputsOf(plan, settings): the
+ * plan's own pension and ISA today and what goes into each — never a box of a form.
+ * @returns {{ potNow, totalMonthly, years, pot, low, high, isa, basis }} — pot/low/high/isa null when no pension is known
  */
-export function potAtAge({ settings, accumulation, currentAge, age, holdings = null }) {
-  const a = accumulation || {};
-  const lines = holdingsLines(holdings);
-  const prop = lines.length ? holdingsProportions(lines) : null;
-  const fromLedger = pensionPotFromHoldings(lines);
-  const potNow = fromLedger > 0 ? fromLedger : (num(a.potNow) > 0 ? num(a.potNow) : null);
-  let totalMonthly = 0;
-  try { if (num(a.netMonthly) > 0 || num(a.employerMonthly) > 0) totalMonthly = contributionBreakdown({ netMonthly: num(a.netMonthly), salary: num(a.salary), schemeType: a.schemeType || 'ras', employerMonthly: num(a.employerMonthly) }).totalMonthly || 0; } catch (e) { totalMonthly = 0; }
-  if (!(totalMonthly > 0) && prop && prop.contributions.monthly > 0) totalMonthly = prop.contributions.monthly;
+export function potAtAge({ settings, inputs, currentAge, age, now = new Date() }) {
+  const i = inputs || {};
+  const x = i.explicit || {};
   const years = Math.max(0, age - currentAge);
-  if (potNow == null) return { potNow: null, totalMonthly, years, pot: null, low: null, high: null, basis: null };
-  // The plan's fund and platform charges (6.19.0) come off every line; on the "your mix" line they replace the
-  // holdings' own fund charges (mixOcf), so fund costs are not taken twice. None on a plan without the setting.
-  const rows = projectAccumulation({ currentAge: 0, retirementAge: years, potNow, totalMonthly, escalationPct: num(a.escalationPct), mixRealReturn: prop && prop.total > 0 ? prop.expectedReal : null,
-    chargesPct: chargesPctOf(settings), mixOcf: prop && prop.total > 0 ? prop.weightedOcf : null });
-  const last = rows[rows.length - 1];
-  return { potNow, totalMonthly, years, pot: Math.round(last.potMix != null ? last.potMix : last.potMid), low: Math.round(last.potLow), high: Math.round(last.potHigh), basis: last.potMix != null ? 'your mix' : 'FCA middle band' };
+  if (!i.potKnown || x.potNow == null) return { potNow: null, totalMonthly: num(x.totalMonthly), years, pot: null, low: null, high: null, isa: null, basis: null };
+  const path = savingPathAt({ settings, timing: { mode: 'future', currentAge, shapeAgeNow: age }, accumulation: i.accumulation || {}, holdings: i.holdings || null, phases: i.phases || null, explicit: x, now });
+  const rows = path && Array.isArray(path.path) ? path.path : [];
+  const last = rows.length ? rows[rows.length - 1] : null;
+  if (!last) return { potNow: x.potNow, totalMonthly: num(x.totalMonthly), years, pot: null, low: null, high: null, isa: null, basis: null };
+  return { potNow: x.potNow, totalMonthly: num(x.totalMonthly), years, pot: Math.round(last.pension.real), low: Math.round(last.pension.realCareful), high: Math.round(last.pension.realGood), isa: Math.round(last.isa.real), basis: SAVING_BASIS };
 }
 
-/** The yearly rise after prices the spin has always grown an ISA at when the plan has no choice of how it grows (2%). */
-const ISA_BEFORE_REAL = 0.02;
-
-/**
- * The ISA at a candidate age in today's money, by how the plan's ISA grows (6.22.0, services/IsaGrowth.js;
- * PlanTiming.isaProjectionOf):
- *   - no choice (a plan locked before it): today's rule exactly — the ISA × 1.02^years × the charge, nothing paid in;
- *   - the ISA funds in the list of funds to test decide (the runs follow them): the same rule (6.21.0's figure), with what
- *     goes in each month on the same 2% a year after prices — never the choice hidden behind the funds' line;
- *   - 'cash' ("Mostly cash"): the cash rule at the planner's 2.5% prices (1.5% a year), less charges;
- *   - 'invested' ("Invested like my pension"): the pension's own line — its mix line when holdings are tagged (the plan's
- *     charge replacing the funds' own, as potAtAge does), else the FCA middle band.
- * With a choice, what goes into ISAs and savings each month (accumulation.isaMonthly) is paid in, rising with the
- * planner's "Raise contributions by".
- * @returns {{ isa: number, basis: null | 'cash' | 'your mix' | 'FCA middle band' }}   basis null: the rule used before the choice
- */
-export function isaAtAge({ settings, accumulation, currentAge, age, holdings = null }) {
-  const s = settings || {};
-  const a = accumulation || {};
-  const years = Math.max(0, age - currentAge);
-  const isaNow = num(s.isaBalance) > 0 ? num(s.isaBalance) : 0;
-  const pct = chargesPctOf(s);
-  const how = isaProjectionOf(s);
-  const isaMonthly = how.payIns && num(a.isaMonthly) > 0 ? num(a.isaMonthly) : 0;
-  const common = { currentAge: 0, retirementAge: years, potNow: isaNow, totalMonthly: isaMonthly, escalationPct: num(a.escalationPct), chargesPct: pct };
-  if (!how.kind) {
-    const grown = isaNow > 0 ? isaNow * Math.pow(1 + ISA_BEFORE_REAL, years) * yearlyChargeFactor(pct, years) : 0;
-    let paid = 0;
-    if (isaMonthly > 0) {
-      const rows = projectAccumulation({ ...common, potNow: 0, fixedNominal: (1 + ISA_BEFORE_REAL) * (1 + INFLATION_DEFAULTS.ASSUMED_CPI) - 1, assumedCpi: INFLATION_DEFAULTS.ASSUMED_CPI });
-      paid = rows[rows.length - 1].potMid;
-    }
-    return { isa: isaNow > 0 || paid > 0 ? Math.round(grown + paid) : 0, basis: null };
-  }
-  if (how.kind === 'cash') {
-    const rows = projectAccumulation({ ...common, fixedNominal: cashProjectionRate(INFLATION_DEFAULTS.ASSUMED_CPI) });
-    return { isa: Math.round(rows[rows.length - 1].potMid), basis: 'cash' };
-  }
-  const lines = holdingsLines(holdings);
-  const prop = lines.length ? holdingsProportions(lines) : null;
-  const tagged = prop && prop.total > 0;
-  const rows = projectAccumulation({ ...common, mixRealReturn: tagged ? prop.expectedReal : null, mixOcf: tagged ? prop.weightedOcf : null });
-  const last = rows[rows.length - 1];
-  return { isa: Math.round(last.potMix != null ? last.potMix : last.potMid), basis: last.potMix != null ? 'your mix' : 'FCA middle band' };
-}
+/** How the spin's pots are worked out, in its own words. */
+export const SAVING_BASIS = 'the middle of the same futures every test of your plan uses';
 
 /**
  * The plan as if retiring at `age` — one row of the spin: a fresh saver's frame so the steps start at that age, and its
  * pots at retirement the projections above (the pension's and the ISA's). The runs start from these pots: with no ISA
  * today, the ISA at that age itself (PlanTiming.isaAtRetirementOf; review of 6.22.0).
- * @param {object} o { settings, accumulation, holdings, currentAge, age, timing (deriveTiming of the settings), incomeOverride }
+ * @param {object} o { settings, inputs (PotsAtStop.savingInputsOf), currentAge, age, timing (deriveTiming of the settings), incomeOverride, now }
  * @returns {{ s: object, pa: object, isa: number }}   the settings to run, potAtAge's result, the ISA at that age
  */
-export function sweepPlanAt({ settings, accumulation = null, holdings = null, currentAge, age, timing, incomeOverride = null }) {
+export function sweepPlanAt({ settings, inputs = null, currentAge, age, timing, incomeOverride = null, now = new Date() }) {
   const s0 = settings || {};
   const t0 = timing || deriveTiming(s0);
   const steps = Array.isArray(s0.incomeSteps) && s0.incomeSteps.length ? s0.incomeSteps : null;
   const income = incomeOverride > 0 ? incomeOverride : (steps ? num(steps[0].amount) : num(s0.baseSalary));
-  const pa = potAtAge({ settings: s0, accumulation, holdings, currentAge, age });
-  const isa = isaAtAge({ settings: s0, accumulation, currentAge, age, holdings }).isa;
+  const pa = potAtAge({ settings: s0, inputs, currentAge, age, now });
+  const isa = pa.isa || 0;
   const endAge = t0.shapeAgeNow + Math.max(1, num(s0.duration) || 35) - 1;
   const duration = Math.max(5, Math.min(45, endAge - age + 1));
   const stepsAt = incomeOverride > 0 ? [{ fromAge: age, amount: incomeOverride }]
@@ -134,11 +79,11 @@ export function sweepPlanAt({ settings, accumulation = null, holdings = null, cu
 
 /**
  * Run the sweep.
- * @param {object} o { settings, accumulation, holdings (the holdings record or its lines), ages?, incomeOverride? (flat £/yr gross),
+ * @param {object} o { settings, inputs (PotsAtStop.savingInputsOf of the plan), ages?, incomeOverride? (flat £/yr gross),
  *                     onProgress(i, n, age), now }
  * @returns {{ rows: [{ age, taxYear, yearsAway, pot, low, high, success, coverage, ruin, worst12, affordable }], income, basis, target }}
  */
-export function sweepRetirementAges({ settings, accumulation = null, holdings = null, ages = null, incomeOverride = null, onProgress = null, now = new Date() } = {}) {
+export function sweepRetirementAges({ settings, inputs = null, ages = null, incomeOverride = null, onProgress = null, now = new Date() } = {}) {
   const s0 = settings || {};
   const t0 = deriveTiming(s0, now);
   const currentAge = t0.currentAge || Math.floor(num(s0.currentAge)) || 0;
@@ -147,13 +92,13 @@ export function sweepRetirementAges({ settings, accumulation = null, holdings = 
   const steps = Array.isArray(s0.incomeSteps) && s0.incomeSteps.length ? s0.incomeSteps : null;
   const income = incomeOverride > 0 ? incomeOverride : (steps ? num(steps[0].amount) : num(s0.baseSalary));
   // No pot on record → nothing to project from. Say so rather than spin on the tested pots.
-  if (list.length && potAtAge({ settings: s0, accumulation, holdings, currentAge, age: list[0] }).potNow == null) return { rows: [], income, basis: null, currentAge, error: NO_POT_MESSAGE };
+  if (list.length && potAtAge({ settings: s0, inputs, currentAge, age: list[0], now }).potNow == null) return { rows: [], income, basis: null, currentAge, error: NO_POT_MESSAGE };
   const rows = [];
   let basis = null;
   list.forEach((age, i) => {
     if (onProgress) { try { onProgress(i, list.length, age); } catch (e) { /* progress is optional */ } }
     // The plan as if retiring at `age`: a fresh saver's frame so the steps start at that age.
-    const { s, pa } = sweepPlanAt({ settings: s0, accumulation, holdings, currentAge, age, timing: t0, incomeOverride });
+    const { s, pa } = sweepPlanAt({ settings: s0, inputs, currentAge, age, timing: t0, incomeOverride, now });
     basis = pa.basis;
     const yearsToAge = Math.max(0, age - currentAge);
     let r = null, affordable = true;

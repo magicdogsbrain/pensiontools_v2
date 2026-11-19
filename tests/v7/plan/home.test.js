@@ -452,11 +452,15 @@ describe('reads only: nothing new is written to any plan', () => {
     // 7.10.0 also takes six away: the move of a locked plan's start under its lock is gone (its MOVE_START_WRITES declared the
     // Decision copy's spendingMigratedFrom, dbStartYear, strategyState, extraIncomes and extraWithdrawals, and strategy.params,
     // which no other write declares); a locked plan's start changes by unlock and a new lock.
-    expect(ALL_WRITES.length).toBe(156);
+    // step F1 (lead4.md D4) takes one away: the pots at the stop are worked out from the plan and never written
+    // (stressTool.settings.potAtRetirement); "Your pots and tax" writes the pension today for a saver as "What you pay in"
+    // does (accumulationTool.settings and .history, already on the list), so the order moves and the hash with it.
+    expect(ALL_WRITES.length).toBe(155);
+    expect(ALL_WRITES).not.toContain('stressTool.settings.potAtRetirement');
     expect(ALL_WRITES).toContain('stressTool.settings.legacyFirstTaxYear');
     expect(ALL_WRITES).toContain('planAmendments');
     for (const k of ['decisionTool.settings.spendingMigratedFrom', 'decisionTool.settings.dbStartYear', 'decisionTool.settings.strategyState', 'decisionTool.settings.extraIncomes', 'decisionTool.settings.extraWithdrawals', 'strategy.params']) expect(ALL_WRITES).not.toContain(k);
-    expect(createHash('sha256').update(JSON.stringify(ALL_WRITES)).digest('hex')).toBe('6c7ef23106e981abe34153d5f2165893b472cdccc4a0e87d82d84cb62dd6c2ee');
+    expect(createHash('sha256').update(JSON.stringify(ALL_WRITES)).digest('hex')).toBe('4d77b7aa4105ed95618d615a083db34caeaacceecca60f74475ee04ce1969332');
   });
   /** The one write file with a fake firestore that records every call, on an account's plans. */
   function browse(raws, planId) {

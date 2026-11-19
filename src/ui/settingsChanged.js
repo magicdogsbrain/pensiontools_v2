@@ -10,7 +10,6 @@
  *                                           `configured` with any change. {} when nothing changed, and {} with NO
  *                                           baseline: a form not yet filled from the plan (the page opening it, or a
  *                                           fill that failed) shows nothing of the plan, so nothing of it is written
- *   ownPotAtRetirement(v)                   the pots at the stop only when the person typed them (source 'override')
  *   touches(patch, keys)                    does the patch change any of `keys`?
  *   settingsFromForm(o)                     the Settings form as the plan's settings keys (a key with no value left out)
  */
@@ -25,7 +24,7 @@ export function changedSettingsPatch(base, form) {
 /** The pots a plan shows in its Settings boxes, and the income: written as shown with a plan's first figures. */
 export const POT_KEYS = Object.freeze(['equityMin', 'bondMin', 'cashTarget', 'diversifierStart']);
 export const INCOME_KEYS = Object.freeze(['baseSalary', 'incomeShape', 'incomeSteps', 'targetSchedule']);
-export const TIMING_KEYS = Object.freeze(['shapeAgeNow', 'currentAge', 'currentAgeAsOf', 'retired', 'retireAge', 'firstTaxYear', 'potAtRetirement', 'stoppedWork']);
+export const TIMING_KEYS = Object.freeze(['shapeAgeNow', 'currentAge', 'currentAgeAsOf', 'retired', 'retireAge', 'firstTaxYear', 'stoppedWork']);
 export const STRATEGY_KEYS = Object.freeze(['strategyId', 'strategyParams', 'strategyState']);
 
 export function stressSavePatch({ base = null, form = {}, hadFigures = true } = {}) {
@@ -35,10 +34,6 @@ export function stressSavePatch({ base = null, form = {}, hadFigures = true } = 
   if (!hadFigures) for (const k of [...POT_KEYS, ...INCOME_KEYS]) if (k in form) patch[k] = form[k];
   patch.configured = true;
   return patch;
-}
-
-export function ownPotAtRetirement(v) {
-  return v && typeof v === 'object' && v.source === 'override' ? v : null;
 }
 
 export const touches = (patch, keys) => keys.some((k) => Object.prototype.hasOwnProperty.call(patch || {}, k));

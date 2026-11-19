@@ -43,6 +43,8 @@ import { earlyPensionDrawOf } from '../../services/PlanTiming.js';
 import { partnersOf } from '../../services/HouseholdLink.js';
 import { shownPlanNameOn } from '../../services/PlanName.js';
 import { marketLabel } from '../../reading/marketPlain.js';
+import { potAtStop } from '../../reading/atStop.js';
+import { moneyK } from '../../reading/format.js';
 
 export { applyPatch };
 
@@ -282,9 +284,9 @@ export function lastsOf(entries, id, { today, typed = null } = {}) {
     // no run on a plan shown as saved (newer than this code, or one whose upgrade failed): its figure would not be its own
     // (7.12.0) a plan with no figures of its own is never tested on the stored defaults: it says what to add instead
     runKey: readonly || noFigures ? null : runKeyOf(plan), noFigures, document: saved.document,
-    // (7.12.0) the pension when work stops, in the middling case, that the plan's own test starts from (PlanReading.withDerivedPots):
-    // said under a saving plan's headline, whose chance counts the saving years too
-    atStop: saved.ss && saved.ss.retired === false && saved.ss.potAtRetirement && num(saved.ss.potAtRetirement.sipp) > 0 ? r0(saved.ss.potAtRetirement.sipp) : null,
+    // (7.12.0) the pension when work stops, in the middling case, that the plan's own test starts from: said under a saving
+    // plan's headline, whose chance counts the saving years too; the pot at the stop: the one model (src/reading/atStop.js, step F1), said to the nearest £1,000 where it is shown
+    atStop: (() => { if (!(saved.ss && saved.ss.retired === false)) return null; let a = null; try { a = potAtStop(plan, { now: dateOf(today), settings: saved.ss }); } catch { a = null; } return a && a.middle > 0 ? a.middle : null; })(),
     fields, errors: c.errors, ok: c.ok, derived, notUsed: notUsedBy(saved.strategyId), partners,
     // the plan draws from a pension before it can usually be taken (7.4.0, PlanTiming.earlyPensionDrawOf): said beside the answer
     pensionAccess: (() => { try { const now = dateOf(today); const e = earlyPensionDrawOf(safeSettings(plan, now), now); return e ? { age: String(e.age) } : null; } catch { return null; } })(),
@@ -423,7 +425,7 @@ export function verdictOf(result, saved, { level = null, chance = null } = {}) {
     // a contract strategy runs no futures: every year is bought (the test counts one window), so its line says that
     // (7.12.0) a plan still saving: the headline is the saving chance; the line under it says every figure below starts from
     // the middling pot when work stops (`saved.atStop`), so the two measures are never read as one
-    sub: contract ? { id: 'lasts.subContract', slots: { years: String(years), toAge } } : wb && a.chanceFrom === 'saving' ? { id: saved && saved.atStop ? 'lasts.subFromStop' : 'lasts.subFromStopNoPot', slots: { words: wb.sub.slots.words, pot: saved && saved.atStop ? pounds(saved.atStop) : '' } } : wb ? wb.sub
+    sub: contract ? { id: 'lasts.subContract', slots: { years: String(years), toAge } } : wb && a.chanceFrom === 'saving' ? { id: saved && saved.atStop ? 'lasts.subFromStop' : 'lasts.subFromStopNoPot', slots: { words: wb.sub.slots.words, pot: saved && saved.atStop ? moneyK(saved.atStop) : '' } } : wb ? wb.sub
       : { id: 'lasts.sub', slots: { pct: pctText(a.chancePct, 1, CHANCE_BARS).replace(/%$/, ''), futures: n0(a.futures), histories: n0(a.histories), years: String(years), toAge } },
     rows, strategyId: result.strategyId || null,
     ...(closedShort ? { closedShort } : {}),

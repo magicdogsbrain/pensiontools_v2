@@ -96,8 +96,6 @@ export const REGISTRY = Object.freeze([
   box(24, 'pots.ufplsYears', 'saver-draft', '8', 'pots', STRESS, { group: 'pots-ufpls' }),
   box(25, 'pots.ufplsThenIsa', 'saver-draft', 'yes', 'pots', STRESS, { group: 'pots-ufpls' }),
   box(26, 'pots.bandFill', 'saver-draft', 'yes', 'pots', STRESS, { group: 'pots-taxfree' }),
-  box(27, 'pots.stopSipp', 'saver-draft', '300000', 'pots', STRESS, { group: 'pots-stop' }),
-  box(27, 'pots.stopIsa', 'saver-draft', '40000', 'pots', STRESS, { group: 'pots-stop' }),
   // 1c Money that comes in anyway
   box(28, 'income.spWeekly', 'saver-draft', '230', 'income', STRESS, { prep: { simple: [['income.spKind', 'forecast']] } }),
   box(28, 'income.spKind', 'saver-draft', 'none', 'income', null, { why: 'the full view has no "full", "forecast" or "none" choice for the State Pension, only the weekly box (map-edits #28)' }),

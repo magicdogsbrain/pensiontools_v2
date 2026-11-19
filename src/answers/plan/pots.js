@@ -22,6 +22,10 @@ import { chargesPctOf, isChargesPct, normaliseChargesPct } from '../../services/
 import { isaGrowthOf } from '../../services/IsaGrowth.js';
 import { isaFundsDecide } from '../../services/IsaFunds.js';
 import { sippTodayOf } from '../../services/PotsAtRetirement.js';
+import { pensionToday, isaToday, giaToday } from '../../reading/money.js';
+import { pensionTodayPatch } from '../../services/PensionToday.js';
+import { potAtStop } from '../../reading/atStop.js';
+import { moneyK } from '../../reading/format.js';
 import { TAX_DEFAULTS, ISA_DEFAULTS } from '../../constants.js';
 import { get, applyPatch, safeSettings, safeTiming } from './about.js';
 import { pounds } from './income.js';
@@ -32,8 +36,6 @@ import { shownPlanNameOn } from '../../services/PlanName.js';
 
 export { applyPatch };
 
-/** To the nearest £1,000, as every saver screen says the pots at the stop (7.12.0). */
-const k1 = (v) => Math.round((+v || 0) / 1000) * 1000;
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 const num = (v) => (v == null || v === '' || !Number.isFinite(+v) ? null : +v);
 const blank = (v) => v === undefined || v === null || (typeof v === 'string' && v.trim() === '');
@@ -59,7 +61,6 @@ const BALANCED = Object.freeze({ equity: 0.5, bond: 0.4, cash: 0.1, div: 0 });
 /** What the engines read for a key the plan lacks (9.1): a value equal to this is never written onto an absent key. */
 const ABSENT_READS = Object.freeze({
   'stressTool.settings.diversifierStart': 0,
-  'stressTool.settings.potAtRetirement': null,
   'stressTool.settings.isaBalance': 0,
   'stressTool.settings.isaDrawdownStrategy': ISA_DEFAULTS.DRAWDOWN_STRATEGY,
   'stressTool.settings.taxableStart': 0,
@@ -93,15 +94,6 @@ export function splitTotal(total, shares) {
   return { equity, bond, div, cash: t - equity - bond - div };
 }
 
-/** The answer's own record of the pots at the stop (PlanSeed fromAnswer.people[0]), or null. */
-function answerRecordOf(plan) {
-  const p = plan && isObj(plan.fromAnswer) && Array.isArray(plan.fromAnswer.people) && isObj(plan.fromAnswer.people[0]) ? plan.fromAnswer.people[0] : null;
-  if (!p || !isObj(p.pension) || !isObj(p.pension.atStop) || !isObj(p.savings) || !isObj(p.savings.atStop)) return null;
-  const m = num(p.pension.atStop.middling), c = num(p.pension.atStop.careful), sm = num(p.savings.atStop.middling), sc = num(p.savings.atStop.careful);
-  if (m == null || c == null) return null;
-  return { sipp: r0(m), sippBad: r0(c), isa: r0(sm), isaBad: r0(sc) };
-}
-
 /**
  * The saved facts (9.1): from the effective settings — or, locked, the plan document's pots and assumptions where it has
  * them and the settings the lock froze for the rest.
@@ -125,8 +117,6 @@ export function savedPots(plan, { today }) {
   const params = (doc && doc.strategy && isObj(doc.strategy.params)) ? doc.strategy.params : (isObj(ss.strategyParams) ? ss.strategyParams : {});
   const pinned = bought && num(params.sippTotal) > 0 ? { sipp: r0(params.sippTotal), isa: r0(params.isaTotal) } : null;
   const fundsMode = (docPots && isObj(docPots.allocation) ? docPots.allocation.allocMode : ss.allocMode) === 'funds';
-  const par = docPots ? (isObj(docPots.potAtRetirement) ? docPots.potAtRetirement : null) : (isObj(ss.potAtRetirement) ? ss.potAtRetirement : null);
-  const override = par && par.source === 'override' ? par : null;
   const hasIsaGrowthKey = isaGrowthOf(stored) != null;
   const isaGrowth = docAss && 'isaGrowth' in docAss ? (isaGrowthOf(docAss) || null) : (isaGrowthOf(ss) || null);
   const isaFunds = docAss && 'isaFromFunds' in docAss ? !!docAss.isaFromFunds : isaFundsDecide(ss);
@@ -136,8 +126,6 @@ export function savedPots(plan, { today }) {
   const source = locked ? { kind: 'locked', at: dayWords(lockedAtOf(plan)) } : { kind: 'saved', at: plan && plan.lastModified ? dayWords(plan.lastModified) : null };
   const values = {
     pension, pots, shares: sharesOf(pots),
-    stopSipp: override && num(override.sipp) > 0 ? r0(override.sipp) : null,
-    stopIsa: override && num(override.isa) > 0 ? r0(override.isa) : null,
     isa: docPots && num(docPots.isa) != null ? r0(docPots.isa) : r0(ss.isaBalance),
     isaGrowth,
     isaUse: (docPots && docPots.isaPolicy) || ss.isaDrawdownStrategy || ISA_DEFAULTS.DRAWDOWN_STRATEGY,
@@ -154,9 +142,15 @@ export function savedPots(plan, { today }) {
     ufplsThenIsa: ss.ufplsThenPcls ? 'yes' : 'no',
     bandFill: ss.bandFillRecycle ? 'yes' : 'no'
   };
+  // (step F1, lead4.md D3) the money today as every page reads it: the one reader each (src/reading/money.js)
+  const rctx = { now, settings: ss };
+  const moneyToday = { pension: r0(pensionToday(plan, rctx).value), isa: r0(isaToday(plan, rctx).value), taxable: r0(giaToday(plan, rctx).value) };
+  // (step F1, lead4.md D4) the pot at the stop: the one model, worked out (or the figure a locked plan was locked with)
+  const atStop = later ? potAtStop(plan, rctx) : null;
   return {
+    today: moneyToday,
     locked, lockedOn: locked ? dayWords(lockedAtOf(plan)) : null, ss, stored, timing, later, strategyId, bought, pinned, fundsMode,
-    par, hasIsaGrowthKey, isaFunds, hasChargesKey, answer: later ? answerRecordOf(plan) : null, source, values, now
+    atStop, hasIsaGrowthKey, isaFunds, hasChargesKey, source, values, now
   };
 }
 
@@ -166,8 +160,6 @@ export function boxesOf(plan, { today }) {
   const v = s.values;
   const out = { pension: String(v.pension), isa: String(v.isa), isaUse: v.isaUse, taxable: String(v.taxable), taxableMix: v.taxableMix, giaBand: v.giaBand, earnings: String(v.earnings), bedAndIsa: v.bedAndIsa,
     pa: String(v.pa), brl: String(v.brl), hrl: String(v.hrl), taxMode: v.taxMode, taxFree: v.taxFree, ufplsThenIsa: v.ufplsThenIsa, bandFill: v.bandFill };
-  if (v.stopSipp != null) out.stopSipp = String(v.stopSipp);
-  if (v.stopIsa != null) out.stopIsa = String(v.stopIsa);
   if (v.isaGrowth) out.isaGrowth = v.isaGrowth;
   if (s.hasChargesKey || !s.locked) out.charges = String(v.charges);
   if (v.ufplsYears != null) out.ufplsYears = String(v.ufplsYears);
@@ -226,8 +218,6 @@ export function checkPots(plan, typed, { today }) {
   // the pension pot: from the funds list, the box is not drawn (the list sets it); a bought strategy sized on its own dial still shows it
   applies.pension = !saved.fundsMode;
   if (applies.pension) take('pension');
-  applies.stopSipp = saved.later; applies.stopIsa = saved.later;
-  if (saved.later) { take('stopSipp'); take('stopIsa'); }
   take('isa');
   // how the ISA grows: only where the plan has the choice (a locked plan without it keeps the fixed rate) and the funds do not decide
   applies.isaGrowth = (saved.hasIsaGrowthKey || !saved.locked) && !saved.isaFunds;
@@ -269,12 +259,9 @@ export function potsPatch(plan, typed, { today }) {
     const p = splitTotal(v.pension, sv.shares);
     want[S + 'equityMin'] = p.equity; want[S + 'bondMin'] = p.bond; want[S + 'cashTarget'] = p.cash;
     if (sv.pots.div > 0) want[S + 'diversifierStart'] = p.div;
-  }
-  // the pots at the stop, typed (9.1): the planner's own object; a typed override blanked goes back to null
-  if (s.later) {
-    const sipp = v.stopSipp || null, isa = v.stopIsa || null;
-    if (sipp || isa) want[S + 'potAtRetirement'] = { sipp, isa, source: 'override' };
-    else if (s.par && s.par.source === 'override') want[S + 'potAtRetirement'] = null;
+    // a plan still saving (step F1, lead4.md D3): the pension typed is the pension today every page reads — the saved pot
+    // and this month's record, as the full view's pots box writes it (ScenarioRepository.saveActivePensionToday)
+    if (s.later) Object.assign(want, pensionTodayPatch(plan, v.pension, { now: s.now }));
   }
   want[S + 'isaBalance'] = v.isa || 0;
   if (c.applies.isaGrowth) want[S + 'isaGrowth'] = v.isaGrowth;
@@ -307,13 +294,19 @@ export function notUsedBy(strategyId) {
 }
 
 /** The derived figures (9.2), as line ids with their slots, from the values as they would be saved (or as saved). */
-export function derivedLines(v, s, { stopBlanked = false } = {}) {
+export function derivedLines(v, s) {
   const lines = [];
   const pension = s.fundsMode ? s.values.pension : v.pension;
   // a locked plan's pots are the ones it was locked with (7.12.0): said so, with the day, never as today's — the pot today is
   // the home's and Review's, from the records and What you hold
   if (s.locked) lines.push(v.taxable > 0 ? { id: 'pots.lockedTaxable', slots: { pension: pounds(pension), isa: pounds(v.isa), taxable: pounds(v.taxable), date: s.lockedOn || '' } } : { id: 'pots.locked', slots: { pension: pounds(pension), isa: pounds(v.isa), date: s.lockedOn || '' } });
-  else lines.push(v.taxable > 0 ? { id: 'pots.todayTaxable', slots: { pension: pounds(pension), isa: pounds(v.isa), taxable: pounds(v.taxable) } } : { id: 'pots.today', slots: { pension: pounds(pension), isa: pounds(v.isa) } });
+  else {
+    // today's money as every page says it (src/reading/money.js), or the figure typed and not yet saved
+    const T = s.today || {};
+    const shown = (typed, saved, read) => (typed !== saved || read == null ? typed : read);
+    const tp = shown(pension, s.values.pension, s.fundsMode ? null : T.pension), ti = shown(v.isa, s.values.isa, T.isa), tg = shown(v.taxable, s.values.taxable, T.taxable);
+    lines.push(tg > 0 ? { id: 'pots.todayTaxable', slots: { pension: pounds(tp), isa: pounds(ti), taxable: pounds(tg) } } : { id: 'pots.today', slots: { pension: pounds(tp), isa: pounds(ti) } });
+  }
   if (s.fundsMode) lines.push({ id: 'pots.fromFunds', slots: { pension: pounds(s.values.pension) } });
   else {
     const p = pension === s.values.pension ? s.values.pots : splitTotal(pension, s.values.shares);
@@ -321,11 +314,14 @@ export function derivedLines(v, s, { stopBlanked = false } = {}) {
   }
   if (s.pinned) lines.push({ id: 'pots.pinned', slots: { pension: pounds(s.pinned.sipp), isa: pounds(s.pinned.isa) } });
   if (s.later) {
-    if (v.stopSipp || v.stopIsa) lines.push({ id: 'stop.typed', slots: { sipp: v.stopSipp ? pounds(v.stopSipp) : 'none typed', isa: v.stopIsa ? pounds(v.stopIsa) : 'none typed' } });
-    else if (stopBlanked) lines.push({ id: 'stop.blanked', slots: {} });
-    else if (s.par && s.par.source !== 'override' && (num(s.par.sipp) > 0 || num(s.par.isa) > 0)) lines.push({ id: 'stop.projection', slots: { sipp: pounds(k1(s.par.sipp)), isa: pounds(k1(s.par.isa)) } });
-    else if (!s.answer) lines.push({ id: 'stop.none', slots: {} });
-    if (s.answer) lines.push({ id: 'stop.answer', slots: { sipp: pounds(s.answer.sipp), sippBad: pounds(s.answer.sippBad), isa: pounds(s.answer.isa), isaBad: pounds(s.answer.isaBad) } });
+    // (step F1, lead4.md D4) the one pot at the stop, to the nearest £1,000, with its bad and good cases from the same lives
+    const A = s.atStop;
+    if (A && A.source === 'locked') lines.push({ id: 'stop.locked', slots: { sipp: moneyK(A.middle), isa: moneyK(A.isa) } });
+    else if (A) {
+      lines.push({ id: 'stop.projection', slots: { sipp: moneyK(A.middle), isa: moneyK(A.isa) } });
+      lines.push({ id: 'stop.band', slots: { low: moneyK(A.low), sipp: moneyK(A.middle), high: moneyK(A.high) } });
+    }
+    else lines.push({ id: 'stop.none', slots: {} });
   }
   if (s.isaFunds) lines.push({ id: 'isa.funds', slots: {} });
   else if (!v.isaGrowth) lines.push({ id: 'isa.fixed', slots: {} });
@@ -365,8 +361,7 @@ export function potsOf(entries, id, { today, typed = null } = {}) {
   }));
   // the derived lines: from the values as they would be saved where every box is right, else as saved
   const v = c.ok ? { ...saved.values, ...c.values } : saved.values;
-  const stopBlanked = c.ok && saved.later && !c.values.stopSipp && !c.values.stopIsa && !!saved.par && saved.par.source === 'override';
-  const derived = derivedLines(v, saved, { stopBlanked });
+  const derived = derivedLines(v, saved);
   const useNotes = {};
   if (saved.bought) useNotes.isaGrowth = v.isaUse === 'hold' ? 'isaGrowthBoughtHeld' : 'isaGrowthBought';   // a held ISA is left out, not spent
   if (saved.pinned) { useNotes.pension = 'pinned'; useNotes.isa = 'pinned'; }

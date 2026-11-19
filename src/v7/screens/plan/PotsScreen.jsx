@@ -148,14 +148,6 @@ export function PotsScreen(state, dispatch) {
             <h2>{POTS.sections.pension}</h2>
             <p class="note">{POTS.notes.pension}</p>
             {F('pension')}
-            {pt.later && (
-              <>
-                <h3>{POTS.sections.stop}</h3>
-                <p class="note">{POTS.notes.stop}</p>
-                {F('stopSipp')}
-                {F('stopIsa')}
-              </>
-            )}
           </section>
           <section class="income-section" data-section="isa">
             <h2>{POTS.sections.isa}</h2>

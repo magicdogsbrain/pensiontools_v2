@@ -107,6 +107,7 @@ const given = (v) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v 
  * @param {object} a  { settings (Stress), timing (deriveTiming), accumulation (the planner's saved inputs), holdings (the
  *                    record or its lines), now, lives?, env? ({ futureReturns } for tests: V7's lives.js), explicit?, phases? }
  *   risePrices  true: what goes in rises with each future's own prices (the answer's rule), not the plan's yearly rise
+ *   pensionBand true: each year also carries the pension's bad and good cases in today's money (realCareful, realGood)
  *   phases    the plan's `phases` root (7.10.0): a saving level the person chose decides the saving mix (savingPathMixes)
  *   explicit  { potNow, isaNow, totalMonthly, isaMonthly } (research/saving-enough-and-check-in.md 5.3): each one given is
  *             used in place of what the path would read — a saver's first check-in draws the path from its own pension,
@@ -116,7 +117,7 @@ const given = (v) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v 
  *             'record' or 'plan'.
  * @returns {null | object}  null unless retiring later; the block stored as `planDocument.accumulation`
  */
-export function buildSavingPath({ settings = {}, timing, accumulation = null, holdings = null, now = new Date(), lives: count = SAVING_PATH_LIVES, env = {}, explicit = null, phases = null, risePrices = false } = {}) {
+export function buildSavingPath({ settings = {}, timing, accumulation = null, holdings = null, now = new Date(), lives: count = SAVING_PATH_LIVES, env = {}, explicit = null, phases = null, risePrices = false, pensionBand = false } = {}) {
   if (!timing || timing.mode !== 'future' || !(timing.currentAge > 0)) return null;
   const s = settings || {};
   const a = accumulation || {};
@@ -189,7 +190,9 @@ export function buildSavingPath({ settings = {}, timing, accumulation = null, ho
     path.push({
       year: y, age: timing.currentAge + y,
       nominal: spread(tot), real: spread(real),
-      pension: { middling: spread(pen).middling, real: spread(penReal).middling },
+      // `pensionBand` (step F1): the pension's own bad and good cases in today's money, from the same lives — the pot at the
+      // stop's middle with its band (services/PotsAtStop.js, src/reading/atStop.js); a lock's stored path keeps its shape
+      pension: (() => { const pr = spread(penReal); return pensionBand ? { middling: spread(pen).middling, real: pr.middling, realCareful: pr.careful, realGood: pr.good } : { middling: spread(pen).middling, real: pr.middling }; })(),
       isa: { middling: spread(isa).middling, real: spread(isaReal).middling },
       paidIn: r0(out.paidIn[y])
     });

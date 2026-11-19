@@ -9,18 +9,17 @@
  *
  *   potsAtStopOf(plan, settings, { now, env }) →
  *     null                                                     not stopping later
- *     { sipp, isa, source: 'typed' }                           the person's own figure, kept as it is
- *     { sipp, isa, careful, good, source: 'worked',            today's prices, whole pounds; careful/good are the
- *       from: { pot, potFrom, potAt, monthly, isaMonthly, toAge } }   pension and savings together
+ *     { sipp, sippLow, sippHigh, isa, careful, good,           today's prices, whole pounds: the pension's middle with its
+ *       source: 'worked',                                      bad and good cases from the same lives; careful/good are
+ *       from: { pot, potFrom, potAt, monthly, isaMonthly, toAge } }   the pension and savings together
  *
- * Typed: a stored `potAtRetirement` marked 'override' that is not the figure keeping an answer wrote (the plan's
- * `fromAnswer` holds the same middling pension and savings at the stop). Old plans are read as they are; nothing is written.
+ * One model (lead4.md D4; step F1): a stored `potAtRetirement` — the answer's figure, a typed 'override', a projection the
+ * full view's Timing block once saved — is never read here, for a figure shown or for a run; nothing is written.
  * The last 8 workings are kept by their inputs and the month, so a page that reads the plan many times works it out once.
  *
  * Pure but for that small memo: no storage, no clock (the caller hands in `now`).
  */
 import { deriveTiming } from './PlanTiming.js';
-import { isLockedSettings } from './LockedPlanGuard.js';
 import { buildSavingPath } from './SavingPath.js';
 import { saverFacts } from './SaverFacts.js';
 
@@ -34,64 +33,61 @@ let builds = 0;
 /** How many saving paths have been drawn here (for tests: a page that reads a plan many times draws it once). */
 export const potsAtStopBuilds = () => builds;
 
-/** Whether a stored 'override' is the figure keeping an answer wrote (the answer's middling pots at the stop). */
-export function isAnswersOwnFigure(plan, stored) {
-  const fa = plan && plan.fromAnswer;
-  const p = isObj(fa) && Array.isArray(fa.people) && isObj(fa.people[0]) ? fa.people[0] : null;
-  if (!p || !isObj(stored)) return false;
-  const sippA = p.pension && p.pension.atStop && isNum(p.pension.atStop.middling) ? p.pension.atStop.middling : null;
-  const isaA = p.savings && p.savings.atStop && isNum(p.savings.atStop.middling) ? p.savings.atStop.middling : null;
-  const same = (a, b) => (a || 0) === (+b || 0);
-  return sippA != null && same(sippA, stored.sipp) && same(isaA, stored.isa);
+/**
+ * The saving lives' path to `timing.shapeAgeNow` (services/SavingPath.js buildSavingPath, what goes in rising with each
+ * future's own prices): the one model of the pot at a stop, for the plan's own stop (potsAtStopOf) and for another age the
+ * "When could I retire?" spin asks about (services/RetireSweep.js). Memoised by its inputs and the month.
+ */
+export function savingPathAt({ settings = {}, timing, accumulation = {}, holdings = null, phases = null, explicit, now = new Date(), env = {} } = {}) {
+  const s = settings || {};
+  const key = JSON.stringify([monthKey(now), timing.currentAge, timing.shapeAgeNow, explicit, s.chargesPct, s.isaGrowth, s.isaReturn, s.equityMin, s.bondMin, s.cashTarget, s.taggedFunds || null, s.allocMode || null,
+    (accumulation || {}).savingMix || null, phases && phases.saving ? phases.saving : null, holdings, env && env.futureReturns ? 'env' : null]);
+  let path = env && env.futureReturns ? null : MEMO.get(key);
+  if (!path) {
+    builds++;
+    path = buildSavingPath({ settings: s, timing, accumulation: accumulation || {}, holdings, now, explicit, phases, env: env || {}, risePrices: true, pensionBand: true });
+    if (!(env && env.futureReturns)) {
+      MEMO.set(key, path);
+      while (MEMO.size > MEMO_SIZE) MEMO.delete(MEMO.keys().next().value);
+    }
+  }
+  return path;
+}
+
+/**
+ * What a plan's saving lives start from (its pension and ISA today, what goes into each a month: services/SaverFacts.js),
+ * with the inputs savingPathAt reads besides — so a page can hand the spin's worker the plan's own figures, never a box's.
+ */
+export function savingInputsOf(plan, settings, { now = new Date() } = {}) {
+  const facts = saverFacts(plan, settings || {}, { now });
+  return {
+    explicit: { potNow: facts.pot.pension, isaNow: facts.pot.isa, totalMonthly: facts.payIn.total, isaMonthly: facts.isaMonthly },
+    potKnown: facts.pot.from !== 'none',
+    accumulation: plan && plan.accumulationTool && isObj(plan.accumulationTool.settings) ? plan.accumulationTool.settings : {},
+    holdings: plan && plan.holdings ? plan.holdings : null,
+    phases: plan && plan.phases ? plan.phases : null
+  };
 }
 
 export function potsAtStopOf(plan, settings, { now = new Date(), env = {} } = {}) {
   const s = isObj(settings) ? settings : {};
   if (s.retired !== false) return null;
-  const stored = isObj(s.potAtRetirement) ? s.potAtRetirement : null;
-  if (stored && stored.source === 'override' && !isAnswersOwnFigure(plan, stored)) {
-    return { sipp: +stored.sipp || 0, isa: +stored.isa || 0, source: 'typed' };
-  }
   let timing;
   try { timing = deriveTiming(s, now); } catch { return null; }
   if (!timing || timing.mode !== 'future' || !(timing.currentAge > 0)) return null;
   const facts = saverFacts(plan, s, { now });
   const accumulation = plan && plan.accumulationTool && isObj(plan.accumulationTool.settings) ? plan.accumulationTool.settings : {};
   const explicit = { potNow: facts.pot.pension, isaNow: facts.pot.isa, totalMonthly: facts.payIn.total, isaMonthly: facts.isaMonthly };
-  const phases = plan && plan.phases ? plan.phases : null;
-  const holdings = plan && plan.holdings ? plan.holdings : null;
-  const key = JSON.stringify([monthKey(now), timing.currentAge, timing.shapeAgeNow, explicit, s.chargesPct, s.isaGrowth, s.isaReturn, s.equityMin, s.bondMin, s.cashTarget, s.taggedFunds || null, s.allocMode || null,
-    accumulation.savingMix || null, phases && phases.saving ? phases.saving : null, holdings, env && env.futureReturns ? 'env' : null]);
-  let path = env && env.futureReturns ? null : MEMO.get(key);
-  if (!path) {
-    builds++;
-    path = buildSavingPath({ settings: s, timing, accumulation, holdings, now, explicit, phases, env: env || {}, risePrices: true });
-    if (!(env && env.futureReturns)) {
-      MEMO.set(key, path);
-      while (MEMO.size > MEMO_SIZE) MEMO.delete(MEMO.keys().next().value);
-    }
-  }
-  const last = path && Array.isArray(path.path) && path.path.length ? path.path[path.path.length - 1] : null;
+  const path = savingPathAt({ settings: s, timing, accumulation, holdings: plan && plan.holdings ? plan.holdings : null, phases: plan && plan.phases ? plan.phases : null, explicit, now, env });
+  const rows = path && Array.isArray(path.path) ? path.path : [];
+  const last = rows.length ? rows[rows.length - 1] : null;
   if (!last) return null;
   return {
-    sipp: Math.round(last.pension.real), isa: Math.round(last.isa.real),
+    // the year-by-year band the same lives give (the saving page's table in both views): the pension's bad, middle and good
+    // cases in today's money, and the ISA's middle, from today's age to the stop
+    rows: rows.map((r) => ({ age: Math.round(r.age), low: Math.round(r.pension.realCareful), middle: Math.round(r.pension.real), high: Math.round(r.pension.realGood), isa: Math.round(r.isa.real), paidIn: r.paidIn })),
+    sipp: Math.round(last.pension.real), sippLow: Math.round(last.pension.realCareful), sippHigh: Math.round(last.pension.realGood), isa: Math.round(last.isa.real),
     careful: Math.round(last.real.careful), good: Math.round(last.real.good), source: 'worked',
     from: { pot: facts.pot.pension, potFrom: facts.pot.from, potAt: facts.pot.at, monthly: facts.payIn.total, isaMonthly: facts.isaMonthly, toAge: Math.round(timing.shapeAgeNow) }
   };
-}
-
-/**
- * The full view's Timing block (index.html renderTiming): the pots at the stop worked out from the form's settings as they
- * stand, whatever the boxes below hold, in the shape its line reads (low and high: the careful and good cases).
- */
-export function timingPotsAtStop(plan, settings, now = new Date()) {
-  const w = potsAtStopOf(plan, { ...(settings || {}), potAtRetirement: null }, { now });
-  const worked = w && w.source === 'worked' ? { ...w, low: w.careful, high: w.good, hasContributions: w.from.monthly > 0 } : null;
-  // (7.12.0) a locked plan is priced on the pots it was locked with (PlanReading.withDerivedPots reads the same): said as
-  // that, with today's middling case beside it as a second, labelled figure — never today's as "priced on"
-  const locked = plan && plan.decisionTool && isLockedSettings(plan.decisionTool.settings) && plan.planDocument && plan.planDocument.pots ? plan.planDocument.pots.potAtRetirement : null;
-  if (locked && typeof locked === 'object' && (+locked.sipp > 0 || +locked.isa > 0)) {
-    return { sipp: Math.round(+locked.sipp || 0), isa: Math.round(+locked.isa || 0), source: 'locked', lockedAt: plan.planDocument.lockedAt || null, today: worked };
-  }
-  return worked;
 }

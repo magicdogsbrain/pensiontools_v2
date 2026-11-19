@@ -249,13 +249,15 @@ export function plansInListOrder(list) {
 }
 /**
  * The plan menu's second line: "Previous plan — closed March 2029" for a closed plan ("Closes at the end of March 2029" while
- * that month is still to come, and it is still listed with the plans in use), else the plan's description.
+ * that month is still to come, and it is still listed with the plans in use), else nothing. A stored description is never
+ * printed (step F1, lead4.md R4): written when the plan was kept, it named the answer's chance and pot then, beside figures
+ * for the plan as it is now (walks3 W1-M3, W3-M3).
  */
 export function planListDesc(plan) {
   const r = closedReading(plan);
   if (r && r.ahead) return 'Closes at the end of ' + r.month;
   if (r) return 'Previous plan — closed ' + r.month;
-  return (plan && plan.planDetails && plan.planDetails.description) || (plan && plan.description) || '';
+  return '';
 }
 
 /** The line's HTML for a plan (pure): closed, carrying one on, offered the move (and going back to work), or nothing. */

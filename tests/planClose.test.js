@@ -361,7 +361,7 @@ describe('the planner\'s line, question and plan menu (src/ui/planCloseUi.js)', 
   it('the plan menu: previous plans last, each saying so', () => {
     expect(plansInListOrder([CLOSED, NEXT, LADDER]).map((p) => p.id)).toEqual([NEXT.id, LADDER.id, CLOSED.id]);
     expect(planListDesc(CLOSED)).toBe('Previous plan — closed March 2025');
-    expect(planListDesc(NEXT)).toBe('Stopped work in July 2023');
+    expect(planListDesc(NEXT)).toBe('');   // a stored description is never printed (step F1, lead4.md R4)
     expect(monthBefore('2025-01')).toBe('2024-12');
   });
 });

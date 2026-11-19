@@ -115,7 +115,8 @@ export const FACTS = Object.freeze({
   'pot.today': {
     label: 'the pot today', owner: 'FACTS', kind: 'money',
     simple: [
-      { page: 'home', find: `Your pot:\\s*${M}` },
+      // (step F1) the home's "Your pot:" leads with the pot set against the plan (pot.againstPlan); the pension today is its part
+      { page: 'home', find: `Your pot:[^\\n]*?pension ${M}` },
       { page: 'pots', find: `Pension ${M}[^\\n]*today` },
       { page: 'hold', find: `(?:In all|Altogether|Total)[^\\n£]*${M}` },
       { page: 'review', find: `What your pots hold, ${M}` }
@@ -124,6 +125,11 @@ export const FACTS = Object.freeze({
       { page: 'accumulation', find: `Pension pot ${M} \\(recorded` },
       { page: 'plan document', find: `Pension pot ${M} \\(recorded` }
     ]
+  },
+  'pot.againstPlan': {
+    label: 'the pot set against the plan', owner: 'FACTS', kind: 'money',
+    simple: [{ page: 'home', find: `Your pot:\\s*${M}` }],
+    full: { none: 'the full view says it inside the Where you are sentence, beside the pension today; no page states it alone' }
   },
   'pot.atStop': {
     label: 'the pot when work stops', owner: 'SAVER', kind: 'money',

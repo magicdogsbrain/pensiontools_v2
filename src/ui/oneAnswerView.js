@@ -3,6 +3,7 @@
  * Scenarios tabs as explanations of the one test, the Strategies ranking by futures out of 10, the allocation grid,
  * and the locked document's "earlier test" line. HTML strings only; no DOM, no storage, no engine.
  */
+import { moneyK } from '../reading/format.js';
 import { inflationDecadesSvg } from './giltLadderGraphic.js';
 import { futuresOutOfTen, pctText, tenthsOutOfTen, CHANCE_BARS, rankWays, oneAnswer, boldConsequenceOf, leftText } from '../services/OneAnswer.js';
 import { decadeFigures } from '../services/NamedStarts.js';
@@ -345,7 +346,7 @@ export function verdictBlockView(r, p, o = {}) {
     + '<div class="verdict-heroes">' + hero
     + (saving ? '' : '<div><span class="hero" style="font-size:30px;">' + pctText(cov) + '</span><span class="hero-sub">of the plan\'s years covered — the share of your planned income the money actually paid, averaged over every future</span></div>'
     + '<div><span class="hero" style="font-size:30px;">' + markFact('lasts.worst12', gbpC(Math.round(r.worst12.min))) + '</span><span class="hero-sub">worst 12 months lived, today\'s money</span></div>') + '</div>'
-    + (saving ? '<p class="hint" data-from-stop="1">' + esc(fromStopWords(p)) + '</p>' : '')
+    + (saving ? '<p class="hint" data-from-stop="1">' + markWithin(esc(fromStopWords(p)), [[/starts from (£[\d,]+) in your pension/, 'pot.atStop']]) + '</p>' : '')
     + '<p class="verdict-fixed" data-fixed="1">' + (a.weighted !== null ? markWithin(esc(w.fixed), LASTS_FINDS.fixed) : esc(w.why || '')) + '</p>'
     + (w.floor ? '<p class="hint">' + markWithin(esc(w.floor), LASTS_FINDS.floor) + '</p>' : '') + '<p class="hint">' + markWithin(esc(w.left), LASTS_FINDS.left) + '</p>'
     + '<div class="verdict-basis">' + w.assumed.map((x) => markWithin(esc(x), LASTS_FINDS.assumed)).join(' ') + '</div></div>';
@@ -353,7 +354,7 @@ export function verdictBlockView(r, p, o = {}) {
 
 /** (7.12.0) The line that says a saving plan's run starts from the middling pot when work stops (the run's own `p.pot`). */
 export function fromStopWords(p) {
-  const pot = p && Number.isFinite(+p.pot) && +p.pot > 0 ? gbpC(+p.pot) : null;
+  const pot = p && Number.isFinite(+p.pot) && +p.pot > 0 ? moneyK(+p.pot) : null;   // the one rounding of the pot at the stop (step F1)
   return 'The chance above counts the saving years: each future saves its own pot, then draws from it, as on the Accumulation tab and the simple view. '
     + 'Everything below starts from ' + (pot ? pot + ' in your pension' : 'the middling pot') + ' on the day work stops (the middling case) and leaves out the saving years, so it can differ.';
 }

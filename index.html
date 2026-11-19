@@ -3135,10 +3135,6 @@
                 </div>
                 <div id="tmPotWrap" style="display:none;margin-top:6px;">
                   <p class="hint" id="tmProjectionLine" style="margin:0 0 4px;"></p>
-                  <div class="row-flex">
-                    <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Or SIPP at retirement (£, today's money) <span class="hlp" tabindex="0" data-tip="Overrides the projection: the pension pot you expect to have on the day, in today's money. Every strategy is priced on the pots at retirement, projected from the pots entered below — the pots the strategy is tested on, not a record of what you hold (that is the Transition tab).">?</span><input type="number" id="tmPotSipp" step="1000" style="width:130px;" data-on-input="renderTiming()"></label>
-                    <label class="hint" style="display:flex;flex-direction:column;gap:2px;">ISA at retirement (£)<input type="number" id="tmPotIsa" step="1000" style="width:120px;" data-on-input="renderTiming()"></label>
-                  </div>
                 </div>
                 <p id="tmSummary" class="hint" style="margin:6px 0 0;"></p>
                 <div id="tmLockedStart" class="lock-banner amending" style="display:none;flex-direction:column;align-items:flex-start;gap:4px;margin-top:8px;"></div>
@@ -4045,7 +4041,6 @@
       modelPortfolio,
       contributionBreakdown,
       contributionWarnings,
-      projectAccumulation,
       getActiveAccumulation,
       setHouseholdPartnerId,
       getActivePlanOfRecord,
@@ -4130,7 +4125,7 @@
     import { chargesFieldState, chargesForSave, paintChargesField, chargesPctOf, DEFAULT_CHARGES_PCT } from './src/ui/chargesSetting.js';   // fund and platform charges (6.19.0)
     import { isaGrowthFieldState, isaGrowthForSave, readIsaGrowthChoice, paintIsaGrowthField, unlockNotesHtml, isaAssumptionsRow, drawdownIsaNoteHtml } from './src/ui/isaGrowthSetting.js';   // how the ISA and savings grow (6.22.0)
     import { ON_COURSE_SHARE, ON_COURSE_PCT, onCourseAlertClass, jointVerdictHtml, isOnCourse } from './src/services/OnCourse.js';   // one bar: "on course" = lasts in 9 futures out of 10 (6.22.0)
-    import { accumulationTableHtml, mpaaOf, accumulationBoxes } from './src/ui/accumulationProjection.js'; import { paintSaverAnswer, savingChanceFor } from './src/ui/saverAnswerUi.js';   // 7.12.0: "Am I on course?" is the simple view's answer block
+    import { accumulationBandHtml, mpaaOf, accumulationBoxes } from './src/ui/accumulationProjection.js'; import { paintSaverAnswer, savingChanceFor } from './src/ui/saverAnswerUi.js';   // 7.12.0: "Am I on course?" is the simple view's answer block
     import { savingPathForLock } from './src/ui/savingPathForLock.js';   // a saver's lock draws its path on V7's saving-years engine (6.22.0)
 
     // Simulation access for optimisation — THROUGH the strategy registry (Phase B rule:
@@ -4204,7 +4199,7 @@
     import { proportions as holdingsProportions, describeMix } from './src/services/Holdings.js';
     import { targetHoldings, diffHoldings, sequence as transitionSequence, progress as transitionProgress, tickMove, untickMove, yearNeedsOf } from './src/services/TransitionPlanner.js';
     import { transitionHtml } from './src/ui/components/TransitionView.js';
-    import { installKeepHandlers, transitionGaps, transitionHeld, transitionOpensAt, nameTransitionTab, installKeepTestHandlers, transitionKeepTest, keepLineHtml } from './src/ui/keepHoldingsUi.js'; import { installStressPanel } from './src/ui/stressPanelUi.js'; import { stageWordOf } from './src/ui/stageWord.js'; import { markFact, markWithin, tableAttr, cellAttr } from './src/reading/mark.js'; import { markFieldBoxes, fieldAttrOf } from './src/reading/fields.js'; import { trackBusy } from './src/reading/busy.js'; import { HELD_MIX_FINDS } from './src/reading/sentenceMarks.js';   // "Try the bad years" on the Scenarios page (7.9.0)
+    import { installKeepHandlers, transitionGaps, transitionHeld, transitionOpensAt, nameTransitionTab, installKeepTestHandlers, transitionKeepTest, keepLineHtml } from './src/ui/keepHoldingsUi.js'; import { installStressPanel } from './src/ui/stressPanelUi.js'; import { markFact, markWithin, tableAttr, cellAttr } from './src/reading/mark.js'; import { markFieldBoxes, fieldAttrOf } from './src/reading/fields.js'; import { trackBusy } from './src/reading/busy.js'; import { HELD_MIX_FINDS } from './src/reading/sentenceMarks.js';   // "Try the bad years" on the Scenarios page (7.9.0)
     import { parsePaste, matchRows, mergeLedger, categorise, applyPaste } from './src/services/HoldingsPaste.js';
     import { pastePreviewHtml } from './src/ui/components/HoldingsPasteView.js';   // every pasted line counts (6.23)
     import { configureMonthlyEntry, readMonthlyEntry, openMonthlyEntry, confirmFundsIfLow, installMonthlyEntryHandlers } from './src/ui/monthlyEntry.js';   // the platform view of the monthly entry (6.23)
@@ -4278,7 +4273,7 @@
     import { isLoggedIn, logOut, getCurrentUser, deleteAccount, onAuthStateChange, viewNotesAtSignIn } from './src/firebase/index.js';
     import { hasCloudData, wipeAllUserData, loadUserProfile, saveUserProfile, guestSnapshot, loadAllScenarios, createScenario as createScenarioDoc, saveScenario as saveScenarioDoc, loadScenario as loadScenarioDoc } from './src/firebase/FirestoreService.js';
     import { startSeedEntry, planFromAnswer, planTargetGuide, budgetSummaryWords } from './src/ui/components/NewPlanFromSeed.js'; import { householdStartWords } from './src/services/PlanSeed.js';   // a plan from a V7 answer (V7 design: save-as-plan.md, C.2); the Household tab's line when one plan begins later (couples-different-years.md 7)
-    import { startSummaryHtml, potsAtRetirementLine } from './src/ui/startingPotsWords.js'; import { timingPotsAtStop } from './src/services/PotsAtStop.js'; import { shownPlanName } from './src/services/PlanName.js';
+    import { startSummaryHtml, potsAtRetirementLine } from './src/ui/startingPotsWords.js'; import { potAtStop } from './src/reading/atStop.js'; import { stage as readingStage, yearsToGo as readingYearsToGo, ageToday as readingAgeToday, planName as readingPlanName } from './src/reading/timing.js'; import { formatFact } from './src/reading/format.js'; import { isaToday as readingIsaToday } from './src/reading/money.js'; import { savingInputsOf } from './src/services/PotsAtStop.js'; import { shownPlanName } from './src/services/PlanName.js';
     import { tick as guestTick, readMinutes as guestMinutes, pendingNag as guestPendingNag, markNagShown as guestMarkNag, isBlocked as guestBlocked, bannerText as guestBannerText, savedChipText, stashHandoff as guestStash, readHandoff as guestReadHandoff, clearHandoff as guestClearHandoff, GUEST_ALLOWANCE_MINUTES } from './src/services/GuestMeter.js';
     // Release notes: data + renderers (see RELEASING.md). The pop-up and the What's new page read the same entries.
     import { RELEASES, releasesSince, compareVersions } from './src/releases.js';
@@ -4286,7 +4281,7 @@
     import { whatsNewHtml, versionsPageHtml, safeAffects } from './src/ui/components/ReleaseNotesView.js';
 
     import { getChartStyles } from './src/ui/Charts.js';
-    import { createPlanState, bindPlanState } from './src/ui/planState.js'; import { fillDecisionBoxes, decisionPotsOf } from './src/ui/decisionForm.js'; import { installRepaint } from './src/ui/repaintPlan.js'; import { formatNumberBoxes } from './src/ui/numberOverlays.js'; import { stressSavePatch, settingsFromForm, ownPotAtRetirement, touches, INCOME_KEYS, TIMING_KEYS, STRATEGY_KEYS } from './src/ui/settingsChanged.js'; import { todayOf, dayKeyOf } from './src/reading/clock.js'; import { phaseChoicePatch } from './src/answers/plan/review.js'; import { isPlanLockedError } from './src/services/LockedPlanGuard.js'; import { contextFor } from './src/reading/context.js'; import { RUN_FUTURES } from './src/reading/runs.js'; import { lastsInputOf, waysInputOf, enginePlanOf } from './src/reading/gather.js'; import { READ_FAULT_WORDS, isPlanReadError } from './src/reading/readFault.js';
+    import { createPlanState, bindPlanState } from './src/ui/planState.js'; import { fillDecisionBoxes, decisionPotsOf } from './src/ui/decisionForm.js'; import { installRepaint } from './src/ui/repaintPlan.js'; import { formatNumberBoxes } from './src/ui/numberOverlays.js'; import { stressSavePatch, settingsFromForm, touches, INCOME_KEYS, TIMING_KEYS, STRATEGY_KEYS } from './src/ui/settingsChanged.js'; import { todayOf, dayKeyOf } from './src/reading/clock.js'; import { phaseChoicePatch } from './src/answers/plan/review.js'; import { isPlanLockedError } from './src/services/LockedPlanGuard.js'; import { contextFor } from './src/reading/context.js'; import { RUN_FUTURES } from './src/reading/runs.js'; import { lastsInputOf, waysInputOf, enginePlanOf } from './src/reading/gather.js'; import { READ_FAULT_WORDS, isPlanReadError } from './src/reading/readFault.js';
     // Everything the page knows about the open plan, in ONE object (src/ui/planState.js, lead4.md R2): window._budget,
     // window._oneTest and the rest are its fields. repaintPlan drops it and makes it again on any change of plan.
     const planState = bindPlanState(window, createPlanState());
@@ -4859,7 +4854,11 @@
       chip.style.display = 'inline-block';
       // The stage, by name ("Committed, still saving · 7 months to go"), so the chip answers "where am I?" (6.10.1).
       const st = window._lifeStage;
-      const word = window._stageWord || (st && st.label) || '', esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;'), stageWord = st && st.key !== 'unknown' ? ' · ' + markFact('stage', esc(window._stageWord || st.label)) + (st.chip && (/to go/.test(st.chip) || word === st.label) && !word.toLowerCase().includes(st.chip) ? ' · ' + (/to go/.test(st.chip) ? markFact('yearsToGo', esc(st.chip.replace(/\s*to go\b.*$/, ''))) + ' to go' : esc(st.chip)) : '') : '';   // one stage word in both views (7.12.0); marked for the parity sweep (lead4.md G1)
+      // one stage word in both views (step F1, src/reading/timing.js: Saving, Moving, Living on it), never the placing's label;
+      // a locked saver's time to the stop beside it, in the one formatter's words (src/reading/format.js spanText)
+      const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+      const toGo = st && /to go/.test(st.chip || '') && window._yearsToGo > 0 ? ' · ' + markFact('yearsToGo', esc(formatFact('yearsToGo', window._yearsToGo))) + ' to go' : '';
+      const stageWord = st && st.key !== 'unknown' && window._stageWord ? ' · ' + markFact('stage', esc(window._stageWord)) + toGo : '';   // marked for the parity sweep (lead4.md G1)
       chip.innerHTML = markFact('lock.state', locked ? '🔒 locked' : '✏️ draft') + stageWord;
       if (st && st.key !== 'unknown') chip.dataset.stageWhy = st.reasons.join('; ');
       chip.title = locked
@@ -4941,7 +4940,7 @@
       try {
         const scenarios = await listScenariosAsync();
         const activeId = await getActiveScenarioId(), active = scenarios.find((sc) => sc.id === activeId) || scenarios[0];
-        if (active) planNotes = [{ name: active.planDetails?.name || active.name || 'Untitled', notes: entries.flatMap((r) => r.affects ? safeAffects(r, active) : []) }];
+        if (active) planNotes = [{ name: readingPlanName(active, { now: todayOf() }) || 'Untitled', notes: entries.flatMap((r) => r.affects ? safeAffects(r, active) : []) }];
         otherPlanCount = Math.max(0, scenarios.length - 1);
       } catch (e) { /* render without plan specifics */ }
       let el = document.getElementById('whatsNewOverlay'); if (el) el.remove();
@@ -4960,7 +4959,7 @@
       let plans = [];
       try {
         const scenarios = await listScenariosAsync();
-        plans = scenarios.map((sc) => ({ name: sc.planDetails?.name || sc.name || 'Untitled', scenario: sc }));
+        plans = scenarios.map((sc) => ({ name: readingPlanName(sc, { now: todayOf() }) || 'Untitled', scenario: sc }));
       } catch (e) { /* page still renders */ }
       if (releasesSince(localSeen()).length) markSeen(VERSION);   // reading the page counts as seen
       return versionsPageHtml(RELEASES, RELEASE_HISTORY, { currentVersion: VERSION, plans });
@@ -4988,7 +4987,7 @@
       // Update active scenario name in button
       const nameEl = document.getElementById('scenarioActiveName');
       if (nameEl) {
-        nameEl.textContent = active ? (shownPlanName(active) || 'No Plan') : 'No Plan';   // a name the person did not type follows the plan (7.12.0)
+        nameEl.textContent = active ? (readingPlanName(active, { now: todayOf() }) || 'No Plan') : 'No Plan';   // a name the person did not type follows the plan (7.12.0)
         if (active) nameEl.setAttribute('data-fact', 'plan.name'); else nameEl.removeAttribute('data-fact');   // marked for the parity sweep (lead4.md G1)
       }
 
@@ -5004,7 +5003,7 @@
       }
 
       listEl.innerHTML = plansInListOrder(scenarios).map(s => {   // previous (closed) plans last, each saying so (6.56.0)
-        const name = budEsc(shownPlanName(s) || 'Unnamed Plan');
+        const name = budEsc(readingPlanName(s, { now: todayOf() }) || 'Unnamed Plan');
         const desc = budEsc(planListDesc(s));
         return `
         <div class="scenario-dropdown-item ${s.id === activeId ? 'active' : ''}" data-scenario-id="${s.id}">
@@ -5115,7 +5114,7 @@
         return;
       }
 
-      const activeName = active.planDetails?.name || active.name || 'My Plan';
+      const activeName = readingPlanName(active, { now: todayOf() }) || 'My Plan';   // the name every place prints (src/reading/timing.js)
       const name = await appPrompt('Name for the copy:', activeName + ' (copy)', { okLabel: 'Duplicate' });
       if (!name || !name.trim()) return;
 
@@ -6135,7 +6134,10 @@
       const divAmtTxt = dv > 0 ? ' &middot; £' + dvAmt.toLocaleString() + ' diversifiers' : '';
       // The ISA rides alongside as its own tax-free pool — remind the user it isn't in the split.
       const isaVal = Math.round(+((document.getElementById(p + 'IsaBalance') || {}).value) || 0);
-      const isaTxt = isaVal > 0 ? '<br><span style="color:var(--text-muted);">+ ' + markFact('isa.today', '£' + isaVal.toLocaleString()) + ' ISA kept separate (tax-free, drawn down to your State Pension)</span>' : '';
+      // the ISA today as every page reads it (src/reading/money.js, step F1) while the box holds the plan's own figure; a figure
+      // typed and not yet saved as typed
+      const isaShown = window._isaToday && window._isaToday.box === isaVal ? window._isaToday.value : isaVal;
+      const isaTxt = isaShown > 0 ? '<br><span style="color:var(--text-muted);">+ ' + markFact('isa.today', formatFact('isa.today', isaShown)) + ' ISA kept separate (tax-free, drawn down to your State Pension)</span>' : '';
       if (amt) amt.innerHTML = '<strong>' + preset.label + '</strong> &mdash; ' + eq + '% shares &middot; ' + bd + '% bonds' + divPct + ' &middot; ' + csh + '% cash<br>' +
         '<span style="color:var(--text-muted);">£' + eqAmt.toLocaleString() + ' shares &middot; £' +
         bdAmt.toLocaleString() + ' bonds' + divAmtTxt + ' &middot; £' + cshAmt.toLocaleString() + ' cash</span>' + isaTxt;
@@ -6962,7 +6964,7 @@
       const settings = await getStressSettingsAsync();
       const r = rGiven || await strategyResultForDocument(settings);   // 7.12.0: the run the lock's fit was read from
       const p = strategyPlanFor(settings, (window._shapeRefs && window._shapeRefs.essentials) || undefined);
-      const name = document.getElementById('scenarioActiveName')?.textContent?.trim() || 'My plan';
+      const name = readingPlanName(await getActiveScenarioAsync().catch(() => null), { now: todayOf() }) || 'My plan';   // the plan's name as every place prints it, never the page's text (step F1)
       let ds = {}; try { ds = await getDecisionSettingsAsync(); } catch (e) { ds = {}; }
       let journey = []; try { journey = await getActiveJourney(); } catch (e) { journey = []; }
       let accumulation = null; try { accumulation = await getActiveAccumulation(); } catch (e) { accumulation = null; }
@@ -7084,11 +7086,12 @@
       box.innerHTML = '<div class="loading"><div class="spinner"></div>Spinning the ages…</div>';
       try {
         const settings = await getStressSettingsAsync();
-        const acc = { ...(await getActiveAccumulation()), ...readAccumulationInputs() };
-        const t = deriveTiming(settings);
+        const t = deriveTiming(settings, todayOf());
         if (!(t.currentAge > 0)) { box.innerHTML = '<div class="alert alert-warning">Enter your age today in the Stress tester\'s Timing block first — the spin needs to know how many years of saving are left.</div>'; return; }
-        let holdingsLines = []; try { holdingsLines = (await getActiveHoldings()).lines || []; } catch (e) { holdingsLines = []; }
-        const payload = { settings, accumulation: acc, holdings: holdingsLines, incomeOverride, now: todayOf() };   // the one clock, in the worker and on the page alike
+        // the plan's own pension, ISA and what goes in (step F1: the one model of the pot at a stop, never the boxes of this tab)
+        const sc = await getActiveScenarioAsync();
+        const inputs = savingInputsOf(sc, settings, { now: todayOf() });
+        const payload = { settings, inputs, incomeOverride, now: todayOf() };   // the one clock, in the worker and on the page alike
         await window._marketReady;   // the one market, as every run of the page
         let out;
         try { out = await runInWorker('sweep', payload, (pr) => { box.innerHTML = '<div class="loading"><div class="spinner"></div>Spinning ' + budEsc(pr.name || '') + ' (' + (pr.i + 1) + ' of ' + pr.n + ')…</div>'; }); }
@@ -7315,7 +7318,11 @@
         // scenario copy may pre-date the Timing block and carry no age at all.
         let ss = null; try { ss = await getStressSettingsAsync(); } catch (e) { ss = null; }
         const stage = deriveStage(sc ? { ...sc, stressTool: { ...(sc.stressTool || {}), settings: ss || sc.stressTool?.settings || {} } } : {});
-        window._lifeStage = stage; window._stageWord = stageWordOf(sc ? { ...sc, stressTool: { ...(sc.stressTool || {}), settings: ss || sc.stressTool?.settings || {} } } : null, stage);   // the home's word for the stage (7.12.0)
+        // the stage in the three words of both views, and the time to the stop: the reading's (src/reading/timing.js, step F1)
+        const rc = sc ? contextFor(sc, { now: todayOf() }) : null;
+        window._lifeStage = stage; window._stageWord = sc ? readingStage(sc, rc) : null; window._yearsToGo = sc ? readingYearsToGo(sc, rc) : null;
+        window._isaToday = sc ? { value: Math.round(readingIsaToday(sc, rc).value), box: Math.round(+(ss && ss.isaBalance) || 0) } : null;
+        for (const p of ['ss', 'dd']) { try { if (document.getElementById(p + 'IsaBalance') && typeof window.updateAllocDisplay === 'function') window.updateAllocDisplay(p); } catch (e) { /* the echo is optional */ } }
         applyStageToTabs(stage); nameTransitionTab(document, () => getActiveScenarioAsStored(), sc).then((n) => { window._transitionName = n; }).catch(() => {});   // 7.11.1: the Transition tab by the phase V7's home reads
         try { updatePlanLockChip(); } catch (e) { /* chip optional */ }
         // Nothing is written on reading the stage (lead4.md R9): the journey's stage changes are written with the lock and
@@ -7405,9 +7412,10 @@
       const stop = stopMonthFromForm(document, future);
       const s = {
         ...base,
-        currentAge: age,
-        // Keep the recorded date when the age is unchanged (so it ages forward); a new age is "as of today".
-        currentAgeAsOf: age ? (age === Math.floor(+base.currentAge || 0) && base.currentAgeAsOf ? base.currentAgeAsOf : today) : null,
+        // Keep the age given and its date while the box says the age today they roll on to (so it keeps ageing forward, and the
+        // birthday — and the stop month with it — never moves, W8-M4); a new age is "as of today".
+        currentAge: age && age === readingAgeToday(null, { now: todayOf(), settings: base }) ? (+base.currentAge || age) : age,
+        currentAgeAsOf: age ? (age === readingAgeToday(null, { now: todayOf(), settings: base }) && base.currentAgeAsOf ? base.currentAgeAsOf : today) : null,
         retired: age ? !future : (base.retired ?? null),
         retireAge: future ? retireAge : null,
         firstTaxYear: future ? null : (window._tmStartFromStop && stop ? taxYearOfMonth(stop) : (startSel || base.firstTaxYear || null)),   // a month just typed: its tax year
@@ -7415,25 +7423,18 @@
         spStartDate: g('ssSpStartDate')?.value?.trim() || base.spStartDate || null,
         duration: +g('ssDuration')?.value || base.duration || 35
       };
-      const potSipp = +g('tmPotSipp')?.value || 0, potIsa = +g('tmPotIsa')?.value || 0;
-      s.potAtRetirement = future
-        ? ((potSipp > 0 || potIsa > 0) ? { sipp: potSipp || null, isa: potIsa || null, source: 'override' }
-          : (window._tmProjection ? { sipp: window._tmProjection.sipp, isa: window._tmProjection.isa, source: 'accumulation' } : null))
-        : null;
-      return s;
+      return s;   // (step F1, lead4.md D4) the pots at the stop are worked out from the plan, never typed here or saved
     }
     window.renderTiming = async function () {
       const g = (id) => document.getElementById(id);
       if (!g('tmAge')) return;
       let s = timingSettingsFromForm();
       let t = deriveTiming(s);
-      // Retiring later: project today's pots to retirement from the Accumulation planner's inputs.
+      // Retiring later: the pots at the stop, the reading's (src/reading/atStop.js: the saving lives, from the plan as saved —
+      // never from the boxes of this form)
       if (t.mode === 'future') {
-        // Pots from the FORM as it stands (a new plan's saved settings are the £1m defaults — 6.10.2), else the saved ones.
-        let potsNow = null; try { const a = readAlloc('ss'); if (a && (+a.equityMin + +a.bondMin + +a.cashTarget) > 0) potsNow = a; } catch (e) { potsNow = null; } if (potsNow) s = { ...s, configured: true };   // the pension the form holds is the plan's own figure (7.12.0)
-        const base = window._ssTimingBase || {};
-        window._tmProjection = timingPotsAtStop(await getActiveScenarioAsync().catch(() => null), { ...s, equityMin: potsNow ? +potsNow.equityMin : base.equityMin, bondMin: potsNow ? +potsNow.bondMin : base.bondMin, cashTarget: potsNow ? +potsNow.cashTarget : base.cashTarget, diversifierStart: potsNow ? (+potsNow.diversifierStart || 0) : base.diversifierStart, isaBalance: +document.getElementById('ssIsaBalance')?.value || base.isaBalance || 0, taggedFunds: (window._taggedFunds && window._taggedFunds.ss && window._taggedFunds.ss.length) ? window._taggedFunds.ss : base.taggedFunds }, todayOf());   // worked out from the saver's facts, as every run reads it (7.12.0)
-        s = timingSettingsFromForm(); t = deriveTiming(s);
+        const sc = await getActiveScenarioAsync().catch(() => null);
+        window._tmProjection = sc ? potAtStop(sc, contextFor(sc, { now: todayOf() })) : null;
       } else window._tmProjection = null;
       window._ssTiming = { ...t, settings: s };
       // The derived start age drives every shape helper (hidden field) and the preview's SP timing.
@@ -7456,16 +7457,15 @@
       g('tmStartWrap').style.display = retiredMode ? 'flex' : 'none';
       g('tmRetireAge').disabled = retiredMode;
       g('tmPotWrap').style.display = t.mode === 'future' ? 'block' : 'none';
-      if (t.mode === 'future' && window._tmProjection) {
-        // With pots at retirement in the boxes (typed, or from a V7 answer) THOSE are what the strategies are priced on; the projection is shown for comparison (startingPotsWords.js).
-        g('tmProjectionLine').innerHTML = potsAtRetirementLine(window._tmProjection, { sipp: +g('tmPotSipp')?.value || 0, isa: +g('tmPotIsa')?.value || 0 });
-      }
+      g('tmProjectionLine').innerHTML = t.mode === 'future' && window._tmProjection ? potsAtRetirementLine(window._tmProjection) : '';   // the one pot at the stop (startingPotsWords.js)
+      // the summary says the timing as the boxes stand (they save at once), on the one clock, its time to go in the one
+      // formatter's words (step F1); the age box keeps the age's own day, so the stop month never moves on its own (W8-M4)
       let summary = t.mode === 'legacy'
         ? 'Enter your age today to pin the plan to a tax year. Until then the plan is read from tax year ' + taxYearLabel(t.firstTaxYear) + ', with the steps from age ' + t.shapeAgeNow + '.'
-        : describeTiming(t, s);
+        : describeTiming(t, s, todayOf());
       summary = paintStopMonth(document, t, s, await closedTimingSummary(summary));   // the month box's label and warning
       if (t.mode === 'future' && t.yearsToStart > 0) summary += ' Gilt ladders are priced at today\'s real yields as a guide — the rungs are bought at retirement. The "Funds to test" list sets only the starting mix the strategy is tested on — it is not a record of what you hold (that is the Transition tab); the plan is priced on the pots at retirement.';
-      g('tmSummary').innerHTML = markWithin(String(summary).replace(/&/g, '&amp;').replace(/</g, '&lt;'), [[/(?:stop work|retire|stopped work) in ([A-Z][a-z]+ \d{4})/, 'stop.month'], [/ at \d+, (\d+ (?:years?|months?)) away/, 'yearsToGo'], [/Plan runs to age (\d+)/, 'plan.endAge'], [/State Pension from (\d{4}\/\d{2})/, 'statePension.start']]);   // marked for the parity sweep (lead4.md G1)
+      g('tmSummary').innerHTML = markWithin(String(summary).replace(/&/g, '&amp;').replace(/</g, '&lt;'), [[/(?:stop work|retire|stopped work) in ([A-Z][a-z]+ \d{4})/, 'stop.month'], [/ at \d+, (\d+ years?(?: \d+ months?)?|\d+ months?) away/, 'yearsToGo'], [/Plan runs to age (\d+)/, 'plan.endAge'], [/State Pension from (\d{4}\/\d{2})/, 'statePension.start']]);   // marked for the parity sweep (lead4.md G1)
       // The first income step starts when the plan starts.
       if (Array.isArray(window._ssIncomeSteps) && window._ssIncomeSteps.length) window._ssIncomeSteps[0].fromAge = t.shapeAgeNow;
       updateDurationHint(); paintDbStart(document, window._ssTiming);   // the start age is known now: the final-salary age box and its words
@@ -7478,7 +7478,7 @@
       window._ssTimingBase = s || {};
       let age = +s?.currentAge || 0;
       if (!age) { try { const b = await getBudgetAsync(); age = budgetAgeToday(b) || 0;   /* only an age a person gave — never the blank Budget's 45 placeholder (6.13.5) */ if (age) { window._ssTimingBase = { ...window._ssTimingBase, currentAge: age, currentAgeAsOf: b.currentAgeAsOf || new Date().toISOString().slice(0, 10) }; } } catch (e) { /* no budget */ } }
-      g('tmAge').value = age || '';
+      g('tmAge').value = (age ? readingAgeToday(null, { now: todayOf(), settings: window._ssTimingBase }) : null) || age || '';   // the age today, rolled on from the age given and its day (step F1): never the age as typed a birthday ago
       // A plan saved before 6.4.0 has no flag: infer it the way the repository migration does (a start
       // age clearly ahead of today = retiring later), so the radios match what the engines will assume.
       const inferred = migrateTiming(window._ssTimingBase);
@@ -7488,8 +7488,6 @@
       g('tmStopMonth').value = stoppedWorkOf(s) || ''; window._tmStartFromStop = false;   // the saved year 0 stands until a month is typed
       g('tmStartYear').innerHTML = s?.firstTaxYear > 0 ? '<option value="' + s.firstTaxYear + '" selected>' + taxYearLabel(+s.firstTaxYear) + '</option>' : '';
       g('tmStartYear').dataset.opts = '';   // force renderTiming to rebuild the option list (both loaders call this)
-      const ov = s?.potAtRetirement && s.potAtRetirement.source === 'override' ? s.potAtRetirement : null;
-      g('tmPotSipp').value = ov?.sipp || ''; g('tmPotIsa').value = ov?.isa || '';
       if (!future && !(s?.firstTaxYear > 0) && s?.shapeAgeNow) g('shapeAgeNow').value = s.shapeAgeNow;   // legacy: keep the saved start age
       await renderTiming();
       await renderStaleDraftBanner();
@@ -7554,7 +7552,7 @@
         let activeId = null; try { activeId = await getActiveScenarioId(); } catch (e) { activeId = null; }
         const active = plans.find((p) => p.id === activeId) || plans.find((p) => p.isActive) || plans[0];
         if (!active) { showToast('There is no plan to download yet.', 'warning'); return; }
-        const name = planExportFileName(active.planDetails && active.planDetails.name);
+        const name = planExportFileName(readingPlanName(active, { now: todayOf() }));
         const url = URL.createObjectURL(new Blob([planExportJson(active)], { type: 'application/json' }));
         const a = document.createElement('a');
         a.href = url; a.download = name; a.style.display = 'none';
@@ -7568,11 +7566,11 @@
     };
     function timingFieldsForSave() {
       const t = window._ssTiming;
-      if (!t) { const b = window._ssTimingBase || {}; return { shapeAgeNow: +document.getElementById('shapeAgeNow')?.value || 57, currentAge: b.currentAge ?? null, currentAgeAsOf: b.currentAgeAsOf ?? null, retired: b.retired ?? null, retireAge: b.retireAge ?? null, firstTaxYear: b.firstTaxYear ?? null, potAtRetirement: b.potAtRetirement ?? null }; }
+      if (!t) { const b = window._ssTimingBase || {}; return { shapeAgeNow: +document.getElementById('shapeAgeNow')?.value || 57, currentAge: b.currentAge ?? null, currentAgeAsOf: b.currentAgeAsOf ?? null, retired: b.retired ?? null, retireAge: b.retireAge ?? null, firstTaxYear: b.firstTaxYear ?? null }; }
       const s = t.settings;
       const stop = s.stoppedWork || ((window._ssTimingBase || {}).stoppedWork ? null : undefined);   // the month work stopped (6.51.0), or to clear one; never a key for nothing
       return { shapeAgeNow: t.shapeAgeNow, currentAge: s.currentAge ?? null, currentAgeAsOf: s.currentAgeAsOf ?? null, retired: s.retired ?? null, retireAge: s.retireAge ?? null,
-        firstTaxYear: t.mode === 'legacy' ? (s.firstTaxYear ?? null) : t.firstTaxYear, potAtRetirement: s.potAtRetirement ?? null, ...(stop !== undefined ? { stoppedWork: stop } : {}) };
+        firstTaxYear: t.mode === 'legacy' ? (s.firstTaxYear ?? null) : t.firstTaxYear, ...(stop !== undefined ? { stoppedWork: stop } : {}) };
     }
     window.timingFieldsForSave = timingFieldsForSave;
     // Age today lives in two places (Budget page, Timing block): whichever was edited last wins, so a
@@ -8148,7 +8146,7 @@
         const scenarios = await listScenariosAsync();
         const activeId = await getActiveScenarioId();
         const cur = scenarios.find((sc) => sc.id === activeId);
-        const newName = ((cur?.planDetails?.name || 'Plan') + ' — ' + (names[id] || 'copy')).slice(0, 40);
+        const newName = ((readingPlanName(cur, { now: todayOf() }) || 'Plan') + ' — ' + (names[id] || 'copy')).slice(0, 40);
         const ok = await appConfirm('Create "' + newName + '" as a copy of this plan and switch to it?\n\nYour current plan stays exactly as it is. The copy starts on ' + (names[id] || id) + ' with your pot totals carried over.', { okLabel: 'Create the copy', danger: false });
         if (!ok) return;
         await flushSettings();   // what was typed goes to this plan first: the copy carries it, and none of it lands in the copy afterwards
@@ -8921,8 +8919,9 @@
       // "Age today" drives where plan year 0 sits relative to the State Pension date. It lives on the
       // Budget page; it used to be applied here invisibly (a Budget left at its default mis-timed the SP).
       const an = document.getElementById(prefix + 'AgeNote');
-      if (an) an.textContent = s.currentAge > 0
-        ? 'The State Pension lands in the plan year its date falls in — measured from the plan start set in "When your plan starts" above (age today ' + s.currentAge + ').'
+      const ageNow = readingAgeToday(null, { now: todayOf(), settings: s });   // the age today, rolled on (src/reading/timing.js, step F1): never the age as typed
+      if (an) an.innerHTML = ageNow > 0
+        ? 'The State Pension lands in the plan year its date falls in — measured from the plan start set in "When your plan starts" above (age today ' + markFact('age.today', formatFact('age.today', ageNow)) + ').'
         : 'Set your age today in "When your plan starts" above so the State Pension date lands in the right plan year.';
     }
     // ISA on 'hold' = never drawn for income (last-resort rescue only). The plan therefore moves
@@ -9052,7 +9051,7 @@
         const ownSettings = effectiveStressSettings(own, { now });
         // Both plans as their own tools read them (6.42.0; this plan's too from 7.12.0, as the simple view reads it): the Budget's age folded in, brought up to date
         const partnerSettings = partner ? effectiveStressSettings(partner, { now }) : null, unset = [[own, ownSettings], [partner, partnerSettings]].map(([p, st]) => ({ p, r: testReadyOf(p, st) })).find((x) => !x.r.ready);   // never run on defaults; the Accumulation tab's figures count, and what is missing is named (7.12.0)
-        if (unset) { out.innerHTML = '<div class="alert alert-warning">' + budEsc(householdNotSetWords(unset.p ? shownPlanName(unset.p) || unset.p.planDetails?.name : '', unset.r.missing)) + '</div>'; return; }
+        if (unset) { out.innerHTML = '<div class="alert alert-warning">' + budEsc(householdNotSetWords(unset.p ? readingPlanName(unset.p, { now: todayOf() }) : '', unset.r.missing)) + '</div>'; return; }
         // The run is the simple view's (answers/plan/householdRun.js runHousehold, lead4.md D20): the two plans and the day, in the
         // engine worker; the names, the offsets, the timeline and the figures are its. The split below is read by the same function
         // (HouseholdDraw.householdDrawSplit) for its words and for "Use this split", never for a run.
@@ -9221,7 +9220,7 @@
         if (window._acAutosave) await window._acAutosave.flush();
         const box = accumulationBoxes(await getActiveScenarioAsync(), null, todayOf());   // the saver's facts, as "What you pay in" reads them (7.12.0)
         for (const [id, v] of Object.entries(box.values)) { const el = document.getElementById(id); if (el) el.value = v == null ? (el.tagName === 'SELECT' ? ((el.querySelector('option[selected]') || el.options[0] || {}).value || '') : '') : v; }   // an empty value empties the box: nothing of another plan stays in it (lead4.md R2)
-        document.getElementById('acPotLine').textContent = box.potLine;
+        document.getElementById('acPotLine').innerHTML = box.potLine;   // its pension today marked (step F1)
         await renderAccumulationHoldings();   // 6.7.0: proportions from the ledger (and pot today when the box is empty)
         recalcAccumulation();
         renderAccumulationRecords().catch(() => {});
@@ -9261,27 +9260,28 @@
       let mpaa = { triggered: false, flexibleAccess: null };
       try { mpaa = mpaaOf(await getActiveScenarioAsync(), await getHistoryAsync(), await loadAllScenarios().catch(() => [])); } catch (e) { /* no plan or no history yet */ }
 
-      // 6.7.0: a fourth line at the holder's own mix (from the holdings ledger), net of cost; pot today from the ledger when set.
-      let mixRealReturn = null;
-      try { const hp = holdingsProportions(await getActiveHoldings()); if (hp.total > 0) { mixRealReturn = hp.expectedReal; window._acHoldingsProps = hp; } else window._acHoldingsProps = null; } catch (e) { window._acHoldingsProps = null; }
-      window._acMixOn = Number.isFinite(mixRealReturn);
-      let acStress = {}; try { acStress = await getStressSettingsAsync(); } catch (e) { /* none */ } const acCharges = chargesPctOf(acStress); const rows = projectAccumulation({ ...a, totalMonthly: b.totalMonthly, mixRealReturn, chargesPct: acCharges, mixOcf: window._acHoldingsProps ? window._acHoldingsProps.weightedOcf : null });   // 6.19.0: the plan's charge on every line; on the mix line in place of the funds' own (mixOcf)
-      const last = rows[rows.length - 1];
+      // (step F1, lead4.md D4) what the pot could be by the stop: the one model, the reading's (src/reading/atStop.js), from the
+      // plan as saved (the boxes save at once) — the same middle, bad and good cases and table as the simple view's
+      let acStress = {}; try { acStress = await getStressSettingsAsync(); } catch (e) { /* none */ } const acCharges = chargesPctOf(acStress);
+      let band = null; try { const sc = await getActiveScenarioAsync(); band = sc ? potAtStop(sc, contextFor(sc, { now: todayOf() })) : null; } catch (e) { band = null; }
       const warns = contributionWarnings({
         annualGrossTotal: b.totalMonthly * 12, salary: a.salary, mpaaTriggered: mpaa.triggered, flexibleAccess: mpaa.flexibleAccess,
-        currentAge: a.currentAge, retirementAge: a.retirementAge, projectedPotHigh: last.potHigh
+        currentAge: a.currentAge, retirementAge: a.retirementAge, projectedPotHigh: band && band.high != null ? band.high : 0
       });
       warnEl.innerHTML = warns.map((w) => '<div class="alert alert-' + (w.severity === 'danger' ? 'danger' : w.severity === 'warning' ? 'warning' : 'info') + '">' + w.message + '</div>').join('');
 
-      projEl.innerHTML = accumulationTableHtml({ rows, mixOn: window._acMixOn, mixRealReturn, chargesPct: acCharges, stress: acStress, inputs: a });   // + the ISA and savings line (6.22.0, src/ui/accumulationProjection.js)
-      window._acProjection = { rows, breakdown: b };
+      projEl.innerHTML = accumulationBandHtml(band, { chargesPct: acCharges, stress: acStress, isaMonthly: a.isaMonthly });
+      window._acProjection = { band, breakdown: b };
     };
 
     // "Am I on course?" (7.12.0, src/ui/saverAnswerUi.js): the simple view's answer block, from the same reader and the same run
     window.runOnTrackCheck = async () => { if (window._acAutosave) await window._acAutosave.flush(); return paintSaverAnswer(document, { listScenariosAsync, getActiveScenarioId, now: todayOf, run: saverRun, saveWant: saveActiveWant, afterSave: () => window.loadAccumulationUI && window.loadAccumulationUI() }); };
     window._ssAutosave = installStressSettingsAutosave(window, document, { save: (o) => saveStressSettingsUI(o), planIsLocked, isLoggedIn, getActiveScenarioId, dbStartError: () => dbStartError(document, window._ssTiming), afterSave: async () => { await repaintAfterWrite('save'); renderTiming(); } });   // the pots-at-stop line and the plan menu's name follow what was just saved
     window._acAutosave = installAccumulationAutosave(window, document, { saveTab: (b) => saveActiveAccumulationTab(b), planIsLocked, isLoggedIn, getActiveScenarioId,
-      afterSave: async () => { await repaintAfterWrite('save'); window.runOnTrackCheck(); } }); document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushSettings(); });   // the answer on the card follows the boxes; Settings reads the new ages; a page hidden sends what is typed
+      afterSave: async () => { await repaintAfterWrite('save'); window.runOnTrackCheck(); await window.refreshAccumulationReading(); } });
+    // (step F1) the tab's figures read from the plan just saved: the pension today's line and the pot at the stop with its table
+    // (the boxes themselves are left as typed)
+    window.refreshAccumulationReading = async () => { try { const box = accumulationBoxes(await getActiveScenarioAsync(), null, todayOf()); const el = document.getElementById('acPotLine'); if (el) el.innerHTML = box.potLine; } catch (e) { /* the line is optional */ } await window.recalcAccumulation(); }; document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushSettings(); });   // the answer on the card follows the boxes; Settings reads the new ages; a page hidden sends what is typed
 
     // In-app confirm modal — replaces window.confirm(), which BLOCKS the whole renderer (and any
     // browser automation) with a native dialog. Promise<boolean>; Escape/backdrop = cancel.
@@ -9540,7 +9540,7 @@
         incomeSteps: window._ssIncomeShape === 'phases' ? window._ssIncomeSteps.filter((st) => +st.amount > 0) : [],
         // Timing (6.4.0): age today + retired / retire-at-age → the saved first tax year and the derived
         // start age. The Timing block is the source; the Budget's age is kept in step (see above).
-        ...timing, potAtRetirement: ownPotAtRetirement(timing.potAtRetirement),   // pots at the stop only as the person typed them, never as worked out
+        ...timing,   // (the pots at the stop are never written: worked out from the plan, step F1)
         accessMethod: document.getElementById('ssAccessMethod').value || 'drawdown',
         ufplsYears: +document.getElementById('ssUfplsYears').value || null,
         ufplsThenPcls: document.getElementById('ssUfplsPcls').checked,
@@ -9744,7 +9744,7 @@
         window._budget = normaliseBudget(defaultBudget());
       }
       window._budGuide = await planTargetGuide();   // a plan made from a V7 answer: its own target, which the budget is a guide to (never throws)
-      try { const [scs, aid] = await Promise.all([listScenariosAsync(), getActiveScenarioId()]); const el = document.getElementById('budSharedLine'); el.innerHTML = budgetSharedLineHtml({ sharedFromName: window._budget.sharedFrom ? (scs.find((sc) => sc.id === window._budget.sharedFrom)?.planDetails?.name || 'another plan') : null, sharedToNames: scs.filter((sc) => sc.id !== aid && budgetSharedFromOf(sc) === aid).map((sc) => sc.planDetails?.name || sc.id) }); el.style.display = el.innerHTML ? 'block' : 'none'; } catch (e) { /* no line */ }   // one household budget (6.25.0)
+      try { const [scs, aid] = await Promise.all([listScenariosAsync(), getActiveScenarioId()]); const el = document.getElementById('budSharedLine'); el.innerHTML = budgetSharedLineHtml({ sharedFromName: window._budget.sharedFrom ? (readingPlanName(scs.find((sc) => sc.id === window._budget.sharedFrom), { now: todayOf() }) || 'another plan') : null, sharedToNames: scs.filter((sc) => sc.id !== aid && budgetSharedFromOf(sc) === aid).map((sc) => readingPlanName(sc, { now: todayOf() }) || sc.id) }); el.style.display = el.innerHTML ? 'block' : 'none'; } catch (e) { /* no line */ }   // one household budget (6.25.0)
       // Fresh budget → seed the curated categories (with hints) so labels are self-explanatory.
       if (!window._budget.lines.length) {
         window._budget.lines = starterLines().map((l) => ({ id: budId(), ...l }));
@@ -10287,7 +10287,7 @@
       try {
         const scenarios = await listScenariosAsync();
         const activeId = await getActiveScenarioId();
-        const planName = (scenarios.find((sc) => sc.id === activeId)?.planDetails?.name || 'plan')
+        const planName = (readingPlanName(scenarios.find((sc) => sc.id === activeId), { now: todayOf() }) || 'plan')
           .replace(/[^\w\-]+/g, '-').toLowerCase();
         const csv = budgetToCsv(window._budget || {});
         downloadFile('budget-' + planName + '-' + new Date().toISOString().slice(0, 10) + '.csv', csv, 'text/csv;charset=utf-8;');

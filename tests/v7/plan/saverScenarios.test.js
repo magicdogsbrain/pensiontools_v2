@@ -6,6 +6,7 @@
  *   - Jo, 33: no pension yet, £300 a month going in.
  * Every figure expected is worked out by hand in the test.
  */
+import { unmarked } from '../../../src/reading/mark.js';
 import { describe, it, expect } from 'vitest';
 import { answerB } from '../../../src/answers/b/answer.js';
 import { buildPlanSeed } from '../../../src/answers/keep/planSeed.js';
@@ -129,7 +130,7 @@ describe('step 1: one reader of a saver\'s facts', () => {
     expect(box.values.acAge).toBe(45);
     expect(box.values.acRetireAge).toBe(67);
     expect(box.values.acPotNow).toBe(131000);
-    expect(box.potLine).toBe('From your pension of £131,000, recorded November 2026.');
+    expect(unmarked(box.potLine)).toBe('From your pension of £131,000, recorded November 2026.');   // its figure marked (step F1)
   }, 30000);
 });
 
@@ -246,15 +247,15 @@ describe('step 3: the pots when you stop are worked out, never frozen', () => {
     }, 60000);
   }
 
-  it('the answer\'s own figure stored as typed is read as worked out; a figure the person changed is their own and stays', () => {
+  it('a stored figure — the answer\'s own, or one typed — is never read on a plan not locked: the pot at the stop is worked out (step F1, lead4.md D4)', () => {
     const plan = samPlan();
     const fa = plan.fromAnswer.people[0];
     plan.stressTool.settings.potAtRetirement = { sipp: fa.pension.atStop.middling, isa: fa.savings.atStop.middling || null, source: 'override' };
-    expect(effectiveStressSettings(plan, { now: NOW }).potAtRetirement.source).toBe('worked');
+    const worked = effectiveStressSettings(plan, { now: NOW }).potAtRetirement;
+    expect(worked.source).toBe('worked');
     plan.stressTool.settings.potAtRetirement = { sipp: fa.pension.atStop.middling + 1, isa: fa.savings.atStop.middling || null, source: 'override' };
-    const typed = effectiveStressSettings(plan, { now: NOW }).potAtRetirement;
-    expect(typed).toEqual({ sipp: fa.pension.atStop.middling + 1, isa: fa.savings.atStop.middling || null, source: 'override' });
-    expect(atStopText(plan)).toContain('your own figure. It does not follow your pot or what you pay in.');
+    expect(effectiveStressSettings(plan, { now: NOW }).potAtRetirement).toEqual(worked);
+    expect(atStopText(plan)).not.toContain('your own figure');
   }, 30000);
 
   it('a locked plan reads the figure its plan document was locked with, whatever is recorded since', () => {

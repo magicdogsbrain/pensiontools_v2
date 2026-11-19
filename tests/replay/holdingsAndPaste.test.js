@@ -8,6 +8,7 @@ vi.mock('../../src/firebase/index.js', () => ({ isFirebaseConfigured: () => fals
 import { parsePaste, matchRows, mergeLedger } from '../../src/services/HoldingsPaste.js';
 import { tagPortfolio } from '../../src/services/PortfolioTagger.js';
 import { potAtAge, sweepRetirementAges, NO_POT_MESSAGE } from '../../src/services/RetireSweep.js';
+import { savingInputsOf } from '../../src/services/PotsAtStop.js';
 import { buildAccumulationPath } from '../../src/services/PlanDocument.js';
 import { deriveTiming } from '../../src/services/PlanTiming.js';
 import { normaliseHoldings } from '../../src/services/HoldingsRecord.js';
@@ -92,11 +93,13 @@ describe('the Stress tester\'s fund list is never what you hold (our ruling, 16 
   const accumulation = { netMonthly: 1200, salary: 60000, schemeType: 'ras', employerMonthly: 375 };
 
   it('R6.13.0-a — "When could I retire?" has no pot until one is recorded; it never spins on the tested funds', () => {
-    expect(potAtAge({ settings, accumulation, currentAge: 50, age: 60 })).toMatchObject({ potNow: null, pot: null });
-    const r = sweepRetirementAges({ settings, accumulation, ages: [57], now: SEPT_2026 });
+    // (step F1) the spin reads the plan's own pension today (PotsAtStop.savingInputsOf), never the tested funds
+    const inputs = (holdings = null) => savingInputsOf({ stressTool: { settings }, accumulationTool: { settings: accumulation }, holdings }, settings, { now: SEPT_2026 });
+    expect(potAtAge({ settings, inputs: inputs(), currentAge: 50, age: 60, now: SEPT_2026 })).toMatchObject({ potNow: null, pot: null });
+    const r = sweepRetirementAges({ settings, inputs: inputs(), ages: [57], now: SEPT_2026 });
     expect(r.error).toBe(NO_POT_MESSAGE);
     const real = { lines: [{ ticker: 'VWRP', value: 400000, wrapper: 'SIPP' }] };
-    expect(potAtAge({ settings, accumulation, holdings: real, currentAge: 50, age: 60 }).potNow).toBe(400000);   // not £1,080,000
+    expect(potAtAge({ settings, inputs: inputs(real), currentAge: 50, age: 60, now: SEPT_2026 }).potNow).toBe(400000);   // not £1,080,000
   });
 
   it('R6.13.0-a — the saver\'s locked path starts from the recorded pot, or from nothing', () => {

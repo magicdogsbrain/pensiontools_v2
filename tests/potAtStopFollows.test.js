@@ -48,11 +48,13 @@ describe('the pot at the stop follows the stop', () => {
     expect(p63 - p62).toBeGreaterThanOrEqual(6900);
     expect(p63 - p62).toBeLessThanOrEqual(23900);
   });
-  it('a locked plan keeps the figure it was locked with; a typed figure stays as typed', () => {
+  it('a locked plan keeps the figure it was locked with; a typed figure is not read on a plan not locked (step F1, lead4.md D4)', () => {
     const locked = samStoppingAt(62, { lock: true }).sam;
     expect(effectiveStressSettings(locked, { now: NOW }).potAtRetirement.sipp).toBe(169898);
     const typed = samStoppingAt(62, { typed: true }).sam;
-    expect(effectiveStressSettings(typed, { now: NOW }).potAtRetirement.sipp).toBe(169898);
+    const plain = samStoppingAt(62).sam;
+    expect(effectiveStressSettings(typed, { now: NOW }).potAtRetirement).toEqual(effectiveStressSettings(plain, { now: NOW }).potAtRetirement);
+    expect(effectiveStressSettings(typed, { now: NOW }).potAtRetirement.source).toBe('worked');
   });
   it('reading writes nothing', () => {
     const { sam } = samStoppingAt(62);

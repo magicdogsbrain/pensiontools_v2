@@ -57,7 +57,7 @@ describe('every mark holds the figure the register reads there', () => {
     const end = at('about').querySelector('[data-fact="plan.endAge"]');
     expect(end).not.toBeNull();
     expect(text(end).trim()).toMatch(/^\d+$/);
-    const pot = at('').querySelector('[data-fact="pot.today"]');
+    const pot = at('').querySelector('[data-fact="pot.againstPlan"], [data-fact="pot.today"]');   // (step F1) the pot set against the plan, or the pension today it is
     expect(pot).not.toBeNull();
     expect(text(pot).trim()).toMatch(/^£[\d,]+$/);
   });

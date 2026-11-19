@@ -89,7 +89,7 @@ describe('every corpus plan at three dates: the boxes, the sources, the notes, t
           if (!root.querySelector('[data-testid="plan.pots.saves"]')) problems.push(`${e.plan.id}: no "saves … later" line`);
           // the pots at the stop are asked only of someone stopping later
           const s = savedPots(e.plan, { today });
-          if (!!root.querySelector('label[for="plan.pots.stopSipp"]') !== s.later) problems.push(`${e.plan.id}: the stop boxes do not follow the plan`);
+          if (root.querySelector('label[for="plan.pots.stopSipp"]')) problems.push(`${e.plan.id}: a box for the pots at the stop (step F1: worked out, never typed)`);
         }
         for (const d of v.derived) if (!root.querySelector(`[data-line="pots.${d.id}"]`)) problems.push(`${e.plan.id}: derived line ${d.id} not drawn`);
         if (!text.includes(ADVICE_SHORT)) problems.push(`${e.plan.id}: no ADVICE_SHORT`);
@@ -128,7 +128,8 @@ describe('the lumpy plan (12): what the page says, and what typing does', () => 
     expect(root.querySelector('[data-testid="plan.pots.ufplsYears"]')).toBe(null);
     expect(root.querySelector('[data-testid="plan.pots.bandFill.no"]').checked).toBe(true);
     expect(root.querySelector('label[for="plan.pots.stopSipp"]')).toBe(null);
-    expect(text).toContain('Pension £440,000 and ISAs and savings £60,000 today; £85,000 in your ordinary account.');
+    // (step F1) the money today every page says (src/reading/money.js): What you hold here, not the boxes' figures
+    expect(text).toMatch(/Pension £441,9\d\d and ISAs and savings £[\d,]+ today; £85,000 in your ordinary account\./);
     expect(text).toContain('Split as saved: £280,000 shares, £120,000 bonds, £40,000 cash. The split, the risk level and the funds to test are set with the way of drawing and mix (in the full view).');
     expect(text).toContain('Charges of 0.5% a year come off your funds and cash every month');
     expect(text).toContain('Tax-free allowance £12,570; basic rate up to £50,270; higher rate up to £125,140; the thresholds rise with prices.');
@@ -165,13 +166,12 @@ describe('the lumpy plan (12): what the page says, and what typing does', () => 
     expect(asked.root.querySelector('[data-error-for="plan.pots.pension"]').textContent).toBe('Type what is in your pension pots today, for example 250,000.');
     expect(asked.root.querySelector('[data-error-for="plan.pots.charges"]').textContent).toBe('A charge from 0 to 3% a year, please.');
   });
-  it('the saver (10): the pots at the stop are asked, blank, with the planner\'s projection beside them; the typed figure is said back', () => {
+  it('the saver (10): the pots at the stop are worked out, never asked: the middle and its bad and good cases, marked (step F1)', () => {
     const { root, text } = draw(potsState(entries, SAVER.id));
-    expect(root.querySelector('[data-testid="plan.pots.stopSipp"]').value).toBe('');
-    // 7.12.0: worked out from the saver's facts, to the nearest £1,000
-    expect(text).toMatch(/Worked out from your pot and what you pay in, in a middling case: £[\d,]+,000 pension and £[\d,]+,000 in ISAs and savings when you stop\. Type your own above to use it instead\./);
-    const typed = draw(potsState(entries, SAVER.id, { typed: { stopSipp: '300,000' } }));
-    expect(typed.text).toContain('At the day you stop, as you typed it: £300,000 pension and none typed ISAs and savings.');
+    expect(root.querySelector('[data-testid="plan.pots.stopSipp"]')).toBe(null);
+    expect(text).toMatch(/When you stop, worked out from your pot and what you pay in, in a middling case: £[\d,]+,000 pension and £[\d,]+,000 in ISAs and savings\./);
+    expect(text).toMatch(/£[\d,]+,000 at the low end \(one future in ten ends lower\), £[\d,]+,000 in the middle, £[\d,]+,000 at the high end/);
+    for (const f of ['pot.atStop', 'pot.atStop.low', 'pot.atStop.high']) expect(root.querySelector(`[data-fact="${f}"]`), f).not.toBe(null);
   });
   it('the toast after a save, with Undo; "Saving…" while a write is under way; a problem from the write in plain words', () => {
     const line = { id: 'pots', slots: { pension: '£500,000', isa: '£60,000', charges: '0.5' } };

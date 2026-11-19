@@ -4,10 +4,10 @@
   "getStressSettingsAsync": 53,
   "DEFAULT_TAX_BANDS": 11,
   "grossToNet": 7,
-  "projectAccumulation": 2,
+  "projectAccumulation": 0,
   "diffHoldings": 1,
-  "newDate": 46,
-  "boxValue": 99,
+  "newDate": 45,
+  "boxValue": 98,
   "engineImport": 22
  },
  "byRule": {
@@ -30,10 +30,7 @@
    "src/answers/plan/about.js": 1,
    "src/answers/plan/life.js": 2
   },
-  "projectAccumulation": {
-   "index.html": 1,
-   "src/answers/plan/saving.js": 1
-  },
+  "projectAccumulation": {},
   "diffHoldings": {
    "index.html": 1
   },
@@ -52,7 +49,6 @@
    "src/ui/planStartUi.js": 2,
    "src/ui/saverAnswerUi.js": 1,
    "src/ui/savingPathForLock.js": 1,
-   "src/ui/stageWord.js": 1,
    "src/ui/startingPotsWords.js": 1,
    "src/ui/stressPanelUi.js": 1,
    "src/v7/effects/account.js": 3,
@@ -63,7 +59,7 @@
    "src/v7/effects/planWrite.js": 1
   },
   "boxValue": {
-   "index.html": 96,
+   "index.html": 95,
    "src/ui/dbStartSetting.js": 2,
    "src/ui/planStartUi.js": 1
   },

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 vi.mock('../src/firebase/index.js', () => ({ isFirebaseConfigured: () => false, isLoggedIn: () => false }));
-import { candidateAges, potAtAge, sweepRetirementAges, sweepPlanAt, earliestAt, sweepHeadline, NO_POT_MESSAGE } from '../src/services/RetireSweep.js';
+import { candidateAges, potAtAge as potAtAgeOf, sweepRetirementAges as sweepOf, sweepPlanAt as sweepPlanAtOf, earliestAt, sweepHeadline, NO_POT_MESSAGE, SAVING_BASIS } from '../src/services/RetireSweep.js';
+import { savingInputsOf, potsAtStopOf } from '../src/services/PotsAtStop.js';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -18,6 +19,13 @@ const settings = {
 // What the saver actually holds — the holdings record (6.13.0).
 const holdings = { version: 1, updatedAt: '2026-09-10', source: 'typed', offerDismissed: false, lines: [{ ticker: 'VWRP', value: 400000, wrapper: 'SIPP', ocf: 0.22, contribution: 1875 }] };
 const accumulation = { netMonthly: 1200, salary: 60000, schemeType: 'ras', employerMonthly: 375 };
+// (step F1, lead4.md D4) the spin reads the plan's own pension and what goes in (PotsAtStop.savingInputsOf), never a box:
+// these helpers hand it a plan made of the same figures
+const planOf = ({ settings: st, accumulation: acc = null, holdings: h = null }) => ({ stressTool: { settings: st }, accumulationTool: { settings: acc || {} }, holdings: h });
+const inputsOf = (o) => savingInputsOf(planOf(o), o.settings, { now: NOW });
+const potAtAge = (o) => potAtAgeOf({ settings: o.settings, inputs: inputsOf(o), currentAge: o.currentAge, age: o.age, now: NOW });
+const sweepRetirementAges = (o) => sweepOf({ ...o, inputs: o.settings && o.settings.currentAge ? inputsOf(o) : null });
+const sweepPlanAt = (o) => sweepPlanAtOf({ ...o, inputs: inputsOf(o), now: NOW });
 
 describe('candidateAges and potAtAge', () => {
   it('ages run from next year to 75 (or the plan\'s own age if later)', () => {
@@ -25,21 +33,29 @@ describe('candidateAges and potAtAge', () => {
     expect(candidateAges(50).slice(-1)[0]).toBe(75);
     expect(candidateAges(57, 80).slice(-1)[0]).toBe(80);
   });
-  it('the pot grows with the years and is bigger at the holder\'s own mix than the cautious band', () => {
+  it('the pot grows with the years: the middle of the plan\'s own saving lives, with its bad and good cases', () => {
     const p60 = potAtAge({ settings, accumulation, holdings, currentAge: 50, age: 60 });
     const p65 = potAtAge({ settings, accumulation, holdings, currentAge: 50, age: 65 });
     expect(p60.potNow).toBe(400000);   // from the holdings record, not the £800k floor or the £999,999 test list
-    expect(p60.basis).toBe('your mix');
+    expect(p60.basis).toBe(SAVING_BASIS);
     expect(p60.pot).toBeGreaterThan(400000);
     expect(p65.pot).toBeGreaterThan(p60.pot);
     expect(p60.low).toBeLessThan(p60.pot);
+    expect(p60.high).toBeGreaterThan(p60.pot);
     expect(p60.totalMonthly).toBeGreaterThan(1500);
     expect(potAtAge({ settings, accumulation, holdings: holdings.lines, currentAge: 50, age: 60 }).potNow).toBe(400000);   // lines alone work too
   });
-  it('no holdings: the Accumulation planner\'s pot today is the fallback; nothing at all → null, never the tested pots', () => {
+  it('at the plan\'s own stop age it is the plan\'s own pot at the stop, to the pound (one model, step F1)', () => {
+    const plan = planOf({ settings, accumulation, holdings });
+    const own = potsAtStopOf(plan, settings, { now: NOW });
+    const t = own.from.toAge;
+    const p = potAtAgeOf({ settings, inputs: savingInputsOf(plan, settings, { now: NOW }), currentAge: 50, age: t, now: NOW });
+    expect([p.pot, p.low, p.high, p.isa]).toEqual([own.sipp, own.sippLow, own.sippHigh, own.isa]);
+  });
+  it('no holdings: the pot saved with what you pay in is the pension today; nothing at all → null, never the tested pots', () => {
     const acc = potAtAge({ settings, accumulation: { ...accumulation, potNow: 250000 }, currentAge: 50, age: 60 });
     expect(acc.potNow).toBe(250000);
-    expect(acc.basis).toBe('FCA middle band');
+    expect(acc.basis).toBe(SAVING_BASIS);
     const none = potAtAge({ settings, accumulation, currentAge: 50, age: 60 });
     expect(none).toMatchObject({ potNow: null, pot: null, low: null, high: null, basis: null });
     expect(none.totalMonthly).toBeGreaterThan(1500);
@@ -55,7 +71,7 @@ describe('sweepRetirementAges', () => {
     expect(sweepHeadline(r)).toBe(NO_POT_MESSAGE);
     const ok = sweepRetirementAges({ settings, accumulation: { ...accumulation, potNow: 400000 }, ages: [62], now: NOW });
     expect(ok.rows.length).toBe(1);
-    expect(ok.basis).toBe('FCA middle band');
+    expect(ok.basis).toBe(SAVING_BASIS);
   });
   it('gives a confidence per age that rises with age, with the pot each was priced on', () => {
     expect(result.income).toBe(40000);

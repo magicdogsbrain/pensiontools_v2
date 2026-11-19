@@ -529,8 +529,7 @@ describe('"Your pots and tax" (editing-in-v7.md 9): the same one write, chosen b
       pa: fc.oneof(fc.constant(undefined), fc.constantFrom('', '12,570', '10,000')),
       taxFree: fc.oneof(fc.constant(undefined), fc.constantFrom('drawdown', 'ufpls')),
       ufplsYears: fc.oneof(fc.constant(undefined), fc.constantFrom('', '5', '70')),
-      bandFill: fc.oneof(fc.constant(undefined), fc.constantFrom('yes', 'no')),
-      stopSipp: fc.oneof(fc.constant(undefined), fc.constantFrom('', '300,000'))
+      bandFill: fc.oneof(fc.constant(undefined), fc.constantFrom('yes', 'no'))
     }, { requiredKeys: [] }).map((r) => Object.fromEntries(Object.entries(r).filter(([, v]) => v !== undefined)));
     const EDITABLE = Object.values(C).filter((p) => !(p.decisionTool.settings && p.decisionTool.settings.locked) && !LATER(p));   // a draft saved with a later start: its own test below
     await fc.assert(fc.asyncProperty(fc.constantFrom(...EDITABLE), anyTyped, fc.boolean(), async (raw, typed, account) => {

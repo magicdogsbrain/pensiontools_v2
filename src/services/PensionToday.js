@@ -4,6 +4,8 @@
  *
  *   1 'checkIn'   the check-in being made (the caller hands it in)
  *   2 'record'    the newest monthly pot record (SaverReading.saverPotOf on accumulationTool.history)
+ *   2b 'record' / 'holdings'  a plan being drawn: the newest month record's pots, or What you hold when it is newer
+ *                 (services/DrawingPot.js drawingPensionOf — the very figure Where you are sets against the plan)
  *   3 'holdings'  the pension lines under What you hold, when they come to more than £0
  *   4 'saved'     the pot today saved with what you pay in (accumulationTool.settings.potNow) when above £0;
  *      'answer'   the same figure when it is the one the plan was kept with, or the answer's £0 when it said £0
@@ -22,8 +24,20 @@
  */
 import { saverPotOf, figureOrNull } from './SaverReading.js';
 import { pensionPotFromHoldings } from './Holdings.js';
-import { holdingsLines } from './HoldingsRecord.js';
+import { holdingsLines, normaliseWrapper, numOrNull } from './HoldingsRecord.js';
 import { sippTodayOf } from './PotsAtRetirement.js';
+import { drawingPensionOf, drawingIsaOf } from './DrawingPot.js';
+
+/** The strategies a plan's mix is drawn by (PlanDocument.POT_STRATEGIES): only these hold diversifiers in their band. */
+const POT_STRATEGIES = ['pots-and-valves', 'buckets-in-order'];
+
+/** Whether a locked plan's band counts diversifiers the month record does not keep (PlanDocument.bandMeasure). */
+function holdsDiversifiers(plan) {
+  const d = plan && plan.planDocument;
+  if (!isObj(d)) return false;
+  const id = (d.strategy && d.strategy.id) || 'pots-and-valves';
+  return POT_STRATEGIES.includes(id) && (+(d.pots && d.pots.allocation && d.pots.allocation.diversifierStart) || 0) > 0;
+}
 
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
@@ -52,6 +66,14 @@ export function pensionTodayOf(plan, { now = new Date(), checkIn = null, setting
   const hist = Array.isArray(plan && plan.accumulationTool && plan.accumulationTool.history) ? plan.accumulationTool.history : [];
   const rec = saverPotOf({ accHistory: hist, today: now });
   if (rec.source === 'record' && isNum(rec.pension)) return { value: rec.pension, from: 'record', asOf: rec.at, isa: isNum(rec.isa) ? rec.isa : null };
+  const months = Array.isArray(plan && plan.decisionTool && plan.decisionTool.history) ? plan.decisionTool.history.filter(isObj) : [];
+  if (months.length) {
+    const drawn = drawingPensionOf({ history: months, holdings: plan.holdings, diversifiers: holdsDiversifiers(plan) });
+    if (drawn && isNum(drawn.pension)) {
+      const isa = drawingIsaOf({ history: months, holdings: plan.holdings });
+      return { value: drawn.pension, from: drawn.source, asOf: drawn.asOf, isa: isa ? isa.value : null };
+    }
+  }
   const held = pensionPotFromHoldings(holdingsLines(plan && plan.holdings));
   if (held > 0) return { value: held, from: 'holdings', asOf: null, isa: null };
   const acc = accOf(plan);
@@ -62,6 +84,20 @@ export function pensionTodayOf(plan, { now = new Date(), checkIn = null, setting
   const ss = isObj(settings) ? settings : (plan && plan.stressTool && isObj(plan.stressTool.settings) ? plan.stressTool.settings : null);
   if (ss && ss.configured === true && sippTodayOf(ss) > 0) return { value: sippTodayOf(ss), from: 'plan', asOf: null, isa: null };
   return { value: null, from: 'none', asOf: null, isa: null };
+}
+
+/**
+ * The ISA today, by the same rule everywhere (lead4.md D3): the ISA that came with the pot record or check-in the pension
+ * today was read from, else the ISA lines under What you hold (their sum, £0 included), else the plan's ISA balance.
+ * → { value, from: 'checkIn' | 'record' | 'holdings' | 'plan' }
+ */
+export function isaTodayOf(plan, { now = new Date(), checkIn = null, settings = null, today = null } = {}) {
+  const t = today || pensionTodayOf(plan, { now, checkIn, settings });
+  if (t && isNum(t.isa)) return { value: Math.max(0, t.isa), from: t.from };
+  const isa = holdingsLines(plan && plan.holdings).filter((l) => l && normaliseWrapper(l.wrapper) === 'ISA' && numOrNull(l.value) != null);
+  if (isa.length) return { value: Math.max(0, isa.reduce((a, l) => a + numOrNull(l.value), 0)), from: 'holdings' };
+  const ss = isObj(settings) ? settings : (plan && plan.stressTool && isObj(plan.stressTool.settings) ? plan.stressTool.settings : {});
+  return { value: Math.max(0, num(ss.isaBalance) || 0), from: 'plan' };
 }
 
 /**

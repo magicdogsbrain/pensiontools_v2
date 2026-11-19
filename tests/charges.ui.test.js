@@ -141,13 +141,11 @@ describe('index.html: the box in Stress tester → Settings', () => {
     expect(r).toContain('planIsLocked()');
     expect(fnBody('window.refreshStressLock = async function', 2500)).toContain('renderChargesField(');
   });
-  it('the Accumulation planner takes the plan\'s charge, and the funds\' own charge is not taken twice', () => {
+  it('the Accumulation planner takes the plan\'s charge (step F1: through the one model, which the plan\'s settings feed)', () => {
     const acc = fnBody('window.recalcAccumulation = async function', 6500);
-    expect(acc).toMatch(/projectAccumulation\(\{[^}]*chargesPct/);
-    expect(acc).toContain('mixOcf');
-    // 6.22.0: the table (and its charges note) moved into src/ui/accumulationProjection.js, which is handed the charge
-    expect(acc).toContain('accumulationTableHtml({ rows, mixOn: window._acMixOn, mixRealReturn, chargesPct: acCharges');
-    expect(readFileSync(resolve(process.cwd(), 'src/ui/accumulationProjection.js'), 'utf8')).toContain('accumulationChargesNoteHtml(chargesPct, mixOn)');
+    expect(acc).not.toMatch(/projectAccumulation\(/);
+    expect(acc).toContain('accumulationBandHtml(band, { chargesPct: acCharges');
+    expect(readFileSync(resolve(process.cwd(), 'src/ui/accumulationProjection.js'), 'utf8')).toContain('accumulationChargesNoteHtml(chargesPct, false)');
     expect(plain(accumulationChargesNoteHtml(0.5, true))).toBe('After fund and platform charges of 0.5% a year (your plan\'s setting in Stress tester → Settings); the "your mix" line takes this in place of your funds\' own charges.');
     expect(plain(accumulationChargesNoteHtml(0))).toBe('No fund or platform charges taken off (see Stress tester → Settings).');
   });

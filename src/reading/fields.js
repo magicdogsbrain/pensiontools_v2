@@ -48,8 +48,7 @@ export const FIELDS = Object.freeze([
   F('pots.ufplsYears', S + 'ufplsYears', ['pots', 'ufplsYears'], ['ssUfplsYears']),
   F('pots.ufplsThenIsa', S + 'ufplsThenPcls', ['pots', 'ufplsThenIsa'], ['ssUfplsPcls']),
   F('pots.bandFill', S + 'bandFillRecycle', ['pots', 'bandFill'], ['ssBandFillRecycle']),
-  F('pots.stopSipp', S + 'potAtRetirement', ['pots', 'stopSipp'], ['tmPotSipp']),
-  F('pots.stopIsa', S + 'potAtRetirement', ['pots', 'stopIsa'], ['tmPotIsa']),
+  // (step F1, lead4.md D4: the pots at the stop are worked out from the plan, never typed — their boxes are gone in both views)
   // the pots a bought way is priced on: the full view only (map-edits #11)
   F('pots.boughtSipp', S + 'strategyParams.sippTotal', null, ['miniSipp', 'stratSipp', 'stratSippFf']),
   F('pots.boughtIsa', S + 'strategyParams.isaTotal', null, ['miniIsa', 'stratIsa', 'stratIsaFf']),

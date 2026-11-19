@@ -450,7 +450,7 @@ describe('the words in src/v7/copy/', () => {
   it('"Your pots and tax" (pots.js): every string passes in every scope a plan page is shown in; no slot left unfilled', () => {
     // the fourth editing step is a plan page too (editing-in-v7.md 9): a retired person's and a saver's plan are both edited from it
     const scopes = ['all', 'record', 'retired', 'saver', 'planner'];
-    const slot = (s) => s.replace(/\{date\}/g, '1 July 2026').replace(/\{(pension|isa|taxable|shares|bonds|cash|sipp|sippBad|isaBad|pa|brl|hrl)\}/g, '£250,000')
+    const slot = (s) => s.replace(/\{date\}/g, '1 July 2026').replace(/\{(pension|isa|taxable|shares|bonds|cash|sipp|sippBad|isaBad|low|high|pa|brl|hrl)\}/g, '£250,000')
       .replace(/\{(pct|charges)\}/g, '0.5').replace(/\{years\}/g, ' for 10 years').replace(/\{(then|div)\}/g, '').replace(/\{mode\}/g, 'the thresholds rise with prices')
       .replace(/\{name\}/g, 'Sam').replace(/\{value\}/g, '67');
     const hits = [];

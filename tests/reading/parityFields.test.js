@@ -14,9 +14,9 @@ import { FIXTURES } from '../../e2e/parity/fixtures/plans.js';
 import oneView from '../../e2e/parity/one-view-only.json';
 
 describe('the field registry', () => {
-  it('holds every row of the edit map (85: #1–#86 without #9)', () => {
+  it('holds every row of the edit map (84: #1–#86 without #9, and without #27 — the pots at the stop have no box since step F1, lead4.md D4)', () => {
     const rows = new Set(REGISTRY.map((e) => e.map));
-    const want = Array.from({ length: 86 }, (_, i) => i + 1).filter((n) => n !== 9);
+    const want = Array.from({ length: 86 }, (_, i) => i + 1).filter((n) => n !== 9 && n !== 27);
     expect([...rows].sort((a, b) => a - b)).toEqual(want);
   });
   it('agrees with the field table: each box of the table is a box of the registry, in the same views', () => {

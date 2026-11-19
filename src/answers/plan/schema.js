@@ -260,13 +260,10 @@ export const YES_NO = Object.freeze(['yes', 'no']);
 
 /**
  * The boxes (9.2), in the order they are drawn. `when` as the other lists; the boxes whose showing depends on a figure
- * (the ordinary account's mix and band while it holds money; the pots at the stop while the plan stops later; bed-and-ISA
- * while the ISA is not held) are decided by the reading (pots.js checkPots applies).
+ * (the ordinary account's mix and band while it holds money; bed-and-ISA while the ISA is not held) are decided by the reading (pots.js checkPots applies).
  */
 export const POTS_FIELDS = Object.freeze([
   { path: 'pension',      type: 'money',   min: 0, max: 50000000, required: true },
-  { path: 'stopSipp',     type: 'money',   min: 1, max: 50000000, required: false },
-  { path: 'stopIsa',      type: 'money',   min: 1, max: 50000000, required: false },
   { path: 'isa',          type: 'money',   min: 0, max: 50000000, required: false, default: 0 },
   { path: 'isaGrowth',    type: 'choice',  options: ISA_GROWTHS, required: true },
   { path: 'isaUse',       type: 'choice',  options: ISA_USES, default: 'minimiseEarlyTax' },
@@ -297,7 +294,9 @@ export const POTS_WRITES = Object.freeze([
   'stressTool.settings.bondMin',
   'stressTool.settings.cashTarget',
   'stressTool.settings.diversifierStart',
-  'stressTool.settings.potAtRetirement',
+  // a plan still saving: the pension typed is the pension today everywhere (services/PensionToday.js pensionTodayPatch)
+  'accumulationTool.settings',
+  'accumulationTool.history',
   'stressTool.settings.isaBalance',
   'stressTool.settings.isaGrowth',
   'stressTool.settings.isaDrawdownStrategy',

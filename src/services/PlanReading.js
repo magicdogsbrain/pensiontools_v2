@@ -38,7 +38,7 @@ import { readDayOf } from './PlanClosed.js';
 import { laterDraftOf, withLockedStart } from './PlanMove.js';
 import { potsAtStopOf } from './PotsAtStop.js';
 import { planHasFigures } from './PlanFigures.js';
-import { pensionTodayOf } from './PensionToday.js';
+import { isaTodayOf, pensionTodayOf } from './PensionToday.js';
 import { sippTodayOf } from './PotsAtRetirement.js';
 
 /**
@@ -196,7 +196,7 @@ export function settingsForScreen(scenario, { now = new Date() } = {}) {
 
 /**
  * The pots when you stop, as read (7.12.0; services/PotsAtStop.js), in memory only: a plan still saving and not locked
- * reads them worked out from its own facts (or the person's own typed figure); a locked plan reads the figure its plan
+ * reads them worked out from its own facts, never a stored figure (lead4.md D4); a locked plan reads the figure its plan
  * document was locked with; anything else as stored. Nothing is written.
  */
 export function withDerivedPots(scenario, settings, now = new Date(), env = {}) {
@@ -209,8 +209,11 @@ export function withDerivedPots(scenario, settings, now = new Date(), env = {}) 
   }
   let worked = null;
   try { worked = potsAtStopOf(scenario, s, { now, env }); } catch (e) { worked = null; }
-  // the person's own figure stays exactly as stored (marked 'override', as every reader of it expects)
-  return worked && worked.source === 'worked' ? { ...s, potAtRetirement: worked } : s;
+  // one model (lead4.md D4; step F1): an unlocked plan's pots at the stop are the worked ones, never a stored figure (the
+  // answer's, a typed one, a projection once saved) — with none worked out (no age), none
+  if (!(worked && worked.source === 'worked')) return { ...s, potAtRetirement: null };
+  const { rows, sippLow, sippHigh, ...pots } = worked;   // the band is the reading's (src/reading/atStop.js), not the settings'
+  return { ...s, potAtRetirement: pots };
 }
 
 /**
@@ -228,14 +231,20 @@ const INCOME_NOT_SET = Object.freeze({ incomeNotSet: true });
  * figures, or locked, is read as stored.
  */
 export function withPensionToday(scenario, settings, now = new Date()) {
-  if (!scenario || planHasFigures(scenario)) return settings || {};
+  if (!scenario) return settings || {};
+  if (planHasFigures(scenario)) return settings || {};
   // (7.12.0, decision 2) its income is the default too: marked, never read as the person's. In memory only, like `potsNotSet`.
   const s = { ...(settings || {}), ...INCOME_NOT_SET };
   const known = pensionTodayOf(scenario, { now, settings: s });
   if (known.value == null) return { ...s, potsNotSet: true };
+  return potsAs(s, known.value);
+}
+
+/** The settings' pension pots made `value`, split as stored (all in shares when none is stored). */
+function potsAs(s, value) {
   const parts = ['bondMin', 'cashTarget', 'diversifierStart'];
   const total = sippTodayOf(s);
-  const v = Math.max(0, Math.round(known.value));
+  const v = Math.max(0, Math.round(value));
   if (!(total > 0)) return { ...s, equityMin: v, bondMin: 0, cashTarget: 0, diversifierStart: 0 };
   const out = { ...s };
   let rest = v;
@@ -367,7 +376,7 @@ export function planMoneyOf(scenario, { now = new Date(), settings = null } = {}
   const ss = settings || effectiveStressSettings(scenario, { now });
   const t = pensionTodayOf(scenario, { now, settings: ss });
   if (!(t && t.value > 0)) return null;
-  const isa = t.isa != null ? +t.isa || 0 : +(ss && ss.isaBalance) || 0;
+  const isa = isaTodayOf(scenario, { now, settings: ss, today: t }).value;   // the one ISA-today rule (lead4.md D3)
   return { pension: t.value, isa, from: MONEY_FROM[t.from] || 'plan' };
 }
 

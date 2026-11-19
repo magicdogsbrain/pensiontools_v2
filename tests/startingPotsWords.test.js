@@ -47,16 +47,14 @@ describe('the line above the runs', () => {
   });
 });
 
-describe('the Timing block\'s line', () => {
-  const p = { sipp: 473935, isa: 36702, low: 378650, high: 594021, hasContributions: true };
-  it('pots at retirement in the boxes: THOSE price every strategy; the projection is for comparison', () => {
-    const t = plain(potsAtRetirementLine(p, { sipp: 493164, isa: 37694 }));
-    expect(t).toBe('Every strategy is priced on the pots at retirement in the boxes below: SIPP £493,164 · ISA £37,694 (today\'s money). For comparison, the planner\'s own projection, middle band with your Accumulation planner contributions: SIPP £473,935 (cautious £378,650, strong £594,021) · ISA £36,702. The pots below are what the strategy is tested on — record what you hold on the Transition tab.');
-    expect(plain(potsAtRetirementLine(p, { sipp: 493164, isa: 0 }))).toMatch(/^Every strategy is priced on the pots at retirement in the boxes below: SIPP £493,164 \(today's money\)\./);
+describe('the Timing block\'s line (step F1: the reading\'s pot at the stop, never the boxes)', () => {
+  const worked = { middle: 473935, low: 378650, high: 594021, isa: 36702, age: 62, source: 'worked', from: { pot: 250000, monthly: 900 } };
+  it('worked out: the middle to £1,000 with its bad and good cases, from the pension today and what goes in', () => {
+    expect(plain(potsAtRetirementLine(worked))).toBe('Pots when you stop, in today\'s money: pension £474,000 in a middling case (£379,000 at the low end, £594,000 at the high end) · ISAs and savings £37,000. Worked out from your pension today (£250,000) and £900 a month going in, to age 62, over the same futures as every test. Every strategy is priced on these; they follow what you pay in, on the Accumulation tab.');
   });
-  it('no boxes filled: today\'s words, unchanged', () => {
-    expect(unmarked(potsAtRetirementLine(p, {}))).toBe('Pots at retirement in today\'s money, middle band with your Accumulation planner contributions: SIPP <strong>£473,935</strong> (cautious £378,650, strong £594,021) · ISA <strong>£36,702</strong>. Every strategy is priced on these; the pots below are what the strategy is tested on — record what you hold on the Transition tab.');
-    expect(potsAtRetirementLine({ ...p, hasContributions: false })).toMatch(/middle band \(growth only — no contributions saved on the Accumulation tab\):/);
+  it('locked: the pots it was locked with, with the day, and nothing worked out today beside them', () => {
+    expect(plain(potsAtRetirementLine({ middle: 603941, isa: 54126, source: 'locked', lockedAt: '2026-10-01T09:00:00.000Z' }))).toBe('Your plan was locked with £604,000 in your pension and £54,000 in ISAs and savings when you stop work (the middling case then, on 1 October 2026). Every strategy is priced on these.');
+    expect(potsAtRetirementLine(null)).toBe('');
   });
 });
 

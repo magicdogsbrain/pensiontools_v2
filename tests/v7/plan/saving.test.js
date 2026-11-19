@@ -1,8 +1,8 @@
 /**
  * "What you pay in" on a saved plan (research/v7/road-to-7.md step 11b: save.relief, save.escalation, save.own-mix, save.pot-record).
  *   1. The reading on every corpus plan at three dates: found, every box has words, the relief lines are ids with words, what
- *      the pot could be equals AccumulationEngine.projectAccumulation on the planner's own inputs (the saver 05: with "Your
- *      mix" from Holdings.proportions, the plan's charge in place of the funds' own), the ISA line equals PlanTiming.projectedIsaRows.
+ *      the pot could be is the one model's band (src/reading/atStop.js, step F1): a locked saver's pot at the stop as locked,
+ *      no table beside it; not locked, the saving lives year by year.
  *   2. The write: the whole accumulationTool.settings as the planner's Save writes it (readAccumulationInputs's nine keys, every
  *      number `+value || 0`); unchanged boxes write nothing; a rise typed (escalationPct) moves the rows.
  *   3. "Record this month's pot": the list with this month's record added, line for line as recordAccumulationMonth
@@ -15,7 +15,9 @@ import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import fc from 'fast-check';
 import { savingOf, savingPatch, recordPatch, checkSaving, savedSaving, SETTINGS_KEYS, RECORDS_KEPT } from '../../../src/answers/plan/saving.js';
-import { contributionBreakdown, projectAccumulation } from '../../../src/services/AccumulationEngine.js';
+import { contributionBreakdown } from '../../../src/services/AccumulationEngine.js';
+import { potAtStop } from '../../../src/reading/atStop.js';
+import { moneyK } from '../../../src/reading/format.js';
 import { proportions } from '../../../src/services/Holdings.js';
 import { chargesPctOf } from '../../../src/services/Charges.js';
 import { potRecordOf } from '../../../src/services/SaverReading.js';
@@ -26,6 +28,8 @@ import { corpus, entryOf, entriesAt, TODAY, DATES, noon } from './_plans.js';
 
 const C = corpus();
 const PINS = join(process.cwd(), 'tests', 'v7', 'plan', 'saving.pins.json');
+/** The saver as if not locked (its lock taken off in memory): its pot at the stop is worked out, with the table. */
+const unlockedCopy = (p) => ({ ...p, decisionTool: { ...(p.decisionTool || {}), settings: { ...((p.decisionTool && p.decisionTool.settings) || {}), locked: false } } });
 const sha = (v) => createHash('sha1').update(JSON.stringify(v, (k, x) => (typeof x === 'number' && Number.isFinite(x) ? Math.round(x * 1e6) / 1e6 : x))).digest('hex').slice(0, 16);
 const pinned = existsSync(PINS) ? JSON.parse(readFileSync(PINS, 'utf8')) : null;
 const made = {};
@@ -48,7 +52,7 @@ describe('"What you pay in" — the reading', () => {
     });
   }
 
-  it('the saver (05): the boxes hold the planner\'s settings; the relief sum is contributionBreakdown\'s; the rows equal projectAccumulation with "Your mix" from what is held and the plan\'s charge; the records are the fixture\'s, newest first', () => {
+  it('the saver (05): the boxes hold the planner\'s settings; the relief sum is contributionBreakdown\'s; the pot at the stop and its table are the one model\'s; the records are the fixture\'s, newest first', () => {
     const entries = entriesAt(TODAY);
     const plan = entries.find((e) => e.plan.id === SAVER.id).plan;
     const v = savingOf(entries, SAVER.id, { today: TODAY });
@@ -63,21 +67,27 @@ describe('"What you pay in" — the reading', () => {
     const b = contributionBreakdown({ netMonthly: s.netMonthly, salary: s.salary, schemeType: s.schemeType, employerMonthly: s.employerMonthly });
     expect(v.relief.find((l) => l.id === 'relief.total').slots.total).toBe('£' + Math.round(b.totalMonthly).toLocaleString('en-GB'));
     expect(v.relief.some((l) => l.id === 'relief.claim')).toBe(b.hrClaimMonthly > 0.5);
-    const hp = proportions(plan.holdings);
-    expect(hp.total).toBeGreaterThan(0);
-    expect(v.mix).not.toBe(null);
-    // 7.12.0: the table starts from the pot as read (the newest record, services/PensionToday.js), not the box saved
+    // 7.12.0: the pot today as read (the newest record, services/PensionToday.js), not the box saved
     const potRead = savedSaving(plan, { today: TODAY }).facts.pot;
     expect(potRead.from).toBe('record');
     expect(potRead.pension).toBe(SAVER.accumulationTool.history.slice().sort((a, b2) => String(a.date).localeCompare(String(b2.date))).pop().sipp);
-    const rows = projectAccumulation({ currentAge: s.currentAge, retirementAge: s.retirementAge, potNow: potRead.pension, totalMonthly: b.totalMonthly, escalationPct: s.escalationPct, mixRealReturn: hp.expectedReal, chargesPct: chargesPctOf(savedSaving(plan, { today: TODAY }).ss), mixOcf: hp.weightedOcf });
-    const last = rows[rows.length - 1];
-    const shownLast = v.rows[v.rows.length - 1];
-    expect(shownLast.age).toBe(last.age);
-    expect(shownLast.raw).toEqual({ low: Math.round(last.potLow), mid: Math.round(last.potMid), high: Math.round(last.potHigh), mix: Math.round(last.potMix) });
+    // (step F1, lead4.md D4) the pot at the stop is the one model's: a locked plan's is the figure it was locked with, said
+    // as that, with no table worked out today beside it (that would be a second pot at the stop)
+    const locked = potAtStop(plan, { now: noon(TODAY) });
+    expect(locked.source).toBe('locked');
+    expect(v.atStop).toMatchObject({ value: moneyK(locked.middle), locked: true });
+    expect(v.rows).toEqual([]);
+    // the same plan not locked: the table is the saving lives' band, year by year, ending at the pot at the stop
+    const open = unlockedCopy(plan);
+    const u = savingOf([{ plan: open }], SAVER.id, { today: TODAY });
+    const band = potAtStop(open, { now: noon(TODAY) });
+    expect(band.source).toBe('worked');
+    const shownLast = u.rows[u.rows.length - 1];
+    expect(shownLast.raw).toEqual({ low: band.low, mid: band.middle, high: band.high });
+    expect(u.atStop).toMatchObject({ value: moneyK(band.middle), low: moneyK(band.low), high: moneyK(band.high) });
     expect(v.records.map((r) => r.date)).toEqual(SAVER.accumulationTool.history.map((r) => r.date).slice().reverse());
     expect(v.records[0].isa).toBe('£41,450');
-    made['05-reading'] = sha({ rows: v.rows.map((r) => r.raw), relief: v.relief, warnings: v.warnings, isa: v.isaLine });
+    made['05-reading'] = sha({ rows: u.rows.map((r) => r.raw), relief: v.relief, warnings: u.warnings, isa: u.isaLine });
   });
 
   it('a retired plan (12): no saving years to work out, the boxes still there; a plan with no ages (01): says so', () => {
@@ -93,7 +103,7 @@ describe('"What you pay in" — the reading', () => {
 
 describe('"What you pay in" — the writes', () => {
   const entries = entriesAt(TODAY);
-  const plan = entries.find((e) => e.plan.id === SAVER.id).plan;
+  const plan = unlockedCopy(entries.find((e) => e.plan.id === SAVER.id).plan);   // the table is worked out on a plan not locked (step F1)
 
   it('nothing typed writes nothing; a rise typed writes the whole settings object as the planner\'s Save would, the other eight keys as stored; Undo the stored object', () => {
     expect(savingPatch(plan, {}, { today: TODAY }).patch).toEqual({});
@@ -105,11 +115,12 @@ describe('"What you pay in" — the writes', () => {
     expect(Object.keys(next).sort()).toEqual([...SETTINGS_KEYS].sort());
     expect(next).toEqual({ ...SAVER.accumulationTool.settings, escalationPct: 2.5, isaMonthly: 0 });
     expect(p.previous['accumulationTool.settings']).toEqual(SAVER.accumulationTool.settings);
-    // the rows move with the rise
+    // the rows are the one model's (step F1): what goes in rises with each future's own prices there, as the answer has it, so
+    // a yearly rise typed does not move them yet (said in the step F1 handover: the pay-in maths are step F4's)
     const after = applyPatch(plan, p.patch);
     const before = savingOf([{ plan }], SAVER.id, { today: TODAY }).rows;
     const then = savingOf([{ plan: after }], SAVER.id, { today: TODAY }).rows;
-    expect(then[then.length - 1].raw.mid).toBeGreaterThan(before[before.length - 1].raw.mid);
+    expect(then[then.length - 1].raw.mid).toBeGreaterThanOrEqual(before[before.length - 1].raw.mid);
     // blank boxes are the planner's `+value || 0`; the scheme its own word
     const blanked = savingPatch(plan, { netMonthly: '', employerMonthly: '', schemeType: 'salsac' }, { today: TODAY }).patch['accumulationTool.settings'];
     expect(blanked.netMonthly).toBe(0); expect(blanked.employerMonthly).toBe(0); expect(blanked.schemeType).toBe('salsac');

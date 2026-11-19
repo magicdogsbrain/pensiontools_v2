@@ -3,9 +3,9 @@
  * save.pot-record): the planner's Accumulation page as a step of the plan — `#/plan/<id>/saving`. Pure: the plans already
  * brought up to date in memory, today's date and what was typed in; out come the boxes with their saved values, what each
  * month's payment becomes once the tax the government adds back is counted (AccumulationEngine.contributionBreakdown, the
- * planner's own sum), what the pot could be by the stop at the regulator's three rates and at the mix you hold (projectAccumulation,
- * Holdings.proportions — the planner's "Your mix" line), the ISA and savings line (PlanTiming.projectedIsaRows), the rule
- * warnings, the monthly pot records, and the exact writes. Nothing here writes, runs a future, or reads a clock.
+ * planner's own sum), what the pot could be by the stop — the one model, src/reading/atStop.js: the saving lives every test
+ * uses, the middle with its bad and good cases, year by year, the ISA and savings beside it (step F1) — the rule warnings,
+ * the monthly pot records, and the exact writes. Nothing here writes or reads a clock.
  *
  *   savedSaving(plan, { today })             the saved facts: the planner's settings object (index.html readAccumulationInputs),
  *                                            the ages (the planner's: its own, else the budget's), the pot today (its own, else
@@ -30,10 +30,12 @@
  * its own records, as before (`warn.mpaa`).
  */
 import { takenOfTarget } from '../../services/BeforeTax.js';
-import { contributionBreakdown, contributionWarnings, projectAccumulation, FCA_RATES } from '../../services/AccumulationEngine.js';
-import { proportions, pensionPotFromHoldings } from '../../services/Holdings.js';
+import { contributionBreakdown, contributionWarnings } from '../../services/AccumulationEngine.js';
+import { potAtStop } from '../../reading/atStop.js';
+import { moneyK, spanText } from '../../reading/format.js';
+import { pensionPotFromHoldings } from '../../services/Holdings.js';
 import { potRecordOf, recordIsaOf } from '../../services/SaverReading.js';
-import { projectedIsaRows, isaProjectionOf } from '../../services/PlanTiming.js';
+import { isaProjectionOf } from '../../services/PlanTiming.js';
 import { chargesPctOf } from '../../services/Charges.js';
 import { budgetAgeToday, budgetRetirementAge } from '../../services/BudgetModel.js';
 import { planStage } from '../../services/PlanReading.js';
@@ -324,7 +326,6 @@ export function recordPatch(plan, typed, { today, now = null }) {
 
 // ---- the words ------------------------------------------------------------------------------------------------------------
 
-const pct1 = (v) => (Math.round((+v || 0) * 1000) / 10).toFixed(1);
 
 /** What each month's payment becomes (AccumulationEngine.contributionBreakdown), as line ids with slots. */
 export function reliefLines(b, inputs) {
@@ -386,9 +387,7 @@ export function askFillOf(entries, id, { today } = {}) {
  */
 export function agesLineOf(facts, inputs) {
   const months = facts && facts.monthsToStop != null ? facts.monthsToStop : Math.max(0, Math.round((inputs.retirementAge - inputs.currentAge) * 12));
-  const y = Math.floor(months / 12), m = months % 12;
-  const yw = y + ' year' + (y === 1 ? '' : 's'), mw = m + ' month' + (m === 1 ? '' : 's');
-  const span = y === 0 ? mw : y < 2 && m > 0 ? yw + ' ' + mw : yw;
+  const span = spanText(months);   // the one formatter's words for time to go (src/reading/format.js, step F1)
   const slots = { span, from: String(inputs.currentAge), to: String(inputs.retirementAge) };
   return facts && facts.stopMonth ? { id: 'ages', slots: { ...slots, month: monthWords(facts.stopMonth) } } : { id: 'agesNoMonth', slots };
 }
@@ -480,28 +479,13 @@ export function savingOf(entries, id, { today, typed = null, source = 'account' 
   const potLine = typedPot ? { id: 'typed', slots: { value: pounds(potNow) } } : potLineOf(f.pot);
   const agesLine = stillSaving ? agesLineOf(f, inputs) : null;
   const b = contributionBreakdown({ netMonthly: inputs.netMonthly, salary: inputs.salary, schemeType: inputs.schemeType, employerMonthly: inputs.employerMonthly });
-  // "Your mix" (6.7.0): the expected real return of what you hold, net of its costs; the plan's charge replaces the funds' own
-  let hp = null;
-  try { const p = proportions(plan.holdings); if (p.total > 0) hp = p; } catch { hp = null; }
   const chargesPct = chargesPctOf(s.ss);
-  const rows = stillSaving ? projectAccumulation({ currentAge: inputs.currentAge, retirementAge: inputs.retirementAge, potNow, totalMonthly: b.totalMonthly, escalationPct: inputs.escalationPct, mixRealReturn: hp ? hp.expectedReal : null, chargesPct, mixOcf: hp ? hp.weightedOcf : null }) : [];
-  const last = rows.length ? rows[rows.length - 1] : null;
-  const isaToday = Math.max(0, +(s.ss && s.ss.isaBalance) || 0);
   const how = isaProjectionOf(s.ss);
-  const isaRows = stillSaving && (isaToday > 0 || (how.payIns && inputs.isaMonthly > 0)) ? projectedIsaRows(s.ss, inputs, years, isaToday) : null;
   const mpaa = mpaaOf(plan, null, list);
-  const warnings = stillSaving && last ? warningIds(contributionWarnings({ annualGrossTotal: b.totalMonthly * 12, salary: inputs.salary, mpaaTriggered: mpaa.triggered, flexibleAccess: mpaa.flexibleAccess, currentAge: inputs.currentAge, retirementAge: inputs.retirementAge, projectedPotHigh: last.potHigh, now: s.now })) : [];
-  const allowance = allowanceOf(plan, b.totalMonthly * 12, list);
   // a saving plan made on going back to work, its change-over still to come: it says when it begins, and its pot record
   // takes no month before then (recordPatch)
   const notYet = readonly ? null : notBegunOf(plan, String(today || '').slice(0, 7));
-  const step = rows.length > 12 ? 5 : 1;
-  const shownRows = [];
-  for (let i = 0; i < rows.length; i += (i === 0 || i >= rows.length - step ? 1 : step)) {
-    const r = rows[i];
-    const ir = isaRows ? isaRows[Math.min(isaRows.length - 1, i)] : null;
-    shownRows.push({ age: r.age, low: pounds(r.potLow), mid: pounds(r.potMid), high: pounds(r.potHigh), mix: hp ? pounds(r.potMix || 0) : null, paidIn: pounds(r.contributedToDate), isa: ir ? pounds(ir.potMid) : null, last: i === rows.length - 1, raw: { low: r0(r.potLow), mid: r0(r.potMid), high: r0(r.potHigh), mix: hp ? r0(r.potMix || 0) : null } });
-  }
+  const allowance = allowanceOf(plan, b.totalMonthly * 12, list);
   const records = s.hist.slice().sort((a, b2) => String(a.date).localeCompare(String(b2.date))).reverse().slice(0, 36).map((r) => ({ month: monthWords(r.date), date: r.date, pension: pounds(r.sipp || 0), isa: recordIsaOf(r) == null ? null : pounds(r.isa), gia: pounds(r.gia || 0), total: pounds(r.total || 0) }));
   // "Are you paying in enough?" (research/saving-enough-and-check-in.md 4.1, 4.4; release step R2): the plan's own figures as
   // question B's inputs, worked out by B in the worker (effects/saver.js) under this key — never for a plan shown as saved
@@ -512,6 +496,19 @@ export function savingOf(entries, id, { today, typed = null, source = 'account' 
   // the answer follows what is typed: with a change ready to save, it is worked out on the plan as Save would leave it, and
   // said as "if you save this"; nothing typed, or a box with a problem, and it is the plan's as saved
   const typedPlan = !readonly && p.ok && Object.keys(p.patch).length ? applyPatch(plan, p.patch) : null;
+  // (step F1, lead4.md D4) what the pot could be by the stop: the one model (src/reading/atStop.js) — the saving lives every
+  // test uses, the middle with its bad and good cases, year by year — on the plan as saved, or as Save would leave it while a
+  // change is typed. The regulator's fixed 2/5/8% table is gone from both views.
+  const band = stillSaving ? potAtStop(typedPlan || plan, { now: s.now }) : null;
+  const bandRows = band && Array.isArray(band.rows) ? band.rows : [];
+  const step = bandRows.length > 12 ? 5 : 1;
+  const shownRows = [];
+  for (let i = 0; i < bandRows.length; i += (i === 0 || i >= bandRows.length - step ? 1 : step)) {
+    const r = bandRows[i];
+    shownRows.push({ age: r.age, low: moneyK(r.low), mid: moneyK(r.middle), high: moneyK(r.high), paidIn: pounds(r.paidIn), isa: moneyK(r.isa), last: i === bandRows.length - 1, raw: { low: r.low, mid: r.middle, high: r.high } });
+  }
+  const isaLine = bandRows.some((r) => r.isa > 0);
+  const warnings = stillSaving && band ? warningIds(contributionWarnings({ annualGrossTotal: b.totalMonthly * 12, salary: inputs.salary, mpaaTriggered: mpaa.triggered, flexibleAccess: mpaa.flexibleAccess, currentAge: inputs.currentAge, retirementAge: inputs.retirementAge, projectedPotHigh: band.high, now: s.now })) : [];
   const verdict = readonly ? { ok: false, why: 'readonly', key: null }
     : typedPlan ? { ...verdictOf(typedPlan, list.map((e) => (e === entry ? { ...e, plan: typedPlan } : e)), today), ifSaved: true }
       : verdictOf(plan, list, today);
@@ -533,11 +530,12 @@ export function savingOf(entries, id, { today, typed = null, source = 'account' 
     ages: { currentAge: inputs.currentAge, retirementAge: inputs.retirementAge, years, stillSaving, known: ages, line: agesLine },
     relief: reliefLines(b, inputs), scheme: inputs.schemeType,
     potNow: { value: pounds(potNow), line: potLine },
-    // the pot at the stop the plan uses (services/PotsAtStop.js, through the plan's settings as read), the middling case
-    atStop: stillSaving && s.ss && s.ss.potAtRetirement && s.ss.potAtRetirement.source === 'worked' ? { value: pounds(Math.round(s.ss.potAtRetirement.sipp / 1000) * 1000), age: String(s.ss.potAtRetirement.from ? s.ss.potAtRetirement.from.toAge : inputs.retirementAge) } : null,
-    rates: { low: pct1(FCA_RATES.low), mid: pct1(FCA_RATES.mid), high: pct1(FCA_RATES.high), mix: hp ? pct1(hp.expectedReal + 0.025) : null, charges: chargesPct > 0 ? String(Math.round(chargesPct * 100) / 100) : null },
-    mix: hp ? { shares: String(Math.round(hp.buckets.shares * 100)), bonds: String(Math.round(hp.buckets.bonds * 100)), diversifiers: String(Math.round(hp.buckets.diversifiers * 100)), cash: String(Math.round(hp.buckets.cash * 100)), charge: (hp.weightedOcf * 100).toFixed(2) } : null,
-    rows: shownRows, isaLine: !!isaRows, isaHow: isaRows ? (how.fromFunds && how.payIns ? 'funds' : how.kind || 'before') : null, isaMonthly: pounds(inputs.isaMonthly),
+    // the pot at the stop: the one model's middle with its bad and good cases (a locked plan: the figure it was locked with)
+    atStop: band ? (band.source === 'locked'
+      ? { value: moneyK(band.middle), age: String(band.age != null ? band.age : inputs.retirementAge), locked: true }
+      : { value: moneyK(band.middle), low: moneyK(band.low), high: moneyK(band.high), age: String(band.age != null ? band.age : inputs.retirementAge) }) : null,
+    rates: { charges: chargesPct > 0 ? String(Math.round(chargesPct * 100) / 100) : null },
+    rows: shownRows, isaLine, isaHow: isaLine ? (how.fromFunds && how.payIns ? 'funds' : how.kind || 'before') : null, isaMonthly: pounds(inputs.isaMonthly),
     warnings,
     allowance,
     notYet: notYet ? { month: notYet.month } : null,

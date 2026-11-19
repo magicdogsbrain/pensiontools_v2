@@ -27,6 +27,7 @@ import { projectAccumulation, contributionWarnings } from '../src/services/Accum
 import { buildPlanDocument } from '../src/services/PlanDocument.js';
 import { targetHoldings } from '../src/services/TransitionPlanner.js';
 import { sweepRetirementAges } from '../src/services/RetireSweep.js';
+import { savingInputsOf } from '../src/services/PotsAtStop.js';
 import { seededRng, gaussianRandom } from '../src/utils/MathUtils.js';
 
 // ---- fixtures: one person, three timing situations -------------------------------------------------------------
@@ -90,7 +91,7 @@ describe('(a) same inputs + same injected now → identical output, whatever day
     expectDeterministic(() => targetHoldings(doc, { today: BEFORE }));
   });
   it('sweepRetirementAges threads its one clock to the plan (config from src/storage built under the same frozen clock)', () => {
-    const sweep = () => frozen(BEFORE, () => sweepRetirementAges({ settings: { ...SAVER, strategyId: 'pots-and-valves' }, accumulation: ACC, ages: [60, 65], now: BEFORE }));
+    const sweep = () => frozen(BEFORE, () => sweepRetirementAges({ settings: { ...SAVER, strategyId: 'pots-and-valves' }, inputs: savingInputsOf({ stressTool: { settings: SAVER }, accumulationTool: { settings: ACC } }, SAVER, { now: BEFORE }), ages: [60, 65], now: BEFORE }));
     const first = plain(sweep());
     expect(first.rows.length).toBe(2);
     expect(plain(sweep())).toEqual(first);
@@ -136,7 +137,7 @@ describe('(b) 4 April 2027 vs 8 April 2027: only tax-year facts move', () => {
     expect(changed((today) => targetHoldings(saverDoc, { today }))).toEqual(['thisTaxYear']);
   });
   it('sweepRetirementAges: nothing moves (ages, pots and confidence are in whole years from the age today)', () => {
-    const sweep = (now) => frozen(now, () => sweepRetirementAges({ settings: { ...SAVER, strategyId: 'pots-and-valves' }, accumulation: ACC, ages: [60], now }));
+    const sweep = (now) => frozen(now, () => sweepRetirementAges({ settings: { ...SAVER, strategyId: 'pots-and-valves' }, inputs: savingInputsOf({ stressTool: { settings: SAVER }, accumulationTool: { settings: ACC } }, SAVER, { now }), ages: [60], now }));
     expect(changed(sweep)).toEqual([]);
   });
 });

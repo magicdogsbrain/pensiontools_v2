@@ -19,6 +19,7 @@
  * Pure: no DOM, no storage.
  */
 import { deriveTiming, taxYearLabel, monthsUntilStart, monthsUntilMonth } from './PlanTiming.js';
+import { spanText } from '../reading/format.js';
 import { saverReading, saverPrices, savingPathVersion, pathStart, pathCountsIsa, v3PensionLineAt, figureOrNull, monthOf, monthWords, OLD_PATH_CPI } from './SaverReading.js';
 import { closedAtOf, nextPlanIdOf, beforeOf, monthRefusal, monthRefusalWords, monthWordsOf, closesAhead } from './PlanClosed.js';
 import { WINDOW, windowOf, windowYearsOf, agreementOf } from './Phases.js';
@@ -268,7 +269,7 @@ export function openingTab(stage, phase = null, { held = false, figures = true }
 function chipText(def, monthsToStart, beforeStart) {
   if (def.key === 'committed-saving') {
     if (!beforeStart || monthsToStart <= 0) return def.chip;
-    return monthsToStart >= 24 ? Math.round(monthsToStart / 12) + ' years to go' : monthsToStart + ' month' + (monthsToStart === 1 ? '' : 's') + ' to go';
+    return spanText(monthsToStart) + ' to go';   // the one formatter's words for time to go (src/reading/format.js, step F1)
   }
   return def.chip;
 }

@@ -173,7 +173,7 @@ describe('deriveTiming', () => {
     expect(t.firstTaxYear).toBe(2027);          // 61 is reached in 2027/28 (20 Oct 2027)
     expect(t.startMonth).toBe('2027-10');       // but they retire in October, 13 months away
     expect(t.monthsToStop).toBe(13);   // a saver's months to their stop (7.4.2: it was `bridgeMonths`)
-    expect(describeTiming(t, s, new Date(2026, 8, 11))).toContain('You retire in October 2027 at 61, 13 months away; the plan\'s year 0 is tax year 2027/28');
+    expect(describeTiming(t, s, new Date(2026, 8, 11))).toContain('You retire in October 2027 at 61, 1 year 1 month away; the plan\'s year 0 is tax year 2027/28');
     expect(deriveTiming({ ...alex, retired: true, firstTaxYear: 2027 }, NOW).startMonth).toBe('2027-04');
   });
   it('"retire at 60" when already 63 starts now', () => {

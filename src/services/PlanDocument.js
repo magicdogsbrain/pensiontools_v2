@@ -31,6 +31,7 @@ import { ENGINE_VERSION } from '../strategies/version.js';
 import { VERSION } from '../constants.js';
 import { toAgeAsWritten, planToAgeOf } from './AgeConvention.js';
 import { takenAgainstPlan } from './YearPlan.js';
+import { drawingPensionOf, drawingIsaOf, wrapperFigure, diversifierFigure, monthOf, monthsBetween } from './DrawingPot.js';
 
 // 2 (6.13.0): `holdingsAtLock` — what the person held when the plan was locked, from the holdings record —
 // for every strategy; the accumulation path projects from the holdings record or the recorded pot today,
@@ -373,14 +374,6 @@ export function bandMeasure(doc, { planYear = 0 } = {}) {
   };
 }
 
-/** 'YYYY-MM' / 'YYYY-MM-DD' / a Date / { y, m } → { y, m } (m 1-based), or null. */
-function monthOf(x) {
-  if (x instanceof Date) return Number.isFinite(x.getTime()) ? { y: x.getFullYear(), m: x.getMonth() + 1 } : null;
-  if (x && typeof x === 'object') return Number.isInteger(x.y) && x.m >= 1 && x.m <= 12 ? { y: x.y, m: x.m } : null;
-  const mm = /^(\d{4})-(\d{2})/.exec(String(x == null ? '' : x));
-  return mm ? { y: +mm[1], m: +mm[2] } : null;
-}
-const monthsBetween = (a, b) => (b.y * 12 + b.m) - (a.y * 12 + a.m);
 /** Plan year of a month (April opens the tax year — as planYearOf reads a 'YYYY-MM' record), and months into it. */
 const planYearAt = (at, fty) => (at.m >= 4 ? at.y : at.y - 1) - fty;
 // April 0 … March 11: the months already paid before a record's own. A record's month, not a date: all of April is 0
@@ -433,38 +426,6 @@ export function pricesSinceStart(doc, at, taxYears = null) {
 }
 
 /**
- * The record the pot comes from, and the month it was entered. A batch (quarterly or annual cadence) saves the same
- * values under each month it covers — some of them still ahead — so the values date from the batch's FIRST month:
- * walk back over consecutive months holding the same pots. Never onto a month filled in later (MonthFill): it carries a
- * later entry's pots by design, so a run of filled-in months is not a batch, and walking onto it dated the pension figure
- * to the first month filled in, months before it was entered.
- */
-function potRecordOf(history) {
-  const recs = (history || []).filter((h) => h && monthOf(h.date)).slice().sort((a, b) => String(a.date).localeCompare(String(b.date)));
-  if (!recs.length) return null;
-  const same = (a, b) => ['equity', 'bond', 'cash'].every((k) => Math.abs((+a[k] || 0) - (+b[k] || 0)) < 0.5);
-  let i = recs.length - 1;
-  while (i > 0 && recs[i - 1].filledIn !== true && same(recs[i - 1], recs[i]) && monthsBetween(monthOf(recs[i - 1].date), monthOf(recs[i].date)) === 1) i--;
-  return { rec: recs[i], idx: i, recs };
-}
-
-/** Sum of the holdings lines in one wrapper with a value, and the date they stand at (the record's, else the latest line's). */
-function wrapperFigure(holdings, wrapper) {
-  const lines = holdingsLines(holdings).filter((l) => l && normaliseWrapper(l.wrapper) === wrapper && numOrNull(l.value) != null);
-  if (!lines.length) return null;
-  const asOf = (holdings && !Array.isArray(holdings) && holdings.updatedAt) || lines.map((l) => l.asOf).filter(Boolean).sort().pop() || null;
-  return { value: lines.reduce((t, l) => t + numOrNull(l.value), 0), asOf: asOf ? String(asOf).slice(0, 10) : null };
-}
-
-/** The diversifiers among the SIPP lines under What you hold (the tagger's bucket), and their date; null with no SIPP lines. */
-function diversifierFigure(holdings) {
-  const sipp = wrapperFigure(holdings, 'SIPP');
-  if (!sipp) return null;
-  const lines = holdingsLines(holdings).filter((l) => l && normaliseWrapper(l.wrapper) === 'SIPP' && numOrNull(l.value) != null).map((l) => ({ ...l, value: numOrNull(l.value) }));
-  return { value: holdingsProportions(lines).bucketValues.diversifiers || 0, asOf: sipp.asOf };
-}
-
-/**
  * The pot to set against the band (6.20.1): the same accounts the band counts, at a known date.
  * Pension: `potsToday` (a figure the caller has already made like the band, in today's pounds — taken as given), else
  * the latest Decision record's equity + bond + cash (on a ladder plan: the growth part, the gilts still to pay and the
@@ -480,40 +441,29 @@ function potLikeTheBand(doc, { today, history, potsToday, holdings }) {
     const t = today.toISOString().slice(0, 10), at = monthOf(today);
     return { source: 'today', asOf: t, at, pension: Math.round(+potsToday), parts: [{ key: 'all', value: +potsToday, source: 'today', asOf: t }], missing: [], measure: measureAt(at) };
   }
-  const found = potRecordOf(history);
-  const sipp = wrapperFigure(holdings, 'SIPP');
   const diversifiers = bandMeasure(doc).diversifiers;   // a property of the plan, not of the year
   const missing = [], extra = [];
   let source = null, pension = null, asOf = null, rec = null;
-  const sippMonth = sipp && sipp.value > 0 ? monthOf(sipp.asOf) : null;
-  // What you hold wins whenever it is newer than the record (7.12.0: for every plan, not only one holding diversifiers, which
-  // the record cannot carry — that plan takes it from the record's own month on, as before)
-  const since = found && sippMonth != null ? monthsBetween(monthOf(found.rec.date), sippMonth) : null;
-  const holdingsWhole = !!(sipp && sipp.value > 0) && (!found || (since != null && (diversifiers ? since >= 0 : since > 0)));
-  if (found && !holdingsWhole) {
-    source = 'record'; rec = found.rec; asOf = String(rec.date).slice(0, 7);
-    pension = (+rec.equity || 0) + (+rec.bond || 0) + (+rec.cash || 0);
+  // the one rule for the pension a drawn plan holds now (services/DrawingPot.js), which the pension today reads too
+  const drawn = drawingPensionOf({ history, holdings, diversifiers });
+  const found = drawn && drawn.found;
+  if (drawn && drawn.source === 'record') {
+    source = 'record'; rec = found.rec; asOf = drawn.asOf; pension = drawn.pension;
     if (diversifiers) {
       const div = diversifierFigure(holdings);
       if (!div) missing.push('diversifiers');
       else if (div.value > 0) extra.push({ key: 'diversifiers', value: div.value, source: 'holdings', asOf: div.asOf });
     }
-  } else if (sipp && sipp.value > 0) { source = 'holdings'; pension = sipp.value; asOf = sipp.asOf; }
+  } else if (drawn) { source = 'holdings'; pension = drawn.pension; asOf = drawn.asOf; }
   const at = monthOf(asOf) || monthOf(today);
   const measure = measureAt(at);
   if (source == null) return { source: null, asOf: null, at, pension: null, parts: [], missing: ['pension'], measure };
   const parts = [{ key: 'pension', value: pension, source, asOf }, ...extra];
   if (measure.isa) {
-    // the ISA (7.12.0): What you hold when it is as new as the record (its month or later); else the ISA typed on the latest
-    // record that carries one; else What you hold whatever its date; else missing — nothing must be pressed for a reading
-    const isa = wrapperFigure(holdings, 'ISA');
-    const recs = Array.isArray(history) ? history.filter((h) => h && h.date && numOrNull(h.isaBalance) != null) : [];
-    const typed = recs.length ? recs.reduce((a, b) => (String(b.date) > String(a.date) ? b : a)) : null;
-    const typedAt = typed ? String(typed.date).slice(0, 7) : null;
-    const isaNewer = isa && (!typedAt || (monthOf(isa.asOf) != null && monthsBetween(monthOf(typedAt), monthOf(isa.asOf)) >= 0));
-    if (isa && isaNewer) parts.push({ key: 'isa', value: isa.value, source: 'holdings', asOf: isa.asOf });
-    else if (typed) parts.push({ key: 'isa', value: +typed.isaBalance, source: 'record', asOf: typedAt });
-    else if (isa) parts.push({ key: 'isa', value: isa.value, source: 'holdings', asOf: isa.asOf });
+    // the ISA (7.12.0): the one rule for a drawn plan's ISA (services/DrawingPot.js drawingIsaOf), which the ISA today reads
+    // too — nothing must be pressed for a reading
+    const isa = drawingIsaOf({ history, holdings });
+    if (isa) parts.push({ key: 'isa', value: isa.value, source: isa.source, asOf: isa.asOf });
     else missing.push('isa');
   }
   if (measure.gia) {

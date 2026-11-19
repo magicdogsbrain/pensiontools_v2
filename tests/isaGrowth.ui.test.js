@@ -26,7 +26,8 @@ import {
 import { chargesUnlockNoteHtml } from '../src/ui/chargesSetting.js';
 import { accumulationInputsOf } from '../src/ui/settingsAutosave.js';
 import { startSummaryHtml } from '../src/ui/startingPotsWords.js';
-import { accumulationTableHtml, isaLineRows } from '../src/ui/accumulationProjection.js';
+import { accumulationBandHtml } from '../src/ui/accumulationProjection.js';
+import { potAtStop } from '../src/reading/atStop.js';
 import { planDocumentHtml } from '../src/ui/components/PlanDocumentView.js';
 import { buildPlanDocument } from '../src/services/PlanDocument.js';
 import { projectedPotAtRetirement } from '../src/services/PlanTiming.js';
@@ -229,29 +230,26 @@ describe('the Accumulation planner: "Into ISAs and savings" and the ISA line', (
     expect([accumulationInputsOf(boxes('250')).isaMonthly, accumulationInputsOf(boxes('')).isaMonthly]).toEqual([250, 0]);
     // 7.12.0: the boxes open from the saver's facts (accumulationBoxes), the ISA box among them
     expect(fnBody('window.loadAccumulationUI', 2000)).toContain('accumulationBoxes(await getActiveScenarioAsync(), null, todayOf())');   // the one clock (step S)
-    expect(fnBody('window.recalcAccumulation', 6500)).toContain('accumulationTableHtml({ rows, mixOn: window._acMixOn, mixRealReturn, chargesPct: acCharges, stress: acStress, inputs: a })');
+    // step F1: the table is the one model's (src/reading/atStop.js potAtStop), from the plan as saved, never the boxes
+    expect(fnBody('window.recalcAccumulation', 6500)).toContain('accumulationBandHtml(band, { chargesPct: acCharges, stress: acStress, isaMonthly: a.isaMonthly })');
   });
-  it('the ISA line follows the plan\'s choice, pays in, and ends where the Timing block\'s ISA at retirement does', () => {
-    const inputs = { currentAge: 48, retirementAge: 60, isaMonthly: 300, escalationPct: 1 };
-    const rowsP = projectAccumulation({ currentAge: 48, retirementAge: 60, potNow: 300000, totalMonthly: 1200 });
+  it('the ISA column follows the plan\'s choice and pays in: the saving lives\' ISA, the same lives as the pot at the stop (step F1)', () => {
     const stressBase = { currentAge: 48, currentAgeAsOf: '2026-09-10', retired: false, retireAge: 60, equityMin: 200000, bondMin: 80000, cashTarget: 20000, isaBalance: 40000, chargesPct: 0.5 };
-    const NOWT = new Date(2026, 8, 10);
-    for (const v of ['cash', 'invested', undefined]) {
-      const stress = { ...stressBase, ...(v ? { isaGrowth: v } : {}) };
-      const isa = isaLineRows(stress, inputs);
-      expect(isa.length).toBe(13);
-      const timing = projectedPotAtRetirement(stress, { isaMonthly: 300, escalationPct: 1 }, NOWT);
-      expect(timing.years).toBe(12);
-      expect(Math.round(isa[12].potMid)).toBe(timing.isa);
-      const html = accumulationTableHtml({ rows: rowsP, stress, inputs });
-      expect(html).toContain('<th>ISA and savings</th>');
-      expect(plain(html)).toContain(accumulationIsaNote(v || null, 300).replace(/&/g, '&'));
+    const NOWT = new Date(2026, 8, 10, 12);
+    const plan = (st, isaMonthly) => ({ stressTool: { settings: st }, accumulationTool: { settings: { potNow: 300000, netMonthly: 900, isaMonthly, escalationPct: 1 } } });
+    const bandOf = (st, isaMonthly = 300) => potAtStop(plan(st, isaMonthly), { now: NOWT, settings: st });
+    for (const v of ['cash', 'invested']) {
+      const stress = { ...stressBase, isaGrowth: v };
+      const band = bandOf(stress);
+      expect(band.rows.length).toBe(13);
+      expect(band.rows[12].isa).toBe(band.isa);
+      const html = accumulationBandHtml(band, { stress, isaMonthly: 300 });
+      expect(html).toContain('<th>ISA and savings (middle)</th>');
+      expect(plain(html)).toContain(accumulationIsaNote(v, 300).replace(/&/g, '&'));
     }
-    // "Mostly cash" grows slower than the middle rate; money going in counts
-    const cash = isaLineRows({ ...stressBase, isaGrowth: 'cash' }, inputs), inv = isaLineRows({ ...stressBase, isaGrowth: 'invested' }, inputs);
-    expect(cash[12].potMid).toBeLessThan(inv[12].potMid);
-    expect(isaLineRows({ ...stressBase, isaGrowth: 'cash' }, { ...inputs, isaMonthly: 0 })[12].potMid).toBeLessThan(cash[12].potMid);
-    expect(isaLineRows({ ...stressBase, isaBalance: 0, isaGrowth: 'cash' }, { ...inputs, isaMonthly: 0 })).toBeNull();
+    // "Mostly cash" grows slower than invested; money going in counts
+    expect(bandOf({ ...stressBase, isaGrowth: 'cash' }).isa).toBeLessThan(bandOf({ ...stressBase, isaGrowth: 'invested' }).isa);
+    expect(bandOf({ ...stressBase, isaGrowth: 'cash' }, 0).isa).toBeLessThan(bandOf({ ...stressBase, isaGrowth: 'cash' }).isa);
   });
 });
 

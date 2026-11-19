@@ -21,8 +21,13 @@ export const lastsRowFindsOf = (id) => LASTS_ROW_FINDS[id] || null;
 const FIGURES = Object.freeze({
   'about.age:ageToday': 'age.today',
   'about.runs:ageEnd': 'plan.endAge',
-  'where.pot:pot': 'pot.today',
+  'where.pot:pot': 'pot.againstPlan',
+  'where.pot:potPension': 'pot.today',
+  'where.pot:potIsa': 'isa.today',
   'where.saverPot:actual': 'pot.today',
+  'where.saverPot:potAgainst': 'pot.againstPlan',
+  'where.saverPot:potPension': 'pot.today',
+  'where.saverPot:potIsa': 'isa.today',
   'where.taken:drawn': 'taken.againstPlan',
   'where.retired:drawn': 'taken.againstPlan',
   'hold.summary:pension': 'holdings.sipp',
@@ -87,9 +92,9 @@ const SLOTS = Object.freeze({
   'lasts.ran.market': { label: 'market.gilts' },
   'pots.pots.today': { pension: 'pot.today', isa: 'isa.today' },
   'pots.pots.todayTaxable': { pension: 'pot.today', isa: 'isa.today', taxable: 'gia.today' },
-  'pots.stop.typed': { sipp: 'pot.atStop' },
   'pots.stop.projection': { sipp: 'pot.atStop' },
-  'pots.stop.answer': { sipp: 'pot.atStop' },
+  'pots.stop.band': { low: 'pot.atStop.low', sipp: 'pot.atStop', high: 'pot.atStop.high' },
+  'pots.stop.locked': { sipp: 'pot.atStop' },
   'income.sp.assumed': { yearly: 'statePension.amount', age: 'statePension.age' },
   'income.sp.assumedNoAge': { yearly: 'statePension.amount' },
   'income.sp.paid': { yearly: 'statePension.amount', age: 'statePension.age' },
@@ -101,7 +106,7 @@ const SLOTS = Object.freeze({
   'saving.ages': { month: 'stop.month', span: 'yearsToGo', from: 'age.today' },
   'saving.agesNoMonth': { span: 'yearsToGo', from: 'age.today' },
   'saving.potNow': { value: 'pot.today' },
-  'saving.atStop': { value: 'pot.atStop' }
+  'saving.atStop': { value: 'pot.atStop', low: 'pot.atStop.low', high: 'pot.atStop.high' }
 });
 
 /** Numbered lines: the slot `n` (1-based) names the pension the line is about. */

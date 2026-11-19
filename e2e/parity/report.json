@@ -1,5 +1,5 @@
 {
- "at": "2026-11-19T01:50:00.980Z",
+ "at": "2026-11-19T04:10:26.448Z",
  "fixtures": [
   "age-only",
   "budget",
@@ -20,19 +20,92 @@
   "saver-payin",
   "wizard-defaults"
  ],
- "factsMarked": 70,
- "factsInBoth": 55,
+ "factsMarked": 71,
+ "factsInBoth": 56,
  "pagesOpened": 635,
- "marks": 11141,
+ "marks": 11179,
  "fieldsBound": 63,
- "disagreements": 603,
- "unmarked": 17295,
+ "disagreements": 569,
+ "unmarked": 17294,
  "oneViewOnly": 2353,
  "readingMismatches": 0,
  "roundTripsFailed": 71,
  "rose": [],
- "shrank": [],
- "grew": [],
+ "shrank": [
+  "agrees now, take it out of known-disagreements.json: budget|left.goodCase",
+  "agrees now, take it out of known-disagreements.json: budget|left.typically",
+  "agrees now, take it out of known-disagreements.json: closed-successor|left.goodCase",
+  "agrees now, take it out of known-disagreements.json: closed-successor|left.typically",
+  "agrees now, take it out of known-disagreements.json: couple|lasts.fixedChance",
+  "agrees now, take it out of known-disagreements.json: couple|left.goodCase",
+  "agrees now, take it out of known-disagreements.json: couple|left.typically",
+  "agrees now, take it out of known-disagreements.json: mover-holdings|left.goodCase",
+  "agrees now, take it out of known-disagreements.json: mover-holdings|left.typically",
+  "agrees now, take it out of known-disagreements.json: mover-totals|left.goodCase",
+  "agrees now, take it out of known-disagreements.json: mover-totals|left.typically",
+  "agrees now, take it out of known-disagreements.json: retired-draft|left.goodCase",
+  "agrees now, take it out of known-disagreements.json: retired-draft|left.typically",
+  "agrees now, take it out of known-disagreements.json: retired-everything|left.goodCase",
+  "agrees now, take it out of known-disagreements.json: retired-everything|left.typically",
+  "agrees now, take it out of known-disagreements.json: retired-locked-ladder|lasts.fixedChance",
+  "agrees now, take it out of known-disagreements.json: retired-locked-ladder|left.goodCase",
+  "agrees now, take it out of known-disagreements.json: retired-locked-ladder|left.typically",
+  "agrees now, take it out of known-disagreements.json: retired-locked-months|left.goodCase",
+  "agrees now, take it out of known-disagreements.json: retired-locked-months|left.typically",
+  "agrees now, take it out of known-disagreements.json: retired-locked-pots|left.goodCase",
+  "agrees now, take it out of known-disagreements.json: retired-locked-pots|left.typically",
+  "agrees now, take it out of known-disagreements.json: saver-checkin|left.goodCase",
+  "agrees now, take it out of known-disagreements.json: saver-checkin|left.typically",
+  "agrees now, take it out of known-disagreements.json: saver-ladder-draft|lasts.fixedChance",
+  "agrees now, take it out of known-disagreements.json: saver-ladder-draft|left.goodCase",
+  "agrees now, take it out of known-disagreements.json: saver-ladder-draft|left.typically",
+  "agrees now, take it out of known-disagreements.json: saver-locked-ladder|lasts.fixedChance",
+  "agrees now, take it out of known-disagreements.json: saver-locked-ladder|left.goodCase",
+  "agrees now, take it out of known-disagreements.json: saver-locked-ladder|left.typically",
+  "agrees now, take it out of known-disagreements.json: saver-locked-pots|left.goodCase",
+  "agrees now, take it out of known-disagreements.json: saver-locked-pots|left.typically",
+  "agrees now, take it out of known-disagreements.json: saver-payin|left.goodCase",
+  "agrees now, take it out of known-disagreements.json: saver-payin|left.typically",
+  "unmarked figures fell on saver-locked-ladder|full:plan document: 399 → 398"
+ ],
+ "grew": [
+  "more places now, raise coverage.json: age-only|market.gilts|full 0 → 1",
+  "more places now, raise coverage.json: age-only|market.gilts|simple 0 → 1",
+  "more places now, raise coverage.json: budget|market.gilts|full 0 → 1",
+  "more places now, raise coverage.json: budget|market.gilts|simple 0 → 1",
+  "more places now, raise coverage.json: closed-successor|market.gilts|full 0 → 1",
+  "more places now, raise coverage.json: closed-successor|market.gilts|simple 0 → 1",
+  "more places now, raise coverage.json: couple|market.gilts|full 0 → 1",
+  "more places now, raise coverage.json: couple|market.gilts|simple 0 → 1",
+  "more places now, raise coverage.json: mover-holdings|market.gilts|full 0 → 1",
+  "more places now, raise coverage.json: mover-holdings|market.gilts|simple 0 → 1",
+  "more places now, raise coverage.json: mover-totals|market.gilts|full 0 → 1",
+  "more places now, raise coverage.json: mover-totals|market.gilts|simple 0 → 1",
+  "more places now, raise coverage.json: retired-draft|market.gilts|full 0 → 1",
+  "more places now, raise coverage.json: retired-draft|market.gilts|simple 0 → 1",
+  "more places now, raise coverage.json: retired-everything|market.gilts|full 0 → 1",
+  "more places now, raise coverage.json: retired-everything|market.gilts|simple 0 → 1",
+  "more places now, raise coverage.json: retired-locked-ladder|market.gilts|full 0 → 1",
+  "more places now, raise coverage.json: retired-locked-ladder|market.gilts|simple 0 → 1",
+  "more places now, raise coverage.json: retired-locked-months|market.gilts|full 0 → 1",
+  "more places now, raise coverage.json: retired-locked-months|market.gilts|simple 0 → 1",
+  "more places now, raise coverage.json: retired-locked-pots|market.gilts|full 0 → 1",
+  "more places now, raise coverage.json: retired-locked-pots|market.gilts|simple 0 → 1",
+  "more places now, raise coverage.json: saver-checkin|market.gilts|full 0 → 1",
+  "more places now, raise coverage.json: saver-checkin|market.gilts|simple 0 → 1",
+  "more places now, raise coverage.json: saver-draft|market.gilts|full 0 → 1",
+  "more places now, raise coverage.json: saver-draft|market.gilts|simple 0 → 1",
+  "more places now, raise coverage.json: saver-ladder-draft|market.gilts|full 0 → 2",
+  "more places now, raise coverage.json: saver-ladder-draft|market.gilts|simple 0 → 2",
+  "more places now, raise coverage.json: saver-locked-ladder|market.gilts|full 0 → 1",
+  "more places now, raise coverage.json: saver-locked-ladder|market.gilts|simple 0 → 1",
+  "more places now, raise coverage.json: saver-locked-pots|market.gilts|full 0 → 1",
+  "more places now, raise coverage.json: saver-locked-pots|market.gilts|simple 0 → 1",
+  "more places now, raise coverage.json: saver-payin|market.gilts|full 0 → 1",
+  "more places now, raise coverage.json: saver-payin|market.gilts|simple 0 → 1",
+  "more places now, raise coverage.json: wizard-defaults|market.gilts|full 0 → 1",
+  "more places now, raise coverage.json: wizard-defaults|market.gilts|simple 0 → 1"
+ ],
  "notQuiet": [],
  "detail": {
   "disagreements": [
@@ -327,50 +400,6 @@
       "view": "full",
       "page": "stress settings",
       "text": "£26,858"
-     }
-    ]
-   },
-   {
-    "key": "budget|left.goodCase",
-    "fixture": "budget",
-    "fact": "left.goodCase",
-    "values": [
-     {
-      "view": "simple",
-      "page": "lasts",
-      "text": "£618,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£618,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£618,087"
-     }
-    ]
-   },
-   {
-    "key": "budget|left.typically",
-    "fixture": "budget",
-    "fact": "left.typically",
-    "values": [
-     {
-      "view": "simple",
-      "page": "lasts",
-      "text": "£43,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£43,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£42,549"
      }
     ]
    },
@@ -1288,50 +1317,6 @@
     ]
    },
    {
-    "key": "closed-successor|left.goodCase",
-    "fixture": "closed-successor",
-    "fact": "left.goodCase",
-    "values": [
-     {
-      "view": "simple",
-      "page": "lasts",
-      "text": "£1,466,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£1,466,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£1,466,227"
-     }
-    ]
-   },
-   {
-    "key": "closed-successor|left.typically",
-    "fixture": "closed-successor",
-    "fact": "left.typically",
-    "values": [
-     {
-      "view": "simple",
-      "page": "lasts",
-      "text": "£484,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£484,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£484,094"
-     }
-    ]
-   },
-   {
     "key": "closed-successor|lock.state",
     "fixture": "closed-successor",
     "fact": "lock.state",
@@ -2088,72 +2073,6 @@
       "view": "full",
       "page": "stress settings",
       "text": "18000"
-     }
-    ]
-   },
-   {
-    "key": "couple|lasts.fixedChance",
-    "fixture": "couple",
-    "fact": "lasts.fixedChance",
-    "values": [
-     {
-      "view": "simple",
-      "page": "lasts",
-      "text": "in more than 19 of 20 futures we tried"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "over 19 in 20"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "in more than 19 of 20 futures we tried"
-     }
-    ]
-   },
-   {
-    "key": "couple|left.goodCase",
-    "fixture": "couple",
-    "fact": "left.goodCase",
-    "values": [
-     {
-      "view": "simple",
-      "page": "lasts",
-      "text": "£1,580,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£1,580,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£1,580,134"
-     }
-    ]
-   },
-   {
-    "key": "couple|left.typically",
-    "fixture": "couple",
-    "fact": "left.typically",
-    "values": [
-     {
-      "view": "simple",
-      "page": "lasts",
-      "text": "£416,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£416,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£416,180"
      }
     ]
    },
@@ -2946,50 +2865,6 @@
       "view": "full",
       "page": "stress settings",
       "text": "£20,858"
-     }
-    ]
-   },
-   {
-    "key": "mover-holdings|left.goodCase",
-    "fixture": "mover-holdings",
-    "fact": "left.goodCase",
-    "values": [
-     {
-      "view": "simple",
-      "page": "lasts",
-      "text": "£1,832,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£1,832,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£1,831,989"
-     }
-    ]
-   },
-   {
-    "key": "mover-holdings|left.typically",
-    "fixture": "mover-holdings",
-    "fact": "left.typically",
-    "values": [
-     {
-      "view": "simple",
-      "page": "lasts",
-      "text": "£497,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£497,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£497,366"
      }
     ]
    },
@@ -4010,50 +3885,6 @@
     ]
    },
    {
-    "key": "mover-totals|left.goodCase",
-    "fixture": "mover-totals",
-    "fact": "left.goodCase",
-    "values": [
-     {
-      "view": "simple",
-      "page": "lasts",
-      "text": "£2,013,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£2,013,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£2,012,764"
-     }
-    ]
-   },
-   {
-    "key": "mover-totals|left.typically",
-    "fixture": "mover-totals",
-    "fact": "left.typically",
-    "values": [
-     {
-      "view": "simple",
-      "page": "lasts",
-      "text": "£531,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£531,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£530,890"
-     }
-    ]
-   },
-   {
     "key": "mover-totals|lock.state",
     "fixture": "mover-totals",
     "fact": "lock.state",
@@ -5009,50 +4840,6 @@
     ]
    },
    {
-    "key": "retired-draft|left.goodCase",
-    "fixture": "retired-draft",
-    "fact": "left.goodCase",
-    "values": [
-     {
-      "view": "simple",
-      "page": "lasts",
-      "text": "£613,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£613,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£613,218"
-     }
-    ]
-   },
-   {
-    "key": "retired-draft|left.typically",
-    "fixture": "retired-draft",
-    "fact": "left.typically",
-    "values": [
-     {
-      "view": "simple",
-      "page": "lasts",
-      "text": "£41,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£41,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£41,414"
-     }
-    ]
-   },
-   {
     "key": "retired-draft|lock.state",
     "fixture": "retired-draft",
     "fact": "lock.state",
@@ -5932,50 +5719,6 @@
     ]
    },
    {
-    "key": "retired-everything|left.goodCase",
-    "fixture": "retired-everything",
-    "fact": "left.goodCase",
-    "values": [
-     {
-      "view": "simple",
-      "page": "lasts",
-      "text": "£2,342,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£2,342,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£2,342,192"
-     }
-    ]
-   },
-   {
-    "key": "retired-everything|left.typically",
-    "fixture": "retired-everything",
-    "fact": "left.typically",
-    "values": [
-     {
-      "view": "simple",
-      "page": "lasts",
-      "text": "£687,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£687,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£686,658"
-     }
-    ]
-   },
-   {
     "key": "retired-everything|lock.state",
     "fixture": "retired-everything",
     "fact": "lock.state",
@@ -6770,82 +6513,6 @@
     ]
    },
    {
-    "key": "retired-locked-ladder|lasts.fixedChance",
-    "fixture": "retired-locked-ladder",
-    "fact": "lasts.fixedChance",
-    "values": [
-     {
-      "view": "simple",
-      "page": "lasts",
-      "text": "in every future we tried"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "20 in 20"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "in every future we tried"
-     }
-    ]
-   },
-   {
-    "key": "retired-locked-ladder|left.goodCase",
-    "fixture": "retired-locked-ladder",
-    "fact": "left.goodCase",
-    "values": [
-     {
-      "view": "simple",
-      "page": "lasts",
-      "text": "£71,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£71,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£70,987"
-     },
-     {
-      "view": "full",
-      "page": "plan document",
-      "text": "£70,987"
-     }
-    ]
-   },
-   {
-    "key": "retired-locked-ladder|left.typically",
-    "fixture": "retired-locked-ladder",
-    "fact": "left.typically",
-    "values": [
-     {
-      "view": "simple",
-      "page": "lasts",
-      "text": "£71,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£71,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£70,987"
-     },
-     {
-      "view": "full",
-      "page": "plan document",
-      "text": "£70,987"
-     }
-    ]
-   },
-   {
     "key": "retired-locked-ladder|lock.date",
     "fixture": "retired-locked-ladder",
     "fact": "lock.date",
@@ -7107,60 +6774,6 @@
       "view": "full",
       "page": "decision settings",
       "text": "Full index-linked gilt ladder"
-     }
-    ]
-   },
-   {
-    "key": "retired-locked-months|left.goodCase",
-    "fixture": "retired-locked-months",
-    "fact": "left.goodCase",
-    "values": [
-     {
-      "view": "simple",
-      "page": "lasts",
-      "text": "£3,968,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£3,968,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£3,967,896"
-     },
-     {
-      "view": "full",
-      "page": "plan document",
-      "text": "£3,967,896"
-     }
-    ]
-   },
-   {
-    "key": "retired-locked-months|left.typically",
-    "fixture": "retired-locked-months",
-    "fact": "left.typically",
-    "values": [
-     {
-      "view": "simple",
-      "page": "lasts",
-      "text": "£969,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£969,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£968,682"
-     },
-     {
-      "view": "full",
-      "page": "plan document",
-      "text": "£968,682"
      }
     ]
    },
@@ -7431,60 +7044,6 @@
       "view": "full",
       "page": "stress settings",
       "text": "£26,858"
-     }
-    ]
-   },
-   {
-    "key": "retired-locked-pots|left.goodCase",
-    "fixture": "retired-locked-pots",
-    "fact": "left.goodCase",
-    "values": [
-     {
-      "view": "simple",
-      "page": "lasts",
-      "text": "£652,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£652,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£651,681"
-     },
-     {
-      "view": "full",
-      "page": "plan document",
-      "text": "£651,681"
-     }
-    ]
-   },
-   {
-    "key": "retired-locked-pots|left.typically",
-    "fixture": "retired-locked-pots",
-    "fact": "left.typically",
-    "values": [
-     {
-      "view": "simple",
-      "page": "lasts",
-      "text": "£48,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£48,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£47,640"
-     },
-     {
-      "view": "full",
-      "page": "plan document",
-      "text": "£47,640"
      }
     ]
    },
@@ -8484,50 +8043,6 @@
       "view": "full",
       "page": "stress settings",
       "text": "£29,858"
-     }
-    ]
-   },
-   {
-    "key": "saver-checkin|left.goodCase",
-    "fixture": "saver-checkin",
-    "fact": "left.goodCase",
-    "values": [
-     {
-      "view": "simple",
-      "page": "lasts",
-      "text": "£1,196,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£1,196,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£1,196,455"
-     }
-    ]
-   },
-   {
-    "key": "saver-checkin|left.typically",
-    "fixture": "saver-checkin",
-    "fact": "left.typically",
-    "values": [
-     {
-      "view": "simple",
-      "page": "lasts",
-      "text": "£275,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£275,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£274,641"
      }
     ]
    },
@@ -10284,72 +9799,6 @@
     ]
    },
    {
-    "key": "saver-ladder-draft|lasts.fixedChance",
-    "fixture": "saver-ladder-draft",
-    "fact": "lasts.fixedChance",
-    "values": [
-     {
-      "view": "simple",
-      "page": "lasts",
-      "text": "in every future we tried"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "20 in 20"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "in every future we tried"
-     }
-    ]
-   },
-   {
-    "key": "saver-ladder-draft|left.goodCase",
-    "fixture": "saver-ladder-draft",
-    "fact": "left.goodCase",
-    "values": [
-     {
-      "view": "simple",
-      "page": "lasts",
-      "text": "£240,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£240,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£240,215"
-     }
-    ]
-   },
-   {
-    "key": "saver-ladder-draft|left.typically",
-    "fixture": "saver-ladder-draft",
-    "fact": "left.typically",
-    "values": [
-     {
-      "view": "simple",
-      "page": "lasts",
-      "text": "£240,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£240,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£240,215"
-     }
-    ]
-   },
-   {
     "key": "saver-ladder-draft|lock.state",
     "fixture": "saver-ladder-draft",
     "fact": "lock.state",
@@ -10521,82 +9970,6 @@
       "view": "full",
       "page": "decision settings",
       "text": "Full index-linked gilt ladder"
-     }
-    ]
-   },
-   {
-    "key": "saver-locked-ladder|lasts.fixedChance",
-    "fixture": "saver-locked-ladder",
-    "fact": "lasts.fixedChance",
-    "values": [
-     {
-      "view": "simple",
-      "page": "lasts",
-      "text": "in every future we tried"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "20 in 20"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "in every future we tried"
-     }
-    ]
-   },
-   {
-    "key": "saver-locked-ladder|left.goodCase",
-    "fixture": "saver-locked-ladder",
-    "fact": "left.goodCase",
-    "values": [
-     {
-      "view": "simple",
-      "page": "lasts",
-      "text": "£240,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£240,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£240,215"
-     },
-     {
-      "view": "full",
-      "page": "plan document",
-      "text": "£240,215"
-     }
-    ]
-   },
-   {
-    "key": "saver-locked-ladder|left.typically",
-    "fixture": "saver-locked-ladder",
-    "fact": "left.typically",
-    "values": [
-     {
-      "view": "simple",
-      "page": "lasts",
-      "text": "£240,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£240,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£240,215"
-     },
-     {
-      "view": "full",
-      "page": "plan document",
-      "text": "£240,215"
      }
     ]
    },
@@ -11256,60 +10629,6 @@
       "view": "full",
       "page": "will it last",
       "text": "Not on course"
-     }
-    ]
-   },
-   {
-    "key": "saver-locked-pots|left.goodCase",
-    "fixture": "saver-locked-pots",
-    "fact": "left.goodCase",
-    "values": [
-     {
-      "view": "simple",
-      "page": "lasts",
-      "text": "£760,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£760,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£759,522"
-     },
-     {
-      "view": "full",
-      "page": "plan document",
-      "text": "£759,522"
-     }
-    ]
-   },
-   {
-    "key": "saver-locked-pots|left.typically",
-    "fixture": "saver-locked-pots",
-    "fact": "left.typically",
-    "values": [
-     {
-      "view": "simple",
-      "page": "lasts",
-      "text": "£79,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£79,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£79,343"
-     },
-     {
-      "view": "full",
-      "page": "plan document",
-      "text": "£79,343"
      }
     ]
    },
@@ -12380,50 +11699,6 @@
       "view": "full",
       "page": "will it last",
       "text": "Not on course"
-     }
-    ]
-   },
-   {
-    "key": "saver-payin|left.goodCase",
-    "fixture": "saver-payin",
-    "fact": "left.goodCase",
-    "values": [
-     {
-      "view": "simple",
-      "page": "lasts",
-      "text": "£1,098,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£1,098,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£1,098,127"
-     }
-    ]
-   },
-   {
-    "key": "saver-payin|left.typically",
-    "fixture": "saver-payin",
-    "fact": "left.typically",
-    "values": [
-     {
-      "view": "simple",
-      "page": "lasts",
-      "text": "£244,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£244,000"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "£243,539"
      }
     ]
    },

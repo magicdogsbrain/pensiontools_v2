@@ -151,24 +151,6 @@
     "£26,016"
    ]
   },
-  "budget|left.goodCase": {
-   "full:will it last": [
-    "£618,000",
-    "£618,087"
-   ],
-   "simple:lasts": [
-    "£618,000"
-   ]
-  },
-  "budget|left.typically": {
-   "full:will it last": [
-    "£42,549",
-    "£43,000"
-   ],
-   "simple:lasts": [
-    "£43,000"
-   ]
-  },
   "budget|lock.state": {
    "full:budget": [
     "✏️ draft"
@@ -617,24 +599,6 @@
     "1910"
    ]
   },
-  "closed-successor|left.goodCase": {
-   "full:will it last": [
-    "£1,466,000",
-    "£1,466,227"
-   ],
-   "simple:lasts": [
-    "£1,466,000"
-   ]
-  },
-  "closed-successor|left.typically": {
-   "full:will it last": [
-    "£484,000",
-    "£484,094"
-   ],
-   "simple:lasts": [
-    "£484,000"
-   ]
-  },
   "closed-successor|lock.state": {
    "full:budget": [
     "✏️ draft"
@@ -1009,33 +973,6 @@
    ],
    "simple:spend": [
     "1410"
-   ]
-  },
-  "couple|lasts.fixedChance": {
-   "full:will it last": [
-    "in more than 19 of 20 futures we tried",
-    "over 19 in 20"
-   ],
-   "simple:lasts": [
-    "in more than 19 of 20 futures we tried"
-   ]
-  },
-  "couple|left.goodCase": {
-   "full:will it last": [
-    "£1,580,000",
-    "£1,580,134"
-   ],
-   "simple:lasts": [
-    "£1,580,000"
-   ]
-  },
-  "couple|left.typically": {
-   "full:will it last": [
-    "£416,000",
-    "£416,180"
-   ],
-   "simple:lasts": [
-    "£416,000"
    ]
   },
   "couple|lock.state": {
@@ -1421,24 +1358,6 @@
    ],
    "simple:spend": [
     "£19,631"
-   ]
-  },
-  "mover-holdings|left.goodCase": {
-   "full:will it last": [
-    "£1,831,989",
-    "£1,832,000"
-   ],
-   "simple:lasts": [
-    "£1,832,000"
-   ]
-  },
-  "mover-holdings|left.typically": {
-   "full:will it last": [
-    "£497,000",
-    "£497,366"
-   ],
-   "simple:lasts": [
-    "£497,000"
    ]
   },
   "mover-holdings|lock.state": {
@@ -1940,24 +1859,6 @@
     "£19,631"
    ]
   },
-  "mover-totals|left.goodCase": {
-   "full:will it last": [
-    "£2,012,764",
-    "£2,013,000"
-   ],
-   "simple:lasts": [
-    "£2,013,000"
-   ]
-  },
-  "mover-totals|left.typically": {
-   "full:will it last": [
-    "£530,890",
-    "£531,000"
-   ],
-   "simple:lasts": [
-    "£531,000"
-   ]
-  },
   "mover-totals|lock.state": {
    "full:accumulation": [
     "✏️ draft"
@@ -2427,24 +2328,6 @@
     "£26,016"
    ]
   },
-  "retired-draft|left.goodCase": {
-   "full:will it last": [
-    "£613,000",
-    "£613,218"
-   ],
-   "simple:lasts": [
-    "£613,000"
-   ]
-  },
-  "retired-draft|left.typically": {
-   "full:will it last": [
-    "£41,000",
-    "£41,414"
-   ],
-   "simple:lasts": [
-    "£41,000"
-   ]
-  },
   "retired-draft|lock.state": {
    "full:budget": [
     "✏️ draft"
@@ -2877,24 +2760,6 @@
     "3410"
    ]
   },
-  "retired-everything|left.goodCase": {
-   "full:will it last": [
-    "£2,342,000",
-    "£2,342,192"
-   ],
-   "simple:lasts": [
-    "£2,342,000"
-   ]
-  },
-  "retired-everything|left.typically": {
-   "full:will it last": [
-    "£686,658",
-    "£687,000"
-   ],
-   "simple:lasts": [
-    "£687,000"
-   ]
-  },
   "retired-everything|lock.state": {
    "full:budget": [
     "✏️ draft"
@@ -3287,39 +3152,6 @@
     "Pots and valves"
    ]
   },
-  "retired-locked-ladder|lasts.fixedChance": {
-   "full:will it last": [
-    "20 in 20",
-    "in every future we tried"
-   ],
-   "simple:lasts": [
-    "in every future we tried"
-   ]
-  },
-  "retired-locked-ladder|left.goodCase": {
-   "full:plan document": [
-    "£70,987"
-   ],
-   "full:will it last": [
-    "£70,987",
-    "£71,000"
-   ],
-   "simple:lasts": [
-    "£71,000"
-   ]
-  },
-  "retired-locked-ladder|left.typically": {
-   "full:plan document": [
-    "£70,987"
-   ],
-   "full:will it last": [
-    "£70,987",
-    "£71,000"
-   ],
-   "simple:lasts": [
-    "£71,000"
-   ]
-  },
   "retired-locked-ladder|lock.date": {
    "full:plan document": [
     "12 November 2024"
@@ -3457,30 +3289,6 @@
    ],
    "simple:plan": [
     "Full gilt ladder"
-   ]
-  },
-  "retired-locked-months|left.goodCase": {
-   "full:plan document": [
-    "£3,967,896"
-   ],
-   "full:will it last": [
-    "£3,967,896",
-    "£3,968,000"
-   ],
-   "simple:lasts": [
-    "£3,968,000"
-   ]
-  },
-  "retired-locked-months|left.typically": {
-   "full:plan document": [
-    "£968,682"
-   ],
-   "full:will it last": [
-    "£968,682",
-    "£969,000"
-   ],
-   "simple:lasts": [
-    "£969,000"
    ]
   },
   "retired-locked-months|lock.date": {
@@ -3623,30 +3431,6 @@
    ],
    "simple:spend": [
     "£26,016"
-   ]
-  },
-  "retired-locked-pots|left.goodCase": {
-   "full:plan document": [
-    "£651,681"
-   ],
-   "full:will it last": [
-    "£651,681",
-    "£652,000"
-   ],
-   "simple:lasts": [
-    "£652,000"
-   ]
-  },
-  "retired-locked-pots|left.typically": {
-   "full:plan document": [
-    "£47,640"
-   ],
-   "full:will it last": [
-    "£47,640",
-    "£48,000"
-   ],
-   "simple:lasts": [
-    "£48,000"
    ]
   },
   "retired-locked-pots|lock.date": {
@@ -4134,24 +3918,6 @@
    ],
    "simple:spend": [
     "£28,102"
-   ]
-  },
-  "saver-checkin|left.goodCase": {
-   "full:will it last": [
-    "£1,196,000",
-    "£1,196,455"
-   ],
-   "simple:lasts": [
-    "£1,196,000"
-   ]
-  },
-  "saver-checkin|left.typically": {
-   "full:will it last": [
-    "£274,641",
-    "£275,000"
-   ],
-   "simple:lasts": [
-    "£275,000"
    ]
   },
   "saver-checkin|lock.state": {
@@ -5001,33 +4767,6 @@
     "2610"
    ]
   },
-  "saver-ladder-draft|lasts.fixedChance": {
-   "full:will it last": [
-    "20 in 20",
-    "in every future we tried"
-   ],
-   "simple:lasts": [
-    "in every future we tried"
-   ]
-  },
-  "saver-ladder-draft|left.goodCase": {
-   "full:will it last": [
-    "£240,000",
-    "£240,215"
-   ],
-   "simple:lasts": [
-    "£240,000"
-   ]
-  },
-  "saver-ladder-draft|left.typically": {
-   "full:will it last": [
-    "£240,000",
-    "£240,215"
-   ],
-   "simple:lasts": [
-    "£240,000"
-   ]
-  },
   "saver-ladder-draft|lock.state": {
    "full:accumulation": [
     "✏️ draft"
@@ -5120,39 +4859,6 @@
    ],
    "simple:plan": [
     "Full gilt ladder"
-   ]
-  },
-  "saver-locked-ladder|lasts.fixedChance": {
-   "full:will it last": [
-    "20 in 20",
-    "in every future we tried"
-   ],
-   "simple:lasts": [
-    "in every future we tried"
-   ]
-  },
-  "saver-locked-ladder|left.goodCase": {
-   "full:plan document": [
-    "£240,215"
-   ],
-   "full:will it last": [
-    "£240,000",
-    "£240,215"
-   ],
-   "simple:lasts": [
-    "£240,000"
-   ]
-  },
-  "saver-locked-ladder|left.typically": {
-   "full:plan document": [
-    "£240,215"
-   ],
-   "full:will it last": [
-    "£240,000",
-    "£240,215"
-   ],
-   "simple:lasts": [
-    "£240,000"
    ]
   },
   "saver-locked-ladder|lock.date": {
@@ -5480,30 +5186,6 @@
    ],
    "simple:lasts": [
     "Not yet"
-   ]
-  },
-  "saver-locked-pots|left.goodCase": {
-   "full:plan document": [
-    "£759,522"
-   ],
-   "full:will it last": [
-    "£759,522",
-    "£760,000"
-   ],
-   "simple:lasts": [
-    "£760,000"
-   ]
-  },
-  "saver-locked-pots|left.typically": {
-   "full:plan document": [
-    "£79,343"
-   ],
-   "full:will it last": [
-    "£79,000",
-    "£79,343"
-   ],
-   "simple:lasts": [
-    "£79,000"
    ]
   },
   "saver-locked-pots|lock.date": {
@@ -6027,24 +5709,6 @@
    ],
    "simple:lasts": [
     "Not yet"
-   ]
-  },
-  "saver-payin|left.goodCase": {
-   "full:will it last": [
-    "£1,098,000",
-    "£1,098,127"
-   ],
-   "simple:lasts": [
-    "£1,098,000"
-   ]
-  },
-  "saver-payin|left.typically": {
-   "full:will it last": [
-    "£243,539",
-    "£244,000"
-   ],
-   "simple:lasts": [
-    "£244,000"
    ]
   },
   "saver-payin|lock.state": {

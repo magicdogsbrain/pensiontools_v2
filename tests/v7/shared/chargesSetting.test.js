@@ -27,7 +27,7 @@ import { saverInputsOf } from '../../../src/answers/c/onLives.js';
 import { enginePlan, configsAt } from '../../../src/answers/shared/toEngine.js';
 import { savingPlan } from '../../../src/answers/shared/saving.js';
 import { handOverToC } from '../../../src/answers/shared/schemaParts.js';
-import { answerC } from '../../../src/answers/c/answer.js';
+import { answerC } from '../c/_c.js';
 import { answerA } from '../../../src/answers/a/answer.js';
 import { answerB } from '../../../src/answers/b/answer.js';
 import { buildPlanSeed } from '../../../src/answers/keep/planSeed.js';

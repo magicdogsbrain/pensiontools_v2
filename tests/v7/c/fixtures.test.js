@@ -87,8 +87,10 @@ describe('the worked fixtures', () => {
       });
 
       it('is the same answer in a child process under TZ=UTC and TZ=Europe/London', () => {
+        // (7.12.0: one person from now runs on the kept plan, handed in as env.planPath, as every caller hands it)
         const code = `import { answerCReal } from '${resolve(process.cwd(), 'src/answers/c/answer.js')}';
-          const r = answerCReal(${JSON.stringify(fx.data.inputs)}, ${JSON.stringify({ ...env, trace: false })});
+          import * as planPath from '${resolve(process.cwd(), 'src/answers/keep/planPath.js')}';
+          const r = answerCReal(${JSON.stringify(fx.data.inputs)}, { ...${JSON.stringify({ ...env, trace: false })}, planPath });
           process.stdout.write(JSON.stringify(r));`;
         for (const TZ of ['UTC', 'Europe/London']) {
           const out = execFileSync(process.execPath, ['--input-type=module', '-e', code], { env: { ...process.env, TZ }, maxBuffer: 64 * 1024 * 1024 }).toString();

@@ -8,7 +8,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { runStressStrip } from '../../../src/answers/shared/stressStrip.js';
-import { answerC } from '../../../src/answers/c/answer.js';
+import { answerC } from '../c/_c.js';
 import { answerD, withPlanPath } from '../d/_d.js';
 import { stripAmountOf } from '../../../src/v7/state/select.js';
 

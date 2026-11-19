@@ -56,7 +56,9 @@ export const STEP = 10;
 export function bandRange(plan) {
   const kLow = Math.floor(plan.guaranteedAtStartAYear / 12 / STEP + 1e-9);
   const s = plan.shape;
-  if (!(s && s.r && Number.isFinite(s.topAYear) && s.topShare > 0)) return { kLow, kMax: kLow + Math.ceil(plan.totalPots / STEP) + 12 };
+  // (the plan path, answers/keep/planPath.js: its floor is nothing, its ceiling stands above the income that comes anyway)
+  const above = plan.guaranteedCeilingAYear > 0 ? Math.ceil(plan.guaranteedCeilingAYear / 12 / STEP) : 0;
+  if (!(s && s.r && Number.isFinite(s.topAYear) && s.topShare > 0)) return { kLow, kMax: kLow + above + Math.ceil(plan.totalPots / STEP) + 12 };
   return { kLow, kMax: Math.max(kLow, Math.floor(s.topAYear / 12 / STEP + 1e-9)) + Math.ceil(plan.totalPots / STEP / s.topShare) + 12 };
 }
 

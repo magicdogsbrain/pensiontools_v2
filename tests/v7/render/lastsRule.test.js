@@ -19,7 +19,7 @@ import { join } from 'node:path';
 import { draw, visibleText } from './checkScreen.js';
 import { answerA } from '../../../src/answers/a/answer.js';
 import { answerB } from '../../../src/answers/b/answer.js';
-import { answerC } from '../../../src/answers/c/answer.js';
+import { answerC } from '../c/_c.js';
 import { answerD } from '../d/_d.js';
 import { verdictBlockView } from '../../../src/ui/oneAnswerView.js';
 import { lifeOfSettings } from '../../../src/answers/plan/life.js';

@@ -25,7 +25,7 @@ import { SCHEMA_B } from '../../../src/answers/b/schema.js';
 import { SCHEMA_C } from '../../../src/answers/c/schema.js';
 import { answerA } from '../../../src/answers/a/answer.js';
 import { answerB } from '../../../src/answers/b/answer.js';
-import { answerC } from '../../../src/answers/c/answer.js';
+import { answerC } from '../c/_c.js';
 import { CARRY } from '../../../src/v7/state/carry.js';
 import { leverActions } from '../../../src/v7/components/Levers.jsx';
 import { payInTypedOf, shareLandsOf } from '../../../src/v7/state/select.js';

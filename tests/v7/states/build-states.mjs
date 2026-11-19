@@ -29,7 +29,7 @@ import { parse } from '../../../src/v7/router/routes.js';
 import { SCHEMA_C } from '../../../src/answers/c/schema.js';
 import { parseDraft } from '../../../src/answers/shared/validate.js';
 import { partsText } from '../../../src/answers/shared/format.js';
-import { answerC } from '../../../src/answers/c/answer.js';
+import { answerC as answerCOnEnv } from '../../../src/answers/c/answer.js';
 import { SCHEMA_A } from '../../../src/answers/a/schema.js';
 import { SCHEMA_B } from '../../../src/answers/b/schema.js';
 import { answerA } from '../../../src/answers/a/answer.js';
@@ -39,6 +39,8 @@ import { answerD as answerOnEnv } from '../../../src/answers/d/answer.js';
 import * as planPath from '../../../src/answers/keep/planPath.js';
 // (7.12.0: one person's D runs on the plan path, handed in as the worker hands it: src/answers/index.js answerFor)
 const answerD = (inputs, env) => answerOnEnv(inputs, { ...env, planPath });
+// (and one person's C from now)
+const answerC = (inputs, env) => answerCOnEnv(inputs, { ...env, planPath });
 import { outOfTen } from '../../../src/answers/shared/format.js';
 import { legacyVerdictOf as verdictOf } from '../../../src/answers/shared/rules.js';
 import { emptySaverDraft, emptySaverAnswer } from '../../../src/v7/state/initial.js';

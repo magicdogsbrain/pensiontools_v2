@@ -1,108 +1,38 @@
 /**
- * The solved figure, fed back through today's saved-plan path (answer-C-and-household.md 2.9 rule 3; build brief 6, P2):
- * the careful amount, saved in today's settings shape and run through createSimulationConfigFromSettings →
- * planFromSettings → stressTestStrategy('pots-and-valves') at the same number of futures, fails in at most 10% of
- * them; and a figure £50 a month higher fails in more than 10%.
+ * The solved figure, fed back through the saved-plan path (answer-C-and-household.md 2.9 rule 3; build brief 6, P2; the
+ * lead's ruling D22, step P): the amount at a level, kept as a plan (answers/keep/keptPlan.js keptPlansOf, the keep's own
+ * two steps) and run through "Does it last?" (answers/plan/lastsRun.js lastsOf: effective settings → planFromSettings →
+ * the plan test) at the same number of futures, gives the SAME figures as the answer: the same count of futures that last
+ * to the plan-to age, the same weighted chance, so the same verdict "yes" at the level; £10 a month more is not "yes".
  *
- * The two paths count years differently. The answer's plan years run from today (the birthday, since the age is
- * all it knows), so the State Pension starts on a plan-year boundary and is paid for the whole of its first year.
- * A saved plan's years are TAX years from 6 April, so the same State Pension (starting on the birthday) is paid
- * for about 52% of its first plan year (30 September → 6 April). On the same first-year share the two paths agree
- * future for future; on the saved plan's own share the answer's careful amount fails in about 12 futures in 100
- * (answer-C-and-household.md 1.5 measured the same: "from 1 future in 10 failing to 1.2 in 10"). Both are asserted.
- *
- * Also: the adapter's config against today's function on the same settings, field by field.
+ * Until 7.12.0 the answer ran its own household model and this test allowed the kept plan to fail in up to 15 futures in
+ * 100 where the answer promised 10 (the State Pension's first year whole against the saved plan's tax-year share, and
+ * more). One person from now is on the plan path, so the two are one run and the test is equality.
  */
 import { describe, it, expect } from 'vitest';
-import { createSimulationConfigFromSettings } from '../../../src/storage/StressRepository.js';
-import { planFromSettings, stressTestStrategy } from '../../../src/strategies/stressTest.js';
-import { enginePlan, configsAt } from '../../../src/answers/shared/toEngine.js';
-import { toHousehold } from '../../../src/answers/c/toHousehold.js';
-import { checkInputs } from '../../../src/answers/shared/validate.js';
-import { RULES, addYears } from '../../../src/answers/shared/rules.js';
-import { at } from '../../helpers/clock.js';
-import { SCHEMA_C, TEST_ENV } from './_c.js';
-import { answerC } from './invariants.js';
+import { keptPlansOf } from '../../../src/answers/keep/keptPlan.js';
+import { lastsOf } from '../../../src/answers/plan/lastsRun.js';
+import { TEST_ENV, answerC } from './_c.js';
 
 const N = Number(process.env.V7_FEEDBACK_FUTURES || 300);
-// (7.8.0: the amount fed back is held to today's saved-plan run on the count, env.weighted false: that run counts to its
-// end age, which the weighted level is not)
-const ENV = { ...TEST_ENV, futures: N, weighted: false };
-const NOW = at(2026, 9, 30);
+const ENV = { ...TEST_ENV, futures: N };
 
-/** The answer's plan for a single person, saved the way today's app saves a plan (answer-C-and-household.md 1.6). */
-function settingsFor(inputs, monthly) {
-  const env = { today: ENV.today, weighted: false };   // (the answer's own plan on the count, as the answer above)
-  const checked = checkInputs(SCHEMA_C, inputs, env).inputs;
-  const plan = enginePlan(toHousehold(checked, env).household, env);
-  const [{ config }] = configsAt(plan, monthly * 12);
-  const you = plan.people[0];
-  return {
-    plan, config,
-    settings: {
-      equityMin: config.equityMin, bondMin: config.bondMin, cashTarget: config.cashTarget, duration: plan.years,
-      baseSalary: config.baseSalary, other: 0, targetSchedule: config.targetSchedule, incomeShape: 'phases',
-      spStartDate: addYears(ENV.today, you.statePension.startAge - you.ageToday), spWeeklyAmount: you.statePension.amount / 52,
-      currentAge: you.ageToday, currentAgeAsOf: ENV.today, retired: true, firstTaxYear: 2026,
-      pa: RULES.personalAllowance, brl: RULES.basicRateLimit, hrl: RULES.higherRateLimit, taxMode: 'inflates',
-      protectionMult: 0.8, consecutiveLimit: 3, disableProtection: true, hodlEnabled: false, hodlValue: 25000,
-      isaBalance: you.isa, isaReturn: undefined, strategyId: 'pots-and-valves', accessMethod: 'ufpls',
-      // the adapter tells the engine a final-salary pension rises in full (toEngine.js: the pot's job is its own share); none here
-      dbAmount: 0, dbStartYear: 0, dbIndexation: 'cpi', spendingProfile: 'flat', equityGlideEnabled: false, diversifierStart: 0, taggedFunds: [],
-      seededFrom: 'v7-household',
-      // the answer's one fund and platform charge (6.19.0), as a plan made from it carries it (src/services/PlanSeed.js)
-      chargesPct: config.chargesPct
-    }
-  };
-}
+const reading = (plan) => {
+  const { a } = lastsOf(plan, { today: ENV.today, futures: N, histories: false });
+  return { lasted: Math.round(a.fixedAge * N), weighted: a.weighted, verdict: a.verdict, planToAge: a.planToAge };
+};
 
-function ruinOf(settings, plan, { firstYearShare = null } = {}) {
-  const cfg = createSimulationConfigFromSettings({}, settings);
-  const p = planFromSettings(settings, cfg, { now: NOW, startAge: plan.startAge });
-  const q = firstYearShare === null ? p : { ...p, spFirstYearRatio: firstYearShare, pnvCfg: { ...p.pnvCfg, spFirstYearRatio: firstYearShare } };
-  const r = stressTestStrategy('pots-and-valves', { ...q, mcRuns: N });
-  return { cfg, p, ruin: r.ruin.mc, survived: r.survivedMc };
-}
-
-describe('the careful amount fed back through today\'s saved-plan path', () => {
+describe('the amount at each level fed back through the saved-plan path', () => {
   const inputs = { you: { pot: 250000, age: 58 } };
-  const answer = answerC(inputs, ENV);
-
-  it('on the same first-year share of the State Pension: at most 1 future in 10 fails, the same futures as the answer; £50 a month more fails in more', () => {
-    expect(answer.status).toBe('ok');
-    const { settings, plan } = settingsFor(inputs, answer.levels.balanced.monthly);
-    const same = ruinOf(settings, plan, { firstYearShare: 1 });
-    expect(same.p.durationYears).toBe(plan.years);
-    expect(same.p.spStartYear).toBe(9);
-    expect(same.survived).toHaveLength(N);
-    expect(same.ruin).toBeLessThanOrEqual(10);
-    // (7.12.0: the saved plan's first year, read on 30 September, pays September to March, the answer's household run all
-    // twelve months, so the saved plan lasts in a few more futures: 92.7% against 91% at 300. Equal again, future for
-    // future, once C runs on the plan path: step P pass 4's saved patch rewrites this file to equality.)
-    expect(Math.round((100 - same.ruin) / 100 * N) / N).toBeGreaterThanOrEqual(answer.levels.balanced.fixedAge);
-    const higher = settingsFor(inputs, answer.levels.balanced.monthly + 50);
-    expect(ruinOf(higher.settings, higher.plan, { firstYearShare: 1 }).ruin).toBeGreaterThan(10);
-  }, 120000);
-
-  it('on the saved plan\'s own share (about 52% of the first tax year): about 1.2 futures in 10, as the household plan measured', () => {
-    const { settings, plan } = settingsFor(inputs, answer.levels.balanced.monthly);
-    const saved = ruinOf(settings, plan);
-    expect(saved.p.spFirstYearRatio).toBeGreaterThan(0.4);
-    expect(saved.p.spFirstYearRatio).toBeLessThan(0.6);
-    // (7.12.0: 8.7 in 100 at 300 futures, the first year paying its seven months; it was about 12)
-    expect(saved.ruin).toBeGreaterThanOrEqual(5);
-    expect(saved.ruin).toBeLessThanOrEqual(15);
-  }, 120000);
-
-  it('the adapter builds the config today\'s function builds from the same settings, but for the first-year share of the State Pension', () => {
-    const { settings, config } = settingsFor(inputs, answer.levels.balanced.monthly);
-    const theirs = createSimulationConfigFromSettings({}, settings);
-    for (const key of ['equityStart', 'bondStart', 'cashStart', 'equityMin', 'bondMin', 'cashTarget', 'years', 'duration', 'baseSalary', 'other', 'spStartYear', 'spWeeklyAmount',
-      'pa', 'brl', 'hrl', 'taxMode', 'protectionMult', 'consecutiveLimit', 'disableProtection', 'hodlEnabled', 'isaBalance', 'strategyId', 'accessMethod', 'dbAmount', 'dbStartYear', 'dbIndexation', 'spendingProfile', 'targetSchedule', 'chargesPct']) {
-      expect(theirs[key], key).toEqual(config[key]);
-    }
-    expect(theirs.spFirstYearRatio).toBeLessThan(1);
-    expect(config.spFirstYearRatio).toBe(1);
-    expect(config.chargesPct).toBe(0.5);                     // C's default, carried into the saved plan's settings
-  });
+  for (const level of ['careful', 'balanced']) {
+    it(`${level}: the kept plan's "Does it last?" is the answer, future for future; £10 a month more is not "yes"`, () => {
+      const c = answerC({ ...inputs, confidence: level }, ENV);
+      expect(c.status).toBe('ok');
+      const m = c.levels[level].monthly;
+      const plan = reading(keptPlansOf('c', c, ENV).yours);
+      expect(plan).toEqual({ lasted: N - c.chance.fails, weighted: c.chance.weighted, verdict: 'yes', planToAge: c.chance.planToAge });
+      const more = reading(keptPlansOf('c', answerC({ ...inputs, confidence: level, take: m + 10 }, ENV), ENV, { take: 'tried' }).yours);
+      expect(more.verdict).not.toBe('yes');
+    }, 120000);
+  }
 });

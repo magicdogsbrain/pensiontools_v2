@@ -13,7 +13,7 @@ import { reduce } from '../../../src/v7/state/reduce.js';
 import { parsedDraft, currentKey } from '../../../src/v7/state/select.js';
 import { answerA } from '../../../src/answers/a/answer.js';
 import { answerB } from '../../../src/answers/b/answer.js';
-import { answerC } from '../../../src/answers/c/answer.js';
+import { answerC } from '../c/_c.js';
 
 const TODAY = '2026-09-30';
 const ENV = { today: TODAY, futures: 40, seed: 0, trace: false };

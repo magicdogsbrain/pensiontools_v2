@@ -186,10 +186,13 @@ function nonMonotoneNear(cIn, monthly, reach = 20) {
  * One X1 case: C twice (for the careful amount, then with take := it), A once. Returns 'compared' | 'moved' | 'skipped'
  * | 'closed' | 'non-monotone' (compared, the counts one future apart where the engine is shown not to be monotone).
  */
+// (7.12.0: one person's C from now answers on the plan path; A still runs the household run, so X1 holds A to C on that run,
+// asked for by name — env.householdRoute — until A goes on the plan path too: step P's remaining list)
+const C_ENV = { ...ENV, householdRoute: true };
 function x1(cRaw, extra = {}) {
   // the one charge (6.19.0) is taken while drawing in both, so C is asked at A's charge (A's default, 0.5, unless given)
   const charge = extra.charge === undefined ? 0.5 : extra.charge;
-  const c0 = answerC({ ...copy(cRaw), charge, start: { kind: 'now' }, take: null }, ENV);
+  const c0 = answerC({ ...copy(cRaw), charge, start: { kind: 'now' }, take: null }, C_ENV);
   if (c0.status === 'invalid') return 'skipped';
   const cIn = c0.inputs;
   // each on their own date is XA1's (tests/v7/cross/apart.test.js); the tax-free part had by you from now is asked of A
@@ -204,7 +207,7 @@ function x1(cRaw, extra = {}) {
   const careful = c0.status === 'ok' ? c0.levels[c0.level].monthly : 0;
   if (careful > SPEND_MAX) return 'skipped';                                  // more than A's spending box takes
   const spend = careful >= 1 ? careful : 1000;
-  const c = answerC({ ...copy(cIn), take: spend }, ENV);
+  const c = answerC({ ...copy(cIn), take: spend }, C_ENV);
   // With no pot and no savings, "nothing paid in" is part of A's status rule (brief 4.7 step 7): pay in nothing there.
   const aIn = aAtStopNow(cIn, spend, c0.status === 'ok' ? extra : { ...extra, payIn: 0, partnerPayIn: 0 });
   const a = answerA(aIn, A_ENV(cIn.you.age));

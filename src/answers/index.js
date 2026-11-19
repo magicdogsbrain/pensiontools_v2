@@ -27,8 +27,8 @@ export const ANSWERS = {
   d: { schema: SCHEMA_D, answer: answerD }
 };
 
-/** The questions whose runs are the kept plan's, for one person (keep/planPath.js). */
-export const ON_PLAN_PATH = Object.freeze(['d']);
+/** The questions whose runs are the kept plan's, for one person (keep/planPath.js; C from now). */
+export const ON_PLAN_PATH = Object.freeze(['c', 'd']);
 
 /** The plan path, loaded lazily (its own chunk, with the engine). */
 export const loadPlanPath = () => import('./keep/planPath.js');

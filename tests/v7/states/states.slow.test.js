@@ -10,7 +10,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { answerA } from '../../../src/answers/a/answer.js';
 import { answerB } from '../../../src/answers/b/answer.js';
-import { answerC } from '../../../src/answers/c/answer.js';
+import { answerC } from '../c/_c.js';
 import { answerD } from '../d/_d.js';
 import { SCHEMA_C } from '../../../src/answers/c/schema.js';
 import { parseDraft } from '../../../src/answers/shared/validate.js';

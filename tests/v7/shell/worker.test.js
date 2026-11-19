@@ -6,30 +6,35 @@
 import { describe, it, expect, vi } from 'vitest';
 import { createHandler } from '../../../src/v7/effects/answerWorker.js';
 import { createWorkerClient, NO_WORKER } from '../../../src/v7/effects/workerClient.js';
-import { ANSWERS } from '../../../src/answers/index.js';
+import { answerFor } from '../../../src/answers/index.js';
 import { VERSION } from '../../../src/constants.js';
 
 const INPUTS = { household: 'single', you: { pot: 250000, age: 58 } };
 const ENV = { today: '2026-09-30', futures: 100, seed: 0, trace: false };
 
-/** Send one message to a handler and collect what it posts. */
-function send(handle, msg) {
+/**
+ * Send one message to a handler and collect what it posts, until its reply (a result, an error or ready) has come: a
+ * question on the plan path (C and D for one person) is answered once the plan path's own chunk has loaded.
+ */
+async function send(handle, msg) {
   const out = [];
   handle(msg, (m) => out.push(m));
+  const done = () => out.some((m) => 'result' in m || 'error' in m || m.ready);
+  for (let i = 0; i < 2000 && !done(); i++) await new Promise((r) => setTimeout(r, 5));
   return out;
 }
 
 describe('the message handler', () => {
-  it('init → ready, with the engine version', () => {
-    const out = send(createHandler(), { id: 1, type: 'init', today: '2026-09-30' });
+  it('init → ready, with the engine version', async () => {
+    const out = await send(createHandler(), { id: 1, type: 'init', today: '2026-09-30' });
     expect(out.length).toBe(1);
     expect(out[0]).toMatchObject({ id: 1, ready: true, engineVersion: VERSION });
     expect('historyEnd' in out[0]).toBe(true);
   });
-  it('init then answer → progress, then the result', () => {
+  it('init then answer → progress, then the result', async () => {
     const handle = createHandler();
-    send(handle, { id: 1, type: 'init', today: '2026-09-30' });
-    const out = send(handle, { id: 2, type: 'answer', q: 'c', inputs: INPUTS, env: ENV });
+    await send(handle, { id: 1, type: 'init', today: '2026-09-30' });
+    const out = await send(handle, { id: 2, type: 'answer', q: 'c', inputs: INPUTS, env: ENV });
     const last = out[out.length - 1];
     expect(out.every((m) => m.id === 2)).toBe(true);
     expect(out.slice(0, -1).every((m) => m.progress && typeof m.progress.done === 'number' && typeof m.progress.total === 'number')).toBe(true);
@@ -39,43 +44,43 @@ describe('the message handler', () => {
     expect(last.result.basis.futures).toBe(100);
     expect(last.result.inputs.you).toMatchObject({ pot: 250000, age: 58 });
   });
-  it('the result is the answer function\'s own, and is plain data', () => {
-    const out = send(createHandler(), { id: 2, type: 'answer', q: 'c', inputs: INPUTS, env: ENV });
+  it('the result is the answer function\'s own, and is plain data', async () => {
+    const out = await send(createHandler(), { id: 2, type: 'answer', q: 'c', inputs: INPUTS, env: ENV });
     const result = out[out.length - 1].result;
-    expect(result).toEqual(JSON.parse(JSON.stringify(ANSWERS.c.answer(INPUTS, ENV))));
+    expect(result).toEqual(JSON.parse(JSON.stringify(await answerFor('c', INPUTS, ENV))));
     expect(() => structuredClone(result)).not.toThrow();
   });
-  it('the date given at init is used when a message carries none, and the message\'s own date wins', () => {
+  it('the date given at init is used when a message carries none, and the message\'s own date wins', async () => {
     const handle = createHandler();
-    send(handle, { id: 1, type: 'init', today: '2027-01-15' });
-    const a = send(handle, { id: 2, type: 'answer', q: 'c', inputs: INPUTS, env: { futures: 100 } });
+    await send(handle, { id: 1, type: 'init', today: '2027-01-15' });
+    const a = await send(handle, { id: 2, type: 'answer', q: 'c', inputs: INPUTS, env: { futures: 100 } });
     expect(a[a.length - 1].result.basis.today).toBe('2027-01-15');
-    const b = send(handle, { id: 3, type: 'answer', q: 'c', inputs: INPUTS, env: ENV });
+    const b = await send(handle, { id: 3, type: 'answer', q: 'c', inputs: INPUTS, env: ENV });
     expect(b[b.length - 1].result.basis.today).toBe('2026-09-30');
   });
-  it('bad inputs come back as a result with status "invalid", not as an error', () => {
-    const out = send(createHandler(), { id: 4, type: 'answer', q: 'c', inputs: { you: { pot: -5 } }, env: ENV });
+  it('bad inputs come back as a result with status "invalid", not as an error', async () => {
+    const out = await send(createHandler(), { id: 4, type: 'answer', q: 'c', inputs: { you: { pot: -5 } }, env: ENV });
     expect(out[out.length - 1].result.status).toBe('invalid');
   });
-  it('an unknown question, an unknown message and a function that throws → { id, error }', () => {
+  it('an unknown question, an unknown message and a function that throws → { id, error }', async () => {
     const handle = createHandler({ c: { answer: () => { throw new Error('boom'); } } });
-    expect(send(handle, { id: 5, type: 'answer', q: 'z', inputs: {}, env: ENV })).toEqual([{ id: 5, error: expect.any(String) }]);
-    expect(send(handle, { id: 6, type: 'dance' })).toEqual([{ id: 6, error: expect.any(String) }]);
-    expect(send(handle, { id: 7, type: 'answer', q: 'c', inputs: {}, env: ENV })).toEqual([{ id: 7, error: 'boom' }]);
-    expect(() => send(handle, null)).not.toThrow();
+    expect(await send(handle, { id: 5, type: 'answer', q: 'z', inputs: {}, env: ENV })).toEqual([{ id: 5, error: expect.any(String) }]);
+    expect(await send(handle, { id: 6, type: 'dance' })).toEqual([{ id: 6, error: expect.any(String) }]);
+    expect(await send(handle, { id: 7, type: 'answer', q: 'c', inputs: {}, env: ENV })).toEqual([{ id: 7, error: 'boom' }]);
+    expect(() => handle(null, () => {})).not.toThrow();
   });
-  it('progress is thinned: a thousand futures do not mean a thousand messages', () => {
+  it('progress is thinned: a thousand futures do not mean a thousand messages', async () => {
     const handle = createHandler({ c: { answer: (inputs, env) => { for (let i = 1; i <= env.futures; i++) env.onProgress(i, env.futures); return { status: 'ok' }; } } });
-    const out = send(handle, { id: 8, type: 'answer', q: 'c', inputs: {}, env: { ...ENV, futures: 1000 } });
+    const out = await send(handle, { id: 8, type: 'answer', q: 'c', inputs: {}, env: { ...ENV, futures: 1000 } });
     const progress = out.filter((m) => m.progress);
     expect(progress.length).toBeLessThanOrEqual(25);
     expect(progress[progress.length - 1].progress).toEqual({ done: 1000, total: 1000 });
     expect(out[out.length - 1]).toEqual({ id: 8, result: { status: 'ok' } });
   });
-  it('functions never cross: the env the answer sees has the handler\'s own onProgress only', () => {
+  it('functions never cross: the env the answer sees has the handler\'s own onProgress only', async () => {
     let seen = null;
     const handle = createHandler({ c: { answer: (inputs, env) => { seen = env; return { status: 'ok', f: () => 1 }; } } });
-    const out = send(handle, { id: 9, type: 'answer', q: 'c', inputs: {}, env: ENV });
+    const out = await send(handle, { id: 9, type: 'answer', q: 'c', inputs: {}, env: ENV });
     expect(typeof seen.onProgress).toBe('function');
     expect(out[out.length - 1].result).toEqual({ status: 'ok' });      // cloneSafe dropped the function
   });

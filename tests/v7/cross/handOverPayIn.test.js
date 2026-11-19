@@ -11,7 +11,7 @@ import { fresh, run, set, answered } from '../shell/_open.js';
 import { reduce } from '../../../src/v7/state/reduce.js';
 import { A as ACT } from '../../../src/v7/state/actions.js';
 import { parsedDraft } from '../../../src/v7/state/select.js';
-import { answerC } from '../../../src/answers/c/answer.js';
+import { answerC } from '../c/_c.js';
 import { draw } from '../render/checkScreen.js';
 import { A } from '../../../src/v7/copy/a.js';
 import { B } from '../../../src/v7/copy/b.js';

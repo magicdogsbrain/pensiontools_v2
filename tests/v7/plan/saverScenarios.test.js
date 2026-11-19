@@ -36,7 +36,7 @@ import { A } from '../../../src/v7/state/actions.js';
 import { shownPlanName } from '../../../src/services/PlanName.js';
 import { fresh, run, set, answered } from '../shell/_open.js';
 import { parsedDraft } from '../../../src/v7/state/select.js';
-import { answerC } from '../../../src/answers/c/answer.js';
+import { answerC } from '../c/_c.js';
 import { boxesOf as spendBoxes, spendPatch } from '../../../src/answers/plan/spend.js';
 import { WINDOW_SUFFIX } from '../../../src/v7/effects/planWrite.js';
 import { SAVING as W } from '../../../src/v7/copy/saving.js';

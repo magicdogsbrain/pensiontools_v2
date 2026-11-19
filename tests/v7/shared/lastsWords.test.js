@@ -6,7 +6,7 @@
 import { describe, it, expect } from 'vitest';
 import { answerA } from '../../../src/answers/a/answer.js';
 import { answerB } from '../../../src/answers/b/answer.js';
-import { answerC } from '../../../src/answers/c/answer.js';
+import { answerC } from '../c/_c.js';
 import { answerD } from '../d/_d.js';
 import { shortfallOf, floorAtYear } from '../../../src/answers/shared/shortfall.js';
 import { runToAgeOf } from '../../../src/answers/shared/weigh.js';
@@ -37,13 +37,14 @@ describe('the runs go on to the later of the plan-to age and the weighting age; 
     expect(runToAgeOf(85, people, 0, { ...ENV, weightToAge: 101 })).toBe(101);
   });
 
-  it('C: a chosen 85 gives the same weighted figures as none (a shorter plan-to age never shortens the weighted sum); the label is 85', () => {
+  // (7.12.0: C from now is the kept plan's run, and a plan kept to 85 keeps its floors and glidepath over its own 19 years,
+  // the lead's ruling 2, so its amounts are that plan's own, not the plan to 99's: careful £2,070 against £2,090. The
+  // weighted sum still runs on to the same weighting age: a shorter plan-to age never shortens it.)
+  it('C: a chosen 85 weighs to the same age as none (a shorter plan-to age never shortens the weighted sum); the label is 85', () => {
     const none = answerC(ALEX_C, ENV);
     const short = answerC({ ...ALEX_C, endAge: 85 }, ENV);
-    for (const k of ['careful', 'balanced', 'bold']) {
-      expect(short.levels[k].monthly, k).toBe(none.levels[k].monthly);
-      expect(short.levels[k].weighted, k).toBe(none.levels[k].weighted);
-    }
+    expect(short.chance.weightToAge).toBe(none.chance.weightToAge);
+    expect([short.levels.careful.monthly, none.levels.careful.monthly]).toEqual([2070, 2090]);
     expect(short.basis.endAge).toBe(85);
     expect(short.chance.planToAge).toBe(85);
     expect(short.chance.horizonRule).toBe('chosen');

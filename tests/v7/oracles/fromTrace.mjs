@@ -201,6 +201,9 @@ export function checkTrace(answer) {
   if (!answer.trace) return ['no trace'];
   const n = answer.basis.futures;
   const tenth = Math.floor(n / 10);
+  // C on the plan path (one person from now, 7.12.0) traces every future's most and run-out months: the months of a future
+  // are the kept plan's own run ("Does it last?"), which its own tests hold; the band is read again from the futures list
+  if (answer.trace.planPath) return futuresChecks(answer, n, tenth, false);
   // C on the lives (a start at an age: step 4 brief section 10, J8) traces the saving months and every future's most and
   // run-out months, not the drawing months (the fast path's run keeps no record of them): the saving months are worked
   // out again here, and the band from the futures list below.

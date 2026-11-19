@@ -12,7 +12,9 @@ import { checkTrace, recompute } from '../oracles/fromTrace.mjs';
 
 const cases = JSON.parse(readFileSync(resolve(process.cwd(), 'tests/v7/c/cases.pairs.json'), 'utf8'));
 const fixtures = ['F1-forum-guest', 'F2-couple', 'F3-retired'].map((f) => JSON.parse(readFileSync(resolve(process.cwd(), `tests/v7/fixtures/c/${f}.json`), 'utf8')));
-const ENV = { ...TEST_ENV, trace: true };
+// (the household run's month rows: one person answers on the plan path, whose trace is its futures; a couple still takes the
+// household run, asked for here by name, env.householdRoute)
+const ENV = { ...TEST_ENV, trace: true, householdRoute: true };
 
 describe('the trace agrees with the headline', () => {
   const all = [

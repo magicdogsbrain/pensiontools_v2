@@ -13,7 +13,7 @@
 import { describe, it, expect } from 'vitest';
 import { answerA } from '../../../src/answers/a/answer.js';
 import { answerB } from '../../../src/answers/b/answer.js';
-import { answerC } from '../../../src/answers/c/answer.js';
+import { answerC } from '../c/_c.js';
 import { answerD } from '../d/_d.js';
 import { LEVELS, RULES } from '../../../src/answers/shared/rules.js';
 import { boldParts } from '../../../src/answers/shared/lastsWords.js';

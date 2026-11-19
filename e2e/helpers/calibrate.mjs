@@ -8,7 +8,11 @@
  * of three — and scales the multiplier by how much slower this machine is: SLOWDOWN = 4 × reference ÷ measured,
  * never above 4 (a faster machine is not let off) and never below 1 (a wait is never shrunk).
  */
-import { answerC } from '../../src/answers/c/answer.js';
+import { answerC as answerOnEnv } from '../../src/answers/c/answer.js';
+import * as planPath from '../../src/answers/keep/planPath.js';
+
+// (7.12.0: one person's C from now runs on the plan keeping it writes, handed in as the worker hands it)
+const answerC = (inputs, env) => answerOnEnv(inputs, { ...env, planPath });
 
 /** Best of three on the reference machine (MacBook, Node 24, 1 Oct 2026). Re-measure with `node e2e/helpers/calibrate.mjs`. */
 export const REFERENCE_MS = 205;

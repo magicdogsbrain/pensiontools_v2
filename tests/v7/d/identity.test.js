@@ -15,9 +15,9 @@
  * Every household is made up (Alex and Sam, round figures). At 40 futures and, for the worked example, 400.
  *
  * 7.12.0 (one answer for the same household, step P): one person's D runs on the plan keeping it would write
- * (answers/keep/planPath.js); C and A do not yet. So for ONE PERSON I-D1 to I-D4 do not hold until C from now and A's
- * stop-now row are on the plan path too: those checks are `it.fails` (they turn red the day C and A move, and become `it`
- * again). A couple's D, C and A are all the household run (ruling 9): theirs still hold, as do I-D5 and the household.
+ * (answers/keep/planPath.js), and so does C from now: I-D1 and I-D2 hold for one person again. A does not yet, so for ONE
+ * PERSON I-D3 and I-D4 do not hold until A's stop-now row is on the plan path too: those checks are `it.fails` (they turn
+ * red the day A moves, and become `it` again). A couple's D, C and A are all the household run (ruling 9): theirs still hold, as do I-D5 and the household.
  */
 import { describe, it, expect } from 'vitest';
 import { answerD, TEST_ENV, D1, D2, D3, D7 } from './_d.js';
@@ -83,9 +83,9 @@ function isCFromNow(name, d) {
 
 describe('I-D1, I-D2 — D is question C from now', () => {
   it.each([['D2 (a couple, both stopped)', D2]])('%s', isCFromNow);
-  // one person: D is on the plan path, C not yet (step P)
-  it.fails.each([['D1 (the worked example)', D1], ['D3 (an invested ISA larger than the pension)', D3]])('%s (until C is on the plan path)', isCFromNow);
-  it.fails('the worked example at 400 futures: the same, and the design\'s shape of figures (careful ≈ £2,000, a bad case in the 90s)', () => {
+  // one person: D and C from now are both on the plan path (step P)
+  it.each([['D1 (the worked example)', D1], ['D3 (an invested ISA larger than the pension)', D3]])('%s', isCFromNow);
+  it('the worked example at 400 futures: the same, and the design\'s shape of figures (careful ≈ £2,000, a bad case in the 90s)', () => {
     const env = { ...ENV, futures: 400 };
     const D = answerD(D1, env);
     const C = answerC(asC(D1, 2100, D.inputs.endAge), env);

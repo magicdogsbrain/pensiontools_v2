@@ -14,7 +14,7 @@ import { join } from 'node:path';
 import { draw } from './checkScreen.js';
 import { answerA } from '../../../src/answers/a/answer.js';
 import { answerB } from '../../../src/answers/b/answer.js';
-import { answerC } from '../../../src/answers/c/answer.js';
+import { answerC } from '../c/_c.js';
 import { answerD } from '../d/_d.js';
 import { CHANCE_MORE_OPEN } from '../../../src/v7/components/Lasts.jsx';
 

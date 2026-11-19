@@ -148,7 +148,9 @@ describe.skipIf(!ENGINE_READY)('A — closed forms: a flat future, 0% on everyth
 
   it('AF9 stopping today is question C: the same band, the same bad case, the same phases (40 real futures)', () => {
     const env = { ...TEST_ENV, futures: 40 };
-    const c = answerC({ you: { pot: 250000, age: 60 } }, env);
+    // (7.12.0: one person's C from now answers on the plan path; A still runs the household run, so A's stop-now row is C on
+    // that run, asked for by name — env.householdRoute — until A goes on the plan path too: step P's remaining list)
+    const c = answerC({ you: { pot: 250000, age: 60 } }, { ...env, householdRoute: true });
     const inputs = { you: { pot: 250000, age: 60 }, stop: { age: 60 }, spend: { amount: c.levels.balanced.monthly } };
     const a = ok(answerA(inputs, { ...env, ages: [60] }), inputs, { ...env, ages: [60] });
     expect(a.shown.yearsSaving).toBe(0);

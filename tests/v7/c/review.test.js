@@ -345,7 +345,7 @@ describe('8 a final-salary pension rises with prices up to 5% a year', () => {
   });
 
   it('the month-by-month rows carry the capped rise, and the trace check allows for what it takes off', () => {
-    const a = ok(answerC(inputs, { ...ENV, trace: true }), inputs);
+    const a = ok(answerC(inputs, { ...ENV, trace: true, householdRoute: true }), inputs);   // (the household run's month rows)
     const rows = a.trace.atCareful.rows.filter((r) => r.finalSalary > 0);
     expect(rows.length).toBeGreaterThan(0);
     // never above the pension risen with prices in full; below it once prices have risen faster than 5% a year

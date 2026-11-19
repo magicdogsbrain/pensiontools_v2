@@ -29,7 +29,8 @@ describe('the fast path is the reference, byte for byte — the whole set', () =
       const env = { today: state.env.today, futures: r.basis.futures, seed: r.basis.seed, trace: false };
       const fast = bothWays(r.inputs, env);
       // The pinned state was made by the path of the day it was built; a state made by the reference pins the reference.
-      if (r.basis.engineVersion === fast.basis.engineVersion && !state.answers.c.patched) expect(asText(fast), name).toBe(asText(r));
+      // (7.12.0: the published answer of one person from now is the plan path's: the pin is compared with the answer as asked)
+      if (r.basis.engineVersion === fast.basis.engineVersion && !state.answers.c.patched) expect(asText(answerC(r.inputs, env)), name).toBe(asText(r));
     }
   }, LONG);
 
@@ -47,9 +48,9 @@ describe('the fast path is the reference, byte for byte — the whole set', () =
   it('12 random households at 100 futures, then the same 12 at 1,000 with the amounts remembered from the 100', () => {
     for (const inputs of fc.sample(arbitraryInputs(SCHEMA_C, TEST_ENV), { seed: SEED + 1, numRuns: 12 })) {
       bothWays(inputs, { ...TEST_ENV, futures: 100 });
-      const reference = answerC(inputs, { ...TEST_ENV, futures: 1000, solver: 'reference' });
-      answerC(inputs, { ...TEST_ENV, futures: 100 });
-      expect(asText(answerC(inputs, { ...TEST_ENV, futures: 1000 }))).toBe(asText(reference));
+      const reference = answerC(inputs, { ...TEST_ENV, futures: 1000, solver: 'reference', householdRoute: true });
+      answerC(inputs, { ...TEST_ENV, futures: 100, householdRoute: true });
+      expect(asText(answerC(inputs, { ...TEST_ENV, futures: 1000, householdRoute: true }))).toBe(asText(reference));
     }
   }, LONG);
 });

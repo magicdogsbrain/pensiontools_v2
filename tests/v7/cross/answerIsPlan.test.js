@@ -9,7 +9,7 @@
  *   - the plan test: answers/plan/lastsRun.js lastsOf ("Does it last?" is this run, runLasts reads it), at the answer's
  *     own count of futures, the real histories left out (no figure here reads them).
  *
- * D is on the plan path for one person (answers/keep/planPath.js): its block holds to the last bit. What does not hold yet
+ * D and C from now are on the plan path for one person (answers/keep/planPath.js): their blocks hold to the last bit. What does not hold yet
  * is `it.fails`, each with the gap measured at 40 futures on 30 September 2026. When an answer is put on the plan path the `it.fails` beside it starts to fail and becomes
  * an `it`: the gap cannot close silently, nor open again.
  *
@@ -19,9 +19,10 @@
  *      and the plan says no (571 of 1,000).
  *   D3 (62, £120,000 pension, £200,000 invested ISA, £2,000 a month): 20 of 40 both; weighted 0.728 vs 0.705; run-out 83 vs 87.
  *   D9 (88, £90,000, £1,500 a month): 36 of 40 vs 34 of 40; weighted 0.981 vs 0.964; run-out 100 vs 100.
- *   C (Alex, 58, £250,000, from now), kept at each level: the answer passes at its level, the kept plan says "close" at
+ *   C (Alex, 58, £250,000, from now), kept at each level: the answer passed at its level, the kept plan said "close" at
  *      every level. Careful £1,320 a month: 36 of 40 both, weighted 0.957 vs 0.940; balanced £1,370: 32 of 40 both,
- *      0.902 vs 0.879; bold £1,500: 20 of 40 both, 0.713 vs 0.684. The counts agree; the weights do not.
+ *      0.902 vs 0.879; bold £1,500: 20 of 40 both, 0.713 vs 0.684. The counts agreed; the weights did not. Closed by the
+ *      plan path for one person from now (its block holds to the last bit).
  *   A (Sam, 45, £60,000, £800 a month going in, £10,000 savings, £2,000 a month from 60): no in both; 6 of 40 vs 2 of 40,
  *      weighted 0.318 vs 0.242 (the plan draws every future from one middling pot at 60, the answer from each life's own).
  *   B (Sam, the same): kept paying in what would be enough, the kept plan passes at the level (37 of 40); kept paying in as
@@ -180,22 +181,21 @@ describe('C from now: the plan path keeps what the answer keeps', () => {
   }
 });
 
-describe('C: the plan kept at a level passes at that level (not yet: the weights differ)', () => {
+describe('C from now: the answer is the plan kept from it (one person, the plan path)', () => {
+  // Alex, 58, £250,000, from now: each level's amount, kept, is the kept plan's own reading to the last bit — the count of
+  // futures that last to the plan-to age, the weighted chance (so the verdict "yes" at the level), the middle and bad-case
+  // run-out ages, what is typically left and in the best 1 in 10; £10 a month more is not "yes" at the level.
   for (const level of ['careful', 'balanced', 'bold']) {
-    // (7.12.0: bold no longer holds: the kept plan's first year, read on 30 September, pays seven months, the answer's
-    // household run twelve: 22 of 40 last against 20. Careful and balanced still agree on the count. C on the plan path
-    // (step P pass 4's saved patch) makes every level equal to the last bit.)
-    (level === 'bold' ? it.fails : it)(`${level}: the same count of futures that last to the plan-to age (holds today)`, () => {
+    it(`${level}: the same count, weighted chance, verdict, run-out ages, left at the end and plan-to age`, () => {
       const c = answerC({ ...ALEX, confidence: level }, ENV);
+      const m = c.levels[level].monthly;
+      const at = answerC({ ...ALEX, confidence: level, take: m }, ENV);
       const plan = planReading(keptPlansOf('c', c, ENV).yours);
-      expect(plan.planToAge).toBe(c.chance.planToAge);
-      expect(plan.lasted).toBe(N - c.chance.fails);
-    });
-    it.fails(`${level}: the kept plan says yes at the level, with the answer's weighted chance`, () => {
-      const c = answerC({ ...ALEX, confidence: level }, ENV);
-      const plan = planReading(keptPlansOf('c', c, ENV).yours);
+      expect({ lasted: N - c.chance.fails, weighted: c.chance.weighted, floorAge: c.floorAge, worstAge: at.take.runOutAge, left: c.left.typical, best: c.left.best,
+        planToAge: c.chance.planToAge, verdict: at.take.verdict }).toEqual(plan);
       expect(plan.verdict).toBe('yes');
-      expect(plan.weighted).toBe(c.chance.weighted);
+      const more = planReading(keptPlansOf('c', answerC({ ...ALEX, confidence: level, take: m + 10 }, ENV), ENV, { take: 'tried' }).yours);
+      expect(more.verdict).not.toBe('yes');
     });
   }
 });

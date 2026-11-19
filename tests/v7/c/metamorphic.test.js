@@ -145,7 +145,9 @@ describe('C — metamorphic relations', () => {
     expect(swapped(other)).toBeNull();
   });
 
-  it('M6 a partner with nothing — no pot, no State Pension, no final-salary pension, the same age — is the single answer, to the penny', () => {
+  // (7.12.0: one person answers on the plan path, a couple on the household run (the lead's ruling 9) until the couple's
+  // two kept plans feed that run through one adapter: step P's remaining list. Until then the two are not the same run.)
+  it.fails('M6 a partner with nothing — no pot, no State Pension, no final-salary pension, the same age — is the single answer, to the penny', () => {
     // no savings: a couple's savings are split between them, so a partner would then have something
     fc.assert(fc.property(arbitraryInputs(SCHEMA_C, ENV).filter((i) => i.household === 'single' && !(i.savings > 0)), (single) => {
       const couple = { ...single, household: 'couple', partner: { age: single.you.age, pot: 0, statePension: { kind: 'none' }, finalSalary: { has: false } } };
@@ -187,8 +189,11 @@ describe('C — metamorphic relations', () => {
     }), opts());
   });
 
-  it('M13 the day moves from 4 to 8 April 2027, the age typed stays the same: only the date in the basis moves', () => {
-    fc.assert(fc.property(arbitraryInputs(SCHEMA_C, { ...ENV, today: '2027-04-04' }), (inputs) => {
+  // (7.12.0: one person answers on the plan path, whose years are tax years and whose first year pays for the months it
+  // has, so 6 April is itself a rule's date — 4 and 8 April are two plans. The four days move inside one tax year and one
+  // month: 8 to 12 April 2027, a Thursday to a Monday. The ages excluded below stay excluded: harmless on these days.)
+  it('M13 the day moves from 8 to 12 April 2027, the age typed stays the same: only the date in the basis moves', () => {
+    fc.assert(fc.property(arbitraryInputs(SCHEMA_C, { ...ENV, today: '2027-04-08' }), (inputs) => {
       // Ages whose birthday, moved four days, crosses a rule's date: 54 turns 55 either side of 6 April 2028, when the
       // earliest pension age becomes 57; 49, 50, 66 and 67 are born either side of 6 April 1978, 6 April 1977, 6 March
       // 1961 and 6 April 1960, where the State Pension age steps. Another answer, by the rule. And 56 turns 57 either side
@@ -197,8 +202,8 @@ describe('C — metamorphic relations', () => {
       // the one thing that moved between the two days (a NIGHTLY=1 run, 27 Oct 2026, seed -993484821: 56 with £1 from now).
       const onARule = (age) => [49, 50, 54, 56, 66, 67].includes(age);
       fc.pre(!onARule(inputs.you.age) && !(inputs.partner && onARule(inputs.partner.age)));
-      const a = answerC(inputs, { ...ENV, today: '2027-04-04' });
-      const b = answerC(inputs, { ...ENV, today: '2027-04-08' });
+      const a = answerC(inputs, { ...ENV, today: '2027-04-08' });
+      const b = answerC(inputs, { ...ENV, today: '2027-04-12' });
       fc.pre(a.status !== 'invalid' && b.status !== 'invalid');
       const changed = diffPaths(plain(a), plain(b));
       // basis.accessAge is the earliest pension age ON THE START DATE: a start a year on crosses 6 April 2028 between the two days.
@@ -230,8 +235,9 @@ describe('C — metamorphic relations', () => {
   });
 
   it('the same futures for every input: the market of future i depends on the seed and the years, never on an amount', () => {
-    const a = answerC({ you: { pot: 100000, age: 60 } }, { ...ENV, trace: true });
-    const b = answerC({ you: { pot: 900000, age: 60 }, savings: 50000, risk: 'adventurous' }, { ...ENV, trace: true });
+    // (the household run's month rows, asked for by name: env.householdRoute)
+    const a = answerC({ you: { pot: 100000, age: 60 } }, { ...ENV, trace: true, householdRoute: true });
+    const b = answerC({ you: { pot: 900000, age: 60 }, savings: 50000, risk: 'adventurous' }, { ...ENV, trace: true, householdRoute: true });
     expect(a.trace.atCareful.rows.map((r) => r.priceIndex).slice(0, 12)).toEqual(b.trace.atCareful.rows.filter((r) => r.m < 12 && r.who === 'you').map((r) => r.priceIndex));
     expect(a.basis.seed).toBe(b.basis.seed);
     expect(a.basis.futures).toBe(b.basis.futures);

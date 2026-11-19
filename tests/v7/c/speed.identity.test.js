@@ -69,7 +69,7 @@ describe('the fast path is the reference, byte for byte', () => {
 
   it('the forum guest at 300 futures, and again with the amounts remembered from a first pass of 100', () => {
     const F1 = fixtures.find((f) => f.id === 'F1');
-    const env = { today: TEST_ENV.today, futures: 300, seed: 0, trace: false };
+    const env = { today: TEST_ENV.today, futures: 300, seed: 0, trace: false, householdRoute: true };   // (bothWays: the household run)
     const reference = answerC(F1.inputs, { ...env, solver: 'reference' });
     answerC(F1.inputs, { ...env, futures: 100 });            // the first figure: leaves its amounts as the next search's estimate
     const fast = answerC(F1.inputs, env);

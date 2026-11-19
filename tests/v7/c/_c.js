@@ -6,7 +6,15 @@ import { h, render } from 'preact';
 import { App } from '../../../src/v7/App.jsx';
 import { SCHEMA_C } from '../../../src/answers/c/schema.js';
 
-export { answerC } from '../../../src/answers/c/answer.js';
+import { answerC as answerOnEnv } from '../../../src/answers/c/answer.js';
+import * as planPath from '../../../src/answers/keep/planPath.js';
+
+/**
+ * C as every caller asks it (src/answers/index.js answerFor): one person from now runs on the kept plan, handed in as
+ * env.planPath — here the module itself, as the worker hands it after its lazy import.
+ */
+export const withPlanPath = (env) => (env && env.planPath ? env : { ...(env || {}), planPath });
+export const answerC = (inputs, env) => answerOnEnv(inputs, withPlanPath(env));
 // whether C takes "now" as the day a pension opens (someone still paying in, nothing open): M5's swap reads it
 export { movedToAccess } from '../../../src/answers/c/onLives.js';
 export { SCHEMA_C };

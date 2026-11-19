@@ -25,6 +25,8 @@ import { enginePlan, configsAt, breakdownAt, yearlyPlan, BANDS, ONE_NAME_SHARE }
 import { futuresList, historyEnd, historyStartYear, priceIndexByYear, cappedIndexByYear } from '../shared/futures.js';
 import { createBandSolver, bandIndexes, STEP, levelsFromSolver, leftAt } from '../shared/band.js';
 import { createFastRunner } from '../shared/fastEngine.js';
+import { livesList } from '../shared/lives.js';
+import { verdictAt, bandAt, leftAtStop } from '../shared/stopAt.js';
 import { weigherOf, runToAgeOfInputs } from '../shared/weigh.js';
 import { lifeFactsOf } from '../shared/lastsWords.js';
 import { shortfallOf } from '../shared/shortfall.js';
@@ -436,6 +438,51 @@ function fromNowOf(checked, env) {
 }
 
 /**
+ * ONE PERSON FROM NOW IS ON THE PLAN PATH (7.12.0, one answer for the same household; answers/keep/planPath.js, handed in
+ * as env.planPath — answers/index.js answerFor): with something to draw on, from today's age, every run is the kept plan's,
+ * so the levels' amounts and chances, the amount being tried, the run-out ages and what is left are the figures "Does it
+ * last?" shows for the plan keeping the answer writes (tests/v7/cross/answerIsPlan.test.js), and C from now is D at the same
+ * spend (tests/v7/d/identity.test.js). The household plan (`plan`) stays the words' source: the phases, the incomes that
+ * come anyway, who can draw before 2028. Not (yet) on it: a couple (the household run, the lead's ruling 9), a spending
+ * shape, a start moved to the day the pension opens, and three test devices (env.mix, env.solver 'reference', and
+ * env.householdRoute: the household run a couple still takes, asked for by name so its fast path, its reference and its
+ * month rows stay proved on one person too).
+ */
+function onPlanPath(ins, now, env) {
+  const couple = ins.household === 'couple' && !!ins.partner;
+  return !couple && now.plan.totalPots > 0 && !now.household.shape && !now.plan.startMoved && !env.mix && env.solver !== 'reference' && !env.householdRoute;
+}
+
+/** The plan path must be handed in for one person from now (answers/index.js answerFor), never left out silently. */
+const planPathProblems = (env) => (env.planPath && typeof env.planPath.planCaseOf === 'function' ? [] : [{ field: 'env.planPath', messageId: 'required' }]);
+
+/** The answer's lives, made once and made again only longer (a shorter run reads the first years of the same lives). */
+function livesOf(n, env) {
+  let L = null;
+  return (T = 0) => {
+    if (!L || L[0].years < T) L = livesList(n, Math.max(1, T), env);
+    return L;
+  };
+}
+
+/** The case on the plan path: the kept plan's runner, weights, plan-to month and the ages its chance is said to. */
+function planCaseC(checked, now, env, { lives = livesOf(env.futures, env), dragPct = 0 } = {}) {
+  const ins = checked.inputs;
+  const pc = env.planPath.planCaseOf('c', ins, env, { lives, dragPct, fromAge: now.plan.startAge });
+  const capped = Boolean(pc.capped) || pc.planToAge < ins.endAge;
+  const chanceAges = { planToAge: pc.planToAge, weightToAge: pc.weigher.weighted ? pc.weigher.weightToAge : pc.planToAge,
+    horizonRule: horizonRuleOf({ defaulted: defaultedFields(ins, env).includes('endAge'), capped }) };
+  // the plan the words read (what comes in each year, the State Pension's start): the household's, to the plan-to age
+  // (cut to the plan-to age when the kept plan is shorter, at most 45 years: its phases end where its chance is counted)
+  const Y = pc.planToAge - now.plan.startAge;
+  const words = Y >= now.plan.years ? { ...now.plan, endAge: pc.planToAge }
+    : { ...now.plan, endAge: pc.planToAge, years: Y, periods: now.plan.periods.filter((per) => per.from < Y).map((per) => ({ ...per, to: Math.min(per.to, Y) })) };
+  // the plan the words read the run from: cut short (the kept plan's 45 years) says so as a cap, "We could test only to …"
+  const runPlan = capped && !pc.runner.plan.runCapped ? { ...pc.runner.plan, runCapped: true, years: Math.min(pc.runner.plan.years, pc.planToAge - pc.runner.plan.startAge) } : pc.runner.plan;
+  return { pc, sp: pc.sp, runner: pc.runner, weigher: pc.weigher, toMonth: pc.toMonth, chanceAges, words, lives, runPlan };
+}
+
+/**
  * "Try the bad years" (7.9.0; the build spec's §2.2) on C's answer: the answer's own case — the plan, the weights, the level,
  * the plan-to age's month and the words' facts (lf) — and `monthsAt({ H, shock, dragPct })`, each future's run-out month
  * (null: it lasted) at H a year take-home, with what is left at the plan-to age by the answer's own reader (band.js leftAt;
@@ -451,8 +498,22 @@ export function stressCaseOf(inputs, env) {
   if (usesLives(checked.inputs, env.today)) return stressCaseOnLives(checked, env, { defaulted: defaultedFields(checked.inputs, env) });
   const now = fromNowOf(checked, env);
   if (now.problems || !(now.plan.totalPots > 0)) return null;
-  const { household, plan, level, weigher, toMonth, lw } = now;
   const n = env.futures;
+  if (onPlanPath(checked.inputs, now, env)) {
+    if (planPathProblems(env).length) return null;
+    const main = planCaseC(checked, now, env);
+    const { weigher, toMonth } = main;
+    const level = now.level;
+    const plan = main.runner.plan;
+    const lf = lifeFactsOf({ chance: main.chanceAges, basis: levelBasis(level, weigher, checked.inputs, plan.endAge), level }, weigher, main.runPlan, checked.inputs);
+    const monthsAt = ({ H, shock = null, dragPct = 0 }) => {
+      const c = shock || dragPct > 0 ? planCaseC(checked, now, env, { lives: shock ? livesOf(n, { ...env, shock: { ...shock, from: 0 } }) : main.lives, dragPct }) : main;
+      const months = verdictAt(c.sp, c.runner, H, { weigher, level, toMonth }).runOutMonths;
+      return { months, left: leftAtStop(c.sp, c.runner, H, months, toMonth), plan: c.words };
+    };
+    return { q: 'c', inputs: checked.inputs, plan, weigher, level, toMonth, lf, n, drawingNow: true, monthsAt };
+  }
+  const { household, plan, level, weigher, toMonth, lw } = now;
   const lf = lifeFactsOf({ chance: lw.chance, basis: lw.basis, level }, weigher, plan, checked.inputs);
   const base = futuresList(n, plan.years, env);
   const monthsAt = ({ H, shock = null, dragPct = 0 }) => {
@@ -465,6 +526,73 @@ export function stressCaseOf(inputs, env) {
     return { months, left, plan: p };
   };
   return { q: 'c', inputs: checked.inputs, plan, weigher, level, toMonth, lf, n, drawingNow: true, monthsAt };
+}
+
+/**
+ * C from now for one person on the plan path (onPlanPath): the band, the amount being tried and the weighted words, every
+ * run the kept plan's. The phases and the incomes that come anyway are the household plan's words (`now.plan`).
+ */
+function answerOnPlanPath(checked, now, env) {
+  const { household, fullStatePensionAYear, plan, level } = now;
+  const ins = checked.inputs;
+  const n = env.futures;
+  const c = planCaseC(checked, now, env);
+  const { sp, runner, weigher, toMonth, pc } = c;
+  const onProgress = typeof env.onProgress === 'function' ? env.onProgress : undefined;
+  const band = bandAt(sp, runner, null, { weigher, levels: LEVEL_IDS, toMonth, onProgress });
+  const lv = band.levels;
+  const levels = Object.fromEntries(LEVEL_IDS.map((id) => [id, { monthly: lv[id].monthly, yearly: lv[id].yearly, weighted: lv[id].chance.weighted, fixedAge: lv[id].chance.fixedAge }]));
+  const shownMonthly = lv[level].monthly;
+  const H = shownMonthly * 12;
+
+  // the amount being tried: the verdict at it on the same runs, as D reads what you spend
+  let take = null;
+  let takeSf = null;
+  if (typeof ins.take === 'number') {
+    const perMonth = ins.take;
+    const v = verdictAt(sp, runner, perMonth * 12, { weigher, level, toMonth });
+    take = { perMonth, lasted: v.lasted, runOutAge: v.runOutAge, covered: v.verdict === 'yes', weighted: v.weighted, verdict: v.verdict, phases: phasesOf(c.words, perMonth * 12) };
+    if (weigher.weighted && perMonth > 0) takeSf = shortfallOf(c.words, v.runOutMonths, perMonth * 12, { toMonth, left: leftAtStop(sp, runner, perMonth * 12, v.runOutMonths, toMonth) });
+  }
+  const startAge = runner.plan.startAge;
+  const result = {
+    status: 'ok', inputs: ins,
+    level, levels,
+    chance: chanceBlock(lv[level].chance, n, c.chanceAges), whose: plan.whose,
+    // the kept plan's: the middle age the money ran out at in the futures that ran out (its floor line), and what is left
+    // at the plan-to age, typically and in the best 1 in 10, at today's prices (its "left at the end")
+    floorAge: pc.floorAgeOf(lv[level].months),
+    left: { age: pc.planToAge, ...(H > 0 ? pc.leftOf(H, lv[level].months) : { typical: 0, best: 0 }) },
+    guaranteed: { monthlyAfterTax: round2(plan.guaranteedAYear / 12) },
+    phases: phasesOf(c.words, H), take, assumed: [], warnings: [], sentences: {},
+    basis: { ...basisOf(plan, env, n, levelBasis(level, weigher, ins, pc.planToAge)), startAge, endAge: pc.planToAge, years: pc.planToAge - startAge },
+    units: UNITS
+  };
+  const typed = payInTyped(ins);
+  if (typed) result.payIn = typed;
+  const facts = factsOf(plan, checked, household, fullStatePensionAYear, env);
+  facts.capped = Boolean(plan.capped) || c.chanceAges.horizonRule === 'capped';
+  if (weigher.weighted) {
+    result.basis.weighted = true;
+    facts.weighing = { lf: lifeFactsOf(result, weigher, c.runPlan, ins),
+      sf: shownMonthly > 0 ? shortfallOf(c.words, lv[level].months, H, { toMonth, left: leftAtStop(sp, runner, H, lv[level].months, toMonth) }) : null, takeSf };
+  }
+  result.sentences = sentencesFor(result, facts);
+  result.assumed = assumedFor(result, facts);
+  result.warnings = warningsFor(result, facts);
+  finishTexts(result);
+
+  if (env.trace) {
+    // the plan path traces every future's most and run-out months (the band read again by the oracle); the months of a
+    // future are the kept plan's own run ("Does it last?"), not the household's
+    const solver = band.solver;
+    result.trace = {
+      planPath: true,
+      futures: sp.lives.map((f, i) => ({ id: i, most: solver.most(i) * STEP, runOutMonth: { careful: band.runOutMonths.careful[i], middling: band.runOutMonths.middling[i], good: band.runOutMonths.good[i], ...(weigher.weighted ? { shown: lv[level].months[i] } : {}) } })),
+      evaluations: solver.evaluations
+    };
+  }
+  return result;
 }
 
 export function answerCReal(inputs, env) {
@@ -485,6 +613,11 @@ export function answerCReal(inputs, env) {
   const { household, fullStatePensionAYear, plan, level, weigher, planToAge, toMonth, lw } = now;
   const n = env.futures;
   if (!(plan.totalPots > 0)) return withoutPots(plan, checked, household, fullStatePensionAYear, env, n, lw);
+  if (onPlanPath(checked.inputs, now, env)) {
+    const pp = planPathProblems(env);
+    if (pp.length) return { status: 'invalid', problems: pp };
+    return JSON.parse(JSON.stringify(answerOnPlanPath(checked, now, env), (key, v) => (typeof v === 'number' ? noNegZero(v) : v)));
+  }
 
   const futures = futuresList(n, plan.years, env);
   const onProgress = typeof env.onProgress === 'function' ? env.onProgress : undefined;

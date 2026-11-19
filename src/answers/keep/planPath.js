@@ -176,7 +176,10 @@ export function planCaseOf(source, ins, env, { lives = null, dragPct = 0, fromAg
   const totalPots = (base.equityStart || 0) + (base.bondStart || 0) + (base.cashStart || 0) + (base.isaBalance || 0);
   const plan = {
     runs: [{ base, index: 0, role: 'pension', offset: 0 }], years, startAge, endAge: planToAgeOf(startAge, planYears),
-    guaranteedAtStartAYear: 0, totalPots, shape: null, apart: null, runCapped: Boolean(w.capped && !reason), people: [{ who: 'you' }]
+    guaranteedAtStartAYear: 0, totalPots, shape: null, apart: null, runCapped: Boolean(w.capped && !reason), people: [{ who: 'you' }],
+    // the search's ceiling (band.js bandRange) stands above the income that comes anyway, before tax, at its highest over the
+    // plan's years: without it a small pot beside a State Pension already paid capped every level at the pot's own share
+    guaranteedCeilingAYear: Math.max(0, ...Array.from({ length: planYears }, (_, y) => (y >= (p0.spStartYear ?? Infinity) ? p0.spAnnual || 0 : 0) + ((p0.otherIncomeByYear && p0.otherIncomeByYear[y]) || 0)))
   };
   const drawFutures = L.map((life1) => ({ id: life1.id, seed: life1.seed, returns: sliceReturns(life1, 0, years) }));
   const drivers = new Array(n).fill(null);

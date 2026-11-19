@@ -13,9 +13,12 @@ export const asText = (answer) => {
 };
 
 /** The reference solver and the fast path on the same inputs and env: the texts must be equal. Returns the fast result. */
+// (7.12.0: one person from now answers on the plan path, whose fast runner is proved run by run against simulate in
+// tests/v7/cross/answerIsPlan.test.js and here (year 0 for its months); the household run, which a couple still takes, is
+// proved here for every household, asked for by name: env.householdRoute)
 export function bothWays(inputs, env) {
-  const reference = answerC(inputs, { ...env, solver: 'reference' });
-  const fast = answerC(inputs, env);
+  const reference = answerC(inputs, { ...env, householdRoute: true, solver: 'reference' });
+  const fast = answerC(inputs, { ...env, householdRoute: true });
   expect(asText(fast)).toBe(asText(reference));
   return fast;
 }

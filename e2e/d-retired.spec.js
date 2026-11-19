@@ -16,6 +16,7 @@ import { expectLevelLines, pickLevel } from './helpers/levels.js';
 import { test, expect, v7, PROD, FIXED_NOW, TODAY, FINAL_ENV, V7_PATH } from './helpers/app.js';
 import { SCHEMA_D } from '../src/answers/d/schema.js';
 import { answerD } from '../src/answers/d/answer.js';
+import * as planPath from '../src/answers/keep/planPath.js';
 import { parseDraft } from '../src/answers/shared/validate.js';
 import { suggestedPlanName } from '../src/answers/shared/planName.js';
 import { checkSeed } from '../src/services/PlanSeed.js';
@@ -37,7 +38,7 @@ const RETIRED_WORDS = /when you retire|until you retire|when you stop work|years
 function engine(typed, env = FINAL_ENV) {
   const parsed = parseDraft(SCHEMA_D, typed, { today: TODAY });
   if (!parsed.ok) throw new Error('the typed figures do not parse: ' + JSON.stringify(parsed.errors));
-  return answerD(parsed.inputs, { ...env, trace: false });
+  return answerD(parsed.inputs, { ...env, trace: false, planPath });   // (7.12.0: one person's D runs on the plan path)
 }
 /** Every address the page went to, and every request it made. */
 function addresses(page) {

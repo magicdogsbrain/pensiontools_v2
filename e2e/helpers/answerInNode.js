@@ -51,11 +51,12 @@ export const MARKET_FROM_SOURCE = marketFrom.toString();
 
 const CHILD = `
 import { readFileSync } from 'node:fs';
-const { ANSWERS } = await import(${JSON.stringify(src('src/answers/index.js'))});
+const { ANSWERS, answerFor } = await import(${JSON.stringify(src('src/answers/index.js'))});
 const { parseDraft } = await import(${JSON.stringify(src('src/answers/shared/validate.js'))});
 const marketFrom = ${MARKET_FROM_SOURCE};
 const cases = JSON.parse(readFileSync(0, 'utf8'));
-const out = cases.map((c) => {
+// (7.12.0: answerFor hands a question on the plan path its plan path, as the worker does)
+const out = await Promise.all(cases.map(async (c) => {
   const q = c.q || 'c';
   const env = marketFrom(c.env);
   let inputs = c.inputs;
@@ -64,8 +65,8 @@ const out = cases.map((c) => {
     if (!parsed.ok) return { status: 'invalid', problems: Object.entries(parsed.errors).map(([field, messageId]) => ({ field, messageId })) };
     inputs = parsed.inputs;
   }
-  return ANSWERS[q].answer(inputs, env);
-});
+  return answerFor(q, inputs, env);
+}));
 process.stdout.write(JSON.stringify(out));
 `;
 

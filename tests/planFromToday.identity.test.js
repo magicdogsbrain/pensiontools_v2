@@ -86,6 +86,10 @@ const ADDED_AFTER_THE_PINS = Object.freeze({
  * the income cone's late years from £0 to it. The Node 20 pins of those eight are to be retaken on Node 20 (CI) the same way.
  * Every other output of theirs, and every output of every other fixture, kept its pin (the guaranteed line's new words are
  * put back by guaranteedAsPinned below, never a figure).
+ * Year 0 for the months it has (7.12.0) retook six on Node 24, their full gilt ladder only: 05 (three clocks) and 10 (three),
+ * savers whose first tax year starts in the month they stop. The ladder buys that year for its months: 05's first year
+ * £36,000 → £6,000 (2 months), its cash £72,360 → £42,360; 10's £18,000 → £4,500 (3 months), cash £36,271 → £22,771.
+ * The plan's new `year0Months` is read as the pins had it (asPinned). Node 20's six are to be retaken on Node 20.
  */
 const NODE = String(process.versions.node).split('.')[0];
 // One pins file per Node major, each taken on the code before the change with that Node: simulated money can differ in
@@ -180,6 +184,9 @@ function asPinned(outputs, stress, now) {
   const raw = stress.strategyId === 'pots-and-valves' ? undefined : (stress.strategyParams || {}).bridgeCash;
   const plan = (q) => {
     if (!isObj(q)) return q;
+    // 7.12.0: `year0Months` (a first year that starts in the month work stops) is where the plan stands, added after the
+    // pins; the figures it moves (the full ladder's first year) are retaken, the field itself is read as the pins had it
+    if ('year0Months' in q) { const { year0Months, ...rest } = q; q = rest; }
     let o = spent ? placed(q, 'stride', 'runUpSpent', true, true) : q;
     if (raw !== undefined && isObj(o.params)) o = { ...o, params: placed(o.params, 'cashYears', 'bridgeCash', raw) };
     return o;

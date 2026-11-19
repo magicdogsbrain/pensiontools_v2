@@ -9,12 +9,12 @@
   "01-fresh-default": {
    "corpus": {
     "simulationConfigFromSettings": {
-     "sf6": "bc36d349ba932eb8",
-     "exact": "bc36d349ba932eb8"
+     "sf6": "0817a6ed421c4ba6",
+     "exact": "0817a6ed421c4ba6"
     },
     "planFromSettings": {
-     "sf6": "58c2a7bf72c104be",
-     "exact": "58c2a7bf72c104be"
+     "sf6": "5c2a03c1fcf67842",
+     "exact": "5c2a03c1fcf67842"
     },
     "deriveCompareConfigs": {
      "sf6": "75a4fd9c3bf1e7b0",
@@ -25,26 +25,26 @@
      "exact": "ad8a065fbddcf83a"
     },
     "buildPlanDocument": {
-     "sf6": "6875df1c91cc0130",
-     "exact": "c0cca836ad0f11a5"
+     "sf6": "7013bbdbdd06344e",
+     "exact": "1667799afd7d20d9"
     },
     "planOfRecordFor": {
-     "sf6": "2582a6b4762ff25b",
-     "exact": "2582a6b4762ff25b"
+     "sf6": "bda74aded975744f",
+     "exact": "bda74aded975744f"
     },
     "householdDrawSplit": {
-     "sf6": "c1f9d9e0ddcd5acc",
-     "exact": "c1f9d9e0ddcd5acc"
+     "sf6": "56f96ddfe169a276",
+     "exact": "e884a132602d78f0"
     }
    },
    "lastBeforeApril": {
     "simulationConfigFromSettings": {
-     "sf6": "bc36d349ba932eb8",
-     "exact": "bc36d349ba932eb8"
+     "sf6": "0817a6ed421c4ba6",
+     "exact": "0817a6ed421c4ba6"
     },
     "planFromSettings": {
-     "sf6": "659b451ef69fdd0b",
-     "exact": "659b451ef69fdd0b"
+     "sf6": "99ea40f39417a2dd",
+     "exact": "99ea40f39417a2dd"
     },
     "deriveCompareConfigs": {
      "sf6": "75a4fd9c3bf1e7b0",
@@ -55,26 +55,26 @@
      "exact": "ad8a065fbddcf83a"
     },
     "buildPlanDocument": {
-     "sf6": "052bdfb6b2093916",
-     "exact": "e7a1fdc76486cb2a"
+     "sf6": "29aab4262d08d700",
+     "exact": "f885e2d66cf0007b"
     },
     "planOfRecordFor": {
-     "sf6": "00a1d4256c18b453",
-     "exact": "00a1d4256c18b453"
+     "sf6": "9dafdbc74b90e4d8",
+     "exact": "9dafdbc74b90e4d8"
     },
     "householdDrawSplit": {
-     "sf6": "c5657f15d8e8a2e8",
-     "exact": "c5657f15d8e8a2e8"
+     "sf6": "85be3d5a9ab31211",
+     "exact": "84b6a648c77970e2"
     }
    },
    "afterApril": {
     "simulationConfigFromSettings": {
-     "sf6": "bc36d349ba932eb8",
-     "exact": "bc36d349ba932eb8"
+     "sf6": "0817a6ed421c4ba6",
+     "exact": "0817a6ed421c4ba6"
     },
     "planFromSettings": {
-     "sf6": "5120e6812ef315ef",
-     "exact": "5120e6812ef315ef"
+     "sf6": "c93628d6eb90c382",
+     "exact": "c93628d6eb90c382"
     },
     "deriveCompareConfigs": {
      "sf6": "75a4fd9c3bf1e7b0",
@@ -85,16 +85,16 @@
      "exact": "5ba18c08e8a37073"
     },
     "buildPlanDocument": {
-     "sf6": "bcaeeba9e0453480",
-     "exact": "d99363f0f4229b51"
+     "sf6": "2be7a507d699d1a1",
+     "exact": "a343ed9e33b645ca"
     },
     "planOfRecordFor": {
-     "sf6": "716a98d091ced559",
-     "exact": "716a98d091ced559"
+     "sf6": "2df091ee651145f9",
+     "exact": "2df091ee651145f9"
     },
     "householdDrawSplit": {
-     "sf6": "433ebdd3ebcf4da8",
-     "exact": "433ebdd3ebcf4da8"
+     "sf6": "77796dc72b0938c1",
+     "exact": "c02bbf17cba24776"
     }
    }
   },
@@ -117,8 +117,8 @@
      "exact": "e1c0bcf96af188a8"
     },
     "buildPlanDocument": {
-     "sf6": "3364f9f970c9c683",
-     "exact": "807828a4be89d011"
+     "sf6": "69dbba289396a1b8",
+     "exact": "4d166f6b3a4c9fb7"
     },
     "planOfRecordFor": {
      "sf6": "cc04a48542b3defb",
@@ -147,8 +147,8 @@
      "exact": "e1c0bcf96af188a8"
     },
     "buildPlanDocument": {
-     "sf6": "59023e013d1b6e27",
-     "exact": "9c349e109cd2417b"
+     "sf6": "aff5a810bba0df41",
+     "exact": "628c0b522ca3f534"
     },
     "planOfRecordFor": {
      "sf6": "4680091137d8c5a7",
@@ -157,98 +157,6 @@
     "householdDrawSplit": {
      "sf6": "7a0e2be1c5c097f0",
      "exact": "4e9afd96fb3d9eea"
-    }
-   }
-  },
-  "20-locked-start-after-stop": {
-   "corpus": {
-    "simulationConfigFromSettings": {
-     "sf6": "e70c9119c584cc28",
-     "exact": "ab8feadaf6835090"
-    },
-    "planFromSettings": {
-     "sf6": "5ce5e6278141c06b",
-     "exact": "0269c7955399fa69"
-    },
-    "deriveCompareConfigs": {
-     "sf6": "f8a0035d2828e5f3",
-     "exact": "1dee84a680b83616"
-    },
-    "fullGiltTest": {
-     "sf6": "5f1fdc719b60cf60",
-     "exact": "3a0945321a31cdc7"
-    },
-    "buildPlanDocument": {
-     "sf6": "adc0749584093444",
-     "exact": "5efe98426908f91f"
-    },
-    "planOfRecordFor": {
-     "sf6": "c19d61f3dd2382c9",
-     "exact": "c19d61f3dd2382c9"
-    },
-    "householdDrawSplit": {
-     "sf6": "705af32e3472f7e6",
-     "exact": "d39fe98605d32056"
-    }
-   },
-   "lastBeforeApril": {
-    "simulationConfigFromSettings": {
-     "sf6": "e70c9119c584cc28",
-     "exact": "ab8feadaf6835090"
-    },
-    "planFromSettings": {
-     "sf6": "9ffb032ade5c9b13",
-     "exact": "ef06f721dd5f0bc6"
-    },
-    "deriveCompareConfigs": {
-     "sf6": "f8a0035d2828e5f3",
-     "exact": "1dee84a680b83616"
-    },
-    "fullGiltTest": {
-     "sf6": "5f1fdc719b60cf60",
-     "exact": "3a0945321a31cdc7"
-    },
-    "buildPlanDocument": {
-     "sf6": "37079ff94bec23f2",
-     "exact": "e5b7b5207e1c0ac5"
-    },
-    "planOfRecordFor": {
-     "sf6": "db83bcbe0afb31bf",
-     "exact": "db83bcbe0afb31bf"
-    },
-    "householdDrawSplit": {
-     "sf6": "adc997922ef703b8",
-     "exact": "4f377510a4fd4847"
-    }
-   },
-   "afterApril": {
-    "simulationConfigFromSettings": {
-     "sf6": "e70c9119c584cc28",
-     "exact": "ab8feadaf6835090"
-    },
-    "planFromSettings": {
-     "sf6": "c34da3cdbd18a9f2",
-     "exact": "76543bb5df672d7d"
-    },
-    "deriveCompareConfigs": {
-     "sf6": "f8a0035d2828e5f3",
-     "exact": "1dee84a680b83616"
-    },
-    "fullGiltTest": {
-     "sf6": "5f1fdc719b60cf60",
-     "exact": "3a0945321a31cdc7"
-    },
-    "buildPlanDocument": {
-     "sf6": "e3e63adf5b2f7e6a",
-     "exact": "67d515006bfa7561"
-    },
-    "planOfRecordFor": {
-     "sf6": "268a745591188e64",
-     "exact": "268a745591188e64"
-    },
-    "householdDrawSplit": {
-     "sf6": "adc997922ef703b8",
-     "exact": "4f377510a4fd4847"
     }
    }
   },
@@ -271,8 +179,8 @@
      "exact": "d65a0bc1c3564300"
     },
     "buildPlanDocument": {
-     "sf6": "0b1b97d4b9a44515",
-     "exact": "4da515e1d6eac355"
+     "sf6": "5802e99dd0d29cc7",
+     "exact": "2b641499b13c194b"
     },
     "planOfRecordFor": {
      "sf6": "5e1ec928843c836c",
@@ -301,8 +209,8 @@
      "exact": "d65a0bc1c3564300"
     },
     "buildPlanDocument": {
-     "sf6": "f05bdb16dc7eb89f",
-     "exact": "3377eaa4ce9a67ac"
+     "sf6": "b4280a59c5258a95",
+     "exact": "2a9581c8228713f4"
     },
     "planOfRecordFor": {
      "sf6": "1d27ba96ce24953c",
@@ -333,8 +241,8 @@
      "exact": "e92cd8cdd55ea8a2"
     },
     "buildPlanDocument": {
-     "sf6": "f7962263d396975c",
-     "exact": "603070c2b4f4fdc4"
+     "sf6": "b44bea04ed2df53f",
+     "exact": "defde8fb24586160"
     },
     "planOfRecordFor": {
      "sf6": "0e714c3d58022f65",
@@ -363,8 +271,8 @@
      "exact": "e92cd8cdd55ea8a2"
     },
     "buildPlanDocument": {
-     "sf6": "36cdfac9c7767aaf",
-     "exact": "ab18ceaf22f87b52"
+     "sf6": "490e827742c931a9",
+     "exact": "2afbeb159524f951"
     },
     "planOfRecordFor": {
      "sf6": "18a3729ecbd5ffc0",
@@ -393,8 +301,8 @@
      "exact": "e92cd8cdd55ea8a2"
     },
     "buildPlanDocument": {
-     "sf6": "82649d8f0aecd853",
-     "exact": "5c221c8fb2598149"
+     "sf6": "90079aed301c8dea",
+     "exact": "079eb360788f745a"
     },
     "planOfRecordFor": {
      "sf6": "75c8699ca37d7262",
@@ -517,8 +425,8 @@
      "exact": "02eb0197c9695ef4"
     },
     "buildPlanDocument": {
-     "sf6": "25adf7160c55aa9b",
-     "exact": "a54e71a390cd6f4d"
+     "sf6": "223a2e70dacf7433",
+     "exact": "4396df42916f9f74"
     },
     "planOfRecordFor": {
      "sf6": "2db326d6d0778688",
@@ -547,8 +455,8 @@
      "exact": "02eb0197c9695ef4"
     },
     "buildPlanDocument": {
-     "sf6": "24440b6ca146813b",
-     "exact": "057ca69fbdab5b9b"
+     "sf6": "10e8fbb090b49990",
+     "exact": "eedceed1b0acb99b"
     },
     "planOfRecordFor": {
      "sf6": "730769e829dfd647",
@@ -577,8 +485,8 @@
      "exact": "21195fbcff3c307d"
     },
     "buildPlanDocument": {
-     "sf6": "cc3485882ddde161",
-     "exact": "e33c512b2388a862"
+     "sf6": "507c1d2e35f54c7e",
+     "exact": "b438ba1f6eca8fee"
     },
     "planOfRecordFor": {
      "sf6": "118d52f48a890e8e",
@@ -593,12 +501,12 @@
   "08-dotted-keys": {
    "corpus": {
     "simulationConfigFromSettings": {
-     "sf6": "a26ce5756d511959",
-     "exact": "a26ce5756d511959"
+     "sf6": "d54c2da0af19b98c",
+     "exact": "d54c2da0af19b98c"
     },
     "planFromSettings": {
-     "sf6": "73a6174f2c9653d4",
-     "exact": "73a6174f2c9653d4"
+     "sf6": "a8bb11e42e79ab9e",
+     "exact": "a8bb11e42e79ab9e"
     },
     "deriveCompareConfigs": {
      "sf6": "9e8d3cb3dedfa3b4",
@@ -609,26 +517,26 @@
      "exact": "ea26cf8a87033679"
     },
     "buildPlanDocument": {
-     "sf6": "73312fe7331be718",
-     "exact": "190261862817c012"
+     "sf6": "735d1ce924dd78e4",
+     "exact": "958c78541a361afb"
     },
     "planOfRecordFor": {
-     "sf6": "f68df57225a553c9",
-     "exact": "f68df57225a553c9"
+     "sf6": "b1396c0bf2eac439",
+     "exact": "b1396c0bf2eac439"
     },
     "householdDrawSplit": {
-     "sf6": "bad6e9fc35bc36d0",
-     "exact": "bad6e9fc35bc36d0"
+     "sf6": "3db29ecdaf97f78a",
+     "exact": "71bbd081a5de9396"
     }
    },
    "lastBeforeApril": {
     "simulationConfigFromSettings": {
-     "sf6": "a26ce5756d511959",
-     "exact": "a26ce5756d511959"
+     "sf6": "d54c2da0af19b98c",
+     "exact": "d54c2da0af19b98c"
     },
     "planFromSettings": {
-     "sf6": "6b1f6e4696f26221",
-     "exact": "6b1f6e4696f26221"
+     "sf6": "9b4527c95fac87a1",
+     "exact": "9b4527c95fac87a1"
     },
     "deriveCompareConfigs": {
      "sf6": "9e8d3cb3dedfa3b4",
@@ -639,26 +547,26 @@
      "exact": "ea26cf8a87033679"
     },
     "buildPlanDocument": {
-     "sf6": "a941c20b0172cbde",
-     "exact": "f37620bc25e9f14e"
+     "sf6": "4e871467178249f6",
+     "exact": "8ded12cc031fb947"
     },
     "planOfRecordFor": {
-     "sf6": "73e5ce108b99288d",
-     "exact": "73e5ce108b99288d"
+     "sf6": "432d6b3856808c9d",
+     "exact": "432d6b3856808c9d"
     },
     "householdDrawSplit": {
-     "sf6": "f4b67c61180baa45",
-     "exact": "f4b67c61180baa45"
+     "sf6": "bde79fc760dd360a",
+     "exact": "1353973a4a4e455a"
     }
    },
    "afterApril": {
     "simulationConfigFromSettings": {
-     "sf6": "a26ce5756d511959",
-     "exact": "a26ce5756d511959"
+     "sf6": "d54c2da0af19b98c",
+     "exact": "d54c2da0af19b98c"
     },
     "planFromSettings": {
-     "sf6": "d2a1d78af01f5865",
-     "exact": "d2a1d78af01f5865"
+     "sf6": "430bb99fc3dcf2d8",
+     "exact": "430bb99fc3dcf2d8"
     },
     "deriveCompareConfigs": {
      "sf6": "9e8d3cb3dedfa3b4",
@@ -669,16 +577,16 @@
      "exact": "2f2873eb241b2379"
     },
     "buildPlanDocument": {
-     "sf6": "b2d06ce1ab132609",
-     "exact": "91b9005590adfee4"
+     "sf6": "ec2ce5bfb872ddf4",
+     "exact": "18672c8905e599bb"
     },
     "planOfRecordFor": {
-     "sf6": "0371ba7f95ff517b",
-     "exact": "0371ba7f95ff517b"
+     "sf6": "556a46b43751d185",
+     "exact": "556a46b43751d185"
     },
     "householdDrawSplit": {
-     "sf6": "6e8b330651b943f0",
-     "exact": "6e8b330651b943f0"
+     "sf6": "dabed5bccc6308d7",
+     "exact": "2af9ea3af569d72f"
     }
    }
   },
@@ -701,8 +609,8 @@
      "exact": "726c1304017f7837"
     },
     "buildPlanDocument": {
-     "sf6": "cd1abbc22da8ce6d",
-     "exact": "cadfd591e6e8ebe3"
+     "sf6": "9bea818fb8e4a51a",
+     "exact": "34fecfb57934ffa6"
     },
     "planOfRecordFor": {
      "sf6": "9a848e6264aa969b",
@@ -731,8 +639,8 @@
      "exact": "726c1304017f7837"
     },
     "buildPlanDocument": {
-     "sf6": "188690c5822e1bb7",
-     "exact": "1f05975d56da18b5"
+     "sf6": "8109cf4f844b229e",
+     "exact": "20fa7cbba8a2cb23"
     },
     "planOfRecordFor": {
      "sf6": "d79366b826a6950a",
@@ -763,8 +671,8 @@
      "exact": "cf543a5f7eee1a6d"
     },
     "buildPlanDocument": {
-     "sf6": "bd73ab606db0185e",
-     "exact": "390bae5f08d33186"
+     "sf6": "68611b46120eb447",
+     "exact": "c6e33b4b57bfd018"
     },
     "planOfRecordFor": {
      "sf6": "448544670c86de22",
@@ -793,8 +701,8 @@
      "exact": "cf543a5f7eee1a6d"
     },
     "buildPlanDocument": {
-     "sf6": "9cb32444b1c383c9",
-     "exact": "6d5018570f31bdcc"
+     "sf6": "bdcf81a06f926f74",
+     "exact": "d36df0610b170ba5"
     },
     "planOfRecordFor": {
      "sf6": "f86436ff65cd88d3",
@@ -823,8 +731,8 @@
      "exact": "cf543a5f7eee1a6d"
     },
     "buildPlanDocument": {
-     "sf6": "443c0ed26a5a849a",
-     "exact": "570c10c645fc4466"
+     "sf6": "ff9633f28f89f718",
+     "exact": "2f3013258e4711b2"
     },
     "planOfRecordFor": {
      "sf6": "cc2501b23809c8c0",
@@ -839,12 +747,12 @@
   "11-guest-demo": {
    "corpus": {
     "simulationConfigFromSettings": {
-     "sf6": "300a898de90591db",
-     "exact": "300a898de90591db"
+     "sf6": "ab3f0b2f418a19c0",
+     "exact": "ab3f0b2f418a19c0"
     },
     "planFromSettings": {
-     "sf6": "765c09cc26b9e628",
-     "exact": "765c09cc26b9e628"
+     "sf6": "59a9cac24cf39c2b",
+     "exact": "59a9cac24cf39c2b"
     },
     "deriveCompareConfigs": {
      "sf6": "ee668c654f9a0c1f",
@@ -855,26 +763,26 @@
      "exact": "d2d8c028f4a6f4eb"
     },
     "buildPlanDocument": {
-     "sf6": "c8600ddb7f95e3b2",
-     "exact": "039503a7ed3b432f"
+     "sf6": "3b31cc626a599f6e",
+     "exact": "3972402d7a156c79"
     },
     "planOfRecordFor": {
-     "sf6": "5b9173c4227dde0e",
-     "exact": "57df8e4e52f73551"
+     "sf6": "e7badaa273639af9",
+     "exact": "b5de40ac8e9140bd"
     },
     "householdDrawSplit": {
-     "sf6": "fd447d543857e3fd",
-     "exact": "fd447d543857e3fd"
+     "sf6": "d5b88fbf838be114",
+     "exact": "02ca02ad4ee2e72f"
     }
    },
    "lastBeforeApril": {
     "simulationConfigFromSettings": {
-     "sf6": "300a898de90591db",
-     "exact": "300a898de90591db"
+     "sf6": "ab3f0b2f418a19c0",
+     "exact": "ab3f0b2f418a19c0"
     },
     "planFromSettings": {
-     "sf6": "1c8a7d45b0977b76",
-     "exact": "1c8a7d45b0977b76"
+     "sf6": "bf070484d2631826",
+     "exact": "bf070484d2631826"
     },
     "deriveCompareConfigs": {
      "sf6": "ee668c654f9a0c1f",
@@ -885,26 +793,26 @@
      "exact": "d2d8c028f4a6f4eb"
     },
     "buildPlanDocument": {
-     "sf6": "4735502603dd4947",
-     "exact": "ba7a329d0557bc0d"
+     "sf6": "21e88dbfd9329da4",
+     "exact": "94a27d6cf7683212"
     },
     "planOfRecordFor": {
-     "sf6": "9c70e391cd639f5e",
-     "exact": "c8a64e3140bf434b"
+     "sf6": "aada41da69ad439b",
+     "exact": "efa9023673a82d23"
     },
     "householdDrawSplit": {
-     "sf6": "130dc16e4d8ea940",
-     "exact": "130dc16e4d8ea940"
+     "sf6": "5a561cef03c152d6",
+     "exact": "168008570cacf54d"
     }
    },
    "afterApril": {
     "simulationConfigFromSettings": {
-     "sf6": "300a898de90591db",
-     "exact": "300a898de90591db"
+     "sf6": "ab3f0b2f418a19c0",
+     "exact": "ab3f0b2f418a19c0"
     },
     "planFromSettings": {
-     "sf6": "6dd9727832551a9f",
-     "exact": "6dd9727832551a9f"
+     "sf6": "fbb0e26c9760f783",
+     "exact": "fbb0e26c9760f783"
     },
     "deriveCompareConfigs": {
      "sf6": "ee668c654f9a0c1f",
@@ -915,16 +823,16 @@
      "exact": "0406715fff73a3ed"
     },
     "buildPlanDocument": {
-     "sf6": "3eeaa08352dda491",
-     "exact": "a9ea6773f8ed6bfb"
+     "sf6": "cb050bb3ec89d4a8",
+     "exact": "499ae9986b50a6cd"
     },
     "planOfRecordFor": {
-     "sf6": "e11c7a999b086e50",
-     "exact": "1cad71f04b9933f4"
+     "sf6": "fde11f6b68093c73",
+     "exact": "38ba214ad13893cc"
     },
     "householdDrawSplit": {
-     "sf6": "950388b4001eee16",
-     "exact": "950388b4001eee16"
+     "sf6": "8985d4adcd11d229",
+     "exact": "f42cf1ed06a91bf4"
     }
    }
   },
@@ -947,8 +855,8 @@
      "exact": "7438b19bcd17da51"
     },
     "buildPlanDocument": {
-     "sf6": "acb6a6d9c442b032",
-     "exact": "a39e3e0cea9f1482"
+     "sf6": "9d91a6f607bfa1d6",
+     "exact": "3032728050240326"
     },
     "planOfRecordFor": {
      "sf6": "fed73402d937a20f",
@@ -977,8 +885,8 @@
      "exact": "7438b19bcd17da51"
     },
     "buildPlanDocument": {
-     "sf6": "56c6215c1a8e82de",
-     "exact": "6152870919266ff6"
+     "sf6": "c1f8682feccc13cf",
+     "exact": "6ee97e12856785b2"
     },
     "planOfRecordFor": {
      "sf6": "086b6df3d4e64803",
@@ -987,6 +895,98 @@
     "householdDrawSplit": {
      "sf6": "fec7783d3b36025d",
      "exact": "79e3af419ec63626"
+    }
+   }
+  },
+  "20-locked-start-after-stop": {
+   "corpus": {
+    "simulationConfigFromSettings": {
+     "sf6": "e70c9119c584cc28",
+     "exact": "ab8feadaf6835090"
+    },
+    "planFromSettings": {
+     "sf6": "5ce5e6278141c06b",
+     "exact": "0269c7955399fa69"
+    },
+    "deriveCompareConfigs": {
+     "sf6": "f8a0035d2828e5f3",
+     "exact": "1dee84a680b83616"
+    },
+    "fullGiltTest": {
+     "sf6": "5f1fdc719b60cf60",
+     "exact": "3a0945321a31cdc7"
+    },
+    "buildPlanDocument": {
+     "sf6": "06f8db87dff99f92",
+     "exact": "2dd673779a4757d5"
+    },
+    "planOfRecordFor": {
+     "sf6": "c19d61f3dd2382c9",
+     "exact": "c19d61f3dd2382c9"
+    },
+    "householdDrawSplit": {
+     "sf6": "705af32e3472f7e6",
+     "exact": "d39fe98605d32056"
+    }
+   },
+   "lastBeforeApril": {
+    "simulationConfigFromSettings": {
+     "sf6": "e70c9119c584cc28",
+     "exact": "ab8feadaf6835090"
+    },
+    "planFromSettings": {
+     "sf6": "9ffb032ade5c9b13",
+     "exact": "ef06f721dd5f0bc6"
+    },
+    "deriveCompareConfigs": {
+     "sf6": "f8a0035d2828e5f3",
+     "exact": "1dee84a680b83616"
+    },
+    "fullGiltTest": {
+     "sf6": "5f1fdc719b60cf60",
+     "exact": "3a0945321a31cdc7"
+    },
+    "buildPlanDocument": {
+     "sf6": "e3fe62b331c15f78",
+     "exact": "4c5a7f26b3d0aba9"
+    },
+    "planOfRecordFor": {
+     "sf6": "db83bcbe0afb31bf",
+     "exact": "db83bcbe0afb31bf"
+    },
+    "householdDrawSplit": {
+     "sf6": "adc997922ef703b8",
+     "exact": "4f377510a4fd4847"
+    }
+   },
+   "afterApril": {
+    "simulationConfigFromSettings": {
+     "sf6": "e70c9119c584cc28",
+     "exact": "ab8feadaf6835090"
+    },
+    "planFromSettings": {
+     "sf6": "c34da3cdbd18a9f2",
+     "exact": "76543bb5df672d7d"
+    },
+    "deriveCompareConfigs": {
+     "sf6": "f8a0035d2828e5f3",
+     "exact": "1dee84a680b83616"
+    },
+    "fullGiltTest": {
+     "sf6": "5f1fdc719b60cf60",
+     "exact": "3a0945321a31cdc7"
+    },
+    "buildPlanDocument": {
+     "sf6": "c939a040f79af2d0",
+     "exact": "8f27cb4192778d92"
+    },
+    "planOfRecordFor": {
+     "sf6": "268a745591188e64",
+     "exact": "268a745591188e64"
+    },
+    "householdDrawSplit": {
+     "sf6": "adc997922ef703b8",
+     "exact": "4f377510a4fd4847"
     }
    }
   }

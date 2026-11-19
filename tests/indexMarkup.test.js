@@ -79,3 +79,11 @@ describe('the page\'s own words', () => {
     expect(doubled).toEqual([]);
   });
 });
+
+describe('the full view\'s imports', () => {
+  it('no import sits behind a line comment on the same line (it would never load)', () => {
+    const page = readFileSync('index.html', 'utf8');
+    const bad = page.split('\n').map((l, i) => [i + 1, l]).filter(([, l]) => /\/\/.*\bimport \{[^}]*\} from '/.test(l) && /^\s*import /.test(l));
+    expect(bad.map(([n, l]) => n + ': ' + l.slice(0, 120))).toEqual([]);
+  });
+});

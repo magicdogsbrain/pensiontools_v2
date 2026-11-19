@@ -129,7 +129,7 @@ describe('stopping in different years (couples-different-years.md 2.4, "Plan nam
 describe('the suggestion, pattern by pattern (from the pinned answers)', () => {
   it('C, money from now: "From {age} · £{careful} a month"', () => {
     expect(name('c', 'answer-F1')).toBe('From 58 · £1,380 a month');
-    expect(name('c', 'answer-F3')).toBe('From 68 · £1,860 a month');
+    expect(name('c', 'answer-F3')).toBe('From 68 · £1,790 a month');
   });
   it('C, a couple from now: both ages on the same date', () => {
     expect(name('c', 'answer-F2')).toBe('From 62 and 60 · £3,530 a month');

@@ -75,34 +75,40 @@
     "level": "balanced",
     "levels": {
       "careful": {
-        "monthly": 1820,
-        "yearly": 21840,
-        "weighted": 0.9563646114431321,
-        "fixedAge": 0.85
+        "monthly": 1750,
+        "yearly": 21000,
+        "weighted": 0.9508097273530438,
+        "fixedAge": 0.8
       },
       "balanced": {
-        "monthly": 1870,
-        "yearly": 22440,
-        "weighted": 0.903595095849596,
-        "fixedAge": 0.65
+        "monthly": 1810,
+        "yearly": 21720,
+        "weighted": 0.9010050472104922,
+        "fixedAge": 0.75
       },
       "bold": {
-        "monthly": 2000,
-        "yearly": 24000,
-        "weighted": 0.7045394781744108,
-        "fixedAge": 0.175
+        "monthly": 1960,
+        "yearly": 23520,
+        "weighted": 0.7014160738326609,
+        "fixedAge": 0.225
       }
     },
     "chance": {
-      "weighted": 0.903595095849596,
-      "fixedAge": 0.65,
-      "fails": 14,
+      "weighted": 0.9010050472104922,
+      "fixedAge": 0.75,
+      "fails": 10,
       "n": 40,
       "planToAge": 99,
       "weightToAge": 103,
       "horizonRule": "survival"
     },
     "whose": "you",
+    "floorAge": 99,
+    "left": {
+      "age": 99,
+      "typical": 28523,
+      "best": 167051
+    },
     "guaranteed": {
       "monthlyAfterTax": 1342.83
     },
@@ -116,30 +122,30 @@
             "to": 99
           }
         },
-        "takeHome": 1870,
-        "fromPension": 620.2,
+        "takeHome": 1810,
+        "fromPension": 549.61,
         "fromSavings": 0,
-        "fromPots": 620.2,
+        "fromPots": 549.61,
         "statePension": 916.67,
         "finalSalary": 500,
-        "tax": 166.86,
+        "tax": 156.27,
         "byPerson": [
           {
             "who": "you",
             "statePension": 916.67,
             "finalSalary": 500,
-            "fromPension": 620.2,
+            "fromPension": 549.61,
             "fromSavings": 0,
-            "tax": 166.86,
-            "takeHome": 1870,
+            "tax": 156.27,
+            "takeHome": 1810,
             "higherRate": false,
             "locked": false
           }
         ],
         "beforeStatePension": false,
         "shown": {
-          "takeHome": 1870,
-          "fromPots": 453,
+          "takeHome": 1810,
+          "fromPots": 393,
           "statePension": 917,
           "finalSalary": 500
         }
@@ -150,7 +156,7 @@
       "lasted": 0.025,
       "runOutAge": 82,
       "covered": false,
-      "weighted": 0.41478393552824855,
+      "weighted": 0.3909620899707079,
       "verdict": "no",
       "phases": [
         {
@@ -380,7 +386,7 @@
     "sentences": {
       "head": {
         "id": "c.head",
-        "text": "About £1,870 a month",
+        "text": "About £1,810 a month",
         "parts": [
           "About ",
           {
@@ -407,7 +413,7 @@
       },
       "line": {
         "id": "c.line",
-        "text": "With a pot of £180,000, your State Pension and your final-salary pension, at Balanced you could have about £1,870 a month after tax, from now until you are 99. Counting how long people your age live, the money lasts as long as you do 18 times in 20.",
+        "text": "With a pot of £180,000, your State Pension and your final-salary pension, at Balanced you could have about £1,810 a month after tax, from now until you are 99. Counting how long people your age live, the money lasts as long as you do 18 times in 20.",
         "parts": [
           "With ",
           "a pot of ",
@@ -454,7 +460,7 @@
       },
       "bad": {
         "id": "c.when",
-        "text": "We follow each future on to 103. In the futures where the money runs out before then, it typically runs out at 96. In the worst 1 in 10 of all the futures, by 93.",
+        "text": "We follow each future on to 103. In the futures where the money runs out before then, it typically runs out at 99. In the worst 1 in 10 of all the futures, by 93.",
         "parts": [
           "We follow each future on to ",
           {
@@ -464,7 +470,7 @@
           ", it typically runs out ",
           "at ",
           {
-            "fixed": "96"
+            "fixed": "99"
           },
           ". ",
           "In the worst ",
@@ -485,7 +491,7 @@
       },
       "range": {
         "id": "c.range",
-        "text": "You could take: Careful £1,820, Balanced £1,870, Bold £2,000 a month.",
+        "text": "You could take: Careful £1,750, Balanced £1,810, Bold £1,960 a month.",
         "parts": [
           "You could take: Careful ",
           {
@@ -508,7 +514,7 @@
       "madeOf": [
         {
           "id": "c.madeOf.paid",
-          "text": "Your State Pension (£917 a month) + £500 final-salary pension + £453 from your pot.",
+          "text": "Your State Pension (£917 a month) + £500 final-salary pension + £393 from your pot.",
           "parts": [
             "Your ",
             "State Pension",
@@ -536,7 +542,7 @@
         },
         {
           "id": "c.madeOf.tax",
-          "text": "Tax of £167 a month is already taken off.",
+          "text": "Tax of £156 a month is already taken off.",
           "parts": [
             "Tax of ",
             {
@@ -589,7 +595,7 @@
       },
       "fixed": {
         "id": "c.fixed",
-        "text": "If you live to 99, the money lasts that long in 13 of 20 futures we tried.",
+        "text": "If you live to 99, the money lasts that long in 15 of 20 futures we tried.",
         "parts": [
           "If you live to ",
           {
@@ -597,7 +603,7 @@
           },
           ", the money lasts that long in ",
           {
-            "fixed": "13"
+            "fixed": "15"
           },
           " of ",
           {
@@ -609,7 +615,7 @@
       },
       "howLong": {
         "id": "c.howLong",
-        "text": "In the futures where it runs out before 99, it still pays for 26 of the 31 years to 99.",
+        "text": "In the futures where it runs out before 99, it still pays for 25 of the 31 years to 99.",
         "parts": [
           "In the futures where it runs out before ",
           {
@@ -617,7 +623,7 @@
           },
           ", it still pays for ",
           {
-            "fixed": "26"
+            "fixed": "25"
           },
           " of the ",
           {
@@ -647,12 +653,12 @@
       },
       "floor": {
         "id": "c.floor",
-        "text": "If the money ran out at 96, you would still have £16,114 a year after tax, from your pensions.",
+        "text": "If the money ran out at 99, you would still have £16,114 a year after tax, from your pensions.",
         "parts": [
           "If the money ran out ",
           "at ",
           {
-            "fixed": "96"
+            "fixed": "99"
           },
           ", ",
           "you would still have ",
@@ -665,46 +671,19 @@
           "."
         ]
       },
-      "left": {
-        "id": "c.left",
-        "text": "If you live to 99, what is typically left then is £19,000 at today's prices. In the best 1 in 10 futures it is £108,000 or more.",
-        "parts": [
-          "If you live to ",
-          {
-            "fixed": "99"
-          },
-          ", what is typically left then is ",
-          {
-            "fixed": "£19,000"
-          },
-          " at today's prices. In the best ",
-          {
-            "fixed": "1"
-          },
-          " in ",
-          {
-            "fixed": "10"
-          },
-          " futures it is ",
-          {
-            "fixed": "£108,000"
-          },
-          " or more."
-        ]
-      },
       "cost": {
         "id": "c.cost",
-        "text": "Careful asks for £50 a month less than Balanced. Bold would let you take £130 a month more.",
+        "text": "Careful asks for £60 a month less than Balanced. Bold would let you take £150 a month more.",
         "parts": [
           "Careful asks for ",
           {
-            "fixed": "£50"
+            "fixed": "£60"
           },
           " a month less than Balanced.",
           " ",
           "Bold would let you take ",
           {
-            "fixed": "£130"
+            "fixed": "£150"
           },
           " a month more."
         ]
@@ -969,18 +948,6 @@
           " a year after tax",
           ", ",
           "from your pensions",
-          "."
-        ]
-      },
-      "takeLeft": {
-        "id": "c.take.left",
-        "text": "In more than half the futures nothing is left at 99.",
-        "parts": [
-          "In more than half the futures nothing is left ",
-          "at ",
-          {
-            "fixed": "99"
-          },
           "."
         ]
       }

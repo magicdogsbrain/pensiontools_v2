@@ -93,34 +93,40 @@
         "level": "balanced",
         "levels": {
           "careful": {
-            "monthly": 90,
-            "yearly": 1080,
-            "weighted": 0.9837905246522277,
-            "fixedAge": 0.983
+            "monthly": 100,
+            "yearly": 1200,
+            "weighted": 0.9626149149211124,
+            "fixedAge": 0.961
           },
           "balanced": {
             "monthly": 100,
             "yearly": 1200,
-            "weighted": 0.9245946851177141,
-            "fixedAge": 0.921
+            "weighted": 0.9626149149211124,
+            "fixedAge": 0.961
           },
           "bold": {
-            "monthly": 110,
-            "yearly": 1320,
-            "weighted": 0.8221082505341619,
-            "fixedAge": 0.814
+            "monthly": 120,
+            "yearly": 1440,
+            "weighted": 0.7637171141579747,
+            "fixedAge": 0.754
           }
         },
         "chance": {
-          "weighted": 0.9245946851177141,
-          "fixedAge": 0.921,
-          "fails": 79,
+          "weighted": 0.9626149149211124,
+          "fixedAge": 0.961,
+          "fails": 39,
           "n": 1000,
           "planToAge": 99,
           "weightToAge": 104,
           "horizonRule": "survival"
         },
         "whose": "you",
+        "floorAge": 66,
+        "left": {
+          "age": 99,
+          "typical": 11523,
+          "best": 42337
+        },
         "guaranteed": {
           "monthlyAfterTax": 1045.63
         },
@@ -475,7 +481,7 @@
           },
           "line": {
             "id": "c.line",
-            "text": "With a pot of £12,000 and your State Pension, at Balanced you could have about £100 a month after tax, from now until 67, then £1,046 a month from your State Pension. Counting how long people your age live, the money lasts as long as you do 18 times in 20.",
+            "text": "With a pot of £12,000 and your State Pension, at Balanced you could have about £100 a month after tax, from now until 67, then £1,046 a month from your State Pension. Counting how long people your age live, the money lasts as long as you do 19 times in 20.",
             "parts": [
               "With ",
               "a pot of ",
@@ -515,7 +521,7 @@
               "as long as you do",
               " ",
               {
-                "fixed": "18"
+                "fixed": "19"
               },
               " times in ",
               {
@@ -557,7 +563,7 @@
           },
           "range": {
             "id": "c.range",
-            "text": "You could take: Careful £90, Balanced £100, Bold £110 a month.",
+            "text": "You could take: Careful £100, Balanced £100, Bold £120 a month.",
             "parts": [
               "You could take: Careful ",
               {
@@ -680,7 +686,7 @@
           },
           "fixed": {
             "id": "c.fixed",
-            "text": "If you live to 99, the money lasts that long in 18 of 20 futures we tried.",
+            "text": "If you live to 99, the money lasts that long in 19 of 20 futures we tried.",
             "parts": [
               "If you live to ",
               {
@@ -688,7 +694,7 @@
               },
               ", the money lasts that long in ",
               {
-                "fixed": "18"
+                "fixed": "19"
               },
               " of ",
               {
@@ -756,7 +762,7 @@
           },
           "left": {
             "id": "c.left",
-            "text": "If you live to 99, what is typically left then is £10,000 at today's prices. In the best 1 in 10 futures it is £37,000 or more.",
+            "text": "If you live to 99, what is typically left then is £11,000 at today's prices. In the best 1 in 10 futures it is £42,000 or more.",
             "parts": [
               "If you live to ",
               {
@@ -764,7 +770,7 @@
               },
               ", what is typically left then is ",
               {
-                "fixed": "£10,000"
+                "fixed": "£11,000"
               },
               " at today's prices. In the best ",
               {
@@ -776,24 +782,18 @@
               },
               " futures it is ",
               {
-                "fixed": "£37,000"
+                "fixed": "£42,000"
               },
               " or more."
             ]
           },
           "cost": {
             "id": "c.cost",
-            "text": "Careful asks for £10 a month less than Balanced. Bold would let you take £10 a month more.",
+            "text": "Bold would let you take £20 a month more.",
             "parts": [
-              "Careful asks for ",
-              {
-                "fixed": "£10"
-              },
-              " a month less than Balanced.",
-              " ",
               "Bold would let you take ",
               {
-                "fixed": "£10"
+                "fixed": "£20"
               },
               " a month more."
             ]
@@ -835,6 +835,14 @@
           "who": "household"
         }
       },
+      "before": null,
+      "progress": null,
+      "slow": false
+    },
+    "d": {
+      "status": "idle",
+      "inputsKey": null,
+      "result": null,
       "before": null,
       "progress": null,
       "slow": false

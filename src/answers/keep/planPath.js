@@ -116,7 +116,7 @@ const sameBase = (a, b) => PREPARED.every((k) => a[k] === b[k]) && JSON.stringif
  * One case of an answer on the plan path: the kept plan at each take-home H, the runner over the answer's lives, the plan's
  * weights and ages.
  * @returns {{ plan, sp, runner, weigher, toMonth, planYears, years, startAge, planToAge, weightToAge, level, capped,
- *   keptAt(H), settingsAt(H), floorAgeOf(months), worstAgeOf(months), leftOf(H, months) }}
+ *   keptAt(H), settingsAt(H), floorAgeOf(months), worstAgeOf(months), leftOf(H, months), leftTermsOf(H, months) }}
  *   plan: the run's shape for the answers' solvers (verdictAt, bandAt): one run, its base the config at the spend, the
  *   plan's years to the weighting age, `startAge`, `endAge` = the plan-to age, `guaranteedAtStartAYear` 0 (the plan's first
  *   tax year pays a share of the State Pension, so nothing above £0 lasts in every future for certain), `totalPots`.
@@ -244,12 +244,16 @@ export function planCaseOf(source, ins, env, { lives = null, dragPct = 0, fromAg
     return Number.isFinite(y) ? Math.round(startAge + y) : planToAge;
   };
   /**
-   * What is typically left at the plan-to age at H (OneAnswer a.left.typical, the plan's terminal p50): in each future that
+   * What is left at the plan-to age at H in each future (OneAnswer's terminal, the plan's own reader): in each future that
    * lasted the plan's years, its pots then at today's prices by that future's own prices over the plan's years (the engine's
-   * finalReal + finalIsa / cumInflation); £0 where it ran out.
+   * finalReal + finalIsa / cumInflation); £0 where it ran out. The words read these (shortfall.js leftOf), the figure
+   * beside them leftOf below: one reading of what is left.
    */
-  const leftOf = (H, ms) => {
-    const terms = new Array(n);
+  let lastLeft = null;
+  const leftTermsOf = (H, ms) => {
+    // (the words and the figure beside them read the same runs: the last ones are kept)
+    if (lastLeft && lastLeft.H === H && lastLeft.ms === ms) return lastLeft.terms;
+    const terms = new Float64Array(n);
     const config = configsAtH(H)[0].config;
     for (let i = 0; i < n; i++) {
       const m = ms[i];
@@ -265,6 +269,12 @@ export function planCaseOf(source, ins, env, { lives = null, dragPct = 0, fromAg
         terms[i] = s.failed ? 0 : s.finalReal + (s.finalIsa || 0) / (s.cumInflation || 1);
       }
     }
+    lastLeft = { H, ms, terms };
+    return terms;
+  };
+  /** What is typically left at the plan-to age at H and in the best 1 in 10 (OneAnswer a.left: the plan's terminal p50, p90). */
+  const leftOf = (H, ms) => {
+    const terms = leftTermsOf(H, ms);
     return { typical: Math.round(pct(terms, 0.5)), best: Math.round(pct(terms, 0.9)) };
   };
 
@@ -272,6 +282,6 @@ export function planCaseOf(source, ins, env, { lives = null, dragPct = 0, fromAg
     source, plan, sp: { n, lives: L }, runner, weigher, toMonth, planYears, years, startAge, planToAge, weightToAge,
     level: planLevelOf(first.kept), capped: plan.runCapped, reason,
     keptAt: (H) => at(H).kept, settingsAt: (H) => at(H).settings,
-    floorAgeOf, worstAgeOf, leftOf
+    floorAgeOf, worstAgeOf, leftOf, leftTermsOf
   };
 }

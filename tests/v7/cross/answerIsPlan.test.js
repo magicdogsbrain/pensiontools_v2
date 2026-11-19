@@ -34,7 +34,8 @@
  * The households are made up (Alex and Sam, round figures).
  */
 import { describe, it, expect } from 'vitest';
-import { answerD, D1, D3, D5, D7, D9 } from '../d/_d.js';
+import { answerD, D1, D3, D5, D7, D9, withPlanPath } from '../d/_d.js';
+import { runStressStrip } from '../../../src/answers/shared/stressStrip.js';
 import { answerC } from '../c/_c.js';
 import { answerA } from '../a/_a.js';
 import { answerB } from '../b/_b.js';
@@ -63,12 +64,17 @@ function planReading(plan) {
   const { a, r, p } = lastsOf(plan, { today: TODAY, futures: N, histories: false });
   const sf = planShortfallOf(r, p, a);
   return { lasted: Math.round(a.fixedAge * N), weighted: a.weighted, floorAge: a.floor ? a.floor.age : null, worstAge: sf.when ? sf.when.worst : a.planToAge,
-    left: a.left.typical, best: a.left.best, planToAge: a.planToAge, verdict: a.verdict };
+    left: a.left.typical, best: a.left.best, planToAge: a.planToAge, verdict: a.verdict, leftWords: a.words.left };
 }
+
+/** Pounds to the nearest £1,000, as the plan's words say what is left (OneAnswer gbpK, from the figure to the pound). */
+const k = (v) => Math.round(Math.round(v) / 1000) * 1000;
 
 /** The answer's own reading, said the same way. */
 const answerReading = (d) => ({ lasted: N - d.fails, weighted: d.chance.weighted, floorAge: d.floorAge ?? null, worstAge: d.runOutAge,
-  left: d.left ? d.left.typical : null, best: d.left ? d.left.best : null, planToAge: d.chance.planToAge, verdict: d.verdict });
+  left: d.left ? d.left.typical : null, best: d.left ? d.left.best : null, planToAge: d.chance.planToAge, verdict: d.verdict,
+  // what the answer's words say is left (the sentence a person reads, not only the figure beside it)
+  leftWords: d.sentences.left ? d.sentences.left.text : null });
 
 describe('the one adapter and the one runner', () => {
   it('the adapter is the keep: the plan it makes is the plan buildPlanSeed and seedToScenario make for the same answer', () => {
@@ -159,6 +165,15 @@ describe('D: the answer is the plan kept from it (one person, the plan path)', (
       expect(at(m + 10).verdict, level).not.toBe('yes');
     }
   }, 60000);
+  it('"Try the bad years": As planned\'s left at the end is the kept plan\'s, said to the nearest £1,000', () => {
+    // D1 at £2,100 (before: the strip read the answers' own left, the middle of 40 one lower and the price level a year
+    // later, so it said a figure the kept plan does not show)
+    const d = answerD(D1, ENV);
+    const plan = planReading(keptPlansOf('d', d, ENV).yours);
+    const row = runStressStrip('d', d.inputs, withPlanPath(ENV), { perMonth: 2100 }).rows[0];
+    expect(row.id).toBe('asPlanned');
+    expect(row.sf.left).toEqual({ typical: k(plan.left), best: k(plan.best), mostNone: plan.lasted * 2 < N });
+  });
 });
 
 /** The households of the C, A and B checks (made up). */
@@ -182,6 +197,13 @@ describe('C from now: the plan path keeps what the answer keeps', () => {
 });
 
 describe('C from now: the answer is the plan kept from it (one person, the plan path)', () => {
+  it('"Try the bad years": As planned\'s left at the end is the kept plan\'s, said to the nearest £1,000', () => {
+    const c = answerC({ ...ALEX, confidence: 'balanced' }, ENV);
+    const m = c.levels.balanced.monthly;
+    const plan = planReading(keptPlansOf('c', c, ENV).yours);
+    const row = runStressStrip('c', c.inputs, withPlanPath(ENV), { perMonth: m }).rows[0];
+    expect(row.sf.left).toEqual({ typical: k(plan.left), best: k(plan.best), mostNone: plan.lasted * 2 < N });
+  });
   // Alex, 58, £250,000, from now: each level's amount, kept, is the kept plan's own reading to the last bit — the count of
   // futures that last to the plan-to age, the weighted chance (so the verdict "yes" at the level), the middle and bad-case
   // run-out ages, what is typically left and in the best 1 in 10; £10 a month more is not "yes" at the level.
@@ -192,7 +214,9 @@ describe('C from now: the answer is the plan kept from it (one person, the plan 
       const at = answerC({ ...ALEX, confidence: level, take: m }, ENV);
       const plan = planReading(keptPlansOf('c', c, ENV).yours);
       expect({ lasted: N - c.chance.fails, weighted: c.chance.weighted, floorAge: c.floorAge, worstAge: at.take.runOutAge, left: c.left.typical, best: c.left.best,
-        planToAge: c.chance.planToAge, verdict: at.take.verdict }).toEqual(plan);
+        planToAge: c.chance.planToAge, verdict: at.take.verdict, leftWords: c.sentences.left.text }).toEqual(plan);
+      // the amount tried at the level's amount says the same left
+      expect(at.sentences.takeLeft.text).toBe(plan.leftWords);
       expect(plan.verdict).toBe('yes');
       const more = planReading(keptPlansOf('c', answerC({ ...ALEX, confidence: level, take: m + 10 }, ENV), ENV, { take: 'tried' }).yours);
       expect(more.verdict).not.toBe('yes');

@@ -561,7 +561,8 @@ export function mostPerFuture(plan, future, range = {}) {
 /**
  * What is left at the plan-to month in each future at one amount (7.8.0, the build spec's section 4): every run of the
  * future stopped at `toMonth` (the runner's `until`), its pots added up and brought to today's prices by the future's own
- * price level that year (the same index the spending rises with); a future whose money ran out before then, £0.
+ * prices over the run's years to then (the plan's terminal: SimulationEngine cumInflation); a future whose money ran out
+ * before then, £0.
  *   o.runner        { run(r, i, config, hook, until) → { equity, bond, cash, isa, failed }, driversOf(r, i) → { cumInf, inf } }
  *   o.configsOf(i)  the configs of future i at the amount (configsAt)
  *   o.months        each future's run-out month at that amount (null: it lasted)
@@ -582,8 +583,11 @@ export function leftAt({ runner, configsOf, months, toMonth, years }) {
       const res = runner.run(r, i, configs[r].config, null, toMonth);
       total += (res.equity || 0) + (res.bond || 0) + (res.cash || 0) + (res.isa || 0);
     }
+    // the price level the plan's own terminal reads (SimulationEngine cumInflation: every year's prices from the first,
+    // years 0 … Y−1 of the run), so what is left is read as "Does it last?" reads it
     const d = runner.driversOf(0, i);
-    const price = Y < years ? d.cumInf[Y] : d.cumInf[Y - 1] * (1 + d.inf[Y - 1]);
+    let price = 1;
+    for (let y = 0; y < Y; y++) price *= 1 + d.inf[y];
     out[i] = price > 0 ? Math.max(0, total / price) : 0;
   }
   return out;

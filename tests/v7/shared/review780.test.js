@@ -127,7 +127,9 @@ describe('Bold\'s consequence from the answer\'s own chance', () => {
 
 describe('what is left at the plan-to age, and what the other levels ask for', () => {
   it('leftOf: the middle and the best 1 in 10 to the nearest £1,000; more than half with nothing', () => {
-    expect(leftOf([0, 0, 0, 1000, 120400, 130600, 140000, 150000, 600000, 700400])).toEqual({ typical: 120000, best: 700000, mostNone: false });
+    // the plan's own reading (OneAnswer a.left: position ⌊0.5 × 10⌋ = 5 and ⌊0.9 × 10⌋ = 9 in order): £130,600 is said
+    // £131,000 (it was the 5th, £120,400, said £120,000, before the answers read what is left as the plan does)
+    expect(leftOf([0, 0, 0, 1000, 120400, 130600, 140000, 150000, 600000, 700400])).toEqual({ typical: 131000, best: 700000, mostNone: false });
     expect(leftOf([0, 0, 0, 0, 0, 0, 1, 2, 3, 4]).mostNone).toBe(true);
     expect(leftOf(null)).toBe(null);
   });

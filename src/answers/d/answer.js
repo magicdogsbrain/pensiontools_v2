@@ -166,7 +166,7 @@ export function stressCaseOf(inputs, env) {
   const monthsAt = ({ H, shock = null, dragPct = 0 }) => {
     const c = shock || dragPct > 0 ? stopCaseOf(base, env, shock ? livesOf(n, D, { ...env, shock: { ...shock, from: 0 } }) : lives, stopAge, dragPct) : main;
     const months = verdictAt(c.sp, c.runner, H, { weigher, level, toMonth }).runOutMonths;
-    return { months, left: leftAtStop(c.sp, c.runner, H, months, toMonth), plan: wordsPlanOf(c) };
+    return { months, left: leftValuesOf(c, H, months, toMonth), plan: wordsPlanOf(c) };
   };
   return { q: 'd', inputs: ins, plan, weigher, level, toMonth, lf, n, drawingNow: true, monthsAt };
 }
@@ -183,6 +183,12 @@ function chanceAgesOf(c, ins, env) {
   return { planToAge: plan.endAge, weightToAge: c.weigher.weighted ? c.weigher.weightToAge : plan.endAge,
     horizonRule: horizonRuleOf({ defaulted: defaultedFields(ins, env).includes('endAge'), capped }) };
 }
+
+/**
+ * Each future's left at the plan-to age at H, as the words say it: on the plan path the kept plan's own (planPath
+ * leftTermsOf, the figure result.left reads), else the household run's (stopAt.js leftAtStop).
+ */
+const leftValuesOf = (c, H, months, toMonth) => (c.pc ? c.pc.leftTermsOf(H, months) : leftAtStop(c.sp, c.runner, H, months, toMonth));
 
 /** The plan the shortfall words read (what comes in each year, the State Pension's start): the stop plan, to the plan-to age. */
 const wordsPlanOf = (c) => (c.pc ? { ...c.stop.plan, endAge: c.pc.planToAge } : c.runner.plan);
@@ -303,7 +309,7 @@ export function answerD(inputs, env) {
     result.basis.weighted = true;
     const toMonth = 12 * (plan.endAge - plan.startAge);
     weighing = { lf: lifeFactsOf(result, weigher, plan, ins),
-      sf: status === 'ok' ? shortfallOf(wordsPlanOf(main), verdict.runOutMonths, spendAYear, { toMonth, left: leftAtStop(main.sp, main.runner, spendAYear, verdict.runOutMonths, toMonth) }) : null };
+      sf: status === 'ok' ? shortfallOf(wordsPlanOf(main), verdict.runOutMonths, spendAYear, { toMonth, left: leftValuesOf(main, spendAYear, verdict.runOutMonths, toMonth) }) : null };
   }
   textsFor(result, {
     usedDefault: defaultedFields(ins, env), fullStatePensionAYear: named.fullStatePensionAYear, historyStartYear: historyStartYear(),

@@ -26,9 +26,12 @@
  *                   sp, fs    how many State Pensions are paid then; whether a final-salary pension is
  *                   spAge     nothing paid yet: the age the first State Pension starts (null when none does)
  *       left      absent when not worked out; else what is left at the plan-to age at today's prices, from each future's
- *                 figure (`opts.left`, band.js leftAt: £0 where the money ran out before then) — { typical, best, mostNone }:
- *                   typical   the middle of all the futures, to the nearest £1,000
- *                   best      the best 1 in 10 (position n − ⌈n/10⌉ of them in order), to the nearest £1,000
+ *                 figure (`opts.left`: on the plan path the kept plan's own, planPath leftTermsOf; else band.js leftAt;
+ *                 £0 where the money ran out before then) — { typical, best, mostNone }, read as the plan reads its
+ *                 terminal (OneAnswer a.left: ladderEngine.pct, position ⌊p·n⌋ of them in order, to the pound) and said
+ *                 as the plan says it (to the nearest £1,000):
+ *                   typical   the middle of all the futures (p = 0.5)
+ *                   best      the best 1 in 10 (p = 0.9)
  *                   mostNone  more than half the futures have nothing left then
  *     }
  *
@@ -67,13 +70,17 @@ function spStartAfter(plan, y) {
   return starts.length ? plan.startAge + Math.min(...starts) : null;
 }
 
-/** What is left at the plan-to age, from each future's figure at today's prices (null: not worked out). */
+/**
+ * What is left at the plan-to age, from each future's figure at today's prices (null: not worked out): the plan's own
+ * reading (ladderEngine.pct, the figure to the pound, then said to the nearest £1,000 as OneAnswer's words say it).
+ */
 export function leftOf(values) {
   if (!values || !values.length) return null;
   const s = Array.from(values).sort((a, b) => a - b);
   const n = s.length;
-  const k = (x) => Math.round(x / 1000) * 1000;
-  return { typical: k(s[Math.floor((n - 1) / 2)]), best: k(s[Math.max(0, n - Math.ceil(n / 10))]), mostNone: s.filter((v) => !(v > 0)).length * 2 > n };
+  const at = (p) => s[Math.min(n - 1, Math.floor(p * n))];
+  const k = (x) => Math.round(Math.round(x) / 1000) * 1000;
+  return { typical: k(at(0.5)), best: k(at(0.9)), mostNone: s.filter((v) => !(v > 0)).length * 2 > n };
 }
 
 export function shortfallOf(plan, months, H, { toMonth = Infinity, left = null } = {}) {

@@ -26,7 +26,7 @@ import { futuresList, historyEnd, historyStartYear, priceIndexByYear, cappedInde
 import { createBandSolver, bandIndexes, STEP, levelsFromSolver, leftAt } from '../shared/band.js';
 import { createFastRunner } from '../shared/fastEngine.js';
 import { livesList } from '../shared/lives.js';
-import { verdictAt, bandAt, leftAtStop } from '../shared/stopAt.js';
+import { verdictAt, bandAt } from '../shared/stopAt.js';
 import { weigherOf, runToAgeOfInputs } from '../shared/weigh.js';
 import { lifeFactsOf } from '../shared/lastsWords.js';
 import { shortfallOf } from '../shared/shortfall.js';
@@ -485,8 +485,8 @@ function planCaseC(checked, now, env, { lives = livesOf(env.futures, env), dragP
 /**
  * "Try the bad years" (7.9.0; the build spec's §2.2) on C's answer: the answer's own case — the plan, the weights, the level,
  * the plan-to age's month and the words' facts (lf) — and `monthsAt({ H, shock, dragPct })`, each future's run-out month
- * (null: it lasted) at H a year take-home, with what is left at the plan-to age by the answer's own reader (band.js leftAt;
- * on the lives, stopAt.js leftAtStop), on the answer's futures made worse by `shock` (ladderEngine.shockPath; its start set
+ * (null: it lasted) at H a year take-home, with what is left at the plan-to age (on the plan path the kept plan's own,
+ * planPath leftTermsOf; from now otherwise band.js leftAt; on the lives stopAt.js leftAtStop), on the answer's futures made worse by `shock` (ladderEngine.shockPath; its start set
  * here: from now 0, on the lives 12·S, so the saving years are as they were) or with lower returns (`dragPct`, the
  * household's returnDragPct). No answer result is read or changed: answerC runs exactly as before. null when the answer has
  * no pot to draw on, or the inputs are not ones it answers.
@@ -509,7 +509,7 @@ export function stressCaseOf(inputs, env) {
     const monthsAt = ({ H, shock = null, dragPct = 0 }) => {
       const c = shock || dragPct > 0 ? planCaseC(checked, now, env, { lives: shock ? livesOf(n, { ...env, shock: { ...shock, from: 0 } }) : main.lives, dragPct }) : main;
       const months = verdictAt(c.sp, c.runner, H, { weigher, level, toMonth }).runOutMonths;
-      return { months, left: leftAtStop(c.sp, c.runner, H, months, toMonth), plan: c.words };
+      return { months, left: c.pc.leftTermsOf(H, months), plan: c.words };
     };
     return { q: 'c', inputs: checked.inputs, plan, weigher, level, toMonth, lf, n, drawingNow: true, monthsAt };
   }
@@ -552,7 +552,7 @@ function answerOnPlanPath(checked, now, env) {
     const perMonth = ins.take;
     const v = verdictAt(sp, runner, perMonth * 12, { weigher, level, toMonth });
     take = { perMonth, lasted: v.lasted, runOutAge: v.runOutAge, covered: v.verdict === 'yes', weighted: v.weighted, verdict: v.verdict, phases: phasesOf(c.words, perMonth * 12) };
-    if (weigher.weighted && perMonth > 0) takeSf = shortfallOf(c.words, v.runOutMonths, perMonth * 12, { toMonth, left: leftAtStop(sp, runner, perMonth * 12, v.runOutMonths, toMonth) });
+    if (weigher.weighted && perMonth > 0) takeSf = shortfallOf(c.words, v.runOutMonths, perMonth * 12, { toMonth, left: pc.leftTermsOf(perMonth * 12, v.runOutMonths) });
   }
   const startAge = runner.plan.startAge;
   const result = {
@@ -575,7 +575,7 @@ function answerOnPlanPath(checked, now, env) {
   if (weigher.weighted) {
     result.basis.weighted = true;
     facts.weighing = { lf: lifeFactsOf(result, weigher, c.runPlan, ins),
-      sf: shownMonthly > 0 ? shortfallOf(c.words, lv[level].months, H, { toMonth, left: leftAtStop(sp, runner, H, lv[level].months, toMonth) }) : null, takeSf };
+      sf: shownMonthly > 0 ? shortfallOf(c.words, lv[level].months, H, { toMonth, left: pc.leftTermsOf(H, lv[level].months) }) : null, takeSf };
   }
   result.sentences = sentencesFor(result, facts);
   result.assumed = assumedFor(result, facts);

@@ -272,10 +272,12 @@ describe('browser tests: rules kept by reading the files', () => {
     });
 
     // (7.8.0: the final figure and the every-age step count the weighted run — 15 s → 20 s, 30 s → 40 s)
-    it('the counted first answers keep the brief\'s budgets: A 4 things, B 5; 4 screens (the budget step adds one); 8 clicks; 3 s, 20 s, 40 s more', () => {
+    // (lead4.md R6, Nov 2026: no 100-future first figure is shown — the page says it is working the answer out until the
+    // 1,000-future run lands — so the first figure IS the final one and its budget is the final figure's: 3 s → 20 s)
+    it('the counted first answers keep the brief\'s budgets: A 4 things, B 5; 4 screens (the budget step adds one); 8 clicks; the first figure is the final one, 20 s, 40 s more', () => {
       const helper = code(read('e2e/helpers/app.js'));
-      expect(helper).toMatch(/a: \{ mustFill: 4, screens: 4, clicks: 8, firstMs: 3_000, finalMs: 20_000, optionalMs: 40_000/);
-      expect(helper).toMatch(/b: \{ mustFill: 5, screens: 4, clicks: 8, firstMs: 3_000, finalMs: 20_000, optionalMs: 40_000/);
+      expect(helper).toMatch(/a: \{ mustFill: 4, screens: 4, clicks: 8, firstMs: 20_000, finalMs: 20_000, optionalMs: 40_000/);
+      expect(helper).toMatch(/b: \{ mustFill: 5, screens: 4, clicks: 8, firstMs: 20_000, finalMs: 20_000, optionalMs: 40_000/);
       // A phone four times slower than the reference machine: 4 there, scaled by this machine's measured speed
       // elsewhere, never above 4 and never below 1.
       expect(helper).toMatch(/SLOWDOWN = Number\(process\.env\.E2E_SLOWDOWN\) \|\| 4\b/);

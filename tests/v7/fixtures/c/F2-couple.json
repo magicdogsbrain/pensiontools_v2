@@ -1314,7 +1314,7 @@
       },
       "left": {
         "id": "c.left",
-        "text": "If one of you is still alive when the younger of you is 100, what is typically left then is £318,000 at today's prices. In the best 1 in 10 futures it is £1,796,000 or more.",
+        "text": "If one of you is still alive when the younger of you is 100, what is typically left then is £495,000 at today's prices. In the best 1 in 10 futures it is £1,592,000 or more.",
         "parts": [
           "If one of you is still alive when the younger of you is ",
           {
@@ -1322,7 +1322,7 @@
           },
           ", what is typically left then is ",
           {
-            "fixed": "£318,000"
+            "fixed": "£495,000"
           },
           " at today's prices. In the best ",
           {
@@ -1334,7 +1334,7 @@
           },
           " futures it is ",
           {
-            "fixed": "£1,796,000"
+            "fixed": "£1,592,000"
           },
           " or more."
         ]
@@ -1796,7 +1796,7 @@
       },
       "takeLeft": {
         "id": "c.take.left",
-        "text": "If one of you is still alive when the younger of you is 100, what is typically left then is £267,000 at today's prices. In the best 1 in 10 futures it is £1,627,000 or more.",
+        "text": "If one of you is still alive when the younger of you is 100, what is typically left then is £396,000 at today's prices. In the best 1 in 10 futures it is £1,442,000 or more.",
         "parts": [
           "If one of you is still alive when the younger of you is ",
           {
@@ -1804,7 +1804,7 @@
           },
           ", what is typically left then is ",
           {
-            "fixed": "£267,000"
+            "fixed": "£396,000"
           },
           " at today's prices. In the best ",
           {
@@ -1816,7 +1816,7 @@
           },
           " futures it is ",
           {
-            "fixed": "£1,627,000"
+            "fixed": "£1,442,000"
           },
           " or more."
         ]

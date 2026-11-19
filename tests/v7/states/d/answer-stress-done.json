@@ -734,7 +734,7 @@
           },
           "left": {
             "id": "d.left",
-            "text": "If you live to 99, what is typically left then is £54,000 at today's prices. In the best 1 in 10 futures it is £582,000 or more.",
+            "text": "If you live to 99, what is typically left then is £57,000 at today's prices. In the best 1 in 10 futures it is £586,000 or more.",
             "parts": [
               "If you live to ",
               {
@@ -742,7 +742,7 @@
               },
               ", what is typically left then is ",
               {
-                "fixed": "£54,000"
+                "fixed": "£57,000"
               },
               " at today's prices. In the best ",
               {
@@ -754,7 +754,7 @@
               },
               " futures it is ",
               {
-                "fixed": "£582,000"
+                "fixed": "£586,000"
               },
               " or more."
             ]
@@ -1043,8 +1043,8 @@
               "spAge": null
             },
             "left": {
-              "typical": 54000,
-              "best": 582000,
+              "typical": 57000,
+              "best": 586000,
               "mostNone": false
             }
           },
@@ -1213,7 +1213,7 @@
             },
             "left": {
               "typical": 0,
-              "best": 198000,
+              "best": 201000,
               "mostNone": true
             }
           },
@@ -1450,7 +1450,7 @@
             },
             "left": {
               "typical": 0,
-              "best": 298000,
+              "best": 308000,
               "mostNone": true
             }
           },
@@ -1687,7 +1687,7 @@
             },
             "left": {
               "typical": 0,
-              "best": 330000,
+              "best": 329000,
               "mostNone": true
             }
           },
@@ -1926,8 +1926,8 @@
               "spAge": null
             },
             "left": {
-              "typical": 28000,
-              "best": 514000,
+              "typical": 27000,
+              "best": 519000,
               "mostNone": false
             }
           },

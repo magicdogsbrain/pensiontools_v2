@@ -942,6 +942,18 @@
               "."
             ]
           },
+          "left": {
+            "id": "d.left",
+            "text": "In more than half the futures nothing is left at 98.",
+            "parts": [
+              "In more than half the futures nothing is left ",
+              "at ",
+              {
+                "fixed": "98"
+              },
+              "."
+            ]
+          },
           "cost": {
             "id": "d.cost",
             "text": "Careful asks for £70 a month less than Balanced. Bold would let you take £180 a month more.",

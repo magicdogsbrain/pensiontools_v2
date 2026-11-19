@@ -671,6 +671,33 @@
           "."
         ]
       },
+      "left": {
+        "id": "c.left",
+        "text": "If you live to 99, what is typically left then is £29,000 at today's prices. In the best 1 in 10 futures it is £167,000 or more.",
+        "parts": [
+          "If you live to ",
+          {
+            "fixed": "99"
+          },
+          ", what is typically left then is ",
+          {
+            "fixed": "£29,000"
+          },
+          " at today's prices. In the best ",
+          {
+            "fixed": "1"
+          },
+          " in ",
+          {
+            "fixed": "10"
+          },
+          " futures it is ",
+          {
+            "fixed": "£167,000"
+          },
+          " or more."
+        ]
+      },
       "cost": {
         "id": "c.cost",
         "text": "Careful asks for £60 a month less than Balanced. Bold would let you take £150 a month more.",
@@ -948,6 +975,18 @@
           " a year after tax",
           ", ",
           "from your pensions",
+          "."
+        ]
+      },
+      "takeLeft": {
+        "id": "c.take.left",
+        "text": "In more than half the futures nothing is left at 99.",
+        "parts": [
+          "In more than half the futures nothing is left ",
+          "at ",
+          {
+            "fixed": "99"
+          },
           "."
         ]
       }

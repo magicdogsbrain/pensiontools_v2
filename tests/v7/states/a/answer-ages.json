@@ -1770,7 +1770,7 @@
           },
           "left": {
             "id": "a.left",
-            "text": "If you live to 100, what is typically left then is £393,000 at today's prices. In the best 1 in 10 futures it is £2,295,000 or more.",
+            "text": "If you live to 100, what is typically left then is £407,000 at today's prices. In the best 1 in 10 futures it is £2,304,000 or more.",
             "parts": [
               "If you live to ",
               {
@@ -1778,7 +1778,7 @@
               },
               ", what is typically left then is ",
               {
-                "fixed": "£393,000"
+                "fixed": "£407,000"
               },
               " at today's prices. In the best ",
               {
@@ -1790,7 +1790,7 @@
               },
               " futures it is ",
               {
-                "fixed": "£2,295,000"
+                "fixed": "£2,304,000"
               },
               " or more."
             ]

@@ -29,6 +29,15 @@ describe('a gilt known by its name', () => {
     }
     expect(read('Treasury 0.125% I/L 22/03/2029').ticker).toBe('T29');
   });
+  // And the reverse: a name without index-linked words that only ONE gilt fits is that gilt, of whichever kind. In 2031 the
+  // bundled list has 4 1/8%, 0¼%, 4% (ordinary) and 0 1/8% index-linked (TR31): only TR31 pays 0.125%. In 2034, 4 5/8%,
+  // 4¼%, 4½% (ordinary) and 0¾% index-linked (TRTQ): only TRTQ pays 0.75%. The kind decides only when more than one fits
+  // (0.125% 2028 above: TN28 and T28 both fit, so the ordinary one).
+  it('a name that only an index-linked gilt fits is that gilt', () => {
+    expect([read('Treasury 0.125% 2031').ticker, read('Treasury 0.125% 2031').subClass]).toEqual(['TR31', 'indexLinked']);
+    expect([read('Treasury 0.75% 2034').ticker, read('Treasury 0.75% 2034').subClass]).toEqual(['TRTQ', 'indexLinked']);
+    expect(read('Treasury 4% IL 2031').ticker).toBe('');      // index-linked words never name the ordinary 4% 2031
+  });
   it('a code in the name is the gilt\'s own', () => {
     expect([read('TR28').kind, read('TR28').ticker, read('TR28').subClass]).toEqual(['gilt', 'TR28', 'longGilts']);
     expect([read('Gilt TR31').ticker, read('Gilt TR31').subClass]).toEqual(['TR31', 'indexLinked']);

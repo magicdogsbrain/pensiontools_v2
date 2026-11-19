@@ -78,7 +78,11 @@ export function giltOfName(name) {
   if (byCode && (!il || isIl(byCode)) && (coupon == null || sameCoupon(byCode, coupon))) return byCode;
   const y = /\b(20\d{2})\b/.exec(s);
   if (!y) return null;
-  // by its year and kind, and its coupon when the name gives one: only when exactly one fits
-  const byYear = GILTS.filter((g) => String(g.maturity || '').slice(0, 4) === y[1] && kindOk(g) && (coupon == null || sameCoupon(g, coupon)));
-  return byYear.length === 1 ? byYear[0] : null;
+  // by its year, and its coupon when the name gives one; the kind decides only when more than one gilt fits (as `narrow`):
+  // "Treasury 0.125% 2031" names only the index-linked TR31, so it is TR31 though its name says nothing of index-linking.
+  // Index-linked words never name an ordinary gilt (as the code branch).
+  let byYear = GILTS.filter((g) => String(g.maturity || '').slice(0, 4) === y[1] && (coupon == null || sameCoupon(g, coupon)));
+  if (byYear.length > 1) byYear = byYear.filter(kindOk);
+  const one = byYear.length === 1 ? byYear[0] : null;
+  return one && (!il || isIl(one)) ? one : null;
 }

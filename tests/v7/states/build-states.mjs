@@ -35,7 +35,10 @@ import { SCHEMA_B } from '../../../src/answers/b/schema.js';
 import { answerA } from '../../../src/answers/a/answer.js';
 import { answerB } from '../../../src/answers/b/answer.js';
 import { SCHEMA_D } from '../../../src/answers/d/schema.js';
-import { answerD } from '../../../src/answers/d/answer.js';
+import { answerD as answerOnEnv } from '../../../src/answers/d/answer.js';
+import * as planPath from '../../../src/answers/keep/planPath.js';
+// (7.12.0: one person's D runs on the plan path, handed in as the worker hands it: src/answers/index.js answerFor)
+const answerD = (inputs, env) => answerOnEnv(inputs, { ...env, planPath });
 import { outOfTen } from '../../../src/answers/shared/format.js';
 import { legacyVerdictOf as verdictOf } from '../../../src/answers/shared/rules.js';
 import { emptySaverDraft, emptySaverAnswer } from '../../../src/v7/state/initial.js';
@@ -51,7 +54,7 @@ import { stripAmountOf } from '../../../src/v7/state/select.js';
  */
 function withStrip(s, q, status = 'done') {
   const r = s.answers[q].result;
-  const result = status === 'done' ? runStressStrip(q, r.inputs, { today: r.basis.today, futures: r.basis.futures, seed: r.basis.seed ?? 0 }, { perMonth: stripAmountOf(q, r) }) : null;
+  const result = status === 'done' ? runStressStrip(q, r.inputs, { today: r.basis.today, futures: r.basis.futures, seed: r.basis.seed ?? 0, planPath }, { perMonth: stripAmountOf(q, r) }) : null;
   s.stressStrip = { q, key: s.answers[q].inputsKey, status, result, reason: null };
   return s;
 }
@@ -429,9 +432,12 @@ function buildDStates({ today, futures, inputsKey: keyOf }) {
     states['answer-working'] = s;
   }
   states['answer-first'] = answered('answer-first', 'answer', D1, { status: 'first', n: 100 });
-  states['answer-D1'] = answered('answer-D1', 'answer', D1, { kind: 'close' });
-  states['answer-stress-done'] = withStrip(answered('answer-stress-done', 'answer', D1, { kind: 'close' }), 'd');
-  states['answer-stress-working'] = withStrip(answered('answer-stress-working', 'answer', D1, { kind: 'close' }), 'd', 'working');
+  // (7.12.0: on the plan path the worked example's £2,100 a month is a "no" at 1,000 futures — 0.848 weighted, as the plan
+  // kept from it says — so the "close" states take £2,050, which the kept plan calls close: 0.881)
+  const D1_CLOSE = { ...D1, 'spend.amount': '2,050' };
+  states['answer-D1'] = answered('answer-D1', 'answer', D1_CLOSE, { kind: 'close' });
+  states['answer-stress-done'] = withStrip(answered('answer-stress-done', 'answer', D1_CLOSE, { kind: 'close' }), 'd');
+  states['answer-stress-working'] = withStrip(answered('answer-stress-working', 'answer', D1_CLOSE, { kind: 'close' }), 'd', 'working');
   states['answer-yes'] = answered('answer-yes', 'answer', { ...D1, 'spend.amount': '1,800' }, { kind: 'yes' });
   states['answer-no'] = answered('answer-no', 'answer', { ...D1, 'spend.amount': '2,600' }, { kind: 'no' });
   states['answer-D2-couple'] = answered('answer-D2-couple', 'answer', D2, { kind: 'couple' });
@@ -456,7 +462,7 @@ function buildDStates({ today, futures, inputsKey: keyOf }) {
   }
   // "Keep this as a plan?" before there is an answer, and with one
   states['keep-no-answer'] = dState('keep', D1);
-  states['keep-D1'] = answered('keep-D1', 'keep', D1, { kind: 'close' });
+  states['keep-D1'] = answered('keep-D1', 'keep', D1_CLOSE, { kind: 'close' });
   return { states, patched: [], answer: 'src/answers/d/answer.js' };
 }
 

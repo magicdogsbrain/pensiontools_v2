@@ -187,7 +187,7 @@ describe('the strip\'s machinery', () => {
     const { store, key } = answered();
     let s = store.getState();
     expect(s.stressStrip).toEqual(emptyStressStrip());
-    expect(stressStripView(s, 'd')).toMatchObject({ q: 'd', inputsKey: key, perMonth: 2100, status: 'idle', result: null });
+    expect(stressStripView(s, 'd')).toMatchObject({ q: 'd', inputsKey: key, perMonth: 2050, status: 'idle', result: null });
     expect(reduce(s, { type: A.STRIP_RUN, q: 'd', inputsKey: 'other' }), 'not the answer on screen').toBe(s);
     expect(() => reduce(s, { type: A.STRIP_RUN, q: 'a', inputsKey: key })).toThrow(/only under C and D/);
     s = reduce(s, { type: A.STRIP_RUN, q: 'd', inputsKey: key });
@@ -218,7 +218,7 @@ describe('the strip\'s machinery', () => {
     const stop = startStressStripRunner({ store, client: { stressStrip: (q, inputs, env, at) => { calls.push({ q, inputs, env, at }); return Promise.resolve({ status: 'ok', q, rows: [{ id: 'asPlanned' }] }); }, stop: (q) => stopped.push(q) } });
     store.dispatch({ type: A.STRIP_RUN, q: 'd', inputsKey: key });
     await tick();
-    expect(calls).toEqual([{ q: 'd', inputs: result.inputs, env: { today: result.basis.today, futures: result.basis.futures, seed: result.basis.seed ?? 0 }, at: { perMonth: 2100 } }]);
+    expect(calls).toEqual([{ q: 'd', inputs: result.inputs, env: { today: result.basis.today, futures: result.basis.futures, seed: result.basis.seed ?? 0 }, at: { perMonth: 2050 } }]);
     expect(store.getState().stressStrip.status).toBe('done');
     stop();
     const p2 = answered();

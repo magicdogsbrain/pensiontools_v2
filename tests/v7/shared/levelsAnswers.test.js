@@ -14,7 +14,7 @@ import { describe, it, expect } from 'vitest';
 import { answerA } from '../../../src/answers/a/answer.js';
 import { answerB } from '../../../src/answers/b/answer.js';
 import { answerC } from '../../../src/answers/c/answer.js';
-import { answerD } from '../../../src/answers/d/answer.js';
+import { answerD } from '../d/_d.js';
 import { SUCCESS, legacyVerdictOf, LEVEL_FAILS20 } from '../../../src/answers/shared/rules.js';
 
 const ENV = { today: '2026-09-30', futures: 40, seed: 0 };
@@ -137,10 +137,14 @@ describe('the weighted path on the ONS tables (the shipped state)', () => {
     const young = { you: { age: 50, pot: 600000, taxFreeTaken: 'no' }, spend: { kind: 'amount', amount: 1500 }, endAge: 100 };
     expect(answerD(young, OFF).basis.years).toBe(45);
     // while weighing the run goes on past the end age to the weighting age (1 in 50 still alive), at most 60 years
+    // (7.12.0, the plan path: one person's D runs on the plan keeping it would write, and a kept plan runs at most 45 years
+    // (RULES.maxYears, the planner's longest) — so the plan-to age is 95, said as cut short, and the run still goes on to the
+    // weighting age; before, the answer ran 50 years to 100 and the plan kept from it 45)
     const w = answerD(young, W);
     expect(w.basis.weightToAge).toBeGreaterThan(100);
     expect(w.basis.lifeYears).toBe(Math.min(60, w.basis.weightToAge - 50));
-    expect(w.basis.years).toBe(50);
-    expect(w.basis.endAge).toBe(100);
+    expect(w.basis.years).toBe(45);
+    expect(w.basis.endAge).toBe(95);
+    expect(w.chance.horizonRule).toBe('capped');
   });
 });

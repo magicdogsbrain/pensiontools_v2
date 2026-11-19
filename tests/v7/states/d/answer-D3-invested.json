@@ -138,47 +138,53 @@
           "level": null
         },
         "verdict": "no",
-        "fails": 559,
-        "lasted": 0.441,
-        "runOutAge": 83,
+        "fails": 585,
+        "lasted": 0.415,
+        "runOutAge": 82,
         "outOfTen": {
           "words": "in only 4 futures out of 10",
           "only": true,
           "count": 4
         },
+        "floorAge": 89,
+        "left": {
+          "age": 99,
+          "typical": 0,
+          "best": 330756
+        },
         "level": "balanced",
         "levels": {
           "careful": {
-            "monthly": 1690,
-            "yearly": 20280,
-            "weighted": 0.9528915876327082,
-            "fixedAge": 0.863
+            "monthly": 1670,
+            "yearly": 20040,
+            "weighted": 0.9515194128183648,
+            "fixedAge": 0.869
           },
           "balanced": {
-            "monthly": 1780,
-            "yearly": 21360,
-            "weighted": 0.9030541180018336,
-            "fixedAge": 0.744
+            "monthly": 1750,
+            "yearly": 21000,
+            "weighted": 0.9065830907393246,
+            "fixedAge": 0.773
           },
           "bold": {
-            "monthly": 2010,
-            "yearly": 24120,
-            "weighted": 0.7043978875940666,
-            "fixedAge": 0.427
+            "monthly": 1980,
+            "yearly": 23760,
+            "weighted": 0.7029602428805083,
+            "fixedAge": 0.443
           }
         },
         "chance": {
-          "weighted": 0.7140369681417942,
-          "fixedAge": 0.441,
-          "fails": 559,
+          "weighted": 0.6832209877828136,
+          "fixedAge": 0.415,
+          "fails": 585,
           "n": 1000,
           "planToAge": 99,
-          "weightToAge": 103,
+          "weightToAge": 104,
           "horizonRule": "survival"
         },
         "headroom": {
           "kind": "less",
-          "perMonth": 220
+          "perMonth": 250
         },
         "guaranteed": {
           "monthlyAfterTax": 1045.63
@@ -394,7 +400,7 @@
             "field": "endAge",
             "source": "default",
             "value": 99,
-            "text": "Your plan runs to 99, when fewer than 1 in 10 women your age are still alive. We follow each future on to 103, when fewer than 1 in 50 are.",
+            "text": "Your plan runs to 99, when fewer than 1 in 10 women your age are still alive. We follow each future on to 104, when fewer than 1 in 50 are.",
             "parts": [
               "Your plan runs to ",
               {
@@ -413,7 +419,7 @@
               " are still alive.",
               " We follow each future on to ",
               {
-                "fixed": "103"
+                "fixed": "104"
               },
               ", when fewer than ",
               {
@@ -546,7 +552,7 @@
           },
           "line": {
             "id": "d.line.weighted",
-            "text": "Counting how long people your age live, £2,000 a month after tax lasts as long as you do 14 times in 20.",
+            "text": "Counting how long people your age live, £2,000 a month after tax lasts as long as you do 13 times in 20.",
             "parts": [
               "Counting how long people your age live",
               ", ",
@@ -558,7 +564,7 @@
               "as long as you do",
               " ",
               {
-                "fixed": "14"
+                "fixed": "13"
               },
               " times in ",
               {
@@ -570,11 +576,11 @@
           },
           "bad": {
             "id": "d.when",
-            "text": "We follow each future on to 103. In the futures where the money runs out before then, it typically runs out at 89. In the worst 1 in 10 of all the futures, by 83.",
+            "text": "We follow each future on to 104. In the futures where the money runs out before then, it typically runs out at 89. In the worst 1 in 10 of all the futures, by 82.",
             "parts": [
               "We follow each future on to ",
               {
-                "fixed": "103"
+                "fixed": "104"
               },
               ". In the futures where the money runs out before then",
               ", it typically runs out ",
@@ -594,14 +600,14 @@
               " of all the futures, ",
               "by ",
               {
-                "fixed": "83"
+                "fixed": "82"
               },
               "."
             ]
           },
           "headroom": {
             "id": "d.less",
-            "text": "At Balanced, about £1,780 a month lasts as long as you do 18 times in 20. That is £220 a month less than you spend now.",
+            "text": "At Balanced, about £1,750 a month lasts as long as you do 18 times in 20. That is £250 a month less than you spend now.",
             "parts": [
               "At ",
               "Balanced",
@@ -632,7 +638,7 @@
           },
           "levels": {
             "id": "d.levels",
-            "text": "At Careful, about £1,690 a month. At Bold, about £2,010 a month.",
+            "text": "At Careful, about £1,670 a month. At Bold, about £1,980 a month.",
             "parts": [
               "At Careful, about ",
               {
@@ -741,7 +747,7 @@
           },
           "fixed": {
             "id": "d.fixed",
-            "text": "If you live to 99, the money lasts that long in 9 of 20 futures we tried.",
+            "text": "If you live to 99, the money lasts that long in 8 of 20 futures we tried.",
             "parts": [
               "If you live to ",
               {
@@ -749,7 +755,7 @@
               },
               ", the money lasts that long in ",
               {
-                "fixed": "9"
+                "fixed": "8"
               },
               " of ",
               {
@@ -831,11 +837,11 @@
           },
           "cost": {
             "id": "d.cost",
-            "text": "Careful asks for £90 a month less than Balanced. Bold would let you take £230 a month more.",
+            "text": "Careful asks for £80 a month less than Balanced. Bold would let you take £230 a month more.",
             "parts": [
               "Careful asks for ",
               {
-                "fixed": "£90"
+                "fixed": "£80"
               },
               " a month less than Balanced.",
               " ",
@@ -848,7 +854,7 @@
           },
           "headroomFixed": {
             "id": "d.more.fixed",
-            "text": "At £1,780 a month: if you live to 99, the money lasts that long in 15 of 20 futures we tried.",
+            "text": "At £1,750 a month: if you live to 99, the money lasts that long in 15 of 20 futures we tried.",
             "parts": [
               "At ",
               {
@@ -880,7 +886,7 @@
           "level": "balanced",
           "levelFails20": 2,
           "planToAge": 99,
-          "weightToAge": 103,
+          "weightToAge": 104,
           "tablesVersion": "ons-ew-2024-cohort/1",
           "sexUsed": {
             "you": "f"
@@ -975,6 +981,120 @@
     "leaveProblem": null,
     "saving": null,
     "saveProblem": null,
-    "toast": null
+    "toast": null,
+    "action": null,
+    "download": null,
+    "guest": {
+      "minutes": 0,
+      "usedUp": false,
+      "nag": null
+    },
+    "bringIn": null,
+    "account": {
+      "mode": "signIn",
+      "busy": null,
+      "problem": null,
+      "note": null,
+      "confirm": null,
+      "deleted": null
+    },
+    "profile": null,
+    "news": {
+      "popup": null,
+      "page": null,
+      "seen": null
+    },
+    "assumptions": null,
+    "several": null,
+    "severalDone": null
+  },
+  "ways": {
+    "key": null,
+    "status": "idle",
+    "reason": null,
+    "result": null,
+    "progress": null,
+    "slow": false,
+    "ran": null,
+    "open": null,
+    "dials": {},
+    "tried": {},
+    "rankBy": "lasts"
+  },
+  "mix": {
+    "key": null,
+    "tries": {},
+    "compare": {
+      "status": "idle",
+      "result": null,
+      "ms": null,
+      "progress": null,
+      "reason": null
+    },
+    "pick": null
+  },
+  "household": {
+    "key": null,
+    "status": "idle",
+    "limit": null,
+    "need": null,
+    "reason": null,
+    "result": null,
+    "progress": null,
+    "ms": null,
+    "survivor": null,
+    "care": null,
+    "pick": null
+  },
+  "move": {
+    "key": null,
+    "status": "idle",
+    "result": null,
+    "ms": null,
+    "reason": null,
+    "index": null
+  },
+  "saver": {
+    "key": null,
+    "status": "idle",
+    "result": null,
+    "reason": null
+  },
+  "checkIn": {
+    "planId": null,
+    "date": null,
+    "result": null
+  },
+  "keepTest": {
+    "key": null,
+    "planId": null,
+    "status": "idle",
+    "result": null,
+    "reason": null,
+    "progress": null
+  },
+  "stressPanel": {
+    "key": null,
+    "planId": null,
+    "status": "idle",
+    "order": [],
+    "rows": {},
+    "reason": null
+  },
+  "stressStrip": {
+    "q": null,
+    "key": null,
+    "status": "idle",
+    "result": null,
+    "reason": null
+  },
+  "review": {
+    "key": null,
+    "planId": null,
+    "status": "idle",
+    "order": [],
+    "rows": {},
+    "pots": null,
+    "reason": null
   }
 }

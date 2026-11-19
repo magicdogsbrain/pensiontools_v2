@@ -328,7 +328,7 @@ describe('D: "Keep this as a plan" (road-to-7.md step 7)', () => {
     const root = renderScreen(state);
     const box = one(root, 'd.keep.name');
     expect(box.value).toBe(suggestedPlanName('d', r.inputs, r));
-    expect(box.value).toBe('From 68 · £2,100 a month');
+    expect(box.value).toBe('From 68 · £2,050 a month');
     expect(one(root, 'd.action.save').textContent).toBe(KEEP.save);
     expect(root.querySelector('[data-region="keep"] h2').textContent).toBe(KEEP.title);
   });

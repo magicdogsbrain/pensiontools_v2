@@ -90,6 +90,10 @@ const ADDED_AFTER_THE_PINS = Object.freeze({
  * savers whose first tax year starts in the month they stop. The ladder buys that year for its months: 05's first year
  * £36,000 → £6,000 (2 months), its cash £72,360 → £42,360; 10's £18,000 → £4,500 (3 months), cash £36,271 → £22,771.
  * The plan's new `year0Months` is read as the pins had it (asPinned). Node 20's six are to be retaken on Node 20.
+ * The household's years (7.12.0) retook six on Node 24, the household split only: 02 and 09 at the corpus clock, 10 at it
+ * (with 09 as partner) and 20 at all three: a retired person's years start this year (HouseholdService.startOffset), so a
+ * retiree whose plan counts from a birthday above today's age is no longer placed a year late. `paidNow` (spFor: a State
+ * Pension already being paid) is a field the split echoes, left out of the digest like potsAsOf.
  */
 const NODE = String(process.versions.node).split('.')[0];
 // One pins file per Node major, each taken on the code before the change with that Node: simulated money can differ in
@@ -104,7 +108,7 @@ const names = pinned ? Object.keys(pinned.fixtures) : Object.keys(raws);
 
 /** JSON of a value with functions left out and numbers as given (`exact`) or to 6 significant figures (`sf6`). */
 const digest = (v) => {
-  const json = (round) => JSON.stringify(v, (k, x) => (typeof x === 'function' || k === 'potsAsOf' || k === 'potsNotSet' ? undefined
+  const json = (round) => JSON.stringify(v, (k, x) => (typeof x === 'function' || k === 'potsAsOf' || k === 'potsNotSet' || k === 'paidNow' ? undefined
     : typeof x === 'number' ? (Number.isFinite(x) ? (round ? Number(x.toPrecision(6)) : x) : String(x)) : x));
   const sha = (s) => createHash('sha1').update(s == null ? 'undefined' : s).digest('hex').slice(0, 16);
   return { sf6: sha(json(true)), exact: sha(json(false)) };

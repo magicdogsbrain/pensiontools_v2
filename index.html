@@ -5574,7 +5574,7 @@
     }
 
     function exampleLadderHtml(rungYears, drawForYear, caption) {
-      const sheet = orderSheet({ rungYears, drawForYear, startYear: new Date().getFullYear() });
+      const sheet = orderSheet({ rungYears, drawForYear, startYear: todayOf().getFullYear() });
       let h = '<details style="margin-top:10px;"><summary class="hint" style="cursor:pointer;">Example ladder — how rungs like these could be priced from gilts in issue (illustration only)</summary>';
       h += '<div class="alert alert-warning" style="margin:8px 0;font-size:12px;"><strong>Illustration, not advice.</strong> ' + budEsc(sheet.notice)
         + ' Rungs are priced on the <strong>' + budEsc(sheet.priced) + '</strong>; the gilt prices shown are delayed exchange prices as of ' + budEsc(sheet.as_of || '—') + ' (' + budEsc(sheet.source || '') + '). '
@@ -7178,7 +7178,7 @@
       try {
         const stage = window._lifeStage || await refreshLifeStage();
         const doc = await getActivePlanDocument();
-        const _now = new Date(); const today = new Date(_now.getFullYear(), _now.getMonth(), _now.getDate(), 12);   // noon of the day, as V7 reads it (7.11.1): both views give the same figures
+        const today = todayOf();   // the one clock (src/reading/clock.js): noon of the day, as the simple view reads it
         const ssLive = await getStressSettingsAsync();
         const target = targetHoldings(doc, { today, params: ssLive.strategyParams || null });   // live params: a fired rotation's sold block drops out of the target
         // What you hold (6.13.0): the plan-level record — never the Stress tester's funds-to-test list.
@@ -7193,7 +7193,7 @@
         const gaps = transitionGaps(storedPlan, rec, today), held = transitionHeld(storedPlan, rec, today);   // "What is covered, year by year" (7.6.0) and, Living on it, what is held, never a move (7.11.1): V7's readings
         const keepTest = transitionKeepTest(storedPlan, rec);   // "Test what you keep against your plan" (7.7.0): V7's reading, run only on its button
         let contributionsMonthly = 0; try { const hp = holdingsProportions(ledger); contributionsMonthly = hp.contributions.monthly || 0; if (!contributionsMonthly) { const acc = await getActiveAccumulation(); if (acc && (+acc.netMonthly > 0 || +acc.employerMonthly > 0)) contributionsMonthly = (+acc.netMonthly || 0) * 1.25 + (+acc.employerMonthly || 0); } } catch (e) { contributionsMonthly = 0; }
-        const seq = target.kind === 'none' ? null : transitionSequence(diff, { today, startYear: stage?.firstTaxYear || (doc?.timing?.firstTaxYear) || (new Date().getFullYear() + 1), startMonth: stage?.startMonth || doc?.timing?.startMonth || null, opensAt: transitionOpensAt(storedPlan, today), contributionsMonthly });
+        const seq = target.kind === 'none' ? null : transitionSequence(diff, { today, startYear: stage?.firstTaxYear || (doc?.timing?.firstTaxYear) || (today.getFullYear() + 1), startMonth: stage?.startMonth || doc?.timing?.startMonth || null, opensAt: transitionOpensAt(storedPlan, today), contributionsMonthly });
         const tr = await getActiveTransition();
         const prog = transitionProgress(diff, tr.done || {});
         let rotation = null; try { const t = deriveTiming(ss); rotation = rotationStatus(doc, { today, ageToday: t.currentAge || null, params: ss.strategyParams || null }); } catch (e) { rotation = null; }
@@ -7283,7 +7283,7 @@
           + '</tbody></table></div>' : '<p class="hint">Nothing recorded yet. One line a month is enough — the plan document reads it against the locked path once the plan is locked.</p>';
         if (strip) {
           const doc = await getActivePlanDocument();
-          if (doc && doc.accumulation) { let holdings = null; try { holdings = await getActiveHoldings(); } catch (e) { holdings = null; } const w = whereAmI(doc, { today: new Date(), accHistory: hist, holdings }); strip.innerHTML = w ? whereAmIHtml(w) : ''; }
+          if (doc && doc.accumulation) { let holdings = null; try { holdings = await getActiveHoldings(); } catch (e) { holdings = null; } const w = whereAmI(doc, { today: todayOf(), accHistory: hist, holdings }); strip.innerHTML = w ? whereAmIHtml(w) : ''; }
           else strip.innerHTML = window._lifeStage && ['saving', 'approaching'].includes(window._lifeStage.key) ? '<p class="hint">If you lock the plan (Stress tester → Settings), this strip also reads each month\'s pot against the path drawn then. You do not need to lock it while you are saving.</p>' : '';
         }
       } catch (e) { el.innerHTML = '<p class="hint">Could not read the records: ' + budEsc(e.message) + '</p>'; }
@@ -7503,7 +7503,7 @@
       let locked = true; try { locked = await planIsLocked(); } catch (e) { locked = true; }   // cannot tell → do not offer
       let hasRecords = true; try { hasRecords = ((await getHistoryAsync()) || []).length > 0; } catch (e) { hasRecords = true; }   // months recorded = really running, not a draft
       const s = window._ssTimingBase || {};
-      return staleDraft(s, { locked, hasRecords, now: new Date() });
+      return staleDraft(s, { locked, hasRecords, now: todayOf() });
     }
     async function renderStaleDraftBanner() {
       const spots = document.querySelectorAll('.stale-draft-banner'); if (!spots.length) return;
@@ -7721,7 +7721,7 @@
     async function ladderPositionForPlan(settings, dateStr, extra) {
       try {
         const sid = settings.strategyId;
-        const today = dateStr ? new Date(dateStr + (dateStr.length === 7 ? '-15' : '')) : new Date();
+        const today = dateStr ? new Date(dateStr + (dateStr.length === 7 ? '-15' : '')) : todayOf();
         const locked = await lockedPlanLadder(settings);
         const key = String(planState.key || '') + '|' + (locked ? 'doc|' + (locked.doc.createdAt || '') : 'live|' + JSON.stringify(settings)) + '|' + taxYearOf(today);   // the plan, and every figure its draft ladder is built from (pots, cash years, State Pension…)
         if (!planState.ladderPos || planState.ladderPos.key !== key) {
@@ -7735,7 +7735,7 @@
           planState.ladderPos = { key, plan: shown.plan, source: shown.source };
         }
         return ladderPosition(planState.ladderPos.plan, {
-          today, potsDay: potsDayOf(settings, { lockedAt: locked ? locked.doc.lockedAt : ((await getDecisionSettingsAsync().catch(() => ({}))) || {}).lockedAt, now: new Date() }),   // a first year begun before the pots' day: over twelve months (6.51.0)
+          today, potsDay: potsDayOf(settings, { lockedAt: locked ? locked.doc.lockedAt : ((await getDecisionSettingsAsync().catch(() => ({}))) || {}).lockedAt, now: todayOf() }),   // a first year begun before the pots' day: over twelve months (6.51.0)
           cashBalance: extra && extra.cashBalance != null ? extra.cashBalance : null,
           drawnThisYear: extra && extra.drawnThisYear != null ? extra.drawnThisYear : null, records: await getHistoryAsync({ sortDesc: false, limit: 500 }).catch(() => [])   // with nothing typed, the months recorded this tax year (7.12.0)
         });
@@ -7965,7 +7965,7 @@
         const params = { ...(settings.strategyParams || {}), ...(st.params || {}) };
         window._rotCutAge = params.rotateCutAge || 75;
         let bannerHtml = banner + borrowedFloorLineHtml(settings);
-        const now = new Date();
+        const now = todayOf();
         const firstTY = deriveTiming(settings).firstTaxYear;   // 6.4.0: the plan's saved start, not 2026
         const planYear = Math.max(0, planYearOf(now, firstTY));
         const tMonths = Math.max(1, Math.round((now - new Date(firstTY, 3, 6)) / (30.44 * 24 * 3600 * 1000)));
@@ -8336,7 +8336,7 @@
       const amount = Math.max(0, +$('glxAmount').value || 0);
       const years = Math.max(1, Math.min(40, +$('glxYears').value || 10));
       const kind = $('glxKind').value === 'nominal' ? 'nominal' : 'real';
-      const sheet = orderSheet({ rungYears: Array.from({ length: years }, (_, i) => i + 1), drawForYear: () => amount, startYear: new Date().getFullYear(), kind });
+      const sheet = orderSheet({ rungYears: Array.from({ length: years }, (_, i) => i + 1), drawForYear: () => amount, startYear: todayOf().getFullYear(), kind });
       const total = sheet.total;
       const avgY = years ? sheet.rows.reduce((a, r) => a + r.realYield, 0) / years : 0;
       let h = '<div class="alert alert-info" style="font-size:13px;"><strong>Example:</strong> ' + gbp(amount) + ' a year for ' + years + ' years would cost about <strong>' + gbp(total) + '</strong> today'
@@ -9057,24 +9057,26 @@
       await new Promise((r) => setTimeout(r, 30));
       try {
         const [scenarios, stored, activeId] = await Promise.all([listScenariosAsync(), getStressSettingsAsync(), getActiveScenarioId()]);
-        const own = scenarios.find((sc) => sc.id === activeId), partner = scenarios.find((sc) => sc.id === partnerId), ownSettings = own ? effectiveStressSettings(own) : stored;
+        const own = scenarios.find((sc) => sc.id === activeId), partner = scenarios.find((sc) => sc.id === partnerId);
+        const now = contextFor(own, { now: todayOf(), plans: scenarios }).now;   // the one day both plans are seen from, as the simple view's household checks see them
+        const ownSettings = own ? effectiveStressSettings(own, { now }) : stored;
         // Both plans as their own tools read them (6.42.0; this plan's too from 7.12.0, as the simple view reads it): the Budget's age folded in, brought up to date
-        const partnerSettings = partner ? effectiveStressSettings(partner) : null, unset = [[own, ownSettings], [partner, partnerSettings]].map(([p, st]) => ({ p, r: testReadyOf(p, st) })).find((x) => !x.r.ready);   // never run on defaults; the Accumulation tab's figures count, and what is missing is named (7.12.0)
+        const partnerSettings = partner ? effectiveStressSettings(partner, { now }) : null, unset = [[own, ownSettings], [partner, partnerSettings]].map(([p, st]) => ({ p, r: testReadyOf(p, st) })).find((x) => !x.r.ready);   // never run on defaults; the Accumulation tab's figures count, and what is missing is named (7.12.0)
         if (unset) { out.innerHTML = '<div class="alert alert-warning">' + budEsc(householdNotSetWords(unset.p ? shownPlanName(unset.p) || unset.p.planDetails?.name : '', unset.r.missing)) + '</div>'; return; }
         const ownName = document.getElementById('hhOwnPlan').value, pName = partner.planDetails?.name || 'Partner';
-        const offsets = { a: startOffset(ownSettings), b: startOffset(partnerSettings) };
+        const offsets = { a: startOffset(ownSettings, now), b: startOffset(partnerSettings, now) };
         const idA = ownSettings.strategyId || 'pots-and-valves', idB = partnerSettings.strategyId || 'pots-and-valves';
         // Who draws what (6.25.0): the split that pays the least tax (HouseholdDraw), then both plans through the ONE test each
         // way — as they are, and drawing together — paired future for future on the shared market seed, pooled in the combination.
-        const split = householdDrawSplit({ settings: ownSettings, name: ownName }, { settings: partnerSettings, name: pName }, { limit: window._hhLimit || null });
-        const cfgOf = (st) => createSimulationConfigFromSettings({}, st, todayOf());
+        const split = householdDrawSplit({ settings: ownSettings, name: ownName }, { settings: partnerSettings, name: pName }, { limit: window._hhLimit || null, now });
+        const cfgOf = (st) => createSimulationConfigFromSettings({}, st, now);
         const ways = { own: { settingsA: ownSettings, cfgA: cfgOf(ownSettings), settingsB: partnerSettings, cfgB: cfgOf(partnerSettings) } };
         if (split.applies) ways.together = { settingsA: split.settings.a, cfgA: cfgOf(split.settings.a), settingsB: split.settings.b, cfgB: cfgOf(split.settings.b) };
         const dismissed = isSplitDismissed(await getHouseholdSplitDismissed(), partnerId, split.fingerprint);
         const { mode, locked } = splitWriteMode(own, partner, split.names);
         top.innerHTML = !split.applies ? splitNoneHtml({ split }) : dismissed ? splitDismissedHtml() : splitSectionHtml({ split, fig: null, mode, locked, running: true });
         let res;
-        try { res = await runInWorker('household-ways', { ways, needs: split.needs, idA, idB }); }
+        try { res = await runInWorker('household-ways', { ways, needs: split.needs, idA, idB, now: now.toISOString() }); }
         catch (e) {
           console.warn('engine worker unavailable, running inline', e);
           res = runHouseholdWays(ways, split.needs, idA, idB, (st, cfg, id) => { const p = strategyPlanFor(st); return { r: stressTestStrategy(id, p), p }; });
@@ -9083,13 +9085,13 @@
         if (bad) { top.innerHTML = ''; out.innerHTML = '<div class="alert alert-warning">One plan\'s strategy is not affordable as configured — ' + budEsc(bad.reason || '') + '. Fix that plan first.</div>'; return; }
         const r = res.own.combined;
         const fig = split.applies && res.together && res.together.combined ? comparisonFigures(split, res) : null;
-        window._hhLast = { cfgA: ways.own.cfgA, cfgB: ways.own.cfgB, ownSettings, partnerSettings, ownName, pName, split, fig, own, partner, mode, locked };
+        window._hhLast = { now, cfgA: ways.own.cfgA, cfgB: ways.own.cfgB, ownSettings, partnerSettings, ownName, pName, split, fig, own, partner, mode, locked };
         if (split.applies && !dismissed) top.innerHTML = splitSectionHtml({ split, fig, mode, locked });
         const stratNote = '<p class="hint" style="margin:6px 0 0;">Run with each plan\'s own strategy: <strong>' + budEsc(STRATEGY_NAMES[idA]) + '</strong> for ' + budEsc(ownName) + ', <strong>' + budEsc(STRATEGY_NAMES[idB]) + '</strong> for ' + budEsc(pName) + ' — paired future for future on the same markets' + ((offsets.a > 0 || offsets.b > 0) ? '; note that a partner who is still working is not year-shifted under a contract strategy, so the joint figure is approximate for the years before the State Pensions' : '') + '. "Lasts" means paid in full (for Floor to an age and Gilt ladder + rotation: never cut; for Floor &amp; flex: no lean year).</p>';
         const startsNote = householdStartWords({ offset: offsets.a, firstTaxYear: deriveTiming(ownSettings).firstTaxYear }, { offset: offsets.b, firstTaxYear: deriveTiming(partnerSettings).firstTaxYear });   // one plan begins later than the other (couples-different-years.md 7)
-        const thisYear = new Date().getFullYear();
+        const thisYear = now.getFullYear();
         out.innerHTML = verdictSectionHtml({ r, ownName, pName, stratNote, startsNote, setA: ownSettings, setB: partnerSettings, offsets })
-          + timelineSectionHtml(householdIncomeTimeline(ownSettings, partnerSettings), ownName, pName, thisYear)
+          + timelineSectionHtml(householdIncomeTimeline(ownSettings, partnerSettings, null, now), ownName, pName, thisYear)
           + wealthSectionHtml(r.potFan, thisYear)
           + whatToDoHtml(r, ownName, pName)
           + budgetShareHtml({ ownName, pName, sharedFrom: budgetSharedFromOf(own) === partnerId, sharedTo: budgetSharedFromOf(partner) === activeId })
@@ -9161,7 +9163,7 @@
         const aDies = document.getElementById('hhWhoDies').value === 'A';
         const years = +document.getElementById('hhDeathYear').value || 10, spendPct = +document.getElementById('hhSurvivorPct').value || 70;
         const sv = aDies ? L.partnerSettings : L.ownSettings, dc = aDies ? L.ownSettings : L.partnerSettings;
-        const args = { survivorSettings: sv, deceasedSettings: dc, deathYear: years, spendFraction: spendPct / 100, dbSurvivorPct: (+document.getElementById('hhDbSurvivorPct').value || 0) / 100 };
+        const args = { survivorSettings: sv, deceasedSettings: dc, deathYear: years, spendFraction: spendPct / 100, dbSurvivorPct: (+document.getElementById('hhDbSurvivorPct').value || 0) / 100, now: L.now };
         let res;
         try { res = await runInWorker('survivor', args); }
         catch (e) { console.warn('engine worker unavailable, running inline', e); res = runSurvivorCheck(args, oneTestInline); }
@@ -9180,7 +9182,7 @@
       try {
         const who = document.getElementById('hhCareWho').value;
         const startIn = +document.getElementById('hhCareStart').value || 15, years = +document.getElementById('hhCareYears').value || 3, annualCost = +document.getElementById('hhCareCost').value || 90000;
-        const args = { setA: L.ownSettings, setB: L.partnerSettings, who, startYear: startIn, years, annualCost, needs: L.split && L.split.needs ? L.split.needs.own : null };
+        const args = { setA: L.ownSettings, setB: L.partnerSettings, who, startYear: startIn, years, annualCost, needs: L.split && L.split.needs ? L.split.needs.own : null, now: L.now };
         let res;
         try { res = await runInWorker('care', args); }
         catch (e) { console.warn('engine worker unavailable, running inline', e); res = runCareCheck(args, oneTestInline); }
@@ -10587,7 +10589,7 @@
       const n = +v;
       if (!Number.isFinite(n)) return null;
       if (n > 1000) {
-        const birthYear = new Date().getFullYear() - (+window._budget.currentAge || 0);
+        const birthYear = todayOf().getFullYear() - (+window._budget.currentAge || 0);
         return Math.max(0, n - birthYear);
       }
       return n;
@@ -12186,7 +12188,7 @@
 
     // Get current tax year string
     function getCurrentTaxYear() {
-      const now = new Date();
+      const now = todayOf();
       const year = now.getFullYear();
       const month = now.getMonth() + 1;
       // Tax year starts April 6

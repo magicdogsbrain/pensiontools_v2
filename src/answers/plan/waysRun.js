@@ -34,7 +34,7 @@ import { restoredParamsFor, dialParams } from '../../services/PlanCommit.js';
 import { planFor } from './lastsRun.js';
 import { contextFor } from '../../reading/context.js';
 import { waysInputOf, enginePlanOf } from '../../reading/gather.js';
-import { dateOf, dayWords } from './dates.js';
+import { dayWords } from './dates.js';
 import { documentLadder } from '../../services/LadderPosition.js';
 import { WAY_IDS, WAY_DIALS } from './schema.js';
 import { stratDialsOf, dialUnitsOf } from './way.js';
@@ -188,7 +188,7 @@ export function runWays(plan, { today, onProgress = null } = {}) {
  */
 export function runWay(plan, { today, id, dials = {}, onProgress = null } = {}) {
   if (!WAY_IDS.includes(id)) throw new Error('runWay: no way called "' + id + '"');
-  const now = dateOf(today);
+  const now = contextFor(plan, { today }).now;
   const tell = (done, total) => { if (typeof onProgress === 'function') onProgress(done, total); };
   const settings = effectiveStressSettings(plan, { now });
   const { params, patch } = dialParams(id, stratDialsOf(id, dials));

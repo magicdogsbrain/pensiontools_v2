@@ -26,7 +26,7 @@ import { compareMixes } from '../../strategies/compareRunner.js';
 import { oneAnswer } from '../../services/OneAnswer.js';
 import { planFor, pickFigures } from './lastsRun.js';
 import { sleeveOtherOf, tentOtherOf } from './mix.js';
-import { dateOf } from './dates.js';
+import { contextFor } from '../../reading/context.js';
 
 const plain = (v) => JSON.parse(JSON.stringify(v, (k, x) => (typeof x === 'function' ? undefined : (typeof x === 'number' && !Number.isFinite(x)) ? null : x)));
 const r0 = (v) => Math.round(+v || 0);
@@ -46,7 +46,7 @@ function one(settings, now) {
  */
 export function runMixTry(plan, { today, kind, base = null, onProgress = null } = {}) {
   if (!MIX_TRY_KINDS.includes(kind)) throw new Error('runMixTry: no try called "' + kind + '"');
-  const now = dateOf(today);
+  const now = contextFor(plan, { today }).now;
   const tell = (done, total) => { if (typeof onProgress === 'function') onProgress(done, total); };
   const settings = effectiveStressSettings(plan, { now });
   const other = kind === 'sleeve' ? sleeveOtherOf(settings) : tentOtherOf(settings);
@@ -67,7 +67,7 @@ export function runMixTry(plan, { today, kind, base = null, onProgress = null } 
  * @param {{ today: string, onProgress?: Function }} o
  */
 export function runMixCompare(plan, { today, onProgress = null } = {}) {
-  const now = dateOf(today);
+  const now = contextFor(plan, { today }).now;
   const tell = (done, total) => { if (typeof onProgress === 'function') onProgress(done, total); };
   const settings = effectiveStressSettings(plan, { now });
   const out = compareMixes(settings, { own: true, planFor: (s) => planFor(s, now), onProgress: (i, n) => tell(i, n) });

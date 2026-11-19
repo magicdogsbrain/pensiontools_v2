@@ -19,7 +19,7 @@ import { stressTestStrategy } from '../../strategies/stressTest.js';
 import { oneAnswer } from '../../services/OneAnswer.js';
 import { planFor, pickFigures } from './lastsRun.js';
 import { heldMixSettings } from './move.js';
-import { dateOf } from './dates.js';
+import { contextFor } from '../../reading/context.js';
 
 const plain = (v) => JSON.parse(JSON.stringify(v, (k, x) => (typeof x === 'function' ? undefined : (typeof x === 'number' && !Number.isFinite(x)) ? null : x)));
 
@@ -28,7 +28,7 @@ const plain = (v) => JSON.parse(JSON.stringify(v, (k, x) => (typeof x === 'funct
  * @param {{ today: string, onProgress?: Function }} o
  */
 export function runHeld(plan, { today, onProgress = null } = {}) {
-  const now = dateOf(today);
+  const now = contextFor(plan, { today }).now;
   const tell = (done, total) => { if (typeof onProgress === 'function') onProgress(done, total); };
   const held = heldMixSettings(plan, { today });
   tell(0, 1);

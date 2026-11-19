@@ -30,7 +30,7 @@ import { runHouseholdWays, runSurvivorCheck, runCareCheck, householdIncomeTimeli
 import { householdDrawSplit, comparisonFigures } from '../../services/HouseholdDraw.js';
 import { planFor } from './lastsRun.js';
 import { ageNowOf } from './household.js';
-import { dateOf } from './dates.js';
+import { contextFor } from '../../reading/context.js';
 import { shownPlanNameOn } from '../../services/PlanName.js';
 import { testReadyOf } from '../../services/PlanFigures.js';
 
@@ -61,7 +61,7 @@ function compactSplit(split) {
  *   object, or null for the default limit (household-draw-split.md 9.2); `need`: what the couple needs after tax a year (9.3), or null
  */
 export function runHousehold(plan, partner, { today, limit = null, need = null, onProgress = null } = {}) {
-  const now = dateOf(today);
+  const now = contextFor(plan, { today }).now;
   const tell = (done, total) => { if (typeof onProgress === 'function') onProgress(done, total); };
   const names = namesOf(plan, partner, now);
   // a household answer is never run on a plan's starting defaults: a plan with no figures (Settings or the Accumulation tab), or
@@ -92,7 +92,7 @@ export function runHousehold(plan, partner, { today, limit = null, need = null, 
  * @param {{ today: string, who: 'a'|'b', atAge: number, spendPct: number, dbPct: number, onProgress?: Function }} o   `who` dies
  */
 export function runSurvivor(plan, partner, { today, who = 'a', atAge, spendPct = 70, dbPct = 50, onProgress = null } = {}) {
-  const now = dateOf(today);
+  const now = contextFor(plan, { today }).now;
   const tell = (done, total) => { if (typeof onProgress === 'function') onProgress(done, total); };
   const s = settingsOf(plan, partner, now);
   const names = namesOf(plan, partner, now);
@@ -112,7 +112,7 @@ export function runSurvivor(plan, partner, { today, who = 'a', atAge, spendPct =
  * @param {{ today: string, who: 'a'|'b', fromAge: number, years: number, cost: number, onProgress?: Function }} o   `who` needs care
  */
 export function runCare(plan, partner, { today, who = 'a', fromAge, years = 3, cost = 90000, onProgress = null } = {}) {
-  const now = dateOf(today);
+  const now = contextFor(plan, { today }).now;
   const tell = (done, total) => { if (typeof onProgress === 'function') onProgress(done, total); };
   const s = settingsOf(plan, partner, now);
   const names = namesOf(plan, partner, now);

@@ -33,3 +33,39 @@ describe('contextFor', () => {
     expect(contextFor(plan(), { today: '2026-11-16' }).budget).toBeNull();
   });
 });
+
+/**
+ * Every run of both views sees its plan through contextFor (lead4.md R1, R5): the simple view's run modules build their day
+ * there, never from the date words by hand, and the full view's runs hand the engine the one clock, never a bare clock.
+ */
+import { readFileSync } from 'node:fs';
+const src = (f) => readFileSync(f, 'utf8');
+const RUNS = ['lastsRun', 'waysRun', 'mixRun', 'householdRun', 'moveRun', 'keepRun', 'stressPanelRun'].map((n) => `src/answers/plan/${n}.js`);
+
+describe('every run is handed the one context', () => {
+  it.each(RUNS)('%s builds its day through contextFor, never dateOf(today) by hand', (f) => {
+    const s = src(f);
+    expect(s).toMatch(/import \{[^}]*\bcontextFor\b[^}]*\} from '\.\.\/\.\.\/reading\/context\.js'/);
+    expect(s).not.toMatch(/\bdateOf\(today\)/);
+  });
+  it('the stress rows judge a held ladder at the context\'s level, not one read beside it', () => {
+    expect(src('src/answers/plan/stressPanelRun.js')).not.toMatch(/\bplanLevelOf\(/);
+  });
+  it('the full view\'s household checks see both plans from the one day (contextFor), as the simple view\'s do', () => {
+    const page = src('index.html');
+    const at = page.indexOf('window.runHouseholdCheck = async function');
+    const body = page.slice(at, page.indexOf('\n    };\n', at));
+    expect(body).toMatch(/contextFor\(own, \{ now: todayOf\(\), plans: scenarios \}\)/);
+    expect(body).toMatch(/effectiveStressSettings\(own, \{ now \}\)/);
+    expect(body).toMatch(/effectiveStressSettings\(partner, \{ now \}\)/);
+    expect(body).toMatch(/householdIncomeTimeline\(ownSettings, partnerSettings, null, now\)/);
+    expect(body).not.toMatch(/new Date\(\)/);
+  });
+  it('the full view\'s ladder position, order sheets and where-you-are read the one clock', () => {
+    const page = src('index.html');
+    const fn = (name) => { const a = page.indexOf(name); return page.slice(a, page.indexOf('\n    }\n', a)); };
+    expect(fn('async function ladderPositionForPlan(')).not.toMatch(/new Date\(\)/);
+    expect(fn('function exampleLadderHtml(')).not.toMatch(/new Date\(\)/);
+    expect(page).not.toMatch(/whereAmI\(doc, \{ today: new Date\(\)/);
+  });
+});

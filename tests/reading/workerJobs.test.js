@@ -54,7 +54,7 @@ describe('the engine worker runs every job on the day it is handed', () => {
     const plan = planOf('saver-draft');
     const settings = effectiveStressSettings(plan, { now: NOW });
     for (const now of [NOW.toISOString(), NOW]) {
-      const m = await run('sweep', { settings, accumulation: plan.accumulation || {}, holdings: [], mcRuns: 20, stride: 60, ages: [60], now });
+      const m = await run('sweep', { settings, accumulation: plan.accumulation || {}, holdings: [], ages: [60], now });
       expect(m.error).toBeUndefined();
       expect(m.result.rows.length).toBeGreaterThanOrEqual(0);
     }

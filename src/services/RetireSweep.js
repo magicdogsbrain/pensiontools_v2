@@ -5,13 +5,14 @@
  * money, at the holder's own mix when known, else the FCA middle band), then run the plan's strategy from
  * that age on the plan's income shape (or a flat income the user types), and read the chance the money lasts. Reads
  * as "at £40,000 a year you could retire at 61 and be on course: the money lasted in 92% of futures, or at 58 if lasting
- * in 3 futures out of 4 is enough" (6.22.0: "on course" = 9 in 10, OnCourse.js). Cheaper runs than the
- * full stress test (200 futures, every 6th history) — this is a compass, not the verdict.
+ * in 3 futures out of 4 is enough" (6.22.0: "on course" = 9 in 10, OnCourse.js). Each age is judged on the ONE engine
+ * plan (src/reading/gather.js enginePlanOf, lead4.md R5/R6): a bought way priced on the one market's real-yield curve, the
+ * plan's own futures (RUN_FUTURES) and histories — the same run, age by age, as the plan's own test.
  *
  * No DOM, no storage; runs in the engine worker.
  */
-import { planFromSettings, stressTestStrategy } from '../strategies/stressTest.js';
-import { simulationConfigFromSettings } from './SimulationConfig.js';
+import { stressTestStrategy } from '../strategies/stressTest.js';
+import { enginePlanOf } from '../reading/gather.js';
 import { projectAccumulation, contributionBreakdown } from './AccumulationEngine.js';
 import { proportions as holdingsProportions, pensionPotFromHoldings } from './Holdings.js';
 import { holdingsLines } from './HoldingsRecord.js';
@@ -134,10 +135,10 @@ export function sweepPlanAt({ settings, accumulation = null, holdings = null, cu
 /**
  * Run the sweep.
  * @param {object} o { settings, accumulation, holdings (the holdings record or its lines), ages?, incomeOverride? (flat £/yr gross),
- *                     mcRuns=200, stride=6, onProgress(i, n, age), now }
+ *                     onProgress(i, n, age), now }
  * @returns {{ rows: [{ age, taxYear, yearsAway, pot, low, high, success, coverage, ruin, worst12, affordable }], income, basis, target }}
  */
-export function sweepRetirementAges({ settings, accumulation = null, holdings = null, ages = null, incomeOverride = null, mcRuns = 200, stride = 6, onProgress = null, now = new Date() } = {}) {
+export function sweepRetirementAges({ settings, accumulation = null, holdings = null, ages = null, incomeOverride = null, onProgress = null, now = new Date() } = {}) {
   const s0 = settings || {};
   const t0 = deriveTiming(s0, now);
   const currentAge = t0.currentAge || Math.floor(num(s0.currentAge)) || 0;
@@ -157,9 +158,8 @@ export function sweepRetirementAges({ settings, accumulation = null, holdings = 
     const yearsToAge = Math.max(0, age - currentAge);
     let r = null, affordable = true;
     try {
-      const cfg = simulationConfigFromSettings({}, s, now);
-      const p = planFromSettings(s, cfg, { now });   // one clock for the timing, the config, the plan and the ladder pricing
-      p.mcRuns = mcRuns; p.stride = stride;
+      // the one engine plan: one clock for the timing, the config and the plan; the one market's curve for a bought way
+      const p = enginePlanOf({ settings: s, now: now.toISOString() });
       r = stressTestStrategy(s0.strategyId || 'pots-and-valves', p);
       affordable = r.affordable !== false;
     } catch (e) { r = null; }

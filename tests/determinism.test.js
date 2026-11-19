@@ -90,7 +90,7 @@ describe('(a) same inputs + same injected now → identical output, whatever day
     expectDeterministic(() => targetHoldings(doc, { today: BEFORE }));
   });
   it('sweepRetirementAges threads its one clock to the plan (config from src/storage built under the same frozen clock)', () => {
-    const sweep = () => frozen(BEFORE, () => sweepRetirementAges({ settings: { ...SAVER, strategyId: 'pots-and-valves' }, accumulation: ACC, ages: [60, 65], mcRuns: 20, stride: 24, now: BEFORE }));
+    const sweep = () => frozen(BEFORE, () => sweepRetirementAges({ settings: { ...SAVER, strategyId: 'pots-and-valves' }, accumulation: ACC, ages: [60, 65], now: BEFORE }));
     const first = plain(sweep());
     expect(first.rows.length).toBe(2);
     expect(plain(sweep())).toEqual(first);
@@ -136,7 +136,7 @@ describe('(b) 4 April 2027 vs 8 April 2027: only tax-year facts move', () => {
     expect(changed((today) => targetHoldings(saverDoc, { today }))).toEqual(['thisTaxYear']);
   });
   it('sweepRetirementAges: nothing moves (ages, pots and confidence are in whole years from the age today)', () => {
-    const sweep = (now) => frozen(now, () => sweepRetirementAges({ settings: { ...SAVER, strategyId: 'pots-and-valves' }, accumulation: ACC, ages: [60], mcRuns: 20, stride: 24, now }));
+    const sweep = (now) => frozen(now, () => sweepRetirementAges({ settings: { ...SAVER, strategyId: 'pots-and-valves' }, accumulation: ACC, ages: [60], now }));
     expect(changed(sweep)).toEqual([]);
   });
 });

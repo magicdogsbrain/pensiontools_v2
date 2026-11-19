@@ -93,7 +93,7 @@ describe('the Stress tester\'s fund list is never what you hold (our ruling, 16 
 
   it('R6.13.0-a — "When could I retire?" has no pot until one is recorded; it never spins on the tested funds', () => {
     expect(potAtAge({ settings, accumulation, currentAge: 50, age: 60 })).toMatchObject({ potNow: null, pot: null });
-    const r = sweepRetirementAges({ settings, accumulation, ages: [57], mcRuns: 10, stride: 24, now: SEPT_2026 });
+    const r = sweepRetirementAges({ settings, accumulation, ages: [57], now: SEPT_2026 });
     expect(r.error).toBe(NO_POT_MESSAGE);
     const real = { lines: [{ ticker: 'VWRP', value: 400000, wrapper: 'SIPP' }] };
     expect(potAtAge({ settings, accumulation, holdings: real, currentAge: 50, age: 60 }).potNow).toBe(400000);   // not £1,080,000

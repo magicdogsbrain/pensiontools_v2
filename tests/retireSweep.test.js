@@ -1,6 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
 vi.mock('../src/firebase/index.js', () => ({ isFirebaseConfigured: () => false, isLoggedIn: () => false }));
-import { candidateAges, potAtAge, sweepRetirementAges, earliestAt, sweepHeadline, NO_POT_MESSAGE } from '../src/services/RetireSweep.js';
+import { candidateAges, potAtAge, sweepRetirementAges, sweepPlanAt, earliestAt, sweepHeadline, NO_POT_MESSAGE } from '../src/services/RetireSweep.js';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 const NOW = new Date(2026, 8, 10);
 // A 50-year-old saver: £400k SIPP (world tracker), £1,875/month going in, wants £40k a year, P&V strategy.
@@ -45,13 +47,13 @@ describe('candidateAges and potAtAge', () => {
 });
 
 describe('sweepRetirementAges', () => {
-  const result = sweepRetirementAges({ settings, accumulation, holdings, ages: [58, 62, 67], mcRuns: 30, stride: 24, now: NOW });
+  const result = sweepRetirementAges({ settings, accumulation, holdings, ages: [58, 62, 67], now: NOW });
   it('with no pot on record it says so instead of spinning on the tested pots', () => {
-    const r = sweepRetirementAges({ settings, accumulation, ages: [58], mcRuns: 10, stride: 24, now: NOW });
+    const r = sweepRetirementAges({ settings, accumulation, ages: [58], now: NOW });
     expect(r.rows).toEqual([]);
     expect(r.error).toBe(NO_POT_MESSAGE);
     expect(sweepHeadline(r)).toBe(NO_POT_MESSAGE);
-    const ok = sweepRetirementAges({ settings, accumulation: { ...accumulation, potNow: 400000 }, ages: [62], mcRuns: 10, stride: 24, now: NOW });
+    const ok = sweepRetirementAges({ settings, accumulation: { ...accumulation, potNow: 400000 }, ages: [62], now: NOW });
     expect(ok.rows.length).toBe(1);
     expect(ok.basis).toBe('FCA middle band');
   });
@@ -63,7 +65,7 @@ describe('sweepRetirementAges', () => {
     expect(result.rows[0].yearsAway).toBe(8);
   });
   it('a flat income override is respected', () => {
-    const r = sweepRetirementAges({ settings, accumulation, holdings, ages: [62], incomeOverride: 25000, mcRuns: 20, stride: 24, now: NOW });
+    const r = sweepRetirementAges({ settings, accumulation, holdings, ages: [62], incomeOverride: 25000, now: NOW });
     expect(r.income).toBe(25000);
     expect(r.rows[0].success).toBeGreaterThanOrEqual(result.rows[1].success);   // less income, same age → at least as safe
   });
@@ -79,5 +81,36 @@ describe('sweepRetirementAges', () => {
     expect(none.met).toBe(false);
     expect(sweepHeadline(result, 0)).toMatch(/At £40,000 a year you could retire at 58/);
     expect(sweepHeadline({ rows: [], error: 'x' })).toBe('x');
+  });
+});
+
+// lead4.md R5/R6 (step M, fix round 2): "When could I retire?" judges each age on the ONE gatherer's engine plan
+// (src/reading/gather.js enginePlanOf: the one market's real-yield curve for a bought way, the plan's own futures and
+// histories), never a plan of its own on a flat yield, 200 futures and every 6th history.
+describe('the sweep runs each age on the one engine plan, the one market and the one futures rule', () => {
+  it('a bought way at an age: the row is the plan test of enginePlanOf for that age, at RUN_FUTURES', async () => {
+    const { enginePlanOf } = await import('../src/reading/gather.js');
+    const { stressTestStrategy } = await import('../src/strategies/stressTest.js');
+    const { RUN_FUTURES } = await import('../src/reading/runs.js');
+    const s0 = { ...settings, strategyId: 'floor-to-age' };
+    const out = sweepRetirementAges({ settings: s0, accumulation, holdings, ages: [62], now: NOW });
+    const { s } = sweepPlanAt({ settings: s0, accumulation, holdings, currentAge: 50, age: 62, timing: undefined });
+    const p = enginePlanOf({ settings: s, now: NOW.toISOString() });
+    expect(p.mcRuns).toBe(RUN_FUTURES);
+    expect(typeof p.yieldForYear).toBe('function');
+    const r = stressTestStrategy('floor-to-age', p);
+    expect(out.rows[0].affordable).toBe(r.affordable !== false);
+    expect(out.rows[0].ruin).toBe(+r.ruin.mc || 0);
+    expect(out.rows[0].coverage).toBe(+(r.coverage ?? 100 - r.ruin.mc));
+  }, 120000);
+  it('the sweep has no futures or history knobs of its own, and the full view asks none', () => {
+    const src = readFileSync(join(process.cwd(), 'src', 'services', 'RetireSweep.js'), 'utf8');
+    expect(src).toMatch(/import \{ enginePlanOf \} from '\.\.\/reading\/gather\.js'/);
+    expect(src).not.toMatch(/planFromSettings\(/);
+    expect(src).not.toMatch(/mcRuns|stride/);
+    const page = readFileSync(join(process.cwd(), 'index.html'), 'utf8');
+    const at = page.indexOf('window.runRetireSweep = async function');
+    const body = page.slice(at, page.indexOf('\n    };', at));
+    expect(body).not.toMatch(/mcRuns|stride|200 futures|every 6th history/);
   });
 });

@@ -12,11 +12,17 @@
  *                                            What you hold, else the plan's ISA balance
  *   giaToday(plan, ctx)  → { value, from }   the general-account lines under What you hold, else the plan's taxable start
  *   cashToday(plan, ctx) → { value, from }   the cash lines under What you hold (bank and savings), else 0
+ *   pensionBoxOf(plan, ctx) → null | { value, today, pots }
+ *     what the pension box (field pots.pension) holds in both views: a saver's plan not locked shows the pension today (the
+ *     line beside the box says the same figure), its pots split in the plan's own shares; nothing known → value null (the
+ *     box empty, never a default pot). A plan already drawing shows its own pots, which its runs start from (today: false).
+ *     Null for a locked plan (its pots are the lock's) and a plan whose pots a funds list sets (no box is drawn).
  *
  * Pure (the plan's settings are read once, by PlanReading, on ctx.now).
  */
 import { pensionTodayOf, isaTodayOf } from '../services/PensionToday.js';
-import { settingsForScreen } from '../services/PlanReading.js';
+import { settingsForScreen, potsAs } from '../services/PlanReading.js';
+import { sippTodayOf } from '../services/PotsAtRetirement.js';
 import { wrapperFigure } from '../services/DrawingPot.js';
 
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
@@ -50,4 +56,25 @@ export function giaToday(plan, ctx = {}) {
 export function cashToday(plan, ctx = {}) {
   const held = wrapperFigure(plan && plan.holdings, 'CASH');
   return held ? { value: Math.max(0, held.value), from: 'holdings' } : { value: 0, from: 'none' };
+}
+
+const POT_KEYS = ['equityMin', 'bondMin', 'cashTarget', 'diversifierStart'];
+const isLocked = (plan) => !!(plan && plan.decisionTool && isObj(plan.decisionTool.settings) && plan.decisionTool.settings.locked);
+
+export function pensionBoxOf(plan, ctx = {}) {
+  if (!plan || isLocked(plan)) return null;
+  const ss = settingsOf(plan, ctx);
+  if (!isObj(ss) || ss.readFault || ss.allocMode === 'funds') return null;
+  const own = Math.round(sippTodayOf(ss));
+  const potsOf = (s) => Object.fromEntries(POT_KEYS.map((k) => [k, Math.round(+s[k] || 0)]));
+  if (ss.potsNotSet) return { value: null, today: false, pots: null };
+  // a plan still saving: its runs grow the pension today to the stop (PotsAtRetirement.potScaleOf), so the box says that figure
+  if (ss.retired === false) {
+    const t = pensionToday(plan, { ...ctx, settings: ss });
+    if (t.from !== 'none') {
+      const v = Math.round(t.value);
+      return { value: v, today: true, pots: potsOf(v === own ? ss : potsAs(ss, v)) };
+    }
+  }
+  return { value: own, today: false, pots: potsOf(ss) };
 }

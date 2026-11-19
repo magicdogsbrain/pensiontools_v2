@@ -4273,7 +4273,7 @@
     import { isLoggedIn, logOut, getCurrentUser, deleteAccount, onAuthStateChange, viewNotesAtSignIn } from './src/firebase/index.js';
     import { hasCloudData, wipeAllUserData, loadUserProfile, saveUserProfile, guestSnapshot, loadAllScenarios, createScenario as createScenarioDoc, saveScenario as saveScenarioDoc, loadScenario as loadScenarioDoc } from './src/firebase/FirestoreService.js';
     import { startSeedEntry, planFromAnswer, planTargetGuide, budgetSummaryWords } from './src/ui/components/NewPlanFromSeed.js'; import { householdStartWords } from './src/services/PlanSeed.js';   // a plan from a V7 answer (V7 design: save-as-plan.md, C.2); the Household tab's line when one plan begins later (couples-different-years.md 7)
-    import { startSummaryHtml, potsAtRetirementLine } from './src/ui/startingPotsWords.js'; import { potAtStop } from './src/reading/atStop.js'; import { stage as readingStage, yearsToGo as readingYearsToGo, ageToday as readingAgeToday, planName as readingPlanName } from './src/reading/timing.js'; import { formatFact } from './src/reading/format.js'; import { isaToday as readingIsaToday } from './src/reading/money.js'; import { savingInputsOf } from './src/services/PotsAtStop.js'; import { shownPlanName } from './src/services/PlanName.js';
+    import { startSummaryHtml, potsAtRetirementLine } from './src/ui/startingPotsWords.js'; import { potAtStop } from './src/reading/atStop.js'; import { stage as readingStage, yearsToGo as readingYearsToGo, ageToday as readingAgeToday, planName as readingPlanName } from './src/reading/timing.js'; import { formatFact } from './src/reading/format.js'; import { isaToday as readingIsaToday, pensionBoxOf, settingsOf as readingSettingsOf } from './src/reading/money.js'; import { savingInputsOf } from './src/services/PotsAtStop.js'; import { shownPlanName } from './src/services/PlanName.js';
     import { tick as guestTick, readMinutes as guestMinutes, pendingNag as guestPendingNag, markNagShown as guestMarkNag, isBlocked as guestBlocked, bannerText as guestBannerText, savedChipText, stashHandoff as guestStash, readHandoff as guestReadHandoff, clearHandoff as guestClearHandoff, GUEST_ALLOWANCE_MINUTES } from './src/services/GuestMeter.js';
     // Release notes: data + renderers (see RELEASING.md). The pop-up and the What's new page read the same entries.
     import { RELEASES, releasesSince, compareVersions } from './src/releases.js';
@@ -7428,14 +7428,19 @@
     window.renderTiming = async function () {
       const g = (id) => document.getElementById(id);
       if (!g('tmAge')) return;
+      const paint = (window._tmPaint = (window._tmPaint || 0) + 1);   // only the newest paint draws: an older one may have read the plan before a save landed
       let s = timingSettingsFromForm();
-      let t = deriveTiming(s);
-      // Retiring later: the pots at the stop, the reading's (src/reading/atStop.js: the saving lives, from the plan as saved —
-      // never from the boxes of this form)
-      if (t.mode === 'future') {
-        const sc = await getActiveScenarioAsync().catch(() => null);
-        window._tmProjection = sc ? potAtStop(sc, contextFor(sc, { now: todayOf() })) : null;
-      } else window._tmProjection = null;
+      let t = deriveTiming(s, todayOf());
+      // the plan as saved, read once on the one clock (src/reading/money.js settingsOf, the one settings recipe): the summary and
+      // the pots at the stop are the plan's, never the boxes of this form (lead4.md R2; step F1)
+      const sc = await getActiveScenarioAsync().catch(() => null);
+      const rctx = sc ? contextFor(sc, { now: todayOf() }) : null;
+      let planS = null; try { planS = sc ? readingSettingsOf(sc, rctx) : null; } catch (e) { planS = null; }
+      if (planS && planS.readFault) planS = null;
+      let planT = null; try { planT = planS ? deriveTiming(planS, todayOf()) : null; } catch (e) { planT = null; }
+      // Retiring later: the pots at the stop, the reading's (src/reading/atStop.js: the saving lives, from the plan as saved)
+      window._tmProjection = planT && planT.mode === 'future' ? potAtStop(sc, rctx) : null;
+      if (paint !== window._tmPaint) return;
       window._ssTiming = { ...t, settings: s };
       // The derived start age drives every shape helper (hidden field) and the preview's SP timing.
       const sa = g('shapeAgeNow'); const prevAge = +sa.value || 0;
@@ -7458,13 +7463,17 @@
       g('tmRetireAge').disabled = retiredMode;
       g('tmPotWrap').style.display = t.mode === 'future' ? 'block' : 'none';
       g('tmProjectionLine').innerHTML = t.mode === 'future' && window._tmProjection ? potsAtRetirementLine(window._tmProjection) : '';   // the one pot at the stop (startingPotsWords.js)
-      // the summary says the timing as the boxes stand (they save at once), on the one clock, its time to go in the one
-      // formatter's words (step F1); the age box keeps the age's own day, so the stop month never moves on its own (W8-M4)
-      let summary = t.mode === 'legacy'
-        ? 'Enter your age today to pin the plan to a tax year. Until then the plan is read from tax year ' + taxYearLabel(t.firstTaxYear) + ', with the steps from age ' + t.shapeAgeNow + '.'
-        : describeTiming(t, s, todayOf());
-      summary = paintStopMonth(document, t, s, await closedTimingSummary(summary));   // the month box's label and warning
-      if (t.mode === 'future' && t.yearsToStart > 0) summary += ' Gilt ladders are priced at today\'s real yields as a guide — the rungs are bought at retirement. The "Funds to test" list sets only the starting mix the strategy is tested on — it is not a record of what you hold (that is the Transition tab); the plan is priced on the pots at retirement.';
+      // the summary says the plan's timing as saved (the boxes save at once, and the save paints this again), on the one clock,
+      // its time to go in the one formatter's words (step F1); the age box keeps the age's own day, so the stop month never
+      // moves on its own (W8-M4). The month box's own warning is about what is typed in it, so it reads the box.
+      const sumT = planT || t, sumS = planT ? planS : s;
+      let summary = sumT.mode === 'legacy'
+        ? 'Enter your age today to pin the plan to a tax year. Until then the plan is read from tax year ' + taxYearLabel(sumT.firstTaxYear) + ', with the steps from age ' + sumT.shapeAgeNow + '.'
+        : describeTiming(sumT, sumS, todayOf());
+      const closed = await closedTimingSummary(summary);
+      if (paint !== window._tmPaint) return;
+      summary = paintStopMonth(document, t, s, closed);   // the month box's label and warning
+      if (sumT.mode === 'future' && sumT.yearsToStart > 0) summary += ' Gilt ladders are priced at today\'s real yields as a guide — the rungs are bought at retirement. The "Funds to test" list sets only the starting mix the strategy is tested on — it is not a record of what you hold (that is the Transition tab); the plan is priced on the pots at retirement.';
       g('tmSummary').innerHTML = markWithin(String(summary).replace(/&/g, '&amp;').replace(/</g, '&lt;'), [[/(?:stop work|retire|stopped work) in ([A-Z][a-z]+ \d{4})/, 'stop.month'], [/ at \d+, (\d+ years?(?: \d+ months?)?|\d+ months?) away/, 'yearsToGo'], [/Plan runs to age (\d+)/, 'plan.endAge'], [/State Pension from (\d{4}\/\d{2})/, 'statePension.start']]);   // marked for the parity sweep (lead4.md G1)
       // The first income step starts when the plan starts.
       if (Array.isArray(window._ssIncomeSteps) && window._ssIncomeSteps.length) window._ssIncomeSteps[0].fromAge = t.shapeAgeNow;
@@ -9452,6 +9461,9 @@
      * the start age of the plan before is never read; the baseline a Save compares with is the form as filled.
      */
     async function fillStressForm(s) {
+      // the pension box, as both views fill it (src/reading/money.js pensionBoxOf, step F1): a saver's plan not locked shows
+      // the pension today (a newer record, or What you hold), split in the plan's own shares — the figure the line beside it says
+      try { const sc = await getActiveScenarioAsync(); const box = sc ? pensionBoxOf(sc, { now: todayOf(), settings: s }) : null; if (box && box.pots) s = { ...s, ...box.pots }; } catch (e) { /* the plan's own pots */ }
       document.getElementById('ssBaseSalary').value = s.incomeNotSet ? 0 : s.baseSalary;   // none given: none (7.12.0)
       syncNetFromGross('ss');
       // FULL allocation restore: the tagged funds, custom split and mode, so a saved "My funds" plan doesn't revert to a risk
@@ -9639,8 +9651,9 @@
         if (touches(patch, TIMING_KEYS)) await syncBudgetAgeFromTiming();   // the Budget's age follows a changed age (and only then)
         await saveStressSettings(patch);
         planState.stressFormBase = { form };   // what is saved now is the form as it stands
+        try { await renderTiming(); } catch (e) { /* timing block optional */ }   // the Timing summary says the plan just saved before "Saved" is said (it reads the plan, not the boxes)
         if (!quiet) await repaintAfterWrite('save');   // a pressed Save, as the quiet one's afterSave: every figure worked out from the plan before the write goes
-        { const was = sippTodayOf(_curSS), typed = sippTodayOf(ssAlloc); if (window._ssTiming?.mode === 'future' && typed > 0 && Math.round(typed) !== Math.round(was)) { await saveActivePensionToday(typed); invalidateStressCache(); } }   // a saver's pot typed here is the pension today everywhere (7.12.0)
+        { const was = sippTodayOf(base.form), typed = sippTodayOf(ssAlloc); if (window._ssTiming?.mode === 'future' && typed > 0 && Math.round(typed) !== Math.round(was)) { await saveActivePensionToday(typed); invalidateStressCache(); } }   // a saver's pot typed here is the pension today everywhere (7.12.0); against the box as filled (the pension today), not the plan's stored pots
         // Refresh the Monte-Carlo / Historical starting-balance banners so they reflect the just-
         // saved allocation (they otherwise only re-render on load/tab-switch → stale after a save).
         renderStressStartSummary({ ...ssAlloc, duration: +document.getElementById('ssDuration').value || 35 }); if (!quiet) renderChargesField().catch(() => {});   // the box shows the charge as saved (as typed, when saved as it changed)

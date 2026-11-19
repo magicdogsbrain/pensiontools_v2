@@ -240,8 +240,9 @@ export function withPensionToday(scenario, settings, now = new Date()) {
   return potsAs(s, known.value);
 }
 
-/** The settings' pension pots made `value`, split as stored (all in shares when none is stored). */
-function potsAs(s, value) {
+/** The settings' pension pots made `value`, split as stored (all in shares when none is stored). Also the pension box's split
+ * (src/reading/money.js pensionBoxOf). */
+export function potsAs(s, value) {
   const parts = ['bondMin', 'cashTarget', 'diversifierStart'];
   const total = sippTodayOf(s);
   const v = Math.max(0, Math.round(value));

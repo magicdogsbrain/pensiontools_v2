@@ -29,7 +29,7 @@ import { createSimulationConfigFromSettings } from '../../../src/storage/StressR
 import { runPositionOf } from '../../../src/services/PlanFromToday.js';
 import { deriveTiming } from '../../../src/services/PlanTiming.js';
 import { POTS } from '../../../src/v7/copy/pots.js';
-import { pensionToday, isaToday, giaToday } from '../../../src/reading/money.js';
+import { pensionToday, isaToday, giaToday, pensionBoxOf } from '../../../src/reading/money.js';
 import { potAtStop } from '../../../src/reading/atStop.js';
 import { money, moneyK } from '../../../src/reading/format.js';
 import { PLAN } from '../../../src/v7/copy/plan.js';
@@ -38,6 +38,9 @@ import { corpus, entriesAt, entryOf, household, DATES, TODAY, noon } from './_pl
 const C = corpus();
 const text = (v) => JSON.stringify(v);
 const strip = (plan) => { const out = JSON.parse(JSON.stringify(plan)); for (const p of ALL_WRITES) { const parts = p.split('.'); let o = out; for (let i = 0; i < parts.length - 1 && o; i++) o = o[parts[i]]; if (o) delete o[parts[parts.length - 1]]; } return out; };
+// the first pension typed on a plan with none is written as its pension today (accumulationTool.settings/.history, as the full
+// view's pot box writes it): a plan that had no accumulationTool keeps the empty holder the write made, which reads as nothing
+const noEmptyHolder = (plan) => { const out = JSON.parse(JSON.stringify(plan)); if (out.accumulationTool && typeof out.accumulationTool === 'object' && !Object.keys(out.accumulationTool).length) delete out.accumulationTool; return out; };
 const isLocked = (p) => !!(p.decisionTool && p.decisionTool.settings && p.decisionTool.settings.locked);
 // a draft saved with a later start (7.4.0) is written with its reading by every save (moveStart.withLaterDraft, tested in
 // tests/laterStart.test.js): the pure step writer alone is not its whole save, so it is left out here
@@ -67,7 +70,12 @@ describe('T1 — the reading, on every corpus plan at three dates', () => {
         const s = savedPots(e.plan, { today });
         const ss = effectiveStressSettings(e.plan, { now: noon(today) });
         if (!a.locked) {
-          expect(s.values.pension).toBe(sippTodayOf(ss));
+          // the pension box is the one reading's (step F1, lead4.md D3): the pension today on a saver's plan, the plan's own
+          // pots (what its runs start from) on a plan drawing, nothing (an empty box) when no pension is known
+          const box = pensionBoxOf(e.plan, { now: noon(today), settings: ss });
+          if (!s.fundsMode) expect(s.values.pension).toBe(box.value == null ? 0 : box.value);
+          if (!s.fundsMode && box.today) expect(s.values.pension).toBe(Math.round(pensionToday(e.plan, { now: noon(today), settings: ss }).value));
+          else if (box && box.value != null) expect(s.values.pension).toBe(sippTodayOf(ss));
           expect(s.values.charges).toBe(chargesPctOf(ss));
           expect(s.values.isaGrowth).toBe(isaGrowthOf(ss));
           expect({ pa: s.values.pa, brl: s.values.brl, hrl: s.values.hrl }).toEqual(bandsOf(ss));
@@ -333,7 +341,7 @@ describe('T1 — properties: read∘write∘read is identity; only declared keys
       for (const k of Object.keys(p.patch)) { expect(POTS_WRITES).toContain(k); expect(ABOUT_WRITES).not.toContain(k); expect(INCOME_WRITES).not.toContain(k); expect(SPEND_WRITES).not.toContain(k); }
       expect(Object.keys(p.previous).sort()).toEqual(Object.keys(p.patch).sort());
       const after = applyPatch(plan, p.patch);
-      expect(text(strip(after))).toBe(text(strip(plan)));
+      expect(text(noEmptyHolder(strip(after)))).toBe(text(noEmptyHolder(strip(plan))));
       // read again: every box holds what was typed (the saved value where nothing was typed)
       const read = savedPots(after, { today: TODAY });
       const bx = boxesOf(after, { today: TODAY });
@@ -347,7 +355,11 @@ describe('T1 — properties: read∘write∘read is identity; only declared keys
       }
       // the planner's own readers see the same
       const ss = effectiveStressSettings(after, { now: noon(TODAY) });
-      expect(sippTodayOf(ss)).toBe(read.values.pension);
+      // the pension box as both views fill it (src/reading/money.js pensionBoxOf): a saver's runs grow the pension today
+      const box = pensionBoxOf(after, { now: noon(TODAY), settings: ss });
+      if (read.pensionNotSet) expect(ss.potsNotSet).toBe(true);
+      else if (box.today) expect(Math.round(pensionToday(after, { now: noon(TODAY), settings: ss }).value)).toBe(read.values.pension);
+      else expect(sippTodayOf(ss)).toBe(read.values.pension);
       expect(chargesPctOf(ss)).toBe(read.values.charges);
       expect(isaGrowthOf(ss)).toBe(read.values.isaGrowth);
       expect(bandsOf(ss)).toEqual({ pa: read.values.pa, brl: read.values.brl, hrl: read.values.hrl });
@@ -366,7 +378,7 @@ describe('T1 — properties: read∘write∘read is identity; only declared keys
       // writing the read boxes again changes nothing; Undo: the previous values back, byte for byte
       expect(potsPatch(after, {}, { today: TODAY }).patch).toEqual({});
       expect(potsPatch(after, boxesOf(after, { today: TODAY }), { today: TODAY }).patch).toEqual({});
-      expect(text(applyPatch(after, p.previous))).toBe(text(plan));
+      expect(text(noEmptyHolder(applyPatch(after, p.previous)))).toBe(text(plan));
     }), { numRuns: 120 });
   });
 });

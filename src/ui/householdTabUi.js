@@ -67,7 +67,7 @@ export function installHouseholdTab(win, doc, deps) {
       const ownEntry = entries.find((e) => String(e.plan.id) === String(activeId));
       const own = ownEntry ? ownEntry.plan : { id: activeId };
       const ownBox = doc.getElementById('hhOwnPlan');
-      if (ownBox) ownBox.value = (own.planDetails && own.planDetails.name) || 'Current plan';
+      if (ownBox) ownBox.value = shownPlanName(own, { now }) || 'Current plan';   // the name every place prints (step F1, lead4.md D5)
       const lines = ownEntry ? householdTabLines(entries, own, now) : { partnerId: null, linkedBy: '', theirLine: '' };
       const sel = doc.getElementById('hhPartnerSelect');
       if (sel) {

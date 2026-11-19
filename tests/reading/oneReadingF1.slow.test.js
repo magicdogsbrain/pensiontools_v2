@@ -16,14 +16,14 @@
 import { describe, it, expect } from 'vitest';
 import { FIXTURES, PARITY_DAY } from '../../e2e/parity/fixtures/plans.js';
 import { upgradeScenario } from '../../src/firebase/scenarioMigration.js';
-import { pensionToday, isaToday, settingsOf } from '../../src/reading/money.js';
+import { pensionToday, isaToday, settingsOf, pensionBoxOf } from '../../src/reading/money.js';
 import { potAtStop } from '../../src/reading/atStop.js';
 import { ageToday, yearsToGo, stage, planName, stopMonth, planEndAge } from '../../src/reading/timing.js';
 import { formatFact, money, moneyK } from '../../src/reading/format.js';
 import { LABELS } from '../../src/reading/labels.js';
 import { FACT_PATTERNS } from '../../src/reading/facts.js';
 import { planPage } from '../../src/answers/plan/read.js';
-import { potsOf } from '../../src/answers/plan/pots.js';
+import { potsOf, boxesOf as potsBoxesOf } from '../../src/answers/plan/pots.js';
 import { savingOf } from '../../src/answers/plan/saving.js';
 import { potsAtRetirementLine } from '../../src/ui/startingPotsWords.js';
 import { accumulationBandHtml } from '../../src/ui/accumulationProjection.js';
@@ -36,6 +36,7 @@ import { unmarked } from '../../src/reading/mark.js';
 
 const noon = (day) => { const [y, m, d] = day.split('-').map(Number); return new Date(y, m - 1, d, 12); };
 const NOW = noon(PARITY_DAY);
+const isLockedPlan = (p) => !!(p && p.decisionTool && p.decisionTool.settings && p.decisionTool.settings.locked);
 
 /** Every line of a plan page by id (its sentence's text). */
 function linesOf(view) {
@@ -103,6 +104,13 @@ describe('each F1 fact has one value whoever asks, for every parity fixture', ()
     const P = potsOf(entries, f.subject, { today: PARITY_DAY });
     const today = P.derived.find((d) => d.id === 'pots.today' || d.id === 'pots.todayTaxable');
     if (today) { expect(today.slots.pension, 'pots page pension').toBe(R.pot); expect(today.slots.isa, 'pots page ISA').toBe(R.isa); }
+    // the pension box (field pots.pension) says what the line beside it says: a saver's plan not locked shows the pension
+    // today (a newer record or What you hold included), nothing known shows an empty box — never a default pot
+    const box = pensionBoxOf(plan, ctx);
+    const boxes = potsBoxesOf(plan, { today: PARITY_DAY });
+    if (box) expect(boxes.pension, 'pots page pension box').toBe(box.value == null ? '' : String(box.value));
+    if (box && box.today) expect(formatFact('pot.today', box.value)).toBe(R.pot);
+    if (ss.potsNotSet && !isLockedPlan(plan)) expect(boxes.pension, 'no pension known: the box empty').toBe('');
     const proj = P.derived.find((d) => d.id === 'stop.projection' || d.id === 'stop.locked');
     if (proj) expect(proj.slots.sipp).toBe(moneyK(R.atStop.middle));
     const band = P.derived.find((d) => d.id === 'stop.band');

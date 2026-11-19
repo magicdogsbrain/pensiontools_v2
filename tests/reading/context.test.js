@@ -79,7 +79,11 @@ describe('the full view\'s remaining runs start on the one clock, never a bare n
   const fnOf = (text, name, end = '\n    };\n') => { const a = text.indexOf(name); expect(a, name).toBeGreaterThan(-1); return text.slice(a, text.indexOf(end, a)); };
   it('the Timing block\'s pots at the stop', () => {
     const body = fnOf(page, 'window.renderTiming = async function');
-    expect(body).toMatch(/potAtStop\(sc, contextFor\(sc, \{ now: todayOf\(\) \}\)\)/);   // the reading's, on the one clock (step F1)
+    expect(body).toMatch(/const rctx = sc \? contextFor\(sc, \{ now: todayOf\(\) \}\)/);   // the reading's, on the one clock (step F1)
+    expect(body).toMatch(/potAtStop\(sc, rctx\)/);
+    // the summary says the plan as saved (lead4.md R2), never the boxes of the form
+    expect(body).toMatch(/readingSettingsOf\(sc, rctx\)/);
+    expect(body).toMatch(/describeTiming\(sumT, sumS, todayOf\(\)\)/);
     expect(body).not.toMatch(/new Date\(\)/);
   });
   it('"Try the bad years" on the full view: its day is the one clock, by default and as the page installs it', () => {

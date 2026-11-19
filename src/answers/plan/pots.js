@@ -22,7 +22,7 @@ import { chargesPctOf, isChargesPct, normaliseChargesPct } from '../../services/
 import { isaGrowthOf } from '../../services/IsaGrowth.js';
 import { isaFundsDecide } from '../../services/IsaFunds.js';
 import { sippTodayOf } from '../../services/PotsAtRetirement.js';
-import { pensionToday, isaToday, giaToday } from '../../reading/money.js';
+import { pensionToday, isaToday, giaToday, pensionBoxOf } from '../../reading/money.js';
 import { pensionTodayPatch } from '../../services/PensionToday.js';
 import { potAtStop } from '../../reading/atStop.js';
 import { moneyK } from '../../reading/format.js';
@@ -109,7 +109,12 @@ export function savedPots(plan, { today }) {
   const docPots = doc && isObj(doc.pots) ? doc.pots : null;
   const docAss = doc && isObj(doc.assumptions) ? doc.assumptions : null;
   const alloc = docPots && isObj(docPots.allocation) ? docPots.allocation : ss;
-  const pots = { equity: r0(alloc.equityMin), bond: r0(alloc.bondMin), cash: r0(alloc.cashTarget), div: r0(alloc.diversifierStart) };
+  // (step F1, lead4.md D3) the pension box, as both views fill it (src/reading/money.js pensionBoxOf): a saver's plan not
+  // locked shows the pension today, nothing known an empty box; a locked plan the lock's pots
+  const box = locked ? null : pensionBoxOf(plan, { now, settings: ss });
+  const pensionNotSet = !!(box && box.value == null);
+  const potsFrom = box && box.pots ? box.pots : (pensionNotSet ? {} : alloc);
+  const pots = { equity: r0(potsFrom.equityMin), bond: r0(potsFrom.bondMin), cash: r0(potsFrom.cashTarget), div: r0(potsFrom.diversifierStart) };
   const pension = docPots && num(docPots.sipp) != null ? r0(docPots.sipp) : pots.equity + pots.bond + pots.cash + pots.div;
   const later = ss.retired === false && timing.mode === 'future';
   const strategyId = (doc && doc.strategy && doc.strategy.id) || ss.strategyId || 'pots-and-valves';
@@ -150,7 +155,7 @@ export function savedPots(plan, { today }) {
   return {
     today: moneyToday,
     locked, lockedOn: locked ? dayWords(lockedAtOf(plan)) : null, ss, stored, timing, later, strategyId, bought, pinned, fundsMode,
-    atStop, hasIsaGrowthKey, isaFunds, hasChargesKey, source, values, now
+    atStop, hasIsaGrowthKey, isaFunds, hasChargesKey, source, values, now, pensionNotSet, pensionIsToday: !!(box && box.today)
   };
 }
 
@@ -158,7 +163,7 @@ export function savedPots(plan, { today }) {
 export function boxesOf(plan, { today }) {
   const s = savedPots(plan, { today });
   const v = s.values;
-  const out = { pension: String(v.pension), isa: String(v.isa), isaUse: v.isaUse, taxable: String(v.taxable), taxableMix: v.taxableMix, giaBand: v.giaBand, earnings: String(v.earnings), bedAndIsa: v.bedAndIsa,
+  const out = { pension: s.pensionNotSet ? '' : String(v.pension), isa: String(v.isa), isaUse: v.isaUse, taxable: String(v.taxable), taxableMix: v.taxableMix, giaBand: v.giaBand, earnings: String(v.earnings), bedAndIsa: v.bedAndIsa,
     pa: String(v.pa), brl: String(v.brl), hrl: String(v.hrl), taxMode: v.taxMode, taxFree: v.taxFree, ufplsThenIsa: v.ufplsThenIsa, bandFill: v.bandFill };
   if (v.isaGrowth) out.isaGrowth = v.isaGrowth;
   if (s.hasChargesKey || !s.locked) out.charges = String(v.charges);
@@ -216,7 +221,8 @@ export function checkPots(plan, typed, { today }) {
   const take = (path) => { const f = field(path); const r = parseField(boxes[path], f); if (r.error) errors[path] = r.error; else values[path] = r.value; return r; };
   for (const f of POTS_FIELDS) applies[f.path] = true;
   // the pension pot: from the funds list, the box is not drawn (the list sets it); a bought strategy sized on its own dial still shows it
-  applies.pension = !saved.fundsMode;
+  // nothing known and nothing typed: no pension to write, and no default in its place (lead4.md D2)
+  applies.pension = !saved.fundsMode && !(saved.pensionNotSet && blank(boxes.pension));
   if (applies.pension) take('pension');
   take('isa');
   // how the ISA grows: only where the plan has the choice (a locked plan without it keeps the fixed rate) and the funds do not decide
@@ -261,7 +267,8 @@ export function potsPatch(plan, typed, { today }) {
     if (sv.pots.div > 0) want[S + 'diversifierStart'] = p.div;
     // a plan still saving (step F1, lead4.md D3): the pension typed is the pension today every page reads — the saved pot
     // and this month's record, as the full view's pots box writes it (ScenarioRepository.saveActivePensionToday)
-    if (s.later) Object.assign(want, pensionTodayPatch(plan, v.pension, { now: s.now }));
+    // and a plan with no pension known (lead4.md D2): the figure typed is the first pension it has, read back as typed
+    if (s.later || s.pensionIsToday || s.pensionNotSet) Object.assign(want, pensionTodayPatch(plan, v.pension, { now: s.now }));
   }
   want[S + 'isaBalance'] = v.isa || 0;
   if (c.applies.isaGrowth) want[S + 'isaGrowth'] = v.isaGrowth;

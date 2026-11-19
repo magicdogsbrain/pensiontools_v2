@@ -72,6 +72,8 @@ test('s11 · Sam, 59, moving: buy what is missing, sell no more than that, keep 
     q.exact('what is not sold stays as it is: £410,000 less the sell total', left, sell === null ? null : OUTSIDE - sell, { byHand: `410,000 − ${sell}` });
     q.reach('TG28\'s maturity, 22 October 2028, said beside it', /22 October 2028/.test(t), { did: 'no maturity date for TG28' });
     q.never('the move page', /proceeds|ticked off|\bNext:/i.test(t) ? ['proceeds / ticked off / Next:'] : []);
+    // (E3) a shortfall is said as one, with its years; nothing "waits for new money" that is not coming (walks3 W5-H2)
+    q.never('the move page (a shortfall)', /waits for new money|waits until the money is there/i.test(t) ? ['waits for new money'] : [], { must: 'a shortfall with its amount and its years', owner: 'HOLD' });
     // round 3 (walker 5, decision 8): the order sheet orders what is still to buy of a gilt part bought, the Buy list's figure
     const anyway = page.getByTestId('plan.move.sheet.anyway');
     if (await anyway.isVisible().catch(() => false)) await q.step('the order sheet: "Show the sheet anyway"', () => anyway.click());
@@ -83,6 +85,11 @@ test('s11 · Sam, 59, moving: buy what is missing, sell no more than that, keep 
     await q.step('the home', async () => { await planPage(page, planId, 'home'); await settled(page).catch(() => {}); });
     const home = await visibleText(page);
     q.same('the buy total', [{ where: 'simple Moving', value: buy }, { where: 'home To do', value: grab(/Moving to your plan’s mix: £([\d,]+) still to buy/, home) }], { everywhere: true });
+    // (E2) year 0 pays for the months it has. By hand: £26,000 a year ÷ 12 = £2,166.67 → £2,167 a month, from October 2027
+    // (6 payments to March 2028, £13,000); never 26,000 over the months left in 2027/28 (÷ 10 = £2,600 in June, ÷ 5 = £5,200
+    // in November). Today Sam is still at work, so the home says when the ladder starts paying and the month then.
+    const starts = /Your ladder pays from October 2027: £([\d,]+) a month before tax/.exec(home);
+    q.exact('the month the ladder will pay, from October 2027', starts ? money(starts[1]) : null, 2167, { byHand: '26,000 ÷ 12 = 2,166.67', tolerance: 1, owner: 'MONTH' });
 
     await q.step('the full view, Transition', () => fullPage(page, 'transition'));
     await expect(page.getByText(/^Totals: buy/).first()).toBeVisible({ timeout: 30_000 }).catch(() => {});

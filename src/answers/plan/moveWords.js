@@ -37,6 +37,32 @@ export function moveStatusOf(target, diff, prog) {
 /** The status as a sentence, from the move's words (MOVE). */
 export const sayMoveStatus = (st, W) => fillMove(W.status[st.id], st.slots);
 
+/** The move's buy order (TransitionPlanner.sequence): the cash years first, then the gilts by maturity, then the rest. */
+const buyOrder = (b) => (b.kind === 'cash' ? 0 : b.kind === 'gilt' ? 1 + (b.matures ? new Date(b.matures).getFullYear() / 10000 : 0.5) : b.bucket === 'bonds' ? 2 : b.bucket === 'cash' ? 2.5 : 3);
+const yearsOfBuy = (b) => (Array.isArray(b.taxYears) ? b.taxYears : Array.isArray(b.yearsLeft) ? b.yearsLeft : []).map(Number).filter(Number.isFinite);
+/** '2031/32 to 2033/34', or one year alone. */
+const yearsWords = (ys) => (!ys.length ? '' : ys.length === 1 ? taxYearLabel(ys[0]) : taxYearLabel(ys[0]) + ' to ' + taxYearLabel(ys[ys.length - 1]));
+
+/**
+ * What the money for the move cannot pay for (7.12.0, walks3 W5-H2), a ladder: the buys paid in the move's own order (the
+ * cash years, then the gilts nearest first) from the pension's spare cash, the money the plan does not use and any new
+ * money expected before the stop; `short` what is left unpaid, `years` every tax year a buy not paid in full was for.
+ * A year the plan cannot pay is a shortfall, said with its amount, never money that "waits".
+ */
+export function unpaidOf(diff, { newMoney = 0 } = {}) {
+  const F = diff && diff.funding;
+  if (!F) return { short: 0, years: [] };
+  let left = num(F.spareCash) + num(F.available) + num(newMoney);
+  const years = new Set();
+  let short = 0;
+  for (const b of (diff.buy || []).slice().sort((a, c) => buyOrder(a) - buyOrder(c))) {
+    const paid = Math.min(left, num(b.amount)); left -= paid;
+    const gap = num(b.amount) - paid;
+    if (gap > 0.5) { short += gap; for (const Y of yearsOfBuy(b)) years.add(Y); }
+  }
+  return { short: Math.round(short), years: [...years].sort((a, c) => a - c) };
+}
+
 /**
  * Paying for it (7.12.0), a ladder only: { ids, slots } — the sentences in order, ids of MOVE.paying — or null when there is
  * nothing to buy. `newMoney` is the new money expected before the stop (the schedule's), `from` where the plan's own money
@@ -45,14 +71,18 @@ export const sayMoveStatus = (st, W) => fillMove(W.status[st.id], st.slots);
 export function payingOf(diff, { newMoney = 0, planMoney = null, said = false } = {}) {
   const F = diff && diff.funding;
   if (!F || !(F.need > 0)) return null;
-  const slots = { need: pounds(F.need), available: pounds(F.available), toRaise: pounds(F.toRaise), leftOver: pounds(F.leftOver), short: pounds(F.short), newMoney: newMoney > 0 ? pounds(newMoney) : null };
+  const unpaid = unpaidOf(diff, { newMoney });
+  const slots = { need: pounds(F.need), available: pounds(F.available), toRaise: pounds(F.toRaise), leftOver: pounds(F.leftOver), short: pounds(F.short), newMoney: newMoney > 0 ? pounds(newMoney) : null,
+    gap: pounds(unpaid.short), years: yearsWords(unpaid.years) };
+  // what stays short once new money is counted: the years it leaves unpaid, or nothing when new money pays the rest
+  const shortTail = unpaid.short > 0 && unpaid.years.length ? ['shortYears'] : unpaid.short > 0 ? ['shortNoYears'] : ['shortPaidByNew'];
   const held = F.leftOverHeld === 'shares' ? 'heldShares' : 'heldValue';
-  const rest = F.short > 0 ? ['short', ...(newMoney > 0 ? ['newMoney'] : []), 'shortRest'] : F.leftOver > 0 ? ['enough', 'leftOver', held, 'leave'] : ['enoughAll'];
+  const rest = F.short > 0 ? ['short', ...(newMoney > 0 ? ['newMoney'] : []), ...shortTail] : F.leftOver > 0 ? ['enough', 'leftOver', held, 'leave'] : ['enoughAll'];
   if (F.toRaise <= 0) return { ids: ['need', 'cash'], slots };
   if (F.fromPlan) {
     const pm = planMoney || F.planMoney || {};
     // `said`: the status above already said nothing is listed and the plan's own pension (unlistedStatusOf): said once
-    return { ids: [...(said ? [] : ['unlisted', num(pm.isa) > 0 ? 'planHasIsa' : 'planHas']), 'need', ...(F.short > 0 ? ['planShort', ...(newMoney > 0 ? ['newMoney'] : []), 'shortRest'] : ['planEnough'])],
+    return { ids: [...(said ? [] : ['unlisted', num(pm.isa) > 0 ? 'planHasIsa' : 'planHas']), 'need', ...(F.short > 0 ? ['planShort', ...(newMoney > 0 ? ['newMoney'] : []), ...shortTail] : ['planEnough'])],
       slots: { ...slots, pension: pounds(pm.pension), isa: pounds(pm.isa), from: pm.from || 'plan' } };
   }
   if (F.listed === false) return { ids: [...(said ? [] : ['unlisted']), 'need'], slots };
@@ -83,7 +113,8 @@ export function outsideRowsOf(diff) {
 export function moveTotalsOf(diff) {
   const F = diff && diff.funding;
   if (!F) return null;
-  return F.short > 0 ? { id: 'totalsShort', slots: { need: pounds(F.need), available: pounds(F.available), short: pounds(F.short) } }
+  const unpaid = F.short > 0 ? unpaidOf(diff) : null;
+  return F.short > 0 ? { id: unpaid.years.length ? 'totalsShort' : 'totalsShortNoYears', slots: { need: pounds(F.need), available: pounds(F.available), short: pounds(F.short), years: yearsWords(unpaid.years) } }
     : { id: 'totalsLadder', slots: { need: pounds(F.need), toRaise: pounds(Math.min(F.toRaise, F.available)), leftOver: pounds(F.leftOver) } };
 }
 

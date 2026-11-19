@@ -854,7 +854,10 @@ export function sequence(diff, { today = new Date(), startYear, startMonth = nul
   const funded = F ? num(F.available) + num(F.spareCash) + contributions >= totalBuy - 1 : totalSell + contributions >= totalBuy - 1;
   let spareLeft = F ? num(F.spareCash) : 0, availLeft = F ? num(F.available) : 0, raisedExact = 0, raisedRounded = 0;
   const steps = [];
-  const perTranche = totalBuy / tranches;
+  // a ladder buys only what can be paid for (7.12.0, walks3 W5-H2): the spare cash, the money the plan does not use and new
+  // money; the buys beyond that are a shortfall (moveWords.unpaidOf), never steps with nothing to pay for them
+  const fundable = F ? Math.min(totalBuy, num(F.available) + num(F.spareCash) + contributions) : totalBuy;
+  const perTranche = fundable / tranches;
   let bi = 0, remainingInBuy = buys.length ? num(buys[0].amount) : 0;
   for (let t = 0; t < tranches; t++) {
     const when = monthKey(t * trancheMonths);

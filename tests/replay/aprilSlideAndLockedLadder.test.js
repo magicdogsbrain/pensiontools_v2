@@ -106,7 +106,11 @@ describe('A — the April slide: a plan\'s start year is written into the plan o
       expect(second.firstTaxYear).toBe(Y);                                   // before 6.13.5, a year later
       expect(deriveTiming(second, APR_8)).toMatchObject({ mode: 'retired', firstTaxYear: Y, shapeAgeNow: deriveTiming(first, APR_4).shapeAgeNow });
       const ladderAfter = frozenAt(APR_8, () => ladderOn(second, APR_8));
-      expect(rungs(await ladderAfter)).toEqual(rungs(await ladderBefore));   // same years, ages, gilts, income and units
+      // same years, ages, gilts, income and units; but year 0 (2026/27), which on 4 April has one month left: 7.12.0, a retired
+      // plan's year 0 pays for the months it has (£40,000 ÷ 12 = £3,333), and is behind the plan on 8 April
+      const [b, a] = [rungs(await ladderBefore), rungs(await ladderAfter)];
+      if (!locked) { expect(b.years[0]).toEqual([2026, a.years[0][1], 3333, 'cash']); b.years[0] = a.years[0]; }
+      expect(a).toEqual(b);
       expect((await ladderAfter).firstTaxYear).toBe(Y);
 
       // The Decision settings were not written, so a locked plan's checksum — and every record stamped with it — stands.

@@ -19,7 +19,7 @@ import { runFlexWindows, runFlexMonteCarlo } from './FloorAndFlex.js';
 import { rotationPathsCtx, runRotationWindows, runRotationMonteCarlo, splitLadderAtAge, runRotationPath, spareGrowthRuns } from './GiltRotation.js';
 import { deriveCompareConfigs, compareAll } from './compareRunner.js';
 import { spTaxYearFirstRatio } from '../utils/StatePensionUtils.js';
-import { taxYearStartOf, year0MonthsOf } from '../services/PlanTiming.js';
+import { taxYearStartOf, year0MonthsOf, year0SpMonthsOf } from '../services/PlanTiming.js';
 import { spPaidBefore, ladderAsSeenFromToday } from '../services/PlanFromToday.js';
 import { grossToNet, netToGross } from '../services/TaxCalculator.js';
 import { cashCostFactor, buildGiltLadder, ladderWealthByYear } from './GiltLadderPlan.js';
@@ -142,6 +142,10 @@ export function planFromSettings(settings, cfg, { yieldForYear, essentialsAnnual
     ? closedParked.map((v, y) => v + ((windfallUse && windfallUse.carryByYear[y]) || 0))
     : windfallUse ? windfallUse.carryByYear : null;
   const pnvLock = cfg.pensionLockedMonths === undefined ? pensionLockOf(settings, { now, fromTaxYear: timing.firstTaxYear + lived, pensionPot: pensionPotOf(cfg) }) : null;
+  // Year 0 for the months it has (7.12.0, PlanTiming.year0MonthsOf): a plan still to start, from its stop month; a retired
+  // plan in its year 0, from the month of its pots (a locked plan's recorded position, else this month). 12: a whole year.
+  const y0 = lived > 0 ? 12 : year0MonthsOf(timing, settings.potsAsOf && typeof settings.potsAsOf === 'object' ? settings.potsAsOf : null);
+  const y0Sp = spAnnual > 0 && spStartYear === 0 ? year0SpMonthsOf(settings.spStartDate, timing.firstTaxYear, y0) : null;   // the State Pension's months of it
   return {
     pot, isa: closedPay ? closedPay.left : isa, targetAnnual: target,
     otherIncomeByYear, extraNeedByYear, needByYear, rawSchedule, windfallByYear,
@@ -168,11 +172,13 @@ export function planFromSettings(settings, cfg, { yieldForYear, essentialsAnnual
     spAssumed: !settings.spStartDate && !(+settings.spWeeklyAmount > 0) && spAnnual > 0,
     // Ladder rungs are per TAX year: the SP's first-year share is measured against 6 April (a whole year in a run from
     // today when it was already being paid before this tax year).
-    spFirstYearRatioTaxYear: (lived > 0 && spPaidBefore(settings, timing.firstTaxYear + lived)) ? 1 : (spTaxYearFirstRatio(settings) ?? cfg.spFirstYearRatio ?? 1),
+    // A part year 0 (7.12.0) counts it in the year's own whole months (PlanTiming.year0SpMonthsOf): one already being paid
+    // pays every month of it.
+    spFirstYearRatioTaxYear: y0Sp != null ? y0Sp / 12 : spPaidBefore(settings, timing.firstTaxYear + lived) ? 1 : (spTaxYearFirstRatio(settings) ?? cfg.spFirstYearRatio ?? 1),
     firstTaxYear: timing.firstTaxYear,   // saved with the plan (6.4.0) — it no longer slides each January
     yearsToStart: timing.yearsToStart, timingMode: timing.mode,
     // a first year that starts in the month work stops (7.12.0): the months it has, only when fewer than twelve
-    ...(lived > 0 || year0MonthsOf(timing) >= 12 ? {} : { year0Months: year0MonthsOf(timing) }),
+    ...(y0 < 12 ? { year0Months: y0 } : {}),
     ...(lived > 0 ? { yearOffset: lived, monthsIntoYear: cfg.monthsIntoYear || 0, runFirstTaxYear: timing.firstTaxYear + lived } : {}),
     stride: 2, mcRuns: 1000,   // identical on both surfaces: compare row == locked-plan run
     isaHold: settings.isaDrawdownStrategy === 'hold',   // powder-dry ISA: never funds rungs/floors
@@ -181,7 +187,9 @@ export function planFromSettings(settings, cfg, { yieldForYear, essentialsAnnual
     // strategies get its monthly factor on their sleeves (compareRunner.deriveCompareConfigs) and the gilt ladders' cash years.
     chargesPct: chargesPctOf(cfg),
     pnvCfg: { ...cfg, startAge, targetSchedule: rawSchedule, ...(pnvLock ? { pensionLockedMonths: pnvLock.years * 12 } : {}),
-      ...(lived > 0 || year0MonthsOf(timing) >= 12 ? {} : { year0Months: year0MonthsOf(timing) }) },   // year 0 for the months it has   // the plan's own tax mode / ISA rate: it runs nominally now; it applies DB/extras itself
+      // the engine spreads year 0's State Pension over the twelve months and pays only year 0's own: so its share is the
+      // months it pays over the months year 0 has (one already being paid: 1, a whole month's State Pension in each)
+      ...(y0 < 12 ? { year0Months: y0, ...(y0Sp != null ? { spFirstYearRatio: y0Sp / y0 } : {}) } : {}) },   // year 0 for the months it has   // the plan's own tax mode / ISA rate: it runs nominally now; it applies DB/extras itself
     yieldForYear,
     ...(now ? { now } : {})   // only when injected: the plan object is otherwise byte-identical to before
   };

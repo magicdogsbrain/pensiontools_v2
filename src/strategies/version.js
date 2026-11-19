@@ -62,5 +62,15 @@
  *           (buildTimeline says year 0's need for a whole year).
  *           The household split counts a retired person's years from this tax year, and a State Pension already being
  *           paid as paid (never years away).
+ *           A retired plan's year 0 pays for the months it has too: its pots are today's, so year 0 runs from this month (or
+ *           a locked plan's recorded month) to March, the months already gone left out (PlanTiming.year0MonthsOf, mode
+ *           'retired'). Counted in whole months: this month counts whole, and so does the month a State Pension starts in.
+ *           A State Pension already being paid pays every month of that part year (it paid only the share of a year it had
+ *           in the tax year it began, and was spread over twelve months); one starting later in it pays from its month to
+ *           March (PlanTiming.year0SpMonthsOf; a saver's part year 0 counts its State Pension the same way). A State
+ *           Pension begun in a tax year before the plan's first is paid for the whole of year 0 (it was the share of its
+ *           own first year). A retired plan read after April: less drawn in year 0, so fewer futures run out; read in
+ *           April, nothing moves but that State Pension share. The question answers on the plan path take the same months
+ *           (fastEngine covers them, run by run equal to the engine).
  */
 export const ENGINE_VERSION = '6.39.0';

@@ -392,8 +392,11 @@ export function spSimConfigFromSettings(settings, now = new Date()) {
     // date falls in minus the plan's first tax year (the ladder has always counted this way). The
     // first-year share is measured against 6 April for the same reason.
     const tyStart = (d) => (d.getMonth() > 3 || (d.getMonth() === 3 && d.getDate() >= 6)) ? d.getFullYear() : d.getFullYear() - 1;
+    // A State Pension begun in a tax year before the plan's first is paid for the whole of year 0 (7.12.0): its first year's
+    // share belongs to the year it began in, not to year 0.
     spStartYear = Math.max(0, tyStart(spDate) - (+settings.firstTaxYear));
-    return { spStartYear, spWeeklyAmount: settings.spWeeklyAmount, spFirstYearRatio: spTaxYearFirstRatio(settings) ?? 1 };
+    const before = tyStart(spDate) < +settings.firstTaxYear;
+    return { spStartYear, spWeeklyAmount: settings.spWeeklyAmount, spFirstYearRatio: before ? 1 : (spTaxYearFirstRatio(settings) ?? 1) };
   }
   if (settings.shapeAgeNow > 0 && settings.currentAge > 0 && settings.shapeAgeNow > Math.floor(currentAgeNow(settings, now)) && spDate.getTime() > now.getTime()) {
     // Not yet retired: plan year 0 starts on the birthday the income begins, so count birthdays.

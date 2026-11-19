@@ -145,7 +145,8 @@ describe('known date dependence, pinned so a change is noticed (findings of the 
   it('a retired plan with NO saved firstTaxYear slides a whole year on 6 April: start, ages and every rung of the ladder', () => {
     // 7.4.0: this tax year with nothing saved (it was next April), so no months to it on either day; today's months into it move
     expect(changed((now) => deriveTiming(RETIRED_NO_ANCHOR, now))).toEqual(['firstTaxYear', 'monthsIntoYear', 'shapeAgeNow', 'startMonth', 'startOptions.0']);
-    expect(changed((now) => planOf(RETIRED_NO_ANCHOR, 'full-il-gilt', now))).toEqual(['firstTaxYear', 'pnvCfg.startAge', 'startAge']);
+    // 7.12.0: before 6 April the retired plan's year 0 has a month left (it pays for the months it has); after, a whole year
+    expect(changed((now) => planOf(RETIRED_NO_ANCHOR, 'full-il-gilt', now))).toEqual(['firstTaxYear', 'pnvCfg.startAge', 'pnvCfg.year0Months', 'startAge', 'year0Months']);
     const before = result(RETIRED_NO_ANCHOR, 'full-il-gilt', BEFORE), after = result(RETIRED_NO_ANCHOR, 'full-il-gilt', AFTER);
     expect([before.plan.firstTaxYear, after.plan.firstTaxYear]).toEqual([2026, 2027]);
     expect(after.signature.total).not.toBe(before.signature.total);

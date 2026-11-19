@@ -80,15 +80,39 @@ export function taxYearOfMonth(ym) {
   return m >= 4 ? y : y - 1;
 }
 /**
- * The months a plan's first tax year has (7.12.0: year 0 pays for the months it has): from the month work stops, for a plan
- * still to start (timing mode 'future') whose stop month falls after April in its first tax year, to March (November → 5);
- * 12 otherwise. A plan already running keeps its year as it always was.
+ * The months a plan's first tax year has (7.12.0: year 0 pays for the months it has), counted in whole months:
+ *  - a plan still to start (timing mode 'future') whose stop month falls after April in its first tax year: from the stop
+ *    month to March (November → 5);
+ *  - a retired plan in its year 0 (mode 'retired', year 0 this tax year): from the month its pots belong to — this month,
+ *    or the month a locked plan's recorded position says (`position.monthsIntoYear`) — to March (September → 7). The
+ *    months of this tax year already gone were paid before the pots were counted;
+ *  - 12 otherwise. A plan whose year 0 is behind it keeps its year as it always was (PlanFromToday's twelve months from
+ *    the pots' day).
  */
-export function year0MonthsOf(timing) {
+export function year0MonthsOf(timing, position = null) {
+  if (timing && timing.mode === 'retired') {
+    if (timing.planYearNow !== 0) return 12;
+    const gone = position && position.monthsIntoYear != null ? +position.monthsIntoYear : +timing.monthsIntoYear;
+    return 12 - Math.max(0, Math.min(11, Math.round(gone || 0)));
+  }
   const ym = timing && timing.mode === 'future' ? String(timing.startMonth || '') : '';
   if (!/^\d{4}-\d{2}$/.test(ym) || taxYearOfMonth(ym) !== +timing.firstTaxYear) return 12;
   const m = +ym.slice(5, 7);
   return m >= 4 ? 16 - m : 4 - m;
+}
+/**
+ * The months of a part year 0 (`months` of them, fewer than 12, year0MonthsOf) the State Pension pays, in whole months as
+ * the year's own months are counted: a State Pension already being paid in the first of them (its date in that month or
+ * before, an earlier tax year included) pays every one; one that starts later in the year pays from its month to March; one
+ * that starts after year 0 pays none. Null for a whole year 0 or no State Pension date: the tax-year share by days stays.
+ * @param {string|Date|null} spStartDate  the plan's State Pension date ('YYYY-MM-DD', a local day)
+ */
+export function year0SpMonthsOf(spStartDate, firstTaxYear, months) {
+  if (!(months > 0 && months < 12) || !spStartDate || !(+firstTaxYear > 0)) return null;
+  const d = spStartDate instanceof Date ? spStartDate : (() => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(spStartDate)); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null; })();
+  if (!d || !Number.isFinite(d.getTime())) return null;
+  const at = (d.getFullYear() - +firstTaxYear) * 12 + d.getMonth() - 3;   // months from April of year 0 (April 0 … March 11)
+  return Math.max(0, Math.min(months, 12 - Math.max(at, 12 - months)));
 }
 /** 'YYYY-MM' of `now`'s local month. */
 export function monthKeyOf(now = new Date()) { return now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0'); }

@@ -18,7 +18,9 @@ import { createSimulationConfigFromSettings } from '../src/storage/StressReposit
 import { stressTestStrategy, planFromSettings } from '../src/strategies/stressTest.js';
 import { simulate } from '../src/services/SimulationEngine.js';
 
-const NOW = new Date('2026-11-18T12:00:00Z');
+// Read in April: Pat is retired, and a retired plan read after April pays its year 0 for the months left too (7.12.0,
+// tests/retiredYear0Months.test.js), so the whole-year plan this file compares with is read on a day its year is whole.
+const NOW = new Date('2026-04-18T12:00:00Z');
 const pat = {
   configured: true, duration: 25, other: 0, pa: 12570, brl: 50270, hrl: 125140, taxMode: 'inflates',
   protectionMult: 0.8, consecutiveLimit: 3, disableProtection: false, recoveryBuffer: 0,

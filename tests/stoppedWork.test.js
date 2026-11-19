@@ -293,11 +293,15 @@ describe('the ladder\'s month for someone who stopped this tax year or earlier: 
     const lp = ladderPosition(r.plan, { today: DAY, potsDay: potsDayOf(s, { now: DAY }) });
     return { s, lp, need: r.plan.years[0].need, firstY: r.plan.years[0].Y };
   });
-  it('stopped in September of this tax year: year 0 is this tax year, paid at a twelfth of its need a month', () => {
+  it('stopped in September of this tax year: year 0 is this tax year, paid at a twelfth of the year a month', () => {
     const { s, lp, need, firstY } = position('2026-09');
     expect([s.potsAsOf, firstY, lp.phase, lp.monthsLeft]).toEqual(['today', 2026, 'running', 5]);
     expect(lp.spread).toBe(true);
-    expect(lp.monthly).toBeCloseTo(need / 12, 6);
+    // 7.12.0: a retired plan's year 0 pays for the months it has (November to March, read on 15 November): the ladder buys
+    // those 5 months (need = £38,000 × 5 ÷ 12 = £15,833.33) and pays the same £3,166.67 a month (38,000 ÷ 12) as before
+    expect(need).toBeCloseTo(38000 * 5 / 12, 2);
+    expect(lp.monthly).toBeCloseTo(need / 5, 6);
+    expect(lp.monthly).toBeCloseTo(38000 / 12, 2);
     // 7.12.0 (walks3 W7-M1): the payments this tax year are said as they are, never "over the twelve months from"
     expect(lp.instruction).toContain('in 2026/27 that is 5 payments, November 2026 to March 2027');
     expect(lp.remaining).toBeCloseTo(need, 6);                 // the year's money not yet drawn is all still held

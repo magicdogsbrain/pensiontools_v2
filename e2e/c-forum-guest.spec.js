@@ -19,7 +19,7 @@ import { money } from '../src/answers/shared/format.js';
 const tidy = (typed) => money(Number(String(typed).replace(/[£,\s]/g, ''))).slice(1);
 
 const SLOWDOWN = Number(process.env.E2E_SLOWDOWN) || 4;   // see e2e/global-setup.js
-const BUDGET = { mustFill: 5, screens: 3, clicks: 6, firstMs: 3_000, finalMs: 15_000, journeyMs: 20_000 };
+const BUDGET = { mustFill: 5, screens: 3, clicks: 6, firstMs: 15_000, finalMs: 15_000, journeyMs: 20_000 };   // the first figure is the full run's (lead4.md R6): its budget is the final figure's
 const KEY_DELAY = 120;
 
 test.describe('J1 — the forum guest: one person, 58, about £250,000', () => {

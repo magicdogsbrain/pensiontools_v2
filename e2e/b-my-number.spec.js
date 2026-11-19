@@ -60,7 +60,7 @@ test.describe('J4 — what\'s my number? (A, then B with the figures carried acr
       times = await askAndTime(app, 'b.action.show');
       await app.at('b.answer');
     });
-    times = await secondReading(app, times, { firstMs: 3_000, finalMs: 15_000 });
+    times = await secondReading(app, times, { firstMs: 15_000, finalMs: 15_000 });   // the first figure is the full run's (lead4.md R6)
 
     await app.step('the number and the pay-in, each with its sentence — the screen is the engine', async () => {
       const b = app.engine(B_ENV);

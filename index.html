@@ -7939,7 +7939,6 @@
 
     window.applyDecisionStrategyMode = applyDecisionStrategyMode;   // exposed for diagnostics/automation
     window.renderDecisionStrategyPanel = async function () {
-      await window._marketReady;   // the one market (lead4.md R5): never priced on the copy built in while the day's file loads
       const el = document.getElementById('dsStrategyPanel');
       if (!el) return;
       try {
@@ -7963,6 +7962,8 @@
         const banner = '<div class="alert alert-info" style="margin-bottom:10px;"><strong>This plan\'s strategy: ' + markFact('way.name', budEsc(STRATEGY_NAMES[sid] || sid)) + '.</strong> ' + budEsc(HOW[sid] || '') + ' <span class="hint">Set in the Stress Tester settings or on its Strategies page — <button type="button" class="risk-btn" style="padding:1px 8px;font-size:11px;" data-on-click="switchToTab(\'strategies\'); setTimeout(() => showStrategyPage(\'' + sid + '\'), 300);">read it</button> <button type="button" class="risk-btn" style="padding:1px 8px;font-size:11px;" data-on-click="switchToTab(\'stress\'); setTimeout(() => openToolSettingsTab(\'stress\'), 300);">change it</button></span></div>';
         const note = document.getElementById('dsStrategyNote'); if (note) note.innerHTML = banner;
         if (sid === 'pots-and-valves' || sid === 'buckets-in-order') { el.innerHTML = banner; el.style.display = 'block'; return; }
+        // the form is set for the way above at once; what follows is priced, so it waits for the one market (lead4.md R5)
+        await window._marketReady;
         const params = { ...(settings.strategyParams || {}), ...(st.params || {}) };
         window._rotCutAge = params.rotateCutAge || 75;
         let bannerHtml = banner + borrowedFloorLineHtml(settings);

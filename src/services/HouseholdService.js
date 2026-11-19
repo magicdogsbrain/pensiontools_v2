@@ -14,7 +14,7 @@
  */
 
 import { spendingSmileFactor } from './SpendingModel.js';
-import { spSimConfigFromSettings, currentAgeNow } from '../utils/StatePensionUtils.js';
+import { spSimConfigFromSettings, currentAgeNow, parseStatePensionDate } from '../utils/StatePensionUtils.js';
 import { defaultSpYear, scheduleFromSteps } from '../services/IncomeSchedule.js';
 import { simulationConfigFromSettings } from './SimulationConfig.js';
 import { deriveTiming } from './PlanTiming.js';
@@ -34,10 +34,16 @@ export function targetForYear(settings, year) {
   return anchor * spendingSmileFactor(year, settings.spendingProfile || 'flat');
 }
 
-/** State Pension start year + annual amount (today's money) from either settings format. */
+/**
+ * State Pension start year + annual amount (today's money) from either settings format, and `paidNow`: its date is on or
+ * before today, so it is being paid this year whatever year the plan's own count gives it (7.12.0, walks3 W8-H4: a
+ * retiree whose plan counts its years from a later birthday showed £0 for a State Pension already paid).
+ */
 export function spFor(settings, now = new Date()) {
   const cfg = spSimConfigFromSettings(settings, now);
-  if (cfg) return { startYear: cfg.spStartYear, annual: cfg.spWeeklyAmount * 52 };
+  const d = settings && settings.spStartDate ? parseStatePensionDate(settings.spStartDate) : null;
+  const paidNow = !!d && d.getTime() <= now.getTime();
+  if (cfg) return { startYear: cfg.spStartYear, annual: cfg.spWeeklyAmount * 52, paidNow };
   if (settings.statePension > 0) {
     // Same fallback as the simulation config: no SP date => 67 − income-start age.
     return { startYear: defaultSpYear(settings), annual: settings.statePension };
@@ -72,8 +78,8 @@ export function householdIncomeTimeline(setA, setB, labelYears = null, now = new
     const inA = !workingA && !endedA, inB = !workingB && !endedB;
     const needA = inA ? targetForYear(setA, Math.max(0, yA)) : 0;
     const needB = inB ? targetForYear(setB, Math.max(0, yB)) : 0;
-    const spA = (inA && yA >= a.startYear) ? a.annual : 0;
-    const spB = (inB && yB >= b.startYear) ? b.annual : 0;
+    const spA = (inA && (yA >= a.startYear || a.paidNow)) ? a.annual : 0;
+    const spB = (inB && (yB >= b.startYear || b.paidNow)) ? b.annual : 0;
     const db = (setA.dbAmount > 0 && !endedA && yA >= (setA.dbStartYear || 0) ? setA.dbAmount : 0)
              + (setB.dbAmount > 0 && !endedB && yB >= (setB.dbStartYear || 0) ? setB.dbAmount : 0);
     const other = (inA ? (setA.other || 0) : 0) + (inB ? (setB.other || 0) : 0);
@@ -82,7 +88,7 @@ export function householdIncomeTimeline(setA, setB, labelYears = null, now = new
     rows.push({
       year: c, calendarYear: now.getFullYear() + c, needA, needB, need, spA, spB, db, other, guaranteed, workingA, workingB, endedA, endedB,
       drawNeed: Math.max(0, need - guaranteed),
-      beforeStatePension: (!workingA && a.annual > 0 && yA < a.startYear) || (!workingB && b.annual > 0 && yB < b.startYear)
+      beforeStatePension: (!workingA && a.annual > 0 && yA < a.startYear && !a.paidNow) || (!workingB && b.annual > 0 && yB < b.startYear && !b.paidNow)
     });
   }
   return rows;
@@ -103,6 +109,9 @@ export function isRetired(settings) { return settings && (settings.retired === t
 export function startOffset(settings, clock = new Date()) {
   const lived = runPositionOf(settings, deriveTiming(settings || {}, clock)).elapsedYears;
   if (lived > 0) return -lived;
+  // someone retired is drawing now (7.12.0, walks3 W8-H4): their plan's start age, the age at the end of a tax year, can be
+  // a birthday above today's age, and counting a year until it left this year without their State Pension and pensions
+  if (isRetired(settings)) return 0;
   const now = currentAgeNow(settings, clock), start = +settings.shapeAgeNow || 0;
   return (now > 0 && start > now) ? Math.round(start - now) : 0;
 }

@@ -19,7 +19,7 @@ import { COMMON } from '../src/v7/copy/common.js';
 import { PREVIEW_PATH } from '../src/ui/components/OpenPlace.js';
 import { questionHref } from '../src/services/PlanSeed.js';
 import { loadMarket, forgetMarket, marketFolderOf } from '../src/reading/market.js';
-import { V7_PATH, CLASSIC_PATH, atClassic, LAYOUT_UNDER_TEST, CLASSIC_WORKER_DATA, WORKER_DATA_LINE, WORKER_DATA_MISSING } from '../e2e/helpers/paths.js';
+import { V7_PATH, CLASSIC_PATH, atClassic, LAYOUT_UNDER_TEST } from '../e2e/helpers/paths.js';
 
 const ROOT = process.cwd();
 const read = (p) => readFileSync(join(ROOT, p), 'utf8');
@@ -142,20 +142,11 @@ describe('the browser tests\' two addresses', () => {
     expect(read('src/workers/engineWorker.js')).toContain('loadMarket({ folder: payload && payload.market })');
     expect(read('src/v7/effects/answerWorker.js')).toContain("loadMarket({ folder })");
   });
-  it('(kept for the rollback\'s watch) the classic page\'s data address read from a script in assets/ (/classic/data/ at 7.0, /assets/data/ for the rollback)', () => {
-    const worker = (L) => from(L.classic.at + 'assets/engineWorker-H.js', L.classic.data);
-    expect(worker(LAYOUTS.preview)).toBe('/assets/data/');
-    expect(worker(LAYOUTS.switch)).toBe('/classic/data/');
-    expect(CLASSIC_WORKER_DATA).toBe(worker(LAYOUT_UNDER_TEST));
-    // the watch's line for a missing file there, and only there
-    for (const f of ['gilts', 'equity']) expect(WORKER_DATA_LINE.test(`asked for a file that is not there: ${CLASSIC_WORKER_DATA}${f}.json`)).toBe(true);
-    for (const no of [`${CLASSIC_WORKER_DATA}other.json`, '/data/gilts.json', `${CLASSIC_WORKER_DATA}gilts.json.bak`]) expect(WORKER_DATA_LINE.test(`asked for a file that is not there: ${no}`), no).toBe(false);
-    // what the specs let pass: at 7.0 nothing (the build makes the copy, so a missing one must fail); the line in the rollback layout
-    const lines = [...['gilts', 'equity'].map((f) => `asked for a file that is not there: ${CLASSIC_WORKER_DATA}${f}.json`), 'asked for a file that is not there: /data/gilts.json', ''];
-    if (LAYOUT_UNDER_TEST.name === 'switch') for (const l of lines) expect(WORKER_DATA_MISSING.test(l), l).toBe(false);
-    else expect(WORKER_DATA_MISSING).toBe(WORKER_DATA_LINE);
-    if (!process.env.LAYOUT) expect(WORKER_DATA_LINE.source).toBe(String.raw`^asked for a file that is not there: \/classic\/data\/(gilts|equity)\.json$`);
-    if (process.env.LAYOUT === 'preview') expect(WORKER_DATA_LINE.source).toBe(String.raw`^asked for a file that is not there: \/assets\/data\/(gilts|equity)\.json$`);
+  it('no build copies the market files beside the classic page: the one data folder is the site\'s /data/ (vite.layout.js)', () => {
+    expect(read('vite.layout.js')).not.toMatch(/classicDataCopy|pt:classic-data/);
+    expect(read('vite.config.js')).not.toMatch(/classicDataCopy/);
+    expect(new URL(LAYOUTS.switch.classic.data, 'http://site.test' + LAYOUTS.switch.classic.at).pathname).toBe('/data/');
+    expect(new URL(LAYOUTS.preview.classic.data, 'http://site.test' + LAYOUTS.preview.classic.at).pathname).toBe('/data/');
   });
   it('the specs and the server waits use them: no spec writes V7\'s address or waits for the classic page by hand', () => {
     // every spec, every helper and the configuration, so a spec added later is read too (the old site's fixtures under
@@ -166,7 +157,7 @@ describe('the browser tests\' two addresses', () => {
     for (const f of files) {
       const text = read(f).split('\n').filter((l) => !/^\s*(\*|\/\/|\/\*\*)/.test(l)).join('\n');
       expect(text, f).not.toMatch(/['"`]\/v7\/|\/v7\/['"`]|(PROD|TEST) \+ '\/'|pathname === '\/'/);
-      // nor the engine worker's missing market files: WORKER_DATA_MISSING is the layout's
+      // nor a missing market file let pass by hand
       expect(text, f).not.toMatch(/not there: \\\//);
     }
     expect(read('playwright.config.js')).toMatch(/import \{ V7_PATH \} from '\.\/e2e\/helpers\/paths\.js';/);

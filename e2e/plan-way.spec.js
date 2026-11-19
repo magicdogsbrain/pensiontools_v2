@@ -14,7 +14,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { test, expect, PROD, REPO, FIXED_NOW, SLOWDOWN, record, V7_PATH, WORKER_DATA_MISSING } from './helpers/app.js';
+import { test, expect, PROD, REPO, FIXED_NOW, SLOWDOWN, record, V7_PATH } from './helpers/app.js';
 import { wayInNode } from './helpers/wayInNode.js';
 import { WAY_WRITES, WAY_IDS } from '../src/answers/plan/schema.js';
 import { applyPatch } from '../src/answers/plan/about.js';
@@ -66,7 +66,6 @@ test.describe('"How the money is taken", without an account', () => {
   test('the nine cards equal the Node run and its order; a dial tried; "Use this" writes the Node switch, Undo byte for byte; the locked plan\'s comparison line', async ({ page, watch }, testInfo) => {
     test.setTimeout(600_000);
     // as on the live site today: the engine worker asks for the market files from its own address (e2e/full-view-unchanged.spec.js)
-    watch.allow(WORKER_DATA_MISSING);
     const plan = draftPlan();
     const locked = lockedPlan();
     const planted = await plant(page, [plan, locked]);

@@ -11,7 +11,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { test, expect, PROD, REPO, FIXED_NOW, V7_PATH, WORKER_DATA_MISSING } from './helpers/app.js';
+import { test, expect, PROD, REPO, FIXED_NOW, V7_PATH } from './helpers/app.js';
 import { leverInNode } from './helpers/leverInNode.js';
 
 test.use({ outside: 'block' });
@@ -54,7 +54,6 @@ const tenth = (n) => Math.round(n * 10) / 10;
 test.describe('the levers on "Does it last?", without an account', () => {
   test('shares fall, spend more, some work — each the Node run to the pound, nothing written; the locked plan\'s one comparison line', async ({ page, watch }, testInfo) => {
     test.setTimeout(420_000);
-    watch.allow(WORKER_DATA_MISSING);
     const plan = draftPlan();
     const locked = lockedPlan();
     const planted = await plant(page, [plan, locked]);

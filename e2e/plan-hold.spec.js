@@ -10,7 +10,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { test, expect, PROD, REPO, FIXED_NOW, V7_PATH, WORKER_DATA_MISSING } from './helpers/app.js';
+import { test, expect, PROD, REPO, FIXED_NOW, V7_PATH } from './helpers/app.js';
 import { holdInNode } from './helpers/holdInNode.js';
 import { HOLD_WRITES } from '../src/answers/plan/schema.js';
 import { applyPatch } from '../src/answers/plan/about.js';
@@ -49,7 +49,6 @@ const T = 'plan.hold';
 test.describe('"What you hold", without an account', () => {
   test('the record as Node reads it; a line added, removed and a table pasted each write the Node patch, Undo byte for byte; the locked plan\'s record still writes; no figure in the address', async ({ page, watch }) => {
     test.setTimeout(300_000);
-    watch.allow(WORKER_DATA_MISSING);
     const { alex, sam } = plans();
     const planted = await plant(page, [alex, sam]);
     const node = holdInNode(alex, TODAY, { add: { text: 'VWRP', wrapper: 'ISA', pick: 'fund:VWRP' }, remove: { index: 0 }, paste: { text: PASTE, wrapper: 'SIPP', answers: { 2: 'bonds' } } });

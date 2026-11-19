@@ -27,7 +27,7 @@ import { parse, screenName } from '../../src/v7/router/routes.js';
 import { frontDoor } from '../../src/v7/rail/index.js';
 import { CARRY } from '../../src/v7/state/carry.js';
 import { answerFromDraft, get, near, TODAY, FINAL_ENV, FIRST_ENV } from './answerInNode.js';
-import { V7_PATH, CLASSIC_PATH, OLD_V7_PATH, OLD_CLASSIC_PATH, CLASSIC_TITLE, atClassic, LAYOUT_UNDER_TEST, WORKER_DATA_MISSING } from './paths.js';
+import { V7_PATH, CLASSIC_PATH, OLD_V7_PATH, OLD_CLASSIC_PATH, CLASSIC_TITLE, atClassic, LAYOUT_UNDER_TEST } from './paths.js';
 
 export { expect, TODAY, FINAL_ENV, FIRST_ENV };
 /**
@@ -35,7 +35,7 @@ export { expect, TODAY, FINAL_ENV, FIRST_ENV };
  * where old links point; atClassic(url) for a hand-over's landing; the layout's links; and the classic engine worker's
  * known missing market files.
  */
-export { V7_PATH, CLASSIC_PATH, OLD_V7_PATH, OLD_CLASSIC_PATH, CLASSIC_TITLE, atClassic, LAYOUT_UNDER_TEST, WORKER_DATA_MISSING };
+export { V7_PATH, CLASSIC_PATH, OLD_V7_PATH, OLD_CLASSIC_PATH, CLASSIC_TITLE, atClassic, LAYOUT_UNDER_TEST };
 
 export const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 export const DIST = resolve(REPO, process.env.E2E_DIST || 'dist');

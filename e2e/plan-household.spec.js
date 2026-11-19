@@ -11,7 +11,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { test, expect, PROD, REPO, FIXED_NOW, V7_PATH, WORKER_DATA_MISSING } from './helpers/app.js';
+import { test, expect, PROD, REPO, FIXED_NOW, V7_PATH } from './helpers/app.js';
 import { householdInNode } from './helpers/householdInNode.js';
 import { HOUSEHOLD_WRITES } from '../src/answers/plan/schema.js';
 import { applyPatch } from '../src/answers/plan/about.js';
@@ -51,7 +51,6 @@ const T = 'plan.household';
 test.describe('"Your household", without an account', () => {
   test('the partner, the pooled verdict and the split equal Node to the pound; the survivor question in ages; "Use this split" writes both plans as Node patches them, Undo byte for byte; the budget shared and Undo; Unlink', async ({ page, watch }, testInfo) => {
     test.setTimeout(900_000);
-    watch.allow(WORKER_DATA_MISSING);
     const { alex, sam } = couple();
     const planted = await plant(page, [alex, sam]);
     const node = householdInNode(alex, sam, TODAY, { survivor: { who: 'a', atAge: 74, spendPct: 70, dbPct: 50 } });

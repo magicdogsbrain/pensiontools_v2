@@ -23,7 +23,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { test, expect, PROD, REPO, FIXED_NOW, V7_PATH, CLASSIC_PATH, WORKER_DATA_MISSING } from './helpers/app.js';
+import { test, expect, PROD, REPO, FIXED_NOW, V7_PATH, CLASSIC_PATH } from './helpers/app.js';
 import { OPEN_PLACE_KEY, makeRequest } from '../src/services/OpenPlace.js';
 
 test.use({ outside: 'block' });
@@ -54,7 +54,6 @@ test.describe('Month by month, without an account', () => {
   test('why Save is off; the missed months filled in, in order and marked; a failed Calculate stays on the page', async ({ page, watch }) => {
     test.setTimeout(240_000);
     // as on the live site today: the engine worker asks for the market files from its own address (e2e/full-view-unchanged.spec.js)
-    watch.allow(WORKER_DATA_MISSING);
     // a Calculate that fails is logged by the planner as it always was; this test makes one fail on purpose at the end
     watch.allow(/^console error: Decision error: /);
 
@@ -219,7 +218,6 @@ test.describe('Month by month, without an account', () => {
   });
   test('fill in from a month you choose: before the first record, a part-year set-up left as entered, the next month as it was', async ({ page, watch }) => {
     test.setTimeout(240_000);
-    watch.allow(WORKER_DATA_MISSING);
     await page.clock.setFixedTime(new Date(FIXED_NOW));
     await page.goto(PROD + V7_PATH + '#/');
     await expect(page.locator('#app [data-screen]')).toBeVisible();

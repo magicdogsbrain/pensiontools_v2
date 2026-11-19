@@ -21,7 +21,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { test, expect, PROD, REPO, V7_PATH, CLASSIC_PATH, WORKER_DATA_MISSING } from './helpers/app.js';
+import { test, expect, PROD, REPO, V7_PATH, CLASSIC_PATH } from './helpers/app.js';
 import { OPEN_PLACE_KEY, makeRequest } from '../src/services/OpenPlace.js';
 
 test.use({ outside: 'block' });
@@ -56,7 +56,6 @@ async function openStressSettings(page) {
 test.describe('Move to a new plan, without an account', () => {
   test('the planner: closed at the end of October 2026 and carried on in a new plan from November; the old one read-only, a later month refused', async ({ page, watch }) => {
     test.setTimeout(360_000);
-    watch.allow(WORKER_DATA_MISSING);
     await seed(page);
     // into the planner on this window's plan, by the preview's hand-over (its Timing block, in Stress tester → Settings)
     const request = makeRequest({ planId: PLAN_ID, place: 'about', back: '#/plans', at: NOW });
@@ -146,7 +145,6 @@ test.describe('Move to a new plan, without an account', () => {
 
   test('the preview: the same close from "Your plans"; the closed plan under "Previous plans", each page pointing to the other', async ({ page, watch }) => {
     test.setTimeout(240_000);
-    watch.allow(WORKER_DATA_MISSING);
     await seed(page);
     await page.goto(PROD + V7_PATH + '#/plans');
     await expect(page.locator('#app [data-screen]')).toHaveAttribute('data-screen', 'plans', { timeout: 45_000 });

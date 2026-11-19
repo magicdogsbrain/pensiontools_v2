@@ -10,14 +10,13 @@
  * and was left there (these tests failed there, at the first press). Run against the local emulators, at desktop-1440 and
  * phone-390; the accounts and figures are fictional.
  */
-import { test, expect, WORKER_DATA_MISSING } from '../helpers/app.js';
+import { test, expect } from '../helpers/app.js';
 import { clearEmulators, makeAccount, putSettings, plansOf, uidOf, ALEX, SAM } from './emulator.js';
 import { answer, keep, signIn, signUp, planAddress, windowPlans } from './journeys.js';
 import { VERSION } from '../../src/constants.js';
 
 test.beforeEach(async ({ watch }) => {
   await clearEmulators();
-  watch.allow(WORKER_DATA_MISSING);
 });
 
 /** After the sign-in: on the plan (by the account's id) at the step, the plan in the account, none of the person's left in the window. */

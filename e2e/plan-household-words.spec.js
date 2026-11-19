@@ -12,7 +12,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { test, expect, PROD, REPO, FIXED_NOW, V7_PATH, WORKER_DATA_MISSING } from './helpers/app.js';
+import { test, expect, PROD, REPO, FIXED_NOW, V7_PATH } from './helpers/app.js';
 import { householdInNode } from './helpers/householdInNode.js';
 
 test.use({ outside: 'block' });
@@ -52,7 +52,6 @@ const T = 'plan.household';
 test.describe('"Who draws what", the words of 27 Oct 2026, without an account', () => {
   test('the baseline, the two columns, the smaller pension\'s line, the need box, the limit\'s four choices and the fast split\'s line equal Node; "Draw it faster" checks again with no limit; a need typed is stale; never whose money; nothing written', async ({ page, watch }, testInfo) => {
     test.setTimeout(900_000);
-    watch.allow(WORKER_DATA_MISSING);
     const { alex, sam } = couple();
     const planted = await plant(page, [alex, sam]);
     const node = householdInNode(alex, sam, TODAY);

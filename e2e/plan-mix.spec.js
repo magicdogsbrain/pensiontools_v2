@@ -14,7 +14,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { test, expect, PROD, REPO, FIXED_NOW, V7_PATH, WORKER_DATA_MISSING } from './helpers/app.js';
+import { test, expect, PROD, REPO, FIXED_NOW, V7_PATH } from './helpers/app.js';
 import { mixInNode } from './helpers/tryInNode.js';
 import { MIX_WRITES } from '../src/answers/plan/schema.js';
 import { applyPatch } from '../src/answers/plan/about.js';
@@ -61,7 +61,6 @@ const BANNED = /\bstrategy\b|\ballocation\b|\bportfolio\b|Monte Carlo|\bp10\b|\b
 test.describe('"The mix", without an account', () => {
   test('the split with its £; the tent tried equals Node; a level saved is the Node patch, Undo byte for byte; a paste read as Node reads it; the eight cells equal Node and "Use this mix" writes the Node patch; the locked plan read-only', async ({ page, watch }, testInfo) => {
     test.setTimeout(900_000);
-    watch.allow(WORKER_DATA_MISSING);
     const plan = draftPlan();
     const locked = lockedPlan();
     const planted = await plant(page, [plan, locked]);

@@ -20,7 +20,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { test, expect, PROD, REPO, FIXED_NOW, V7_PATH, CLASSIC_PATH, WORKER_DATA_MISSING } from './helpers/app.js';
+import { test, expect, PROD, REPO, FIXED_NOW, V7_PATH, CLASSIC_PATH } from './helpers/app.js';
 import { OPEN_PLACE_KEY, makeRequest } from '../src/services/OpenPlace.js';
 
 test.use({ outside: 'block' });
@@ -69,7 +69,6 @@ const noOldWords = (text) => expect(text).not.toMatch(/\brun[\s-]?up\b|\bbridge 
 test.describe('Say when you stopped work, without an account', () => {
   test('(a) stopped in October 2023: the plan from 2023/24, plan year 3 now; locked, the strip and a month recorded say Year 3', async ({ page, watch }) => {
     test.setTimeout(300_000);
-    watch.allow(WORKER_DATA_MISSING);
     await openTiming(page, draft());
     // before: no month said — saved with next April, read from this tax year (7.4.0)
     await expect(page.locator('#tmStopMonth')).toHaveValue('');
@@ -129,7 +128,6 @@ test.describe('Say when you stopped work, without an account', () => {
 
   test('(c) a draft saved with next April reads from this tax year, said once; opening writes nothing; locked as it reads (7.4.0)', async ({ page, watch }) => {
     test.setTimeout(240_000);
-    watch.allow(WORKER_DATA_MISSING);
     const planted = draft();
     await openTiming(page, planted);
     await expect(page.locator('#tmStartYear')).toHaveValue('2026');

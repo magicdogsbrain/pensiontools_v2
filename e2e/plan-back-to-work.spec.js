@@ -16,7 +16,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { test, expect, PROD, REPO, V7_PATH, CLASSIC_PATH, WORKER_DATA_MISSING } from './helpers/app.js';
+import { test, expect, PROD, REPO, V7_PATH, CLASSIC_PATH } from './helpers/app.js';
 import { OPEN_PLACE_KEY, makeRequest } from '../src/services/OpenPlace.js';
 
 test.use({ outside: 'block' });
@@ -52,7 +52,6 @@ async function openStressSettings(page) {
 test.describe('Back to work, without an account', () => {
   test('the planner: the drawing plan closed, a saving plan made that says the £10,000 limit on its Accumulation page', async ({ page, watch }) => {
     test.setTimeout(360_000);
-    watch.allow(WORKER_DATA_MISSING);
     await seed(page);
     const request = makeRequest({ planId: PLAN_ID, place: 'about', back: '#/plans', at: NOW });
     await page.evaluate(([rk, req]) => sessionStorage.setItem(rk, req), [OPEN_PLACE_KEY, request]);
@@ -104,7 +103,6 @@ test.describe('Back to work, without an account', () => {
 
   test('the preview: the same close from "Your plans"; the saving plan on the saver\'s rail, What you pay in saying the limit', async ({ page, watch }) => {
     test.setTimeout(240_000);
-    watch.allow(WORKER_DATA_MISSING);
     await seed(page);
     await page.goto(PROD + V7_PATH + '#/plans');
     await expect(page.locator('#app [data-screen]')).toHaveAttribute('data-screen', 'plans', { timeout: 45_000 });

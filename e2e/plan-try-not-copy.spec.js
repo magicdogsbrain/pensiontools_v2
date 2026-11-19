@@ -13,7 +13,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { test, expect, v7 as v7app, waitsFor, NEEDS, PROD, REPO, FIXED_NOW, saverWording, V7_PATH, WORKER_DATA_MISSING } from './helpers/app.js';
+import { test, expect, v7 as v7app, waitsFor, NEEDS, PROD, REPO, FIXED_NOW, saverWording, V7_PATH } from './helpers/app.js';
 import { buildPlanSeed } from '../src/answers/keep/planSeed.js';
 import { plansFromSeed } from '../src/answers/keep/planCreate.js';
 import { PLAN } from '../src/v7/copy/plan.js';
@@ -60,7 +60,6 @@ test.describe('trying figures never makes plans, without an account', () => {
   test('B opened from a saver\'s plan: three tries make nothing; "Use these" changes that plan only; "Keep as a new plan" makes one', async ({ page, watch }) => {
     waitsFor(...NEEDS.b);
     test.setTimeout(600_000);
-    watch.allow(WORKER_DATA_MISSING);
     const plan = saverPlan();
     // a second saver's plan (Sam's, fictional) that B is opened from at the end, after a keep
     const other = saverPlan({ id: OTHER_ID, name: 'Sam saving', first: false });

@@ -16,7 +16,7 @@
  */
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { test, expect, PROD, REPO, FIXED_NOW, watchLanding, landingShown, V7_PATH, atClassic, LAYOUT_UNDER_TEST, WORKER_DATA_MISSING } from './helpers/app.js';
+import { test, expect, PROD, REPO, FIXED_NOW, watchLanding, landingShown, V7_PATH, atClassic, LAYOUT_UNDER_TEST } from './helpers/app.js';
 import { parse, screenName, PLAN_STEPS, PLAN_SUB_STEPS } from '../src/v7/router/routes.js';
 import { ALL_STEPS } from '../src/answers/plan/steps.js';
 import { OPEN_PLACE_KEY, OPEN_PLAN_KEY } from '../src/services/OpenPlace.js';
@@ -133,7 +133,6 @@ test.describe('the saved plans, without an account', () => {
   test('"Change this" lands the planner on the right plan, page and section with the boxes filled; Back returns', async ({ page, watch }) => {
     test.setTimeout(180_000);
     // as on the live site today: the engine worker asks for the market files from its own address (e2e/full-view-unchanged.spec.js)
-    watch.allow(WORKER_DATA_MISSING);
     const { ladder, saver } = household();
     const stored = await plant(page, [ladder, saver]);
     await page.goto(v7('#/plan/HouseSaver02'));
@@ -208,7 +207,6 @@ test.describe('the saved plans, without an account', () => {
 
   test('a month that was missed (reported 3 Nov 2026): Month by month names it, offers to fill it in, and opens on it with the record before it filled in', async ({ page, watch }) => {
     test.setTimeout(180_000);
-    watch.allow(WORKER_DATA_MISSING);
     // the running buckets plan (corpus 04: April to September 2026 recorded) with August taken out — September stands, August is the gap
     const buckets = JSON.parse(readFileSync(join(REPO, 'tests', 'fixtures', 'plans', '04-buckets-running.json'), 'utf8'));
     buckets.id = 'GapBuckets04'; buckets.planDetails.name = 'Buckets plan'; buckets.isActive = true;
@@ -251,7 +249,6 @@ test.describe('the saved plans, without an account', () => {
   // not keep a monthly record" stops it, and "Keep a record of each month here" is one write of that one field
   test('the month to-do only when months are wanted: "No" stored, nothing due; "Yes" on Month by month one write, the month back', async ({ page, watch }) => {
     test.setTimeout(180_000);
-    watch.allow(WORKER_DATA_MISSING);
     const buckets = JSON.parse(readFileSync(join(REPO, 'tests', 'fixtures', 'plans', '04-buckets-running.json'), 'utf8'));
     buckets.id = 'NoMonths04'; buckets.planDetails.name = 'Buckets plan'; buckets.isActive = true; delete buckets.household;
     buckets.decisionTool.history = buckets.decisionTool.history.filter((h) => h.date !== '2026-08');

@@ -12,7 +12,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { test, expect, PROD, REPO, FIXED_NOW, V7_PATH, WORKER_DATA_MISSING } from './helpers/app.js';
+import { test, expect, PROD, REPO, FIXED_NOW, V7_PATH } from './helpers/app.js';
 import { monthInNode } from './helpers/monthInNode.js';
 import { applyPatch } from '../src/answers/plan/about.js';
 
@@ -55,7 +55,6 @@ async function looks(page, hash) {
 test.describe('Month by month, without an account', () => {
   test('a plan with no tax year: set it up on the page, then record this month; each write equals Node\'s; the locked plan\'s settings unchanged', async ({ page, watch }) => {
     test.setTimeout(240_000);
-    watch.allow(WORKER_DATA_MISSING);
     const { alex, sam } = plans();
     await plant(page, [alex, sam]);
     const setUpTyped = { 'mo.month': '2026-09', 'ty.toDate': '15000', 'ty.taxToDate': '1200' };
@@ -109,7 +108,6 @@ test.describe('Month by month, without an account', () => {
 
   test('months missed since April: fill them in at once, each recorded and marked; Undo byte for byte', async ({ page, watch }) => {
     test.setTimeout(240_000);
-    watch.allow(WORKER_DATA_MISSING);
     const { alex, sam } = plans();
     const planted = await plant(page, [alex, sam]);
     const typed = { 'mo.month': '2026-09', 'mo.from': '2026-05', 'mo.fill': 'yes' };

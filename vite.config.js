@@ -4,7 +4,7 @@
 // vite.v7.config.js) each empty their own folder only, so they run in either order.
 import { defineConfig } from 'vite';
 import { layoutNamed } from './src/appLayout.js';
-import { outFor, emptyOwnFolder, classicHead, classicDataCopy, emulatorsWanted } from './vite.layout.js';
+import { outFor, emptyOwnFolder, classicHead, emulatorsWanted } from './vite.layout.js';
 
 export default defineConfig(({ command }) => {
   // The dev server serves the source folders as they are, the classic page at / and V7's page at /v7/ (v7/index.html):
@@ -19,7 +19,7 @@ export default defineConfig(({ command }) => {
     // __PT_EMULATORS__: true only in the signed-in browser tests' build (VITE_EMULATORS=1): the local Firebase emulators of a
     // demo- project in place of the live project (src/firebase/projectConfig.js); false in every published build.
     define: { __PT_LAYOUT__: JSON.stringify(layout), __PT_EMULATORS__: JSON.stringify(emulatorsWanted()) },
-    plugins: [emptyOwnFolder(outDir, keep), classicHead(layout), classicDataCopy(layout, outDir)],
+    plugins: [emptyOwnFolder(outDir, keep), classicHead(layout)],
     // Never ship console output: several logs carried the user's financial data (security audit H1).
     // jsx: only so tests can read V7's .jsx files; the current app has none, so its bundle is unchanged.
     esbuild: { drop: ['console', 'debugger'], jsx: 'automatic', jsxImportSource: 'preact' },

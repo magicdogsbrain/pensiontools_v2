@@ -12,7 +12,7 @@
  * only). Firebase is never reached: every request outside the local server is stopped (`outside: 'block'`), so nothing
  * signs in and no real account or data is touched.
  */
-import { test, expect, v7, waitsFor, NEEDS, PROD, TODAY, FINAL_ENV, expectHeadlineA, CLASSIC_PATH, WORKER_DATA_MISSING } from './helpers/app.js';
+import { test, expect, v7, waitsFor, NEEDS, PROD, TODAY, FINAL_ENV, expectHeadlineA, CLASSIC_PATH } from './helpers/app.js';
 import { householdStartWords } from '../src/services/PlanSeed.js';
 import { SEED_VERSION } from '../src/answers/keep/planSeed.js';
 import { suggestedPlanName } from '../src/answers/shared/planName.js';
@@ -36,7 +36,6 @@ test.describe('B2 — "I\'ve already stopped": your partner\'s answer, saved as 
     test.setTimeout(300_000);
     // As on the live site today: the planner's engine worker asks for the market files from its own address, where they are not,
     // and falls back to the bundled figures (e2e/full-view-unchanged.spec.js). Any OTHER missing file still fails the test.
-    watch.allow(WORKER_DATA_MISSING);
     const app = v7(page, 'prod', 'a');
     let answer = null;
 

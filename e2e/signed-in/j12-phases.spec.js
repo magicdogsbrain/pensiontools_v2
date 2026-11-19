@@ -21,7 +21,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { test, expect, v7, REPO, PROD, CLASSIC_PATH, WORKER_DATA_MISSING } from '../helpers/app.js';
+import { test, expect, v7, REPO, PROD, CLASSIC_PATH } from '../helpers/app.js';
 import { clearEmulators, makeAccount, putPlan, putSettings, plansOf, ALEX, SAM } from './emulator.js';
 import { keep, openAt, signIn, planAddress } from './journeys.js';
 import { VERSION } from '../../src/constants.js';
@@ -37,7 +37,6 @@ const changed = (a, b) => [...new Set([...Object.keys(a), ...Object.keys(b)])].f
 
 test.beforeEach(async ({ watch }) => {
   await clearEmulators();
-  watch.allow(WORKER_DATA_MISSING);
 });
 
 /** The page at another moment: the clock moved, signed in again if the long gap signed the window out. */

@@ -10,7 +10,7 @@
  * On 7.0.0 the page was headed "Drawdown Planner" and the questions were one list (this test failed there, at the name).
  * Nothing here signs in. Run with the signed-in journeys (the emulator build), at desktop-1440 and phone-390.
  */
-import { test, expect, v7, WORKER_DATA_MISSING } from '../helpers/app.js';
+import { test, expect, v7 } from '../helpers/app.js';
 import { clearEmulators, makeAccount, putSettings, plansOf, SAM } from './emulator.js';
 import { answer, keep, signIn, openAt } from './journeys.js';
 import { VERSION } from '../../src/constants.js';
@@ -67,7 +67,6 @@ test('the front page speaks to a saver; "Am I saving enough?" gives the ballpark
 test('signed in: B kept at Bold; the check-in reads at Bold', async ({ page, watch }) => {
   test.setTimeout(420_000);
   await clearEmulators();
-  watch.allow(WORKER_DATA_MISSING);
   const { uid } = await makeAccount(SAM);
   await putSettings(uid, { lastSeenVersion: VERSION });
   await openAt(page, '#/account');

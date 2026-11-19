@@ -20,7 +20,7 @@
  */
 import { readFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { test, expect, PROD, REPO, FIXED_NOW, V7_PATH, CLASSIC_PATH, WORKER_DATA_MISSING, PANEL_BUDGET, SLOWDOWN, record } from './helpers/app.js';
+import { test, expect, PROD, REPO, FIXED_NOW, V7_PATH, CLASSIC_PATH, PANEL_BUDGET, SLOWDOWN, record } from './helpers/app.js';
 import { OPEN_PLACE_KEY, makeRequest } from '../src/services/OpenPlace.js';
 
 test.use({ outside: 'block' });
@@ -61,7 +61,6 @@ const noSideways = async (page) => { const w = await page.evaluate(() => ({ doc:
 test.describe('"Test what you keep against your plan", without an account', () => {
   test('nothing on opening; the test on its button; "I accept this risk" one write after its confirm; the home says it; Undo byte for byte', async ({ page, watch }, info) => {
     test.setTimeout(240_000);
-    watch.allow(WORKER_DATA_MISSING);
     await page.clock.setFixedTime(new Date(FIXED_NOW));
     await page.goto(v7('#/'));
     await expect(page.locator('#app [data-screen]')).toBeVisible();
@@ -125,7 +124,6 @@ test.describe('"Test what you keep against your plan", without an account', () =
 
   test('the classic planner\'s Transition tab: the same test, the same words, the agreement one save', async ({ page, watch }, info) => {
     test.setTimeout(240_000);
-    watch.allow(WORKER_DATA_MISSING);
     await page.clock.setFixedTime(new Date(FIXED_NOW));
     await page.goto(v7('#/'));
     await expect(page.locator('#app [data-screen]')).toBeVisible();
@@ -175,7 +173,6 @@ const rowLines = (page, root) => page.locator(root).evaluate((el) => Object.from
 test.describe('"Try the bad years", without an account', () => {
   test('an unlocked plan: the rows stream within the budget, As planned equals the page\'s figure; "I accept this risk" one write, the accepted line, Withdraw; the classic planner gives the same rows', async ({ page, watch }, info) => {
     test.setTimeout(300_000);
-    watch.allow(WORKER_DATA_MISSING);
     await page.clock.setFixedTime(new Date(FIXED_NOW));
     await page.goto(v7('#/'));
     await expect(page.locator('#app [data-screen]')).toBeVisible();
@@ -317,7 +314,6 @@ test.describe('"Try the bad years", without an account', () => {
 
   test('a locked ladder: why the market rows are not tried is said once; As you hold it says how much is not covered; the held rows show the keep agreement\'s state and never an accept', async ({ page, watch }, info) => {
     test.setTimeout(240_000);
-    watch.allow(WORKER_DATA_MISSING);
     await page.clock.setFixedTime(new Date(FIXED_NOW));
     await page.goto(v7('#/'));
     await expect(page.locator('#app [data-screen]')).toBeVisible();

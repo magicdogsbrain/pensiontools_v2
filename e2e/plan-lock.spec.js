@@ -18,7 +18,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { test, expect, PROD, REPO, FIXED_NOW, SLOWDOWN, record, watchLanding, landingShown, V7_PATH, atClassic, WORKER_DATA_MISSING } from './helpers/app.js';
+import { test, expect, PROD, REPO, FIXED_NOW, SLOWDOWN, record, watchLanding, landingShown, V7_PATH, atClassic } from './helpers/app.js';
 import { lockInNode } from './helpers/lockInNode.js';
 import { LOCK_WRITES, UNLOCK_WRITES } from '../src/answers/plan/schema.js';
 
@@ -68,7 +68,6 @@ test.describe('"Lock the plan", without an account', () => {
   test('the lock step, the lock (one write, the declared keys, equal to the Node lock), "Your plan as locked", the planner reads it as locked, the unlock', async ({ page, watch }, testInfo) => {
     test.setTimeout(300_000);
     // as on the live site today: the engine worker asks for the market files from its own address (e2e/full-view-unchanged.spec.js)
-    watch.allow(WORKER_DATA_MISSING);
     const plan = draftPlan();
     const locked = lockedPlan();
     const stored = await plant(page, [plan, locked]);
@@ -241,7 +240,6 @@ test.describe('"Lock the plan", without an account', () => {
 
   test('"Not now" locks nothing; Undo within the toast\'s time puts the text back byte for byte', async ({ page, watch }) => {
     test.setTimeout(180_000);
-    watch.allow(WORKER_DATA_MISSING);
     const plan = draftPlan();
     const locked = lockedPlan();
     const stored = await plant(page, [plan, locked]);

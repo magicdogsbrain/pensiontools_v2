@@ -12,7 +12,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { test, expect, PROD, REPO, FIXED_NOW, V7_PATH, WORKER_DATA_MISSING } from './helpers/app.js';
+import { test, expect, PROD, REPO, FIXED_NOW, V7_PATH } from './helpers/app.js';
 import { holdInNode } from './helpers/holdInNode.js';
 import { MOVE_WRITES } from '../src/answers/plan/schema.js';
 import { applyPatch } from '../src/answers/plan/about.js';
@@ -102,7 +102,6 @@ test.describe('"Your plan\'s mix" living on it, without an account (7.11.1)', ()
 test.describe('"Moving to your plan\'s mix", without an account', () => {
   test('the ladder: the status, the order sheet and the lists as Node reads them; a tick writes the Node patch, Undo byte for byte; the pot plan: the one run on the held mix equals Node, nothing written', async ({ page, watch }, testInfo) => {
     test.setTimeout(600_000);
-    watch.allow(WORKER_DATA_MISSING);
     const { sam, alex } = plans();
     const planted = await plant(page, [sam, alex]);
     const node = holdInNode(sam, TODAY, { tick: { key: 'gilt:T29', done: true } });

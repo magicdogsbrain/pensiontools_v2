@@ -14,7 +14,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { test, expect, PROD, REPO, FIXED_NOW, watchLanding, landingShown, V7_PATH, atClassic, WORKER_DATA_MISSING } from './helpers/app.js';
+import { test, expect, PROD, REPO, FIXED_NOW, watchLanding, landingShown, V7_PATH, atClassic } from './helpers/app.js';
 import { SPEND_WRITES } from '../src/answers/plan/schema.js';
 import { monthlyNet, yearlyGross } from '../src/answers/plan/spend.js';
 import { bandsOf } from '../src/answers/plan/about.js';
@@ -60,7 +60,6 @@ test.describe('"What you spend", without an account', () => {
   test('the first row and the cards; a new first figure and a step with a fall; Save (one plan, the declared keys only); Undo byte for byte; the planner shows the new shape', async ({ page, watch }) => {
     test.setTimeout(240_000);
     // as on the live site today: the engine worker asks for the market files from its own address (e2e/full-view-unchanged.spec.js)
-    watch.allow(WORKER_DATA_MISSING);
     const plan = lumpyPlan();
     const locked = lockedPlan();
     const b = bandsOf(plan.stressTool.settings);

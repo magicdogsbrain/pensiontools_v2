@@ -11,7 +11,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { test, expect, PROD, REPO, FIXED_NOW, saverWording, V7_PATH, CLASSIC_PATH, WORKER_DATA_MISSING } from './helpers/app.js';
+import { test, expect, PROD, REPO, FIXED_NOW, saverWording, V7_PATH, CLASSIC_PATH } from './helpers/app.js';
 import { savingInNode } from './helpers/budgetInNode.js';
 import { SAVING_WRITES } from '../src/answers/plan/schema.js';
 import { applyPatch } from '../src/answers/plan/about.js';
@@ -53,7 +53,6 @@ const stored = (page) => page.evaluate((k) => sessionStorage.getItem(k), GUEST_K
 test.describe('"What you pay in", without an account', () => {
   test('the boxes and the pot as Node reads them; a rise saved and a month recorded each write the Node patch, the lock untouched, Undo byte for byte; the saver rules on screen; no figure in the address', async ({ page, watch }) => {
     test.setTimeout(300_000);
-    watch.allow(WORKER_DATA_MISSING);
     const { sam, alex } = plans();
     const planted = await plant(page, [sam, alex]);
     const node = savingInNode(sam, TODAY, { typed: { escalationPct: '2.5' }, record: RECORD, now: FIXED_NOW });   // the record's stamp is the page's clock
@@ -222,7 +221,6 @@ test.describe('the planner opens a saver on their own page, and has a door for t
   ];
   test('each plan opens on the tab its stage leads with; a plan in its move window opens on Transition', async ({ page, watch }) => {
     test.setTimeout(300_000);
-    watch.allow(WORKER_DATA_MISSING);
     for (const [name, make, tab] of CASES) {
       await test.step(`${name}: ${tab}`, async () => {
         const plan = make();
@@ -241,7 +239,6 @@ test.describe('the planner opens a saver on their own page, and has a door for t
   });
   test('the setup wizard\'s door for someone still saving lands on the Accumulation planner', async ({ page, watch }) => {
     test.setTimeout(120_000);
-    watch.allow(WORKER_DATA_MISSING);
     await page.clock.setFixedTime(new Date(FIXED_NOW));
     await page.goto(PROD + CLASSIC_PATH);
     await page.locator('#landingTryGuest').click();

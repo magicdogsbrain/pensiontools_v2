@@ -20,7 +20,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { test, expect, PROD, REPO, V7_PATH, CLASSIC_PATH, WORKER_DATA_MISSING, NEVER_ON_SCREEN } from './helpers/app.js';
+import { test, expect, PROD, REPO, V7_PATH, CLASSIC_PATH, NEVER_ON_SCREEN } from './helpers/app.js';
 import { OPEN_PLACE_KEY, makeRequest } from '../src/services/OpenPlace.js';
 
 test.use({ outside: 'block' });
@@ -61,7 +61,6 @@ async function oldWordsOn(page, text) {
 for (const name of ['20-locked-start-after-stop', '04-buckets-running', '07-pre-6.13-flat-params']) {
   test(`${name}: no words for months before the plan on the new app's pages`, async ({ page, watch }) => {
     test.setTimeout(240_000);
-    watch.allow(WORKER_DATA_MISSING);
     const plan = planOf(name);
     await seed(page, plan);
     for (const step of ['', '/where', '/about', '/month', '/plan', '/move', '/way']) {
@@ -75,7 +74,6 @@ for (const name of ['20-locked-start-after-stop', '04-buckets-running', '07-pre-
 
   test(`${name}: no words for months before the plan in the planner`, async ({ page, watch }) => {
     test.setTimeout(240_000);
-    watch.allow(WORKER_DATA_MISSING);
     const plan = planOf(name);
     await seed(page, plan);
     await intoPlanner(page, plan);
@@ -101,7 +99,6 @@ for (const name of ['20-locked-start-after-stop', '04-buckets-running', '07-pre-
 // says the later start and how it changes; the home's one thing to do is the month
 test('03 on the new app: no start to-do; "About you and when" says the later start and how it changes, with or without a month said, never a move', async ({ page, watch }) => {
   test.setTimeout(240_000);
-  watch.allow(WORKER_DATA_MISSING);
   const plan = planOf('20-locked-start-after-stop');
   await seed(page, plan);
   await page.goto(PROD + V7_PATH + '#/plan/' + plan.id);
@@ -136,7 +133,6 @@ test('03 on the new app: no start to-do; "About you and when" says the later sta
 // due — 03's missed month, never the start; the line under Timing says the later start and how it changes, never a move
 test('03 in the planner: the next-step banner says the home\'s first thing due; the line under Timing says how the start changes, with no move', async ({ page, watch }) => {
   test.setTimeout(240_000);
-  watch.allow(WORKER_DATA_MISSING);
   const plan = planOf('20-locked-start-after-stop', { stoppedWork: '2026-05' });
   await seed(page, plan);
   await intoPlanner(page, plan, 'month');
@@ -155,7 +151,6 @@ test('03 in the planner: the next-step banner says the home\'s first thing due; 
 
 test('the planner offers no later start: never "next 6 April" among the start years', async ({ page, watch }) => {
   test.setTimeout(240_000);
-  watch.allow(WORKER_DATA_MISSING);
   const plan = planOf('02-pnv-draft', { stoppedWork: '2025-08' });
   await seed(page, plan);
   await intoPlanner(page, plan);

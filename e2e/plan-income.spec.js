@@ -14,7 +14,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { test, expect, PROD, REPO, FIXED_NOW, watchLanding, landingShown, V7_PATH, atClassic, WORKER_DATA_MISSING } from './helpers/app.js';
+import { test, expect, PROD, REPO, FIXED_NOW, watchLanding, landingShown, V7_PATH, atClassic } from './helpers/app.js';
 import { INCOME_WRITES } from '../src/answers/plan/schema.js';
 
 test.use({ outside: 'block' });
@@ -57,7 +57,6 @@ test.describe('"Money that comes in anyway", without an account', () => {
   test('the boxes and cards; none, a second final-salary pension and a lump sum; Save (one plan, the declared keys only); Undo byte for byte; the planner shows the new values', async ({ page, watch }) => {
     test.setTimeout(240_000);
     // as on the live site today: the engine worker asks for the market files from its own address (e2e/full-view-unchanged.spec.js)
-    watch.allow(WORKER_DATA_MISSING);
     const plan = lumpyPlan();
     const locked = lockedPlan();
     const stored = await plant(page, [plan, locked]);

@@ -167,10 +167,11 @@ function laterLineParts(result, facts, base, later) {
 }
 
 /**
- * The years before the State Pension, paid from the pots alone (shared/spans.js bridgeOf), said under the line: "From 60 to
- * 67 all of it comes from your pot: 7 years, about £59,000 at today's prices." and then what the State Pension does — pays
- * part of it ("From 67 your State Pension pays £1,046 of it."), or is more than it ("… is more than £700 a month, so nothing
- * more is taken from your pot."). Never for a couple who stop in different years.
+ * The years before anything comes in anyway, paid from the pots alone (shared/spans.js bridgeOf), said under the line:
+ * "From 60 to 67 all of it comes from your pot: 7 years, about £59,000 at today's prices." and then what the first income
+ * to start does — pays part of it ("From 67 your State Pension pays £1,046 of it."; "From 63 your final-salary pension pays
+ * £750 of it."), or is more than it ("… is more than £700 a month, so nothing more is taken from your pot."). Never for a
+ * couple who stop in different years.
  */
 function bridgeSentence(result, facts, base, id) {
   if (facts.apart) return null;
@@ -188,9 +189,11 @@ function bridgeSentence(result, facts, base, id) {
   const incomes = phaseIncomeWords(facts, to);
   const after = later && later.index === b.toIndex
     ? [...then, incomes, incomes.includes(' and ') || /Pensions/.test(incomes) ? ' are' : ' is', ' more than ', M(base === 'take.phases' ? 'take.perMonth' : 'levels.' + result.level + '.monthly'), ' a month, so nothing more is taken from ', potsPhrase(facts, to), '.']
-    : to.finalSalary > 0
+    : to.finalSalary > 0 && to.statePension > 0
       ? [...then, incomes, ' pay ', M(at + '.shown.statePension'), ' and ', M(at + '.shown.finalSalary'), ' of it.']
-      : [...then, incomes, ' ', /Pensions/.test(incomes) ? 'pay ' : 'pays ', M(at + '.shown.statePension'), ' of it.'];
+      : to.finalSalary > 0
+        ? [...then, incomes, ' ', /pensions/.test(incomes) ? 'pay ' : 'pays ', M(at + '.shown.finalSalary'), ' of it.']
+        : [...then, incomes, ' ', /Pensions/.test(incomes) ? 'pay ' : 'pays ', M(at + '.shown.statePension'), ' of it.'];
   return S(id, [...span, from, ': ', F(b.years), yearsWord(b.years), ', about ', F(money(b.total)), " at today's prices. ", ...after]);
 }
 

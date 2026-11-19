@@ -7,7 +7,7 @@
  * answer is made of.
  *
  *   laterMore(phases, monthly)   the first later stretch that pays £1 or more above the amount, or null
- *   bridgeOf(phases)             the years before the State Pension, paid from the pots alone, or null
+ *   bridgeOf(phases)             the years before anything comes in anyway, paid from the pots alone, or null
  *
  * Pure: no clock, no storage.
  */
@@ -30,8 +30,9 @@ export function laterMore(phases, monthly) {
 }
 
 /**
- * The years before the State Pension, when all of the amount comes from the pots: only when the first stretch has no
- * State Pension and no final-salary pension, pays something from the pots, and a later stretch has a State Pension.
+ * The years before anything comes in anyway, when all of the amount comes from the pots: only when the first stretch has
+ * no State Pension and no final-salary pension, pays something from the pots, and a later stretch has one (the first
+ * that does ends the bridge: a final-salary pension that starts before the State Pension pays part of the years after it).
  * `years`: whole years from the first stretch's start to that stretch's; `total`: what the pots pay over them, at today's
  * prices, to the nearest £1,000.
  * @returns {null | { toIndex: number, years: number, total: number }}
@@ -42,7 +43,7 @@ export function bridgeOf(phases) {
   if (!first || first.shapeMoves || first.statePension > 0 || first.finalSalary > 0) return null;
   const fromPots = shownOf(first).fromPots;
   if (!isNum(fromPots) || !(fromPots > 0)) return null;
-  const toIndex = phases.findIndex((ph, i) => i > 0 && ph && ph.statePension > 0);
+  const toIndex = phases.findIndex((ph, i) => i > 0 && ph && (ph.statePension > 0 || ph.finalSalary > 0));
   if (toIndex < 0) return null;
   const years = Math.floor(phases[toIndex].fromAge - first.fromAge);
   if (!(years >= 1)) return null;

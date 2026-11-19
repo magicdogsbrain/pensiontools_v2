@@ -59,6 +59,18 @@ describe('C reads the phases for what you have a month', () => {
     expect(s.bridge.text).toMatch(/^From 60 to 67 all of it comes from your pot and savings: 7 years, about £[\d,]+,000 at today's prices\. From 67 your State Pension pays £1,046 of it\.$/);
   });
 
+  it('Pat (60, a final-salary pension from 63): the bridge ends where the final-salary pension starts, not at the State Pension', () => {
+    // from now, £200,000 in a pension, £20,000 of savings, a final-salary pension of £9,000 a year (£750 a month) from 63.
+    // Before, the bridge ran to the State Pension at 67 — 7 years of the first stretch's draw — though from 63 the
+    // final-salary pension pays £750 of each month: about £30,000 too high at a draw of £1,850 a month (4 × 12 × £750 =
+    // £36,000 counted that the pots do not pay). Now 3 years: 60 to 63, 36 months of the first stretch's draw.
+    const r = answerOf({ household: 'single', 'you.age': 60, 'you.pot': 200000, savings: 20000, 'you.finalSalary.has': 'yes', 'you.finalSalary.yearly': 9000, 'you.finalSalary.fromAge': 63, 'start.kind': 'now' });
+    const first = r.phases[0];
+    expect([first.fromAge, first.toAge, first.finalSalary, first.statePension]).toEqual([60, 63, 0, 0]);
+    const total = pounds(Math.round((first.shown.fromPots * 36) / 1000) * 1000);
+    expect(r.sentences.bridge.text).toBe(`From 60 to 63 all of it comes from your pot and savings: 3 years, about ${total} at today's prices. From 63 your final-salary pension pays £750 of it.`);
+  });
+
   it('Kim: money from now with a State Pension already paid has no bridge', () => {
     const r = answerOf(KIM);
     expect(r.sentences.bridge).toBeUndefined();
@@ -90,5 +102,9 @@ describe('spans.js', () => {
   it('bridgeOf: 7 years of £700 is 7 × 12 × 700 = £58,800 → £59,000', () => {
     expect(bridgeOf([ph(60, 700, 700, 0), ph(67, 1046, 0, 1045.63)])).toEqual({ toIndex: 1, years: 7, total: 59000 });
     expect(bridgeOf([ph(68, 1660, 614, 1045.63)])).toBeNull();
+  });
+  it('bridgeOf: a final-salary pension before the State Pension ends the bridge — 3 years of £1,900 is 3 × 12 × 1,900 = £68,400 → £68,000', () => {
+    const fs = { fromAge: 63, statePension: 0, finalSalary: 750, shown: { takeHome: 1900, fromPots: 1150, statePension: 0, finalSalary: 750 } };
+    expect(bridgeOf([ph(60, 1900, 1900, 0), fs, ph(67, 1900, 104, 1045.63)])).toEqual({ toIndex: 1, years: 3, total: 68000 });
   });
 });

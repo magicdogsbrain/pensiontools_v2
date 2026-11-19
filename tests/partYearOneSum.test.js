@@ -145,6 +145,52 @@ describe('one axis for the current plan year: a plan two years in and the same p
   });
 });
 
+import { otherIn } from '../src/services/PaidYear.js';
+
+describe('money paid before the pots pays the months a part year 0 has, net of the State Pension (check of E8, fault 1)', () => {
+  // Jo again (stop November 2027; £28,000 a year; State Pension £12,000 a year from 6 January 2028). Year 0 asks the pots,
+  // or whatever pays before them, for 11,666.67 − 3,000 = 8,666.67; year 1 for 28,000 − 12,000 = 16,000 (as above).
+  // Money paid before the pots pays THAT need, in its months: it was charged a whole year's need before the State Pension
+  // (28,000), while the ways took only its five months (11,666.67) as arriving, so the rest of the year was lost.
+  const planOf = (s) => planFromSettings(s, createSimulationConfigFromSettings({}, s), { now: NOW });
+  const bought = (q) => { const c = deriveCompareConfigs(q); return [c.fs.floorDraw, c.fa.floorDraw, c.be.floorDraw, c.ff.floorDraw, c.lr.drawNetOfSp]; };
+
+  it('a general account of £50,000: it pays 8,666.67 in year 0 and 16,000 in years 1 and 2; 41,333.33, 25,333.33, 9,333.33 left', () => {
+    // 50,000 − 8,666.67 = 41,333.33; − 16,000 = 25,333.33; − 16,000 = 9,333.33; year 3 it pays the last 9,333.33
+    const q = planOf({ ...jo, taxableStart: 50000 });
+    expect(q.windfallCarryByYear.slice(0, 4).map((v) => +v.toFixed(2))).toEqual([41333.33, 25333.33, 9333.33, 0]);
+    expect(otherIn(q, 0)).toBeCloseTo(8666.67, 2);
+    expect(otherIn(q, 1)).toBeCloseTo(16000, 6);
+    for (const draw of bought(q)) { expect(draw(1)).toBeCloseTo(0, 6); expect(draw(2)).toBeCloseTo(0, 6); expect(draw(4)).toBeCloseTo(16000 - 9333.33, 1); }
+    // the year's income is the months' spending, not the State Pension on top of a whole need
+    const r = stressTestStrategy('floor-the-schedule', { ...q, mcRuns: 10, stride: 24 });
+    expect(r.cones.income.p50[0]).toBeCloseTo(11666.67, 1);
+    expect(r.cones.income.p50[1]).toBeCloseTo(28000, 1);
+  });
+
+  it('a lump sum of £10,000 in year 0: it pays the 8,666.67, and 1,333.33 of year 1; the pots 0, then 14,666.67', () => {
+    const q = planOf({ ...jo, windfalls: [{ amount: 10000, year: 0 }] });
+    expect(q.windfallCarryByYear.slice(0, 2).map((v) => +v.toFixed(2))).toEqual([1333.33, 0]);
+    for (const draw of bought(q)) { expect(draw(1)).toBeCloseTo(0, 6); expect(draw(2)).toBeCloseTo(16000 - 1333.33, 1); }
+  });
+
+  it('a pension still closed in year 0: the ISA pays the 5 months, 10,380.83 after tax, as Pots & Valves takes from it', () => {
+    // Pat (fictional), 53, stops at 54 in November 2027; the pension opens the next tax year; ISA £200,000; State Pension
+    // far off. Year 0: 28,000 × 5 ÷ 12 = 11,666.67 before tax. The ISA pays what the pension's pounds would have left after
+    // tax, the year's tax on the year's rate: 28,000 − 20% × (28,000 − 12,570) = 24,914 a year, × 5 ÷ 12 = 10,380.83.
+    // It set aside 24,914 (a whole year): 14,533.17 too much.
+    const s = { ...jo, currentAge: 53, retireAge: 54, incomeSteps: [{ fromAge: 54, amount: 28000 }], spStartDate: '2040-01-06', isaBalance: 200000 };
+    const q = planOf(s);
+    expect(q.pensionLock.years).toBe(1);
+    expect(q.pensionLock.paid[0]).toBeCloseTo(11666.67, 2);
+    expect(q.pensionLock.unpaid[0]).toBeCloseTo(0, 6);
+    expect(q.isa).toBeCloseTo(200000 - 10380.83, 1);
+    expect(otherIn(q, 0)).toBeCloseTo(11666.67, 2);
+    const t = simulate({ ...q.pnvCfg, years: 30, trace: true, disableProtection: true }, flat, 1).trace;
+    expect(t.slice(0, 12).reduce((a, r) => a + (r.effectiveIsa || 0), 0)).toBeCloseTo(10380.83, 1);
+  });
+});
+
 describe('Floor & Flex\'s floor takes off the income that comes anyway, as every other way does (check of E8, fault 2)', () => {
   const planOf = (s) => planFromSettings(s, createSimulationConfigFromSettings({}, s), { now: NOW });
   it('a final-salary pension of £6,000 from year 0: 6,166.67 then 10,000, as the others ask', () => {

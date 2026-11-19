@@ -6,7 +6,7 @@
  *
  * Fictional people only: Alex stopped work at 50, Sam is the partner. Every figure here is made up for the test.
  */
-import { otherIn } from '../src/services/PaidYear.js';
+import { otherIn, monthsOf } from '../src/services/PaidYear.js';
 import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
 import { readFileSync } from 'node:fs';
@@ -219,7 +219,9 @@ describe('the bought strategies buy nothing from the pension for the closed year
     for (let y = 0; y < L; y++) expect(p.targetSchedule[y]).toBe(0);
     expect(p.targetSchedule[L]).toBeGreaterThan(0);
     expect(p.isa).toBeLessThan(ALEX.isaBalance);
-    expect(p.pensionLock.paid.every((v, y) => Math.abs(v + p.pensionLock.unpaid[y] - p.needByYear[y]) < 1e-6)).toBe(true);
+    // paid and unpaid are the pounds of each closed year's months (7.12.0, services/PaidYear.js): year 0 is a part year
+    expect(p.pensionLock.paid.every((v, y) => Math.abs(v + p.pensionLock.unpaid[y] - p.needByYear[y] * monthsOf(p, y) / 12) < 1e-6)).toBe(true);
+    expect(p.pensionLock.months).toEqual(Array.from({ length: L }, (_, y) => monthsOf(p, y)));
   });
   it('enough other savings: every closed year paid in full; the words say what the plan does', () => {
     const rich = alex({ isaBalance: 400000 });

@@ -8,8 +8,10 @@
  *
  * Pure: no storage, no DOM; the clock only as `now`.
  */
-import { deriveTiming, isaAtRetirementOf } from './PlanTiming.js';
-import { planAsSeenFromToday } from './PlanFromToday.js';
+import { deriveTiming, isaAtRetirementOf, year0MonthsOf, year0SpMonthsOf } from './PlanTiming.js';
+import { planAsSeenFromToday, runPositionOf, spPaidBefore } from './PlanFromToday.js';
+import { spTaxYearFirstRatio } from '../utils/StatePensionUtils.js';
+import { monthsOf, spIn } from './PaidYear.js';
 import { grossToNet, netToGross } from './TaxCalculator.js';
 import { scheduleFromSteps } from './IncomeSchedule.js';
 import { activeParams } from './StrategyState.js';
@@ -40,7 +42,8 @@ export function lumpyByYear(settings, cfg, years, assumedCpi = 0.025) {
 /**
  * How a BOUGHT strategy uses a windfall: the lump arrives in its year and buys the rungs from
  * then on — it pays that year's remaining need and carries forward against the years after,
- * until it is spent. Parked money is assumed to hold its real value and no more (a short gilt /
+ * until it is spent. `needNetByYear[y]` is what year y asks of the pots, in pounds for the months it has, after the income
+ * that comes anyway (planNeedOf: services/PaidYear.js). Parked money is assumed to hold its real value and no more (a short gilt /
  * cash ladder; gilts in a taxable account are CGT-free, so no tax drag is modelled either —
  * slightly pessimistic on return, faithful on tax). Returns the per-year amount of need the
  * windfall pays (`usedByYear`) and the unspent balance carried at each year end (`carryByYear`).
@@ -107,8 +110,29 @@ export function planNeedOf(settings, cfg, { startAge, now, maxYears = 45 } = {})
   // RECEIPTS were not — a bias against every ladder in the ranked table). The lump pays the need
   // from its year onward, so for the ladder builders it behaves as other income in those years
   // (the P&V engine handles the same windfalls itself through pnvCfg — see the engine).
-  const windfallUse = hasWindfall ? applyWindfallsToNeed(needByYear.map((v, y) => Math.max(0, v - otherBase[y])), windfallByYear) : null;
-  const otherOpen = windfallUse ? otherBase.map((v, y) => v + windfallUse.usedByYear[y]) : otherBase;
+  //
+  // The run's first year for the months it has (7.12.0, PlanTiming.year0MonthsOf; services/PaidYear.js): a plan still to
+  // start, from its stop month; a retired plan, from the month of its pots — this month, a locked plan's recorded position,
+  // or the month it was locked — to March, whether that year is its year 0 or a later one (one axis: a plan two years in and
+  // the same plan made today agree). 12: a whole year.
+  // (the months gone are read on this run's own clock, `now`, as the timing is: a config built on another clock — the
+  // planner's, which passes none — carries that clock's month, R5)
+  const monthsGone = lived > 0 ? runPositionOf(settings, timing).monthsIntoYear : 0;
+  const y0 = lived > 0 ? 12 - monthsGone : year0MonthsOf(timing, settings.potsAsOf && typeof settings.potsAsOf === 'object' ? settings.potsAsOf : null);
+  const y0Sp = spAnnual > 0 && spStartYear === 0 ? year0SpMonthsOf(settings.spStartDate, timing.firstTaxYear + lived, y0) : null;   // the State Pension's months of it
+  // The share of its first tax year the State Pension is paid in, in whole months (ruling C; StatePensionUtils
+  // spTaxYearFirstRatio): a part year 0's own months when it starts in one (one already being paid pays every month of it),
+  // the whole year when it began before the run's first tax year.
+  const spFirstYearRatioTaxYear = y0Sp != null ? y0Sp / 12 : spPaidBefore(settings, timing.firstTaxYear + lived) ? 1 : (spTaxYearFirstRatio(settings) ?? cfg.spFirstYearRatio ?? 1);
+  // What arrives in a year's months (services/PaidYear.js, the one reading every way uses). Money paid before the pots — a
+  // lump sum, the taxable account, the ISA in a closed year — pays the year's need for the months it has, after the State
+  // Pension in them: in pounds, then read back as a rate a year (otherIncomeByYear is a rate; PaidYear.otherIn takes its
+  // months), so a part year 0 neither charges the money a whole year nor spends it on what the State Pension pays.
+  const paid = { year0Months: y0 < 12 ? y0 : undefined, spAnnual, spStartYear, spFirstYearRatioTaxYear };
+  const share = (y) => monthsOf(paid, y) / 12;
+  const owed = (v, y, other) => Math.max(0, (v - other) * share(y) - spIn(paid, y));   // what year y asks of the pots, in pounds
+  const windfallUse = hasWindfall ? applyWindfallsToNeed(needByYear.map((v, y) => owed(v, y, otherBase[y])), windfallByYear) : null;
+  const otherOpen = windfallUse ? otherBase.map((v, y) => v + windfallUse.usedByYear[y] / share(y)) : otherBase;
   // The years the pension cannot yet be touched (7.4.1, services/PensionLock.js), from the tax year the run starts in. The
   // bought strategies buy nothing for them from the pension: what the pots must pay in each (after other income, lump sums
   // and the taxable account, which the line above has already spent in order) is paid from the ISA, set aside at its real
@@ -118,20 +142,26 @@ export function planNeedOf(settings, cfg, { startAge, now, maxYears = 45 } = {})
   const lockRaw = pensionLockOf(settings, { now, fromTaxYear: timing.firstTaxYear + lived, pensionPot: pot });
   const closed = lockRaw ? Math.min(lockRaw.years, durationYears + 1) : 0;
   // The ISA is tax-free in the hand: it pays what the pension's pounds would have left after tax, on top of the year's other
-  // income (the plan's own bands, which rise with prices, so they stand still in today's money).
+  // income (the plan's own bands, which rise with prices, so they stand still in today's money). A part year's tax is the
+  // year's rate for its months, as Pots & Valves takes it (the pounds of the months as a rate a year, then their share).
   const bands = { pa: settings.pa ?? 12570, brl: settings.brl ?? 50270, hrl: settings.hrl ?? 125140 };
   const netAt = (g) => grossToNet(Math.max(0, g), bands.pa, bands.brl, bands.hrl);
-  const closedPay = closed > 0 ? payClosedYears(needByYear.map((v, y) => Math.max(0, v - otherOpen[y])), closed, isa, {
-    costOf: (y, g) => netAt(otherOpen[y] + g) - netAt(otherOpen[y]),
-    grossFor: (y, m) => netToGross(netAt(otherOpen[y]) + m, bands.pa, bands.brl, bands.hrl) - otherOpen[y]
+  const closedPay = closed > 0 ? payClosedYears(needByYear.map((v, y) => owed(v, y, otherOpen[y])), closed, isa, {
+    costOf: (y, g) => share(y) * (netAt(otherOpen[y] + g / share(y)) - netAt(otherOpen[y])),
+    grossFor: (y, m) => share(y) * (netToGross(netAt(otherOpen[y]) + m / share(y), bands.pa, bands.brl, bands.hrl) - otherOpen[y])
   }) : null;
-  return { params, timing, cfg, lived, startAge, pot, isa, target, spAnnual, spStartYear, durationYears, rawSchedule, extraNeedByYear, windfallByYear, hasLumpy, needByYear, windfallUse, otherOpen, lockRaw, closed, closedPay };
+  // Other income a year, as the ways read it: the closed years' ISA pays as other income in them (a rate, as above)
+  const otherIncomeByYear = closedPay ? otherOpen.map((v, y) => (y < closed ? v + closedPay.paid[y] / share(y) : v)) : otherOpen;
+  return { params, timing, cfg, lived, startAge, pot, isa, target, spAnnual, spStartYear, durationYears, rawSchedule, extraNeedByYear, windfallByYear, hasLumpy, needByYear, windfallUse, otherOpen, otherIncomeByYear, lockRaw, closed, closedPay, monthsGone, y0, y0Sp, spFirstYearRatioTaxYear };
 }
 
-/** The plan's `pensionLock` from its need (planNeedOf): the access age, the closed years and what was paid and left unpaid in each. */
+/** The plan's `pensionLock` from its need (planNeedOf): the access age, the closed years, what was paid and left unpaid in each, and their months. */
 export function lockOfNeed(n) {
   const { lockRaw, closed, closedPay } = n;
-  return { accessAge: lockRaw.accessAge, years: closed, fromTaxYear: lockRaw.fromTaxYear, opensTaxYear: lockRaw.opensTaxYear, paid: closedPay.paid, unpaid: closedPay.unpaid };
+  // paid and unpaid are the pounds of each closed year's months; `months` says how many each has (a part year 0 fewer)
+  const paid = { year0Months: n.y0 < 12 ? n.y0 : undefined };
+  return { accessAge: lockRaw.accessAge, years: closed, fromTaxYear: lockRaw.fromTaxYear, opensTaxYear: lockRaw.opensTaxYear, paid: closedPay.paid, unpaid: closedPay.unpaid,
+    months: closedPay.paid.map((_, y) => monthsOf(paid, y)) };
 }
 
 /**

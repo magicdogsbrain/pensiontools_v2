@@ -84,5 +84,13 @@
  *           own first year). A retired plan read after April: less drawn in year 0, so fewer futures run out; read in
  *           April, nothing moves but that State Pension share. The question answers on the plan path take the same months
  *           (fastEngine covers them, run by run equal to the engine).
+ *           The State Pension's first tax year is counted in whole months in every year, not only in a part year 0 (from
+ *           6 January: January to March, 3/12; it was 91/366 by days), in Pots & Valves, every bought way and the Decision
+ *           tool's year table alike. Money paid before the pots — a lump sum, the taxable account, the ISA in the years the
+ *           pension is closed — pays each year's need for the months it has and after the State Pension in them (it was
+ *           charged a whole year's need in a part year 0, and a whole need on top of the State Pension in any year): a
+ *           £50,000 taxable account with a State Pension of £12,000 lasts years longer on the bought ways, as it does in
+ *           Pots & Valves. Floor & Flex's floor takes off the other income (a final-salary pension, an annuity, that money)
+ *           as every other way does; it took off only the State Pension and bought the rest twice over.
  */
 export const ENGINE_VERSION = '6.39.0';

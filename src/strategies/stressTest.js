@@ -18,10 +18,9 @@ import { runLadderWindows, runLadderMonteCarlo } from './LadderAndRatchet.js';
 import { runFlexWindows, runFlexMonteCarlo } from './FloorAndFlex.js';
 import { rotationPathsCtx, runRotationWindows, runRotationMonteCarlo, splitLadderAtAge, runRotationPath, spareGrowthRuns } from './GiltRotation.js';
 import { deriveCompareConfigs, compareAll } from './compareRunner.js';
-import { spTaxYearFirstRatio } from '../utils/StatePensionUtils.js';
-import { taxYearStartOf, year0MonthsOf, year0SpMonthsOf } from '../services/PlanTiming.js';
+import { taxYearStartOf } from '../services/PlanTiming.js';
 import { spIn, otherIn, monthsOf, needAtK, paidYearOf } from '../services/PaidYear.js';
-import { spPaidBefore, ladderAsSeenFromToday, runPositionOf } from '../services/PlanFromToday.js';
+import { spPaidBefore, ladderAsSeenFromToday } from '../services/PlanFromToday.js';
 import { grossToNet, netToGross } from '../services/TaxCalculator.js';
 import { cashCostFactor, buildGiltLadder, ladderWealthByYear } from './GiltLadderPlan.js';
 import { activeLinkers } from '../services/LinkerUniverse.js';
@@ -131,9 +130,9 @@ export function planFromSettings(settings, cfg, { yieldForYear, essentialsAnnual
   // The plan's need year by year, what pays it before the pots, and the years the pension is closed: services/PlanNeed.js
   // (7.4.1 review: lifted out so the plan's home reads the closed years' shortfall without the engine), exactly as it was here.
   const n = planNeedOf(settings, cfg, { startAge, now, ...(maxYears > 0 ? { maxYears } : {}) });
-  const { params, timing, lived, pot, isa, target, spAnnual, spStartYear, durationYears, rawSchedule, extraNeedByYear, windfallByYear, hasLumpy, needByYear, windfallUse, otherOpen, closed, closedPay } = n;
+  // (the run's first year for the months it has, and the State Pension's share of its first tax year, are read there too)
+  const { params, timing, lived, pot, isa, target, spAnnual, spStartYear, durationYears, rawSchedule, extraNeedByYear, windfallByYear, hasLumpy, needByYear, windfallUse, otherIncomeByYear, closed, closedPay, monthsGone, y0, y0Sp, spFirstYearRatioTaxYear } = n;
   cfg = n.cfg; startAge = n.startAge;
-  const otherIncomeByYear = closedPay ? otherOpen.map((v, y) => (y < closed ? v + closedPay.paid[y] : v)) : otherOpen;
   const targetSchedule = closedPay ? needByYear.map((v, y) => (y < closed ? 0 : Math.max(0, v - otherIncomeByYear[y])))
     : hasLumpy ? needByYear.map((v, y) => Math.max(0, v - otherIncomeByYear[y])) : rawSchedule;
   // The ISA set aside for a closed year not yet reached is still wealth (stressTestStrategy adds it as it adds a lump not yet spent).
@@ -142,15 +141,6 @@ export function planFromSettings(settings, cfg, { yieldForYear, essentialsAnnual
     ? closedParked.map((v, y) => v + ((windfallUse && windfallUse.carryByYear[y]) || 0))
     : windfallUse ? windfallUse.carryByYear : null;
   const pnvLock = cfg.pensionLockedMonths === undefined ? pensionLockOf(settings, { now, fromTaxYear: timing.firstTaxYear + lived, pensionPot: pensionPotOf(cfg) }) : null;
-  // The run's first year for the months it has (7.12.0, PlanTiming.year0MonthsOf; services/PaidYear.js): a plan still to
-  // start, from its stop month; a retired plan, from the month of its pots — this month, a locked plan's recorded position,
-  // or the month it was locked — to March, whether that year is its year 0 or a later one (one axis: a plan two years in and
-  // the same plan made today agree). 12: a whole year.
-  // (the months gone are read on this run's own clock, `now`, as the timing is: a config built on another clock — the
-  // planner's, which passes none — carries that clock's month, R5)
-  const monthsGone = lived > 0 ? runPositionOf(settings, timing).monthsIntoYear : 0;
-  const y0 = lived > 0 ? 12 - monthsGone : year0MonthsOf(timing, settings.potsAsOf && typeof settings.potsAsOf === 'object' ? settings.potsAsOf : null);
-  const y0Sp = spAnnual > 0 && spStartYear === 0 ? year0SpMonthsOf(settings.spStartDate, timing.firstTaxYear + lived, y0) : null;   // the State Pension's months of it
   return {
     pot, isa: closedPay ? closedPay.left : isa, targetAnnual: target,
     otherIncomeByYear, extraNeedByYear, needByYear, rawSchedule, windfallByYear,
@@ -175,11 +165,9 @@ export function planFromSettings(settings, cfg, { yieldForYear, essentialsAnnual
       || (now && settings.spStartDate && new Date(settings.spStartDate) <= now)) ? { spPaidNow: true } : {}),
     // No State Pension entered: the engine falls back to the legacy £12,000-from-67 default. Say so.
     spAssumed: !settings.spStartDate && !(+settings.spWeeklyAmount > 0) && spAnnual > 0,
-    // Ladder rungs are per TAX year: the SP's first-year share is measured against 6 April (a whole year in a run from
-    // today when it was already being paid before this tax year).
-    // A part year 0 (7.12.0) counts it in the year's own whole months (PlanTiming.year0SpMonthsOf): one already being paid
-    // pays every month of it.
-    spFirstYearRatioTaxYear: y0Sp != null ? y0Sp / 12 : spPaidBefore(settings, timing.firstTaxYear + lived) ? 1 : (spTaxYearFirstRatio(settings) ?? cfg.spFirstYearRatio ?? 1),
+    // Ladder rungs are per TAX year: the SP's first-year share is measured against April, in whole months (PlanNeed.js:
+    // a whole year in a run from today when it was already being paid before this tax year; a part year 0's own months).
+    spFirstYearRatioTaxYear,
     firstTaxYear: timing.firstTaxYear,   // saved with the plan (6.4.0) — it no longer slides each January
     yearsToStart: timing.yearsToStart, timingMode: timing.mode,
     // a first year that starts in the month work stops (7.12.0): the months it has, only when fewer than twelve

@@ -6,9 +6,10 @@
  * from then to March. For a year of m months:
  *  - the spending is the year's figure × m/12;
  *  - the income that comes anyway arrives in those months only: other income (a final-salary pension, an annuity, income
- *    streams; p.otherIncomeByYear) × m/12, and the State Pension from its start, its first year counted as the share of the
- *    tax year it is paid in (p.spFirstYearRatioTaxYear: whole months when the first year is a part year 0, else days from
- *    6 April), never more than the year's own months;
+ *    streams, and money paid before the pots — PlanNeed.js charges it for the year's months; p.otherIncomeByYear, a rate a
+ *    year) × m/12, and the State Pension from its start, its first year counted as the share of the
+ *    tax year it is paid in (p.spFirstYearRatioTaxYear, whole months from its month to March), never more than the year's
+ *    own months;
  *  - so the need from the pots or the contract is the spending less the State Pension (the yearly figures the bought ways
  *    read, p.targetSchedule, are already net of the other income).
  * Pots & Valves and Buckets run the same months in their monthly engine (SimulationEngine `year0Months`, its State Pension

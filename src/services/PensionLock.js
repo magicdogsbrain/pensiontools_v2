@@ -82,14 +82,16 @@ export function payClosedYears(needByYear, years, money, { costOf = null, grossF
 
 /**
  * What a plan's closed years leave unpaid, for the words: the years short (from the run's first tax year), and about how
- * much a year (the average over those years, to the nearest £100). Null when every closed year is paid.
+ * much a year (the average over those years' months, to the nearest £100). Null when every closed year is paid.
  * @param {{ fromTaxYear: number, unpaid: number[] }} lock
  */
 export function closedYearsShort(lock) {
   if (!lock || !Array.isArray(lock.unpaid)) return null;
   const short = lock.unpaid.map((v, y) => ({ y, v })).filter((x) => x.v > 1);
   if (!short.length) return null;
-  const perYear = short.reduce((a, x) => a + x.v, 0) / short.length;
+  // a year's worth: the pounds short over the months they fall in (a part year 0 has fewer than twelve: lock.months)
+  const months = short.reduce((a, x) => a + ((Array.isArray(lock.months) && lock.months[x.y] > 0) ? lock.months[x.y] : 12), 0);
+  const perYear = short.reduce((a, x) => a + x.v, 0) * 12 / months;
   const first = lock.fromTaxYear + short[0].y, last = lock.fromTaxYear + short[short.length - 1].y;
   return { perYear: Math.max(100, Math.round(perYear / 100) * 100), firstTaxYear: first, lastTaxYear: last, years: short.length };
 }

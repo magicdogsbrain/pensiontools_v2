@@ -447,7 +447,7 @@ export function readyMark(state) {
   }
   // "What you pay in" (saving-enough-and-check-in.md 4.4): the plan's verdict under way, or due for the plan on the step, is not ready
   const SV = state.saver;
-  if (SV && (SV.status === 'working' || SV.status === 'first')) busy = true;
+  if (SV && SV.status === 'working') busy = true;
   if (r && r.screen === 'plan' && r.step === 'saving') {
     const page = state.plans && state.plans.view && state.plans.view.page;
     const key = page && page.forId === r.planId && page.saving && page.saving.verdict && page.saving.verdict.key ? page.saving.verdict.key : null;

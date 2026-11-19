@@ -11,8 +11,6 @@ export const HOME = {
   saver: {
     title: 'Are you paying in enough?',
     working: 'Working out whether what you pay in is enough…',
-    /** (7.12.0) a first figure shown while the final one is worked out: said, as What you pay in says it */
-    first: 'A first figure, from 100 futures. The final one, from 1,000, follows in a moment.',
     noAim: 'Your plan has no income set for when you stop, so there is nothing yet to test what you pay in against.',
     noAimLink: 'What you spend',
     noWorker: 'This browser cannot work this out here.',

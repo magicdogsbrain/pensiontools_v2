@@ -308,11 +308,12 @@ export function cleanStressStrip(x) {
 
 /**
  * Nothing of the plan's verdict held (research/saving-enough-and-check-in.md 4.1, 4.4): `key` is saverInputs.js saverRunKey of
- * the plan's figures the run is for; `status` 'idle' | 'working' | 'first' | 'final' | 'failed'; `result` question B's answer
- * on those figures (100 futures at 'first', 1,000 at 'final'). An older result stays while a new one is worked out.
+ * the plan's figures the run is for; `status` 'idle' | 'working' | 'final' | 'failed'; `result` question B's answer
+ * on those figures (1,000 futures, src/reading/runs.js SAVER_RUN: no first figure, lead4.md R6). An older result stays
+ * (greyed) while a new one is worked out.
  */
 export const emptySaver = () => ({ key: null, status: 'idle', result: null, reason: null });
-const SAVER_STATUS = ['idle', 'working', 'first', 'final', 'failed'];
+const SAVER_STATUS = ['idle', 'working', 'final', 'failed'];
 
 /**
  * Nothing of a check-in's answer held (research/saving-enough-and-check-in.md 5.5): `planId` and `date` name the check-in

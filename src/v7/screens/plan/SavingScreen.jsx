@@ -84,11 +84,11 @@ function Verdict({ V, planId, dispatch }) {
   const band = result && result.verdict && result.verdict.band;
   const hasVerdict = !!(s.verdictHead && s.verdictLine && VERDICT_BANDS.includes(band));
   const riseText = n.rise ? fill(n.rise.pct === '0' ? t.rise.none : t.rise[n.rise.path], { pct: n.rise.pct }) : null;
-  const status = run.status === 'final' ? 'final' : run.status === 'first' ? 'first' : run.status === 'failed' ? 'failed' : 'working';
+  const status = run.status === 'final' ? 'final' : run.status === 'failed' ? 'failed' : 'working';
   // B refused the plan's figures (a rule between them, such as the end age before the stop): said plainly, nothing drawn
   const refused = !!result && result.status === 'invalid';
   return (
-    <section class="block plan-section saving-verdict" data-section="verdict" data-testid={`${T}.verdict`} data-status={status} data-verdict={band || undefined} aria-labelledby="saving-verdict-title" aria-busy={status === 'working' || status === 'first' ? 'true' : undefined}>
+    <section class="block plan-section saving-verdict" data-section="verdict" data-testid={`${T}.verdict`} data-status={status} data-verdict={band || undefined} aria-labelledby="saving-verdict-title" aria-busy={status === 'working' ? 'true' : undefined}>
       {head}
       {v.ifSaved && <p class="notice" role="status" data-testid={`${T}.verdict.ifSaved`}>{t.ifSaved}</p>}
       <p class="note">{t.lead}</p>
@@ -104,9 +104,9 @@ function Verdict({ V, planId, dispatch }) {
           {run.reason !== 'noWorker' && <div class="actions-row"><Button testid={`${T}.verdict.retry`} kind="plain" onClick={() => dispatch({ type: 'saver/retry' })}>{t.retry}</Button></div>}
         </div>
       )}
-      {!result && status !== 'failed' && <p class="working-note" role="status" data-testid={`${T}.verdict.working`}>{t.working}</p>}
+      {status === 'working' && <p class="working-note" role="status" data-testid={`${T}.verdict.working`}>{t.working}</p>}
       {result && hasVerdict && (
-        <div class={`answer-region${status === 'first' ? ' is-first' : ''}`} data-region="answer" data-answer={status}>
+        <div class="answer-region" data-region="answer" data-answer={status}>
           <div class="headline" data-headline="verdict">
             <div class={`band verdict is-${band}`} data-verdict={band}>
               <Fact id="saver.verdict"><Sentence s={s.verdictHead} source={result} class="figure" marks={SAVER_MARKS.head} /></Fact>
@@ -126,7 +126,6 @@ function Verdict({ V, planId, dispatch }) {
               {s.enoughMatch && <Sentence s={s.enoughMatch} source={result} class="note" />}
             </div>
           )}
-          {status === 'first' && <p class="working-note" role="status">{t.first}</p>}
         </div>
       )}
       {refused && <p class="note" data-testid={`${T}.verdict.invalid`}>{t.invalid} <a href={href.plan(planId, 'about')}>{t.aboutLink}</a></p>}

@@ -1424,22 +1424,21 @@ function reduceAction(state, action) {
       const keepOld = V.result && V.key && V.key.split(':')[1] === action.key.split(':')[1];
       return { ...state, saver: { key: action.key, status: 'working', result: keepOld ? V.result : null, reason: null } };
     }
-    case A.SAVER_FIRST:
     case A.SAVER_FINAL: {
       const V = state.saver || emptySaver();
-      if (action.key !== V.key || !(V.status === 'working' || (action.type === A.SAVER_FINAL && V.status === 'first'))) return state;   // stale
+      if (action.key !== V.key || V.status !== 'working') return state;   // stale
       if (!action.result || typeof action.result !== 'object') return refuse(action.type + ': needs a result');
-      return { ...state, saver: { ...V, status: action.type === A.SAVER_FINAL ? 'final' : 'first', result: action.result, reason: null } };
+      return { ...state, saver: { ...V, status: 'final', result: action.result, reason: null } };
     }
     case A.SAVER_FAILED: {
       const V = state.saver || emptySaver();
-      if (action.key !== V.key || !(V.status === 'working' || V.status === 'first')) return state;   // stale
+      if (action.key !== V.key || V.status !== 'working') return state;   // stale
       return { ...state, saver: { ...V, status: 'failed', reason: action.reason === 'noWorker' ? 'noWorker' : null } };
     }
     case A.SAVER_ENDED: {
       // (7.12.0) ended as its page was left: no longer under way (nothing else waits on it), asked again when it is wanted
       const V = state.saver || emptySaver();
-      if (V.key !== action.key || !(V.status === 'working' || V.status === 'first')) return state;
+      if (V.key !== action.key || V.status !== 'working') return state;
       return { ...state, saver: { ...V, status: 'idle' } };
     }
     case A.SAVER_RETRY: {

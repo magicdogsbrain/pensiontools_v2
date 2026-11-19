@@ -160,7 +160,6 @@ export const SAVING = {
     lead: 'The same test as “Am I saving enough?”, on your plan’s own figures: your pot, what you pay in now, your State Pension and what your plan says you would want to spend from when you stop.',
     aim: 'Your plan’s {aimYearly} a year before tax is {aimMonthly} a month after tax, at today’s prices: the figure tested here.',
     working: 'Working out whether what you pay in is enough…',
-    first: 'A first figure, from 100 futures. The final one, from 1,000, follows in a moment.',
     failed: 'Sorry, this could not be worked out. Nothing was changed.',
     noWorker: 'This browser cannot work this out here.',
     retry: 'Try again',

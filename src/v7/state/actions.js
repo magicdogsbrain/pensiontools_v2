@@ -213,8 +213,7 @@ export const A = Object.freeze({
   // ---- "What you pay in": the plan's own verdict (research/saving-enough-and-check-in.md 4.1, 4.4; release step R2) ----
   // question B on the plan's figures (answers/plan/saverInputs.js), in the worker's 'saver' lane, page memory only
   SAVER_WORKING:   'saver/working',       // { key }                          the run for this key (saverInputs.js saverRunKey) is under way; an old result stays
-  SAVER_FIRST:     'saver/first',         // { key, result }                  the first figure (100 futures); ignored if the key is stale
-  SAVER_FINAL:     'saver/final',         // { key, result }                  the final figure (1,000 futures); ignored if the key is stale
+  SAVER_FINAL:     'saver/final',         // { key, result }                  the figure (1,000 futures: no first figure is ever shown, lead4.md R6); ignored if the key is stale
   SAVER_FAILED:    'saver/failed',        // { key, reason? }                 the run failed ('noWorker': no worker)
   SAVER_RETRY:     'saver/retry',         // {}                               after a failure: idle again, so the runner starts over
   SAVER_ENDED:     'saver/ended',         // { key }                          (7.12.0) the run for key ended as its page was left: idle, its last figures kept

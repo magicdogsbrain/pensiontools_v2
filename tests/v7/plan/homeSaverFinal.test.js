@@ -5,7 +5,8 @@
  * to say so, and the page was marked ready). The same rule as What you pay in and "Does it last?" (select.js readyMark).
  */
 import { describe, it, expect } from 'vitest';
-import { initialState } from '../../../src/v7/state/initial.js';
+import { initialState, cleanSaver } from '../../../src/v7/state/initial.js';
+import { A } from '../../../src/v7/state/actions.js';
 import { readyMark } from '../../../src/v7/state/select.js';
 import { HOME } from '../../../src/v7/copy/home.js';
 import { SAVING } from '../../../src/v7/copy/saving.js';
@@ -21,7 +22,7 @@ describe('the home of a saving plan waits for the final answer', () => {
   it('no run yet, or a first figure: not ready', () => {
     expect(readyMark(home(null)).ready).toBe('0');
     expect(readyMark(home({ key: 'k1', status: 'idle', result: null })).ready).toBe('0');
-    expect(readyMark(home({ key: 'k1', status: 'first', result: {} })).ready).toBe('0');
+    expect(readyMark(home({ key: 'k1', status: 'working', result: {} })).ready).toBe('0');
   });
   it('the final answer for this plan\'s key, or a failure: ready', () => {
     expect(readyMark(home({ key: 'k1', status: 'final', result: {} })).ready).toBe('1');
@@ -30,7 +31,10 @@ describe('the home of a saving plan waits for the final answer', () => {
   it('the final answer for another key (figures since changed): not ready', () => {
     expect(readyMark(home({ key: 'old', status: 'final', result: {} })).ready).toBe('0');
   });
-  it('the home says a first figure is a first figure, in What you pay in\'s words', () => {
-    expect(HOME.saver.first).toBe(SAVING.verdict.first);
+  it('no first figure is ever shown or said (lead4.md R6): the saver\'s run is one pass, and a first status is not kept', () => {
+    expect(HOME.saver.first).toBeUndefined();
+    expect(SAVING.verdict.first).toBeUndefined();
+    expect(A.SAVER_FIRST).toBeUndefined();
+    expect(cleanSaver({ key: 'k1', status: 'first', result: {} }).status).toBe('idle');
   });
 });

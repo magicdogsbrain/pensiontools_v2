@@ -28,6 +28,8 @@ export const FACT = Object.freeze({
   ISA_TODAY: 'isa.today',
   GIA_TODAY: 'gia.today',
   CASH_TODAY: 'cash.today',
+  // the pot Where you are sets against the plan's band: its accounts, in the prices the plan's figures are in
+  POT_AGAINST_PLAN: 'pot.againstPlan',
   // the pot at the stop, with its low and high where shown
   POT_AT_STOP: 'pot.atStop',
   POT_AT_STOP_LOW: 'pot.atStop.low',

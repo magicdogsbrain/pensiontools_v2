@@ -317,3 +317,36 @@ describe('the months of year 0 before the pots\' day give the pots nothing (chec
     expect(runRotationPath(series, 0, ctx).wealth[1]).toBeCloseTo(1000 * Math.pow(1.01, 5) - 1000, 9);
   });
 });
+
+import { rowPlanOf } from '../src/answers/plan/lastsRun.js';
+import { ROW_CHANGE } from '../src/answers/plan/stressPanel.js';
+import { shockRtr } from '../src/strategies/ladderEngine.js';
+
+describe('"Try the bad years" starts its fall in the first month that pays (check 2 of E8)', () => {
+  // Kim (above), read 15 November: April to October give the pots nothing, so a fall "at the start" that began in April
+  // would spend 7 of its 12 months where nothing is held, and only (1 − 0.30)^(5/12) of it, a 13.8% fall, would reach the
+  // pots. It starts in November (month 7): over November to the next October the shares lose the whole 30%.
+  const NOV = new Date(2026, 10, 15, 12);
+  const kim = {
+    configured: true, duration: 30, other: 0, pa: 12570, brl: 50270, hrl: 125140, taxMode: 'inflates',
+    protectionMult: 0.8, consecutiveLimit: 3, disableProtection: true, recoveryBuffer: 0, hodlEnabled: false, hodlValue: 0,
+    isaReturn: 0.03, spStartDate: null, spWeeklyAmount: 0, statePension: 0, dbAmount: 0, dbStartYear: 0, dbIndexation: 'cpi',
+    equityMin: 600000, bondMin: 200000, cashTarget: 100000, isaBalance: 0, baseSalary: 40000,
+    incomeShape: 'phases', incomeSteps: [{ fromAge: 60, amount: 40000 }], currentAge: 66, currentAgeAsOf: '2026-11-15',
+    retired: true, firstTaxYear: 2026
+  };
+  const q = planFromSettings(kim, createSimulationConfigFromSettings({}, kim), { now: NOV });
+  it('the fall and the faster prices start at month 7; a whole year 0 keeps month 0', () => {
+    expect(rowPlanOf(q, ROW_CHANGE.fall).shock).toEqual({ kind: 'fall', share: 0.3, from: 7 });
+    expect(rowPlanOf(q, ROW_CHANGE.prices).shock.from).toBe(7);
+    const whole = planFromSettings(kim, createSimulationConfigFromSettings({}, kim), { now: new Date(2026, 3, 20, 12) });
+    expect(whole.year0Months).toBeUndefined();
+    expect(rowPlanOf(whole, ROW_CHANGE.fall).shock.from).toBe(0);
+  });
+  it('on a rising market the shares are 30% down over the twelve months from November', () => {
+    const rtr = Array.from({ length: 400 }, (_, i) => Math.pow(1.005, i));
+    const s = shockRtr(rtr, rowPlanOf(q, ROW_CHANGE.fall).shock);
+    expect(s[19] / s[7]).toBeCloseTo(0.7, 12);
+    expect(s[7]).toBe(rtr[7]);
+  });
+});

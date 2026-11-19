@@ -101,5 +101,7 @@
  *           prices only in those months, by the twelfth of the rise it counts at the start of year 1, so in today's money
  *           they hold their worth. Plans whose year 0 is part of a year: less in the pots when year 0 starts paying, so less
  *           left at the end and a few more futures that run out; a whole first year runs exactly as before.
+ *           "Try the bad years" starts its fall (and its faster prices) in that first paying month, where the pots are
+ *           first held (lastsRun.rowPlanOf); it started in the run's month 0, which is now a month that moves nothing.
  */
 export const ENGINE_VERSION = '6.39.0';

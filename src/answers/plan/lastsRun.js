@@ -73,6 +73,7 @@ import { restoredParamsFor } from '../../services/PlanCommit.js';
 import { dateOf } from './dates.js';
 import { closedYearsShort, shortYearsWords } from '../../services/PensionLock.js';
 import { FAMILY } from './lasts.js';
+import { monthsOf } from '../../services/PaidYear.js';
 import { scaledIncome } from './spend.js';
 import { SUCCESS, LEVEL_FAILS20, LEVELS, TO_AGE_RULE } from '../shared/rules.js';
 import { lifeOf, lifeOfSettings, planLevelOf, weightedReasonOf, weightedYearsOf, floorAt } from './life.js';
@@ -117,7 +118,8 @@ export const WEIGHTED_HIST_STRIDE = 1e9;
 
 /**
  * A row of "Try the bad years" (7.9.0) on the plan every screen runs: the row's shock to the futures (ladderEngine.shockPath,
- * `from` 0 — the run's first month: the drawing start, or today when already drawing) and its lower returns (percent a year:
+ * from the run's first paying month: the drawing start, or today when already drawing — month 0, or in a part year 0 the
+ * month after its not-yet months, which give the pots no return, so a fall there would miss them) and its lower returns (percent a year:
  * on the plan for the bought strategies' fund parts and cash years, and on the Pots & Valves config), with the real
  * histories at one window — a row reads its futures only, and no row shows a history figure — and each future's income cut
  * kept (`perFutureCuts`: Pots & Valves and Buckets put it on futuresMc.cutReal, for OneAnswer.planShortfallOf). `row` =
@@ -126,7 +128,8 @@ export const WEIGHTED_HIST_STRIDE = 1e9;
  */
 export function rowPlanOf(p, row) {
   if (!p || !row) return p;
-  const shock = row.shock && typeof row.shock === 'object' ? { ...row.shock } : null;
+  const notYet = monthsOf(p, 0) < 12 ? 12 - monthsOf(p, 0) : 0;
+  const shock = row.shock && typeof row.shock === 'object' ? { ...row.shock, ...(notYet && !(row.shock.from > 0) ? { from: notYet } : {}) } : null;
   const d = Number.isFinite(row.returnDragPct) && row.returnDragPct > 0 ? row.returnDragPct : 0;
   return {
     ...p,

@@ -157,6 +157,17 @@ describe('D: the answer is the plan kept from it (one person, the plan path)', (
     const d = answerD({ ...D7, work: { has: false } }, ENV);
     expect(answerReading(d)).toEqual(planReading(keptPlansOf('d', d, ENV).yours));
   });
+  it('D7 with the work lever on: Keep keeps the main verdict\'s household, so the kept plan is the main verdict, not the lever\'s', () => {
+    // (the lead's ruling A: "Would some work help?" is a try; Keep never writes it. Before, Keep wrote D's £15,000 a year
+    // for 3 years as part-time work, so the plan kept from D7 tested a household the main verdict had not)
+    const d = answerD(D7, ENV);
+    expect(d.work).not.toBeNull();
+    const kept = keptPlansOf('d', d, ENV).yours;
+    expect(kept.stressTool.settings.extraIncomes).toEqual([]);
+    expect(answerReading(d)).toEqual(planReading(kept));
+    // the lever itself still runs with the work in (a try on the same plan)
+    expect(d.work.lasted).toBeGreaterThan(d.lasted);
+  });
   it('each level\'s amount, kept, passes at its level, and £10 a month more does not', () => {
     const d = answerD(D1, ENV);
     for (const level of ['careful', 'balanced', 'bold']) {

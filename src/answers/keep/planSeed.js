@@ -239,7 +239,7 @@ function payInOf(source, result, who, later, count, savingsInShare = null) {
  * them are with whoever stops first and what goes into savings each month with those still working (the household's own
  * split, household.js 'savings-first'), and nothing goes in for whoever has stopped.
  */
-function personOf({ source, result, today, who, index, stop, years, household, couple, perMonth, apart, byYear = null }) {
+function personOf({ source, result, today, who, index, stop, years, household, couple, perMonth, apart, byYear = null, tryWork = false }) {
   const inputs = result.inputs;
   const raw = inputs[who];
   const count = couple ? 2 : 1;
@@ -263,9 +263,12 @@ function personOf({ source, result, today, who, index, stop, years, household, c
   const fs = raw.finalSalary && raw.finalSalary.has ? raw.finalSalary : null;
   const fsHousehold = Array.isArray(hp.finalSalary) && hp.finalSalary[0];
   const opens = result.pensionOpens && isNum(result.pensionOpens[who]) ? result.pensionOpens[who] : firstAccessAge(ageToday, today);
-  // A's part-time work; D's work from today (answer-D.md 10: kept as A's part-time row from year 0; the fall is never saved)
+  // A's part-time work. D's work from today is a lever ("Would some work help?"), a try: Keep keeps the main verdict's
+  // household and never writes it (the lead's ruling A, 19 Nov 2026), so the answer and the plan kept from it test the same
+  // household. Only the plan path's own run of the lever (`tryWork`, keep/planPath.js) puts it in, as A's part-time row
+  // from year 0; the fall is never saved.
   const pt = source === 'a' && who === 'you' && inputs.partTime && inputs.partTime.has ? inputs.partTime
-    : source === 'd' && who === 'you' && inputs.work && inputs.work.has ? inputs.work : null;
+    : source === 'd' && tryWork && who === 'you' && inputs.work && inputs.work.has ? inputs.work : null;
 
   return {
     who,
@@ -360,9 +363,11 @@ export function keptLengthOf(source, result, today) {
  *                                   (research/saving-enough-and-check-in.md 3.6: Keep asks which, neither chosen)
  * @param {'level'|'tried'} [o.take]  C only: keep the amount at the level (the default, as before), or the amount being
  *                                   tried, on screen (Keep asks which, neither chosen; atTake)
+ * @param {boolean} [o.tryWork]       D only, never Keep: the seed of the plan with D's work lever in (keep/planPath.js runs
+ *                                   the lever on it); Keep leaves it out
  * @returns {object|null}
  */
-export function buildPlanSeed({ source, result: asked, env, name, budget = null, spendHow = null, createdAt, payIn = 'now', take = 'level' }) {
+export function buildPlanSeed({ source, result: asked, env, name, budget = null, spendHow = null, createdAt, payIn = 'now', take = 'level', tryWork = false }) {
   if (!keepable(source, asked).ok || !env || typeof env.today !== 'string' || typeof createdAt !== 'string') return null;
   // "Keep: paying in … (on course)": the answer at that figure, which B worked out with the answer (no second model)
   const onCourse = source === 'b' && payIn === 'enough' ? atEnough(asked) : null;
@@ -403,7 +408,7 @@ export function buildPlanSeed({ source, result: asked, env, name, budget = null,
   const byYear = Array.isArray(result.byYear) && result.byYear.length ? result.byYear : null;
   const shape = byYear ? seedShapeOf(source, result) : null;
   if (shape) spend.shape = shape;
-  const people = who.map((w, index) => personOf({ source, result, today, who: w, index, stop: ownStop(w), years: ownYears(w), household, couple, perMonth: spend.perMonth, apart, byYear: shape ? byYear : null }));
+  const people = who.map((w, index) => personOf({ source, result, today, who: w, index, stop: ownStop(w), years: ownYears(w), household, couple, perMonth: spend.perMonth, apart, byYear: shape ? byYear : null, tryWork }));
   const sheet = budget ? sheetForSeed(checkSheet(budget, { household: couple ? 'couple' : 'single', level: spend.level || 'moderate', today })) : null;
   const basis = result.basis;
 

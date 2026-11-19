@@ -89,10 +89,15 @@ function resultAt(source, ins, env, perMonth, startAge = ins.you.age) {
   };
 }
 
-/** The plan keeping the answer at `perMonth` would write (the keep's own two steps, as keep/keptPlan.js). */
+/**
+ * The plan keeping the answer at `perMonth` would write (the keep's own two steps, as keep/keptPlan.js). D's work lever,
+ * when `ins` asks for it, is a try on that plan (the lead's ruling A: Keep never writes it): the same plan with the work
+ * as its part-time row (planSeed `tryWork`), never what Keep stores.
+ */
 export function keptPlanAt(source, ins, env, perMonth, startAge = undefined) {
   const result = resultAt(source, ins, env, perMonth, startAge);
-  const seed = buildPlanSeed({ source, result, env: { today: env.today, appVersion: '' }, name: null, createdAt: env.today + 'T00:00:00.000Z' });
+  const tryWork = source === 'd' && !!(ins.work && ins.work.has);
+  const seed = buildPlanSeed({ source, result, env: { today: env.today, appVersion: '' }, name: null, createdAt: env.today + 'T00:00:00.000Z', tryWork });
   if (!seed) return null;
   return seedToScenario(seed, env.today).yours;
 }

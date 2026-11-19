@@ -26,7 +26,6 @@ import { stressRowInputOf } from '../reading/gather.js';
 import { contextFor } from '../reading/context.js';
 import { todayOf, dayKeyOf } from '../reading/clock.js';
 
-const dayOf = (d) => dayKeyOf(todayOf(d));   // the one clock (src/reading/clock.js)
 const say = (part) => esc(sayStress(part, STRESS));
 
 /** The Scenarios card's own words when the panel is switched off (rules.js STRESS.panel false: the page as before 7.9.0). */
@@ -125,7 +124,7 @@ function agreementsHtml(v) {
 }
 
 /** The panel (see the header): what is accepted and the keep line before the press; then the rows as they come in. */
-export function stressPanelHtml(scenario, { today = dayOf(new Date()) } = {}) {
+export function stressPanelHtml(scenario, { today = dayKeyOf(todayOf()) } = {}) {
   const v = (() => { try { return stressPanelOf(scenario, { today }); } catch (e) { return null; } })();
   if (!v) return '';
   const run = v.run;
@@ -152,7 +151,7 @@ export function stressPanelHtml(scenario, { today = dayOf(new Date()) } = {}) {
  * opens. `scenario()` is the plan as stored, `persist(list)` the shell's one save, `toast(text, kind)` its message,
  * `named(rowsShown)` the shell's named stresses, `run(type, payload)` the engine worker (engineClient.runInWorker).
  */
-export function installStressPanel(w, { scenario, persist, toast, named = null, run = runInWorker, canRun = workerAvailable, today = () => dayOf(new Date()) }) {
+export function installStressPanel(w, { scenario, persist, toast, named = null, run = runInWorker, canRun = workerAvailable, today = () => dayKeyOf(todayOf()) }) {
   const doc = w.document;
   const el = (id) => (doc ? doc.getElementById(id) : null);
   const draw = async () => {

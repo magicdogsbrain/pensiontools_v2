@@ -2,7 +2,7 @@
  * Engine Web Worker — runs the heavy, synchronous strategy maths off the main thread so a phone
  * never freezes: the six-strategy overview, a single strategy stress test, the household checks (the simple view's own
  * answers/plan/householdRun.js, on the two plans and the day), a row of "Try the bad
- * years" (the plan as stored: answers/plan/stressPanelRun.js), the saver's verdict (question B, src/reading/runs.js SAVER_RUN).
+ * years" (the plan as stored: answers/plan/stressPanelRun.js), "Test what you keep" (answers/plan/keepRun.js), the saver's verdict (question B, src/reading/runs.js SAVER_RUN).
  * Inputs are plain settings/config objects; the plan is rebuilt here (planFromSettings) because a
  * plan carries pricing closures that cannot cross the worker boundary. The market is the one loader's (src/reading/market.js),
  * from the data folder the page hands in with every job (`market`), so ladder prices match the page and the simple view's
@@ -18,6 +18,7 @@ import { cloneSafe } from '../utils/cloneSafe.js';
 import { sweepRetirementAges } from '../services/RetireSweep.js';
 // (static: this worker is built as one classic-format file, which cannot split off a lazy chunk; it carries the engine already)
 import { runStressRow } from '../answers/plan/stressPanelRun.js';
+import { runKeepRetest } from '../answers/plan/keepRun.js';
 import { answerB } from '../answers/b/answer.js';
 
 // The page's one clock (src/reading/clock.js), handed in with every job (engineClient.runInWorker): the plan is seen from the
@@ -55,6 +56,8 @@ self.onmessage = async (e) => {
       post({ id, result: cloneSafe(runMixCompare(payload.plan, { today: payload.today, onProgress: (i, n) => self.postMessage({ id, progress: { i, n, name: '' } }) })) });
     } else if (type === 'stressRow') {   // "Try the bad years" (7.9.0): one row on the plan as stored
       post({ id, result: cloneSafe(runStressRow(payload.plan, { today: payload.today, row: payload.row })) });
+    } else if (type === 'keepRetest') {   // "Test what you keep against your plan" (7.7.0): the simple view's own run (keepRun.js) on the plan as stored and the day
+      post({ id, result: cloneSafe(runKeepRetest(payload.plan, { today: payload.today, onProgress: (i, n) => self.postMessage({ id, progress: { i, n, name: '' } }) })) });
     } else if (type === 'saver') {   // "Am I on course?" (lead4.md R6): question B on the plan's figures, as the simple view's worker runs it
       post({ id, result: cloneSafe(answerB(payload.inputs, payload.env)) });
     } else if (type === 'sweep') {   // "when can I retire?" (6.10.0): one strategy run per candidate age, with progress

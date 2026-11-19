@@ -54,6 +54,7 @@ import { isGuest, isLoggedIn } from '../firebase/AuthService.js';
 import { guestPlanRefusal } from '../services/GuestPlans.js';
 import { OPEN_PLACE_KEY, makeRequest } from '../services/OpenPlace.js';
 import { parseMonth } from '../answers/plan/about.js';
+import { todayOf } from '../reading/clock.js';
 
 const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
@@ -85,7 +86,7 @@ export const PLAN_CLOSE_WORDS = Object.freeze({
 
 /** The day the open plan is read on (PlanClosed.readDayOf): today, or the end of a closed plan's last month. */
 export async function planReadDay() {
-  const now = new Date();
+  const now = todayOf();
   try { return readDayOf(await getActiveScenarioAsync(), now); } catch (e) { return now; }
 }
 
@@ -227,7 +228,7 @@ export async function closedTimingSummary(summary) {
   // a draft read from an earlier start than it saved (7.4.0, PlanReading.laterDraftReading: the settings as the form reads
   // them, the Budget's age folded in — V7's "About you and when" reads the same): said once, first
   let later = null;
-  try { const st = await getActiveScenarioAsStored(); later = st ? laterDraftReading(st, { now: new Date() }) : null; } catch (e) { later = null; }
+  try { const st = await getActiveScenarioAsStored(); later = st ? laterDraftReading(st, { now: todayOf() }) : null; } catch (e) { later = null; }
   const words = closedTimingWords(summary, sc);
   return later ? laterDraftSentence(later) + ' ' + words : words;
 }
@@ -387,7 +388,7 @@ export function installPlanClose(win, doc, deps = {}) {
       if (sc) {
         const all = await loadAllScenarios();
         const closed = closedReading(sc, all), before = closed ? null : beforeReading(sc, all);
-        const q = closed ? null : closeQuestionOf(sc, { now: new Date(), plans: all });
+        const q = closed ? null : closeQuestionOf(sc, { now: todayOf(), plans: all });
         // a closed plan's lock banner says it is closed (stressLockBannerHtml); a plan that carries one on says so here, and is
         // offered the move too once it has been lived on
         html = closed ? '' : (before ? planCloseLineHtml({ before }) : '') + (q ? planCloseLineHtml({ offered: true, working: q.working }) : '');

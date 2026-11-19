@@ -72,3 +72,39 @@ describe('every run is handed the one context', () => {
     expect(page).not.toMatch(/whereAmI\(doc, \{ today: new Date\(\)/);
   });
 });
+
+// Step M, fix round 2: the runs and readings the checker found on the raw clock now take the one clock (todayOf).
+describe('the full view\'s remaining runs start on the one clock, never a bare new Date()', () => {
+  const page = src('index.html');
+  const fnOf = (text, name, end = '\n    };\n') => { const a = text.indexOf(name); expect(a, name).toBeGreaterThan(-1); return text.slice(a, text.indexOf(end, a)); };
+  it('the Timing block\'s pots at the stop', () => {
+    const body = fnOf(page, 'window.renderTiming = async function');
+    expect(body).toMatch(/timingPotsAtStop\([\s\S]*?, todayOf\(\)\);/);
+    expect(body).not.toMatch(/new Date\(\)/);
+  });
+  it('"Try the bad years" on the full view: its day is the one clock, by default and as the page installs it', () => {
+    const ui = src('src/ui/stressPanelUi.js');
+    expect(ui).not.toMatch(/new Date\(\)\)/);
+    expect(page).toMatch(/installStressPanel\(window, \{[^}]*today: \(\) => dayKeyOf\(todayOf\(\)\)/);
+  });
+  it('"Test what you keep" runs in the engine worker on the one day, or on the page once the day\'s prices are in', () => {
+    const ui = src('src/ui/keepHoldingsUi.js');
+    const body = fnOf(ui, 'w.runKeepTest = async', '\n  };\n');
+    expect(body).toMatch(/run\('keepRetest', \{ plan: sc, today: day \}\)/);
+    expect(body).toMatch(/await marketReady\(\)/);
+    expect(body).not.toMatch(/new Date\(\)/);
+    expect(ui).not.toMatch(/dayOf\(new Date\(\)\)|today: new Date\(\)/);
+    expect(src('src/workers/engineWorker.js')).toMatch(/type === 'keepRetest'/);
+  });
+  it('the locked start, the start-later draft, the stop month and the plan-close line read the one clock', () => {
+    const ls = src('src/ui/lockedStartUi.js');
+    expect(ls).not.toMatch(/new Date\(\)/);
+    const pc = src('src/ui/planCloseUi.js');
+    expect(pc).not.toMatch(/laterDraftReading\(st, \{ now: new Date\(\) \}\)/);
+    expect(pc).not.toMatch(/closeQuestionOf\(sc, \{ now: new Date\(\), plans: all \}\)/);
+    expect(fnOf(pc, 'export async function planReadDay', '\n}\n')).not.toMatch(/new Date\(\)/);
+  });
+  it('the lock\'s weighted definition is asked on the one clock', () => {
+    expect(page).not.toMatch(/documentSuccessOf\([^;]*now: new Date\(\)/);
+  });
+});

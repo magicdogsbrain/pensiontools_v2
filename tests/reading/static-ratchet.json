@@ -6,8 +6,8 @@
   "grossToNet": 7,
   "projectAccumulation": 2,
   "diffHoldings": 1,
-  "newDate": 69,
-  "boxValue": 101,
+  "newDate": 46,
+  "boxValue": 99,
   "engineImport": 22
  },
  "byRule": {
@@ -38,24 +38,23 @@
    "index.html": 1
   },
   "newDate": {
-   "index.html": 18,
+   "index.html": 16,
    "src/ui/accumulationProjection.js": 1,
    "src/ui/components/NewPlanFromSeed.js": 1,
    "src/ui/components/SetupWizard.js": 1,
    "src/ui/homeBannerUi.js": 2,
    "src/ui/householdTabUi.js": 1,
-   "src/ui/householdView.js": 2,
-   "src/ui/keepHoldingsUi.js": 14,
-   "src/ui/lockedStartUi.js": 4,
+   "src/ui/householdView.js": 1,
+   "src/ui/keepHoldingsUi.js": 3,
    "src/ui/monthFillEntry.js": 1,
    "src/ui/monthlyEntry.js": 1,
-   "src/ui/planCloseUi.js": 6,
+   "src/ui/planCloseUi.js": 3,
    "src/ui/planStartUi.js": 2,
    "src/ui/saverAnswerUi.js": 1,
    "src/ui/savingPathForLock.js": 1,
    "src/ui/stageWord.js": 1,
    "src/ui/startingPotsWords.js": 1,
-   "src/ui/stressPanelUi.js": 3,
+   "src/ui/stressPanelUi.js": 1,
    "src/v7/effects/account.js": 3,
    "src/v7/effects/clock.js": 1,
    "src/v7/effects/download.js": 1,
@@ -64,7 +63,7 @@
    "src/v7/effects/planWrite.js": 1
   },
   "boxValue": {
-   "index.html": 98,
+   "index.html": 96,
    "src/ui/dbStartSetting.js": 2,
    "src/ui/planStartUi.js": 1
   },

@@ -21,9 +21,11 @@ import { HOLD } from '../v7/copy/hold.js';
 import { esc } from './components/ReleaseNotesView.js';
 import { isStaleBuildError } from '../utils/staleBuild.js';
 import { staleWordsText } from './staleBuildPage.js';
+import { todayOf, dayKeyOf } from '../reading/clock.js';
+import { runInWorker, workerAvailable } from '../workers/engineClient.js';
 
 const pad = (n) => String(n).padStart(2, '0');
-const dayOf = (d) => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+const dayOf = (d) => dayKeyOf(todayOf(d));   // the one clock (src/reading/clock.js)
 
 /** "2027/28, 2028" → [2027, 2028]: the April each tax year starts. */
 export function parseTaxYears(text) {
@@ -50,7 +52,7 @@ export function keepOfChoice(value, was, firstYear = null) {
  * Moving once what is held was accepted: the phase V7's home reads), else "Transition" — a retired person is never shown a
  * move phase by the tab's name.
  */
-export function transitionTabName(scenario, today = new Date()) {
+export function transitionTabName(scenario, today = todayOf()) {
   try { return scenario && heldPhase(lifeOf(scenario, new Date(today.getFullYear(), today.getMonth(), today.getDate(), 12))) ? PLAN.steps.move.short : 'Transition'; } catch { return 'Transition'; }
 }
 
@@ -58,12 +60,12 @@ export function transitionTabName(scenario, today = new Date()) {
  * The month a saver's move window opens, for the full view's schedule (move.js opensAtOf: the reading the simple view's
  * schedule and home use). Null when there is none, or the plan cannot be read.
  */
-export function transitionOpensAt(scenario, today = new Date()) {
+export function transitionOpensAt(scenario, today = todayOf()) {
   try { const now = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 12); return scenario ? opensAtOf(scenario, planStage(scenario, { now }), now) : null; } catch { return null; }
 }
 
 /** Names the full view's Transition tab in `doc` by the phase (transitionTabName); `read()` gives the stored plan. The name. */
-export async function nameTransitionTab(doc, read, fallback = null, today = new Date()) {
+export async function nameTransitionTab(doc, read, fallback = null, today = todayOf()) {
   let plan = null; try { plan = (await read()) || fallback; } catch { plan = fallback; }
   const name = transitionTabName(plan, today);
   const tb = doc && doc.querySelector ? doc.querySelector('.tab[data-tab="transition"]') : null;
@@ -72,7 +74,7 @@ export async function nameTransitionTab(doc, read, fallback = null, today = new 
 }
 
 /** The gaps as the Transition tab draws them: V7's reading of the plan with this record (by the phase the home reads: 7.12.0, nothing in the held phase); null when there is nothing to read. */
-export function transitionGaps(scenario, rec, today = new Date()) {
+export function transitionGaps(scenario, rec, today = todayOf()) {
   if (!scenario) return null;
   try { return gapsView(gapsOf({ ...scenario, holdings: rec }, { today: dayOf(today) })); } catch { return null; }
 }
@@ -83,7 +85,7 @@ export function transitionGaps(scenario, rec, today = new Date()) {
  * is held was accepted): the tab draws what is held as information, never Buy or Sell; on a ladder (7.12.0) `heldView` is
  * "Your plan's mix" as both views draw it (answers/plan/held.js). Null when it cannot be read.
  */
-export function transitionHeld(scenario, rec, today = new Date()) {
+export function transitionHeld(scenario, rec, today = todayOf()) {
   if (!scenario) return null;
   try {
     const plan = { ...scenario, holdings: rec || scenario.holdings };
@@ -102,7 +104,7 @@ export function transitionHeld(scenario, rec, today = new Date()) {
  * the bundled list's, or its name's (TransitionPlanner.standInPays); a line with none is never refused.
  */
 export function tooEarlyWords(line, years) {
-  let m = null; try { m = standInPays(line, { today: new Date() }).matures; } catch { m = null; }
+  let m = null; try { m = standInPays(line, { today: todayOf() }).matures; } catch { m = null; }
   if (!m || !years.length) return null;
   const early = years.filter((Y) => (Y + 1) + '-04-05' < m);
   if (early.length < years.length) return null;
@@ -122,7 +124,7 @@ export function installKeepHandlers(w, { draft, persist, toast }) {
   let pending = null, inFlight = 0, queue = Promise.resolve();
   const save = (change) => {
     const d = pending || draft(); if (!d) return;
-    const next = holdingsWith(d, change, { today: new Date() });
+    const next = holdingsWith(d, change, { today: todayOf() });
     pending = next; inFlight++;
     queue = queue.then(() => persist(next)).catch((e) => toast('Could not save what you hold: ' + e.message, 'error')).finally(() => { inFlight--; if (!inFlight) pending = null; });
   };
@@ -188,7 +190,7 @@ export function transitionKeepTest(scenario, rec) {
     const plan = { ...scenario, holdings: rec || scenario.holdings };
     const result = resultFor(scenario);
     const fresh = !!(result && result.fingerprint === keepFingerprint(plan.holdings));
-    const v = keepTestOf(plan, { result, run: { status: fresh ? 'done' : memory.status === 'working' || memory.status === 'failed' ? memory.status : 'idle', reason: null }, today: dayOf(new Date()) });
+    const v = keepTestOf(plan, { result, run: { status: fresh ? 'done' : memory.status === 'working' || memory.status === 'failed' ? memory.status : 'idle', reason: null }, today: dayKeyOf(todayOf()) });
     // Undo, while the list is still the one the last agreement (or withdraw) wrote
     const undo = memory.undo && memory.undo.after === listOf(scenario) ? { id: memory.undo.id } : null;
     // a closed plan is kept to read: no test, no agreement, no withdraw (the store refuses them too), as V7
@@ -203,7 +205,7 @@ export const keepWords = (part) => sayKeep(part, KEEPTEST);
 export function keepLineHtml(scenario) {
   if (!scenario) return '';
   try {
-    const v = keepTestOf(scenario, { today: dayOf(new Date()) });
+    const v = keepTestOf(scenario, { today: dayKeyOf(todayOf()) });
     if (!v || !v.line) return '';
     return '<p class="hint pd-keep" id="planDocKeepLine" data-status="' + esc(v.status) + '" style="margin:6px 0 0;">' + esc(keepWords(v.line)) + '</p>';
   } catch { return ''; }
@@ -219,9 +221,9 @@ export function keepLineHtml(scenario) {
 /** The full view's confirm for "This is how I want to hold it" (7.12.0): page memory only, for the plan it was opened on. */
 const sayHeldMemory = { open: false, planId: null };
 
-export function installKeepTestHandlers(w, { scenario, persist, rerender, toast, persistPhases = null }) {
+export function installKeepTestHandlers(w, { scenario, persist, rerender, toast, persistPhases = null, run = runInWorker, canRun = workerAvailable, marketReady = () => w._marketReady, today = () => dayKeyOf(todayOf()) }) {
   // "This is how I want to hold it" and "Take this back" (7.12.0): the same one write as V7 (agree.js), the shell's save of `phases`
-  const dayIso = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+  const dayIso = today;   // the one clock (src/reading/clock.js)
   w.askSayHeld = async () => { const sc = await scenario(); sayHeldMemory.open = true; sayHeldMemory.planId = sc ? String(sc.id) : null; rerender(); };
   w.cancelSayHeld = () => { sayHeldMemory.open = false; rerender(); };
   w.sayHeldFull = async () => {
@@ -257,9 +259,16 @@ export function installKeepTestHandlers(w, { scenario, persist, rerender, toast,
     try {
       const sc = await scenario();
       forPlan(sc);
-      const { runKeepRetest } = await import('../answers/plan/keepRun.js');
-      await new Promise((r) => setTimeout(r, 30));   // let the page say it is testing before the engine takes the thread
-      memory.result = runKeepRetest(sc, { today: dayOf(new Date()) });
+      const day = today();
+      // the simple view's own run (answers/plan/keepRun.js) in the engine worker, which loads the one market for the job; a
+      // page without workers runs it here once the day's prices are in (window._marketReady), never on the built-in copy
+      if (canRun()) memory.result = await run('keepRetest', { plan: sc, today: day });
+      else {
+        await marketReady();
+        const { runKeepRetest } = await import('../answers/plan/keepRun.js');
+        await new Promise((r) => setTimeout(r, 30));   // let the page say it is testing before the engine takes the thread
+        memory.result = runKeepRetest(sc, { today: day });
+      }
       memory.stamp = stampOf(sc);
       memory.status = 'done';
     } catch (e) { memory.status = 'failed'; memory.result = null; toast(isStaleBuildError(e) ? staleWordsText() : KEEPTEST.failed, 'error'); }   // a page older than the site: src/ui/staleBuildPage.js

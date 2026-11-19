@@ -28,10 +28,11 @@
  * never carries (tests/v7/boundaries.test.js). An answer receives it as env.planPath.
  *
  *   planCaseOf(source, ins, env, { lives, dragPct }) → the case (see below)
- *     source   'd' (one person; the others follow)
+ *     source   'd', or 'c' from now (one person; the others follow)
  *     ins      the answer's checked inputs (levers as asked: D's work is the kept plan's work from today)
  *     lives    (T) → a livesList of at least T years (the answer's own, so every case of one answer shares its futures), or
  *              such a list
+ *     fromAge  C: the age the money is first taken (today's, or moved to the day the pension opens: c/answer.js)
  *     dragPct  "Try the bad years" lower returns (7.9.0): percent a year off every pot, on the plan's config as the plan's own
  *              row puts it (lastsRun.rowPlanOf: pnvCfg.returnDragPct)
  *
@@ -68,10 +69,17 @@ export const runYearOf = (m, startAge) => yearOfAge(startAge + m / 12, startAge)
  * result (its inputs, the spend, the level's figure, the plan-to age, when the pension opens). The figures the keep stores
  * beside the plan (the answer's own chance) are not in it: no setting reads them.
  */
-function resultAt(source, ins, env, perMonth) {
-  if (source !== 'd') throw new Error('planCaseOf: only question D is on the plan path so far');
+function resultAt(source, ins, env, perMonth, startAge = ins.you.age) {
   const level = LEVEL_IDS.includes(ins.confidence) ? ins.confidence : 'balanced';
   const levels = { [level]: { monthly: perMonth, yearly: perMonth * 12 } };
+  // C from now (one person): the level's amount is what is kept, from the age today; its plan-to age the answer's end age
+  if (source === 'c') {
+    return {
+      status: 'ok', inputs: ins, whose: 'you', level, levels, chance: {}, phases: [],
+      basis: { today: env.today, endAge: ins.endAge, startAge, engineVersion: null, historyEnd: null }
+    };
+  }
+  if (source !== 'd') throw new Error('planCaseOf: only questions C (from now) and D are on the plan path so far');
   const who = ins.household === 'couple' && ins.partner ? ['you', 'partner'] : ['you'];
   return {
     status: 'ok', inputs: ins, whose: 'you', level, levels, chance: {},
@@ -82,8 +90,8 @@ function resultAt(source, ins, env, perMonth) {
 }
 
 /** The plan keeping the answer at `perMonth` would write (the keep's own two steps, as keep/keptPlan.js). */
-export function keptPlanAt(source, ins, env, perMonth) {
-  const result = resultAt(source, ins, env, perMonth);
+export function keptPlanAt(source, ins, env, perMonth, startAge = undefined) {
+  const result = resultAt(source, ins, env, perMonth, startAge);
   const seed = buildPlanSeed({ source, result, env: { today: env.today, appVersion: '' }, name: null, createdAt: env.today + 'T00:00:00.000Z' });
   if (!seed) return null;
   return seedToScenario(seed, env.today).yours;
@@ -113,7 +121,7 @@ const sameBase = (a, b) => PREPARED.every((k) => a[k] === b[k]) && JSON.stringif
  *   plan's years to the weighting age, `startAge`, `endAge` = the plan-to age, `guaranteedAtStartAYear` 0 (the plan's first
  *   tax year pays a share of the State Pension, so nothing above £0 lasts in every future for certain), `totalPots`.
  */
-export function planCaseOf(source, ins, env, { lives = null, dragPct = 0 } = {}) {
+export function planCaseOf(source, ins, env, { lives = null, dragPct = 0, fromAge = undefined } = {}) {
   const now = dateOf(env.today);
   const spendAYear = ins.spend && isNum(ins.spend.amount) ? ins.spend.amount * 12 : null;
   const memo = new Map();
@@ -121,7 +129,7 @@ export function planCaseOf(source, ins, env, { lives = null, dragPct = 0 } = {})
   const at = (H) => {
     let c = memo.get(H);
     if (c) return c;
-    const kept = keptPlanAt(source, ins, env, H / 12);
+    const kept = keptPlanAt(source, ins, env, H / 12, fromAge);
     if (!kept) throw new Error('planCaseOf: the answer cannot be kept at ' + H);
     const settings = effectiveStressSettings(kept, { now });
     const p = planFor(settings, now);

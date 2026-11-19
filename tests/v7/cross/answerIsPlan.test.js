@@ -42,7 +42,7 @@ import { buildPlanSeed } from '../../../src/answers/keep/planSeed.js';
 import { seedToScenario } from '../../../src/services/PlanFromSeed.js';
 import { lastsOf, runLasts } from '../../../src/answers/plan/lastsRun.js';
 import { planShortfallOf } from '../../../src/services/OneAnswer.js';
-import { planCaseOf } from '../../../src/answers/keep/planPath.js';
+import { planCaseOf, keptPlanAt } from '../../../src/answers/keep/planPath.js';
 import { checkInputs } from '../../../src/answers/shared/validate.js';
 import { SCHEMA_D } from '../../../src/answers/d/schema.js';
 import { fastEligible } from '../../../src/answers/shared/fastEngine.js';
@@ -157,6 +157,20 @@ const ALEX = { you: { pot: 250000, age: 58 } };
 const SAM = { household: 'single', you: { age: 45, pot: 60000, statePension: { kind: 'full' }, finalSalary: { has: false }, payIn: { kind: 'split', own: 500, employer: 300 } },
   savings: 10000, savingsIn: 0, savingRisk: 'balanced', risk: 'balanced', charge: 0.5, endAge: 95 };
 const samB = (stop, spend) => answerB({ ...SAM, spend: { kind: 'amount', amount: spend }, stop: { age: stop }, confidence: 'balanced' }, { ...ENV, detail: 'answer' });
+
+describe('C from now: the plan path keeps what the answer keeps', () => {
+  // the plan path's own keep (planPath.keptPlanAt, from the checked inputs and the level's amount alone) writes the plan the
+  // real answer's keep writes: Alex at 58 and someone of 68 with savings, each at the level's amount
+  for (const ins of [ALEX, { you: { pot: 300000, age: 68 }, savings: 40000 }]) {
+    it(`${ins.you.age}: the same settings and saving block as keptPlansOf on the answer`, () => {
+      const c = answerC(ins, ENV);
+      const real = keptPlansOf('c', c, ENV).yours;
+      const mine = keptPlanAt('c', c.inputs, ENV, c.levels[c.level].monthly, c.basis.startAge);
+      expect(mine.stressTool.settings).toEqual(real.stressTool.settings);
+      expect(mine.accumulationTool).toEqual(real.accumulationTool);
+    });
+  }
+});
 
 describe('C: the plan kept at a level passes at that level (not yet: the weights differ)', () => {
   for (const level of ['careful', 'balanced', 'bold']) {

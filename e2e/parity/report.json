@@ -1,5 +1,5 @@
 {
- "at": "2026-11-19T10:49:56.114Z",
+ "at": "2026-11-19T13:46:59.753Z",
  "fixtures": [
   "age-only",
   "budget",
@@ -20,18 +20,115 @@
   "saver-payin",
   "wizard-defaults"
  ],
- "factsMarked": 78,
- "factsInBoth": 63,
+ "factsMarked": 81,
+ "factsInBoth": 67,
  "pagesOpened": 635,
- "marks": 11395,
- "fieldsBound": 63,
- "disagreements": 569,
- "unmarked": 16847,
- "oneViewOnly": 2353,
+ "marks": 11540,
+ "fieldsBound": 61,
+ "disagreements": 546,
+ "unmarked": 16529,
+ "oneViewOnly": 2329,
  "readingMismatches": 0,
- "roundTripsFailed": 71,
+ "roundTripsFailed": 68,
  "rose": [],
- "shrank": [],
+ "shrank": [
+  "agrees now, take it out of known-disagreements.json: age-only|pot.today",
+  "agrees now, take it out of known-disagreements.json: closed-successor|field:about.age",
+  "agrees now, take it out of known-disagreements.json: couple|pot.atStop",
+  "agrees now, take it out of known-disagreements.json: mover-holdings|pot.atStop",
+  "agrees now, take it out of known-disagreements.json: mover-holdings|pot.today",
+  "agrees now, take it out of known-disagreements.json: mover-holdings|yearsToGo",
+  "agrees now, take it out of known-disagreements.json: mover-totals|pot.atStop",
+  "agrees now, take it out of known-disagreements.json: mover-totals|yearsToGo",
+  "agrees now, take it out of known-disagreements.json: retired-locked-ladder|pot.today",
+  "agrees now, take it out of known-disagreements.json: retired-locked-months|pot.today",
+  "agrees now, take it out of known-disagreements.json: retired-locked-pots|pot.today",
+  "agrees now, take it out of known-disagreements.json: saver-checkin|field:about.age",
+  "agrees now, take it out of known-disagreements.json: saver-checkin|pot.atStop",
+  "agrees now, take it out of known-disagreements.json: saver-checkin|pot.today",
+  "agrees now, take it out of known-disagreements.json: saver-draft|pot.atStop",
+  "agrees now, take it out of known-disagreements.json: saver-ladder-draft|pot.atStop",
+  "agrees now, take it out of known-disagreements.json: saver-ladder-draft|pot.today",
+  "agrees now, take it out of known-disagreements.json: saver-locked-ladder|pot.atStop",
+  "agrees now, take it out of known-disagreements.json: saver-locked-ladder|pot.today",
+  "agrees now, take it out of known-disagreements.json: saver-locked-pots|pot.atStop",
+  "agrees now, take it out of known-disagreements.json: saver-locked-pots|yearsToGo",
+  "agrees now, take it out of known-disagreements.json: saver-payin|field:about.age",
+  "agrees now, take it out of known-disagreements.json: saver-payin|pot.atStop",
+  "in both views now, take it out of one-view-only.json: age-only|age.today",
+  "in both views now, take it out of one-view-only.json: budget|age.today",
+  "in both views now, take it out of one-view-only.json: closed-successor|age.today",
+  "in both views now, take it out of one-view-only.json: couple|age.today",
+  "in both views now, take it out of one-view-only.json: mover-holdings|age.today",
+  "in both views now, take it out of one-view-only.json: mover-holdings|isa.today",
+  "in both views now, take it out of one-view-only.json: mover-totals|age.today",
+  "in both views now, take it out of one-view-only.json: retired-draft|age.today",
+  "in both views now, take it out of one-view-only.json: retired-everything|age.today",
+  "in both views now, take it out of one-view-only.json: retired-locked-ladder|age.today",
+  "in both views now, take it out of one-view-only.json: retired-locked-ladder|isa.today",
+  "in both views now, take it out of one-view-only.json: retired-locked-ladder|pot.today",
+  "in both views now, take it out of one-view-only.json: retired-locked-months|age.today",
+  "in both views now, take it out of one-view-only.json: retired-locked-months|pot.today",
+  "in both views now, take it out of one-view-only.json: retired-locked-pots|age.today",
+  "in both views now, take it out of one-view-only.json: saver-checkin|age.today",
+  "in both views now, take it out of one-view-only.json: saver-draft|age.today",
+  "in both views now, take it out of one-view-only.json: saver-ladder-draft|age.today",
+  "in both views now, take it out of one-view-only.json: saver-locked-ladder|age.today",
+  "in both views now, take it out of one-view-only.json: saver-locked-ladder|isa.today",
+  "in both views now, take it out of one-view-only.json: saver-locked-ladder|pot.today",
+  "in both views now, take it out of one-view-only.json: saver-locked-pots|age.today",
+  "in both views now, take it out of one-view-only.json: saver-locked-pots|pot.today",
+  "in both views now, take it out of one-view-only.json: saver-payin|age.today",
+  "unmarked figures fell on age-only|simple:pots: 35 → 34",
+  "unmarked figures fell on age-only|simple:saving: 38 → 35",
+  "unmarked figures fell on age-only|full:accumulation: 53 → 51",
+  "unmarked figures fell on couple|simple:pots: 36 → 34",
+  "unmarked figures fell on couple|simple:saving: 39 → 36",
+  "unmarked figures fell on couple|full:accumulation: 57 → 54",
+  "unmarked figures fell on mover-holdings|simple:pots: 47 → 41",
+  "unmarked figures fell on mover-holdings|simple:lasts: 75 → 74",
+  "unmarked figures fell on mover-holdings|simple:saving: 37 → 30",
+  "unmarked figures fell on mover-holdings|full:will it last: 61 → 60",
+  "unmarked figures fell on mover-holdings|full:accumulation: 55 → 53",
+  "unmarked figures fell on mover-totals|simple:pots: 46 → 40",
+  "unmarked figures fell on mover-totals|simple:lasts: 74 → 73",
+  "unmarked figures fell on mover-totals|simple:saving: 27 → 24",
+  "unmarked figures fell on mover-totals|full:will it last: 60 → 59",
+  "unmarked figures fell on mover-totals|full:accumulation: 44 → 41",
+  "unmarked figures fell on retired-locked-ladder|full:monthly entry: 50 → 47",
+  "unmarked figures fell on retired-locked-ladder|full:plan document: 280 → 277",
+  "unmarked figures fell on retired-locked-months|full:monthly entry: 40 → 37",
+  "unmarked figures fell on retired-locked-months|full:plan document: 264 → 261",
+  "unmarked figures fell on saver-checkin|simple:pots: 45 → 39",
+  "unmarked figures fell on saver-checkin|simple:lasts: 79 → 78",
+  "unmarked figures fell on saver-checkin|simple:saving: 55 → 52",
+  "unmarked figures fell on saver-checkin|full:will it last: 60 → 59",
+  "unmarked figures fell on saver-checkin|full:accumulation: 76 → 73",
+  "unmarked figures fell on saver-draft|simple:pots: 43 → 37",
+  "unmarked figures fell on saver-draft|simple:lasts: 81 → 80",
+  "unmarked figures fell on saver-draft|simple:saving: 58 → 55",
+  "unmarked figures fell on saver-draft|full:will it last: 59 → 58",
+  "unmarked figures fell on saver-draft|full:accumulation: 80 → 77",
+  "unmarked figures fell on saver-ladder-draft|simple:pots: 37 → 35",
+  "unmarked figures fell on saver-ladder-draft|simple:saving: 77 → 65",
+  "unmarked figures fell on saver-ladder-draft|full:accumulation: 103 → 97",
+  "unmarked figures fell on saver-locked-ladder|simple:saving: 86 → 45",
+  "unmarked figures fell on saver-locked-ladder|full:stress settings: 45 → 42",
+  "unmarked figures fell on saver-locked-ladder|full:plan document: 398 → 395",
+  "unmarked figures fell on saver-locked-ladder|full:accumulation: 116 → 76",
+  "unmarked figures fell on saver-locked-pots|simple:pots: 24 → 20",
+  "unmarked figures fell on saver-locked-pots|simple:lasts: 97 → 96",
+  "unmarked figures fell on saver-locked-pots|simple:saving: 76 → 25",
+  "unmarked figures fell on saver-locked-pots|full:will it last: 61 → 60",
+  "unmarked figures fell on saver-locked-pots|full:stress settings: 49 → 46",
+  "unmarked figures fell on saver-locked-pots|full:accumulation: 96 → 44",
+  "unmarked figures fell on saver-payin|simple:pots: 43 → 37",
+  "unmarked figures fell on saver-payin|simple:lasts: 79 → 78",
+  "unmarked figures fell on saver-payin|simple:saving: 48 → 45",
+  "unmarked figures fell on saver-payin|full:will it last: 59 → 58",
+  "unmarked figures fell on saver-payin|full:accumulation: 70 → 67",
+  "comes back now, take it out of known-roundtrips.json: sweep:saver-draft:pots|s2f (was sweep breaks)"
+ ],
  "grew": [],
  "notQuiet": [],
  "detail": {
@@ -210,28 +307,6 @@
       "view": "full",
       "page": "household",
       "text": "✏️ draft"
-     }
-    ]
-   },
-   {
-    "key": "age-only|pot.today",
-    "fixture": "age-only",
-    "fact": "pot.today",
-    "values": [
-     {
-      "view": "simple",
-      "page": "plan",
-      "text": "£500,000"
-     },
-     {
-      "view": "simple",
-      "page": "pots",
-      "text": "£500,000"
-     },
-     {
-      "view": "full",
-      "page": "stress settings",
-      "text": "£0"
      }
     ]
    },
@@ -1176,23 +1251,6 @@
     ]
    },
    {
-    "key": "closed-successor|field:about.age",
-    "fixture": "closed-successor",
-    "fact": "field:about.age",
-    "values": [
-     {
-      "view": "simple",
-      "page": "about",
-      "text": "65"
-     },
-     {
-      "view": "full",
-      "page": "stress settings",
-      "text": "62"
-     }
-    ]
-   },
-   {
     "key": "closed-successor|field:about.endAge",
     "fixture": "closed-successor",
     "fact": "field:about.endAge",
@@ -2096,33 +2154,6 @@
     ]
    },
    {
-    "key": "couple|pot.atStop",
-    "fixture": "couple",
-    "fact": "pot.atStop",
-    "values": [
-     {
-      "view": "simple",
-      "page": "plan",
-      "text": "£296,000"
-     },
-     {
-      "view": "simple",
-      "page": "pots",
-      "text": "£296,000"
-     },
-     {
-      "view": "simple",
-      "page": "saving",
-      "text": "£296,000"
-     },
-     {
-      "view": "full",
-      "page": "stress settings",
-      "text": "£296,087"
-     }
-    ]
-   },
-   {
     "key": "couple|statePension.start",
     "fixture": "couple",
     "fact": "statePension.start",
@@ -2978,65 +3009,6 @@
     ]
    },
    {
-    "key": "mover-holdings|pot.atStop",
-    "fixture": "mover-holdings",
-    "fact": "pot.atStop",
-    "values": [
-     {
-      "view": "simple",
-      "page": "plan",
-      "text": "£408,000"
-     },
-     {
-      "view": "simple",
-      "page": "pots",
-      "text": "£408,000"
-     },
-     {
-      "view": "simple",
-      "page": "pots",
-      "text": "£433,175"
-     },
-     {
-      "view": "simple",
-      "page": "saving",
-      "text": "£408,000"
-     },
-     {
-      "view": "full",
-      "page": "stress settings",
-      "text": "£407,755"
-     }
-    ]
-   },
-   {
-    "key": "mover-holdings|pot.today",
-    "fixture": "mover-holdings",
-    "fact": "pot.today",
-    "values": [
-     {
-      "view": "simple",
-      "page": "plan",
-      "text": "£360,000"
-     },
-     {
-      "view": "simple",
-      "page": "pots",
-      "text": "£380,000"
-     },
-     {
-      "view": "simple",
-      "page": "saving",
-      "text": "£360,000"
-     },
-     {
-      "view": "full",
-      "page": "stress settings",
-      "text": "£360,000"
-     }
-    ]
-   },
-   {
     "key": "mover-holdings|statePension.start",
     "fixture": "mover-holdings",
     "fact": "statePension.start",
@@ -3722,23 +3694,6 @@
     ]
    },
    {
-    "key": "mover-holdings|yearsToGo",
-    "fixture": "mover-holdings",
-    "fact": "yearsToGo",
-    "values": [
-     {
-      "view": "simple",
-      "page": "saving",
-      "text": "1 year 7 months"
-     },
-     {
-      "view": "full",
-      "page": "stress settings",
-      "text": "19 months"
-     }
-    ]
-   },
-   {
     "key": "mover-totals|field:about.endAge",
     "fixture": "mover-totals",
     "fact": "field:about.endAge",
@@ -3990,38 +3945,6 @@
       "view": "full",
       "page": "household",
       "text": "✏️ draft"
-     }
-    ]
-   },
-   {
-    "key": "mover-totals|pot.atStop",
-    "fixture": "mover-totals",
-    "fact": "pot.atStop",
-    "values": [
-     {
-      "view": "simple",
-      "page": "plan",
-      "text": "£429,000"
-     },
-     {
-      "view": "simple",
-      "page": "pots",
-      "text": "£429,000"
-     },
-     {
-      "view": "simple",
-      "page": "pots",
-      "text": "£433,175"
-     },
-     {
-      "view": "simple",
-      "page": "saving",
-      "text": "£429,000"
-     },
-     {
-      "view": "full",
-      "page": "stress settings",
-      "text": "£429,193"
      }
     ]
    },
@@ -4673,23 +4596,6 @@
       "view": "full",
       "page": "decision settings",
       "text": "Pots & Valves"
-     }
-    ]
-   },
-   {
-    "key": "mover-totals|yearsToGo",
-    "fixture": "mover-totals",
-    "fact": "yearsToGo",
-    "values": [
-     {
-      "view": "simple",
-      "page": "saving",
-      "text": "1 year 7 months"
-     },
-     {
-      "view": "full",
-      "page": "stress settings",
-      "text": "19 months"
      }
     ]
    },
@@ -6639,28 +6545,6 @@
     ]
    },
    {
-    "key": "retired-locked-ladder|pot.today",
-    "fixture": "retired-locked-ladder",
-    "fact": "pot.today",
-    "values": [
-     {
-      "view": "simple",
-      "page": "home",
-      "text": "£404,513"
-     },
-     {
-      "view": "simple",
-      "page": "plan",
-      "text": "£450,000"
-     },
-     {
-      "view": "simple",
-      "page": "where",
-      "text": "£404,513"
-     }
-    ]
-   },
-   {
     "key": "retired-locked-ladder|statePension.start",
     "fixture": "retired-locked-ladder",
     "fact": "statePension.start",
@@ -6914,28 +6798,6 @@
     ]
    },
    {
-    "key": "retired-locked-months|pot.today",
-    "fixture": "retired-locked-months",
-    "fact": "pot.today",
-    "values": [
-     {
-      "view": "simple",
-      "page": "home",
-      "text": "£602,808"
-     },
-     {
-      "view": "simple",
-      "page": "plan",
-      "text": "£590,000"
-     },
-     {
-      "view": "simple",
-      "page": "where",
-      "text": "£602,808"
-     }
-    ]
-   },
-   {
     "key": "retired-locked-months|statePension.start",
     "fixture": "retired-locked-months",
     "fact": "statePension.start",
@@ -7180,28 +7042,6 @@
       "view": "full",
       "page": "household",
       "text": "🔒 locked"
-     }
-    ]
-   },
-   {
-    "key": "retired-locked-pots|pot.today",
-    "fixture": "retired-locked-pots",
-    "fact": "pot.today",
-    "values": [
-     {
-      "view": "simple",
-      "page": "plan",
-      "text": "£300,000"
-     },
-     {
-      "view": "full",
-      "page": "monthly entry",
-      "text": "£296,000"
-     },
-     {
-      "view": "full",
-      "page": "plan document",
-      "text": "£296,000"
      }
     ]
    },
@@ -7879,28 +7719,6 @@
     ]
    },
    {
-    "key": "saver-checkin|field:about.age",
-    "fixture": "saver-checkin",
-    "fact": "field:about.age",
-    "values": [
-     {
-      "view": "simple",
-      "page": "about",
-      "text": "45"
-     },
-     {
-      "view": "full",
-      "page": "stress settings",
-      "text": "44"
-     },
-     {
-      "view": "full",
-      "page": "accumulation",
-      "text": "45"
-     }
-    ]
-   },
-   {
     "key": "saver-checkin|field:about.endAge",
     "fixture": "saver-checkin",
     "fact": "field:about.endAge",
@@ -8062,65 +7880,6 @@
       "view": "full",
       "page": "household",
       "text": "✏️ draft"
-     }
-    ]
-   },
-   {
-    "key": "saver-checkin|pot.atStop",
-    "fixture": "saver-checkin",
-    "fact": "pot.atStop",
-    "values": [
-     {
-      "view": "simple",
-      "page": "plan",
-      "text": "£458,000"
-     },
-     {
-      "view": "simple",
-      "page": "pots",
-      "text": "£458,000"
-     },
-     {
-      "view": "simple",
-      "page": "pots",
-      "text": "£495,754"
-     },
-     {
-      "view": "simple",
-      "page": "saving",
-      "text": "£458,000"
-     },
-     {
-      "view": "full",
-      "page": "stress settings",
-      "text": "£458,351"
-     }
-    ]
-   },
-   {
-    "key": "saver-checkin|pot.today",
-    "fixture": "saver-checkin",
-    "fact": "pot.today",
-    "values": [
-     {
-      "view": "simple",
-      "page": "plan",
-      "text": "£128,000"
-     },
-     {
-      "view": "simple",
-      "page": "pots",
-      "text": "£120,000"
-     },
-     {
-      "view": "simple",
-      "page": "saving",
-      "text": "£128,000"
-     },
-     {
-      "view": "full",
-      "page": "stress settings",
-      "text": "£128,000"
      }
     ]
    },
@@ -8835,38 +8594,6 @@
       "view": "full",
       "page": "household",
       "text": "✏️ draft"
-     }
-    ]
-   },
-   {
-    "key": "saver-draft|pot.atStop",
-    "fixture": "saver-draft",
-    "fact": "pot.atStop",
-    "values": [
-     {
-      "view": "simple",
-      "page": "plan",
-      "text": "£252,000"
-     },
-     {
-      "view": "simple",
-      "page": "pots",
-      "text": "£252,000"
-     },
-     {
-      "view": "simple",
-      "page": "pots",
-      "text": "£254,968"
-     },
-     {
-      "view": "simple",
-      "page": "saving",
-      "text": "£252,000"
-     },
-     {
-      "view": "full",
-      "page": "stress settings",
-      "text": "£252,175"
      }
     ]
    },
@@ -9808,60 +9535,6 @@
     ]
    },
    {
-    "key": "saver-ladder-draft|pot.atStop",
-    "fixture": "saver-ladder-draft",
-    "fact": "pot.atStop",
-    "values": [
-     {
-      "view": "simple",
-      "page": "plan",
-      "text": "£738,000"
-     },
-     {
-      "view": "simple",
-      "page": "pots",
-      "text": "£738,000"
-     },
-     {
-      "view": "simple",
-      "page": "saving",
-      "text": "£738,000"
-     },
-     {
-      "view": "full",
-      "page": "stress settings",
-      "text": "£737,519"
-     }
-    ]
-   },
-   {
-    "key": "saver-ladder-draft|pot.today",
-    "fixture": "saver-ladder-draft",
-    "fact": "pot.today",
-    "values": [
-     {
-      "view": "simple",
-      "page": "plan",
-      "text": "£319,800"
-     },
-     {
-      "view": "simple",
-      "page": "pots",
-      "text": "£310,000"
-     },
-     {
-      "view": "simple",
-      "page": "saving",
-      "text": "£319,800"
-     },
-     {
-      "view": "full",
-      "page": "stress settings",
-      "text": "£319,800"
-     }
-    ]
-   },
-   {
     "key": "saver-ladder-draft|statePension.start",
     "fixture": "saver-ladder-draft",
     "fact": "statePension.start",
@@ -10101,55 +9774,6 @@
       "view": "full",
       "page": "household",
       "text": "🔒 locked"
-     }
-    ]
-   },
-   {
-    "key": "saver-locked-ladder|pot.atStop",
-    "fixture": "saver-locked-ladder",
-    "fact": "pot.atStop",
-    "values": [
-     {
-      "view": "simple",
-      "page": "plan",
-      "text": "£737,519"
-     },
-     {
-      "view": "simple",
-      "page": "pots",
-      "text": "£738,000"
-     },
-     {
-      "view": "simple",
-      "page": "saving",
-      "text": "£738,000"
-     },
-     {
-      "view": "full",
-      "page": "stress settings",
-      "text": "£737,519"
-     }
-    ]
-   },
-   {
-    "key": "saver-locked-ladder|pot.today",
-    "fixture": "saver-locked-ladder",
-    "fact": "pot.today",
-    "values": [
-     {
-      "view": "simple",
-      "page": "plan",
-      "text": "£310,000"
-     },
-     {
-      "view": "simple",
-      "page": "saving",
-      "text": "£319,800"
-     },
-     {
-      "view": "simple",
-      "page": "where",
-      "text": "£361,250"
      }
     ]
    },
@@ -10774,38 +10398,6 @@
     ]
    },
    {
-    "key": "saver-locked-pots|pot.atStop",
-    "fixture": "saver-locked-pots",
-    "fact": "pot.atStop",
-    "values": [
-     {
-      "view": "simple",
-      "page": "plan",
-      "text": "£396,175"
-     },
-     {
-      "view": "simple",
-      "page": "pots",
-      "text": "£396,000"
-     },
-     {
-      "view": "simple",
-      "page": "pots",
-      "text": "£411,073"
-     },
-     {
-      "view": "simple",
-      "page": "saving",
-      "text": "£396,000"
-     },
-     {
-      "view": "full",
-      "page": "stress settings",
-      "text": "£396,175"
-     }
-    ]
-   },
-   {
     "key": "saver-locked-pots|statePension.start",
     "fixture": "saver-locked-pots",
     "fact": "statePension.start",
@@ -11411,135 +11003,6 @@
     ]
    },
    {
-    "key": "saver-locked-pots|yearsToGo",
-    "fixture": "saver-locked-pots",
-    "fact": "yearsToGo",
-    "values": [
-     {
-      "view": "simple",
-      "page": "saving",
-      "text": "10 years"
-     },
-     {
-      "view": "full",
-      "page": "budget",
-      "text": "11 years"
-     },
-     {
-      "view": "full",
-      "page": "will it last",
-      "text": "11 years"
-     },
-     {
-      "view": "full",
-      "page": "stress history",
-      "text": "11 years"
-     },
-     {
-      "view": "full",
-      "page": "scenarios",
-      "text": "11 years"
-     },
-     {
-      "view": "full",
-      "page": "drawdown",
-      "text": "11 years"
-     },
-     {
-      "view": "full",
-      "page": "glidepath",
-      "text": "11 years"
-     },
-     {
-      "view": "full",
-      "page": "stress settings",
-      "text": "11 years"
-     },
-     {
-      "view": "full",
-      "page": "stress settings",
-      "text": "11 years"
-     },
-     {
-      "view": "full",
-      "page": "strategies",
-      "text": "11 years"
-     },
-     {
-      "view": "full",
-      "page": "monthly entry",
-      "text": "11 years"
-     },
-     {
-      "view": "full",
-      "page": "history",
-      "text": "11 years"
-     },
-     {
-      "view": "full",
-      "page": "plan document",
-      "text": "11 years"
-     },
-     {
-      "view": "full",
-      "page": "plan document",
-      "text": "11 years"
-     },
-     {
-      "view": "full",
-      "page": "tax years",
-      "text": "11 years"
-     },
-     {
-      "view": "full",
-      "page": "decision settings",
-      "text": "11 years"
-     },
-     {
-      "view": "full",
-      "page": "accumulation",
-      "text": "11 years"
-     },
-     {
-      "view": "full",
-      "page": "accumulation",
-      "text": "11 years"
-     },
-     {
-      "view": "full",
-      "page": "transition",
-      "text": "11 years"
-     },
-     {
-      "view": "full",
-      "page": "household",
-      "text": "11 years"
-     }
-    ]
-   },
-   {
-    "key": "saver-payin|field:about.age",
-    "fixture": "saver-payin",
-    "fact": "field:about.age",
-    "values": [
-     {
-      "view": "simple",
-      "page": "about",
-      "text": "45"
-     },
-     {
-      "view": "full",
-      "page": "stress settings",
-      "text": "44"
-     },
-     {
-      "view": "full",
-      "page": "accumulation",
-      "text": "45"
-     }
-    ]
-   },
-   {
     "key": "saver-payin|field:about.endAge",
     "fixture": "saver-payin",
     "fact": "field:about.endAge",
@@ -11718,38 +11181,6 @@
       "view": "full",
       "page": "household",
       "text": "✏️ draft"
-     }
-    ]
-   },
-   {
-    "key": "saver-payin|pot.atStop",
-    "fixture": "saver-payin",
-    "fact": "pot.atStop",
-    "values": [
-     {
-      "view": "simple",
-      "page": "plan",
-      "text": "£444,000"
-     },
-     {
-      "view": "simple",
-      "page": "pots",
-      "text": "£444,000"
-     },
-     {
-      "view": "simple",
-      "page": "pots",
-      "text": "£495,754"
-     },
-     {
-      "view": "simple",
-      "page": "saving",
-      "text": "£444,000"
-     },
-     {
-      "view": "full",
-      "page": "stress settings",
-      "text": "£443,676"
      }
     ]
    },
@@ -12491,12 +11922,6 @@
    }
   ],
   "oneViewOnly": [
-   {
-    "key": "age-only|age.today",
-    "fixture": "age-only",
-    "fact": "age.today",
-    "view": "simple"
-   },
    {
     "key": "age-only|income.step.0.beforeTax",
     "fixture": "age-only",
@@ -14268,12 +13693,6 @@
     "view": "full"
    },
    {
-    "key": "budget|age.today",
-    "fixture": "budget",
-    "fact": "age.today",
-    "view": "simple"
-   },
-   {
     "key": "budget|lasts.worst12",
     "fixture": "budget",
     "fact": "lasts.worst12",
@@ -14712,12 +14131,6 @@
     "view": "full"
    },
    {
-    "key": "closed-successor|age.today",
-    "fixture": "closed-successor",
-    "fact": "age.today",
-    "view": "simple"
-   },
-   {
     "key": "closed-successor|holdings.total",
     "fixture": "closed-successor",
     "fact": "holdings.total",
@@ -15136,12 +14549,6 @@
     "fixture": "closed-successor",
     "fact": "table:years:9:net",
     "view": "full"
-   },
-   {
-    "key": "couple|age.today",
-    "fixture": "couple",
-    "fact": "age.today",
-    "view": "simple"
    },
    {
     "key": "couple|lasts.worst12",
@@ -15564,22 +14971,10 @@
     "view": "full"
    },
    {
-    "key": "mover-holdings|age.today",
-    "fixture": "mover-holdings",
-    "fact": "age.today",
-    "view": "simple"
-   },
-   {
     "key": "mover-holdings|holdings.total",
     "fixture": "mover-holdings",
     "fact": "holdings.total",
     "view": "full"
-   },
-   {
-    "key": "mover-holdings|isa.today",
-    "fixture": "mover-holdings",
-    "fact": "isa.today",
-    "view": "simple"
    },
    {
     "key": "mover-holdings|lasts.fixedChance",
@@ -16056,12 +15451,6 @@
     "view": "full"
    },
    {
-    "key": "mover-totals|age.today",
-    "fixture": "mover-totals",
-    "fact": "age.today",
-    "view": "simple"
-   },
-   {
     "key": "mover-totals|isa.today",
     "fixture": "mover-totals",
     "fact": "isa.today",
@@ -16524,12 +15913,6 @@
     "view": "full"
    },
    {
-    "key": "retired-draft|age.today",
-    "fixture": "retired-draft",
-    "fact": "age.today",
-    "view": "simple"
-   },
-   {
     "key": "retired-draft|lasts.worst12",
     "fixture": "retired-draft",
     "fact": "lasts.worst12",
@@ -16966,12 +16349,6 @@
     "fixture": "retired-draft",
     "fact": "table:years:9:net",
     "view": "full"
-   },
-   {
-    "key": "retired-everything|age.today",
-    "fixture": "retired-everything",
-    "fact": "age.today",
-    "view": "simple"
    },
    {
     "key": "retired-everything|finalSalary.0.age",
@@ -17484,12 +16861,6 @@
     "view": "full"
    },
    {
-    "key": "retired-locked-ladder|age.today",
-    "fixture": "retired-locked-ladder",
-    "fact": "age.today",
-    "view": "simple"
-   },
-   {
     "key": "retired-locked-ladder|gilts.held",
     "fixture": "retired-locked-ladder",
     "fact": "gilts.held",
@@ -17511,12 +16882,6 @@
     "key": "retired-locked-ladder|income.step.1.monthAfterTax",
     "fixture": "retired-locked-ladder",
     "fact": "income.step.1.monthAfterTax",
-    "view": "simple"
-   },
-   {
-    "key": "retired-locked-ladder|isa.today",
-    "fixture": "retired-locked-ladder",
-    "fact": "isa.today",
     "view": "simple"
    },
    {
@@ -17553,12 +16918,6 @@
     "key": "retired-locked-ladder|mix.held.shares",
     "fixture": "retired-locked-ladder",
     "fact": "mix.held.shares",
-    "view": "simple"
-   },
-   {
-    "key": "retired-locked-ladder|pot.today",
-    "fixture": "retired-locked-ladder",
-    "fact": "pot.today",
     "view": "simple"
    },
    {
@@ -18930,12 +18289,6 @@
     "view": "simple"
    },
    {
-    "key": "retired-locked-months|age.today",
-    "fixture": "retired-locked-months",
-    "fact": "age.today",
-    "view": "simple"
-   },
-   {
     "key": "retired-locked-months|holdings.total",
     "fixture": "retired-locked-months",
     "fact": "holdings.total",
@@ -18994,12 +18347,6 @@
     "fixture": "retired-locked-months",
     "fact": "mix.plan.shares",
     "view": "full"
-   },
-   {
-    "key": "retired-locked-months|pot.today",
-    "fixture": "retired-locked-months",
-    "fact": "pot.today",
-    "view": "simple"
    },
    {
     "key": "retired-locked-months|statePension.amount",
@@ -19914,12 +19261,6 @@
     "view": "simple"
    },
    {
-    "key": "retired-locked-pots|age.today",
-    "fixture": "retired-locked-pots",
-    "fact": "age.today",
-    "view": "simple"
-   },
-   {
     "key": "retired-locked-pots|lasts.worst12",
     "fixture": "retired-locked-pots",
     "fact": "lasts.worst12",
@@ -20370,12 +19711,6 @@
     "view": "full"
    },
    {
-    "key": "saver-checkin|age.today",
-    "fixture": "saver-checkin",
-    "fact": "age.today",
-    "view": "simple"
-   },
-   {
     "key": "saver-checkin|isa.today",
     "fixture": "saver-checkin",
     "fact": "isa.today",
@@ -20752,12 +20087,6 @@
     "fixture": "saver-checkin",
     "fact": "table:years:9:net",
     "view": "full"
-   },
-   {
-    "key": "saver-draft|age.today",
-    "fixture": "saver-draft",
-    "fact": "age.today",
-    "view": "simple"
    },
    {
     "key": "saver-draft|lasts.fixedChance",
@@ -21310,12 +20639,6 @@
     "fixture": "saver-draft",
     "fact": "table:years:9:net",
     "view": "full"
-   },
-   {
-    "key": "saver-ladder-draft|age.today",
-    "fixture": "saver-ladder-draft",
-    "fact": "age.today",
-    "view": "simple"
    },
    {
     "key": "saver-ladder-draft|holdings.total",
@@ -22890,12 +22213,6 @@
     "view": "simple"
    },
    {
-    "key": "saver-locked-ladder|age.today",
-    "fixture": "saver-locked-ladder",
-    "fact": "age.today",
-    "view": "simple"
-   },
-   {
     "key": "saver-locked-ladder|gilts.held",
     "fixture": "saver-locked-ladder",
     "fact": "gilts.held",
@@ -22920,12 +22237,6 @@
     "view": "simple"
    },
    {
-    "key": "saver-locked-ladder|isa.today",
-    "fixture": "saver-locked-ladder",
-    "fact": "isa.today",
-    "view": "simple"
-   },
-   {
     "key": "saver-locked-ladder|lasts.worst12",
     "fixture": "saver-locked-ladder",
     "fact": "lasts.worst12",
@@ -22947,12 +22258,6 @@
     "key": "saver-locked-ladder|mix.held.diversifiers",
     "fixture": "saver-locked-ladder",
     "fact": "mix.held.diversifiers",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|pot.today",
-    "fixture": "saver-locked-ladder",
-    "fact": "pot.today",
     "view": "simple"
    },
    {
@@ -24024,12 +23329,6 @@
     "view": "simple"
    },
    {
-    "key": "saver-locked-pots|age.today",
-    "fixture": "saver-locked-pots",
-    "fact": "age.today",
-    "view": "simple"
-   },
-   {
     "key": "saver-locked-pots|isa.today",
     "fixture": "saver-locked-pots",
     "fact": "isa.today",
@@ -24046,12 +23345,6 @@
     "fixture": "saver-locked-pots",
     "fact": "left.badCase",
     "view": "full"
-   },
-   {
-    "key": "saver-locked-pots|pot.today",
-    "fixture": "saver-locked-pots",
-    "fact": "pot.today",
-    "view": "simple"
    },
    {
     "key": "saver-locked-pots|statePension.amount",
@@ -24460,12 +23753,6 @@
     "fixture": "saver-locked-pots",
     "fact": "table:years:9:net",
     "view": "full"
-   },
-   {
-    "key": "saver-payin|age.today",
-    "fixture": "saver-payin",
-    "fact": "age.today",
-    "view": "simple"
    },
    {
     "key": "saver-payin|isa.today",
@@ -26828,14 +26115,6 @@
     "kind": "needs a press"
    },
    {
-    "key": "pots.stopIsa|s2f",
-    "kind": "needs a press"
-   },
-   {
-    "key": "pots.stopSipp|s2f",
-    "kind": "needs a press"
-   },
-   {
     "key": "pots.taxable|s2f",
     "kind": "needs a press"
    },
@@ -26900,11 +26179,6 @@
     "key": "spend.steps|s2f",
     "kind": "not tried",
     "detail": "later steps: cards in the simple view, rows in the full view"
-   },
-   {
-    "key": "sweep:saver-draft:pots|s2f",
-    "kind": "sweep breaks",
-    "detail": "pot.today: \"£61,000\" / \"£60,000\""
    },
    {
     "key": "typeThenLink|simple",

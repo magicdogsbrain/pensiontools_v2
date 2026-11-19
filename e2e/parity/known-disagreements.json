@@ -94,17 +94,6 @@
     "Not locked"
    ]
   },
-  "age-only|pot.today": {
-   "full:stress settings": [
-    "£0"
-   ],
-   "simple:plan": [
-    "£500,000"
-   ],
-   "simple:pots": [
-    "£500,000"
-   ]
-  },
   "age-only|way.name": {
    "full:decision settings": [
     "Pots & Valves"
@@ -567,14 +556,6 @@
     "Pots and valves"
    ]
   },
-  "closed-successor|field:about.age": {
-   "full:stress settings": [
-    "62"
-   ],
-   "simple:about": [
-    "65"
-   ]
-  },
   "closed-successor|field:about.endAge": {
    "full:stress settings": [
     "28"
@@ -1028,20 +1009,6 @@
     "Not locked"
    ]
   },
-  "couple|pot.atStop": {
-   "full:stress settings": [
-    "£296,087"
-   ],
-   "simple:plan": [
-    "£296,000"
-   ],
-   "simple:pots": [
-    "£296,000"
-   ],
-   "simple:saving": [
-    "£296,000"
-   ]
-  },
   "couple|statePension.start": {
    "full:stress settings": [
     "2034/35"
@@ -1464,35 +1431,6 @@
     "Not locked"
    ]
   },
-  "mover-holdings|pot.atStop": {
-   "full:stress settings": [
-    "£407,755"
-   ],
-   "simple:plan": [
-    "£408,000"
-   ],
-   "simple:pots": [
-    "£408,000",
-    "£433,175"
-   ],
-   "simple:saving": [
-    "£408,000"
-   ]
-  },
-  "mover-holdings|pot.today": {
-   "full:stress settings": [
-    "£360,000"
-   ],
-   "simple:plan": [
-    "£360,000"
-   ],
-   "simple:pots": [
-    "£380,000"
-   ],
-   "simple:saving": [
-    "£360,000"
-   ]
-  },
   "mover-holdings|statePension.start": {
    "full:stress settings": [
     "2035/36"
@@ -1816,14 +1754,6 @@
     "Pots and valves"
    ]
   },
-  "mover-holdings|yearsToGo": {
-   "full:stress settings": [
-    "19 months"
-   ],
-   "simple:saving": [
-    "1 year 7 months"
-   ]
-  },
   "mover-totals|field:about.endAge": {
    "full:stress settings": [
     "35"
@@ -1961,21 +1891,6 @@
    ],
    "simple:where": [
     "Not locked"
-   ]
-  },
-  "mover-totals|pot.atStop": {
-   "full:stress settings": [
-    "£429,193"
-   ],
-   "simple:plan": [
-    "£429,000"
-   ],
-   "simple:pots": [
-    "£429,000",
-    "£433,175"
-   ],
-   "simple:saving": [
-    "£429,000"
    ]
   },
   "mover-totals|statePension.start": {
@@ -2283,14 +2198,6 @@
    ],
    "simple:plan": [
     "Pots and valves"
-   ]
-  },
-  "mover-totals|yearsToGo": {
-   "full:stress settings": [
-    "19 months"
-   ],
-   "simple:saving": [
-    "1 year 7 months"
    ]
   },
   "retired-draft|field:about.endAge": {
@@ -3258,17 +3165,6 @@
     "Locked"
    ]
   },
-  "retired-locked-ladder|pot.today": {
-   "simple:home": [
-    "£404,513"
-   ],
-   "simple:plan": [
-    "£450,000"
-   ],
-   "simple:where": [
-    "£404,513"
-   ]
-  },
   "retired-locked-ladder|statePension.start": {
    "full:stress settings": [
     "2030/31"
@@ -3403,17 +3299,6 @@
     "Locked"
    ]
   },
-  "retired-locked-months|pot.today": {
-   "simple:home": [
-    "£602,808"
-   ],
-   "simple:plan": [
-    "£590,000"
-   ],
-   "simple:where": [
-    "£602,808"
-   ]
-  },
   "retired-locked-months|statePension.start": {
    "full:stress settings": [
     "2030/31"
@@ -3543,17 +3428,6 @@
    ],
    "simple:lock": [
     "Locked"
-   ]
-  },
-  "retired-locked-pots|pot.today": {
-   "full:monthly entry": [
-    "£296,000"
-   ],
-   "full:plan document": [
-    "£296,000"
-   ],
-   "simple:plan": [
-    "£300,000"
    ]
   },
   "retired-locked-pots|statePension.start": {
@@ -3874,17 +3748,6 @@
     "Pots and valves"
    ]
   },
-  "saver-checkin|field:about.age": {
-   "full:accumulation": [
-    "45"
-   ],
-   "full:stress settings": [
-    "44"
-   ],
-   "simple:about": [
-    "45"
-   ]
-  },
   "saver-checkin|field:about.endAge": {
    "full:stress settings": [
     "28"
@@ -3971,35 +3834,6 @@
    ],
    "simple:lock": [
     "Not locked"
-   ]
-  },
-  "saver-checkin|pot.atStop": {
-   "full:stress settings": [
-    "£458,351"
-   ],
-   "simple:plan": [
-    "£458,000"
-   ],
-   "simple:pots": [
-    "£458,000",
-    "£495,754"
-   ],
-   "simple:saving": [
-    "£458,000"
-   ]
-  },
-  "saver-checkin|pot.today": {
-   "full:stress settings": [
-    "£128,000"
-   ],
-   "simple:plan": [
-    "£128,000"
-   ],
-   "simple:pots": [
-    "£120,000"
-   ],
-   "simple:saving": [
-    "£128,000"
    ]
   },
   "saver-checkin|statePension.start": {
@@ -4347,21 +4181,6 @@
    ],
    "simple:lock": [
     "Not locked"
-   ]
-  },
-  "saver-draft|pot.atStop": {
-   "full:stress settings": [
-    "£252,175"
-   ],
-   "simple:plan": [
-    "£252,000"
-   ],
-   "simple:pots": [
-    "£252,000",
-    "£254,968"
-   ],
-   "simple:saving": [
-    "£252,000"
    ]
   },
   "saver-draft|statePension.start": {
@@ -4814,34 +4633,6 @@
     "Not locked"
    ]
   },
-  "saver-ladder-draft|pot.atStop": {
-   "full:stress settings": [
-    "£737,519"
-   ],
-   "simple:plan": [
-    "£738,000"
-   ],
-   "simple:pots": [
-    "£738,000"
-   ],
-   "simple:saving": [
-    "£738,000"
-   ]
-  },
-  "saver-ladder-draft|pot.today": {
-   "full:stress settings": [
-    "£319,800"
-   ],
-   "simple:plan": [
-    "£319,800"
-   ],
-   "simple:pots": [
-    "£310,000"
-   ],
-   "simple:saving": [
-    "£319,800"
-   ]
-  },
   "saver-ladder-draft|statePension.start": {
    "full:stress settings": [
     "2045/46"
@@ -4968,31 +4759,6 @@
    ],
    "simple:lock": [
     "Locked"
-   ]
-  },
-  "saver-locked-ladder|pot.atStop": {
-   "full:stress settings": [
-    "£737,519"
-   ],
-   "simple:plan": [
-    "£737,519"
-   ],
-   "simple:pots": [
-    "£738,000"
-   ],
-   "simple:saving": [
-    "£738,000"
-   ]
-  },
-  "saver-locked-ladder|pot.today": {
-   "simple:plan": [
-    "£310,000"
-   ],
-   "simple:saving": [
-    "£319,800"
-   ],
-   "simple:where": [
-    "£361,250"
    ]
   },
   "saver-locked-ladder|statePension.start": {
@@ -5303,21 +5069,6 @@
     "Locked"
    ]
   },
-  "saver-locked-pots|pot.atStop": {
-   "full:stress settings": [
-    "£396,175"
-   ],
-   "simple:plan": [
-    "£396,175"
-   ],
-   "simple:pots": [
-    "£396,000",
-    "£411,073"
-   ],
-   "simple:saving": [
-    "£396,000"
-   ]
-  },
   "saver-locked-pots|statePension.start": {
    "full:stress settings": [
     "2041/42"
@@ -5604,70 +5355,6 @@
     "Pots and valves"
    ]
   },
-  "saver-locked-pots|yearsToGo": {
-   "full:accumulation": [
-    "11 years"
-   ],
-   "full:budget": [
-    "11 years"
-   ],
-   "full:decision settings": [
-    "11 years"
-   ],
-   "full:drawdown": [
-    "11 years"
-   ],
-   "full:glidepath": [
-    "11 years"
-   ],
-   "full:history": [
-    "11 years"
-   ],
-   "full:household": [
-    "11 years"
-   ],
-   "full:monthly entry": [
-    "11 years"
-   ],
-   "full:plan document": [
-    "11 years"
-   ],
-   "full:scenarios": [
-    "11 years"
-   ],
-   "full:strategies": [
-    "11 years"
-   ],
-   "full:stress history": [
-    "11 years"
-   ],
-   "full:stress settings": [
-    "11 years"
-   ],
-   "full:tax years": [
-    "11 years"
-   ],
-   "full:transition": [
-    "11 years"
-   ],
-   "full:will it last": [
-    "11 years"
-   ],
-   "simple:saving": [
-    "10 years"
-   ]
-  },
-  "saver-payin|field:about.age": {
-   "full:accumulation": [
-    "45"
-   ],
-   "full:stress settings": [
-    "44"
-   ],
-   "simple:about": [
-    "45"
-   ]
-  },
   "saver-payin|field:about.endAge": {
    "full:stress settings": [
     "28"
@@ -5762,21 +5449,6 @@
    ],
    "simple:lock": [
     "Not locked"
-   ]
-  },
-  "saver-payin|pot.atStop": {
-   "full:stress settings": [
-    "£443,676"
-   ],
-   "simple:plan": [
-    "£444,000"
-   ],
-   "simple:pots": [
-    "£444,000",
-    "£495,754"
-   ],
-   "simple:saving": [
-    "£444,000"
    ]
   },
   "saver-payin|statePension.start": {

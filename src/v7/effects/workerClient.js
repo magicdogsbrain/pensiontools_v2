@@ -40,8 +40,7 @@
  */
 import { cloneSafe } from '../../utils/cloneSafe.js';
 import { STALE_BUILD } from '../../utils/staleBuild.js';
-import { marketFolderOf } from '../../reading/marketPlain.js';
-import { LAYOUT } from '../../appLayout.js';
+import { pageMarketFolder } from './pageMarket.js';
 
 export const NO_WORKER = 'no-worker';
 export { STALE_BUILD };
@@ -53,9 +52,7 @@ function defaultMakeWorker() {
   return new Worker(new URL('./answerWorker.js', import.meta.url), { type: 'module' });
 }
 
-/** The site's one market data folder from this page (src/reading/market.js): told to the worker with the date. */
-const pageMarketFolder = () => (typeof document !== 'undefined' ? marketFolderOf(document.baseURI, LAYOUT.v7.data) : null);
-
+// The site's one market data folder from this page (pageMarket.js, src/reading/market.js): told to the worker with the date.
 export function createWorkerClient({ makeWorker = defaultMakeWorker, market = pageMarketFolder } = {}) {
   let worker = null;
   let broken = false;          // no worker can start: stop trying

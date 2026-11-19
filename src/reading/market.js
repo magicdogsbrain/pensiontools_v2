@@ -16,6 +16,7 @@
  *   marketStamp()                       → { gilts: { source, asOf }, equity: { source, asOf } } — what the next run is
  *                                       priced on: source 'file' (the day's file) or 'builtIn' (the copy in the site)
  *   marketLabel(stamp)                  the ONE label both views draw beside a figure priced on gilts
+ *   equityNow()                         the share index this context's runs read (the day's file, else the built-in copy)
  *   forgetMarket()                      for the tests: this context back to the built-in copy, nothing asked
  */
 import { setLiveGilts, activeLinkers, BUNDLED_LINKERS } from '../services/LinkerUniverse.js';
@@ -59,6 +60,8 @@ export function marketStamp() {
     equity: { source: e === BUNDLED_EQUITY ? 'builtIn' : 'file', asOf: (e && e.date) || null }
   };
 }
+
+export function equityNow() { return activeEquity(); }
 
 export function forgetMarket() {
   asked.clear();

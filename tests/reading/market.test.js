@@ -68,3 +68,31 @@ describe('one writer of what a run is priced on', () => {
     expect(writers).toEqual([]);
   });
 });
+
+describe('one reader of the gilt and share prices: the one market (fix round 1)', () => {
+  it('only the one market\'s modules read the copy built into the site: no page or service reads its prices beside it', () => {
+    const readers = [...shipped(), 'index.html'].filter((f) => !/src[\\/](services[\\/](LinkerUniverse|EquityIndex)\.js|data[\\/].*)$/.test(f))
+      .filter((f) => /data\/(giltsSnapshot|equitySnapshot)\.js/.test(readFileSync(f, 'utf8')));
+    // GiltName and HoldingsPaste read the list of gilts in issue only to know a gilt by its name or code, never its price
+    expect(readers.sort()).toEqual(['src/services/GiltName.js', 'src/services/HoldingsPaste.js']);
+    for (const f of readers) expect(readFileSync(f, 'utf8')).not.toMatch(/cleanPrice|indexRatio|InflationCurve|realCurve|\.level\b/);
+  });
+  it('what a held gilt pays and what a later pound is worth follow the day\'s file, as every run does', async () => {
+    const { standInPays, inflationTo } = await import('../../src/services/TransitionPlanner.js');
+    const { activeGiltsFile } = await import('../../src/services/LinkerUniverse.js');
+    const built = activeGiltsFile();
+    const il = built.gilts.find((g) => g.type !== 'conventional' && +g.indexRatio > 0 && g.isin);
+    const line = { name: il.name, sedol: il.isin.slice(4, 11), units: 10000, value: 12000 };
+    const before = standInPays(line);
+    expect(before.amount).toBe(Math.round(10000 * il.indexRatio));
+    const day = clone(built);
+    day.generated_at = later(built.generated_at);
+    day.gilts = day.gilts.map((g) => (g.isin === il.isin ? { ...g, indexRatio: il.indexRatio * 2 } : g));
+    day.boeInflationCurve = [{ years: 1, yield: 0.07 }, { years: 30, yield: 0.07 }];
+    await loadMarket({ folder: 'https://site/data/', fetchImpl: serve({ 'gilts.json': day }) });
+    expect(standInPays(line).amount).toBe(Math.round(10000 * il.indexRatio * 2));
+    expect(inflationTo(5)).toBe(0.07);
+    forgetMarket();
+    expect(standInPays(line).amount).toBe(before.amount);
+  });
+});

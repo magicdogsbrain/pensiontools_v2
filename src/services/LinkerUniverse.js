@@ -62,13 +62,20 @@ function normalise(data, now = new Date()) {
 const BUNDLED = normalise(snapshot);
 export const BUNDLED_LINKERS = BUNDLED;
 
-let _override = null;   // admin-published
-let _live = null;       // fetched at runtime
+let _override = null;   // the tests' pin
+let _live = null;       // fetched at runtime (src/reading/market.js)
+let _overrideFile = null, _liveFile = null;   // the same, as the file lists them
 
 /** For the tests only: pins the gilts this JS context prices on (the site itself prices only through src/reading/market.js). */
-export function setLinkersOverride(data, now = new Date()) { _override = data && data.gilts ? normalise(data, now) : null; }
-export function setLiveGilts(data, now = new Date()) { _live = data && data.gilts ? normalise(data, now) : null; }
+export function setLinkersOverride(data, now = new Date()) { _override = data && data.gilts ? normalise(data, now) : null; _overrideFile = _override ? data : null; }
+export function setLiveGilts(data, now = new Date()) { _live = data && data.gilts ? normalise(data, now) : null; _liveFile = _live ? data : null; }
 export function activeLinkers() { return _override || _live || BUNDLED; }
+/**
+ * The gilts file the active prices come from, as the file lists them (every gilt in issue with its clean price and index
+ * ratio, the gilts matured lately, the Bank of England inflation curve): the day's file when the one loader has it, else the
+ * copy built in. What a held line pays (TransitionPlanner.standInPays) reads this, so it is priced as every run is.
+ */
+export function activeGiltsFile() { return (_override && _overrideFile) || (_live && _liveFile) || snapshot; }
 
 export function isStale(nowMs = Date.now(), maxAgeHours = 48) {
   const gen = Date.parse(activeLinkers().generated_at || 0);

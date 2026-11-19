@@ -34,7 +34,7 @@ describe('when an answer can be kept', () => {
     expect(v).toMatchObject({ can: true, why: null, suggested: 'Stop at 60 · £1,850 a month', name: 'Stop at 60 · £1,850 a month', problem: null, saving: false, made: null, separate: false });
     expect(keepView(loaded('c', 'answer-F1'), 'c').name).toBe('From 58 · £1,380 a month');
     expect(keepView(loaded('b', 'answer-B1'), 'b').name).toBe('Stop at 60 · £2,000 a month');
-    expect(keepView(loaded('d', 'answer-D1'), 'd').name).toBe('From 68 · £2,100 a month');
+    expect(keepView(loaded('d', 'answer-D1'), 'd').name).toBe('From 68 · £2,050 a month');
   });
   it('not while there is nothing, a first figure, or a figure for what was typed before; not for an answer of no pot', () => {
     expect(keepView(loaded('a', 'answer-nothing-entered'), 'a').why).toBe('noAnswer');

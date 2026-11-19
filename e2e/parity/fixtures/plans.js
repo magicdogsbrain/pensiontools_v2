@@ -22,7 +22,8 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { answerA } from '../../../src/answers/a/answer.js';
 import { answerB } from '../../../src/answers/b/answer.js';
-import { answerD } from '../../../src/answers/d/answer.js';
+import { answerD as answerOnEnv } from '../../../src/answers/d/answer.js';
+import * as planPath from '../../../src/answers/keep/planPath.js';
 import { buildPlanSeed } from '../../../src/answers/keep/planSeed.js';
 import { plansFromSeed } from '../../../src/answers/keep/planCreate.js';
 import { upgradeScenario } from '../../../src/firebase/scenarioMigration.js';
@@ -45,6 +46,8 @@ const copy = (v) => JSON.parse(JSON.stringify(v));
 const corpus = (name) => JSON.parse(readFileSync(join(CORPUS, name + '.json'), 'utf8'));
 const noon = (day) => { const [y, m, d] = day.split('-').map(Number); return new Date(y, m - 1, d, 12); };
 const ENV = (day) => ({ today: day, futures: 100, seed: 0, trace: false });
+// (7.12.0: one person's D runs on the plan path, handed in as every caller hands it: src/answers/index.js answerFor)
+const answerD = (inputs, env) => answerOnEnv(inputs, { ...env, planPath });
 const ANSWER = { a: answerA, b: answerB, d: answerD };
 
 /** An answer kept as a plan on `on` through the keep path: { yours, partner } as the store would hold them. */

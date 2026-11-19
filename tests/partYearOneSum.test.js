@@ -226,3 +226,94 @@ describe('the State Pension\'s first year is whole months in every year, not onl
     expect(deriveCompareConfigs(q).fs.floorDraw(2)).toBeCloseTo(25000, 6);
   });
 });
+
+import { simulateFastFrom, prepareFutureFull } from '../src/answers/shared/fastEngine.js';
+import { runFlexWindows } from '../src/strategies/FloorAndFlex.js';
+import { runLadderWindows } from '../src/strategies/LadderAndRatchet.js';
+import { getRtr } from '../src/strategies/ladderEngine.js';
+import { spareGrowthPath, runRotationPath } from '../src/strategies/GiltRotation.js';
+
+describe('the months of year 0 before the pots\' day give the pots nothing (check 2 of E8)', () => {
+  // Kim (fictional), 66, retired, £40,000 a year from the pots, is read on 15 November 2026 with that day's pots. Year 0
+  // (2026/27) pays November to March, 5 months; April to October, 7 months, went before the pots were counted. The pots
+  // are that day's, in today's money: in those 7 months they take no return and no charge. They move only with prices,
+  // the twelfth of the rise the engine counts at the start of year 1 each month, so at year 1 their worth in today's money
+  // is what the 5 months from the pots' day gave. A future with shares up 12% a year and prices up 3% in year 1:
+  //   at the first paying month (November), was    600,000 × 1.12^(7/12) = 641,006 (7 months of a 12% year)
+  //   now                                          600,000 × 1.03^(7/12) = 610,435 (prices only), £0 of charges
+  //   in today's money                             610,435 ÷ 1.03^(7/12) = 600,000: the pots' day's worth
+  // Every way does the same: a bought way's reserve (a real index) is flat in the 7 months and grows the 5; with the
+  // index at r[m], the reserve at year 1 is E0 × r[12] ÷ r[7] (was E0 × r[12] ÷ r[0]).
+  const NOV = new Date(2026, 10, 15, 12);
+  const kim = {
+    configured: true, duration: 30, other: 0, pa: 12570, brl: 50270, hrl: 125140, taxMode: 'inflates',
+    protectionMult: 0.8, consecutiveLimit: 3, disableProtection: true, recoveryBuffer: 0, hodlEnabled: false, hodlValue: 0,
+    isaReturn: 0.03, spStartDate: null, spWeeklyAmount: 0, statePension: 0, dbAmount: 0, dbStartYear: 0, dbIndexation: 'cpi',
+    equityMin: 600000, bondMin: 200000, cashTarget: 100000, isaBalance: 50000, baseSalary: 40000, chargesPct: 0.6,
+    incomeShape: 'phases', incomeSteps: [{ fromAge: 60, amount: 40000 }], currentAge: 66, currentAgeAsOf: '2026-11-15',
+    retired: true, firstTaxYear: 2026
+  };
+  const q = planFromSettings(kim, createSimulationConfigFromSettings({}, kim), { now: NOV });
+  const cfg = { ...q.pnvCfg, years: 30, disableProtection: true };
+  const returns = { equity: Array(30).fill(0.12), inflation: Array(30).fill(1e-12).map((v, i) => (i === 1 ? 0.03 : v)) };
+  const t = simulate({ ...cfg, trace: true }, returns, 1).trace;
+
+  it('the plan: 5 months in year 0, its pots that day\'s', () => {
+    expect(q.year0Months).toBe(5);
+    expect(cfg.equityStart).toBe(600000);
+    expect(cfg.chargesPct).toBe(0.6);
+  });
+  it('Pots & Valves: November\'s pots are the pots\' day\'s, moved only by prices: 610,435, not 641,006', () => {
+    const f = Math.pow(1.03, 7 / 12);
+    expect(t[7].equityStart).toBeCloseTo(600000 * f, 6);
+    expect(t[7].bondStart).toBeCloseTo(cfg.bondStart * f, 6);
+    expect(t[7].cashStart).toBeCloseTo(cfg.cashStart * f, 6);
+    expect(t[7].isaStart).toBeCloseTo(50000 * f, 6);
+    expect(Math.round(t[7].equityStart)).toBe(610435);
+    for (let m = 0; m < 7; m++) expect(t[m].charge).toBe(0);
+    expect(t[7].charge).toBeGreaterThan(0);   // the first paying month is charged, as every month after it
+  });
+  it('the quick engine: the same pots, to the bit, at every month to year 2', () => {
+    // (the quick engine reads the State Pension by its plan year: none here)
+    const fc = { ...cfg, spStartYear: 99, spWeeklyAmount: 0 };
+    const ft = simulate({ ...fc, trace: true }, returns, 1).trace;
+    const pf = prepareFutureFull({ returns, seed: 1 }, 30);
+    expect(ft[7].equityStart).toBe(t[7].equityStart);
+    for (const m of [1, 7, 8, 12, 24]) {
+      const r = simulateFastFrom(fc, pf, { until: m });
+      expect(r).not.toBe(null);
+      expect([r.equity, r.bond, r.cash, r.isa]).toEqual([ft[m].equityStart, ft[m].bondStart, ft[m].cashStart, ft[m].isaStart]);
+    }
+  });
+  it('the floors, Floor & Flex and Bridge & engine: the reserve at year 1 is E0 × r[12] ÷ r[7]', () => {
+    const c = deriveCompareConfigs(q);
+    const r = getRtr();
+    for (const id of ['fs', 'fa', 'be']) {
+      const w = runFlexWindows(c[id]).windows;
+      for (const s of [0, 600, 1200]) expect(w[s].sleeveByYear[1]).toBeCloseTo(c[id].E0 * (r[s + 12] / r[s + 7]) * Math.pow(c[id].chargeM, 5), 4);
+    }
+  });
+  it('Ladder & Ratchet: the sleeve at year 1 is E0 × r[12] ÷ r[7] in a window that buys nothing in year 0', () => {
+    const c = deriveCompareConfigs(q);
+    const r = getRtr();
+    const w = runLadderWindows(c.lr).windows;
+    let n = 0;
+    for (const s of [0, 300, 600, 900, 1200]) {
+      if (w[s].trades.some((x) => x.t <= 12)) continue;
+      n++;
+      expect(w[s].sleeveByYear[1]).toBeCloseTo(c.lr.E0 * (r[s + 12] / r[s + 7]) * Math.pow(c.lr.chargeM, 5), 4);
+    }
+    expect(n).toBeGreaterThan(2);
+  });
+  it('the gilt ladder\'s money left over in shares, and the rotation\'s: flat in the 7 months', () => {
+    const series = Array.from({ length: 400 }, (_, i) => Math.pow(1.01, i));
+    expect(spareGrowthPath(series, 0, 30, 1000, 1, 7)[1]).toBeCloseTo(1000 * Math.pow(1.01, 5), 9);
+    const ctx = {
+      N: 30, startAge: 66, cutAge: 75, trigger: 0.3, split: { soldOrders: [] }, keptWealthByYear: Array(31).fill(0),
+      blockWealthByYear: Array(31).fill(0), needAt: () => 0, otherAtY: () => 0, spAtY: () => 0, lastRotateYear: 0,
+      spare: 1000, spareGrowth: true, notYetMonths: 7
+    };
+    // the rotation's wealth counts the spare's gain on top of the ladder's own figures (which hold the spare itself)
+    expect(runRotationPath(series, 0, ctx).wealth[1]).toBeCloseTo(1000 * Math.pow(1.01, 5) - 1000, 9);
+  });
+});

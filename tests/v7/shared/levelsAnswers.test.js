@@ -108,18 +108,27 @@ describe('the weighted path with nobody dying gives the rollback\'s figures (spe
 describe('the weighted path on the ONS tables (the shipped state)', () => {
   const W = { ...ENV, weighted: true };
   it('C, D, A and B answer; every level\'s weighted chance is at least its fixed-age count; the levels in order', () => {
-    // (the end age left to its default, the plan-to age: a typed end age below it lets a future that runs out after the
-    // end age count as lasting to it while it still weighs, so only the default rule keeps weighted ≥ fixed-age)
+    // Weighted ≥ fixed-age is a law when the fixed-age count is taken at the weighting age: the weighted chance is a
+    // weighted sum, over the ages a person may die at up to that age, of the share of futures lasting to each, and no share
+    // is below the share lasting to the last age. The default plan-to age is earlier than the weighting age (Alex, 68:
+    // plan to 99, weighed to 103), so there it is not a law: when all 40 futures last to 99 and one runs out at 101, the
+    // fixed-age count is 1 and the weighted chance 0.996 (a future lasting past the plan-to age still weighs the deaths
+    // after it runs out). So the defaults answer and keep their levels in order, and the law is held with the end age typed
+    // as the weighting age the default answer gave.
     const own = (x) => { const { endAge, ...rest } = x; return rest; };
     for (const [answer, inputs] of [[answerC, own(ALEX_C)], [answerC, own(SAM_C)], [answerD, own(ALEX_D)], [answerA, own(ALEX_A)]]) {
       const r = answer(inputs, W);
       expect(r.status).toBe('ok');
       const L = r.levels.careful.monthly !== undefined ? r.levels : r.shown.levels;
-      for (const k of ['careful', 'balanced', 'bold']) expect(L[k].weighted + 1e-12, k).toBeGreaterThanOrEqual(L[k].fixedAge);
       expect(L.careful.monthly).toBeLessThanOrEqual(L.balanced.monthly);
       expect(L.balanced.monthly).toBeLessThanOrEqual(L.bold.monthly);
       expect(r.basis.tablesVersion).toBe('ons-ew-2024-cohort/1');
-      expect(r.chance.weighted + 1e-12).toBeGreaterThanOrEqual(r.chance.fixedAge);
+      const atW = answer({ ...inputs, endAge: r.basis.weightToAge }, W);
+      expect(atW.status).toBe('ok');
+      expect(atW.basis.weightToAge).toBe(r.basis.weightToAge);
+      const LW = atW.levels.careful.monthly !== undefined ? atW.levels : atW.shown.levels;
+      for (const k of ['careful', 'balanced', 'bold']) expect(LW[k].weighted + 1e-12, k).toBeGreaterThanOrEqual(LW[k].fixedAge);
+      expect(atW.chance.weighted + 1e-12).toBeGreaterThanOrEqual(atW.chance.fixedAge);
     }
     const b = answerB(own(SAM_B), W);
     expect(b.levels.careful.pot).toBeGreaterThanOrEqual(b.levels.balanced.pot);

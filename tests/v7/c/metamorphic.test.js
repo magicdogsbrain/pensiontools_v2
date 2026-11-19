@@ -160,7 +160,9 @@ describe('C — metamorphic relations', () => {
       const strip = (h) => ({ ...h, phases: unshown(h.phases), ...(h.take ? { take: { ...h.take, phases: unshown(h.take.phases) } } : {}) });
       expect(strip(household(b))).toEqual(strip(household(a)));
       expect(b.phases.map((p) => p.takeHome)).toEqual(a.phases.map((p) => p.takeHome));
-    }), opts());
+    // (a case where the two runs differ is always tried first, found with FC_RUNS=150: the twelve drawn cases can all agree
+    // to the £10 step, which would hide that the relation does not hold yet)
+    }), { ...opts(), examples: [[{ household: 'single', you: { pot: 740, age: 68, payIn: { has: 'no' }, statePension: { kind: 'forecast', yearly: 0 }, finalSalary: { has: false }, taxFreeTaken: false, sex: 'notSaid' }, start: { kind: 'now' }, savings: 0, risk: 'cautious', charge: 0, endAge: 75, confidence: 'careful', take: null }]] });
   });
 
   it('M7 the same pension in two names against one name, same ages: the even split is no lower', () => {

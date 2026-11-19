@@ -71,7 +71,8 @@ function runFlexCore(cfg, mcPaths, isMc) {
   // no treats in them; the ISA pays those years (stressTest.planFromSettings). 0 = none: today's figures exactly.
   const closedYears = cfg.closedYears > 0 ? cfg.closedYears : 0;
   // A first plan year of fewer than twelve months (7.12.0, compareRunner notYetMonths: services/PaidYear.js): the months
-  // of it before the plan starts pay no treats (the person is still at work, or the months were paid before the pots' day).
+  // of it before the plan starts pay no treats (the person is still at work, or the months were paid before the pots' day),
+  // and the sleeve, the pots' day's, takes no return and no charge in them (a real index: it keeps its worth).
   const notYet = cfg.notYetMonths > 0 && cfg.notYetMonths < 12 ? Math.round(cfg.notYetMonths) : 0;
 
   for (let s = 0; s < n; s++) {
@@ -122,8 +123,10 @@ function runFlexCore(cfg, mcPaths, isMc) {
 
     let annuitySwapDone = false;
     for (let m = 0; m < cfg.END; m++) {
-      V *= series[off + m + 1] / series[off + m];
-      if (chargeM !== 1) V *= chargeM;
+      if (m >= notYet) {
+        V *= series[off + m + 1] / series[off + m];
+        if (chargeM !== 1) V *= chargeM;
+      }
       // Phase G late-life annuity swap (opt-in): at swapAge, spend swapCost from the sleeve to
       // buy the true lifelong tail past the floor horizon (linkers run out ~2073, so this is
       // the honest answer to "lifelong"). Modelled as a one-off sleeve deduction.

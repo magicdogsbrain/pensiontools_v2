@@ -120,6 +120,10 @@ export function deriveCompareConfigs(p) {
   // the full gilt ladder and Pots & Valves count it (drawNet, floorDraw, restCost). The lowest year drawn (minDraw) reads
   // the year's rate.
   const share1 = monthsOf(p, 0) / 12;
+  // The months of that year before it starts paying (before the stop, or before the pots' day) give every way's reserve,
+  // sleeve or engine no return and take no charge: the pots are that day's (SimulationEngine notYetMonths). Floor & Flex
+  // pays no treats in them either.
+  const notYet = share1 < 1 ? { notYetMonths: 12 - monthsOf(p, 0) } : {};
   const rateAt = (k) => (sched0 ? (sched0[Math.min(k - 1, sched0.length - 1)] ?? ladderDraw) : ladderDraw);
   const amountAt = (k) => rateAt(k) * (k === 1 ? share1 : 1);
   const sched = share1 < 1 ? Array.from({ length: Math.max(1, p.durationYears, sched0 ? sched0.length : 0) }, (_, i) => amountAt(i + 1)) : sched0;
@@ -143,7 +147,7 @@ export function deriveCompareConfigs(p) {
     END, realYield, yieldForYear: p.yieldForYear, glideRate: 0.05, startAge: p.startAge,
     baseLadderCost, drawNetOfSp: drawNet,
     mcSeed: (i) => i * 7919 + 3,   // one market per future index, shared with every other strategy
-    ...charged, ...shocked
+    ...charged, ...shocked, ...notYet
   } : null;
 
   // Floor & Flex: essentials floor to the horizon, net of the income that comes anyway (the State Pension in the year's
@@ -163,8 +167,7 @@ export function deriveCompareConfigs(p) {
     horizonAge: p.startAge + ffYears,
     ...(fixedTreats != null ? { flexMin: fixedTreats, flexMax: fixedTreats, treatsRule: 'fixed' } : {}),
     ...(closedYears > 0 ? { closedYears } : {}),
-    ...(share1 < 1 ? { notYetMonths: 12 - monthsOf(p, 0) } : {}),   // a part year 0 pays its months of the treats
-    ...charged, ...shocked
+    ...charged, ...shocked, ...notYet
   } : null;
 
   // Floor the schedule: the whole income profile (net of SP) to the horizon; the rest is an untouched reserve.
@@ -173,7 +176,7 @@ export function deriveCompareConfigs(p) {
   const fsc = fsE0 > 0 ? {
     E0: fsE0, rate: 0, END, floorCost: fsCost, floorDraw: drawNet, yieldForYear: p.yieldForYear,
     horizonAge: p.startAge + p.durationYears, amountAt, minDraw,
-    ...charged, ...shocked
+    ...charged, ...shocked, ...notYet
   } : null;
 
   // Floor to an age, then decide: schedule bought to age A; the reserve decides the rest AT A.
@@ -189,7 +192,7 @@ export function deriveCompareConfigs(p) {
     E0: faE0, rate: 0, END, floorCost: faCost, floorDraw: drawNet, yieldForYear: p.yieldForYear,
     floorToAge, A, amountAt, restCost, restCostFull: restCost(amountAt), annuityFactor,
     minDrawToA: Math.min(...Array.from({ length: A }, (_, i) => rateAt(i + 1))),
-    ...charged, ...shocked
+    ...charged, ...shocked, ...notYet
   } : null;
 
   // Bridge & engine: cash years + one rung per year to the bridge age (default: State Pension
@@ -204,7 +207,7 @@ export function deriveCompareConfigs(p) {
   const be = beE0 > 0 ? {
     E0: beE0, rate: 0, END, floorCost: beCost, floorDraw: drawNet, yieldForYear: p.yieldForYear,
     bridgeAge, B, cashYears: beCashYears, amountAt, restCostFull: beRest,
-    ...charged, ...shocked
+    ...charged, ...shocked, ...notYet
   } : null;
 
   return { END, lr, ff, fs: fsc, fa, be, beAffordable: beE0 > 0, beCost, beBridgeAge: bridgeAge, faAffordable: faE0 > 0, faFloorCost: faCost, lrAffordable: lrE0 > 0, ffAffordable: ffE0 > 0, fsAffordable: fsE0 > 0, baseLadderCost, ffFloorCost, fsFloorCost: fsCost, scheduleMin: minDraw };

@@ -184,6 +184,10 @@ export const curvePricer = (drawForYear, yieldForYear) => (k, tMonths) =>
  * by `chargeM` (the plan's monthly charge factor) straight after the month's growth. The market index (`rtr`) itself is
  * never charged — it also drives Pots & Valves (which charges its own pots) and every trigger — and the rungs, gilts
  * held directly, are not charged either. chargeM = 1 (the default; a plan without charges, every golden) skips it.
+ *
+ * A PART YEAR 0 (7.12.0, compareRunner notYetMonths): the first `notYet` months of the run are before the stop or the
+ * pots' day; the sleeve is that day's, so it takes no return and no charge in them (a real index: it keeps its worth).
+ * 0 (the default; every golden) is the run it always was.
  */
 
 /**
@@ -191,13 +195,15 @@ export const curvePricer = (drawForYear, yieldForYear) => (k, tMonths) =>
  * excess above the path into whole sequential rungs.
  * @returns {{V, secured, sellEvents, trades: [{t, bought}]}}
  */
-export function stage1Band({ rtr, s, E0, L, firstRung, maxRung, priceForYear, b = 1.2, gp = 0.05, chargeM = 1 }) {
+export function stage1Band({ rtr, s, E0, L, firstRung, maxRung, priceForYear, b = 1.2, gp = 0.05, chargeM = 1, notYet = 0 }) {
   let V = E0, nxt = firstRung, sec = 0, sells = 0;
   const trades = [];
   const vByYear = [E0];   // sleeve value at each plan-year boundary (cone of uncertainty)
   for (let t = 1; t <= L; t++) {
-    V *= rtr[s + t] / rtr[s + t - 1];
-    if (chargeM !== 1) V *= chargeM;   // the month's fund and platform charges (6.19.0) — on the sleeve, never the index
+    if (t > notYet) {
+      V *= rtr[s + t] / rtr[s + t - 1];
+      if (chargeM !== 1) V *= chargeM;   // the month's fund and platform charges (6.19.0) — on the sleeve, never the index
+    }
     const G = E0 * Math.pow(1 + gp, t / 12);
     if (V >= b * G && nxt <= maxRung) {
       let ex = V - G, bought = 0;
@@ -218,7 +224,7 @@ export function stage1Band({ rtr, s, E0, L, firstRung, maxRung, priceForYear, b 
  * V > G(t) (no band multiple).
  * @returns {{V, secured, lastReview, trades}}
  */
-export function stage1Calendar({ rtr, s, E0, reviews, firstRung, maxRung, priceForYear, gp = 0.05, chargeM = 1 }) {
+export function stage1Calendar({ rtr, s, E0, reviews, firstRung, maxRung, priceForYear, gp = 0.05, chargeM = 1, notYet = 0 }) {
   let V = E0, last = 0, nxt = firstRung, sec = 0;
   const trades = [];
   const fires = [];
@@ -226,8 +232,10 @@ export function stage1Calendar({ rtr, s, E0, reviews, firstRung, maxRung, priceF
   const reviewSet = new Set(reviews);
   const lastT = reviews.length ? Math.max(...reviews) : 0;
   for (let t = 1; t <= lastT; t++) {
-    V *= rtr[s + t] / rtr[s + t - 1];
-    if (chargeM !== 1) V *= chargeM;   // the month's fund and platform charges (6.19.0)
+    if (t > notYet) {
+      V *= rtr[s + t] / rtr[s + t - 1];
+      if (chargeM !== 1) V *= chargeM;   // the month's fund and platform charges (6.19.0)
+    }
     if (reviewSet.has(t)) {
       last = t;
       const G = E0 * Math.pow(1 + gp, t / 12);
@@ -253,13 +261,15 @@ export function stage1Calendar({ rtr, s, E0, reviews, firstRung, maxRung, priceF
  * pays the draw monthly. Returns survival, failure age (57 + m/12 per the reference), terminal.
  * `drawForYear` sizes the post-ladder draw to the profile (flat DRAW in the goldens).
  */
-export function stage2({ rtr, s, V0, L, ladderYears, secured, drawForYear, END, startAge = 57, spendFlex = null, chargeM = 1 }) {
+export function stage2({ rtr, s, V0, L, ladderYears, secured, drawForYear, END, startAge = 57, spendFlex = null, chargeM = 1, notYet = 0 }) {
   let V = V0;
   const dstart = (ladderYears + secured) * 12;
   const vByYear = {};   // year index → sleeve value at that boundary (L/12 .. END/12)
   for (let m = L; m < END; m++) {
-    V *= rtr[s + m + 1] / rtr[s + m];
-    if (chargeM !== 1) V *= chargeM;   // the month's fund and platform charges (6.19.0)
+    if (m >= notYet) {
+      V *= rtr[s + m + 1] / rtr[s + m];
+      if (chargeM !== 1) V *= chargeM;   // the month's fund and platform charges (6.19.0)
+    }
     if (m >= dstart) {
       let d = drawForYear(Math.floor(m / 12) + 1);
       // Phase G spending-flex overlay (opt-in): a simple guardrail on the post-ladder sleeve —

@@ -108,7 +108,11 @@ export function simulate(config, returns, seed = 0) {
   // Year 0 for the months it has (7.12.0, PlanTiming.year0MonthsOf): a first plan year that starts in the month work stops
   // pays from that month to March. The months of year 0 before it take nothing from the pots or the ISA (the person is still
   // at work): no draw, no protection, no tax-boost, no pot moved, no tax counted. Absent or 12: the run it always was.
+  // The pots are the pots' day's, in today's money, so those months give them no return and take no charge: each month they
+  // move only with prices, by the twelfth of the rise counted at the start of year 1 (cumInf below), so at year 1 they are
+  // worth, in today's money, what the months from the pots' day gave them (answers/shared/fastEngine.js does the same).
   const notYetMonths = config.year0Months > 0 && config.year0Months < 12 ? 12 - Math.round(config.year0Months) : 0;
+  const notYetPriceM = notYetMonths > 0 ? Math.pow(1 + (returns.inflation[1] || 0.025), 1 / 12) : 1;
   // UFPLS lifetime Lump Sum Allowance headroom (nominal, frozen). Irrelevant (0) for drawdown.
   let lsaRemaining = config.accessMethod === 'ufpls' ? 268275 : 0;
   // Phased access: PCLS-at-switch. UFPLS never crystallises the untouched pot, so at the end of
@@ -443,7 +447,9 @@ export function simulate(config, returns, seed = 0) {
       ? bondBucketReturn({ inf, prevInf, eqReturn, prevEqReturn }, rng, config.subAsset.bondWeights)
       : calculateBondReturn(inf, eqReturn, prevInf, rng);
     const annualCashReturn = cashNominalReturn(prevInf);
-    const monthly = (r) => Math.pow(1 + (Number.isFinite(r) ? Math.max(-0.99, r) : -0.99), 1 / 12);
+    // A not-yet month (above): every pot moves by prices only. The month's random draws are taken all the same, so the
+    // months after it see the future they always saw.
+    const monthly = notYet ? () => notYetPriceM : (r) => Math.pow(1 + (Number.isFinite(r) ? Math.max(-0.99, r) : -0.99), 1 / 12);
 
     // The month's three pension factors, worked out once: the pots below, and an ISA "invested like my pension", read them.
     const fE = monthly(eqReturn);
@@ -487,15 +493,15 @@ export function simulate(config, returns, seed = 0) {
       // "Invested like my pension" (6.22.0): the pension's three factors this month, weighted by its mix (the bond tent
       // re-splits shares and bonds as it does the pension's). No random draw: fB is the one the pension's bonds drew.
       if (isa > 0) {
-        const isaF = investedIsaFactor(glideShare != null ? glidedIsaWeights(isaW, glideShare) : isaW, fE, fB, fC);
+        const isaF = notYet ? notYetPriceM : investedIsaFactor(glideShare != null ? glidedIsaWeights(isaW, glideShare) : isaW, fE, fB, fC);
         isa = isa * isaF;
         if (traceRow) traceRow.isaFactor = isaF;
       }
     } else {
       // No choice on the plan (a plan locked before 6.22.0, every golden and pin): the fixed rate, as always.
       const rate = config.isaReturn ?? ISA_DEFAULTS.RETURN;   // ?? not ||: an explicit 0% must mean 0% (caught by the conservation test)
-      if (traceRow && isa > 0) traceRow.isaFactor = Math.pow(1 + rate, 1 / 12);
-      isa = applyIsaGrowthMonthly(isa, rate);
+      if (traceRow && isa > 0) traceRow.isaFactor = notYet ? notYetPriceM : Math.pow(1 + rate, 1 / 12);
+      isa = notYet ? isa * notYetPriceM : applyIsaGrowthMonthly(isa, rate);
     }
 
     // HODL fund return (Ruffer-style absolute return)
@@ -531,7 +537,7 @@ export function simulate(config, returns, seed = 0) {
     // by the month's charge factor, straight after its growth. Each multiply is its own statement, in this order, so the
     // V7 replica (answers/shared/fastEngine.js) can do exactly the same arithmetic. No random draw happens here, so the
     // random stream is untouched. Skipped entirely at 0% (chargeM === 1): an uncharged run is unchanged to the bit.
-    if (chargeM !== 1) {
+    if (chargeM !== 1 && !notYet) {   // a not-yet month (above) is before the pots' day: nothing charged
       const e0 = equity, b0 = bond, c0 = cash, i0 = isa, h0 = hodl, d0 = diversifier, g0 = gia.value;
       equity *= chargeM;
       bond *= chargeM;

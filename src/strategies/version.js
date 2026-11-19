@@ -92,5 +92,14 @@
  *           £50,000 taxable account with a State Pension of £12,000 lasts years longer on the bought ways, as it does in
  *           Pots & Valves. Floor & Flex's floor takes off the other income (a final-salary pension, an annuity, that money)
  *           as every other way does; it took off only the State Pension and bought the rest twice over.
+ *           The months of a part year 0 before it pays (before the stop, or before the pots' day) give the pots nothing:
+ *           they are that day's pots, in today's money, so in every way (Pots & Valves and Buckets, the quick engine, the
+ *           floors, Bridge & engine, Floor & Flex, Ladder & Ratchet, the gilt ladder's money left over in shares and the
+ *           rotation) they take no return and no charge in those months, and the rotation cannot fire in them. The pots
+ *           grew through them (up to 11 months of returns more than the plan has: a plan read in November with shares
+ *           up 12% in the year started its first paying month with 7% more in shares). Pots & Valves's pots move with
+ *           prices only in those months, by the twelfth of the rise it counts at the start of year 1, so in today's money
+ *           they hold their worth. Plans whose year 0 is part of a year: less in the pots when year 0 starts paying, so less
+ *           left at the end and a few more futures that run out; a whole first year runs exactly as before.
  */
 export const ENGINE_VERSION = '6.39.0';

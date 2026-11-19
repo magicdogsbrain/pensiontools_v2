@@ -19,7 +19,7 @@ import { accretedValue, yearsToMaturity, ladderWealthByYear } from './GiltLadder
 // The split of a ladder at the cut age lives with the rotation watch's pure reading (services/RotationStatus.js, 6.43.0),
 // so the preview's page can read the block without the engine; it keeps its name here for the engine and the planner.
 import { splitLadderAtAge } from '../services/RotationStatus.js';
-import { spIn, otherIn } from '../services/PaidYear.js';
+import { spIn, otherIn, monthsOf } from '../services/PaidYear.js';
 export { splitLadderAtAge };
 
 /**
@@ -30,14 +30,16 @@ export { splitLadderAtAge };
  * fills a year the rotated block cannot pay before that year counts as cut (6.36.0; runRotationPath).
  * Without the setting the spare is held at its real value (absent = the old behaviour); on the rotation it fills a
  * cut year all the same (6.37.0).
+ * A part year 0 (7.12.0, `notYet` = 12 − its months, compareRunner notYetMonths): the months of it before the stop or the
+ * pots' day give the spare, that day's money, no return and no charge (a real index: it keeps its worth). 0: as always.
  */
-export function spareGrowthPath(series, off, N, spare, chargeM = 1) {
+export function spareGrowthPath(series, off, N, spare, chargeM = 1, notYet = 0) {
   const c = Number.isFinite(chargeM) && chargeM > 0 && chargeM <= 1 ? chargeM : 1;
   const out = [];
   let v = spare;
   for (let y = 0; y <= N; y++) {
     out.push(v);
-    for (let m = y * 12; m < (y + 1) * 12 && off + m + 1 < series.length; m++) { v *= series[off + m + 1] / series[off + m]; if (c !== 1) v *= c; }
+    for (let m = Math.max(y * 12, notYet); m < (y + 1) * 12 && off + m + 1 < series.length; m++) { v *= series[off + m + 1] / series[off + m]; if (c !== 1) v *= c; }
   }
   return out;
 }
@@ -46,11 +48,11 @@ export function spareGrowthPath(series, off, N, spare, chargeM = 1) {
  * spareGrowthPath over the one test's real starts (every month since 1871) and its futures (seed i × 7919 + 3). `shock`
  * (7.9.0, "Try the bad years": ladderEngine.shockRtr) goes on the futures only, never on a real start.
  */
-export function spareGrowthRuns(N, spare, chargeM, runs = 400, shock = null) {
+export function spareGrowthRuns(N, spare, chargeM, runs = 400, shock = null, notYet = 0) {
   const months = (N + 1) * 12;
   const hist = getRtr(), h = [], mc = [];
-  for (let s = 0; s + months < hist.length; s++) h.push(spareGrowthPath(hist, s, N, spare, chargeM));
-  for (let i = 0; i < runs; i++) mc.push(spareGrowthPath(shockRtr(bootstrapPaths(i * 7919 + 3, months + 1, 60).rtr, shock), 0, N, spare, chargeM));
+  for (let s = 0; s + months < hist.length; s++) h.push(spareGrowthPath(hist, s, N, spare, chargeM, notYet));
+  for (let i = 0; i < runs; i++) mc.push(spareGrowthPath(shockRtr(bootstrapPaths(i * 7919 + 3, months + 1, 60).rtr, shock), 0, N, spare, chargeM, notYet));
   return { hist: h, mc };
 }
 
@@ -64,7 +66,10 @@ export function spareGrowthRuns(N, spare, chargeM, runs = 400, shock = null) {
 export function runRotationPath(series, off, ctx) {
   const { N, startAge, cutAge, trigger, split, keptWealthByYear, blockWealthByYear, needAt, otherAtY, spAtY, lastRotateYear } = ctx;
   const chargeM = Number.isFinite(ctx.chargeM) && ctx.chargeM > 0 && ctx.chargeM <= 1 ? ctx.chargeM : 1;
-  let ath = series[off], sleeve = 0, rotated = false, triggeredMonth = null;
+  // A part year 0 (ctx.notYetMonths, spareGrowthPath): its months before the stop or the pots' day do not move the spare and
+  // cannot fire the rotation (nothing is held yet); the market's high is counted from the first month after them.
+  const notYet = ctx.notYetMonths > 0 && ctx.notYetMonths < 12 ? Math.round(ctx.notYetMonths) : 0;
+  let ath = series[off + notYet], sleeve = 0, rotated = false, triggeredMonth = null;
   // The money left over after the ladder is bought. In shares (spareGrowth, 6.35.0) it moves with the series and its
   // charges (spareGrowthPath); kept, it is held at its real value, as the ladder's own figures hold it. Either way it
   // fills a rotated year the sleeve cannot pay before that year counts as cut (shares from 6.36.0, kept from 6.37.0).
@@ -86,7 +91,7 @@ export function runRotationPath(series, off, ctx) {
       break;
     }
     // walk this plan year's months
-    for (let m = y * 12; m < (y + 1) * 12 && off + m + 1 < series.length; m++) {
+    for (let m = Math.max(y * 12, notYet); m < (y + 1) * 12 && off + m + 1 < series.length; m++) {
       if (spareGrows) { spare *= series[off + m + 1] / series[off + m]; if (chargeM !== 1) spare *= chargeM; }
       const lvl = series[off + m];
       if (lvl > ath) ath = lvl;
@@ -156,6 +161,7 @@ export function rotationPathsCtx(plan, p, { cutAge, trigger }) {
     chargeM: monthlyCostFactor(p),   // the plan's fund and platform charges, on the sleeve after a rotation (6.19.0); with a row's lower returns (7.9.0)
     ...(p.shock ? { shock: p.shock } : {}),   // a row's shock, on the futures only (7.9.0)
     lastRotateYear: Math.max(0, (cutAge - disarm) - p.startAge),
+    ...(monthsOf(p, 0) < 12 ? { notYetMonths: 12 - monthsOf(p, 0) } : {}),   // a part year 0 (runRotationPath)
     // what arrives in the year's months (services/PaidYear.js): the ladder's own year rows carry the State Pension they hold
     otherAtY: (y) => otherIn(p, y),
     spAtY: (y) => { const yr = plan.years[Math.min(y, plan.years.length - 1)]; return yr && yr.sp != null ? yr.sp : spIn(p, y); } };

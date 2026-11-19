@@ -639,7 +639,7 @@ function fullGiltTest(p, configs, { spareRuns = true } = {}) {
   // The spare in the growth part (strategyParams.spareGrowth, 6.35.0): the income stays bought by contract; what is
   // left rides the market, on the test's own histories and futures (GiltRotation spareGrowthRuns).
   const grow = spareRuns && !!(p.params && p.params.spareGrowth) && plan.spare > 0;
-  const runs = grow ? spareGrowthRuns(N, plan.spare, monthlyCostFactor(p), p.mcRuns || 400, p.shock) : null;
+  const runs = grow ? spareGrowthRuns(N, plan.spare, monthlyCostFactor(p), p.mcRuns || 400, p.shock, 12 - monthsOf(p, 0)) : null;   // a part year 0: no growth before it pays
   const withSpare = (sp) => wealth.map((w, y) => w - plan.spare + sp[y]);
   const mcW = grow ? runs.mc.map(withSpare) : null;
   const ends = grow ? mcW.map((w) => w[N]).sort((a, b) => a - b) : null;

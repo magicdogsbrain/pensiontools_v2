@@ -214,7 +214,7 @@ export function fastEligible(c) {
     // (a plan's config names the default ISA strategy outright; the engines read an absent one as that default)
     && (c.isaDrawdownStrategy === undefined || c.isaDrawdownStrategy === 'minimiseEarlyTax') && ISA_DEFAULTS.DRAWDOWN_STRATEGY === 'minimiseEarlyTax' && (c.isaBalance === undefined || finite(c.isaBalance))
     // year 0 for the months it has (7.12.0, SimulationEngine notYetMonths): a whole number of months, on a run that closes
-    // nothing and covers nothing (the replica's not-yet months grow the pots and take nothing, as `simulate`'s do)
+    // nothing and covers nothing (the replica's not-yet months move the pots with prices only and take nothing, as `simulate`'s do)
     && (c.year0Months === undefined || !(c.year0Months > 0 && c.year0Months < 12)
       || (Number.isInteger(c.year0Months) && !(c.lockedMonths > 0) && !(c.coverMonths > 0)))
     && isZero(c.taxableStart) && emptyList(c.windfalls)
@@ -264,7 +264,9 @@ export function prepareFuture(future, years) {
   }
   // The bond model's months are drawn as a run first needs them (bondMonthsTo), a year at a time: a run that
   // ends early never pays for the years after it, and the stream is the engine's whatever the order of the runs.
-  return { cumInf, mEq, mCash, inf, eq, prevInf, mBond: new Float64Array(months), bondMonths: 0, rng, months };
+  // the rise in prices counted at the start of year 1, as the engine reads it (a part year 0's not-yet months: runFast)
+  const inf1 = returns.inflation[1] || 0.025;
+  return { cumInf, mEq, mCash, inf, eq, prevInf, inf1, mBond: new Float64Array(months), bondMonths: 0, rng, months };
 }
 
 /**
@@ -300,7 +302,8 @@ export function prepareFutureFrom(life, offsetMonths, years, opts = {}) {
     mEq[y] = monthly(eq[y]);
     mCash[y] = monthly(cashNominalReturn(prevInf[y]));
   }
-  return { cumInf, mEq, mCash, inf, eq, prevInf, mBond: life.stream.subarray(offsetMonths, offsetMonths + months), bondMonths: months, rng: null, months };
+  const inf1 = returns.inflation[S + 1] || 0.025;   // as prepareFuture's
+  return { cumInf, mEq, mCash, inf, eq, prevInf, inf1, mBond: life.stream.subarray(offsetMonths, offsetMonths + months), bondMonths: months, rng: null, months };
 }
 
 /** prepareFuture with every month of the bond model drawn (tests: compared with prepareFutureFrom at offset 0). */
@@ -421,9 +424,11 @@ function runFast(config, pf, pr, start = null, hook = null, until = null, resume
   }
   const recBuf = record ? record.buf : null;
   const recFrom = record ? record.from : months + 1;
-  // Year 0 for the months it has (SimulationEngine notYetMonths): the months of year 0 before the plan starts paying grow the
-  // pots and take nothing — no draw, no pot moved, nothing tax-free. 0 for every other run, which is then the run it was.
+  // Year 0 for the months it has (SimulationEngine notYetMonths): the months of year 0 before the pots' day take nothing —
+  // no draw, no pot moved, nothing tax-free — and give the pots no return and no charge: they move only with prices, by
+  // the twelfth of year 1's rise a month, as `simulate`'s do. 0 for every other run, which is then the run it was.
   const notYetMonths = config.year0Months > 0 && config.year0Months < 12 ? 12 - config.year0Months : 0;
+  const notYetPriceM = notYetMonths > 0 ? Math.pow(1 + pf.inf1, 1 / 12) : 1;
 
   // planDrawdown, remembered within a year: with the default ISA strategy (uncapped) its answer depends on the ISA
   // balance only through min(net gap, balance), so a balance at or above the remembered gap gives the same plan.
@@ -506,18 +511,12 @@ function runFast(config, pf, pr, start = null, hook = null, until = null, resume
     }
 
     if (month < notYetMonths) {
-      // not yet: this month's returns and charges, as `simulate` takes them, and nothing else
-      if (month >= pf.bondMonths) bondMonthsTo(pf, month);
-      equity *= pf.mEq[year];
-      bond *= pf.mBond[month];
-      cash *= pf.mCash[year];
-      if (isa > 0) isa = isaKind === 0 ? isa * isaFactor : isaKind === 1 ? isa * pf.mCash[year] : isa * investedIsaFactor(isaW, pf.mEq[year], pf.mBond[month], pf.mCash[year]);
-      if (chargeM !== 1) {
-        equity *= chargeM;
-        bond *= chargeM;
-        cash *= chargeM;
-        if (isa > 0) isa *= chargeM;
-      }
+      // not yet: the pots move with prices only, as `simulate` moves them, and nothing else (the bond model's month is
+      // drawn when a later month first needs it: the same stream)
+      equity *= notYetPriceM;
+      bond *= notYetPriceM;
+      cash *= notYetPriceM;
+      if (isa > 0) isa *= notYetPriceM;
       isa = Math.max(0, isa - Math.min(0, isa)) + 0;
       equity = Math.max(0, equity);
       bond = Math.max(0, bond);

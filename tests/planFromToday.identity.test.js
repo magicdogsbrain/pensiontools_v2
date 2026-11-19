@@ -83,17 +83,21 @@ const ADDED_AFTER_THE_PINS = Object.freeze({
  * Engine 6.40.0 (strategies/incomeAnyway.js) retook eight on Node 24, their document only: 01 (three clocks), 05 (three)
  * and 09 (two), whose Pots & Valves futures include some that run out. After the money runs out the income that comes
  * anyway is still paid, so their worst 12 months went from £0 to the State Pension (01: £12,000 assumed; 05: £11,973) and
- * the income cone's late years from £0 to it. The Node 20 pins of those eight are to be retaken on Node 20 (CI) the same way.
+ * the income cone's late years from £0 to it. Node 20 (CI) retook the same eight, with the same figures (09: £10,317).
  * Every other output of theirs, and every output of every other fixture, kept its pin (the guaranteed line's new words are
  * put back by guaranteedAsPinned below, never a figure).
  * Year 0 for the months it has (7.12.0) retook six on Node 24, their full gilt ladder only: 05 (three clocks) and 10 (three),
  * savers whose first tax year starts in the month they stop. The ladder buys that year for its months: 05's first year
  * £36,000 → £6,000 (2 months), its cash £72,360 → £42,360; 10's £18,000 → £4,500 (3 months), cash £36,271 → £22,771.
- * The plan's new `year0Months` is read as the pins had it (asPinned). Node 20's six are to be retaken on Node 20.
+ * The plan's new `year0Months` is read as the pins had it (asPinned). Node 20 retook the same six, the same figures.
  * The household's years (7.12.0) retook six on Node 24, the household split only: 02 and 09 at the corpus clock, 10 at it
  * (with 09 as partner) and 20 at all three: a retired person's years start this year (HouseholdService.startOffset), so a
  * retiree whose plan counts from a birthday above today's age is no longer placed a year late. `paidNow` (spFor: a State
- * Pension already being paid) is a field the split echoes, left out of the digest like potsAsOf.
+ * Pension already being paid) is a field the split echoes, left out of the digest like potsAsOf. The retired person's first
+ * State Pension row, before → after: 02 row 6 → 5, 09 (and 10's partner) row 3 → 2, 20 row 3 → 1 at the corpus clock and
+ * row 2 → 1 at the other two; the pots' draw that year falls by the State Pension (02 £38,000 → £26,498, 09 £24,000 →
+ * £13,683, 20 £34,000 → £22,027). Node 20 retook the same six. On Node 20 every other entry was written again and matched
+ * its old pin byte for byte.
  */
 const NODE = String(process.versions.node).split('.')[0];
 // One pins file per Node major, each taken on the code before the change with that Node: simulated money can differ in

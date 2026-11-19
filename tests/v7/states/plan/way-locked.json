@@ -4801,7 +4801,8 @@
                 "score": "49.7"
               },
               "compare": null,
-              "asLocked": "1 July 2026"
+              "asLocked": "1 July 2026",
+              "market": null
             },
             {
               "id": "pots-and-valves",
@@ -4909,7 +4910,8 @@
                   "words": "in every future it tried"
                 }
               },
-              "asLocked": null
+              "asLocked": null,
+              "market": null
             },
             {
               "id": "buckets-in-order",
@@ -5029,7 +5031,8 @@
                   "words": "in every future it tried"
                 }
               },
-              "asLocked": null
+              "asLocked": null,
+              "market": null
             },
             {
               "id": "floor-the-schedule",
@@ -5102,7 +5105,8 @@
                   "words": "in every future it tried"
                 }
               },
-              "asLocked": null
+              "asLocked": null,
+              "market": "Gilts priced at the prices of 12 November 2026 (the copy built into the site: the day’s file could not be read)."
             },
             {
               "id": "gilt-rotation",
@@ -5241,7 +5245,8 @@
                   "words": "in every future it tried"
                 }
               },
-              "asLocked": null
+              "asLocked": null,
+              "market": "Gilts priced at the prices of 12 November 2026 (the copy built into the site: the day’s file could not be read)."
             },
             {
               "id": "floor-to-age",
@@ -5329,7 +5334,8 @@
                   "words": "in every future it tried"
                 }
               },
-              "asLocked": null
+              "asLocked": null,
+              "market": "Gilts priced at the prices of 12 November 2026 (the copy built into the site: the day’s file could not be read)."
             },
             {
               "id": "bridge-and-engine",
@@ -5429,7 +5435,8 @@
                   "words": "in more than 9 futures out of 10"
                 }
               },
-              "asLocked": null
+              "asLocked": null,
+              "market": "Gilts priced at the prices of 12 November 2026 (the copy built into the site: the day’s file could not be read)."
             },
             {
               "id": "ladder-and-ratchet",
@@ -5556,7 +5563,8 @@
                   "words": "in more than 9 futures out of 10"
                 }
               },
-              "asLocked": null
+              "asLocked": null,
+              "market": "Gilts priced at the prices of 12 November 2026 (the copy built into the site: the day’s file could not be read)."
             },
             {
               "id": "floor-and-flex",
@@ -5699,7 +5707,8 @@
                   "words": "in 9 futures out of 10"
                 }
               },
-              "asLocked": null
+              "asLocked": null,
+              "market": "Gilts priced at the prices of 12 November 2026 (the copy built into the site: the day’s file could not be read)."
             }
           ],
           "current": "full-il-gilt",
@@ -5850,7 +5859,16 @@
     "reason": null,
     "result": {
       "strategyId": "full-il-gilt",
-      "priced": "bundled",
+      "market": {
+        "gilts": {
+          "source": "builtIn",
+          "asOf": "2026-11-12"
+        },
+        "equity": {
+          "source": "builtIn",
+          "asOf": "2026-11-11"
+        }
+      },
       "ways": [
         {
           "id": "pots-and-valves",

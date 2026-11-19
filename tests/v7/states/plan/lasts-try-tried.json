@@ -3209,8 +3209,10 @@
                     "slots": {}
                   },
                   {
-                    "id": "ran.bundled",
-                    "slots": {}
+                    "id": "ran.market",
+                    "slots": {
+                      "label": "Gilts priced at the prices of 12 November 2026 (the copy built into the site: the day’s file could not be read)."
+                    }
                   }
                 ],
                 "strategyId": "floor-to-age",
@@ -3629,7 +3631,7 @@
         "cutPct": 20,
         "months": 3
       },
-      "priced": null,
+      "market": null,
       "a": {
         "strategyId": "pots-and-valves",
         "chancePct": 97.6,
@@ -4771,7 +4773,16 @@
           "cutPct": 20,
           "months": 3
         },
-        "priced": "bundled",
+        "market": {
+          "gilts": {
+            "source": "builtIn",
+            "asOf": "2026-11-12"
+          },
+          "equity": {
+            "source": "builtIn",
+            "asOf": "2026-11-11"
+          }
+        },
         "a": {
           "strategyId": "floor-to-age",
           "chancePct": 95.6,

@@ -6047,7 +6047,7 @@
         "cutPct": 20,
         "months": 3
       },
-      "priced": null,
+      "market": null,
       "a": {
         "strategyId": "full-il-gilt",
         "chancePct": 100,

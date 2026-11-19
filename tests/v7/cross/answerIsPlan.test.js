@@ -9,11 +9,11 @@
  *   - the plan test: answers/plan/lastsRun.js lastsOf ("Does it last?" is this run, runLasts reads it), at the answer's
  *     own count of futures, the real histories left out (no figure here reads them).
  *
- * What holds today (the first block) and what does not yet (the second: `it.fails`, each with the gap measured at 40
- * futures on 30 September 2026). When an answer is put on the plan path the `it.fails` beside it starts to fail and becomes
+ * D is on the plan path for one person (answers/keep/planPath.js): its block holds to the last bit. What does not hold yet
+ * is `it.fails`, each with the gap measured at 40 futures on 30 September 2026. When an answer is put on the plan path the `it.fails` beside it starts to fail and becomes
  * an `it`: the gap cannot close silently, nor open again.
  *
- * Measured gaps (40 futures; the answer's figure, then the kept plan's):
+ * Measured gaps (40 futures; the answer's figure, then the kept plan's; D's, closed by the plan path, kept as the record):
  *   D1 (68, £300,000 pension, £40,000 savings, £2,100 a month): lasts to 99 in 26 of 40 vs 25 of 40; weighted 0.877 vs
  *      0.858; bad-case run-out age 90 vs 93. Both say "close" here; at 1,000 futures the answer says close (597 of 1,000)
  *      and the plan says no (571 of 1,000).
@@ -33,7 +33,7 @@
  * The households are made up (Alex and Sam, round figures).
  */
 import { describe, it, expect } from 'vitest';
-import { answerD, D1, D3, D9 } from '../d/_d.js';
+import { answerD, D1, D3, D5, D7, D9 } from '../d/_d.js';
 import { answerC } from '../c/_c.js';
 import { answerA } from '../a/_a.js';
 import { answerB } from '../b/_b.js';
@@ -41,19 +41,33 @@ import { keptPlansOf } from '../../../src/answers/keep/keptPlan.js';
 import { buildPlanSeed } from '../../../src/answers/keep/planSeed.js';
 import { seedToScenario } from '../../../src/services/PlanFromSeed.js';
 import { lastsOf, runLasts } from '../../../src/answers/plan/lastsRun.js';
+import { planShortfallOf } from '../../../src/services/OneAnswer.js';
+import { planCaseOf } from '../../../src/answers/keep/planPath.js';
+import { checkInputs } from '../../../src/answers/shared/validate.js';
+import { SCHEMA_D } from '../../../src/answers/d/schema.js';
+import { fastEligible } from '../../../src/answers/shared/fastEngine.js';
+import { sliceReturns } from '../../../src/answers/shared/lives.js';
+import { simulate } from '../../../src/services/SimulationEngine.js';
 
 const TODAY = '2026-09-30';
 const N = 40;
 const ENV = { today: TODAY, futures: N, seed: 0, trace: false };
 
-/** The kept plan's reading at the answer's futures: the count that lasts to the plan-to age, the weighted chance, the bad-case run-out age, what is typically left. */
+/**
+ * The kept plan's reading at the answer's futures: the count that lasts to the plan-to age, the weighted chance, the
+ * middle run-out age (the floor line's), the bad case (the worst 1 in 10: planShortfallOf's `when.worst`), what is
+ * typically left, the plan-to age and the verdict.
+ */
 function planReading(plan) {
-  const { a } = lastsOf(plan, { today: TODAY, futures: N, histories: false });
-  return { lasted: Math.round(a.fixedAge * N), weighted: a.weighted, runOutAge: a.floor.age, left: a.left.typical, planToAge: a.planToAge, verdict: a.verdict };
+  const { a, r, p } = lastsOf(plan, { today: TODAY, futures: N, histories: false });
+  const sf = planShortfallOf(r, p, a);
+  return { lasted: Math.round(a.fixedAge * N), weighted: a.weighted, floorAge: a.floor ? a.floor.age : null, worstAge: sf.when ? sf.when.worst : a.planToAge,
+    left: a.left.typical, best: a.left.best, planToAge: a.planToAge, verdict: a.verdict };
 }
 
 /** The answer's own reading, said the same way. */
-const answerReading = (d) => ({ lasted: N - d.fails, weighted: d.chance.weighted, runOutAge: d.runOutAge, planToAge: d.chance.planToAge, verdict: d.verdict });
+const answerReading = (d) => ({ lasted: N - d.fails, weighted: d.chance.weighted, floorAge: d.floorAge ?? null, worstAge: d.runOutAge,
+  left: d.left ? d.left.typical : null, best: d.left ? d.left.best : null, planToAge: d.chance.planToAge, verdict: d.verdict });
 
 describe('the one adapter and the one runner', () => {
   it('the adapter is the keep: the plan it makes is the plan buildPlanSeed and seedToScenario make for the same answer', () => {
@@ -91,19 +105,51 @@ describe('the one adapter and the one runner', () => {
   });
 });
 
-describe('D: the answer and the plan kept from it (not yet one: the gaps measured above)', () => {
-  for (const [name, ins] of [['D1', D1], ['D3', D3], ['D9', D9]]) {
-    it.fails(`${name}: the same count, weighted chance, run-out age and plan-to age`, () => {
+describe('the kept plan\'s config on the answers\' fast path', () => {
+  it('a kept plan\'s Pots & Valves config (the default ISA strategy named, the glidepath of the plan\'s length on a longer run) is the fast path\'s, and runs out in the month simulate does', () => {
+    const pc = planCaseOf('d', checkInputs(SCHEMA_D, D1, ENV).inputs, ENV);
+    const config = pc.runner.configsAtH(2100 * 12)[0].config;
+    expect(config.isaDrawdownStrategy).toBe('minimiseEarlyTax');
+    expect(config.duration).toBeLessThan(config.years);
+    expect(fastEligible(config)).toBe(true);
+    for (let i = 0; i < N; i++) {
+      const life = pc.sp.lives[i];
+      const s = simulate(config, sliceReturns(life, 0, config.years), life.seed);
+      const f = pc.runner.run(0, i, config);
+      expect([f.failed, f.failMonth]).toEqual([s.failed, s.failMonth]);
+    }
+  });
+  it('a config with year 0 for fewer than twelve months is simulate\'s own, never the replica\'s', () => {
+    const pc = planCaseOf('d', checkInputs(SCHEMA_D, D1, ENV).inputs, ENV);
+    expect(fastEligible({ ...pc.runner.configsAtH(2100 * 12)[0].config, year0Months: 7 })).toBe(false);
+  });
+});
+
+describe('D: the answer is the plan kept from it (one person, the plan path)', () => {
+  // D1 25 of 40 to 99, weighted 0.858, the money runs out at 93 in the middle of the futures it runs out in, 90 in the worst
+  // 1 in 10; D3 20 of 40, 0.705, 87; D5 (53, the pension closed until 57) 12 of 40 to 98 (the kept plan's 45 years), 0.492;
+  // D9 34 of 40 to 100, 0.964. Each figure the kept plan's own, to the last bit.
+  for (const [name, ins] of [['D1', D1], ['D3', D3], ['D5', D5], ['D9', D9]]) {
+    it(`${name}: the same count, weighted chance, verdict, run-out ages, left at the end and plan-to age`, () => {
       const d = answerD(ins, ENV);
       const kept = keptPlansOf('d', d, ENV).yours;
-      const plan = planReading(kept);
-      const answer = answerReading(d);
-      expect(answer.planToAge).toBe(plan.planToAge);
-      expect(answer.lasted).toBe(plan.lasted);
-      expect(answer.weighted).toBe(plan.weighted);
-      expect(answer.runOutAge).toBe(plan.runOutAge);
+      expect(answerReading(d)).toEqual(planReading(kept));
     });
   }
+  it('D7: the answer without the work is the plan kept without it', () => {
+    const d = answerD({ ...D7, work: { has: false } }, ENV);
+    expect(answerReading(d)).toEqual(planReading(keptPlansOf('d', d, ENV).yours));
+  });
+  it('each level\'s amount, kept, passes at its level, and £10 a month more does not', () => {
+    const d = answerD(D1, ENV);
+    for (const level of ['careful', 'balanced', 'bold']) {
+      const at = (monthly) => planReading(keptPlansOf('d', answerD({ ...D1, confidence: level, spend: { kind: 'amount', amount: monthly } }, ENV), ENV).yours);
+      const m = d.levels[level].monthly;
+      expect(at(m).verdict, level).toBe('yes');
+      expect(at(m).weighted, level).toBe(d.levels[level].weighted);
+      expect(at(m + 10).verdict, level).not.toBe('yes');
+    }
+  }, 60000);
 });
 
 /** The households of the C, A and B checks (made up). */

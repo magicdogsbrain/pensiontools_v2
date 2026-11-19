@@ -16,16 +16,20 @@
  *      a fifth?" (D on the pots scaled: one verdict, one band). A lever not asked for costs nothing;
  *   8. the sentences, from the result only (d/sentences.js).
  *
- * At a stop of today's age the band, the phases and the guaranteed income are question C's from now, to the bit, and the
- * verdict at the spend is A's stop-now row (tests/v7/d/identity.test.js). Every "will it last" figure comes from the
- * one engine through the one adapter: nothing is reimplemented here.
+ * ONE PERSON IS ON THE PLAN PATH (7.12.0, one answer for the same household; answers/keep/planPath.js, handed in as
+ * env.planPath — answers/index.js answerFor): the verdict, the band and both levers run on the plan keeping the answer
+ * would write, so the count that lasts to the plan-to age, the weighted chance, the bad-case run-out age, the middle
+ * run-out age and what is typically left are the kept plan's "Does it last?" figures (tests/v7/cross/answerIsPlan.test.js).
+ * The plan-to age is the kept plan's (at most 45 years). A couple's household run stays the couple's engine (the lead's
+ * ruling 9), as does a household with nothing to draw on (no run at all). Until C and A are on the plan path too, D's band
+ * is no longer C's from now nor its verdict A's stop-now row (tests/v7/d/identity.test.js says so).
  *
  * Pure: the same inputs and env give the same result on every device. Reads no clock, storage, network or screen.
  * Never throws for a bad value: returns status 'invalid' with the problems.
  *
  * @param {object} inputs  checked inputs of SCHEMA_D (unchecked inputs are checked here again)
- * @param {import('../shared/contract.js').Env} env   C's (today, futures, seed, trace, onProgress, futureReturns); tests
- *   only: mix (an exact drawing mix), savingsGrowth
+ * @param {import('../shared/contract.js').Env} env   C's (today, futures, seed, trace, onProgress, futureReturns), and
+ *   `planPath` (one person: answers/keep/planPath.js, required); tests only: mix (an exact drawing mix), savingsGrowth
  * @returns {object}   AnswerD (answer-D.md 6.1)
  */
 import { SCHEMA_D, spendOf, FALL_SHARE } from './schema.js';
@@ -59,6 +63,12 @@ function envProblems(env) {
   return problems;
 }
 
+/** One person is on the plan path; it must be handed in (answers/index.js answerFor), never left out silently. */
+const planPathProblems = (couple, env) => (!couple && !(env.planPath && typeof env.planPath.planCaseOf === 'function') ? [{ field: 'env.planPath', messageId: 'required' }] : []);
+
+/** Whether the household has a pension or savings to draw on (the inputs as checked). */
+const anyPotIn = (ins) => [ins.you, ins.household === 'couple' ? ins.partner : null].some((p) => p && p.pot > 0) || ins.savings > 0;
+
 /** The fields whose value is the input list's default (as C and A: decided by value, typed or left alone). */
 function defaultedFields(inputs, env) {
   const flat = flatten(inputs);
@@ -80,27 +90,50 @@ export function headroomOf(verdict, careful, spend) {
 
 /**
  * One verdict at the level and (when asked) one band on the shared lives, for a household built from `ins`: the band's
- * levels (`levels`, default the level chosen) on the stop plan's weights (7.8.0).
+ * levels (`levels`, default the level chosen) on the weights (7.8.0). `lives`: (T) → the answer's lives, at least T years.
  */
 function caseOf(ins, env, lives, stopAge, spendAYear, { band = true, levels = [levelOfInputs(ins)] } = {}) {
-  const { household, sp, runner, weigher, toMonth } = stopCaseOf(ins, env, lives, stopAge);
+  const c = stopCaseOf(ins, env, lives, stopAge);
+  const { sp, runner, weigher, toMonth } = c;
   const verdict = verdictAt(sp, runner, spendAYear, { weigher, level: levelOfInputs(ins), toMonth });
-  return { household, sp, runner, weigher, verdict, band: band ? bandAt(sp, runner, null, { weigher, levels, toMonth }) : null };
+  return { ...c, verdict, band: band ? bandAt(sp, runner, null, { weigher, levels, toMonth }) : null };
 }
 
 /**
- * The household built from `ins` stopped today on the shared lives, before any verdict: its stop plan, runner, weights and the
- * plan-to age's month (caseOf's own; and, with `dragPct`, "lower returns" for "Try the bad years": the household's
- * returnDragPct on the drawing configs, 7.9.0).
+ * The household built from `ins` stopped today on the shared lives, before any verdict: its runner, weights and the plan-to
+ * age's month (caseOf's own; and, with `dragPct`, "lower returns" for "Try the bad years": the returnDragPct on the drawing
+ * configs, 7.9.0). One person with something to draw on is on the plan path (`pc`: the kept plan's runner, weights and
+ * month); `stop` is the household's stop plan, which no run reads there — only what the answer is made of (the phases, the
+ * incomes that come anyway, who can draw before 2028). `lives`: (T) → the answer's lives, at least T years.
  */
 function stopCaseOf(ins, env, lives, stopAge, dragPct = 0) {
   const { household: named } = toHousehold(ins, env);
   const household = dragPct > 0 ? { ...named, returnDragPct: dragPct } : named;
-  const sp = stopAtPlan(household, stopAge, env, lives);
+  const couple = ins.household === 'couple' && !!ins.partner;
+  if (!couple && anyPotIn(ins)) {
+    const pc = env.planPath.planCaseOf('d', ins, env, { lives, dragPct });
+    const stop = stopAtPlan(household, stopAge, env, lives(pc.years));
+    return { household, sp: pc.sp, runner: pc.runner, weigher: pc.weigher, toMonth: pc.toMonth, pc, stop };
+  }
+  const sp = stopAtPlan(household, stopAge, env, lives(0));
   const runner = createStopRunner(sp);
   const weigher = weigherOf(sp.plan, ins, env);
   const toMonth = 12 * (sp.plan.endAge - sp.plan.startAge);
-  return { household, sp, runner, weigher, toMonth };
+  return { household, sp, runner, weigher, toMonth, pc: null, stop: sp };
+}
+
+/**
+ * The answer's lives: livesList(n, T) for the longest T any of its cases asks (the drawing years D, or a kept plan's years
+ * to the weighting age), made once and made again only longer — a shorter run reads the first years of the same lives
+ * (lives.js). (T) → lives.
+ */
+function livesOf(n, D, env) {
+  let L = null;
+  return (T = 0) => {
+    const want = Math.max(D, T);
+    if (!L || L[0].years < want) L = livesList(n, want, env);
+    return L;
+  };
 }
 
 /**
@@ -116,30 +149,43 @@ export function stressCaseOf(inputs, env) {
   if (!checked.ok) return null;
   const ins = checked.inputs;
   const couple = ins.household === 'couple' && !!ins.partner;
-  if (validateHousehold(toHousehold(ins, env).household, env.today).length) return null;
+  if (validateHousehold(toHousehold(ins, env).household, env.today).length || planPathProblems(couple, env).length) return null;
   const n = env.futures;
   const stopAge = ins.you.age;
   const younger = couple ? Math.min(ins.you.age, ins.partner.age) : ins.you.age;
   const D = Math.max(1, Math.min(drawYearsCap(env), runToAgeOfInputs(ins, 0, env) - younger));
-  const lives = livesList(n, D, env);
+  const lives = livesOf(n, D, env);
   const base = { ...ins, work: { has: false }, fall: { has: false } };
   const level = levelOfInputs(ins);
+  if (!anyPotIn(base)) return null;
   const main = stopCaseOf(base, env, lives, stopAge);
-  const { sp, runner, weigher, toMonth } = main;
-  const plan = runner.plan;
-  if (!sp.pots.some((q) => q.pension.some((v) => v > 0) || q.savings.some((v) => v > 0))) return null;
-  const chance = { planToAge: plan.endAge, weightToAge: weigher.weighted ? weigher.weightToAge : plan.endAge,
-    horizonRule: horizonRuleOf({ defaulted: defaultedFields(ins, env).includes('endAge'), capped: Boolean(plan.runCapped) }) };
+  const { weigher, toMonth } = main;
+  const plan = main.runner.plan;
+  const chance = chanceAgesOf(main, ins, env);
   const lf = lifeFactsOf({ chance, basis: levelBasis(level, weigher, ins, plan.endAge), level }, weigher, plan, ins);
   const monthsAt = ({ H, shock = null, dragPct = 0 }) => {
-    const c = shock || dragPct > 0 ? stopCaseOf(base, env, shock ? livesList(n, D, { ...env, shock: { ...shock, from: 0 } }) : lives, stopAge, dragPct) : main;
+    const c = shock || dragPct > 0 ? stopCaseOf(base, env, shock ? livesOf(n, D, { ...env, shock: { ...shock, from: 0 } }) : lives, stopAge, dragPct) : main;
     const months = verdictAt(c.sp, c.runner, H, { weigher, level, toMonth }).runOutMonths;
-    return { months, left: leftAtStop(c.sp, c.runner, H, months, toMonth), plan: c.runner.plan };
+    return { months, left: leftAtStop(c.sp, c.runner, H, months, toMonth), plan: wordsPlanOf(c) };
   };
   return { q: 'd', inputs: ins, plan, weigher, level, toMonth, lf, n, drawingNow: true, monthsAt };
 }
 
 const verdictBit = (v) => ({ verdict: v.verdict, fails: v.fails, lasted: v.lasted, runOutAge: v.runOutAge });
+
+/**
+ * The ages a chance is said to: the plan-to age (on the plan path the kept plan's, at most 45 years from today), the age the
+ * futures are followed on to, and how the plan-to age was set ('capped' also when the kept plan stops short of the end age).
+ */
+function chanceAgesOf(c, ins, env) {
+  const plan = c.runner.plan;
+  const capped = Boolean(plan.runCapped) || (c.pc ? c.pc.planToAge < ins.endAge : false);
+  return { planToAge: plan.endAge, weightToAge: c.weigher.weighted ? c.weigher.weightToAge : plan.endAge,
+    horizonRule: horizonRuleOf({ defaulted: defaultedFields(ins, env).includes('endAge'), capped }) };
+}
+
+/** The plan the shortfall words read (what comes in each year, the State Pension's start): the stop plan, to the plan-to age. */
+const wordsPlanOf = (c) => (c.pc ? { ...c.stop.plan, endAge: c.pc.planToAge } : c.runner.plan);
 
 export function answerD(inputs, env) {
   const problems = envProblems(env);
@@ -152,6 +198,8 @@ export function answerD(inputs, env) {
   const named = toHousehold(ins, env);
   const hp = validateHousehold(named.household, env.today);
   if (hp.length) return { status: 'invalid', problems: hp.map((p) => ({ field: p.field, messageId: p.problem })) };
+  const pp = planPathProblems(couple, env);
+  if (pp.length) return { status: 'invalid', problems: pp };
 
   const n = env.futures;
   const spend = spendOf(ins);
@@ -161,7 +209,7 @@ export function answerD(inputs, env) {
   // the drawing years from today: as A's lifeYears at a stop of today (S = 0), the end capped at 45 years ahead
   // (7.8.0, weighing: on to the later of the end age and the weighting age, weigh.js runToAgeOfInputs)
   const D = Math.max(1, Math.min(drawYearsCap(env), runToAgeOfInputs(ins, 0, env) - younger));
-  const lives = livesList(n, D, env);
+  const lives = livesOf(n, D, env);
   const tell = (done, total) => { if (typeof env.onProgress === 'function') env.onProgress(done, total); };
   const steps = 2 + (ins.work && ins.work.has ? 1 : 0) + (ins.fall && ins.fall.has ? 1 : 0);
   let step = 0;
@@ -171,12 +219,14 @@ export function answerD(inputs, env) {
   const level = levelOfInputs(ins);
   const main = caseOf(base, env, lives, stopAge, spendAYear, { levels: LEVEL_IDS });
   tell(++step, steps);
-  const { sp, runner, verdict, band, weigher } = main;
+  const { verdict, band, weigher } = main;
   const shownMonthly = band.levels[level].monthly;
-  const plan = runner.plan;
-  const anyMoney = sp.pots.some((q) => q.pension.some((v) => v > 0) || q.savings.some((v) => v > 0));
-  const status = anyMoney ? 'ok' : plan.guaranteedAYear > 0 ? 'guaranteed-only' : 'none';
-  const phases = phasesAt(sp, anyMoney ? spendAYear : 0);
+  // the run's shape (the kept plan's on the plan path), and the household's stop plan: what the answer is made of
+  const plan = main.runner.plan;
+  const stop = main.stop;
+  const anyMoney = stop.pots.some((q) => q.pension.some((v) => v > 0) || q.savings.some((v) => v > 0));
+  const status = anyMoney ? 'ok' : stop.plan.guaranteedAYear > 0 ? 'guaranteed-only' : 'none';
+  const phases = phasesAt(stop, anyMoney ? spendAYear : 0);
   tell(++step, steps);
   const headroom = headroomOf(verdict.verdict, shownMonthly, spend);
 
@@ -222,14 +272,14 @@ export function answerD(inputs, env) {
     status, inputs: ins, whose: 'you',
     spend: { perMonth: spend, perYear: round2(spendAYear), kind: ins.spend.kind, level: ins.spend.kind === 'level' ? ins.spend.level : null },
     ...verdictBit(verdict), outOfTen: outOfTen(verdict.lasted),
+    // the plan path: the middle age the money ran out at, in the futures that ran out (the kept plan's floor line), and what
+    // is left at the plan-to age, typically and in the best 1 in 10, at today's prices (its "left at the end")
+    ...(main.pc && status === 'ok' ? { floorAge: main.pc.floorAgeOf(verdict.runOutMonths), left: { age: plan.endAge, ...main.pc.leftOf(spendAYear, verdict.runOutMonths) } } : {}),
     level,
     levels: Object.fromEntries(LEVEL_IDS.map((id) => [id, { monthly: band.levels[id].monthly, yearly: band.levels[id].yearly, weighted: band.levels[id].chance.weighted, fixedAge: band.levels[id].chance.fixedAge }])),
-    chance: chanceBlock({ weighted: verdict.weighted, fixedAge: verdict.lasted, fails: verdict.fails }, n, {
-      planToAge: plan.endAge, weightToAge: weigher.weighted ? weigher.weightToAge : plan.endAge,
-      horizonRule: horizonRuleOf({ defaulted: defaultedFields(ins, env).includes('endAge'), capped: Boolean(plan.runCapped) })
-    }),
+    chance: chanceBlock({ weighted: verdict.weighted, fixedAge: verdict.lasted, fails: verdict.fails }, n, chanceAgesOf(main, ins, env)),
     headroom,
-    guaranteed: { monthlyAfterTax: round2(plan.guaranteedAYear / 12) },
+    guaranteed: { monthlyAfterTax: round2(stop.plan.guaranteedAYear / 12) },
     phases,
     pensionOpens: Object.fromEntries((couple ? ['you', 'partner'] : ['you']).map((who) => [who, firstOpenAge(ins[who].age, env.today, 0)])),
     work,
@@ -245,7 +295,7 @@ export function answerD(inputs, env) {
     units: UNITS
   };
   // who moves money into drawdown before 6 April 2028 at 55 or 56 (shared/apart.js): everyone it applies to
-  const drawdown2028 = before2028(plan.people.map((p) => ({ who: p.who, age: ins[p.who].age, S: 0, pension: p.pension > 0 })), env.today);
+  const drawdown2028 = before2028(stop.plan.people.map((p) => ({ who: p.who, age: ins[p.who].age, S: 0, pension: p.pension > 0 })), env.today);
   // 7.8.0, weighing: the basis says so, and the words read the chance's facts and the shortfall at the spend (the amount
   // the verdict is about: when the money runs out at it, how much is still paid, what comes in after)
   let weighing = null;
@@ -253,14 +303,14 @@ export function answerD(inputs, env) {
     result.basis.weighted = true;
     const toMonth = 12 * (plan.endAge - plan.startAge);
     weighing = { lf: lifeFactsOf(result, weigher, plan, ins),
-      sf: status === 'ok' ? shortfallOf(plan, verdict.runOutMonths, spendAYear, { toMonth, left: leftAtStop(sp, runner, spendAYear, verdict.runOutMonths, toMonth) }) : null };
+      sf: status === 'ok' ? shortfallOf(wordsPlanOf(main), verdict.runOutMonths, spendAYear, { toMonth, left: leftAtStop(main.sp, main.runner, spendAYear, verdict.runOutMonths, toMonth) }) : null };
   }
   textsFor(result, {
     usedDefault: defaultedFields(ins, env), fullStatePensionAYear: named.fullStatePensionAYear, historyStartYear: historyStartYear(),
-    madeUpFutures: typeof env.futureReturns === 'function', capped: Boolean(plan.capped), capYears: drawYearsCap(env), drawdown2028, weighing
+    madeUpFutures: typeof env.futureReturns === 'function', capped: Boolean(stop.plan.capped) || chanceAgesOf(main, ins, env).horizonRule === 'capped', capYears: drawYearsCap(env), drawdown2028, weighing
   });
   if (env.trace) {
-    result.trace = { lives: Array.from({ length: n }, (_, i) => ({ id: i, runOutMonth: verdict.runOutMonths[i] })), evaluations: runner.evaluations };
+    result.trace = { lives: Array.from({ length: n }, (_, i) => ({ id: i, runOutMonth: verdict.runOutMonths[i] })), evaluations: main.runner.evaluations };
   }
   return JSON.parse(JSON.stringify(result, (key, v) => (typeof v === 'number' ? noNegZero(v) : v)));
 }

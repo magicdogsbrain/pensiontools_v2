@@ -48,12 +48,22 @@
  * the same lives, or ignores it: question A's every-age step takes the rows its answer step has just worked out (step 4
  * brief 10, J17); C and B ignore it. It never leaves the worker, and it changes no figure — only how long it takes.
  */
-import { ANSWERS } from '../../answers/index.js';
+import { ANSWERS, ON_PLAN_PATH, loadPlanPath } from '../../answers/index.js';
 import { VERSION } from '../../constants.js';
 import { cloneSafe } from '../../utils/cloneSafe.js';
 import { runStressStrip } from '../../answers/shared/stressStrip.js';
 
-const PROGRESS_STEPS = 20;     // at most this many progress messages per answer (plus the last)
+const PROGRESS_STEPS = 20;
+
+/**
+ * Runs `f(env)` with what the question needs: a question on the plan path (answers/index.js ON_PLAN_PATH) is handed the
+ * plan path, loaded lazily the first time (its own chunk); every other question runs at once, as before. An error is posted.
+ */
+function withEnvFor(q, env, f, post, id) {
+  if (!ON_PLAN_PATH.includes(q) || (env && env.planPath)) return f(env);
+  loadPlanPath().then((planPath) => f({ ...env, planPath })).catch((e) => post({ id, error: String((e && e.message) || e) }));
+  return undefined;
+}     // at most this many progress messages per answer (plus the last)
 
 /** The last month of bundled market history, if the answers say (it is also in every result's `basis`). */
 function historyEndOf(answers) {
@@ -201,7 +211,8 @@ export function createHandler(answers = ANSWERS, { lasts = null, document = null
           lastStep = step;
           post({ id, progress: { done, total } });
         };
-        post({ id, result: cloneSafe(stressStrip(msg.q, msg.inputs, env, { perMonth: msg.at.perMonth })) });
+        // (D's strip runs on the plan path for one person)
+        withEnvFor(msg.q, env, (e) => post({ id, result: cloneSafe(stressStrip(msg.q, msg.inputs, e, { perMonth: msg.at.perMonth })) }), post, id);
         return;
       }
       if (msg.type === 'saver' || msg.type === 'checkIn') {
@@ -236,9 +247,15 @@ export function createHandler(answers = ANSWERS, { lasts = null, document = null
           lastStep = step;
           post({ id, progress: { done, total } });
         };
-        const result = entry.answer(msg.inputs, env);
-        if (result && typeof result === 'object' && result.status !== 'invalid') last.set(msg.q, result);
-        post({ id, result: cloneSafe(result) });
+        withEnvFor(msg.q, env, (e) => {
+          try {
+            const result = entry.answer(msg.inputs, e);
+            if (result && typeof result === 'object' && result.status !== 'invalid') last.set(msg.q, result);
+            post({ id, result: cloneSafe(result) });
+          } catch (err) {
+            post({ id, error: String((err && err.message) || err) });
+          }
+        }, post, id);
         return;
       }
       throw new Error(`unknown message "${msg.type}"`);

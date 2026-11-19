@@ -11,7 +11,7 @@
  *   writes()                          { [storageKey]: count } of session and local storage writes since load
  *   whenDone()                        a promise for data-ready="1"
  */
-import { ANSWERS } from '../../answers/index.js';
+import { answerFor } from '../../answers/index.js';
 import { A } from '../state/actions.js';
 import { createWorkerClient } from '../effects/workerClient.js';
 import { SCHEMAS } from '../state/select.js';
@@ -58,7 +58,7 @@ export function installHooks({ store, root, writes, client = () => null, win = w
       const c = client();
       if (c && patch && patch.today) c.init(patch.today).catch(() => {});
     },
-    answer(q, inputs, env) { return ANSWERS[q].answer(inputs, env); },
+    answer(q, inputs, env) { return answerFor(q, inputs, env); },
     parseDraft(q, values, env) { return parseDraft(SCHEMAS[q], values, env || store.getState().env); },
     answerInWorker(q, inputs, env) { return mine().answer(q, inputs, env); },
     writes,

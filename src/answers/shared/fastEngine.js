@@ -202,14 +202,19 @@ export function fastEligible(c) {
   const finite = (v) => typeof v === 'number' && Number.isFinite(v);
   return finite(c.equityStart) && finite(c.bondStart) && finite(c.cashStart)
     && finite(c.equityMin) && finite(c.bondMin) && finite(c.cashTarget)
-    && Number.isInteger(c.years) && c.years > 0 && c.duration === c.years
+    // the glidepath's length: the run's own, or (7.12.0, the plan path) the plan's own on a run followed on past it — every
+    // floor is read through calculateGlidepath on config.duration in both engines (prepareRun), so any whole length is the same sum
+    && Number.isInteger(c.years) && c.years > 0 && Number.isInteger(c.duration) && c.duration > 0 && c.duration <= c.years
     && isZero(c.other) && (c.extraWithdrawals === undefined || emptyList(c.extraWithdrawals))
     && typeof c.spStartYear === 'number' && finite(c.spWeeklyAmount) && (c.spFirstYearRatio === undefined || finite(c.spFirstYearRatio))
     && finite(c.pa) && finite(c.brl) && (c.hrl === undefined || finite(c.hrl)) && c.taxMode === 'inflates'
     && c.disableProtection === true
     && !c.hodlEnabled && isZero(c.hodlStart)
     && isZero(c.diversifierStart) && c.subAsset === undefined && c.isaMix === undefined && (c.isaReturn === undefined || finite(c.isaReturn))
-    && c.isaDrawdownStrategy === undefined && ISA_DEFAULTS.DRAWDOWN_STRATEGY === 'minimiseEarlyTax' && (c.isaBalance === undefined || finite(c.isaBalance))
+    // (a plan's config names the default ISA strategy outright; the engines read an absent one as that default)
+    && (c.isaDrawdownStrategy === undefined || c.isaDrawdownStrategy === 'minimiseEarlyTax') && ISA_DEFAULTS.DRAWDOWN_STRATEGY === 'minimiseEarlyTax' && (c.isaBalance === undefined || finite(c.isaBalance))
+    // year 0 for the months it has (7.12.0, SimulationEngine notYetMonths): `simulate`'s own; the replica has no such months
+    && !(c.year0Months > 0 && c.year0Months < 12)
     && isZero(c.taxableStart) && emptyList(c.windfalls)
     && (c.accessMethod === 'ufpls' || c.accessMethod === 'drawdown') && !c.ufplsYears && !c.ufplsThenPcls && !c.bandFillRecycle
     && (c.dbAmount === undefined || finite(c.dbAmount)) && (!(c.dbAmount > 0) || c.dbIndexation === 'cpi')

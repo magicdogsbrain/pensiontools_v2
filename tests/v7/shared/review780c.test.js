@@ -4,7 +4,7 @@
  * Fictional households only (Alex, Sam).
  */
 import { describe, it, expect } from 'vitest';
-import { answerD } from '../../../src/answers/d/answer.js';
+import { answerD } from '../d/_d.js';
 import { RULES, drawYearsCap } from '../../../src/answers/shared/rules.js';
 
 const ENV = { today: '2026-09-30', futures: 20, seed: 0, weighted: true };
@@ -86,7 +86,7 @@ describe('a couple\'s answer says the couple\'s words', () => {
 
 describe('D\'s picture: the guide line\'s key says what it is at every level', () => {
   it('weighing: the key names the boldest level as a guide to middling years, never "at Bold" as if Bold were chosen', async () => {
-    const { answerD } = await import('../../../src/answers/d/answer.js');
+    const { answerD } = await import('../d/_d.js');
     const { potPicture } = await import('../../../src/v7/state/pictures.js');
     const { PICTURE } = await import('../../../src/v7/copy/picture.js');
     for (const level of ['careful', 'balanced', 'bold']) {
@@ -148,7 +148,7 @@ describe('a kept plan\'s last age: the answer\'s plan-to age, or said on Keep wh
     expect(KEEP.cut).toMatch(/\{kept\}.*\{years\} years.*\{age\}/);
   });
   it('D at 66, counted to its plan-to age: not cut; the plan covers the same years the answer tested', async () => {
-    const { answerD } = await import('../../../src/answers/d/answer.js');
+    const { answerD } = await import('../d/_d.js');
     const r = answerD({ stopped: 'yes', you: { age: 66, pot: 400000, taxFreeTaken: 'no', sex: 'male' }, spend: { kind: 'amount', amount: 2000 } }, env);
     const { len, endAge } = await keep('d', r);
     expect(len.cut).toBe(false);

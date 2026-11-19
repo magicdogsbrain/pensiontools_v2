@@ -79,7 +79,9 @@ describe('the answer engine: the reading at the amount being tried', () => {
     expect(s.take.id).toMatch(/^c\.take/);
   });
 
-  it('is D\'s reading of what you take: the same chance, bad case, phases and words, from now', () => {
+  // (7.12.0, step P: one person's D runs on the plan keeping it would write, C not yet — until C is on the plan path too, D
+  // and C's take are not the same reading; this turns red the day C moves, and becomes an `it` again)
+  it.fails('is D\'s reading of what you take: the same chance, bad case, phases and words, from now (until C is on the plan path)', () => {
     const d = { you: { age: 68, pot: 300000, taxFreeTaken: 'no' }, savings: 40000, spend: { kind: 'amount', amount: 2400 } };
     const env = { today: '2026-09-30', futures: 100, seed: 0, trace: false };
     const D = answerD(d, env);

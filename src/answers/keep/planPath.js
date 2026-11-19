@@ -1,0 +1,266 @@
+/**
+ * THE PLAN PATH of a question's answer (7.12.0, one answer for the same household; the lead's ruling D22, step P): for one
+ * person, an answer's "will it last" runs are the kept plan's own. At a household take-home of H a year, the engine config
+ * is the one the plan test runs on the plan that keeping the answer at H would write:
+ *
+ *   inputs at H → planSeed.buildPlanSeed → PlanFromSeed.seedToScenario     the keep's own two steps (keep/keptPlan.js)
+ *              → PlanReading.effectiveStressSettings                      the one settings recipe
+ *              → lastsRun.planFor, weightedPlanFor                         the plan, followed on to the weighting age
+ *              → its Pots & Valves config (pnvCfg), the plan's own years and glidepath
+ *
+ * so the take-home is grossed by the keep's own step, the State Pension's first year is the tax year's share, the final-salary
+ * rule is the one stored, the cuts are the kept plan's, the glidepath runs over the plan's own length and the run goes on
+ * to the weighting age as "Does it last?" goes on. The runs themselves stay on the answers' fast path (fastEngine.js, the
+ * replica of `simulate`, which falls back to `simulate` for a config it does not cover — a closed pension, an ISA invested
+ * without a mix), on the same futures the plan test draws (seed i × 7919 + 3, engine seed i), so a future runs out in the
+ * same month here as in the plan's own run.
+ *
+ * The figures are the plan's (OneAnswer.js), on these runs:
+ *   - the count that lasts to the plan-to age (the plan's own years) and what is typically left then (the plan's terminal,
+ *     at today's prices by the future's own prices over the plan's years);
+ *   - the weighted chance, each future that ran out weighed by the chance someone is alive at the start of the run YEAR it
+ *     ran out in (OneAnswer.weightedFailsOf: the plan's person, life.js lifeOf) — `weigher.byMonth` holds that weight for
+ *     every month, so the answers' solvers read it unchanged;
+ *   - the run-out age the plan's floor line says (OneAnswer weightedPartOf floor.age: the middle run year of the futures
+ *     that ran out, to the weighting age), and the bad case (the worst 1 in 10, OneAnswer.planShortfallOf when.worst).
+ *
+ * Loaded LAZILY (answers/index.js loadPlanPath): it reaches the strategies through lastsRun.js, which the worker's own chunk
+ * never carries (tests/v7/boundaries.test.js). An answer receives it as env.planPath.
+ *
+ *   planCaseOf(source, ins, env, { lives, dragPct }) → the case (see below)
+ *     source   'd' (one person; the others follow)
+ *     ins      the answer's checked inputs (levers as asked: D's work is the kept plan's work from today)
+ *     lives    (T) → a livesList of at least T years (the answer's own, so every case of one answer shares its futures), or
+ *              such a list
+ *     dragPct  "Try the bad years" lower returns (7.9.0): percent a year off every pot, on the plan's config as the plan's own
+ *              row puts it (lastsRun.rowPlanOf: pnvCfg.returnDragPct)
+ *
+ * Pure: the date is env.today; no storage, no Math.random.
+ */
+import { buildPlanSeed } from './planSeed.js';
+import { seedToScenario } from '../../services/PlanFromSeed.js';
+import { effectiveStressSettings } from '../../services/PlanReading.js';
+import { jointSurvivalOf } from '../../services/LongevityModel.js';
+import { planToAgeOf } from '../../services/AgeConvention.js';
+import { pct } from '../../strategies/ladderEngine.js';
+import { simulate } from '../../services/SimulationEngine.js';
+import { isIsaGrowthMix } from '../../services/IsaGrowth.js';
+import { planFor, weightedPlanFor, weighing } from '../plan/lastsRun.js';
+import { lifeOf, weightedReasonOf, weightedYearsOf, planLevelOf } from '../plan/life.js';
+import { dateOf } from '../plan/dates.js';
+import { createFastRunner, prepareFutureFrom } from '../shared/fastEngine.js';
+import { livesList, sliceReturns } from '../shared/lives.js';
+import { STEP } from '../shared/band.js';
+import { WEIGHT_ONE } from '../shared/rules.js';
+import { firstOpenAge } from '../shared/household.js';
+import { LEVEL_IDS } from '../shared/levels.js';
+
+const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
+const STRATEGY = 'pots-and-valves';
+
+/** stressTest.js yearOfAge: the run year a future failed in, from its age then. */
+const yearOfAge = (failAge, startAge) => Math.max(0, Math.floor(failAge - startAge + 1e-9));
+/** The run year of a run-out month, as the plan test reads it (pnvRun failAge = startAge + failMonth / 12). */
+export const runYearOf = (m, startAge) => yearOfAge(startAge + m / 12, startAge);
+
+/**
+ * The answer as keepable at a take-home of `perMonth` a month, from its checked inputs alone: what planSeed reads of a D
+ * result (its inputs, the spend, the level's figure, the plan-to age, when the pension opens). The figures the keep stores
+ * beside the plan (the answer's own chance) are not in it: no setting reads them.
+ */
+function resultAt(source, ins, env, perMonth) {
+  if (source !== 'd') throw new Error('planCaseOf: only question D is on the plan path so far');
+  const level = LEVEL_IDS.includes(ins.confidence) ? ins.confidence : 'balanced';
+  const levels = { [level]: { monthly: perMonth, yearly: perMonth * 12 } };
+  const who = ins.household === 'couple' && ins.partner ? ['you', 'partner'] : ['you'];
+  return {
+    status: 'ok', inputs: ins, whose: 'you', level, levels, chance: {},
+    spend: { perMonth, perYear: perMonth * 12, kind: ins.spend.kind, level: ins.spend.kind === 'level' ? ins.spend.level : null },
+    pensionOpens: Object.fromEntries(who.map((w) => [w, firstOpenAge(ins[w].age, env.today, 0)])),
+    basis: { today: env.today, endAge: ins.endAge, startAge: ins.you.age, engineVersion: null, historyEnd: null }
+  };
+}
+
+/** The plan keeping the answer at `perMonth` would write (the keep's own two steps, as keep/keptPlan.js). */
+export function keptPlanAt(source, ins, env, perMonth) {
+  const result = resultAt(source, ins, env, perMonth);
+  const seed = buildPlanSeed({ source, result, env: { today: env.today, appVersion: '' }, name: null, createdAt: env.today + 'T00:00:00.000Z' });
+  if (!seed) return null;
+  return seedToScenario(seed, env.today).yours;
+}
+
+/**
+ * An ISA "invested like my pension" with no mix of its own grows by the run's pension pots at the start (IsaGrowth.js
+ * isaGrowthWeights, in both engines): named outright as its mix, the same weights to the bit, so the fast path can run it
+ * (fastEngine.fastEligible takes 'invested' only with a mix). Any other config is returned as it is.
+ */
+function withIsaMix(c) {
+  if (c.isaGrowth !== 'invested' || isIsaGrowthMix(c.isaGrowthMix)) return c;
+  const mix = { equity: c.equityStart, bond: c.bondStart, cash: c.cashStart };
+  return isIsaGrowthMix(mix) ? { ...c, isaGrowthMix: mix } : c;
+}
+
+/** The fields the fast path reads once per run from its base (fastEngine.js prepareRun): every config of a case shares them. */
+const PREPARED = ['equityMin', 'bondMin', 'cashTarget', 'duration', 'pa', 'brl', 'hrl', 'spendingProfile', 'spStartYear', 'spWeeklyAmount', 'spFirstYearRatio', 'dbAmount', 'dbStartYear', 'years'];
+const sameBase = (a, b) => PREPARED.every((k) => a[k] === b[k]) && JSON.stringify(a.extraIncomes || []) === JSON.stringify(b.extraIncomes || []);
+
+/**
+ * One case of an answer on the plan path: the kept plan at each take-home H, the runner over the answer's lives, the plan's
+ * weights and ages.
+ * @returns {{ plan, sp, runner, weigher, toMonth, planYears, years, startAge, planToAge, weightToAge, level, capped,
+ *   keptAt(H), settingsAt(H), floorAgeOf(months), worstAgeOf(months), leftOf(H, months) }}
+ *   plan: the run's shape for the answers' solvers (verdictAt, bandAt): one run, its base the config at the spend, the
+ *   plan's years to the weighting age, `startAge`, `endAge` = the plan-to age, `guaranteedAtStartAYear` 0 (the plan's first
+ *   tax year pays a share of the State Pension, so nothing above £0 lasts in every future for certain), `totalPots`.
+ */
+export function planCaseOf(source, ins, env, { lives = null, dragPct = 0 } = {}) {
+  const now = dateOf(env.today);
+  const spendAYear = ins.spend && isNum(ins.spend.amount) ? ins.spend.amount * 12 : null;
+  const memo = new Map();
+  /** The kept plan at H a year, its settings, its plan and the plan followed on to the weighting age. */
+  const at = (H) => {
+    let c = memo.get(H);
+    if (c) return c;
+    const kept = keptPlanAt(source, ins, env, H / 12);
+    if (!kept) throw new Error('planCaseOf: the answer cannot be kept at ' + H);
+    const settings = effectiveStressSettings(kept, { now });
+    const p = planFor(settings, now);
+    c = { kept, settings, p };
+    memo.set(H, c);
+    return c;
+  };
+  const H0 = isNum(spendAYear) && spendAYear > 0 ? spendAYear : 12 * STEP;
+  const first = at(H0);
+  const strategyId = first.settings.strategyId || STRATEGY;
+  if (strategyId !== STRATEGY) throw new Error('planCaseOf: a kept answer draws by Pots & Valves');
+  const p0 = first.p;
+  // (env.lifeTable: tests only, another table in LongevityModel's shape, as weigh.js reads it)
+  const table = env.lifeTable || undefined;
+  const life0 = lifeOf(first.kept, now, { settings: first.settings, startAge: p0.startAge, ...(table ? { table } : {}) });
+  // (env.weightToAge: tests only, the weighting age given, as weigh.js runToAgeOf reads it)
+  const life = isNum(env.weightToAge) ? { ...life0, weightToAge: env.weightToAge } : life0;
+  const weighted = weighing({ weighted: env.weighted });
+  const reason = weighted ? weightedReasonOf(life, strategyId, p0) : 'notWeighing';
+  const w = weightedYearsOf(life, p0);
+  const extend = !reason && w.extend;
+  const planYears = p0.durationYears;
+  const years = extend ? w.years : planYears;
+  const startAge = p0.startAge;
+  /** The config the run makes at H: the plan's own (its years), or the plan followed on to the weighting age. */
+  const configMemo = new Map();
+  const drag = isNum(dragPct) && dragPct > 0 ? { returnDragPct: dragPct } : {};
+  const configAt = (H) => {
+    let c = configMemo.get(H);
+    if (c) return c;
+    const { settings, p } = at(H);
+    const pRun = extend ? weightedPlanFor(settings, p, w.years, now) : p;
+    c = withIsaMix({ ...pRun.pnvCfg, ...drag, years: pRun.durationYears });
+    configMemo.set(H, c);
+    return c;
+  };
+  const base = configAt(H0);
+  // the plan's years, for the left at the end: the plan's own config (no run to the weighting age)
+  const planConfigAt = (H) => withIsaMix({ ...at(H).p.pnvCfg, ...drag, years: planYears });
+
+  const L = typeof lives === 'function' ? lives(years) : lives || livesList(env.futures, years, env);
+  for (const l of L) if (!(l.years >= years)) throw new Error(`planCaseOf: a life of ${l.years} years is shorter than the ${years} the plan runs`);
+  const n = L.length;
+  const totalPots = (base.equityStart || 0) + (base.bondStart || 0) + (base.cashStart || 0) + (base.isaBalance || 0);
+  const plan = {
+    runs: [{ base, index: 0, role: 'pension', offset: 0 }], years, startAge, endAge: planToAgeOf(startAge, planYears),
+    guaranteedAtStartAYear: 0, totalPots, shape: null, apart: null, runCapped: Boolean(w.capped && !reason), people: [{ who: 'you' }]
+  };
+  const drawFutures = L.map((life1) => ({ id: life1.id, seed: life1.seed, returns: sliceReturns(life1, 0, years) }));
+  const drivers = new Array(n).fill(null);
+  const fast = createFastRunner(plan, drawFutures, { driversFor: (i) => drivers[i] || (drivers[i] = prepareFutureFrom(L[i], 0, years)) });
+  const byH = new Map();
+  const configsAtH = (H) => {
+    let c = byH.get(H);
+    if (!c) {
+      const config = configAt(H);
+      if (!sameBase(config, base)) throw new Error('planCaseOf: the kept plan at another amount changes more than the amount');
+      c = [{ who: 'you', role: 'pension', config }];
+      byH.set(H, c);
+    }
+    return c;
+  };
+  let evaluations = 0;
+  let months = 0;
+  const fastRun = (r, i, config, hook = null, until = null, more = null) => {
+    const res = fast.run(r, i, config, hook, until, more);
+    months += res.failed ? res.failMonth + 1 : until === null ? 12 * config.years : Math.min(until, 12 * config.years);
+    return res;
+  };
+  const runner = {
+    plan,
+    potsFor: () => null, potsOf: () => [{ pension: base.equityStart + base.bondStart + base.cashStart, isa: base.isaBalance || 0 }],
+    configsAtH: (H) => configsAtH(H),
+    configsFor: (k) => configsAtH(k * STEP * 12),
+    fastRun,
+    driversOf: (r, i) => fast.driversOf(r, i),
+    run(r, i, config) { evaluations++; return fastRun(r, i, config); },
+    runUntil(r, i, config, until) {
+      if (!fast.stoppable(r, config)) return this.run(r, i, config);
+      evaluations++;
+      return fastRun(r, i, config, null, until);
+    },
+    get evaluations() { return evaluations; },
+    get months() { return months; }
+  };
+
+  // the plan's weights (OneAnswer.weightedFailsOf), month by month: the weight of the run year the month falls in
+  const toMonth = 12 * planYears;
+  const wMonths = 12 * years;
+  const byMonth = new Float64Array(wMonths + 1);
+  const S = jointSurvivalOf(life.people, life.d, table);
+  for (let m = 0; m <= wMonths; m++) byMonth[m] = reason ? WEIGHT_ONE : Math.round(S(startAge + runYearOf(m, startAge) - life.ageNow) * WEIGHT_ONE);
+  const planToAge = plan.endAge;
+  const weightToAge = reason ? planToAge : Math.min(life.weightToAge, Math.round(startAge + years));
+  const weigher = {
+    weighted: !reason, byMonth, months: wMonths, d: life.d, years, people: life.people.map((q) => ({ ...q, who: 'you' })),
+    planToAge, weightToAge, tablesVersion: life.tablesVersion || null
+  };
+
+  /** The middle run-out age of the futures that ran out, to the weighting age (OneAnswer floor.age); null when none did. */
+  const floorAgeOf = (ms) => {
+    const ys = ms.filter((m) => m !== null && m !== undefined).map((m) => runYearOf(m, startAge)).sort((a, b) => a - b);
+    return ys.length ? Math.round(startAge + ys[Math.floor((ys.length - 1) / 2)]) : null;
+  };
+  /** The bad case (OneAnswer.planShortfallOf when.worst): the floor(n/10)-th earliest run-out in the plan's years, else the plan-to age. */
+  const worstAgeOf = (ms) => {
+    const all = ms.map((m) => (m !== null && m !== undefined && runYearOf(m, startAge) < planYears ? runYearOf(m, startAge) : Infinity)).sort((a, b) => a - b);
+    const y = all[Math.floor(ms.length / 10)];
+    return Number.isFinite(y) ? Math.round(startAge + y) : planToAge;
+  };
+  /**
+   * What is typically left at the plan-to age at H (OneAnswer a.left.typical, the plan's terminal p50): in each future that
+   * lasted the plan's years, its pots then at today's prices by that future's own prices over the plan's years (the engine's
+   * finalReal + finalIsa / cumInflation); £0 where it ran out.
+   */
+  const leftOf = (H, ms) => {
+    const terms = new Array(n);
+    const config = configsAtH(H)[0].config;
+    for (let i = 0; i < n; i++) {
+      const m = ms[i];
+      if (m !== null && m !== undefined && m < toMonth) { terms[i] = 0; continue; }
+      const ret = drawFutures[i].returns;
+      let cumInfl = 1;
+      for (let y = 0; y < planYears; y++) cumInfl *= (1 + (ret.inflation[y] ?? 0.025));
+      if (fast.stoppable(0, config)) {
+        const s = fast.run(0, i, config, null, toMonth);
+        terms[i] = (s.equity + s.bond + s.cash) / cumInfl + (s.isa || 0) / cumInfl;
+      } else {
+        const s = simulate(planConfigAt(H), sliceReturns(L[i], 0, planYears), L[i].seed);
+        terms[i] = s.failed ? 0 : s.finalReal + (s.finalIsa || 0) / (s.cumInflation || 1);
+      }
+    }
+    return { typical: Math.round(pct(terms, 0.5)), best: Math.round(pct(terms, 0.9)) };
+  };
+
+  return {
+    source, plan, sp: { n, lives: L }, runner, weigher, toMonth, planYears, years, startAge, planToAge, weightToAge,
+    level: planLevelOf(first.kept), capped: plan.runCapped, reason,
+    keptAt: (H) => at(H).kept, settingsAt: (H) => at(H).settings,
+    floorAgeOf, worstAgeOf, leftOf
+  };
+}

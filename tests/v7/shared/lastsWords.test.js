@@ -7,7 +7,7 @@ import { describe, it, expect } from 'vitest';
 import { answerA } from '../../../src/answers/a/answer.js';
 import { answerB } from '../../../src/answers/b/answer.js';
 import { answerC } from '../../../src/answers/c/answer.js';
-import { answerD } from '../../../src/answers/d/answer.js';
+import { answerD } from '../d/_d.js';
 import { shortfallOf, floorAtYear } from '../../../src/answers/shared/shortfall.js';
 import { runToAgeOf } from '../../../src/answers/shared/weigh.js';
 import { lifeAssumed, fixedAgeParts, boldParts } from '../../../src/answers/shared/lastsWords.js';

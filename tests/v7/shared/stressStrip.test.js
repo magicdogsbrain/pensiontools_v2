@@ -12,7 +12,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { runStressStrip, stressCaseFor, STRIP_ROWS } from '../../../src/answers/shared/stressStrip.js';
 import { answerC } from '../../../src/answers/c/answer.js';
-import { answerD } from '../../../src/answers/d/answer.js';
+import { answerD, withPlanPath } from '../d/_d.js';
 import { bannedHits } from '../render/checkScreen.js';
 import { sayStress } from '../../../src/answers/plan/stressPanel.js';
 import { STRESS } from '../../../src/v7/copy/stressPanel.js';
@@ -33,7 +33,7 @@ const FUTURES = 200;
 /** The named state's inputs, answered again at FUTURES, and its strip at the amount it stands behind. */
 function caseOf(q, name) {
   const r = stateOf(q, name).answers[q].result;
-  const env = { today: r.basis.today, futures: FUTURES, seed: r.basis.seed ?? 0 };
+  const env = withPlanPath({ today: r.basis.today, futures: FUTURES, seed: r.basis.seed ?? 0 });
   const answer = (q === 'c' ? answerC : answerD)(r.inputs, env);
   const perMonth = stripAmountOf(q, answer);
   return { r, env, answer, perMonth, strip: runStressStrip(q, r.inputs, env, { perMonth }) };

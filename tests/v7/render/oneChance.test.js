@@ -15,7 +15,7 @@ import { draw } from './checkScreen.js';
 import { answerA } from '../../../src/answers/a/answer.js';
 import { answerB } from '../../../src/answers/b/answer.js';
 import { answerC } from '../../../src/answers/c/answer.js';
-import { answerD } from '../../../src/answers/d/answer.js';
+import { answerD } from '../d/_d.js';
 import { CHANCE_MORE_OPEN } from '../../../src/v7/components/Lasts.jsx';
 
 vi.mock('../../../src/v7/rail/questions.js', async () => {

@@ -37,8 +37,8 @@ import { startStaleBuild, watchClient } from './staleBuild.js';
  * behind them) are fetched only then, so the shell stays small; the worker has its own copy.
  */
 export async function answerOnPage(q, inputs, env) {
-  const { ANSWERS } = await import('../../answers/index.js');
-  return ANSWERS[q].answer(inputs, env);
+  const { answerFor } = await import('../../answers/index.js');
+  return answerFor(q, inputs, env);
 }
 
 /**

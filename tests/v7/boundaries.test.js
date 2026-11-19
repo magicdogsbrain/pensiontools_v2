@@ -347,8 +347,12 @@ describe('"Does it last?" — the engine reaches the worker lazily, and nowhere 
     // reached only by the worker's import(); so does the planner (index.html) for the what-if copy of the settings (trySettingsOf, 6.41.0)
     const importers = [...V7, ...ANSWERS].filter((f) => targetsOf(f).includes('src/answers/plan/lastsRun.js'));
     // (7.9.0: "Try the bad years" runs its rows through the one test too — stressPanelRun.js, reached by the worker's import() from step 4)
-    expect(importers.sort()).toEqual(['src/answers/plan/householdRun.js', 'src/answers/plan/keepRun.js', 'src/answers/plan/mixRun.js', 'src/answers/plan/moveRun.js', 'src/answers/plan/stressPanelRun.js', 'src/answers/plan/waysRun.js', 'src/v7/effects/answerWorker.js']);
+    // (7.12.0: the answers' plan path, keep/planPath.js, builds the kept plan's config with it — reached only by answers/index.js's import())
+    expect(importers.sort()).toEqual(['src/answers/keep/planPath.js', 'src/answers/plan/householdRun.js', 'src/answers/plan/keepRun.js', 'src/answers/plan/mixRun.js', 'src/answers/plan/moveRun.js', 'src/answers/plan/stressPanelRun.js', 'src/answers/plan/waysRun.js', 'src/v7/effects/answerWorker.js']);
     expect(staticReach(['src/v7/effects/answerWorker.js']).has('src/answers/plan/lastsRun.js'), 'the worker imports the run statically').toBe(false);
+    const planPathImporters = [...V7, ...ANSWERS].filter((f) => targetsOf(f).includes('src/answers/keep/planPath.js'));
+    expect(planPathImporters, 'the plan path is imported by answers/index.js alone').toEqual(['src/answers/index.js']);
+    for (const entry of ['src/v7/main.jsx', 'src/v7/effects/answerWorker.js']) expect(staticReach([entry]).has('src/answers/keep/planPath.js'), `${entry} imports the plan path statically`).toBe(false);
     for (const lazy of ['src/answers/plan/waysRun.js', 'src/answers/plan/mixRun.js', 'src/answers/plan/householdRun.js', 'src/answers/plan/moveRun.js', 'src/answers/plan/keepRun.js', 'src/answers/plan/stressPanelRun.js']) {
       const lazyImporters = [...V7, ...ANSWERS].filter((f) => targetsOf(f).includes(lazy));
       // (7.9.0: the held rows of "Try the bad years" walk a ladder's years as the keep test does: stressPanelRun.js, itself lazy, imports keepRun.js)

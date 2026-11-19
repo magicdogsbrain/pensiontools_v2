@@ -5,8 +5,15 @@
  * The households here are made up (Alex and Sam, round figures): nobody's own.
  */
 import { SCHEMA_D } from '../../../src/answers/d/schema.js';
+import { answerD as answerOnEnv } from '../../../src/answers/d/answer.js';
+import * as planPath from '../../../src/answers/keep/planPath.js';
 
-export { answerD } from '../../../src/answers/d/answer.js';
+/**
+ * D as every caller asks it (src/answers/index.js answerFor): one person's runs are the kept plan's, handed in as
+ * env.planPath — here the module itself, as the worker hands it after its lazy import.
+ */
+export const withPlanPath = (env) => (env && env.planPath ? env : { ...(env || {}), planPath });
+export const answerD = (inputs, env) => answerOnEnv(inputs, withPlanPath(env));
 export { SCHEMA_D };
 export const TEST_ENV = { today: '2026-09-30', futures: 40, seed: 0, trace: false };
 export { get, renderScreen } from '../c/_c.js';

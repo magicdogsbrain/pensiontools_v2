@@ -114,7 +114,8 @@ const SLOTS = Object.freeze({
   'saving.ages': { month: 'stop.month', span: 'yearsToGo', from: 'age.today' },
   'saving.agesNoMonth': { span: 'yearsToGo', from: 'age.today' },
   'saving.potNow': { value: 'pot.today' },
-  'saving.atStop': { value: 'pot.atStop', low: 'pot.atStop.low', high: 'pot.atStop.high' }
+  'saving.atStop': { value: 'pot.atStop', low: 'pot.atStop.low', high: 'pot.atStop.high' },
+  'saving.verdict.aim': { aimYearly: 'income.step.0.beforeTax', aimMonthly: 'income.step.0.monthAfterTax' }
 });
 
 /** Numbered lines: the slot `n` (1-based) names the pension the line is about. */

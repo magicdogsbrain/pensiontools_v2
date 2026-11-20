@@ -91,7 +91,8 @@ function Verdict({ V, planId, dispatch }) {
       {head}
       {v.ifSaved && <p class="notice" role="status" data-testid={`${T}.verdict.ifSaved`}>{t.ifSaved}</p>}
       <p class="note">{t.lead}</p>
-      <p class="note" data-testid={`${T}.verdict.aim`}>{fill(t.aim, n)}</p>
+      {/* the aim as the income reading says the plan's first step (step F2): one figure in both views, marked */}
+      {n.aimYearly && <p class="note" data-testid={`${T}.verdict.aim`}>{fillMarked(t.aim, n, slotFactsOf('saving.verdict.aim'))}</p>}
       {/* a couple's plan is read on its own until two plans are read together (release step R5): said, so the answer is
           never taken for the household's */}
       {n.couple && <p class="note" data-testid={`${T}.verdict.couple`}>{t.couple}</p>}

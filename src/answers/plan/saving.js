@@ -29,7 +29,8 @@
  * the warnings list leaves the planner's own two lines of it out (the allowance line says it); a plan without it is read by
  * its own records, as before (`warn.mpaa`).
  */
-import { takenOfTarget } from '../../services/BeforeTax.js';
+import { incomeStepsOf } from '../../reading/income.js';
+import { contextFor } from '../../reading/context.js';
 import { contributionBreakdown, contributionWarnings } from '../../services/AccumulationEngine.js';
 import { potAtStop } from '../../reading/atStop.js';
 import { moneyK, spanText } from '../../reading/format.js';
@@ -423,6 +424,20 @@ export function payInNowOf(settings) {
   return { id: (before ? 'before' : 'pounds') + (employer > 0 ? 'Employer' : ''), slots };
 }
 
+/**
+ * The aim the verdict tests, said as the income reading says the plan's first step (src/reading/income.js incomeStepsOf, step
+ * F2 fix: lead4.md D6): a year before tax as it is TAKEN (the plan's access rule, the income that comes anyway, the plan's own
+ * bands) and a month after tax. The step the run tests is the one in force at the stop, the reading's first step; a plan
+ * the reading has no step for keeps the run's own month (B's input) and says no yearly figure of its own.
+ */
+function aimOf(plan, list, today, notes) {
+  let st = null;
+  try { st = incomeStepsOf(plan, contextFor(plan, { today, plans: list.map((e) => e.plan) })).steps[0] || null; } catch { st = null; }
+  return st
+    ? { aimYearly: pounds(st.beforeTax), aimMonthly: pounds(st.monthAfterTax) }
+    : { aimYearly: null, aimMonthly: pounds(notes.aimMonthly) };
+}
+
 /** "Are you paying in enough?" on the plan's figures as saved: the run's key, inputs and the words beside it. */
 function verdictOf(plan, list, today) {
   const read = saverInputsOf(plan, { today, plans: list });
@@ -433,7 +448,7 @@ function verdictOf(plan, list, today) {
   try { total = contributionBreakdown({ netMonthly: +acc.netMonthly || 0, salary: +acc.salary || 0, schemeType: acc.schemeType || 'ras', employerMonthly: +acc.employerMonthly || 0 }).totalMonthly; } catch { total = 0; }
   const now = { line, salary: +acc.salary || 0, total: Math.round(total * 100) / 100 };
   return read.ok
-    ? { ok: true, key: saverRunKey(plan.id, read), inputs: read.inputs, env: read.env, now, notes: { ...read.notes, aimYearly: pounds(takenOfTarget(read.notes.aimYearly, plan && plan.stressTool && plan.stressTool.settings)), aimMonthly: pounds(read.notes.aimMonthly), stopAge: String(read.notes.stopAge), rise: read.notes.rise ? { pct: String(read.notes.rise.pct), path: read.notes.rise.path } : null } }
+    ? { ok: true, key: saverRunKey(plan.id, read), inputs: read.inputs, env: read.env, now, notes: { ...read.notes, ...aimOf(plan, list, today, read.notes), stopAge: String(read.notes.stopAge), rise: read.notes.rise ? { pct: String(read.notes.rise.pct), path: read.notes.rise.path } : null } }
     : { ok: false, why: read.why || 'notSaving', key: null };
 }
 

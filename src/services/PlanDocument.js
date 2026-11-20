@@ -89,7 +89,8 @@ export function trimPlan(p) {
   if (!p) return null;
   // `now` is a test/replay clock (planFromSettings { now }), never part of the saved plan; `shock`, `returnDragPct` and
   // `perFutureCuts` are a row of "Try the bad years" (7.9.0, lastsRun.rowPlanOf), a run's own, never a document's
-  const { pnvCfg, yieldForYear, now, shock, returnDragPct, perFutureCuts, ...rest } = p;
+  // `stopLives` (ruling 8): read again from the pots at the stop (`potAtRetirement.lives`, which the document keeps) on every run
+  const { pnvCfg, yieldForYear, now, shock, returnDragPct, perFutureCuts, stopLives, ...rest } = p;
   return plainClone(rest);
 }
 

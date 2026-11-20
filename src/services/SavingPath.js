@@ -103,21 +103,12 @@ function spread(values) {
 const given = (v) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : null);
 
 /**
- * Draw the path.
- * @param {object} a  { settings (Stress), timing (deriveTiming), accumulation (the planner's saved inputs), holdings (the
- *                    record or its lines), now, lives?, env? ({ futureReturns } for tests: V7's lives.js), explicit?, phases? }
- *   risePrices  true: what goes in rises with each future's own prices (the answer's rule), not the plan's yearly rise
- *   phases    the plan's `phases` root (7.10.0): a saving level the person chose decides the saving mix (savingPathMixes)
- *   explicit  { potNow, isaNow, totalMonthly, isaMonthly } (research/saving-enough-and-check-in.md 5.3): each one given is
- *             used in place of what the path would read — a saver's first check-in draws the path from its own pension,
- *             ISA and what goes into each, never from the holdings ledger or the saved settings, and the head says so
- *             (`potSource: 'check-in'`). The holdings then decide only the saving mix. A lock (7.12.0) passes the pension
- *             today every screen reads (services/PensionToday.js) with its own `potSource`: 'holdings', 'accumulation',
- *             'record' or 'plan'.
- * @returns {null | object}  null unless retiring later; the block stored as `planDocument.accumulation`
+ * What the saving years run on, read once from the plan's facts (buildSavingPath's inputs): the years to the stop, the
+ * pension and savings today, what goes into each a month, the charge, how the savings grow, the mixes — exact figures, plain
+ * data (no typed arrays, no functions), so the plan test can carry it in a plan's settings and draw the same lives again
+ * (stopPotsByLife). `head0`: the path head's fields read from the same figures (rounded as the path stores them).
  */
-export function buildSavingPath({ settings = {}, timing, accumulation = null, holdings = null, now = new Date(), lives: count = SAVING_PATH_LIVES, env = {}, explicit = null, phases = null, risePrices = false } = {}) {
-  if (!timing || timing.mode !== 'future' || !(timing.currentAge > 0)) return null;
+export function savingCoreFrom({ settings = {}, timing, accumulation = null, holdings = null, explicit = null, phases = null, risePrices = false } = {}) {
   const s = settings || {};
   const a = accumulation || {};
   const x = explicit && typeof explicit === 'object' ? explicit : {};
@@ -142,42 +133,106 @@ export function buildSavingPath({ settings = {}, timing, accumulation = null, ho
   // path does too — the funds' own mix on the same futures (review of 6.22.0; services/IsaFunds.js).
   const fundsMix = isaFundsSavingMix(s);
   const mixes = savingPathMixes(s, prop, a, phases);
-  const head = {
-    version: SAVING_PATH_VERSION, asOf: monthKey(now), drawnAt: now.toISOString(), lives: count, seed: SAVING_PATH_SEED,
-    startAge: timing.currentAge, retireAge: timing.shapeAgeNow, years,
+  const isaReturn = fundsMix || isaGrowth ? null : (Number.isFinite(+s.isaReturn) ? +s.isaReturn : ISA_DEFAULTS.RETURN);
+  const head0 = {
     potNow: potNow == null ? null : r0(potNow), potSource: potNow == null ? null : potGiven != null ? (typeof x.potSource === 'string' ? x.potSource : 'check-in') : (fromLedger > 0 ? 'holdings' : 'accumulation'),
     isaNow: r0(isaNow), isaSource: isaGiven != null ? 'check-in' : isaLedger != null ? 'holdings' : 'settings',
     totalMonthly: r0(totalMonthly), isaMonthly: r0(isaMonthly), escalationPct, chargesPct,
-    isaGrowth, ...(fundsMix ? { isaFromFunds: true, isaMix: fundsMix } : isaGrowth ? {} : { isaReturn: Number.isFinite(+s.isaReturn) ? +s.isaReturn : ISA_DEFAULTS.RETURN }),
-    mixes: { saving: mixes.saving, drawing: mixes.drawing, fromHoldings: mixes.fromHoldings },
-    mixText: prop && prop.total > 0 ? (Math.round(prop.buckets.shares * 100) + '% shares · ' + Math.round(prop.buckets.bonds * 100) + '% bonds · ' + Math.round((prop.buckets.diversifiers || 0) * 100) + '% diversifiers · ' + Math.round(prop.buckets.cash * 100) + '% cash') : null
+    isaGrowth, ...(fundsMix ? { isaFromFunds: true, isaMix: fundsMix } : isaGrowth ? {} : { isaReturn }),
+    mixes: { saving: mixes.saving, drawing: mixes.drawing, fromHoldings: mixes.fromHoldings }
   };
-  // Locked with no pension pot on record: the gap is recorded, never a path from the pots the strategy was tested on.
-  if (potNow == null) return JSON.parse(JSON.stringify({ ...head, path: [] }));
+  // risePrices (7.12.0, services/PotsAtStop.js): what goes in rises with each future's own prices, as the answer has it
+  const core = { years, potNow, isaNow, totalMonthly, isaMonthly, escalation: risePrices ? null : escalationPct / 100, isaEscalation: escalationPct / 100, chargesPct, isaGrowth: isaGrowth || null,
+    isaReturn, fundsMix: fundsMix || null, mixes: { saving: mixes.saving, drawing: mixes.drawing } };
+  return { core, head0, prop };
+}
 
+/**
+ * The saving years over `count` lives (seed 0, V7's lives), from a core (savingCoreFrom): savingYearsByLife's arrays, the ISA
+ * at its fixed rate where the plan has no ISA choice. → { out: { pension, savings, price, paidIn } (life i, year y at
+ * i × W + y, pounds of the day), W }.
+ */
+function growLives(core, count, env = {}) {
+  const { years, potNow, isaNow, totalMonthly, isaMonthly, chargesPct, isaGrowth, fundsMix, mixes } = core;
   const household = {
     people: [{ who: 'you', age: 0, pots: { pension: potNow, isa: isaNow }, saving: { payIn: { total: totalMonthly }, savingsIn: isaMonthly } }],
     chargesPct, ...(isaGrowth ? { isaGrowth } : {}), portfolio: { kind: 'risk', level: 'balanced' }
   };
   const plan = savingPlan(household, years, { mix: mixes.drawing, savingMix: mixes.saving });
-  const lives = livesList(count, years + 1, { seed: SAVING_PATH_SEED, ...(env.futureReturns ? { futureReturns: env.futureReturns } : {}) });
-  const esc = escalationPct / 100;
-  // risePrices (7.12.0, services/PotsAtStop.js): what goes in rises with each future's own prices, as the answer has it
-  const out = savingYearsByLife(plan, 0, lives, { ...(risePrices ? {} : { escalation: esc }), ...(fundsMix ? { savingsMix: fundsMix } : {}) });
+  const lives = livesList(count, years + 1, { seed: SAVING_PATH_SEED, ...(env && env.futureReturns ? { futureReturns: env.futureReturns } : {}) });
+  const esc = core.escalation;
+  const out = savingYearsByLife(plan, 0, lives, { ...(esc === null ? {} : { escalation: esc }), ...(fundsMix ? { savingsMix: fundsMix } : {}) });
   const W = years + 1;
   if (!isaGrowth && !fundsMix) {
     // No choice (a plan locked before it, unlocked again without one): the ISA at the fixed rate the engines run such a
     // plan at — each month's payment in, the month's growth, then the charge; the same in every future in pounds of the day.
-    const q = Math.pow(1 + head.isaReturn, 1 / 12), chargeM = monthlyChargeFactor(chargesPct);
+    const q = Math.pow(1 + core.isaReturn, 1 / 12), chargeM = monthlyChargeFactor(chargesPct);
     const fixed = new Float64Array(W);
     let sav = isaNow; fixed[0] = sav;
     for (let y = 0; y < years; y++) {
-      const pay = isaMonthly * Math.pow(1 + esc, y);
+      const pay = isaMonthly * Math.pow(1 + core.isaEscalation, y);   // (the fixed rate's payments rise by the plan's yearly rise, as they always did)
       for (let m = 0; m < 12; m++) sav = (sav + pay) * q * chargeM;
       fixed[y + 1] = sav;
     }
     for (let i = 0; i < count; i++) for (let y = 0; y < W; y++) out.savings[i * W + y] = fixed[y];
   }
+  return { out, W };
+}
+
+const LIVES_MEMO = new Map();
+const LIVES_MEMO_SIZE = 4;
+/**
+ * Each life's pension and savings when work stops, at today's prices (each life's own prices to the stop), for the first
+ * `count` lives: the pots the plan test of a plan still saving draws from, life by life (lead4-engine.md ruling 8; the
+ * path's own figures at its last year, before the spread). → { years, pension: Float64Array, savings: Float64Array }, or
+ * null with no pension pot on record. The last few are kept by their core and count. `env.futureReturns`: tests only.
+ */
+export function stopPotsByLife(core, count, env = {}) {
+  if (!core || core.potNow == null || !(count > 0)) return null;
+  const made = !!(env && env.futureReturns);                         // tests: made-up futures, never kept
+  const key = made ? null : JSON.stringify([core, count]);
+  const hit = made ? null : LIVES_MEMO.get(key);
+  if (hit) return hit;
+  const { out, W } = growLives(core, count, env);
+  const pension = new Float64Array(count), savings = new Float64Array(count);
+  for (let i = 0; i < count; i++) {
+    const k = i * W + core.years, P = out.price[k];
+    pension[i] = out.pension[k] / P; savings[i] = out.savings[k] / P;
+  }
+  const res = { years: core.years, pension, savings };
+  if (made) return res;
+  LIVES_MEMO.set(key, res);
+  while (LIVES_MEMO.size > LIVES_MEMO_SIZE) LIVES_MEMO.delete(LIVES_MEMO.keys().next().value);
+  return res;
+}
+
+/**
+ * Draw the path.
+ * @param {object} a  { settings (Stress), timing (deriveTiming), accumulation (the planner's saved inputs), holdings (the
+ *                    record or its lines), now, lives?, env? ({ futureReturns } for tests: V7's lives.js), explicit?, phases? }
+ *   risePrices  true: what goes in rises with each future's own prices (the answer's rule), not the plan's yearly rise
+ *   phases    the plan's `phases` root (7.10.0): a saving level the person chose decides the saving mix (savingPathMixes)
+ *   explicit  { potNow, isaNow, totalMonthly, isaMonthly } (research/saving-enough-and-check-in.md 5.3): each one given is
+ *             used in place of what the path would read — a saver's first check-in draws the path from its own pension,
+ *             ISA and what goes into each, never from the holdings ledger or the saved settings, and the head says so
+ *             (`potSource: 'check-in'`). The holdings then decide only the saving mix. A lock (7.12.0) passes the pension
+ *             today every screen reads (services/PensionToday.js) with its own `potSource`: 'holdings', 'accumulation',
+ *             'record' or 'plan'.
+ * @returns {null | object}  null unless retiring later; the block stored as `planDocument.accumulation`
+ */
+export function buildSavingPath({ settings = {}, timing, accumulation = null, holdings = null, now = new Date(), lives: count = SAVING_PATH_LIVES, env = {}, explicit = null, phases = null, risePrices = false } = {}) {
+  if (!timing || timing.mode !== 'future' || !(timing.currentAge > 0)) return null;
+  const { core, head0, prop } = savingCoreFrom({ settings, timing, accumulation, holdings, explicit, phases, risePrices });
+  const head = {
+    version: SAVING_PATH_VERSION, asOf: monthKey(now), drawnAt: now.toISOString(), lives: count, seed: SAVING_PATH_SEED,
+    startAge: timing.currentAge, retireAge: timing.shapeAgeNow, years: core.years,
+    ...head0,
+    mixText: prop && prop.total > 0 ? (Math.round(prop.buckets.shares * 100) + '% shares · ' + Math.round(prop.buckets.bonds * 100) + '% bonds · ' + Math.round((prop.buckets.diversifiers || 0) * 100) + '% diversifiers · ' + Math.round(prop.buckets.cash * 100) + '% cash') : null
+  };
+  // Locked with no pension pot on record: the gap is recorded, never a path from the pots the strategy was tested on.
+  if (core.potNow == null) return JSON.parse(JSON.stringify({ ...head, path: [] }));
+  const { out, W } = growLives(core, count, env);
+  const years = core.years;
   const path = [];
   const tot = new Float64Array(count), real = new Float64Array(count), pen = new Float64Array(count), penReal = new Float64Array(count), isa = new Float64Array(count), isaReal = new Float64Array(count);
   for (let y = 0; y < W; y++) {

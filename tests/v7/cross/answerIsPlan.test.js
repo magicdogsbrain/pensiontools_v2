@@ -24,9 +24,14 @@
  *      0.902 vs 0.879; bold £1,500: 20 of 40 both, 0.713 vs 0.684. The counts agreed; the weights did not. Closed by the
  *      plan path for one person from now (its block holds to the last bit).
  *   A (Sam, 45, £60,000, £800 a month going in, £10,000 savings, £2,000 a month from 60): no in both; 6 of 40 vs 2 of 40,
- *      weighted 0.318 vs 0.242 (the plan draws every future from one middling pot at 60, the answer from each life's own).
- *   B (Sam, the same): kept paying in what would be enough, the kept plan passes at the level (37 of 40); kept paying in as
- *      now, 6 of 40 vs 2 of 40 (stop 60, £2,000) and 25 of 40 vs 27 of 40 (stop 62, £1,800).
+ *      weighted 0.318 vs 0.242 (the plan drew every future from one middling pot at 60, the answer from each life's own).
+ *      Since the plan test of a plan still saving runs whole lives (ruling 8): 6 of 40 vs 5 of 40, weighted 0.318 vs 0.320.
+ *   B (Sam, the same): kept paying in as now, 6 of 40 vs 2 of 40 (stop 60, £2,000) and 25 of 40 vs 27 of 40 (stop 62,
+ *      £1,800); with whole lives 6 vs 5 and 25 vs 25 (weighted 0.318 vs 0.320, 0.708 vs 0.705). Kept paying in what would be
+ *      enough, the kept plan passed at the level (37 of 40) only because it drew every future from the middling pot: with
+ *      whole lives it says "close" where the answer says "yes" (stop 60: £1,930 a month, weighted 0.901 vs 0.893; stop 62:
+ *      £1,180, 0.901 vs 0.897). What is left is B's drawing years, still the household's run (its config, its bond stream
+ *      carried on from the saving years, its monthly weights) beside the kept plan's: B on the plan path closes it.
  * The causes (map-sums.md 3b): the answers' year grid from today with the State Pension's first year whole, the plan's tax
  * years with its first-year share; monthly weights against the plan's yearly ones; the glidepath over the whole run against
  * the plan's own length; the take-home grossed per year against the kept plan's rounded yearly steps.
@@ -329,13 +334,13 @@ describe('C from now: the answer is the plan kept from it (one person, the plan 
 });
 
 describe('A and B: the plan kept from a saver\'s answer', () => {
-  it('B kept paying in what would be enough: the kept plan passes at the level (holds today)', () => {
+  it.fails('B kept paying in what would be enough: the kept plan passes at the level (whole lives: "close", 0.893 and 0.897)', () => {
     for (const [stop, spend] of [[60, 2000], [62, 1800]]) {
       const plan = planReading(keptPlansOf('b', samB(stop, spend), ENV, { payIn: 'enough' }).yours);
       expect(plan.verdict).toBe('yes');
     }
   });
-  it.fails('B kept paying in as now: the same count of futures that last (the plan draws from one middling pot)', () => {
+  it.fails('B kept paying in as now: the same count of futures that last (6 of 40 vs 5: B\'s drawing years are the household\'s run)', () => {
     const b = samB(60, 2000);
     const plan = planReading(keptPlansOf('b', b, ENV).yours);
     expect(plan.lasted).toBe(N - b.chance.fails);

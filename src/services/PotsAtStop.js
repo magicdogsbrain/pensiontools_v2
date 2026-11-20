@@ -11,7 +11,9 @@
  *     null                                                     not stopping later
  *     { sipp, isa, source: 'typed' }                           the person's own figure, kept as it is
  *     { sipp, isa, careful, good, source: 'worked',            today's prices, whole pounds; careful/good are the
- *       from: { pot, potFrom, potAt, monthly, isaMonthly, toAge } }   pension and savings together
+ *       from: { pot, potFrom, potAt, monthly, isaMonthly, toAge },    pension and savings together; `lives`: the saving
+ *       lives }                                                   years' own figures (SavingPath.savingCoreFrom), which the
+ *                                                                 plan test draws each life's pots from (ruling 8)
  *
  * Typed: a stored `potAtRetirement` marked 'override' that is not the figure keeping an answer wrote (the plan's
  * `fromAnswer` holds the same middling pension and savings at the stop). Old plans are read as they are; nothing is written.
@@ -21,7 +23,7 @@
  */
 import { deriveTiming } from './PlanTiming.js';
 import { isLockedSettings } from './LockedPlanGuard.js';
-import { buildSavingPath } from './SavingPath.js';
+import { buildSavingPath, savingCoreFrom } from './SavingPath.js';
 import { saverFacts } from './SaverFacts.js';
 
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
@@ -73,10 +75,17 @@ export function potsAtStopOf(plan, settings, { now = new Date(), env = {} } = {}
   }
   const last = path && Array.isArray(path.path) && path.path.length ? path.path[path.path.length - 1] : null;
   if (!last) return null;
+  // the saving years' own figures (SavingPath.savingCoreFrom): the plan test draws each life from its own pots with them
+  // (stressTest.js stopLivesOf, lead4-engine.md ruling 8); plain data (a lock keeps it with the document's pots)
+  // `mid`: the middle of these lives, the figures said below — what each life's pots are measured against, so a change to
+  // the pots at the stop made after (a fall in shares tried on the plan) moves every life by the same share
+  const { core } = savingCoreFrom({ settings: s, timing, accumulation, holdings, explicit, phases, risePrices: true });
+  const mid = { sipp: Math.round(last.pension.real), isa: Math.round(last.isa.real) };
   return {
-    sipp: Math.round(last.pension.real), isa: Math.round(last.isa.real),
+    sipp: mid.sipp, isa: mid.isa,
     careful: Math.round(last.real.careful), good: Math.round(last.real.good), source: 'worked',
-    from: { pot: facts.pot.pension, potFrom: facts.pot.from, potAt: facts.pot.at, monthly: facts.payIn.total, isaMonthly: facts.isaMonthly, toAge: Math.round(timing.shapeAgeNow) }
+    from: { pot: facts.pot.pension, potFrom: facts.pot.from, potAt: facts.pot.at, monthly: facts.payIn.total, isaMonthly: facts.isaMonthly, toAge: Math.round(timing.shapeAgeNow) },
+    lives: { ...core, mid }
   };
 }
 

@@ -103,5 +103,14 @@
  *           left at the end and a few more futures that run out; a whole first year runs exactly as before.
  *           "Try the bad years" starts its fall (and its faster prices) in that first paying month, where the pots are
  *           first held (lastsRun.rowPlanOf); it started in the run's month 0, which is now a month that moves nothing.
+ *           A plan still saving runs whole lives in Pots & Valves and Buckets in order (lead4-engine.md ruling 8): each future
+ *           is one life that saves its own pots on its own markets (the saving path's lives, services/SavingPath.js) and then
+ *           draws from them on the same life's markets from the stop; it drew every future from one middling pot at the stop,
+ *           on markets that started again at the stop. The pots at the stop said on the plan are the middle of those same
+ *           lives, with their 1-in-10 low and high, as before. The engine's own draws (the bond model) start at the stop, as
+ *           every run's do. A plan locked from now keeps those lives' figures with its pots at the stop, so it runs the same
+ *           lives as when it was locked. A plan whose pots at the stop the person typed, a plan locked before (its document's
+ *           one pot), a stop this year, the real histories and the named starts run on the one pot as before; so do the
+ *           bought ways for now.
  */
 export const ENGINE_VERSION = '6.39.0';

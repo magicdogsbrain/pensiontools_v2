@@ -30,6 +30,7 @@ import { LEVEL_FAILS20, levelOf, passes as passesLevel } from '../answers/shared
 import { planToAgeOf } from '../services/AgeConvention.js';   // the income cuts, counted from the same futures (6.24.0: one answer)
 import { pensionLockOf, pensionPotOf } from '../services/PensionLock.js';
 import { planNeedOf, lockOfNeed } from '../services/PlanNeed.js';
+import { stopPotsByLife } from '../services/SavingPath.js';
 import { withIncomeAnyway, worstTwelveOf, incomeAnywayWords, NO_INCOME_ANYWAY, notYetMonthsOf } from './incomeAnyway.js';
 // the closed years as a plan's run sees them, with no test run (services/PlanNeed.js): re-exported, as both apps read it here
 export { pensionLockForSettings } from '../services/PlanNeed.js';
@@ -140,6 +141,7 @@ export function planFromSettings(settings, cfg, { yieldForYear, essentialsAnnual
   const carryByYear = closedParked
     ? closedParked.map((v, y) => v + ((windfallUse && windfallUse.carryByYear[y]) || 0))
     : windfallUse ? windfallUse.carryByYear : null;
+  const stopLives = stopLivesOf(settings);
   const pnvLock = cfg.pensionLockedMonths === undefined ? pensionLockOf(settings, { now, fromTaxYear: timing.firstTaxYear + lived, pensionPot: pensionPotOf(cfg) }) : null;
   return {
     pot, isa: closedPay ? closedPay.left : isa, targetAnnual: target,
@@ -184,8 +186,46 @@ export function planFromSettings(settings, cfg, { yieldForYear, essentialsAnnual
       // months it pays over the months year 0 has (one already being paid: 1, a whole month's State Pension in each)
       ...(y0 < 12 ? { year0Months: y0, ...(y0Sp != null ? { spFirstYearRatio: y0Sp / y0 } : {}) } : {}) },   // year 0 for the months it has   // the plan's own tax mode / ISA rate: it runs nominally now; it applies DB/extras itself
     yieldForYear,
+    ...(stopLives ? { stopLives } : {}),
     ...(now ? { now } : {})   // only when injected: the plan object is otherwise byte-identical to before
   };
+}
+
+/**
+ * Whole lives for a plan still saving (lead4-engine.md ruling 8): the saving years' own figures its pots at the stop were
+ * worked out from (PotsAtStop: `potAtRetirement.lives`, SavingPath.savingCoreFrom), with the middling pots the plan's
+ * config was scaled to (a plan locked since keeps them with its document's pots, so it runs the lives it was locked on).
+ * Null for every other plan (retired, a figure the person typed, a document locked before, a stop this year): its run is
+ * the one it always was.
+ */
+export function stopLivesOf(settings) {
+  const at = settings && settings.retired === false && settings.potAtRetirement && typeof settings.potAtRetirement === 'object' ? settings.potAtRetirement : null;
+  const core = at && at.source === 'worked' && at.lives && typeof at.lives === 'object' ? at.lives : null;
+  if (!core || !(core.years > 0) || core.potNow == null) return null;
+  // each life is measured against the lives' own middle (`mid`): the plan's config was scaled to the pots at the stop as
+  // they now read, so a change made to them after they were worked out (a fall in shares tried) moves every life alike
+  const mid = core.mid && typeof core.mid === 'object' ? core.mid : at;
+  return { years: core.years, core, sipp: +mid.sipp || 0, isa: +mid.isa || 0 };
+}
+
+/**
+ * Life i of a plan still saving (ruling 8): its Pots & Valves config with life i's own pots at the stop — the pension's
+ * pots and floors scaled by life i's pension over the lives' middle (the config holds the pots at the stop as read: the
+ * middle, or the middle after a fall tried on it), its savings likewise — and its market from the stop: the same
+ * future i, block-bootstrapped from today (seed i × 7919 + 3), read on from month 12 × S. The engine's own draws (seed i)
+ * start at the stop, as every run's do. `shock` (a row of "Try the bad years") starts from the stop too.
+ */
+function stopLifeOf(p, lives, i, END) {
+  const off = 12 * p.stopLives.years;
+  const shock = p.shock ? { ...p.shock, from: (+p.shock.from || 0) + off } : p.shock;
+  const path = shockPath(bootstrapPaths(i * 7919 + 3, off + END), shock);
+  const c = p.pnvCfg;
+  const k = p.stopLives.sipp > 0 ? lives.pension[i] / p.stopLives.sipp : 1;
+  const kIsa = p.stopLives.isa > 0 ? lives.savings[i] / p.stopLives.isa : 1;
+  const x = (v) => (v == null ? v : v * k);
+  const cfg = { ...c, equityStart: x(c.equityStart), bondStart: x(c.bondStart), cashStart: x(c.cashStart), equityMin: x(c.equityMin), bondMin: x(c.bondMin), cashTarget: x(c.cashTarget),
+    ...(c.diversifierStart != null ? { diversifierStart: x(c.diversifierStart) } : {}), isaBalance: (c.isaBalance || 0) * kIsa };
+  return { cfg, returns: annualNominal(path.rtr, path.cpi, off, p.durationYears) };
 }
 
 /**
@@ -240,7 +280,12 @@ function pnvTest(p, configs) {
   const runs = p.mcRuns || 400;
   // Seed i*7919+3 is the SAME as runFlexMonteCarlo / runLadderMonteCarlo: future i is one market for every strategy.
   // "Try the bad years" (7.9.0): a row's shock on every future (p.shock; absent, the path itself), never on a real history
-  for (let i = 0; i < runs; i++) { const path = shockPath(bootstrapPaths(i * 7919 + 3, END), p.shock); mc.push(pnvRun(p.pnvCfg, annualNominal(path.rtr, path.cpi, 0, planYears), i, planYears, p.startAge)); }
+  // A plan still saving (ruling 8): each future is one whole life, its own pots at the stop drawn on its own market from there.
+  const lives = p.stopLives ? stopPotsByLife(p.stopLives.core, runs) : null;
+  for (let i = 0; i < runs; i++) {
+    if (lives) { const l = stopLifeOf(p, lives, i, END); mc.push(pnvRun(l.cfg, l.returns, i, planYears, p.startAge)); continue; }
+    const path = shockPath(bootstrapPaths(i * 7919 + 3, END), p.shock); mc.push(pnvRun(p.pnvCfg, annualNominal(path.rtr, path.cpi, 0, planYears), i, planYears, p.startAge));
+  }
   const terms = mc.map((w) => w.terminal);
   return {
     affordable: true,
@@ -768,7 +813,8 @@ export function requiredPotForStrategy(strategyId, p, successTarget = ON_COURSE_
   const seen = new Map();
   const runAt = (pot) => {
     if (seen.has(pot)) return seen.get(pot);
-    const q = { ...base, pot, mcRuns: runs, stride: weighted ? base.stride : stride };
+    // (one pot at the stop is what is searched for: a plan still saving's own lives are not read here)
+    const q = { ...base, pot, mcRuns: runs, stride: weighted ? base.stride : stride, stopLives: null };
     if (q.pnvCfg) { const scale = pot / Math.max(1, base.pot); q.pnvCfg = { ...q.pnvCfg, equityStart: (base.pnvCfg.equityStart || 0) * scale, bondStart: (base.pnvCfg.bondStart || 0) * scale, cashStart: (base.pnvCfg.cashStart || 0) * scale, diversifierStart: (base.pnvCfg.diversifierStart || 0) * scale, equityMin: (base.pnvCfg.equityMin || 0) * scale, bondMin: (base.pnvCfg.bondMin || 0) * scale, cashTarget: (base.pnvCfg.cashTarget || 0) * scale }; }
     const r = stressTestStrategy(strategyId, q);
     let out;

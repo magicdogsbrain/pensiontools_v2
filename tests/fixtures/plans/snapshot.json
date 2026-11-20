@@ -738,7 +738,7 @@
    "firstTaxYear": 2029,
    "startAge": 62,
    "decisionChecksum": "-10faa55f",
-   "stressChecksum": "1de1fbee",
+   "stressChecksum": "-69aa8776",
    "historyMonths": 0,
    "taxYearsSetUp": [],
    "hasPlanDocument": false,
@@ -755,14 +755,14 @@
    "headline": {
     "affordable": true,
     "ruinHist": 0,
-    "ruinMc": 0.5,
-    "coverage": 99.96,
+    "ruinMc": 1.7,
+    "coverage": 99.67,
     "worst12Min": 14400,
     "worst12Median": 16350,
-    "terminalP10": 116229,
-    "terminalP50": 424050,
-    "terminalP90": 1561744,
-    "spentMedian": 577075,
+    "terminalP10": 76848,
+    "terminalP50": 412907,
+    "terminalP90": 1621588,
+    "spentMedian": 577800,
     "guaranteedToAge": "State Pension (from age 67)",
     "cone": {
      "years": [
@@ -773,25 +773,25 @@
       32
      ],
      "wealthP10": [
-      304764,
-      198711,
-      179606,
-      153067,
-      118865
+      222144,
+      164668,
+      142737,
+      118185,
+      77532
      ],
      "wealthP50": [
-      304764,
-      278767,
-      290583,
-      327448,
-      426777
+      305856,
+      269930,
+      280140,
+      321725,
+      418296
      ],
      "wealthP90": [
-      304764,
-      378759,
-      484941,
-      811991,
-      1553384
+      389774,
+      430789,
+      528723,
+      856957,
+      1640453
      ],
      "incomeP50": [
       4500,
@@ -1311,7 +1311,7 @@
    "firstTaxYear": 2028,
    "startAge": 63,
    "decisionChecksum": "-3e7fc580",
-   "stressChecksum": "-53c89937",
+   "stressChecksum": "3f0fe40f",
    "historyMonths": 0,
    "taxYearsSetUp": [],
    "hasPlanDocument": false,
@@ -1332,10 +1332,10 @@
     "coverage": 100,
     "worst12Min": 14905,
     "worst12Median": 17400,
-    "terminalP10": 267826,
-    "terminalP50": 622567,
-    "terminalP90": 1793097,
-    "spentMedian": 502155,
+    "terminalP10": 224841,
+    "terminalP50": 595000,
+    "terminalP90": 1740944,
+    "spentMedian": 503265,
     "guaranteedToAge": "State Pension (from age 67)",
     "cone": {
      "years": [
@@ -1346,25 +1346,25 @@
       28
      ],
      "wealthP10": [
-      416405,
-      295875,
-      287769,
-      266093,
-      266105
+      331832,
+      251166,
+      249763,
+      237036,
+      228236
      ],
      "wealthP50": [
-      416405,
-      393403,
-      428856,
-      512446,
-      623176
+      417343,
+      386386,
+      420272,
+      494513,
+      597410
      ],
      "wealthP90": [
-      416405,
-      513504,
-      671381,
-      1129105,
-      1785843
+      497467,
+      555788,
+      696736,
+      1185869,
+      1749883
      ],
      "incomeP50": [
       1850,

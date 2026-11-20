@@ -61,8 +61,8 @@ export const WAY = {
     cost: 'Costs {cost} of your pot, {bought}; {left} left to grow.',
     costAll: 'Costs {cost} of your pot, {bought}; nothing left to grow.',
     /** (7.12.0) a plan still saving: bought from the pension when work stops (the middling figure the runs start from) */
-    costAtStop: 'Costs {cost}, {bought}: of the {pot} your pots could hold at {age}, {left} is left to grow.',
-    costAllAtStop: 'Costs {cost}, {bought}: of the {pot} your pots could hold at {age}, nothing is left to grow.',
+    costAtStop: 'Costs {cost} of the {pot} your pots could hold when you stop at {age}; {left} left to grow. It is {bought}.',
+    costAllAtStop: 'Costs {cost} of the {pot} your pots could hold when you stop at {age}; nothing left to grow. It is {bought}.',
     cannot: 'Your pot cannot buy this: it would cost {cost}, {short} more than the pot. So there is no figure.',
     cannotGilt: 'Your pot cannot buy this on this plan: no index-linked gilt reaches far enough for its last years. So there is no figure.',
     /** On a locked plan, once another way is open (2.4): the document's figure beside the tried one; never a word of unlocking. */

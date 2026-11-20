@@ -16,7 +16,7 @@ describe('what a bought way costs, said of the pot it is bought from', () => {
     const cost = lines.find((l) => l.id === 'costAtStop');
     expect(cost).toEqual({ id: 'costAtStop', slots: { cost: '£144,872', bought: 'bought when you stop, at today’s prices', pot: '£178,296', age: '63', left: '£33,424' } });
     // step F3 (lead4.md D9): when it is bought is said in the words both views use
-    expect(WAY.card.costAtStop.replace(/\{(\w+)\}/g, (m, k) => cost.slots[k])).toBe('Costs £144,872, bought when you stop, at today’s prices: of the £178,296 your pots could hold at 63, £33,424 is left to grow.');
+    expect(WAY.card.costAtStop.replace(/\{(\w+)\}/g, (m, k) => cost.slots[k])).toBe('Costs £144,872 of the £178,296 your pots could hold when you stop at 63; £33,424 left to grow. It is bought when you stop, at today’s prices.');
   });
   it('all of it: nothing left to grow', () => {
     const lines = cardLines({ ...ff, left: 0, cost: 178296 }, { endAge: 100, atStop: { age: 63 } });

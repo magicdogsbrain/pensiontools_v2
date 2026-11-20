@@ -60,7 +60,7 @@ describe('the simple view\'s cards say it in those words', () => {
   const ff = { id: 'floor-and-flex', affordable: true, bought: true, cost: 144872, left: 33424, a: { share: 0.8, chancePct: 80, futures: 1000, histories: 120, years: 37, typicalLeft: 42695, badCaseLeft: 0 } };
   it('a saver: bought when the work stops, at today\'s prices', () => {
     const l = cardLines(ff, { endAge: 100, atStop: { age: 63 } }).find((x) => x.id === 'costAtStop');
-    expect(fill(WAY.card[l.id], l.slots)).toBe('Costs £144,872, bought when you stop, at today’s prices: of the £178,296 your pots could hold at 63, £33,424 is left to grow.');
+    expect(fill(WAY.card[l.id], l.slots)).toBe('Costs £144,872 of the £178,296 your pots could hold when you stop at 63; £33,424 left to grow. It is bought when you stop, at today’s prices.');
   });
   it('a retired plan: bought today', () => {
     const l = cardLines(ff, { endAge: 100 }).find((x) => x.id === 'cost');

@@ -1,5 +1,5 @@
 {
- "at": "2026-11-20T03:08:20.992Z",
+ "at": "2026-11-20T04:13:01.571Z",
  "fixtures": [
   "age-only",
   "budget",
@@ -23,22 +23,17 @@
  "factsMarked": 88,
  "factsInBoth": 76,
  "pagesOpened": 635,
- "marks": 11687,
+ "marks": 11670,
  "fieldsBound": 61,
  "disagreements": 80,
- "unmarked": 16222,
+ "unmarked": 16219,
  "oneViewOnly": 2325,
  "readingMismatches": 0,
  "roundTripsFailed": 64,
  "rose": [
   "a round trip fails that known-roundtrips.json does not list: income.spKind|s2f — needs a press"
  ],
- "shrank": [
-  "unmarked figures fell on age-only|simple:pots: 33 → 32",
-  "unmarked figures fell on wizard-defaults|simple:pots: 32 → 31",
-  "comes back now, take it out of known-roundtrips.json: about.startWhen|f2s (was needs a press)",
-  "comes back now, take it out of known-roundtrips.json: saving.schemeType|f2s (was needs a press)"
- ],
+ "shrank": [],
  "grew": [
   "more places now, raise coverage.json: budget|spend.essentials|full 0 → 1",
   "more places now, raise coverage.json: budget|spend.essentials|simple 0 → 1",
@@ -58,14 +53,14 @@
   "more places now, raise coverage.json: retired-locked-months|income.step.0.beforeTax|full 1 → 4",
   "more places now, raise coverage.json: retired-locked-months|income.step.0.beforeTax|simple 2 → 3",
   "more places now, raise coverage.json: retired-locked-months|income.step.0.monthAfterTax|full 1 → 2",
-  "more places now, raise coverage.json: retired-locked-months|income.thisYear.beforeTax|full 0 → 4",
-  "more places now, raise coverage.json: retired-locked-months|income.thisYear.beforeTax|simple 0 → 5",
+  "more places now, raise coverage.json: retired-locked-months|income.thisYear.beforeTax|full 0 → 1",
+  "more places now, raise coverage.json: retired-locked-months|income.thisYear.beforeTax|simple 0 → 1",
   "more places now, raise coverage.json: retired-locked-months|income.thisYear.from|full 0 → 1",
   "more places now, raise coverage.json: retired-locked-months|income.thisYear.from|simple 0 → 1",
-  "more places now, raise coverage.json: retired-locked-months|income.thisYear.perMonth|full 0 → 5",
-  "more places now, raise coverage.json: retired-locked-months|income.thisYear.perMonth|simple 0 → 7",
-  "more places now, raise coverage.json: retired-locked-months|income.thisYear.planSays|full 0 → 3",
-  "more places now, raise coverage.json: retired-locked-months|income.thisYear.planSays|simple 0 → 4",
+  "more places now, raise coverage.json: retired-locked-months|income.thisYear.perMonth|full 0 → 2",
+  "more places now, raise coverage.json: retired-locked-months|income.thisYear.perMonth|simple 0 → 3",
+  "more places now, raise coverage.json: retired-locked-months|pot.planMiddle|full 0 → 2",
+  "more places now, raise coverage.json: retired-locked-months|pot.planMiddle|simple 0 → 2",
   "more places now, raise coverage.json: retired-locked-pots|income.step.0.beforeTax|full 1 → 4",
   "more places now, raise coverage.json: retired-locked-pots|income.step.0.beforeTax|simple 2 → 3",
   "more places now, raise coverage.json: retired-locked-pots|income.step.0.monthAfterTax|full 1 → 2",

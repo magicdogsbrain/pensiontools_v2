@@ -348,7 +348,13 @@ describe('the lock and the refresh draw the new path; the reading helpers', () =
     const at = src.indexOf('async function buildPlanDocumentNow');
     // 7.10.0: with the plan's phases, so a saving level chosen is the path's saving mix, as the new app's lock reads it
     // 7.12.0: with the plan itself, so the path starts from the pension today every screen reads, and its phases are the plan's
-    expect(src.slice(at, at + 2500)).toContain('savingPath: await savingPathForLock({ settings, accumulation, holdings, plan: await getActiveScenarioAsync().catch(() => null) })');
+    // step LEFT: on the one clock (lead4.md R5), never the raw date
+    expect(src.slice(at, at + 2500)).toContain('savingPath: await savingPathForLock({ settings, accumulation, holdings, now: todayOf(), plan: await getActiveScenarioAsync().catch(() => null) })');
+  });
+  it('savingPathForLock with no day given reads the one clock (src/reading/clock.js), not new Date()', () => {
+    const src = readFileSync(resolve(process.cwd(), 'src/ui/savingPathForLock.js'), 'utf8');
+    expect(src).toContain('now = todayOf()');
+    expect(src).not.toContain('now = new Date()');
   });
   it('saverPotOf: the latest record, else the pot for today, else What you hold', () => {
     expect(saverPotOf({ accHistory: [{ date: '2027-01', sipp: 1, isa: 2 }, { date: '2027-03', sipp: 3, isa: 4 }] })).toMatchObject({ source: 'record', at: '2027-03', pension: 3, isa: 4 });

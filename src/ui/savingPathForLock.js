@@ -13,8 +13,9 @@
  */
 import { deriveTiming } from '../services/PlanTiming.js';
 import { pathPensionOf } from '../services/PensionToday.js';
+import { todayOf } from '../reading/clock.js';   // the one clock (lead4.md R5)
 
-export async function savingPathForLock({ settings, accumulation = null, holdings = null, now = new Date(), phases = null, plan = null } = {}) {
+export async function savingPathForLock({ settings, accumulation = null, holdings = null, now = todayOf(), phases = null, plan = null } = {}) {
   const timing = deriveTiming(settings || {}, now);
   if (timing.mode !== 'future' || !(timing.currentAge > 0)) return undefined;
   try {

@@ -12374,7 +12374,7 @@
       // this tax year (step F2, lead4.md D7): the one reader both views say — the year as set up, and when the plan's own figure
       // for it differs, both figures with the set-up's date and "Set this year up again"
       let ty = null; try { ty = thisYearOfPlan(await getActiveScenarioAsync(), todayOf(), taxYear); } catch (e) { ty = null; }
-      let html = yearChangedHtml(ty, { button: `reconfigureTaxYear('${taxYear}')` }) + `<div class="no-print" style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:12px;"><button class="btn secondary" data-on-click="printAnnualReport('${taxYear}')">Download PDF</button> <button class="btn secondary" data-on-click="exportAnnualCsv('${taxYear}')">Export CSV</button></div>` + allocCard + `
+      let html = (taxYear === getCurrentTaxYear() ? yearChangedHtml(ty, { button: `reconfigureTaxYear('${taxYear}')` }) : '') + `<div class="no-print" style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:12px;"><button class="btn secondary" data-on-click="printAnnualReport('${taxYear}')">Download PDF</button> <button class="btn secondary" data-on-click="exportAnnualCsv('${taxYear}')">Export CSV</button></div>` + allocCard + `
         <!-- Tax Thresholds -->
         <div class="tax-year-detail-card">
           <h3>Tax Thresholds</h3>
@@ -12404,7 +12404,7 @@
           <div class="tax-year-grid">
             <div class="tax-year-field">
               <label>Income for the year as set up (before tax, all sources)</label>
-              <span class="value">${yearIncomeHtml(ty)}</span>
+              <span class="value">${yearIncomeHtml(ty, { current: taxYear === getCurrentTaxYear() })}</span>
             </div>
             <div class="tax-year-field">
               <label>Other Taxable Income (Annual)</label>

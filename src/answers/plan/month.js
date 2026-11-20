@@ -366,11 +366,13 @@ export function readMonth(plan, typed0, { today, nowIso = null, entries = null }
   // the year as set up and, when the plan's own figure differs, both (step F2, lead4.md D7: src/reading/thisYear.js, the one
   // reader both views say); "Set this year up again" opens the set-up (setUpAgainPatch)
   let ty = null; try { ty = setUpDone ? thisTaxYearOf(plan, { now }, { key }) : null; } catch { ty = null; }
-  const changed = ty ? thisYearSentences(ty).find((x) => x.id === 'where.yearChanged') || null : null;
+  const changed = ty && key === getTaxYearFromDate(localMonth(now)) ? thisYearSentences(ty).find((x) => x.id === 'where.yearChanged') || null : null;
   const yearLine = setUpDone ? {
     year: yearWords(key), from: monthWords(addMonth(aprilOf(key), (((Number(cfg.startMonth) || 4) + 8) % 12))),
     income: ty && ty.setUp && ty.setUp.perYear > 0 ? pounds(ty.setUp.perYear) : null,
-    changed: changed ? { ...changed, text: sentenceText(changed) } : null
+    changed: changed ? { ...changed, text: sentenceText(changed) } : null,
+    // the fact is THIS tax year's (src/reading/thisYear.js): a month of another year says its own year, unmarked
+    current: key === getTaxYearFromDate(localMonth(now))
   } : null;
   // before the year is set up, what the locked plan takes this month (7.12.0): its document's row for the year, a twelfth a
   // month, from the pension (what it draws from investments, and what a ladder pays) — so the month's amount and where it

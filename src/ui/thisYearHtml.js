@@ -20,9 +20,10 @@ export function thisYearOfPlan(plan, now, key = null) {
   try { return thisTaxYearOf(plan, { now }, key ? { key } : {}); } catch { return null; }
 }
 
-export function yearIncomeHtml(t) {
+export function yearIncomeHtml(t, { current = true } = {}) {
   if (!t || !t.setUp || t.setUp.perYear == null) return '—';
-  return markFact(FACT.YEAR_SET_UP, esc(money(t.setUp.perYear))) + ' a year before tax';
+  // the fact is THIS tax year's: another year's figure is said, unmarked
+  return (current ? markFact(FACT.YEAR_SET_UP, esc(money(t.setUp.perYear))) : esc(money(t.setUp.perYear))) + ' a year before tax';
 }
 
 const sentenceOf = (t, id) => thisYearSentences(t).find((s) => s.id === id) || null;

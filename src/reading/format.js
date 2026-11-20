@@ -78,7 +78,9 @@ export const FACT_FORMAT = Object.freeze({
   'statePension.start': asIs,
   // step F2 (D7): this tax year as set up, and the plan's own figure for it
   'income.thisYear.beforeTax': money,
-  'income.thisYear.planSays': money
+  'income.thisYear.planSays': money,
+  'income.thisYear.perMonth': money,
+  'income.thisYear.total': money
 });
 
 /** The value of a fact as every place writes it; '' when nothing is known. */

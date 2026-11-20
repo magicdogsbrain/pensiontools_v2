@@ -19,7 +19,7 @@ import { fcOptions } from '../oracles/fcOptions.mjs';
 import { answerA, SCHEMA_A, TEST_ENV, checkAnswerA, ENGINE_READY, payInsFit, fitsAt } from './invariants.js';
 import { payInParts } from '../../../src/answers/shared/schemaParts.js';
 import { arbitraryInputs, arbitraryTyped } from '../gen/arbitrary.mjs';
-import { frozen, at, diffPaths, plain } from '../../helpers/clock.js';
+import { frozen, at, dayMovedPaths, plain } from '../../helpers/clock.js';
 import { RULES } from '../../../src/answers/shared/rules.js';
 import { STEP, oneLife, largeHousehold, amountsToAStep, drawTaxedAtStart } from '../oracles/oneStep.mjs';
 
@@ -264,10 +264,10 @@ describe.skipIf(!ENGINE_READY)('A — properties between two answers', () => {
 
   // (the lead's ruling, 20 Nov 2026: one person's rows run on the kept plan, whose year 0 follows the tax year, so across
   // 6 April more than the date moves; inside one tax year only the date does — the four days are 8 to 12 April 2027)
-  // KNOWN GAP, waiting on the lead (P3 handover, question Q1, 20 Nov 2026): on the plan path the kept plan's date of birth
-  // is the day asked less the age typed, so the life tables' cohort moves by four days of a year and the WEIGHTED chances
-  // move by a hair (every other figure holds). `it.fails` records the gap; it goes back to `it` with the lead's rule.
-  it.fails('PA12 the day moves from 8 to 12 April 2027, inside one tax year, the ages typed stay the same: only the date in the basis moves', () => {
+  // (ruling K, 20 Nov 2026: the age typed is the age on the day asked, so the kept plan's year of birth moves with the
+  // day and the life tables' weights with it: the WEIGHTED chances may move by less than 0.001, every other figure and
+  // the verdict words hold exactly: dayMovedPaths)
+  it('PA12 the day moves from 8 to 12 April 2027, inside one tax year, the ages typed stay the same: only the date in the basis moves', () => {
     fc.assert(fc.property(arbitraryInputs(SCHEMA_A, { ...ENV, today: '2027-04-08' }).filter((i) => i.stop.kind === 'age'), (inputs) => {
       // Ages whose birthday, moved four days, crosses a rule's date (C's M13), and a stop a year on, which lands either
       // side of 6 April 2028 when the earliest pension age becomes 57: another answer, by the rule.
@@ -276,7 +276,7 @@ describe.skipIf(!ENGINE_READY)('A — properties between two answers', () => {
       const a = answerA(inputs, { ...envFor(inputs), today: '2027-04-08' });
       const b = answerA(inputs, { ...envFor(inputs), today: '2027-04-12' });
       fc.pre(a.status !== 'invalid' && b.status !== 'invalid');
-      expect(diffPaths(plain(a), plain(b)).filter((p) => p !== 'basis.today')).toEqual([]);
+      expect(dayMovedPaths(plain(a), plain(b)).filter((p) => p !== 'basis.today')).toEqual([]);
     }), opts());
   });
 

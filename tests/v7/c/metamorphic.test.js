@@ -10,7 +10,7 @@ import { fcOptions } from '../oracles/fcOptions.mjs';
 import { SCHEMA_C, TEST_ENV, movedToAccess } from './_c.js';
 import { answerC, checkAnswer } from './invariants.js';
 import { arbitraryInputs } from '../gen/arbitrary.mjs';
-import { frozen, at, diffPaths, plain } from '../../helpers/clock.js';
+import { frozen, at, dayMovedPaths, plain } from '../../helpers/clock.js';
 import gilts from '../../../src/data/giltsSnapshot.js';
 
 const RUNS = Number(process.env.FC_RUNS || 12);
@@ -194,10 +194,10 @@ describe('C — metamorphic relations', () => {
   // (7.12.0: one person answers on the plan path, whose years are tax years and whose first year pays for the months it
   // has, so 6 April is itself a rule's date — 4 and 8 April are two plans. The four days move inside one tax year and one
   // month: 8 to 12 April 2027, a Thursday to a Monday. The ages excluded below stay excluded: harmless on these days.)
-  // KNOWN GAP, waiting on the lead (P3 handover, question Q1, 20 Nov 2026): on the plan path the kept plan's date of birth
-  // is the day asked less the age typed, so the life tables' cohort moves by four days of a year and the WEIGHTED chances
-  // move by a hair (every other figure holds). `it.fails` records the gap; it goes back to `it` with the lead's rule.
-  it.fails('M13 the day moves from 8 to 12 April 2027, the age typed stays the same: only the date in the basis moves', () => {
+  // (ruling K, 20 Nov 2026: the age typed is the age on the day asked, so the kept plan's year of birth moves with the
+  // day and the life tables' weights with it: the WEIGHTED chances may move by less than 0.001, every other figure and
+  // the verdict words hold exactly: dayMovedPaths)
+  it('M13 the day moves from 8 to 12 April 2027, the age typed stays the same: only the date in the basis moves', () => {
     fc.assert(fc.property(arbitraryInputs(SCHEMA_C, { ...ENV, today: '2027-04-08' }), (inputs) => {
       // Ages whose birthday, moved four days, crosses a rule's date: 54 turns 55 either side of 6 April 2028, when the
       // earliest pension age becomes 57; 49, 50, 66 and 67 are born either side of 6 April 1978, 6 April 1977, 6 March
@@ -210,7 +210,7 @@ describe('C — metamorphic relations', () => {
       const a = answerC(inputs, { ...ENV, today: '2027-04-08' });
       const b = answerC(inputs, { ...ENV, today: '2027-04-12' });
       fc.pre(a.status !== 'invalid' && b.status !== 'invalid');
-      const changed = diffPaths(plain(a), plain(b));
+      const changed = dayMovedPaths(plain(a), plain(b));
       // basis.accessAge is the earliest pension age ON THE START DATE: a start a year on crosses 6 April 2028 between the two days.
       // (The second call's band search does not start from the first's amounts — only a pass over fewer futures is a hint,
       // c/answer.js — so the band is the same to the pound where today's engine is not monotone too.)

@@ -41,3 +41,16 @@ export function diffPaths(a, b, path = '', out = []) {
   for (const k of new Set([...Object.keys(a), ...Object.keys(b)])) diffPaths(a[k], b[k], path ? path + '.' + k : k, out);
   return out;
 }
+
+/**
+ * diffPaths for "the day asked moves inside one tax year" (A's PA12, B's PB8, C's M13), by the lead's ruling K (20 Nov
+ * 2026): a person who gives only an age is that age on the day they ask, so the kept plan's year of birth moves with the
+ * day by a few days of a year, and the life tables' weights with it. Every figure holds exactly but a WEIGHTED chance
+ * (a key named `weighted`), which may move by less than 0.001; the verdict word is a path of its own and stays exact.
+ * No other tolerance.
+ */
+export function dayMovedPaths(a, b) {
+  const at = (o, p) => p.split('.').reduce((x, k) => (x == null ? x : x[k]), o);
+  return diffPaths(a, b).filter((p) => !(/(^|\.)weighted$/.test(p) && typeof at(a, p) === 'number' && typeof at(b, p) === 'number'
+    && Math.abs(at(a, p) - at(b, p)) < 0.001));
+}

@@ -28,6 +28,7 @@
  * that leans on it (shared/apart.js, the same words in C, A and B). With one stop for both nothing here changes.
  */
 import { money, outOfTen, partsText, underNine, twentiethsOfFutures } from '../shared/format.js';
+import { pensionOpensParts } from '../shared/opensWords.js';
 import { LEVEL_NAME, countingLead, asLongAs, chanceParts, asksForParts, fixedSentence, boldSentence, whenParts, howLongParts, howMuchParts, floorParts, leftParts, lifeAssumed, digits as digitsOf } from '../shared/lastsWords.js';
 import { shareCutPercent } from '../shared/futures.js';
 import { RULES, accessRiseAffects, firstAccessAge } from '../shared/rules.js';
@@ -104,7 +105,10 @@ export function factsOf(result, ctx = {}) {
       payIn: payIn(who), payInDefault: used.has(`${who}.payIn.total`),
       sp: sp.kind !== 'none', spDefault: sp.kind === 'full', spAge: statePensionAgeOf(p.age, result.basis.today), spPaidAtStop: sp.kind !== 'none' && statePensionAgeOf(p.age, result.basis.today) <= ageAtStop,
       fs: Boolean(fs.has), fsAge: fs.has ? fs.fromAge : null, fsDefault: used.has(`${who}.finalSalary.has`), potDefault: used.has(`${who}.pot`),
-      openAge, closedAtStop: pensionAtStop > 0 && ageAtStop < openAge, taxFreeTaken: p.taxFreeTaken === true
+      openAge, closedAtStop: pensionAtStop > 0 && ageAtStop < openAge, taxFreeTaken: p.taxFreeTaken === true,
+      // open at the stop by its age, but the kept plan takes it from the first tax year that starts with you at or over the
+      // access age (the lead's ruling G): said, with both facts
+      opens: pensionAtStop > 0 && !(ageAtStop < openAge) && ctx.pensionOpens && ctx.pensionOpens[who] ? ctx.pensionOpens[who] : null
     };
   });
   const savingsAtStop = result.saving.reduce((t, x) => t + x.potAtStop.savings.good, 0);
@@ -710,6 +714,7 @@ export function warningsFor(result, facts) {
   const shown = result.shown;
   const c = facts.couple;
 
+  for (const x of facts.people.filter((p) => p.opens)) warn('pension-closed', 'important', pensionOpensParts(x.opens, { meanwhile: facts.anySavings }));
   for (const x of facts.people.filter((p) => p.closedAtStop)) {
     warn('pension-closed' + (x.who === 'you' ? '' : '-partner'), 'important', x.who === 'you'
       ? ["You can't take money from your pension until you are ", A('pensionOpens.you'), '. Until then your ISA and savings pay.']

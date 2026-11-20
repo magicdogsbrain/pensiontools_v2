@@ -11,8 +11,9 @@ import { describe, it, expect } from 'vitest';
 import { initialState } from '../../../src/v7/state/initial.js';
 import { reduce } from '../../../src/v7/state/reduce.js';
 import { parsedDraft, currentKey } from '../../../src/v7/state/select.js';
-import { answerA } from '../../../src/answers/a/answer.js';
-import { answerB } from '../../../src/answers/b/answer.js';
+// (A and B as every caller asks them, src/answers/index.js answerFor: one person on the plan path, as C is)
+import { answerA } from '../a/_a.js';
+import { answerB } from '../b/_b.js';
 import { answerC } from '../c/_c.js';
 
 const TODAY = '2026-09-30';

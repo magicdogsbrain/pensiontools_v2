@@ -15,6 +15,7 @@
  * same words in C, A and B). With one stop for both nothing here changes.
  */
 import { money, partsText, lastedText } from '../shared/format.js';
+import { pensionOpensParts } from '../shared/opensWords.js';
 import { LEVEL_NAME as LEVEL_WORD, countingLead, asLongAs, chanceParts, asksForParts, fixedSentence, fixedAgeParts, boldSentence, whenParts, howLongParts, howMuchParts, floorParts, leftParts, lifeAssumed } from '../shared/lastsWords.js';
 import { shareCutPercent } from '../shared/futures.js';
 import { RULES, SAVING, LEVEL_FAILS20 } from '../shared/rules.js';
@@ -1030,6 +1031,7 @@ export function warningsFor(result, facts) {
   const out = [];
   const warn = (id, severity, parts) => { out.push({ id, severity, text: '', parts: parts.flat(Infinity).filter((p) => p !== '' && p != null) }); };
   const c = facts.couple;
+  for (const p of facts.people.filter((x) => x.opens)) warn('pension-closed', 'important', pensionOpensParts(p.opens, { meanwhile: facts.anySavings }));
   for (const p of facts.people.filter((x) => x.closedUntil !== null)) {
     warn('pension-closed' + (p.who === 'you' ? '' : '-partner'), 'important', p.who === 'you'
       ? ["You can't take money from your pension until you are ", F(p.closedUntil), '. Stopping at ', A('stop.age'), ' needs savings you can reach until then.']

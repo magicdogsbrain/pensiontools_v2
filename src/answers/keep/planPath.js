@@ -57,11 +57,12 @@ import { BANDS } from '../shared/toEngine.js';
 import { lumpyByYear } from '../../services/PlanNeed.js';
 import { dateOf } from '../plan/dates.js';
 import { createFastRunner, prepareFutureFrom } from '../shared/fastEngine.js';
-import { livesList, sliceReturns } from '../shared/lives.js';
+import { livesList, sliceReturns, bondStream } from '../shared/lives.js';
 import { STEP } from '../shared/band.js';
 import { WEIGHT_ONE, accessAgeOn, RULES } from '../shared/rules.js';
 import { firstOpenAge } from '../shared/household.js';
 import { LEVEL_IDS } from '../shared/levels.js';
+import { RISK_PRESETS } from '../../services/GlidepathService.js';
 
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
 const STRATEGY = 'pots-and-valves';
@@ -76,9 +77,22 @@ export const runYearOf = (m, startAge) => yearOfAge(startAge + m / 12, startAge)
  * result (its inputs, the spend, the level's figure, the plan-to age, when the pension opens). The figures the keep stores
  * beside the plan (the answer's own chance) are not in it: no setting reads them.
  */
-function resultAt(source, ins, env, perMonth, startAge = ins.you.age) {
+function resultAt(source, ins, env, perMonth, startAge = ins.you.age, saver = null) {
   const level = LEVEL_IDS.includes(ins.confidence) ? ins.confidence : 'balanced';
   const levels = { [level]: { monthly: perMonth, yearly: perMonth * 12 } };
+  // B (one person, saving to a stop): the stop asked about, what goes in as now and the pots at the stop in its lives —
+  // what planSeed reads of B's result (`saver`: B's own figures at the stop, b/answer.js keptSaverOf)
+  // (A likewise, at the stop age of one of its rows: what planSeed reads of the row it shows)
+  if (source === 'b' || source === 'a') {
+    if (!saver) throw new Error('planCaseOf: a saver\'s answer needs its stop and its pots at the stop');
+    return {
+      status: 'ok', inputs: ins, whose: 'you', level, levels: { [level]: source === 'b' ? { pot: null, payIn: null } : {} }, chance: {}, phases: [],
+      spend: { perMonth, perYear: perMonth * 12, kind: ins.spend.kind, level: ins.spend.kind === 'level' ? ins.spend.level : null },
+      ...(source === 'b' ? { stop: { age: saver.stopAge } } : { shown: { age: saver.stopAge, phases: [] } }),
+      saving: saver.saving, pensionOpens: saver.pensionOpens,
+      basis: { today: env.today, endAge: ins.endAge, engineVersion: null, historyEnd: null }
+    };
+  }
   // C from now (one person): the level's amount is what is kept, from the age today; its plan-to age the answer's end age
   if (source === 'c') {
     return {
@@ -86,7 +100,7 @@ function resultAt(source, ins, env, perMonth, startAge = ins.you.age) {
       basis: { today: env.today, endAge: ins.endAge, startAge, engineVersion: null, historyEnd: null }
     };
   }
-  if (source !== 'd') throw new Error('planCaseOf: only questions C (from now) and D are on the plan path so far');
+  if (source !== 'd') throw new Error('planCaseOf: only questions A and B (one person), C (from now) and D are on the plan path so far');
   const who = ins.household === 'couple' && ins.partner ? ['you', 'partner'] : ['you'];
   return {
     status: 'ok', inputs: ins, whose: 'you', level, levels, chance: {},
@@ -101,8 +115,8 @@ function resultAt(source, ins, env, perMonth, startAge = ins.you.age) {
  * when `ins` asks for it, is a try on that plan (the lead's ruling A: Keep never writes it): the same plan with the work
  * as its part-time row (planSeed `tryWork`), never what Keep stores.
  */
-export function keptPlanAt(source, ins, env, perMonth, startAge = undefined) {
-  const result = resultAt(source, ins, env, perMonth, startAge);
+export function keptPlanAt(source, ins, env, perMonth, startAge = undefined, saver = null) {
+  const result = resultAt(source, ins, env, perMonth, startAge, saver);
   const tryWork = source === 'd' && !!(ins.work && ins.work.has);
   const seed = buildPlanSeed({ source, result, env: { today: env.today, appVersion: '' }, name: null, createdAt: env.today + 'T00:00:00.000Z', tryWork });
   if (!seed) return null;
@@ -142,9 +156,10 @@ function withIsaMix(c) {
  *     from it (p.pensionLock: the first that starts with the person at or over the age), for the words of ruling G.
  * What an amount is made of in each stretch (the split: from the pension, from savings, tax) is the kept plan's own draw at
  * that amount: `breakdownAt` (planCaseOf's splitAt), which toEngine.js breakdownAt hands such a plan to.
- * One person; `asGiven` (D: the work and closed-pension fields) as the household plan D read had it.
+ * One person; `asGiven` (D: the work and closed-pension fields) as the household plan D read had it; `work`: the work the
+ * kept plan holds is said (D's tried work, A's part-time work, which the keep writes: planSeed partTime).
  */
-function wordsPlanFrom({ p, settings, life, asGiven, planYears, planToAge, today }) {
+function wordsPlanFrom({ p, settings, life, asGiven, work = asGiven, planYears, planToAge, today }) {
   const cfg = p.pnvCfg;
   const startAge = p.startAge;
   const pa = +settings.pa > 0 ? +settings.pa : BANDS.pa, brl = +settings.brl > 0 ? +settings.brl : BANDS.brl, hrl = +settings.hrl > 0 ? +settings.hrl : BANDS.hrl;
@@ -179,7 +194,7 @@ function wordsPlanFrom({ p, settings, life, asGiven, planYears, planToAge, today
     who: 'you', index: 0, ageToday, ageAtStart: startAge, pension, isa, money: pension + isa, share: 1, kind,
     lockedYears, untilAge: lockedYears > 0 ? startAge + lockedYears : null, taxFreeQuarter: settings.accessMethod === 'ufpls',
     statePension: { amount: p.spAnnual > 0 ? p.spAnnual : 0, startAge: Number.isFinite(spStart) ? startAge + spStart : null, startYear: Number.isFinite(spStart) ? spStart : null, inPayment: p.spAnnual > 0 && spStart <= 0 },
-    finalSalary, ...(asGiven ? { work: [] } : {})
+    finalSalary, ...(work ? { work: [] } : {})
   };
   // the runs as the household plan makes them (toEngine.js enginePlan): one; a closed pension with savings, D's locked run
   const runs = kind === 'none' ? [] : lockedYears > 0 && !asGiven && isa > 0
@@ -191,8 +206,8 @@ function wordsPlanFrom({ p, settings, life, asGiven, planYears, planToAge, today
   const periods = [];
   for (let i = 0; i + 1 < bounds.length; i++) {
     const from = bounds[i];
-    const sp = spAt(from), fs = otherAt(from), wk = asGiven ? workAt(from) : 0, g = sp + fs + wk;
-    const b = { who: 'you', statePension: sp, finalSalary: fs, ...(asGiven ? { work: wk } : {}), gross: g, net: net(g), locked: from < lockedYears, anyway: net(sp + fs) };
+    const sp = spAt(from), fs = otherAt(from), wk = work ? workAt(from) : 0, g = sp + fs + wk;
+    const b = { who: 'you', statePension: sp, finalSalary: fs, ...(work ? { work: wk } : {}), gross: g, net: net(g), locked: from < lockedYears, anyway: net(sp + fs) };
     // the pots' share between the runs, as enginePlan shares them: a closed pension draws on nothing until it opens
     const available = runs.map((r) => (r.role === 'pension' && b.locked ? (asGiven && r.locked ? isa : 0) : r.money));
     const total = available.reduce((s, v) => s + v, 0);
@@ -200,7 +215,7 @@ function wordsPlanFrom({ p, settings, life, asGiven, planYears, planToAge, today
     periods.push({ from, to: bounds[i + 1], months: monthsOf(from, bounds[i + 1]), ...(waitOf(from) > 0 ? { waitMonths: waitOf(from) } : {}), byPerson: [b], shares, netTotal: b.net, spPaidCount: sp > 0 ? 1 : 0 });
   }
   return {
-    ...(asGiven ? { asGiven: true } : {}), startAge, endAge: planToAge, years: planYears, yearsFromNow: 0, whose: 'you',
+    ...(asGiven ? { asGiven: true } : {}), ...(work ? { withWork: true } : {}), startAge, endAge: planToAge, years: planYears, yearsFromNow: 0, whose: 'you',
     // from now: the start is this month, never moved; the earliest age a pension can be touched on that day (the law)
     start: today.slice(0, 7), startMoved: false, movedBy: 0, movedFor: [], capped: false, accessAge: accessAgeOn(today),
     people: [person], runs, periods, shape: null, apart: null, spCount: p.spAnnual > 0 ? 1 : 0,
@@ -224,7 +239,7 @@ const sameBase = (a, b) => PREPARED.every((k) => a[k] === b[k]) && JSON.stringif
  *   plan's years to the weighting age, `startAge`, `endAge` = the plan-to age, `guaranteedAtStartAYear` 0 (the plan's first
  *   tax year pays a share of the State Pension, so nothing above £0 lasts in every future for certain), `totalPots`.
  */
-export function planCaseOf(source, ins, env, { lives = null, dragPct = 0, fromAge = undefined } = {}) {
+export function planCaseOf(source, ins, env, { lives = null, dragPct = 0, fromAge = undefined, saver = null } = {}) {
   const now = dateOf(env.today);
   const spendAYear = ins.spend && isNum(ins.spend.amount) ? ins.spend.amount * 12 : null;
   const memo = new Map();
@@ -232,7 +247,7 @@ export function planCaseOf(source, ins, env, { lives = null, dragPct = 0, fromAg
   const at = (H) => {
     let c = memo.get(H);
     if (c) return c;
-    const kept = keptPlanAt(source, ins, env, H / 12, fromAge);
+    const kept = keptPlanAt(source, ins, env, H / 12, fromAge, saver);
     if (!kept) throw new Error('planCaseOf: the answer cannot be kept at ' + H);
     const settings = effectiveStressSettings(kept, { now });
     const p = planFor(settings, now);
@@ -273,8 +288,14 @@ export function planCaseOf(source, ins, env, { lives = null, dragPct = 0, fromAg
   // the plan's years, for the left at the end: the plan's own config (no run to the weighting age)
   const planConfigAt = (H) => withIsaMix({ ...at(H).p.pnvCfg, ...drag, years: planYears });
 
-  const L = typeof lives === 'function' ? lives(years) : lives || livesList(env.futures, years, env);
-  for (const l of L) if (!(l.years >= years)) throw new Error(`planCaseOf: a life of ${l.years} years is shorter than the ${years} the plan runs`);
+  // a saver (B): the drawing years start S years from today, in each life's own years from there
+  const S0 = saver ? saver.S : 0;
+  // (a saver's lives given shorter than the kept plan runs, its years to the weighting age counted from the stop: the same
+  // lives made longer — each is the first years of a longer one, lives.js — so the saving years read the same figures)
+  const given = typeof lives === 'function' ? lives(S0 + years) : lives;
+  const L = !given ? livesList(env.futures, S0 + years, env)
+    : saver && given.some((l) => !(l.years >= S0 + years)) ? livesList(given.length, S0 + years, env) : given;
+  for (const l of L) if (!(l.years >= S0 + years)) throw new Error(`planCaseOf: a life of ${l.years} years is shorter than the ${S0 + years} the plan needs`);
   const n = L.length;
   const totalPots = (base.equityStart || 0) + (base.bondStart || 0) + (base.cashStart || 0) + (base.isaBalance || 0);
   const plan = {
@@ -284,9 +305,16 @@ export function planCaseOf(source, ins, env, { lives = null, dragPct = 0, fromAg
     // plan's years: without it a small pot beside a State Pension already paid capped every level at the pot's own share
     guaranteedCeilingAYear: Math.max(0, ...Array.from({ length: planYears }, (_, y) => (y >= (p0.spStartYear ?? Infinity) ? p0.spAnnual || 0 : 0) + ((p0.otherIncomeByYear && p0.otherIncomeByYear[y]) || 0)))
   };
-  const drawFutures = L.map((life1) => ({ id: life1.id, seed: life1.seed, returns: sliceReturns(life1, 0, years) }));
+  const drawFutures = L.map((life1) => ({ id: life1.id, seed: life1.seed, returns: sliceReturns(life1, S0, years) }));
   const drivers = new Array(n).fill(null);
-  const fast = createFastRunner(plan, drawFutures, { driversFor: (i) => drivers[i] || (drivers[i] = prepareFutureFrom(L[i], 0, years)) });
+  // the drivers of life i's drawing years: from today, the life's own; from a stop S years on, the plan test's (stressTest.js
+  // stopLifeOf): the life's market read on from the stop, the engine's own bond draws (seed i) and first year's cash rule
+  // starting there, as every run of the engine starts (the plan test's rule, ruling 8: a drawing life made afresh at the stop)
+  const driverOf = (i) => (S0 > 0
+    ? prepareFutureFrom({ returns: drawFutures[i].returns, stream: bondStream({ returns: drawFutures[i].returns, years, seed: L[i].seed }) }, 0, years)
+    : prepareFutureFrom(L[i], 0, years));
+  const driversFor = (i) => drivers[i] || (drivers[i] = driverOf(i));
+  const fast = createFastRunner(plan, drawFutures, { driversFor });
   const byH = new Map();
   const configsAtH = (H) => {
     let c = byH.get(H);
@@ -438,17 +466,34 @@ export function planCaseOf(source, ins, env, { lives = null, dragPct = 0, fromAg
       const fromSavings = draws ? pd.isaDraw : takeHome - b.net;
       const tax = draws ? pd.tax : b.gross - b.net;
       const out = { who: person.who, statePension: b.statePension, finalSalary: b.finalSalary, fromPension, fromSavings, tax, takeHome,
-        higherRate: fromPension + fromSavings > 0 && b.gross + fromPension * (1 - f) > brl + 1, locked: b.locked };
-      if (wp.asGiven) Object.assign(out, { work: b.work, workAfterTax: b.work > 0 ? b.net - b.anyway : 0, pensionOpen: !closed });
+        higherRate: fromPension + fromSavings > 0 && b.gross + fromPension * (1 - f) > brl + 1, locked: b.locked, pensionOpen: !b.locked };
+      if (wp.withWork) Object.assign(out, { work: b.work, workAfterTax: b.work > 0 ? b.net - b.anyway : 0 });
+      if (wp.asGiven) out.pensionOpen = !closed;
       return { from: per.from, to: per.to, months: per.months, ...(per.waitMonths ? { waitMonths: per.waitMonths } : {}), takeHome, byPerson: [out], beforeStatePension: wp.spCount > 0 && per.spPaidCount < wp.spCount };
     });
   };
   /** The plan the words read (wordsPlanFrom), made once: the kept plan's incomes do not change with the amount. */
   let words = null;
-  const wordsPlan = () => words || (words = { ...wordsPlanFrom({ p: p0, settings: first.settings, life, asGiven: source === 'd', planYears, planToAge, today: env.today }), shortfallAt, breakdownAt: splitAt });
+  const wordsPlan = () => words || (words = { ...wordsPlanFrom({ p: p0, settings: first.settings, life, asGiven: source === 'd', work: source === 'd' || source === 'a', planYears, planToAge, today: env.today }), shortfallAt, breakdownAt: splitAt });
+
+  /**
+   * A saver's pots at the stop in one life, put into the kept plan's config (createFastRunner's start values; the fast path
+   * holds each pot's floor at its start, as the kept plan's config does): the pension at the plan's risk level's mix — the
+   * mix the keep writes (PlanFromSeed: the intended mix is the risk level), the plan test scaling its config by the life's
+   * pension over the middle — and the savings scaled as the plan test scales them. Exactly linear in the pension, so a
+   * pay-in, a pot or a one-off sum asked again gives the figure the search found. (The keep writes today's pots in pounds
+   * and pence, so the kept plan's own mix is the risk level's however small the pension today: PlanFromSeed.)
+   */
+  const preset = RISK_PRESETS[ins.risk] || RISK_PRESETS.balanced;
+  const midIsa = p0.stopLives ? p0.stopLives.isa : (base.isaBalance || 0);
+  const potsAt = (q) => {
+    const e = q.pension * preset.equity, b = q.pension * preset.bond;
+    return { equity: e, bond: b, cash: q.pension - e - b, isa: midIsa > 0 ? (base.isaBalance || 0) * (q.isa / midIsa) : q.isa };
+  };
 
   return {
     source, plan, sp: { n, lives: L }, runner, weigher, toMonth, planYears, years, startAge, planToAge, weightToAge,
+    S: S0, drawFutures, driversFor, configsAtH, potsAt,
     level: planLevelOf(first.kept), capped: plan.runCapped, reason,
     keptAt: (H) => at(H).kept, settingsAt: (H) => at(H).settings,
     floorAgeOf, worstAgeOf, leftOf, leftTermsOf, shortfallAt,

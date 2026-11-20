@@ -154,6 +154,8 @@ function factsOf(plan, checked, household, fullSp, env) {
       pensionOverLimit: p.pension > RULES.taxFreeLimit / RULES.taxFreeShare,
       // under the earliest pension age today, with a pension pot: the pension cannot be touched before `accessAge`
       underAccessAge: p.pension > 0 && p.ageToday < accessAge, accessAge, startsAtAccessAge: p.ageAtStart === accessAge,
+      // the kept plan's own first tax year it takes from a pension still closed (planPath wordsPlan; the lead's ruling G)
+      opens: lock && plan.pensionOpens && p.who === 'you' ? plan.pensionOpens : null,
       // "Already had the tax-free part?" (couples-different-years.md 2.3: asked only of someone who has stopped)
       taxFreeTaken: raw.taxFreeTaken === true
     };
@@ -202,6 +204,8 @@ function finishOnLives(result, plan, checked, household, env, more) {
   const mid = more.middling;
   const inputs = checked.inputs;
   facts.life = true;
+  // on the plan path (onLives.js keptCaseOf) the test runs to the kept plan's own limit (the cap keeping applies, ruling H)
+  if (more.capYears !== undefined) { facts.capped = Boolean(more.capped); facts.capYears = more.capYears; }
   // 7.8.0, weighing (onLives.js): the chance's facts and the shortfall at the level's amount
   if (more.weighing) { result.basis.weighted = true; facts.weighing = more.weighing; }
   // the money from today's age (an age that is now): nothing more goes in, as from now. Couples apart: someone who has

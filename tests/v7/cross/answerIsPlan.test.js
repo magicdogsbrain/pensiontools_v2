@@ -9,11 +9,10 @@
  *   - the plan test: answers/plan/lastsRun.js lastsOf ("Does it last?" is this run, runLasts reads it), at the answer's
  *     own count of futures, the real histories left out (no figure here reads them).
  *
- * D and C from now are on the plan path for one person (answers/keep/planPath.js): their blocks hold to the last bit. What does not hold yet
- * is `it.fails`, each with the gap measured at 40 futures on 30 September 2026. When an answer is put on the plan path the `it.fails` beside it starts to fail and becomes
- * an `it`: the gap cannot close silently, nor open again.
+ * D, C from now, and A's and B's drawing years are on the plan path for one person (answers/keep/planPath.js): their blocks
+ * hold to the last bit.
  *
- * Measured gaps (40 futures; the answer's figure, then the kept plan's; D's, closed by the plan path, kept as the record):
+ * Measured gaps before the plan path (40 futures; the answer's figure, then the kept plan's; each closed by it, kept as the record):
  *   D1 (68, £300,000 pension, £40,000 savings, £2,100 a month): lasts to 99 in 26 of 40 vs 25 of 40; weighted 0.877 vs
  *      0.858; bad-case run-out age 90 vs 93. Both say "close" here; at 1,000 futures the answer says close (597 of 1,000)
  *      and the plan says no (571 of 1,000).
@@ -30,8 +29,9 @@
  *      £1,800); with whole lives 6 vs 5 and 25 vs 25 (weighted 0.318 vs 0.320, 0.708 vs 0.705). Kept paying in what would be
  *      enough, the kept plan passed at the level (37 of 40) only because it drew every future from the middling pot: with
  *      whole lives it says "close" where the answer says "yes" (stop 60: £1,930 a month, weighted 0.901 vs 0.893; stop 62:
- *      £1,180, 0.901 vs 0.897). What is left is B's drawing years, still the household's run (its config, its bond stream
- *      carried on from the saving years, its monthly weights) beside the kept plan's: B on the plan path closes it.
+ *      £1,180, 0.901 vs 0.897). What was left was B's drawing years, the household's run (its config, its bond stream
+ *      carried on from the saving years, its monthly weights) beside the kept plan's: on the plan path B (and A) say the kept
+ *      plan's own figures, B as now 5 of 40 (0.320) and 25 of 40 (0.705), the figure that would be enough "yes" on both.
  * The causes (map-sums.md 3b): the answers' year grid from today with the State Pension's first year whole, the plan's tax
  * years with its first-year share; monthly weights against the plan's yearly ones; the glidepath over the whole run against
  * the plan's own length; the take-home grossed per year against the kept plan's rounded yearly steps.
@@ -333,23 +333,48 @@ describe('C from now: the answer is the plan kept from it (one person, the plan 
   }
 });
 
-describe('A and B: the plan kept from a saver\'s answer', () => {
-  it.fails('B kept paying in what would be enough: the kept plan passes at the level (whole lives: "close", 0.893 and 0.897)', () => {
+describe('B: the plan kept from a saver\'s answer is the answer (one person, the plan path)', () => {
+  it('the plan path keeps what the answer keeps: the same settings and saving block as keptPlansOf on the answer', () => {
     for (const [stop, spend] of [[60, 2000], [62, 1800]]) {
-      const plan = planReading(keptPlansOf('b', samB(stop, spend), ENV, { payIn: 'enough' }).yours);
-      expect(plan.verdict).toBe('yes');
+      const b = samB(stop, spend);
+      const real = keptPlansOf('b', b, ENV).yours;
+      const saver = { S: b.saving[0].yearsSaving, stopAge: b.stop.age, pensionOpens: b.pensionOpens, saving: b.saving };
+      const mine = keptPlanAt('b', b.inputs, ENV, spend, undefined, saver);
+      expect(mine.stressTool.settings).toEqual(real.stressTool.settings);
+      expect(mine.accumulationTool).toEqual(real.accumulationTool);
     }
   });
-  it.fails('B kept paying in as now: the same count of futures that last (6 of 40 vs 5: B\'s drawing years are the household\'s run)', () => {
-    const b = samB(60, 2000);
-    const plan = planReading(keptPlansOf('b', b, ENV).yours);
-    expect(plan.lasted).toBe(N - b.chance.fails);
+  // Sam, paying in as now (40 futures, 30 September 2026): stop 60 at £2,000 a month, 5 of 40 last to 95, weighted 0.320,
+  // "no"; stop 62 at £1,800, 25 of 40, 0.705. Each the kept plan's own reading, to the last bit (before, B's drawing years
+  // were the household's run: 6 of 40, 0.318 and 25 of 40, 0.708).
+  for (const [stop, spend] of [[60, 2000], [62, 1800]]) {
+    it(`B kept paying in as now, stop ${stop} at £${spend}: the same count, weighted chance, verdict and plan-to age`, () => {
+      const b = samB(stop, spend);
+      const plan = planReading(keptPlansOf('b', b, ENV).yours);
+      expect({ lasted: N - b.chance.fails, weighted: b.chance.weighted, verdict: b.verdict.band, planToAge: b.chance.planToAge })
+        .toEqual({ lasted: plan.lasted, weighted: plan.weighted, verdict: plan.verdict, planToAge: plan.planToAge });
+    });
+  }
+  it('B kept paying in what would be enough: the kept plan passes at the level with the count and weighted chance B said there', () => {
+    for (const [stop, spend] of [[60, 2000], [62, 1800]]) {
+      const b = samB(stop, spend);
+      const fig = b.enough.atLevel;
+      const plan = planReading(keptPlansOf('b', b, ENV, { payIn: 'enough' }).yours);
+      expect({ verdict: plan.verdict, lasted: plan.lasted, weighted: plan.weighted }, `stop ${stop}`).toEqual({ verdict: 'yes', lasted: Math.round(fig.lasted * N), weighted: fig.weighted });
+    }
   });
-  it.fails('A at the age it shows: the same count of futures that last and the same weighted chance', () => {
-    const a = answerA({ ...SAM, spend: { kind: 'amount', amount: 2000 }, stop: { kind: 'age', age: 60 }, partTime: { has: false } }, { ...ENV, detail: 'chart' });
-    const plan = planReading(keptPlansOf('a', a, ENV).yours);
-    expect(plan.verdict).toBe(a.shown.verdict);
-    expect(plan.lasted).toBe(N - a.chance.fails);
-    expect(plan.weighted).toBe(a.chance.weighted);
-  });
+});
+
+describe('A: the plan kept from a saver\'s answer is the answer (one person, the plan path)', () => {
+  // Sam at £2,000 a month (40 futures, 30 September 2026), the age named and its row each the kept plan's own reading, to
+  // the last bit: at 60, 5 of 40 last to 95, weighted 0.320, "no" (before, the household's run: 6 of 40, 0.318); at 62 and
+  // 65 the same rule
+  for (const age of [60, 62, 65]) {
+    it(`A at ${age}: the same count, weighted chance, verdict and plan-to age`, () => {
+      const a = answerA({ ...SAM, spend: { kind: 'amount', amount: 2000 }, stop: { kind: 'age', age }, partTime: { has: false } }, { ...ENV, detail: 'chart' });
+      const plan = planReading(keptPlansOf('a', a, ENV).yours);
+      expect({ lasted: N - a.chance.fails, weighted: a.chance.weighted, verdict: a.shown.verdict, planToAge: a.chance.planToAge })
+        .toEqual({ lasted: plan.lasted, weighted: plan.weighted, verdict: plan.verdict, planToAge: plan.planToAge });
+    });
+  }
 });

@@ -21,6 +21,7 @@ import { apartAssumed, apartWarnings, workerOf } from '../shared/apart.js';
 import { atTheStart, shapeWarnings } from '../shared/shapeAnswer.js';
 import { savingsGrowthParts } from '../shared/savingsGrowth.js';
 import { laterMore, bridgeOf } from '../shared/spans.js';
+import { pensionOpensParts } from '../shared/opensWords.js';
 
 const M = (key) => ({ key, kind: 'money' });
 const A = (key) => ({ key, kind: 'age' });
@@ -844,6 +845,12 @@ export function warningsFor(result, facts) {
   for (const p of facts.people.filter((x) => x.underAccessAge && !(facts.closedYears && facts.closedYears.who.includes(x.who)))) {
     const you = p.who === 'you';
     const still = facts.lockedUntil.find((l) => l.who === p.who);
+    // the kept plan says when it first takes from the pension (the lead's ruling G; the one builder, PensionAge.js): the
+    // law's age and the plan's own first tax year, both facts; what pays meanwhile only when there is other money to pay
+    if (p.opens) {
+      warn('pension-locked' + (you ? '' : '-partner'), 'important', pensionOpensParts(p.opens, { meanwhile: facts.savings > 0 }));
+      continue;
+    }
     const parts = [you ? "You can't take money from your pension until you are " : "Your partner can't take money from their pension until they are ", F(p.accessAge),
       ...(p.accessAge === facts.accessFrom ? [' (April ', F(RULES.pensionAccess.changesOn.slice(0, 4)), ' rules)'] : []), '.'];
     if (still) parts.push(' Until then it is left alone and the rest of the money pays.');

@@ -226,7 +226,9 @@ describe('B — metamorphic relations', () => {
       // (7.8.0: while weighing, a couple is counted while either of you is alive, so a partner with nothing still moves the
       // weights and the plan-to age; the relation is the engine's and is held on the count, env.weighted false)
       const COUNT = { ...ENV, weighted: false };
-      const a = ok(answerB(single, COUNT), single);
+      // (7.12.0: one person's drawing years run on the kept plan, a couple's on the household run (ruling 9, step P4): the
+      // relation is the household run's, so the single is asked on it by name — env.householdRoute — until couples move)
+      const a = ok(answerB(single, { ...COUNT, householdRoute: true }), single);
       // before a pension opens the savings a month are split between the two of you (two ISAs): not the single's question
       fc.pre(a.outside === null);
       const b = ok(answerB(couple, COUNT), couple);

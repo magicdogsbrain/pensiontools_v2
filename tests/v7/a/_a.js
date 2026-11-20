@@ -4,7 +4,15 @@
  */
 import { SCHEMA_A } from '../../../src/answers/a/schema.js';
 
-export { answerA } from '../../../src/answers/a/answer.js';
+import { answerA as answerOnEnv } from '../../../src/answers/a/answer.js';
+import * as planPath from '../../../src/answers/keep/planPath.js';
+
+/**
+ * A as every caller asks it (src/answers/index.js answerFor): one person runs each row's drawing years on the kept plan,
+ * handed in as env.planPath — here the module itself, as the worker hands it after its lazy import.
+ */
+export const withPlanPath = (env) => (env && env.planPath ? env : { ...(env || {}), planPath });
+export const answerA = (inputs, env) => answerOnEnv(inputs, withPlanPath(env));
 export { SCHEMA_A };
 export const TEST_ENV = { today: '2026-09-30', futures: 40, seed: 0, trace: false, detail: 'chart' };
 export { get, renderScreen } from '../c/_c.js';

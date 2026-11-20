@@ -148,7 +148,9 @@ describe.skipIf(!ENGINE_READY)('A — metamorphic relations', () => {
       const couple = { ...single, household: 'couple', partner: { age: single.you.age, pot: 0, payIn: { kind: 'total', total: 0 }, statePension: { kind: 'none' }, finalSalary: { has: false } } };
       // (7.8.0: while weighing, a couple is counted while either of you is alive, so a partner with nothing still moves the
       // weights and the plan-to age; the relation is the engine's and is held on the count, env.weighted false)
-      const a = run(single, { ...envFor(single), weighted: false });
+      // (7.12.0: one person's drawing years run on the kept plan, a couple's on the household run (ruling 9, step P4): the
+      // relation is the household run's, so the single is asked on it by name — env.householdRoute — until couples move)
+      const a = run(single, { ...envFor(single), weighted: false, householdRoute: true });
       const b = run(couple, { ...envFor(couple), weighted: false });
       expect(household(b)).toEqual(household(a));
     }), opts());

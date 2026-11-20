@@ -8,8 +8,8 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { answerA } from '../../../src/answers/a/answer.js';
-import { answerB } from '../../../src/answers/b/answer.js';
+import { answerA } from '../a/_a.js';
+import { answerB } from '../b/_b.js';
 import { answerC } from '../c/_c.js';
 import { answerD } from '../d/_d.js';
 import { SCHEMA_C } from '../../../src/answers/c/schema.js';

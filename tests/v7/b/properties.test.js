@@ -177,10 +177,12 @@ describe('B — properties between two answers', () => {
 
   // 50 in 2027: born either side of 6 April 1977, where the State Pension age steps from 67 to 67 and a month (68 in
   // whole years); 53 to 56: the stop crosses 6 April 2028, where the earliest pension age rises — both are real moves
-  it('PB8 the day moves from 4 to 8 April 2027 with the ages as typed: only the date moves', () => {
+  // (the lead's ruling, 20 Nov 2026: one person's drawing years run on the kept plan, whose year 0 follows the tax year, so
+  // across 6 April more than the date moves; inside one tax year only the date does — the four days are 8 to 12 April 2027)
+  it('PB8 the day moves from 8 to 12 April 2027, inside one tax year, with the ages as typed: only the date moves', () => {
     fc.assert(fc.property(singles.filter((i) => ![50, 53, 54, 55, 56].includes(i.you.age)), (inputs) => {
-      const a = plain(answerB(inputs, { ...ENV, today: '2027-04-04' }));
-      const b = plain(answerB(inputs, { ...ENV, today: '2027-04-08' }));
+      const a = plain(answerB(inputs, { ...ENV, today: '2027-04-08' }));
+      const b = plain(answerB(inputs, { ...ENV, today: '2027-04-12' }));
       const moved = diffPaths(a, b).filter((p) => !/^basis\.today$|^assumed\.\d+\.(text|parts|value)|^warnings\.\d+\.(text|parts)/.test(p) && !/\.parts\.\d+\.fixed$/.test(p));
       expect(moved).toEqual([]);
     }), opts(4));

@@ -628,7 +628,8 @@ describe('the shell\'s data for question A', () => {
     const { ANSWERS } = await import('../../../src/answers/index.js');
     expect(Object.keys(ANSWERS).sort()).toEqual(['a', 'b', 'c', 'd']);
     expect(ANSWERS.a.schema).toBe(SCHEMA_A);
-    expect(ANSWERS.a.answer).toBe(answerA);
+    // (the registry holds the answer itself; the tests' answerA hands it the plan path, as answerFor does)
+    expect(ANSWERS.a.answer).toBe((await import('../../../src/answers/a/answer.js')).answerA);
     expect(ANSWERS.b.schema).toBe(SCHEMA_B);
   });
 

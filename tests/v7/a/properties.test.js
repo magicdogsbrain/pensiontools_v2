@@ -262,14 +262,16 @@ describe.skipIf(!ENGINE_READY)('A — properties between two answers', () => {
     expect(plain(frozen(at(2019, 6, 1), () => answerA(inputs, ENV)))).toEqual(first);
   });
 
-  it('PA12 the day moves from 4 to 8 April 2027, the ages typed stay the same: only the date in the basis moves', () => {
-    fc.assert(fc.property(arbitraryInputs(SCHEMA_A, { ...ENV, today: '2027-04-04' }).filter((i) => i.stop.kind === 'age'), (inputs) => {
+  // (the lead's ruling, 20 Nov 2026: one person's rows run on the kept plan, whose year 0 follows the tax year, so across
+  // 6 April more than the date moves; inside one tax year only the date does — the four days are 8 to 12 April 2027)
+  it('PA12 the day moves from 8 to 12 April 2027, inside one tax year, the ages typed stay the same: only the date in the basis moves', () => {
+    fc.assert(fc.property(arbitraryInputs(SCHEMA_A, { ...ENV, today: '2027-04-08' }).filter((i) => i.stop.kind === 'age'), (inputs) => {
       // Ages whose birthday, moved four days, crosses a rule's date (C's M13), and a stop a year on, which lands either
       // side of 6 April 2028 when the earliest pension age becomes 57: another answer, by the rule.
       const onARule = (age) => [49, 50, 53, 54, 55, 56, 66, 67].includes(age);
       fc.pre(!onARule(inputs.you.age) && !(inputs.partner && onARule(inputs.partner.age)) && inputs.stop.age - inputs.you.age !== 1);
-      const a = answerA(inputs, { ...envFor(inputs), today: '2027-04-04' });
-      const b = answerA(inputs, { ...envFor(inputs), today: '2027-04-08' });
+      const a = answerA(inputs, { ...envFor(inputs), today: '2027-04-08' });
+      const b = answerA(inputs, { ...envFor(inputs), today: '2027-04-12' });
       fc.pre(a.status !== 'invalid' && b.status !== 'invalid');
       expect(diffPaths(plain(a), plain(b)).filter((p) => p !== 'basis.today')).toEqual([]);
     }), opts());

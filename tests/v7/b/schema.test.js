@@ -325,7 +325,8 @@ describe('the shell\'s data for question B', () => {
   it('answerB is registered under ANSWERS.b with SCHEMA_B, and the worker\'s question ids are the registry\'s', async () => {
     const { ANSWERS } = await import('../../../src/answers/index.js');
     expect(ANSWERS.b.schema).toBe(SCHEMA_B);
-    expect(ANSWERS.b.answer).toBe(answerB);
+    // (the registry holds the answer itself; the tests' answerB hands it the plan path, as answerFor does)
+    expect(ANSWERS.b.answer).toBe((await import('../../../src/answers/b/answer.js')).answerB);
     for (const q of Object.keys(ANSWERS)) expect(ANSWERS[q].schema.id).toBe(q);
   });
 });

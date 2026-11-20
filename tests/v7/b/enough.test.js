@@ -299,8 +299,9 @@ describe('the warnings and the ways are about what the words state', () => {
     const a = ok(answerB(high, AT(100)), high);
     expect(a.enough.atLevel.payIn * 12).toBeGreaterThan(RULES.annualAllowance);
     expect(a.warnings.map((w) => w.id)).toContain('annual-allowance');
-    // Sam, already drawing: B's figure £830 a month (£9,960 a year), the share said £850 (£10,200)
-    const drawing = { household: 'single', you: { age: 57, pot: 200000, payIn: { kind: 'share', pay: 60000, ownPct: 6, employerPct: 3 }, alreadyDrawing: true }, stop: { age: 67 }, spend: { kind: 'amount', amount: 2000 } };
+    // Sam, already drawing: what would be enough is £850 a month, the share said (£10,200 a year), over the £10,000
+    // (7.12.0, the drawing years the kept plan's: at £2,000 a month it was £820, £9,840 a year, so Sam spends £2,010 here)
+    const drawing = { household: 'single', you: { age: 57, pot: 200000, payIn: { kind: 'share', pay: 60000, ownPct: 6, employerPct: 3 }, alreadyDrawing: true }, stop: { age: 67 }, spend: { kind: 'amount', amount: 2010 } };
     const b = ok(answerB(drawing, AT(100)), drawing);
     expect(b.enough.atLevel.payIn * 12).toBeGreaterThan(RULES.moneyPurchaseAllowance);
     expect(b.warnings.map((w) => w.id)).toContain('mpaa');
@@ -308,14 +309,16 @@ describe('the warnings and the ways are about what the words state', () => {
 
   it('the one-off sum is checked with a year of what goes in now, and against the pay of someone who gave it', () => {
     // Alex: £1,000 a month going in (15% and 5% of £60,000); a sum under £60,000 with a year of that is over it
-    const alex = { household: 'single', you: { age: 50, pot: 610000, payIn: { kind: 'share', pay: 60000, ownPct: 15, employerPct: 5 } }, stop: { age: 62 }, spend: { kind: 'amount', amount: 3000 } };
+    // (7.12.0, the drawing years the kept plan's: from £610,000 the sum is £48,000, and £48,000 + £12,000 is not over £60,000;
+    // from £605,000 it is £53,000)
+    const alex = { household: 'single', you: { age: 50, pot: 605000, payIn: { kind: 'share', pay: 60000, ownPct: 15, employerPct: 5 } }, stop: { age: 62 }, spend: { kind: 'amount', amount: 3000 } };
     const a = ok(answerB(alex, AT(200)), alex);
     const o = a.levers.oneOff;
     expect(o.amount).toBeLessThanOrEqual(RULES.annualAllowance);
     expect(o.amount + a.payIn.now * 12).toBeGreaterThan(RULES.annualAllowance);
     expect(o).toMatchObject({ overAllowance: true, over: ['you'] });
     expect(a.sentences.lever.oneOff.text).toContain('With what goes in now, that is more than £60,000 in one year: the most that gets the tax the government adds back');
-    // £58,000 or so and a year of Alex's own 15% (£9,000) is more than Alex's pay of £60,000
+    // £53,000 and a year of Alex's own 15% (£9,000) is more than Alex's pay of £60,000
     expect(o.overPay).toEqual(['you']);
     expect(a.sentences.lever.oneOff.text).toContain('The tax is added back only on what you pay in up to your pay in a year');
   }, 60_000);

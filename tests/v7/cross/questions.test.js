@@ -186,9 +186,8 @@ function nonMonotoneNear(cIn, monthly, reach = 20) {
  * One X1 case: C twice (for the careful amount, then with take := it), A once. Returns 'compared' | 'moved' | 'skipped'
  * | 'closed' | 'non-monotone' (compared, the counts one future apart where the engine is shown not to be monotone).
  */
-// (7.12.0: one person's C from now answers on the plan path; A still runs the household run, so X1 holds A to C on that run,
-// asked for by name — env.householdRoute — until A goes on the plan path too: step P's remaining list)
-const C_ENV = { ...ENV, householdRoute: true };
+// (7.12.0: one person's C from now and A's rows answer on the plan path, the kept plan's runs: X1 holds A to C there)
+const C_ENV = ENV;
 function x1(cRaw, extra = {}) {
   // the one charge (6.19.0) is taken while drawing in both, so C is asked at A's charge (A's default, 0.5, unless given)
   const charge = extra.charge === undefined ? 0.5 : extra.charge;

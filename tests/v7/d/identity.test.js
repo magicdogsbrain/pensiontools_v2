@@ -127,9 +127,8 @@ describe('I-D3, I-D4 — D is question A stopping now', () => {
     }
     expect(D.guaranteed).toEqual(A.guaranteed);
   };
-  it.each([['D2 (a couple; the partner\'s tax-free part had, as A asks it)', D2_NO]])('%s', isAStoppingNow);
-  // one person: D is on the plan path, A not yet (step P)
-  it.fails.each([['D1', D1], ['D7 (with work: £15,000 a year for 3 years)', D7_NO]])('%s (until A is on the plan path)', isAStoppingNow);
+  // (one person: D and A are both on the plan path, the kept plan's runs)
+  it.each([['D2 (a couple; the partner\'s tax-free part had, as A asks it)', D2_NO], ['D1', D1], ['D7 (with work: £15,000 a year for 3 years)', D7_NO]])('%s', isAStoppingNow);
 });
 
 describe('I-D5 — the fall lever is D on the smaller pots typed in', () => {

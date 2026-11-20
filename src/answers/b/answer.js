@@ -188,13 +188,19 @@ function createAges(inputs, env, lives, ctx) {
     let row = null;
     if (D >= 1 && fits && stopAge > asked.age && stopAge <= RULES.stopAgeMax) {
       // the asked person stops at `stopAge`: you (as before), or your partner when you have already stopped
-      const { household } = partner ? toHousehold({ ...inputs, savingRisk }, env, stopAge) : toHousehold({ ...inputs, savingRisk, stop: { age: stopAge } }, env);
+      const asked = partner ? { ...inputs, savingRisk } : { ...inputs, savingRisk, stop: { age: stopAge } };
+      const { household } = partner ? toHousehold(asked, env, stopAge) : toHousehold(asked, env);
       const sp = stopAtPlan(household, inputs.you.age + own.you, env, lives);
+      // one person whose pension is open at the stop: the drawing years are the plan's that keeping this stop would write
+      // (keep/planPath.js; the stop runner draws on it), the saving years this stop plan's own
+      const pc = onPlanPath(inputs, household, sp, env) ? env.planPath.planCaseOf('b', asked, env, { lives, saver: keptSaverOf(sp, stopAge, asked, env) }) : null;
+      if (pc) sp.kept = pc;
       const runner = createStopRunner(sp);
-      row = { stopAge, sp, runner, household, numbers: new Map(), floors: new Map(), whole: null, band: null };
-      // the level and the weights of this stop (7.8.0): the one test at a spend, and the band at the level
-      const weigher = weigherOf(sp.plan, inputs, env);
-      row.at = { weigher, level: ctx.level, toMonth: 12 * (sp.plan.endAge - sp.plan.startAge) };
+      row = { stopAge, sp, runner, household, pc, numbers: new Map(), floors: new Map(), whole: null, band: null };
+      // the level and the weights of this stop (7.8.0): the one test at a spend, and the band at the level (on the plan path
+      // the kept plan's: its yearly weights from the stop, counted to its plan-to age)
+      const weigher = pc ? pc.weigher : weigherOf(sp.plan, inputs, env);
+      row.at = { weigher, level: ctx.level, toMonth: pc ? pc.toMonth : 12 * (sp.plan.endAge - sp.plan.startAge) };
       // the spend in this stop's first year: a step at or before a later stop is in force from it (spending-shape.md 6.4);
       // the stop asked about starts before every step, so its amount is the figure as typed
       const f = sp.plan.shape ? sp.plan.shape.a0 : 1;
@@ -252,6 +258,34 @@ function createAges(inputs, env, lives, ctx) {
     }
     cache.set(key, row);
     return row;
+  };
+}
+
+/**
+ * ONE PERSON IS ON THE PLAN PATH (7.12.0, one answer for the same household; lead4-engine.md P, ruling 8): the drawing
+ * years of each stop are the plan's that keeping the answer at that stop would write (keep/planPath.js planCaseOf, handed in
+ * as env.planPath — answers/index.js answerFor): its config at each amount, its yearly weights from the stop and its
+ * plan-to age, each life drawing from its own pots at the stop on its own market from there, as the plan test of a plan
+ * still saving runs it. The saving years (each life's pots at the stop, at any pay-in) stay B's own. Not (yet) on it: a
+ * couple (the household run, ruling 9), your partner asked about, a spending shape, no pension at the stop or one still
+ * closed there, and the test devices env.mix and env.householdRoute.
+ */
+function onPlanPath(inputs, household, sp, env) {
+  if (!(env.planPath && typeof env.planPath.planCaseOf === 'function') || env.mix || env.householdRoute) return false;
+  if (inputs.household === 'couple' || askedAbout(inputs) === 'partner' || household.shape) return false;
+  // (a pension at the stop, in the middle of the lives: a kept plan with none draws its target untaxed from savings alone,
+  // so it is no plan to put the pension the searches try into)
+  const you = household.people[0];
+  return firstOpenAge(you.age, env.today, sp.S) <= you.age + sp.S;
+}
+
+/** What planSeed reads of B's result at a stop (planPath resultAt 'b'): the stop, what goes in as now, the pots at the stop. */
+function keptSaverOf(sp, stopAge, inputs, env) {
+  const p = payInOf(inputs.you);
+  return {
+    S: sp.S, stopAge, pensionOpens: { you: firstOpenAge(inputs.you.age, env.today) },
+    saving: [{ who: 'you', yearsSaving: sp.S, payIn: { total: p.total, own: p.own, employer: p.employer },
+      potAtStop: { pension: spread(sp.pots[0].pension), savings: spread(sp.pots[0].savings) } }]
   };
 }
 
@@ -575,7 +609,9 @@ export function answerB(inputs, env) {
       levers.payMore = { payIn, savingsIn: solved.savingsIn > savingsInNow ? solved.savingsIn : null, lasted: v.lasted, ...W(v) };
     }
     // spend less: the careful amount with today's pay-ins (A's careful amount at this stop age)
-    if (monthlyIfShort > 0 && monthlyIfShort < spendMonth) {
+    // (not when that amount is what comes in anyway, lifted to it because the pots would make it less: the lead's rulings D
+    // and I — it is said as what comes in anyway with its own chance, never offered as a way that lasts)
+    if (monthlyIfShort > 0 && monthlyIfShort < spendMonth && !careNow.anyway) {
       levers.spendLess = { spend: monthlyIfShort, lasted: careNow.chance.fixedAge, ...W(careNow.chance) };
     }
     // both together (7.12.0): neither a later stop alone (to the latest age tried) nor spending less from this stop lasts —
@@ -584,7 +620,7 @@ export function answerB(inputs, env) {
     if (!levers.stopLater && !levers.spendLess && stopLaterSearched && number !== null) {
       const row = ages(stopLaterSearched);
       const lv = row && row.bandNow ? row.bandNow().levels[level] : null;
-      if (lv && lv.monthly > 0 && lv.monthly < spendMonth) levers.both = { age: stopLaterSearched, spend: lv.monthly, lasted: lv.chance.fixedAge, ...W(lv.chance) };
+      if (lv && lv.monthly > 0 && lv.monthly < spendMonth && !lv.anyway) levers.both = { age: stopLaterSearched, spend: lv.monthly, lasted: lv.chance.fixedAge, ...W(lv.chance) };
     }
     // a one-off sum now (3.4): the least whole £1,000 into the pension (a couple's pensions, split as the number is),
     // paying in as now — the test at a pot today that much larger. Checked a person at a time, with a year of what goes in
@@ -706,7 +742,7 @@ export function answerB(inputs, env) {
     stop: { age: stopAge, year: String(Number(env.today.slice(0, 4)) + S) },
     ages: Object.fromEntries(whos.map((w) => [w, inp[w].age + own[w]])),
     // (the drawing years to the plan-to age, the label: while weighing the run goes on past it, to plan.runToAge)
-    years: { saving: S, drawing: Number.isFinite(plan.runToAge) ? plan.endAge - plan.startAge : D },
+    years: { saving: S, drawing: base.pc ? base.pc.planToAge - plan.startAge : Number.isFinite(plan.runToAge) ? plan.endAge - plan.startAge : D },
     pensionOpens, gapYears,
     saving,
     level,
@@ -716,7 +752,11 @@ export function answerB(inputs, env) {
         ...(weighing && number !== null && number > 0 ? { potFixedAge: verdictAtPot(sp, H, number, { ...opts, at: base.at, runnerAt }).lasted } : {}) }])),
     already,
     // the chance at today's pay-ins (the whole life: `wholeLife` says the same count)
-    chance: chanceBlock({ weighted: whole.weighted ?? lasted, fixedAge: lasted, fails }, n, {
+    // (on the plan path the kept plan's plan-to age: its own years from the stop, at most the planner's longest plan)
+    chance: chanceBlock({ weighted: whole.weighted ?? lasted, fixedAge: lasted, fails }, n, base.pc ? {
+      planToAge: base.pc.planToAge, weightToAge: base.at.weigher.weighted ? base.at.weigher.weightToAge : base.pc.planToAge,
+      horizonRule: horizonRuleOf({ defaulted: defaultedFields(inp, env).includes('endAge'), capped: Boolean(base.pc.capped) || base.pc.planToAge < inp.endAge })
+    } : {
       planToAge: plan.endAge, weightToAge: base.at.weigher.weighted ? base.at.weigher.weightToAge : plan.endAge,
       horizonRule: horizonRuleOf({ defaulted: defaultedFields(inp, env).includes('endAge'), capped: inp.endAge - plan.startAge > drawYearsCap(env) || Boolean(plan.runCapped) })
     }),
@@ -734,12 +774,16 @@ export function answerB(inputs, env) {
     reach,
     grid: gridOut,
     phases,
-    guaranteed: { monthlyAfterTax: round2(plan.guaranteedAYear / 12) },
+    // (on the plan path what comes in anyway is the kept plan's own, its words plan: as C and D say it)
+    guaranteed: { monthlyAfterTax: round2((base.pc ? base.pc.wordsPlan.guaranteedAYear : plan.guaranteedAYear) / 12) },
     handOver: { c: handOverToC(inp, stopAge, env.today) },
     assumed: [], warnings: [], sentences: {},
     basis: {
-      today: env.today, futures: n, seed: env.seed ?? 0, ...levelBasis(level, base.at.weigher, inp, plan.endAge),
-      historyEnd: historyEnd(), engineVersion: VERSION, endAge: plan.endAge, detail, lifeYears: firstOwn + D,
+      today: env.today, futures: n, seed: env.seed ?? 0, ...levelBasis(level, base.at.weigher, inp, base.pc ? base.pc.planToAge : plan.endAge),
+      // (on the plan path the kept plan's plan-to age: at most RULES.maxYears from the stop, the cap keeping applies; ruling H)
+      historyEnd: historyEnd(), engineVersion: VERSION, endAge: base.pc ? base.pc.planToAge : plan.endAge, ...(base.pc ? { planPath: true } : {}), detail,
+      // (the lives' years: to the stop, then the drawing years the run goes on for: on the plan path the kept plan's, to its weighting age)
+      lifeYears: firstOwn + (base.pc ? base.pc.years : D),
       bondDraws: 'life', cashRule: 'previous-year', grid: 'yearly', strategyId: 'pots-and-valves', cutsSwitchedOff: true,
       split: plan.people.map((p) => ({ who: p.who, share: Math.round(p.share * 1e6) / 1e6 })),   // reported to 6 places: the last binary digit differs between engines
       potStep: SAVING.potStep, potMax: SAVING.potMax, payInCeiling: ceiling, laterYears: SAVING.laterYears,
@@ -786,6 +830,9 @@ export function answerB(inputs, env) {
         fs: fs.length > 0, fsAge: fs.length ? fs[0].startAge : null, fsPaidAtStop: fs.length > 0 && fs[0].startAge <= atStop,
         fsDefault: used.includes(who + '.finalSalary.has'), potDefault: used.includes(who + '.pot'),
         closedUntil: lock ? lock.untilAge : null,
+        // open at the stop by its age, but the kept plan takes it from the first tax year that starts with you at or over
+        // the access age (the lead's ruling G; planPath wordsPlan): said, with both facts
+        opens: !lock && who === 'you' && base.pc && base.pc.wordsPlan.pensionOpens ? base.pc.wordsPlan.pensionOpens : null,
         S: own[who], saves: savers[p], payIn: payIns[p].total, taxFreeTaken: inp[who].taxFreeTaken === true, pension: plan.people[p].pension > 0
       };
     }),
@@ -796,7 +843,8 @@ export function answerB(inputs, env) {
     savingsMostly: midSavings > midPension,
     madeUpFutures: typeof env.futureReturns === 'function',
     historyStartYear: historyStartYear(),
-    capped: inp.endAge - plan.startAge > drawYearsCap(env), capYears: drawYearsCap(env),
+    // (on the plan path the kept plan's own limit, the cap keeping applies: ruling H)
+    capped: base.pc ? base.pc.planToAge < inp.endAge : inp.endAge - plan.startAge > drawYearsCap(env), capYears: base.pc ? base.pc.planYears : drawYearsCap(env),
     oneName: couple && totalPension > 0 && plan.people.some((p, i) => p.pension / totalPension > ONE_NAME_SHARE && bothStopped.byPerson[1 - i].gross < BANDS.pa),
     accessRises: whos.some((w) => accessRiseAffects(inp[w].age, env.today, inp[w].age + own[w])),
     // a partner past their State Pension age, their stop not given: most likely stopped already (said so)

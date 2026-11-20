@@ -174,7 +174,11 @@ export function checkAnswer(answer, given) {
         const me = p.byPerson.find((x) => x.who === who);
         if (!me) return;
         if (me.locked && me.fromPension > 0.005) fail('I7', `phase ${i}: ${who}'s pension is closed but pays ${me.fromPension}`);
-        if (me.locked && p.ages[who].from >= b.accessAge && p.ages[who].from >= RULES.pensionAccess.from) fail('I7', `phase ${i}: ${who} is ${p.ages[who].from} but their pension is still closed`);
+        // (the lead's ruling G, 20 Nov 2026: the plan opens the pension from the first tax year that starts with the person
+        // at or over the access age, so the stretch that starts in the tax year they reach it may still be closed, and the
+        // answer then names them; a stretch that starts a year later is open)
+        const reachingYear = p.ages[who].from === b.accessAge && answer.warnings.some((w) => w.id === 'pension-locked' + (who === 'you' ? '' : '-partner'));
+        if (me.locked && p.ages[who].from >= b.accessAge && p.ages[who].from >= RULES.pensionAccess.from && !reachingYear) fail('I7', `phase ${i}: ${who} is ${p.ages[who].from} but their pension is still closed`);
         if (!me.locked && i > 0 && ph[i - 1].byPerson.find((x) => x.who === who).locked && p.ages[who].from < RULES.pensionAccess.before) fail('I7', `phase ${i}: ${who}'s pension opens at ${p.ages[who].from}`);
       });
     }

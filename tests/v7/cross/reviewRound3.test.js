@@ -326,7 +326,8 @@ describe('R14 — C "now" for someone under the pension age who is still paying 
     expect(now.levels).toEqual(at57.levels);
     expect(now.basis.yearsSaving).toBe(7);
     expect(ids(now)).not.toContain('pay-in-unused');
-    expect(warning(now, 'pension-locked').text).toBe("You can't take money from your pension until you are 57 (April 2028 rules). These figures start from then.");
+    // (the lead's ruling G: the kept plan opens the pension from the first tax year that starts with them at 57 or over)
+    expect(warning(now, 'pension-locked').text).toBe('You can take money from your pension from 57. This plan takes it from April 2034, the first tax year you start at 57 or over.');
     expect(now.sentences.payIn.text).toBe('Paying in £800 a month until 57, rising with prices; the pot invested at Balanced, about half in shares, until then.');
     // nothing going in: "now" is C from now, as it always was (the start moved, the pot taken as it stands)
     const plain = answerC({ you: { age: 50, pot: 100000 }, start: { kind: 'now' } }, ENV);

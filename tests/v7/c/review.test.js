@@ -245,7 +245,9 @@ describe('4 under the earliest pension age, through the form — a start at an a
     const a = ok(answerC(draft.inputs, { ...ENV, trace: true }), draft.inputs);
     expect(a.basis.start).toBe('2033-09');
     expect(a.basis.yearsSaving).toBe(7);
-    expect(warning(a, 'pension-locked').text).toBe("You can't take money from your pension until you are 57 (April 2028 rules). These figures start from then.");
+    // (the lead's ruling G: the kept plan opens the pension from the first tax year that starts with Alex at 57 or over,
+    // 6 April 2034 for someone 50 on 30 September 2026; both facts said, and nothing said to pay meanwhile: no savings)
+    expect(warning(a, 'pension-locked').text).toBe('You can take money from your pension from 57. This plan takes it from April 2034, the first tax year you start at 57 or over.');
     expect(warning(a, 'start-later')).toBeUndefined();
     expect(assumed(a, 'pot-as-is')).toBeUndefined();
     expect(a.sentences.sub.text).toBe('after tax, from age 57 until you are 100, going up each year with prices');

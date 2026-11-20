@@ -179,11 +179,15 @@ export function checkAnswerB(answer, given) {
   if (answer.years.saving !== S) fail('B2', `years.saving ${answer.years.saving} ≠ ${S}`);
   // the household's start: the first stop (one stop for both: the stop)
   const youngerAtStop = Math.min(...people.map((p) => p.age)) + st.first;
-  const D = Math.min(b.weighted ? RULES.maxDrawYears : RULES.maxYears, inputs.endAge - youngerAtStop);
+  // (on the plan path, basis.planPath, the kept plan's own limit: RULES.maxYears from the stop, the cap keeping applies; ruling H)
+  const D = Math.min(b.planPath ? RULES.maxYears : b.weighted ? RULES.maxDrawYears : RULES.maxYears, inputs.endAge - youngerAtStop);
   if (answer.years.drawing !== D) fail('B2', `years.drawing ${answer.years.drawing} ≠ ${D}`);
   if (b.endAge !== youngerAtStop + D) fail('B2', `basis.endAge ${b.endAge} ≠ ${youngerAtStop + D}`);
   // (weighing: the lives run on to the later of the plan-to age and the weighting age, within the cap — the run's years)
-  const runYears = W ? Math.min(RULES.maxDrawYears, Math.max(inputs.endAge, b.weightToAge) - youngerAtStop) : D;
+  // (on the plan path the kept plan's own run: its years to the plan-to age, followed on to its weighting age — planPath
+  // planCaseOf `years` — never to an end age past its limit)
+  const runYears = W && b.planPath ? Math.max(D, b.weightToAge - youngerAtStop)
+    : W ? Math.min(RULES.maxDrawYears, Math.max(inputs.endAge, b.weightToAge) - youngerAtStop) : D;
   if (b.lifeYears !== st.first + runYears) fail('B2', `basis.lifeYears ${b.lifeYears} ≠ ${st.first + runYears}`);
   for (const p of people) if (answer.ages[p.who] !== p.age + st.own[p.who]) fail('B2', `ages.${p.who} ${answer.ages[p.who]} ≠ ${p.age + st.own[p.who]}`);
   if (inputs.household !== 'couple' && answer.whose !== 'you') fail('B2', 'single but whose is not you');
@@ -531,7 +535,9 @@ export function checkAnswerB(answer, given) {
   if (answer.gapYears > 0 && !wids.some((id) => id.startsWith('pension-closed'))) fail('B13', 'every pension closed at the stop, and no pension-closed warning');
   if (answer.outside && has('no-savings-for-gap') !== (!(inputs.savings > 0) && !(inputs.savingsIn > 0))) fail('B13', 'no-savings-for-gap');
   if (has('state-pension-assumed') !== people.some((p) => (p.statePension || {}).kind === 'full')) fail('B13', 'state-pension-assumed');
-  if (has('long-plan') !== (inputs.endAge - youngerAtStop > (W ? RULES.maxDrawYears : RULES.maxYears))) fail('B13', 'long-plan');
+  // (on the plan path the kept plan's own limit, the cap keeping applies — the lead's ruling H: said when it cuts the age asked)
+  const cut = answer.basis && answer.basis.planPath ? answer.basis.endAge < inputs.endAge : inputs.endAge - youngerAtStop > (W ? RULES.maxDrawYears : RULES.maxYears);
+  if (has('long-plan') !== cut) fail('B13', 'long-plan');
 
   // B14 every sentence carries its own numbers; the headline is the number; no banned word, no wait
   const all = sentencesOf(answer);

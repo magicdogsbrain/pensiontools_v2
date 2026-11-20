@@ -41,7 +41,7 @@
  */
 import { enginePlan, configsAt, breakdownAt, joinAt, passOnAt, unpaidOf, amountInYear, yearlyPlan } from './toEngine.js';
 import { createFastRunner, prepareFutureFrom } from './fastEngine.js';
-import { createBandSolver, STEP, runFuture, levelsFromSolver, leftAt } from './band.js';
+import { createBandSolver, STEP, runFuture, levelsFromSolver, leftAt, atLeastAnyway } from './band.js';
 import { livesList, sliceReturns } from './lives.js';
 import { savingPlan, savingKernel, kernelPasses, stopYearsFor } from './saving.js';
 import { RULES, SAVING, legacyVerdictOf, LEVEL_FAILS20, levelOf, passes, drawYearsCap, probeCounter, bounded } from './rules.js';
@@ -167,8 +167,12 @@ export function createStopRunner(sp, lives = sp.lives, kernels = sp.kernels, opt
   const n = sp.n;
   const pensionOf = opts.pensionOf || ((i, j) => sp.pots[j].pension[i]);
   const savingsOf = opts.savingsOf || ((i, j) => sp.pots[j].savings[i]);
-  let plan = sp.plan;
-  if (opts.pensionOf || opts.savingsOf) {
+  // B on the plan path (one person, `sp.kept`: keep/planPath.js planCaseOf at this stop): the drawing years are the kept
+  // plan's — its config at each amount, its drawing lives and drivers from the stop, each life's pots put in as the plan
+  // test puts them; the saving years (the kernels, the pots at the stop) stay this stop plan's
+  const keptCase = sp.kept || null;
+  let plan = keptCase ? keptCase.plan : sp.plan;
+  if (!keptCase && (opts.pensionOf || opts.savingsOf)) {
     const maxes = sp.pots.map((q, j) => {
       let pension = 0, isa = 0;
       for (let i = 0; i < n; i++) { pension = Math.max(pension, pensionOf(i, j)); isa = Math.max(isa, savingsOf(i, j)); }
@@ -179,13 +183,13 @@ export function createStopRunner(sp, lives = sp.lives, kernels = sp.kernels, opt
   const potsCache = new Array(n).fill(null);
   const potsOf = (i) => potsCache[i] || (potsCache[i] = sp.pots.map((q, j) => ({ pension: pensionOf(i, j), isa: savingsOf(i, j) })));
   const mix = plan.mix;
-  const potsFor = (r, i) => {
+  const potsFor = keptCase ? (r, i) => keptCase.potsAt(potsOf(i)[0]) : (r, i) => {
     const run = plan.runs[r];
     const q = potsOf(i)[run.index];
     const pension = run.role === 'savings' ? 0 : q.pension;
     return { equity: pension * mix.equity, bond: pension * mix.bond, cash: pension * mix.cash, isa: q.isa };
   };
-  const fast = createFastRunner(plan, sp.drawFutures, { potsFor, driversFor: sp.driversFor });
+  const fast = keptCase ? createFastRunner(plan, keptCase.drawFutures, { potsFor, driversFor: keptCase.driversFor }) : createFastRunner(plan, sp.drawFutures, { potsFor, driversFor: sp.driversFor });
   const perLife = plan.runs.length > 1;                              // two people: the shares of the need differ by life
   const byK = new Map();
   const byH = new Map();
@@ -246,6 +250,7 @@ export function createStopRunner(sp, lives = sp.lives, kernels = sp.kernels, opt
     return { failed: failMonth !== null, failMonth, parts: { first: f, atJoin: hand.atJoin, shares: hand.shares, join: joinPart, last, passOn } };
   };
   const configsAtH = (H, i) => {
+    if (keptCase) return keptCase.configsAtH(H);
     let c = byH.get(H);
     if (!perLife) {
       if (!c) { c = configsAt(plan, H); byH.set(H, c); }
@@ -256,6 +261,7 @@ export function createStopRunner(sp, lives = sp.lives, kernels = sp.kernels, opt
     return c[i] || (c[i] = configsAt(plan, H, potsOf(i)));
   };
   const configsFor = (k, i) => {
+    if (keptCase) return keptCase.configsAtH(k * STEP * 12);
     let c = byK.get(k);
     if (!perLife) {
       if (!c) { c = configsAt(plan, k * STEP * 12); byK.set(k, c); }
@@ -442,6 +448,8 @@ export function bandAt(sp, runner = createStopRunner(sp), estimate = null, opts 
     runOutMonths, solver, engineRuns: solver.engineRuns, evaluations: solver.evaluations
   };
   if (want.length) out.levels = levelsFromSolver(solver, solved, opts.weigher, want, opts.toMonth ?? Infinity, null, opts.levelRatios || null);
+  // on the plan path (one person, `sp.kept`): never less than what comes in anyway (the lead's ruling D), as C and D say it
+  if (want.length && sp.kept) out.levels = atLeastAnyway(out.levels, solver, opts.weigher, opts.toMonth ?? Infinity, sp.kept.anywayK);
   return out;
 }
 
@@ -993,7 +1001,9 @@ function middlingAtJoin(sp, plan, H, q) {
  */
 export function phasesAt(sp, spendAYear, pots = null, opts = {}) {
   const q = pots || sp.middling;
-  const plan = pots ? sp.planFor(q.map((x) => ({ pension: x.pension, isa: x.isa }))) : sp.plan;
+  // on the plan path (one person, `sp.kept`): what an amount is made of is the kept plan's own draw (planPath wordsPlan), as
+  // C's and D's phases are, whatever the pots: the kept plan's words do not change with them
+  const plan = sp.kept ? sp.kept.wordsPlan : pots ? sp.planFor(q.map((x) => ({ pension: x.pension, isa: x.isa }))) : sp.plan;
   if (plan.apart) return apartPhases(sp, plan, spendAYear, q, opts);
   // `opts.yearly` (a shaped answer's per-year rows, spending-shape.md 5.6): one phase a year, the same figures year by year
   const per = breakdownAt(opts.yearly ? yearlyPlan(plan) : plan, spendAYear, q);

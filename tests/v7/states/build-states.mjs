@@ -32,15 +32,17 @@ import { partsText } from '../../../src/answers/shared/format.js';
 import { answerC as answerCOnEnv } from '../../../src/answers/c/answer.js';
 import { SCHEMA_A } from '../../../src/answers/a/schema.js';
 import { SCHEMA_B } from '../../../src/answers/b/schema.js';
-import { answerA } from '../../../src/answers/a/answer.js';
-import { answerB } from '../../../src/answers/b/answer.js';
+import { answerA as answerAOnEnv } from '../../../src/answers/a/answer.js';
+import { answerB as answerBOnEnv } from '../../../src/answers/b/answer.js';
 import { SCHEMA_D } from '../../../src/answers/d/schema.js';
 import { answerD as answerOnEnv } from '../../../src/answers/d/answer.js';
 import * as planPath from '../../../src/answers/keep/planPath.js';
 // (7.12.0: one person's D runs on the plan path, handed in as the worker hands it: src/answers/index.js answerFor)
 const answerD = (inputs, env) => answerOnEnv(inputs, { ...env, planPath });
-// (and one person's C from now)
+// (and one person's C from now, and A's and B's drawing years)
 const answerC = (inputs, env) => answerCOnEnv(inputs, { ...env, planPath });
+const answerA = (inputs, env) => answerAOnEnv(inputs, { ...env, planPath });
+const answerB = (inputs, env) => answerBOnEnv(inputs, { ...env, planPath });
 import { outOfTen } from '../../../src/answers/shared/format.js';
 import { legacyVerdictOf as verdictOf } from '../../../src/answers/shared/rules.js';
 import { emptySaverDraft, emptySaverAnswer } from '../../../src/v7/state/initial.js';

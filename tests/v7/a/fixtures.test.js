@@ -101,8 +101,10 @@ describe.skipIf(!ENGINE_READY)('the four fixtures of question A: the answers', (
       });
 
       it('is the same answer in a child process under TZ=UTC and TZ=Europe/London', () => {
+        // (7.12.0: one person's drawing years run on the kept plan, handed in as env.planPath, as every caller hands it)
         const code = `import { answerA } from '${resolve(process.cwd(), 'src/answers/a/answer.js')}';
-          const r = answerA(${JSON.stringify(fx.data.inputs)}, ${JSON.stringify(env)});
+          import * as planPath from '${resolve(process.cwd(), 'src/answers/keep/planPath.js')}';
+          const r = answerA(${JSON.stringify(fx.data.inputs)}, { ...${JSON.stringify(env)}, planPath });
           process.stdout.write(JSON.stringify(r));`;
         for (const TZ of ['UTC', 'Europe/London']) {
           const out = execFileSync(process.execPath, ['--input-type=module', '-e', code], { env: { ...process.env, TZ }, maxBuffer: 64 * 1024 * 1024 }).toString();

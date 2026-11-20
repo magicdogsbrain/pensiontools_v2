@@ -24,8 +24,9 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { answerA, SCHEMA_A, TEST_ENV, FIXTURE_FILES, payInsFit } from './invariants.js';
 import { arbitraryInputs } from '../gen/arbitrary.mjs';
-import { stopAtPlan, createStopRunner, bandAt, livesList, checkInputs } from '../saving/_saving.js';
-import { toHousehold } from '../../../src/answers/a/toHousehold.js';
+import { createStopRunner, bandAt, livesList, checkInputs } from '../saving/_saving.js';
+import { stopPlanOf } from '../../../src/answers/a/answer.js';
+import * as planPath from '../../../src/answers/keep/planPath.js';
 import { createHandler } from '../../../src/v7/effects/answerWorker.js';
 import { largeHousehold } from '../oracles/oneStep.mjs';
 
@@ -77,18 +78,22 @@ describe('R1 — the every-age step from the answer step\'s rows is the every-ag
     if (findings.length) console.log(`R1: the every-age step from the answer step's rows differed from it worked out cold in ${findings.length} household(s) with an amount over £10,000 a month — a finding (tests/v7/a/exceptions.md)`, J(findings[0]));
   }, 300_000);
 
-  it('through the real worker handler: the answer step then the every-age step, as the page asks for them', () => {
+  it('through the real worker handler: the answer step then the every-age step, as the page asks for them', async () => {
     const fx = fixtures.find((f) => f.id === 'A4');
     const handle = createHandler();
-    const ask = (id, futures, detail) => {
+    // (one person's A runs on the plan path, which the worker loads lazily: each answer is posted once it has loaded)
+    const ask = async (id, futures, detail) => {
       const out = [];
       handle({ id, type: 'answer', q: 'a', inputs: fx.inputs, env: { today: fx.env.today, futures, seed: 0, trace: false, detail } }, (m) => out.push(m));
-      return out[out.length - 1].result;
+      for (let i = 0; i < 6000 && !out.some((m) => 'result' in m || 'error' in m); i++) await new Promise((r) => setTimeout(r, 5));
+      const last = out[out.length - 1];
+      expect(last.error, 'the worker answered').toBeUndefined();
+      return last.result;
     };
     handle({ id: 1, type: 'init', today: fx.env.today }, () => {});
-    ask(2, 20, 'chart');                       // the first figure: other lives, so nothing is taken from it
-    ask(3, 100, 'chart');                      // the final figure
-    const all = ask(4, 100, 'all');            // the every-age step: the final figure's rows are taken
+    await ask(2, 20, 'chart');                 // the first figure: other lives, so nothing is taken from it
+    await ask(3, 100, 'chart');                // the final figure
+    const all = await ask(4, 100, 'all');      // the every-age step: the final figure's rows are taken
     expect(J(all)).toBe(J(answerA(fx.inputs, envOf(fx, 100, 'all'))));
   }, 60_000);
 });
@@ -152,11 +157,11 @@ describe('R4 — each row\'s band is the band searched with no hint: where the s
     const ins = checkInputs(SCHEMA_A, fx.inputs, env).inputs;
     const lives = livesList(env.futures, a.basis.lifeYears, env);
     for (const row of a.ages) {
-      const { household } = toHousehold(ins, env, row.age);
-      const sp = stopAtPlan(household, row.age, env, lives);
+      // (the row's stop plan as A builds it: on the plan path, one person, it draws on the kept plan, stopPlanOf)
+      const { sp, pc } = stopPlanOf(ins, { ...env, planPath }, row.age, lives);
       // (7.8.0: the row's level figures, searched again with no hint, on the weights of the stop)
-      const weigher = weigherOf(sp.plan, ins, env);
-      const band = bandAt(sp, createStopRunner(sp), null, { weigher, levels: Object.keys(row.levels), toMonth: 12 * (sp.plan.endAge - sp.plan.startAge) });
+      const weigher = pc ? pc.weigher : weigherOf(sp.plan, ins, env);
+      const band = bandAt(sp, createStopRunner(sp), null, { weigher, levels: Object.keys(row.levels), toMonth: pc ? pc.toMonth : 12 * (sp.plan.endAge - sp.plan.startAge) });
       const got = Object.fromEntries(Object.entries(band.levels).map(([k, v]) => [k, { monthly: v.monthly, yearly: v.yearly, weighted: v.chance.weighted, fixedAge: v.chance.fixedAge }]));
       expect(got, `${fx.id} at ${row.age}`).toEqual(row.levels);
     }

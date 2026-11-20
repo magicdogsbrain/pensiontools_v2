@@ -12,7 +12,7 @@
  *
  * noteJourney() — the stage a lock or a month moved the plan to, written once with that write (never on reading).
  *
- *   installRepaint(win, doc, deps) → { repaintPlan, repaintPlanNow, repaintForms, changePlan, repaintAfterWrite, drawTab,
+ *   installRepaint(win, doc, deps) → { repaintPlan, repaintPlanNow, repaintForms, changePlan, choosePlan, repaintAfterWrite, drawTab,
  *                                      drawDecisionSub, noteJourney, sayReadFault }
  * deps: the page's own loaders that are not on `win` (planState, resetCurrentDecision, clearStressResults, resetStressSubTabs,
  * resetDecisionSubTabs, renderHistory, renderTaxYears, initializeAllInputsFromSettings, loadBudgetUI, renderScenarioSelector,
@@ -135,6 +135,16 @@ export function installRepaint(win, doc, d) {
   }
   const changePlan = (reason, change) => trackBusy(inTurn(() => changePlanNow(reason, change)), 'repaint');   // busy from the press on
 
+  /**
+   * A plan chosen from the menu: in its turn, "is it the plan open now?" is asked of the plan open THEN (never of the plan
+   * open when the menu was drawn), so a second quick choice that goes back to the plan open before is not lost. Answers
+   * false when it was already open (nothing changed), else what the change gave.
+   */
+  const choosePlan = (id, switchTo) => trackBusy(inTurn(async () => {
+    if (!id || (await getActiveScenarioId()) === id) return false;
+    return changePlanNow('switch', () => switchTo(id));
+  }), 'repaint');
+
   async function repaintAfterWrite() {
     invalidateCache(); invalidateStressCache(); st.dropWorked(); st.markAllStale();
     d.clearStressResults();
@@ -151,7 +161,7 @@ export function installRepaint(win, doc, d) {
     } catch (e) { /* the journey is optional */ }
   }
 
-  const api = { repaintPlan, repaintPlanNow, repaintForms, changePlan, repaintAfterWrite, drawTab, drawDecisionSub, noteJourney, sayReadFault };
-  Object.assign(win, { repaintPlan, changePlan, repaintAfterWrite });
+  const api = { repaintPlan, repaintPlanNow, repaintForms, changePlan, choosePlan, repaintAfterWrite, drawTab, drawDecisionSub, noteJourney, sayReadFault };
+  Object.assign(win, { repaintPlan, changePlan, choosePlan, repaintAfterWrite });
   return api;
 }

@@ -414,7 +414,8 @@ describe('index.html: the hand-over is one call in the inline script', () => {
     const menu = script.slice(script.indexOf('async function renderScenarioSelector()'), script.indexOf('async function renderScenarioSelector()') + 4000);
     expect(menu).toContain("const activeId = await getActiveScenarioId(), active = scenarios.find(s => s.id === activeId);");
     expect(menu).toContain("${s.id === activeId ? 'active' : ''}");
-    expect(menu).toContain('const current = scenarios.find(s => s.id === activeId);');
+    expect(menu).toContain('await choosePlan(id, switchScenario);');   // "is it the plan open?" asked in its turn, of the window's plan (repaintPlan.js choosePlan)
+    expect(readFileSync(resolve(process.cwd(), 'src/ui/repaintPlan.js'), 'utf8')).toContain('(await getActiveScenarioId()) === id');
     expect(script).toContain("const activeId = await getActiveScenarioId(), active = scenarios.find((sc) => sc.id === activeId) || scenarios[0];");
   });
 });

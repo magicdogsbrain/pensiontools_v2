@@ -4311,7 +4311,7 @@
     import { whatsNewHtml, versionsPageHtml, safeAffects } from './src/ui/components/ReleaseNotesView.js';
 
     import { getChartStyles } from './src/ui/Charts.js';
-    import { createPlanState, bindPlanState } from './src/ui/planState.js'; import { fillDecisionBoxes, decisionPotsOf } from './src/ui/decisionForm.js'; import { installRepaint } from './src/ui/repaintPlan.js'; import { installLeaveSafely, signOutSafely } from './src/ui/leaveSafely.js'; import { formatNumberBoxes } from './src/ui/numberOverlays.js'; import { stressSavePatch, settingsFromForm, touches, INCOME_KEYS, TIMING_KEYS, STRATEGY_KEYS } from './src/ui/settingsChanged.js'; import { todayOf, dayKeyOf } from './src/reading/clock.js'; import { phaseChoicePatch } from './src/answers/plan/review.js'; import { isPlanLockedError } from './src/services/LockedPlanGuard.js'; import { contextFor } from './src/reading/context.js'; import { RUN_FUTURES } from './src/reading/runs.js'; import { lastsInputOf, waysInputOf, enginePlanOf } from './src/reading/gather.js'; import { READ_FAULT_WORDS, isPlanReadError } from './src/reading/readFault.js';
+    import { createPlanState, bindPlanState } from './src/ui/planState.js'; import { fillDecisionBoxes, decisionPotsOf } from './src/ui/decisionForm.js'; import { installRepaint } from './src/ui/repaintPlan.js'; import { fillHistoryMonthList } from './src/ui/historyMonthList.js'; import { installLeaveSafely, signOutSafely } from './src/ui/leaveSafely.js'; import { formatNumberBoxes } from './src/ui/numberOverlays.js'; import { stressSavePatch, settingsFromForm, touches, INCOME_KEYS, TIMING_KEYS, STRATEGY_KEYS } from './src/ui/settingsChanged.js'; import { todayOf, dayKeyOf } from './src/reading/clock.js'; import { phaseChoicePatch } from './src/answers/plan/review.js'; import { isPlanLockedError } from './src/services/LockedPlanGuard.js'; import { contextFor } from './src/reading/context.js'; import { RUN_FUTURES } from './src/reading/runs.js'; import { lastsInputOf, waysInputOf, enginePlanOf } from './src/reading/gather.js'; import { READ_FAULT_WORDS, isPlanReadError } from './src/reading/readFault.js';
     // Everything the page knows about the open plan, in ONE object (src/ui/planState.js, lead4.md R2): window._budget,
     // window._oneTest and the rest are its fields. repaintPlan drops it and makes it again on any change of plan.
     const planState = bindPlanState(window, createPlanState());
@@ -4354,7 +4354,7 @@
     }
 
     // The one entry after any change of plan, and after a write (src/ui/repaintPlan.js, lead4.md R2)
-    const { repaintPlan, repaintForms, changePlan, repaintAfterWrite, drawTab, drawDecisionSub, noteJourney, sayReadFault } = installRepaint(window, document, { planState, resetCurrentDecision: () => { currentDecision = null; },
+    const { repaintPlan, repaintForms, changePlan, choosePlan, repaintAfterWrite, drawTab, drawDecisionSub, noteJourney, sayReadFault } = installRepaint(window, document, { planState, resetCurrentDecision: () => { currentDecision = null; },
       clearStressResults, resetStressSubTabs, resetDecisionSubTabs, renderHistory, renderTaxYears, initializeAllInputsFromSettings, loadBudgetUI, renderScenarioSelector, refreshDecisionLock, loadHouseholdUI: () => loadHouseholdUI(), loadStressSettings, loadTransitionUI: () => loadTransitionUI(), loadDecisionSettings, updateDraftLines: () => updateDraftLines() });
 
     // Inject component styles
@@ -5055,16 +5055,9 @@
           const id = item.dataset.scenarioId;
           if (!id) return;
 
-          const current = scenarios.find(s => s.id === activeId);
-          if (current && current.id === id) {
-            // Already active, just close dropdown
-            document.getElementById('scenarioDropdown').classList.remove('open');
-            return;
-          }
-
           try {
             document.getElementById('scenarioDropdown').classList.remove('open');
-            await changePlan('switch', () => switchScenario(id));   // what was typed goes to the plan it was typed for; then every tab follows the plan now open
+            await choosePlan(id, switchScenario);   // in its turn, against the plan open THEN (a second quick choice is never lost); what was typed goes to the plan it was typed for; then every tab follows the plan now open
           } catch (error) {
             console.error('Error switching scenario:', error);
             showToast('Failed to switch plan: ' + error.message, 'error');
@@ -11606,6 +11599,7 @@
 
       tabsContainer.innerHTML = '<span class="loading">Loading...</span>';
 
+      fillHistoryMonthList(document.getElementById('historyMobileSelector'), []);   // the plan open now's months only: no return below leaves another plan's
       allHistoryData = await getHistoryAsync({ sortDesc: false, limit: 500 }); historyTaxYears = await getAllTaxYearsAsync().catch(() => null);
       // The record view needs the plan's strategy (records saved before 6.4.2 carry no flag) — resolve it
       // here rather than relying on the Monthly Entry panel having rendered first (6.5.3).
@@ -11701,15 +11695,10 @@
 
       // Populate mobile dropdown selector
       const mobileSelector = document.getElementById('historyMobileSelector');
-      if (mobileSelector) {
-        let optionsHtml = '';
-        filteredHistory.forEach(h => {
-          const dateLabel = formatHistoryTabDate(h.date);
-          const marks = [h.inProtection ? 'Protection' : '', isFilledIn(h) ? 'filled in later' : ''].filter(Boolean), suffix = marks.length ? ' (' + marks.join(', ') + ')' : '';
-          optionsHtml += `<option value="${h.date}">${dateLabel}${suffix}</option>`;
-        });
-        mobileSelector.innerHTML = optionsHtml;
-      }
+      fillHistoryMonthList(mobileSelector, filteredHistory, { labelOf: (h) => {
+        const marks = [h.inProtection ? 'Protection' : '', isFilledIn(h) ? 'filled in later' : ''].filter(Boolean);
+        return formatHistoryTabDate(h.date) + (marks.length ? ' (' + marks.join(', ') + ')' : '');
+      } });
 
       // If no entry selected or selected entry not in filtered list, select the most recent one
       if (!planState.historyDate || !filteredHistory.find(h => h.date === planState.historyDate)) {

@@ -199,12 +199,13 @@ describe('index.html: the banner is the module\'s', () => {
   // plan menu again and then the banner, after the plan has changed
   it('the plan menu redraws the banner after a switch and after a delete, once the menu is drawn again', () => {
     const block = (from, to) => { const a = html.indexOf(from); const b = html.indexOf(to, a + from.length); expect(a, from).toBeGreaterThan(-1); expect(b, to).toBeGreaterThan(a); return html.slice(a, b); };
-    expect(block('// Click to switch scenario', '// Rename buttons')).toContain("await changePlan('switch', () => switchScenario(id));");
+    expect(block('// Click to switch scenario', '// Rename buttons')).toContain('await choosePlan(id, switchScenario);');
     expect(block('// Delete buttons', 'showToast(\'Failed to delete plan: \'')).toContain("await changePlan('delete', () => deleteScenario(id));");
     const mod = readFileSync('src/ui/repaintPlan.js', 'utf8');
     const forms = mod.slice(mod.indexOf('async function repaintForms('), mod.indexOf('/** A Decision page drawn'));
     expect(forms.indexOf('await d.renderScenarioSelector();')).toBeGreaterThan(-1);
     expect(forms.indexOf('await d.renderScenarioSelector();')).toBeLessThan(forms.indexOf('win.updateNextStepBanner'));
+    expect(mod).toMatch(/const choosePlan = \(id, switchTo\) => trackBusy\(inTurn\(async \(\) => \{\n\s*if \(!id \|\| \(await getActiveScenarioId\(\)\) === id\) return false;\n\s*return changePlanNow\('switch'/);
     const change = mod.slice(mod.indexOf('async function changePlanNow('));
     expect(change.indexOf('await change();')).toBeLessThan(change.indexOf('await repaintPlanNow(reason);'));
   });

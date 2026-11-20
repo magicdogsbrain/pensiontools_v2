@@ -80,6 +80,28 @@ describe('changePlan is taken one change at a time', () => {
     await api.changePlan('switch', async () => { active = 'p4'; });
     expect(log).toContain('fill:p4');
   });
+  it('two quick choices where the second goes back to the plan open before: the plan chosen last opens', async () => {
+    active = 'sam';
+    const { api } = install();
+    const toKim = api.choosePlan('kim', async (id) => { active = id; log.push('switched:' + id); });
+    const toSam = api.choosePlan('sam', async (id) => { active = id; log.push('switched:' + id); });   // pressed before Kim has opened
+    await toKim; await toSam;
+    expect(active).toBe('sam');
+    expect(log).toEqual(['flush', 'switched:kim', 'fill:kim', 'flush', 'switched:sam', 'fill:sam']);
+  });
+  it('choosing the plan already open (asked in its turn) changes nothing', async () => {
+    active = 'sam';
+    const { api } = install();
+    expect(await api.choosePlan('sam', async () => { log.push('switched'); })).toBe(false);
+    expect(log).toEqual([]);
+  });
+  it('the plan menu chooses through choosePlan, never against the plan open when the menu was drawn', () => {
+    const src = readFileSync('index.html', 'utf8');
+    const at = src.indexOf('// Click to switch scenario');
+    const fn = src.slice(at, src.indexOf('// Rename buttons', at));
+    expect(fn).toMatch(/choosePlan\(id, switchScenario\)/);
+    expect(fn).not.toMatch(/activeId/);
+  });
   it('a lock or unlock repaint waits its turn too', () => {
     const mod = readFileSync('src/ui/repaintPlan.js', 'utf8');
     expect(mod).toMatch(/const repaintPlan = \(reason\) => trackBusy\(inTurn\(/);

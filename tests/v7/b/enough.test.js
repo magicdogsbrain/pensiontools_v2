@@ -45,20 +45,21 @@ describe('the words, state by state (saving-enough-and-check-in.md 2.2 and 3.5; 
     expect(a.verdict.band).toBe('no');
     expect(s.verdictHead.text).toBe('Not enough for £1,810 a month from 63');
     // 7.12.0: now in Sam's own parts — 6% × 38,000 ÷ 12 = 190 going in, × 0.8 = 152 from take-home pay; the employer's 4% is
-    // 126.67, £127 — and what would be on course in a sentence of its own: 27% is 855 going in, × 0.8 = 684 from take-home pay
+    // 126.67, £127 — and what would be on course in a sentence of its own: 26.5% is 839.17 going in, × 0.8 = 671.33, £671 from
+    // take-home pay; 30.5% in all is 965.83, £966 (7.12.0: the drawing years the kept plan's; it was 27%, £684, £982)
     expect(s.verdictLine.text).toBe('Paying in 10% of your pay as now (£317 a month in all: about £152 a month from your take-home pay and £127 from your employer), your money lasted until you are 95 in only 3 futures out of 10.');
-    expect(s.verdictEnough.text).toBe('31% of your pay in all (you 27%; £982 a month in all going into your pension, about £684 from your take-home pay) would put you on course, which is 9 in 10.');
-    expect(s.income.text).toBe('To last in 9 futures out of 10 paying in as now, you could spend £1,310 a month from 63, '
-      + 'with your State Pension from 68 (the full amount, as assumed): £500 a month (£6,000 a year) less than you want.');
+    expect(s.verdictEnough.text).toBe('30.5% of your pay in all (you 26.5%; £966 a month in all going into your pension, about £671 from your take-home pay) would put you on course, which is 9 in 10.');
+    expect(s.income.text).toBe('To last in 9 futures out of 10 paying in as now, you could spend £1,320 a month from 63, '
+      + 'with your State Pension from 68 (the full amount, as assumed): £490 a month (£5,880 a year) less than you want.');
     expect(s.atAim.text).toMatch(/^Spending £1,810 a month, in a bad case \(the worst 1 in 10\) your money runs out at \d+\.$/);
-    expect(s.enoughHead.text).toBe('To be on course: 31% of your pay in all (about £684 a month from your take-home pay)');
-    expect(s.enoughLine.text).toBe('You 27% (about £684 a month from your take-home pay) and your employer 4% as now: £982 a month in all going into your pension from now until you stop at 63, going up with prices. '
+    expect(s.enoughHead.text).toBe('To be on course: 30.5% of your pay in all (about £671 a month from your take-home pay)');
+    expect(s.enoughLine.text).toBe('You 26.5% (about £671 a month from your take-home pay) and your employer 4% as now: £966 a month in all going into your pension from now until you stop at 63, going up with prices. '
       + 'Your money lasted until you are 95 in 9 futures out of 10.');
     expect(s.enoughFour).toBeUndefined();                              // (7.8.0: one figure, at the level)
     expect(s.enoughMatch.text).toContain('If your employer adds more when you pay more, you would need less');
     expect(s.verdictFour).toBeUndefined();
     // the ways beside it: "Pay in more" is what would be enough, tried as a share; a one-off sum, said with the allowance
-    expect(a.levers.payMore).toMatchObject({ totalPct: 31, ownPct: 27, payIn: a.enough.atLevel.payIn });
+    expect(a.levers.payMore).toMatchObject({ totalPct: 30.5, ownPct: 26.5, payIn: a.enough.atLevel.payIn });
     expect(s.lever.oneOff.text).toMatch(/^Put £[\d,]+ into your pension now \(what lands, with the tax the government adds back\) and keep paying in as now: your money lasted in 9 futures out of 10\./);
     if (a.levers.oneOff.amount > RULES.annualAllowance) expect(s.lever.oneOff.text).toContain('is not counted here');
   }, 60_000);
@@ -70,16 +71,16 @@ describe('the words, state by state (saving-enough-and-check-in.md 2.2 and 3.5; 
     expect(s.verdictHead.text).toBe('Close — £1,810 a month from 63 is tight');
     // (18% × 38,000 ÷ 12 = 570 going in, × 0.8 = 456 from take-home pay)
     expect(s.verdictLine.text).toBe('Paying in 22% of your pay as now (£697 a month in all: about £456 a month from your take-home pay and £127 from your employer), your money lasted until you are 95 in only 8 futures out of 10.');
-    expect(s.verdictEnough.text).toBe('31% of your pay in all (you 27%; £982 a month in all going into your pension, about £684 from your take-home pay) would put you on course, which is 9 in 10.');
+    expect(s.verdictEnough.text).toBe('30.5% of your pay in all (you 26.5%; £966 a month in all going into your pension, about £671 from your take-home pay) would put you on course, which is 9 in 10.');
     // (7.8.0: the "3 in 4" line and the middling income left with the 3-in-4 figure and the count's middling amount)
     expect(s.verdictFour).toBeUndefined();
-    expect(s.income.text).toContain('you could spend £1,600 a month from 63, with');
-    expect(s.income.text).toContain(': £210 a month (£2,520 a year) less than you want.');
-    expect(s.atAim.text).toBe('Spending £1,810 a month, in a bad case (the worst 1 in 10) your money runs out at 84.');
+    expect(s.income.text).toContain('you could spend £1,610 a month from 63, with');
+    expect(s.income.text).toContain(': £200 a month (£2,400 a year) less than you want.');
+    expect(s.atAim.text).toBe('Spending £1,810 a month, in a bad case (the worst 1 in 10) your money runs out at 85.');
     expect(a.enough.closeNow).toBe(true);
     // said once, in the verdict: the block under it leads with what would be on course and does not say it again
     expect(s.enoughFour).toBeUndefined();
-    expect(s.enoughHead.text).toBe('To be on course: 31% of your pay in all (about £684 a month from your take-home pay)');
+    expect(s.enoughHead.text).toBe('To be on course: 30.5% of your pay in all (about £671 a month from your take-home pay)');
     // asked at Bold (7.8.0): today's pay-in is already enough there — on course, nothing more to pay in
     const four = { ...sam(18), confidence: 'bold' };
     const f = answerB(four, MEASURED);
@@ -95,7 +96,7 @@ describe('the words, state by state (saving-enough-and-check-in.md 2.2 and 3.5; 
     expect(a.verdict.band).toBe('yes');
     expect(s.verdictHead.text).toBe('On course for £1,500 a month from 66');
     expect(s.verdictLine.text).toBe('Paying in £400 a month as now, your money lasted until you are 95 in 9 futures out of 10. There is room: you would still be on course paying in less.');   // 7.12.0: room, never how little
-    expect(s.income.text).toBe('To last in 9 futures out of 10, you could spend £1,520 a month from 66, with your State Pension from 68 (the full amount, as assumed).');
+    expect(s.income.text).toBe('To last in 9 futures out of 10, you could spend £1,530 a month from 66, with your State Pension from 68 (the full amount, as assumed).');
     expect(a.gap.month).toBe(0);
     expect(s.enoughHead).toBeUndefined();
     expect(a.levers.oneOff).toBeNull();

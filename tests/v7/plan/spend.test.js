@@ -56,11 +56,15 @@ describe('S1 — the reading, on every corpus plan at three dates', () => {
         for (const card of a.lists.steps.cards) for (const f of card.fields) expect(SPEND.steps.fields[f.path.split('.').pop()], f.path).toBeTruthy();
         for (const card of a.lists.costs.cards) for (const f of card.fields) expect(SPEND.costs.fields[f.path.split('.').pop()], f.path).toBeTruthy();
         for (const d of a.derived) { expect(SPEND.derived[d.id], d.id).toBeTypeOf('string'); for (const v of Object.values(d.slots)) expect(v, d.id).not.toBeUndefined(); }
-        expect(a.errors, e.plan.id).toEqual({});
+        // (step F2 fix) a plan nobody gave an income reads none: its first box is empty, so it asks for one (shown once the
+        // box is left or Save is pressed) and the page says no income is set; every other plan as saved is complete
+        const notSet = savedSpend(e.plan, { today }).notSet;
+        expect(a.errors, e.plan.id).toEqual(notSet ? { 'first.amount': 'required' } : {});
+        if (notSet) expect(a.derived.map((d) => d.id)).toEqual(['notSet']);
         expect(a.patch, e.plan.id).toEqual({});
         expect(a.locked).toBe(isLocked(e.plan));
         expect(a.editable).toBe(!a.locked);
-        expect(a.savedLine).toMatchObject({ id: 'spend' });
+        if (notSet) expect(a.savedLine).toBe(null); else expect(a.savedLine).toMatchObject({ id: 'spend' });
         expect(typeof a.ageNow).toBe('number');
         expect(a.endAge).toBeGreaterThan(a.ageNow);
         // the picture: one bar a year of the plan, from the start age, each a figure a month
@@ -68,8 +72,8 @@ describe('S1 — the reading, on every corpus plan at three dates', () => {
         expect(a.chart.years.length).toBe(s.duration);
         expect(a.chart.years[0].age).toBe(s.ageNow);
         for (const y of a.chart.years) { expect(y.value).toBeGreaterThanOrEqual(0); expect(y.income).toBeLessThanOrEqual(y.value + 0.001); }
-        expect(a.chart.list.length).toBeGreaterThan(0);
-        expect(a.chart.list[0].fromAge).toBe(s.ageNow);
+        if (notSet) expect(a.chart.list.length).toBe(0);   // no income given: no step to list
+        else { expect(a.chart.list.length).toBeGreaterThan(0); expect(a.chart.list[0].fromAge).toBe(s.ageNow); }
         // the first row: what is taken a year before tax, as the one reader of the steps says it (step F2, lead4.md D6:
         // src/reading/income.js), never a figure of the page's own
         const read = incomeStepsOf(e.plan, { now: dateOfDay(today) });
@@ -364,7 +368,8 @@ function validTyped(plan) {
     typed['costs.ids'] = ids.join(',');
     return typed;
   });
-  return fc.record({ first: fc.record({ amount: fc.oneof(fc.constant(String(s.first.monthly)), money(20000)), then, fallsPct: pct }), steps, costs })
+  // (step F2 fix) a plan with no income given has nothing saved to keep: a figure is typed
+  return fc.record({ first: fc.record({ amount: s.notSet ? money(20000) : fc.oneof(fc.constant(String(s.first.monthly)), money(20000)), then, fallsPct: pct }), steps, costs })
     .map((r) => ({ 'first.amount': r.first.amount, 'first.then': r.first.then, 'first.fallsPct': r.first.then === 'falls' ? r.first.fallsPct : '', ...r.steps, ...r.costs }));
 }
 

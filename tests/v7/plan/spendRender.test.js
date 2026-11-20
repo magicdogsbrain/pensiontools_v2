@@ -75,7 +75,13 @@ describe('every corpus plan at three dates: the first row, the cards, the pictur
           if (!root.querySelector('label[for="plan.spend.first.amount"]')) problems.push(`${e.plan.id}: no label for the first amount`);
           const src = root.querySelector('[data-saved-for="first.amount"]');
           if (!src || !/From your plan|As saved in the plan/.test(src.textContent)) problems.push(`${e.plan.id}: no source beside the first amount`);
-          if (!root.querySelector('#plan\\.spend\\.first\\.amount\\.help') || !/a year before tax, as it is taken/.test(root.querySelector('#plan\\.spend\\.first\\.amount\\.help').textContent)) problems.push(`${e.plan.id}: no before-tax figure under the first amount`);
+          // (step F2 fix) a plan nobody gave an income: the box is empty, the page says so, and there is no figure under it
+          // and nothing to suggest from; every other plan has its before-tax figure under the first amount
+          if (saved.notSet) {
+            if (root.querySelector('#plan\\.spend\\.first\\.amount\\.help')) problems.push(`${e.plan.id}: a before-tax figure under an income nobody gave`);
+            if (!root.querySelector('[data-line="spend.notSet"]')) problems.push(`${e.plan.id}: no line saying no income is set`);
+            if (root.querySelector('[data-testid="plan.spend.steps.suggest"]')) problems.push(`${e.plan.id}: Suggest with no income to suggest from`);
+          } else if (!root.querySelector('#plan\\.spend\\.first\\.amount\\.help') || !/a year before tax, as it is taken/.test(root.querySelector('#plan\\.spend\\.first\\.amount\\.help').textContent)) problems.push(`${e.plan.id}: no before-tax figure under the first amount`);
           if (!root.querySelector('[id="plan.spend.first.then"]')) problems.push(`${e.plan.id}: no "then" box on the first row`);
           if (!root.querySelector('[data-testid="plan.spend.first.legend"]')) problems.push(`${e.plan.id}: no legend on the first row`);
           // every card: a legend, a label for each box, the saved value beside each, Remove; every list: Add; the steps: Suggest
@@ -97,7 +103,7 @@ describe('every corpus plan at three dates: the first row, the cards, the pictur
               if (L === 'steps' && !/a year before tax, as it is taken/.test(card.textContent)) problems.push(`${e.plan.id}: no before-tax figure on ${L}.${id}`);
             }
           }
-          if (!root.querySelector('[data-testid="plan.spend.steps.suggest"]')) problems.push(`${e.plan.id}: no Suggest`);
+          if (!saved.notSet && !root.querySelector('[data-testid="plan.spend.steps.suggest"]')) problems.push(`${e.plan.id}: no Suggest`);
           if (!root.querySelector('[data-testid="plan.spend.save"]') || !root.querySelector('[data-testid="plan.spend.cancel"]')) problems.push(`${e.plan.id}: Save or Cancel missing`);
           if (root.querySelector('.error')) problems.push(`${e.plan.id}: a problem shown before anything was touched`);
           // the picture: one bar a year from the start

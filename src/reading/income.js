@@ -13,7 +13,8 @@
  * bandsOf: the planner's defaults only where a key is missing). Never the page's boxes, never DEFAULT_TAX_BANDS on a box.
  *
  *   incomeStepsOf(plan, ctx) → { steps: [{ fromAge, stored, beforeTax, monthAfterTax, taxYear, decline, glideToNext }],
- *                                bands, access, locked }
+ *                                bands, access, locked, notSet }
+ *     notSet: nobody gave the plan an income (`incomeNotSet`): no steps at all, never the planner's default
  *     the steps as the plan reads them today (the step in force and the later ones, from the plan's own start: spend.js
  *     stepLines; a locked plan's are its document's)
  *   stepFiguresOf(stored, { settings, bands, fixed }) → { beforeTax, monthAfterTax }
@@ -87,13 +88,16 @@ export function incomeStepsOf(plan, ctx = {}) {
   const ageNow = num(timing.shapeAgeNow);
   const access = accessOf(plan, ctx);
   const settings = { ...ss, accessMethod: access.method };
-  // (a plan whose income is not set still reads the planner's figure, as every page did before: D2 for the income is step W's)
-  const steps = storedSteps(plan, ss, timing).map((s) => {
+  // a plan nobody gave an income (PlanReading.withPensionToday's `incomeNotSet`: only an age, or straight from the full
+  // view's wizard) reads none: no step, no figure, in both views (the full view's box is empty; the planner's default is
+  // never said as the person's). A locked plan reads its document's steps.
+  const notSet = !isLocked(plan) && !!ss.incomeNotSet;
+  const steps = notSet ? [] : storedSteps(plan, ss, timing).map((s) => {
     let fixed = 0;
     if (ageNow != null && s.fromAge != null) { try { fixed = guaranteedAtYear(ss, timing, ageNow, Math.max(0, s.fromAge - ageNow), now); } catch { fixed = 0; } }
     const f = stepFiguresOf(s.amount, { settings, bands, fixed });
     const taxYear = s.taxYear || (ageNow != null && s.fromAge != null && num(timing.firstTaxYear) ? taxYearLabel(timing.firstTaxYear + (s.fromAge - ageNow)) : null);
     return { fromAge: s.fromAge, stored: s.amount, beforeTax: f.beforeTax, monthAfterTax: f.monthAfterTax, taxYear, decline: s.decline, glideToNext: s.glideToNext };
   });
-  return { steps, bands, access, locked: isLocked(plan), taxFreeShare: taxFreeShareOf(settings) };
+  return { steps, bands, access, locked: isLocked(plan), notSet, taxFreeShare: taxFreeShareOf(settings) };
 }

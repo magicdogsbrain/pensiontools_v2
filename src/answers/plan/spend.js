@@ -147,7 +147,9 @@ export function savedSpend(plan, { today, entries = [] }) {
     rows = clean.map((s) => ({ fromAge: +s.fromAge, amount: +s.amount, decline: +s.decline || 0, glideToNext: !!s.glideToNext, row: s.row }));
   }
   const flat = rows.length === 0;
-  if (flat) rows = [{ fromAge: ageNow, amount: r0(Array.isArray(ss.targetSchedule) && ss.targetSchedule.length ? ss.targetSchedule[0] : ss.baseSalary), decline: 0, glideToNext: false, row: null }];
+  // a plan nobody gave an income (`incomeNotSet`, src/reading/income.js): none, never the planner's default (step F2)
+  const notSet = !locked && !!ss.incomeNotSet;
+  if (flat) rows = [{ fromAge: ageNow, amount: notSet ? 0 : r0(Array.isArray(ss.targetSchedule) && ss.targetSchedule.length ? ss.targetSchedule[0] : ss.baseSalary), decline: 0, glideToNext: false, row: null }];
   const steps = rows.map((s, i) => ({ ...s, then: thenOf(s, i < rows.length - 1), fallsPct: +s.decline > 0 ? +s.decline : null, monthly: monthlyNet(s.amount, bands) }));
   const first = { ...steps[0], id: 'first' };
   const later = steps.slice(1).map((s, i) => ({ ...s, id: String(i) }));
@@ -179,7 +181,7 @@ export function savedSpend(plan, { today, entries = [] }) {
   return {
     // the age reached this tax year: past the start age for a plan that started in an earlier tax year (6.51.0)
     ageToday: ageNow + Math.max(0, Math.round(num(timing.planYearNow) || 0)),
-    locked, lockedOn: locked ? dayWords(lockedAtOf(plan)) : null, ss, stored, timing, duration, ageNow, endAge, bands, source, flat,
+    locked, lockedOn: locked ? dayWords(lockedAtOf(plan)) : null, ss, stored, timing, duration, ageNow, endAge, bands, source, flat, notSet,
     first, steps: later, plainSteps, base, schedule, costs, xrows, lumps, budget: budgetOf(plan, entries), strategyId: sid, now
   };
 }
@@ -222,7 +224,7 @@ export function lumpEdits(c, rows, bands) {
 /** The boxes' starting text: the saved facts as a person would type them, by path (7.2). */
 export function boxesOf(plan, { today }) {
   const s = savedSpend(plan, { today });
-  const out = { 'first.amount': String(s.first.monthly), 'first.then': s.first.then };
+  const out = { 'first.amount': s.notSet ? '' : String(s.first.monthly), 'first.then': s.first.then };
   if (s.first.fallsPct != null) out['first.fallsPct'] = String(s.first.fallsPct);
   out['steps.ids'] = s.steps.map((c) => c.id).join(',');
   for (const c of s.steps) { out[`steps.${c.id}.fromAge`] = String(c.fromAge); out[`steps.${c.id}.amount`] = String(c.monthly); out[`steps.${c.id}.then`] = c.then; if (c.fallsPct != null) out[`steps.${c.id}.fallsPct`] = String(c.fallsPct); }
@@ -554,11 +556,14 @@ export function spendOf(entries, id, { today, typed = null } = {}) {
   const c = checkSpend(plan, typed || {}, { today });
   const shown = { ...boxes, ...(typed || {}) };
   const b = saved.bands;
+  // a plan with no income given, its first box not typed in yet: empty, with nothing beside it as saved; its problem
+  // ("required") is said once the box is left or Save is pressed, as every box's is
+  const waiting = saved.notSet && blank((typed || {})['first.amount']);
   const fields = SPEND_FIELDS.map((f) => ({
     path: f.path, type: f.type, options: f.type === 'choice' ? (f.path === 'first.then' ? THENS.filter((o) => o !== 'glides' || c.lists.steps.cards.length > 0 || shown['first.then'] === 'glides') : f.options) : null,
     applies: c.applies[f.path] !== false,
     shown: blank(shown[f.path]) ? (f.path === 'first.then' ? 'level' : '') : String(shown[f.path]),
-    saved: f.path in boxes ? boxes[f.path] : null,
+    saved: f.path in boxes && !(waiting && f.path === 'first.amount') ? boxes[f.path] : null,
     error: c.errors[f.path] || null
   }));
   // beside each amount box: the before-tax figure the plan saves, and a later step's share of the start (and of the budget)
@@ -588,11 +593,11 @@ export function spendOf(entries, id, { today, typed = null } = {}) {
   const schedule = c.ok ? c.schedule : saved.schedule;
   const costs = c.ok ? c.lists.costs.cards.map((card) => ({ ...card.values, years: card.values.years == null ? 1 : card.values.years, gross: null })) : saved.costs;
   const { chart, below, floorFrom } = chartOf(rows, schedule, saved, costs);
-  const derived = derivedLines(rows, schedule, costs, saved);
+  const derived = waiting ? [{ id: 'notSet', slots: {} }] : derivedLines(rows, schedule, costs, saved);
   // the plans linked with this one, either way, never a closed one (services/HouseholdLink.js, 7.12.0)
   const partners = partnersOf(list, plan).map((e) => ({ id: String(e.plan.id), name: nameOf(e.plan, today) }));
   const p = editable && c.ok ? spendPatch(plan, typed || {}, { today }) : { ok: false, patch: {}, previous: {} };
-  const sug = editable ? suggestion(firstGross, saved) : null;
+  const sug = editable && !waiting ? suggestion(firstGross, saved) : null;
   // each lump sum coming in: what it could support a year over the years left, and the edits that add that to the steps (income.lump-to-steps)
   const lumps = saved.lumps.map((l) => {
     const r = lumpIntoSteps(c.ok ? c.shape : saved.plainSteps, { ageNow: saved.ageNow, duration: saved.duration, amount: l.amount, year: l.atAge - saved.ageNow });
@@ -602,7 +607,7 @@ export function spendOf(entries, id, { today, typed = null } = {}) {
   return {
     found: true, id: String(plan.id), name: nameOf(plan, today), locked: saved.locked, lockedOn: saved.lockedOn, readonly, editable,
     source: saved.source, ageNow: saved.ageNow, ageToday: saved.ageToday, endAge: saved.endAge, startAge: saved.first.fromAge, flat: saved.flat,
-    firstGross: pounds(takenAtAge(firstGross, saved.ageNow)), firstGrossSaved: pounds(saved.first.amount), firstMonthly: pounds(firstMonthly),
+    firstGross: waiting ? null : pounds(takenAtAge(firstGross, saved.ageNow)), firstGrossSaved: waiting ? null : pounds(saved.first.amount), firstMonthly: waiting ? null : pounds(firstMonthly), notSet: waiting,
     budget: { workedOut: saved.budget.workedOut, total: saved.budget.total != null ? pounds(saved.budget.total) : null, totalValue: saved.budget.total, essentials: saved.budget.essentials != null ? pounds(saved.budget.essentials) : null, at: saved.budget.at },
     fields, lists, errors: c.errors, ok: c.ok, derived, chart, below: below ? { age: below.age, amount: pounds(below.amount) } : null,
     floorFrom: floorFrom ? { age: floorFrom.age, amount: pounds(floorFrom.amount) } : null,

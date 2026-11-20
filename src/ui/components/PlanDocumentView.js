@@ -222,7 +222,7 @@ export function planDocumentHtml(doc, r = {}) {
   let as = table(['Assumption', 'Value'], [
     [startedAtLock(d) ? 'Plan started' : 'Plan starts', startText],
     ['Duration', esc(String(A.duration || '')) + ' years'],
-    ['State Pension', A.spStartDate ? esc(ukDate(A.spStartDate)) + ', ' + gbp(A.spWeeklyAmount) + '/week (' + gbp(A.spWeeklyAmount * 52) + '/yr)' : 'not entered' + (assumedStatePensionWords(d.strategy?.p) ? ' — ' + esc(assumedStatePensionWords(d.strategy?.p)) : '')],
+    ['State Pension', A.spStartDate ? esc(ukDate(A.spStartDate)) + ', ' + gbp(A.spWeeklyAmount) + '/week (' + gbp(A.spWeeklyAmount * 52) + '/yr)' : (assumedStatePensionWords(d.strategy?.p) ? esc(assumedStatePensionWords(d.strategy?.p)) : 'not entered')],
     ['Tax bands (year 0)', 'PA ' + gbp(A.pa) + ' · basic-rate limit ' + gbp(A.brl) + ' · higher ' + gbp(A.hrl) + ' · ' + (A.taxMode === 'frozen' ? 'frozen' : 'rise with inflation')],
     ['Decision tool CPI assumption', ((A.cpiDecision || 0) * 100).toFixed(0) + '% a year until each year\'s CPI is entered'],
     // An older document's extra ladder cash beside the cash years is not printed (7.4.2): no run counts it any more, so the

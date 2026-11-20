@@ -229,7 +229,7 @@ describe('the Accumulation planner: "Into ISAs and savings" and the ISA line', (
     const boxes = (v) => ({ getElementById: (id) => (id === 'acIsaMonthly' ? { value: v } : null) });
     expect([accumulationInputsOf(boxes('250')).isaMonthly, accumulationInputsOf(boxes('')).isaMonthly]).toEqual([250, 0]);
     // 7.12.0: the boxes open from the saver's facts (accumulationBoxes), the ISA box among them
-    expect(fnBody('window.loadAccumulationUI', 2000)).toContain('accumulationBoxes(await getActiveScenarioAsync(), null, todayOf())');   // the one clock (step S)
+    expect(fnBody('window.loadAccumulationUI', 2000)).toContain('accumulationBoxes(sc, null, todayOf())');   // the one clock (step S); sc read first, a read fault empties every box (step LEFT)
     // step F1: the table is the one model's (src/reading/atStop.js potAtStop), from the plan as saved, never the boxes
     expect(fnBody('window.recalcAccumulation', 6500)).toContain('accumulationBandHtml(band, { chargesPct: acCharges, stress: acStress, isaMonthly: a.isaMonthly })');
   });

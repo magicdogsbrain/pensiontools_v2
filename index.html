@@ -6860,8 +6860,11 @@
       const steps = (window._ssIncomeSteps || []).filter((st) => +st.amount > 0);
       if (!steps.length) {   // no shape: nothing of another shape (or another plan) is said under it either
         box.innerHTML = '<p class="hint">No shape yet — start from your budget or a number.</p>';
-        for (const id of ['incomeShapeLumps', 'incomeShapeNote']) { const el = document.getElementById(id); if (el) el.innerHTML = ''; }
-        window._shapeFlooredFrom = null; return;
+        { const el = document.getElementById('incomeShapeLumps'); if (el) el.innerHTML = ''; }
+        { const el = document.getElementById('incomeShapeNote'); if (el) el.innerHTML = '<span id="firstStepNote"></span>'; }   // the plan's own line goes here ("No income set yet", as the simple view says it)
+        window._shapeFlooredFrom = null;
+        paintFirstStepNote();   // that line and the State Pension line under its boxes, from the plan, with no shape too (step F2's check)
+        return;
       }
       // Layers: State Pension (from its date) and other income / DB, read from the settings form above.
       let sp = null; const other = [];

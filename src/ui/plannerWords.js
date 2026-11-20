@@ -14,9 +14,9 @@ import { FACT } from '../reading/facts.js';
 import { money } from '../reading/format.js';
 import { ACCESS_WORDS, accessAssumedWords } from '../reading/access.js';
 import { markFact } from '../reading/mark.js';
+import { spAssumedHtml, spAssumedWords } from '../reading/statePension.js';   // the one writer of the assumed State Pension words
 
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 const WORDS = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
 
@@ -38,20 +38,25 @@ export function paintStrategyCounts(doc, n = strategyCount()) {
 
 /**
  * The State Pension a plan assumes when none was entered: planFromSettings sets `spAssumed` and falls back to the
- * engine's default (£12,000 a year from plan year 12 unless the Timing block says otherwise). '' when one was entered.
+ * engine's default (£12,000 a year from plan year 12 unless the Timing block says otherwise). Said by the ONE writer of
+ * these words (src/reading/statePension.js spAssumedHtml: the simple income page's sentence), its amount and age marked.
  * @param {object} p  the plan (stressTest.planFromSettings), or anything with spAssumed, spAnnual, startAge, spStartYear
  */
-export function assumedStatePensionWords(p) {
-  if (!p || !p.spAssumed || !(p.spAnnual > 0)) return '';
+function assumedOf(p) {
+  if (!p || !p.spAssumed || !(p.spAnnual > 0)) return null;
   const age = (+p.startAge || 0) + (+p.spStartYear || 0);
-  return 'assumed ' + gbp(p.spAnnual) + ' a year from ' + (age > 0 ? age : 'State Pension age') + ' — no State Pension was entered in Settings';
+  return { assumed: true, year: +p.spAnnual, startAge: age > 0 ? age : null };
+}
+/** The sentence, unmarked; '' when one was entered. */
+export function assumedStatePensionWords(p) {
+  return spAssumedWords(assumedOf(p));
 }
 
 /** The alert above an order sheet or a strategy page sized on an assumed State Pension; '' when none is assumed. */
 export function assumedStatePensionAlertHtml(p) {
-  const w = assumedStatePensionWords(p);
-  if (!w) return '';
-  return '<div class="alert alert-warning" style="font-size:12px;margin-top:8px;"><strong>State Pension ' + esc(w) + '.</strong> The rungs below are sized on it: enter your forecast date and weekly amount in Settings for a real answer.</div>';
+  const sp = assumedOf(p);
+  if (!sp) return '';
+  return '<div class="alert alert-warning" style="font-size:12px;margin-top:8px;"><strong>' + spAssumedHtml(sp) + '</strong> The rungs below are sized on it: enter your forecast date and weekly amount in Settings for a real answer.</div>';
 }
 
 

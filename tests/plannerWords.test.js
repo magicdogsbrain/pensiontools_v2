@@ -9,6 +9,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { JSDOM } from 'jsdom';
+import { unmarked } from '../src/reading/mark.js';
 import { strategyCount, strategyCountWord, paintStrategyCounts, assumedStatePensionWords, assumedStatePensionAlertHtml, assumedStatePensionTag, NEW_DOCUMENT_VERSION_LABEL, newDocumentVersionQuestion, lockFromStressQuestion } from '../src/ui/plannerWords.js';
 import { listStrategies } from '../src/strategies/registry.js';
 import { planFromSettings } from '../src/strategies/stressTest.js';
@@ -50,9 +51,13 @@ describe('the State Pension the plan assumes when none was entered', () => {
   it('the plan carries the flag; the words say the figure and the age', () => {
     expect(none.spAssumed).toBe(true);
     expect(none.spAnnual).toBe(12000);
-    expect(assumedStatePensionWords(none)).toBe('assumed £12,000 a year from 67 — no State Pension was entered in Settings');
+    // step LEFT: ONE writer of the assumed State Pension words (src/reading/statePension.js spAssumedHtml, the simple income
+    // page's own sentence), its amount and age marked as both views mark them
+    expect(assumedStatePensionWords(none)).toBe('State Pension: we assumed £12,000 a year before tax from age 67, as none was entered.');
     expect(assumedStatePensionTag(none)).toBe(' (assumed)');
-    expect(assumedStatePensionAlertHtml(none)).toContain('State Pension assumed £12,000 a year from 67');
+    expect(assumedStatePensionAlertHtml(none)).toContain('data-fact="statePension.amount">£12,000</span>');
+    expect(assumedStatePensionAlertHtml(none)).toContain('data-fact="statePension.age">67</span>');
+    expect(unmarked(assumedStatePensionAlertHtml(none))).toContain('State Pension: we assumed £12,000 a year before tax from age 67, as none was entered.');
     expect(assumedStatePensionAlertHtml(none)).toContain('The rungs below are sized on it');
   });
   it('a State Pension that was entered: nothing is said', () => {

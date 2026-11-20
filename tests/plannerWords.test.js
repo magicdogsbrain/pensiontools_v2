@@ -63,9 +63,10 @@ describe('the State Pension the plan assumes when none was entered', () => {
     expect(assumedStatePensionWords(null)).toBe('');
   });
   it('the Settings page says it under the boxes when nothing is entered', () => {
-    // (step F2) the words are the reading's (src/reading/statePension.js spAssumedWords), painted from the plan
+    // (step F2) the words are the reading's (src/reading/statePension.js spLineHtml: the simple income page's line, marked,
+    // with "Change it" when assumed), painted from the plan
     expect(html).toContain('id="ssSpAssumedNote"');
-    expect(html).toContain('spAssumedNoteOf(sc, todayOf())');
+    expect(html).toContain('spLineOfPlan(sc, todayOf())');
   });
   it('the order sheet is told the plan, on both pages that draw it, and marks the "+ SP" cells', () => {
     expect(html).toContain("let h = assumedStatePensionAlertHtml(opts.p) + '<div class=\"alert alert-warning\"");

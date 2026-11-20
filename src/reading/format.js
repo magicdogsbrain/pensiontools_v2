@@ -10,6 +10,7 @@
  *   spanText(m)     months to go: 7 → '7 months', 19 → '1 year 7 months', 24 → '2 years', 131 → '10 years' (whole years
  *                   rounded down; the months said too under two years, and alone under one)
  *   pctText(n)      31 → '31%', 26.5 → '26.5%' (two places at most)
+ *   weekText(n)     a State Pension a week, pounds and pence as the forecast gives it: 241.3 → '£241.30'
  *
  *   FACT_FORMAT     fact id (src/reading/facts.js) → its rule
  *   formatFact(id, value)   the value as every place shows it ('' for nothing known)
@@ -47,6 +48,11 @@ export function spanText(months) {
   return y === 0 ? mw : y < 2 && m > 0 ? yw + ' ' + mw : yw;
 }
 
+/** A State Pension a week, as the forecast letter gives it: pounds and pence. 241.3 → '£241.30'. */
+export function weekText(n) {
+  return '£' + (Math.round(Math.abs(Number(n) || 0) * 100) / 100).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/, ',');
+}
+
 export function pctText(n) {
   return String(Math.round((Number(n) || 0) * 100) / 100) + '%';
 }
@@ -73,7 +79,7 @@ export const FACT_FORMAT = Object.freeze({
   // step F2: income steps (indexed: the pattern's rule), the State Pension (its start in the person's own day words)
   'income.step.#.beforeTax': money,
   'income.step.#.monthAfterTax': money,
-  'statePension.week': (v) => '£' + (Math.round((+v || 0) * 100) / 100).toFixed(2),
+  'statePension.week': weekText,
   'statePension.amount': money,
   'statePension.age': ageText,
   'statePension.start': asIs,

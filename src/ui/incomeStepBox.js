@@ -8,13 +8,16 @@
  *   stepFromBox(stored, typed, bands)  the stored step for what is typed: the stored figure kept while the box still says
  *                                      what it showed (no rounding drift), else the year before tax that pays it
  *   firstStepNoteOfPlan(plan, now)     the line under the shape: the reading's first step and how the tax-free part is taken
+ *                                      ("No income set yet: ..." when nobody gave the plan an income)
+ *   spLineOfPlan(plan, now)            the line under the State Pension boxes: { html, assumed }
  */
 import { monthlyNet, yearlyGross } from '../answers/plan/spend.js';
 import { incomeStepsOf } from '../reading/income.js';
 import { contextFor } from '../reading/context.js';
 import { firstStepNoteHtml } from './plannerWords.js';
 import { accessOf, accessAssumedWords } from '../reading/access.js';
-import { statePensionOf, spAssumedWords, SP_CHANGE_IT } from '../reading/statePension.js';
+import { statePensionOf, spLineHtml } from '../reading/statePension.js';
+import { SPEND } from '../v7/copy/spend.js';
 
 export { bandsOf as planBandsOf } from '../answers/plan/about.js';
 
@@ -36,6 +39,7 @@ export function firstStepNoteOfPlan(plan, now) {
   if (!plan) return '';
   let read = null;
   try { read = incomeStepsOf(plan, contextFor(plan, { now })); } catch { read = null; }
+  if (read && read.notSet) return SPEND.derived.notSet;   // nobody gave the plan an income: the simple spend page's words
   if (!read || !read.steps.length) return '';
   return firstStepNoteHtml(read.steps[0], { access: read.access });
 }
@@ -56,9 +60,12 @@ export function accessAssumedNoteOf(plan) {
   return a.chosen || locked ? '' : accessAssumedWords(a.method);
 }
 
-/** "We assumed … Change it: …" under the State Pension boxes when nothing was entered (src/reading/statePension.js); ''. */
-export function spAssumedNoteOf(plan, now) {
-  if (!plan) return '';
-  const w = spAssumedWords(statePensionOf(plan, contextFor(plan, { now })));
-  return w ? w + ' ' + SP_CHANGE_IT : '';
+/**
+ * The line under the State Pension boxes (src/reading/statePension.js spLineHtml): the State Pension the plan counts in the
+ * simple income page's words, marked; "We assumed … Change it: …" when nothing was entered. { html, assumed }.
+ */
+export function spLineOfPlan(plan, now) {
+  if (!plan) return { html: '', assumed: false };
+  const ctx = contextFor(plan, { now });
+  return { html: spLineHtml(plan, ctx), assumed: statePensionOf(plan, ctx).assumed };
 }

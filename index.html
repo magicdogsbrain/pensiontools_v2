@@ -4301,7 +4301,7 @@
     import { isLoggedIn, logOut, getCurrentUser, deleteAccount, onAuthStateChange, viewNotesAtSignIn } from './src/firebase/index.js';
     import { hasCloudData, wipeAllUserData, loadUserProfile, saveUserProfile, guestSnapshot, loadAllScenarios, createScenario as createScenarioDoc, saveScenario as saveScenarioDoc, loadScenario as loadScenarioDoc } from './src/firebase/FirestoreService.js';
     import { startSeedEntry, planFromAnswer, planTargetGuide, budgetSummaryWords } from './src/ui/components/NewPlanFromSeed.js'; import { householdStartWords } from './src/services/PlanSeed.js';   // a plan from a V7 answer (V7 design: save-as-plan.md, C.2); the Household tab's line when one plan begins later (couples-different-years.md 7)
-    import { startSummaryHtml, potsAtRetirementLine } from './src/ui/startingPotsWords.js'; import { potAtStop } from './src/reading/atStop.js'; import { stepBoxValue, stepFromBox, firstStepNoteOfPlan, planBandsOf, documentStepsOf, accessAssumedNoteOf, spAssumedNoteOf } from './src/ui/incomeStepBox.js'; import { statePensionOf } from './src/reading/statePension.js'; import { spKindOfSettings, spKindForSave, FULL_SP_WEEKLY } from './src/ui/spKindBox.js'; import { stageWordsHtml, whereYouAreHtml } from './src/ui/stageWords.js'; import { stage as readingStage, yearsToGo as readingYearsToGo, ageToday as readingAgeToday, planName as readingPlanName } from './src/reading/timing.js'; import { formatFact, money as fmtMoney } from './src/reading/format.js'; import { budgetLineOf } from './src/reading/budget.js'; import { isaToday as readingIsaToday, pensionBoxOf, isaBoxOf, settingsOf as readingSettingsOf } from './src/reading/money.js'; import { savingInputsOf } from './src/services/PotsAtStop.js'; import { shownPlanName } from './src/services/PlanName.js';
+    import { startSummaryHtml, potsAtRetirementLine } from './src/ui/startingPotsWords.js'; import { potAtStop } from './src/reading/atStop.js'; import { stepBoxValue, stepFromBox, firstStepNoteOfPlan, planBandsOf, documentStepsOf, accessAssumedNoteOf, spLineOfPlan } from './src/ui/incomeStepBox.js'; import { statePensionOf } from './src/reading/statePension.js'; import { spKindOfSettings, spKindForSave, FULL_SP_WEEKLY } from './src/ui/spKindBox.js'; import { stageWordsHtml, whereYouAreHtml } from './src/ui/stageWords.js'; import { stage as readingStage, yearsToGo as readingYearsToGo, ageToday as readingAgeToday, planName as readingPlanName } from './src/reading/timing.js'; import { formatFact, money as fmtMoney } from './src/reading/format.js'; import { budgetLineOf } from './src/reading/budget.js'; import { isaToday as readingIsaToday, pensionBoxOf, isaBoxOf, settingsOf as readingSettingsOf } from './src/reading/money.js'; import { savingInputsOf } from './src/services/PotsAtStop.js'; import { shownPlanName } from './src/services/PlanName.js';
     import { thisYearOfPlan, yearIncomeHtml, yearFromHtml, yearChangedHtml, yearPlanHtml } from './src/ui/thisYearHtml.js'; import { setUpAgainConfig } from './src/reading/thisYear.js'; import { incomeStepsOf as incomeStepsOfPlan } from './src/reading/income.js';
     import { tick as guestTick, readMinutes as guestMinutes, pendingNag as guestPendingNag, markNagShown as guestMarkNag, isBlocked as guestBlocked, bannerText as guestBannerText, savedChipText, stashHandoff as guestStash, readHandoff as guestReadHandoff, clearHandoff as guestClearHandoff, GUEST_ALLOWANCE_MINUTES } from './src/services/GuestMeter.js';
     // Release notes: data + renderers (see RELEASING.md). The pop-up and the What's new page read the same entries.
@@ -6910,7 +6910,7 @@
       const first = steps[0];
       note.innerHTML = (window._shapeFlooredFrom ? '<span style="color:var(--warning);">From age ' + window._shapeFlooredFrom + ' the shape would fall below your guaranteed income (State Pension + other income), so it is held there — the pot simply supplies nothing in those years.</span> ' : '')
         + (low ? '<span style="color:var(--warning);">A step is below your budget\'s essentials (' + gbp(ess) + '/yr gross). That is allowed, but the floor strategies will not buy less than the bills.</span> ' : '') + (first ? '<span id="firstStepNote"></span>' : '') + 'Every strategy, the Stress Tester and the Decision tool read this shape, in today\'s money.';
-      if (first) paintFirstStepNote();
+      paintFirstStepNote();   // the line under the first step (when there is one) and the State Pension line, from the plan
     };
     // Turn a lump sum into income: a step at its age raised by what it supports per year, every later
     // step raised the same. The lump-sum entry stays — it is the money that pays for the new steps.
@@ -7713,13 +7713,15 @@
     window.paintFirstStepNote = async function () {
       const paint = (window._fsnPaint = (window._fsnPaint || 0) + 1);
       let html = '';
-      let assumed = '', spNote = '';
-      try { const sc = await getActiveScenarioAsync(); html = firstStepNoteOfPlan(sc, todayOf()); assumed = accessAssumedNoteOf(sc); spNote = spAssumedNoteOf(sc, todayOf()); } catch (e) { html = ''; }
+      let assumed = '', spNote = { html: '', assumed: false };
+      try { const sc = await getActiveScenarioAsync(); html = firstStepNoteOfPlan(sc, todayOf()); assumed = accessAssumedNoteOf(sc); spNote = spLineOfPlan(sc, todayOf()); } catch (e) { html = ''; }
       if (paint !== window._fsnPaint) return;
       const el = document.getElementById('firstStepNote');
       if (el) el.innerHTML = html;
       const an = document.getElementById('ssAccessAssumed'); if (an) an.textContent = assumed;   // said beside the choice, the same words as the simple view
-      const sn = document.getElementById('ssSpAssumedNote'); if (sn) sn.textContent = spNote;   // (step F2, D2) the assumed State Pension, said where it is entered, in the simple view's words
+      // (step F2, D2) the State Pension the plan counts, said where it is entered, in the simple view's words, its figures
+      // marked (the amount, the age, the week); an assumed one in the warning colour with its "Change it"
+      const sn = document.getElementById('ssSpAssumedNote'); if (sn) { sn.innerHTML = spNote.html; sn.style.color = spNote.assumed ? 'var(--warning)' : ''; }
     };
     window.openAccessMethod = function () {
       const el = document.getElementById('ssAccessMethod'); const sec = el && el.closest('.settings-section');

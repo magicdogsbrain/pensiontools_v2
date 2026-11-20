@@ -14,16 +14,23 @@
  *     taxYear     the tax year it starts in (the year it falls in), or null
  *     assumed     true for 'assumed'
  *   }
- *   SP_ASSUMED_WORDS / spAssumedWords(sp)   "We assumed £12,000 a year before tax from age 67: no State Pension was
- *                                            entered." — the one sentence both views say beside the figure, with a
- *                                            "Change it" that goes to the State Pension's boxes; '' when not assumed
+ *   spAssumedHtml(sp) / spAssumedWords(sp)  "State Pension: we assumed £12,000 a year before tax from age 67, as none was
+ *                                            entered." — the one sentence both views say beside the figure (the HTML with
+ *                                            its amount and age marked; the words), with a "Change it" that goes to the
+ *                                            State Pension's boxes; '' when not assumed
+ *   spLineHtml(plan, ctx)                   the State Pension the plan counts, in the simple income page's own line
+ *                                            (income.js spLineOf), marked, with the week by the fact's one rule: the full
+ *                                            view's line under its State Pension boxes
  *
  * Pure (the plan's settings are read once, by the simple view's income reading, on ctx's day).
  */
-import { savedIncome } from '../answers/plan/income.js';
+import { savedIncome, spLineOf } from '../answers/plan/income.js';
 import { parseStatePensionDate } from '../utils/StatePensionUtils.js';
-import { money } from './format.js';
+import { formatFact } from './format.js';
 import { dayKeyOf } from './clock.js';
+import { markFact, unmarked } from './mark.js';
+import { INCOME } from '../v7/copy/income.js';
+import { slotFactsOf } from '../v7/components/facts.js';
 
 const num = (v) => (v == null || v === '' || !Number.isFinite(+v) ? null : +v);
 const pad = (n) => String(n).padStart(2, '0');
@@ -64,8 +71,41 @@ export function statePensionOf(plan, ctx = {}) {
   };
 }
 
-export function spAssumedWords(sp) {
+const esc = (t) => String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+
+/** Words with {slots}, each slot that holds a fact drawn marked (the full view's HTML; the simple view's fillMarked). */
+function fillHtml(text, slots, marks) {
+  return esc(text).replace(/\{(\w+)\}/g, (m, k) => (k in slots && slots[k] != null ? (marks[k] ? markFact(marks[k], esc(slots[k])) : esc(slots[k])) : m));
+}
+
+/** The assumed State Pension's sentence (the simple view's INCOME.derived 'sp.assumed'), its amount and age marked; ''. */
+export function spAssumedHtml(sp) {
   if (!sp || !sp.assumed) return '';
-  return 'State Pension: we assumed ' + money(sp.year) + ' a year before tax from ' + (sp.startAge != null ? 'age ' + sp.startAge : 'your State Pension age') + ', as none was entered.';
+  const id = sp.startAge != null ? 'sp.assumed' : 'sp.assumedNoAge';
+  const slots = { yearly: formatFact('statePension.amount', sp.year), age: sp.startAge != null ? formatFact('statePension.age', sp.startAge) : null };
+  return fillHtml(INCOME.derived[id], slots, slotFactsOf('income.' + id, slots));
+}
+export function spAssumedWords(sp) {
+  return unmarked(spAssumedHtml(sp));
 }
 export const SP_CHANGE_IT = 'Change it: choose the full amount, your forecast, or none.';
+/** The week the plan counts, after the line, in the full view (the simple plan page says the week as its own figure). */
+export const SP_WEEK_WORDS = 'That is {week} a week.';
+
+/**
+ * The State Pension the plan counts, as the full view says it under its State Pension boxes: the simple income page's own
+ * line (answers/plan/income.js spLineOf over the plan as saved), its figures marked as the simple view marks them; when
+ * assumed, "Change it"; when a weekly figure was given, the week by the fact's one rule. { html, assumed }; html '' when
+ * the plan cannot be read.
+ */
+export function spLineHtml(plan, ctx = {}) {
+  let saved = null;
+  try { saved = savedIncome(plan, { today: todayOfCtx(ctx) }); } catch { saved = null; }
+  if (!saved || !saved.sp) return '';
+  const ln = spLineOf(saved.sp);
+  let html = fillHtml(INCOME.derived[ln.id] || '', ln.slots, slotFactsOf('income.' + ln.id, ln.slots));
+  const sp = statePensionOf(plan, ctx);
+  if (sp.assumed) html += ' ' + esc(SP_CHANGE_IT);
+  else if (sp.kind !== 'none' && sp.week > 0) html += ' ' + fillHtml(SP_WEEK_WORDS, { week: formatFact('statePension.week', sp.week) }, { week: 'statePension.week' });
+  return html;
+}

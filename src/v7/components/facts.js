@@ -108,7 +108,7 @@ const SLOTS = Object.freeze({
   'income.sp.paid': { yearly: 'statePension.amount', age: 'statePension.age' },
   'income.sp.noDate': { yearly: 'statePension.amount', age: 'statePension.age' },
   'income.sp.noDateNoAge': { yearly: 'statePension.amount' },
-  'income.sp.before': { yearly: 'statePension.amount' },
+  'income.sp.before': { yearly: 'statePension.amount', date: 'statePension.start' },
   'home.headline.savingStop': { month: 'stop.month' },
   'home.moveWindow': { stop: 'stop.month' },
   'saving.ages': { month: 'stop.month', span: 'yearsToGo', from: 'age.today' },

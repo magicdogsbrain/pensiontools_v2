@@ -15,7 +15,7 @@
  *                                                (src/reading/atStop.js potAtStop: the middle with its bad and good cases
  *                                                from the same lives, or the pots a locked plan was locked with).
  */
-import { spAssumedWords, SP_CHANGE_IT } from '../reading/statePension.js';
+import { spAssumedHtml, SP_CHANGE_IT } from '../reading/statePension.js';
 import { potScaleOf, isaAtRetirementOf } from '../services/PotsAtRetirement.js';
 import { earlyPensionDrawOf, earlyPensionDrawWords } from '../services/PlanTiming.js';
 import { closedYearsWords } from '../services/PensionLock.js';
@@ -101,7 +101,7 @@ export function startSummaryHtml(settings, { fromAnswer = null, locked = null, a
   const s = settings || {};
   // (step F2, lead4.md D2) an assumed State Pension is said in the words both views use, from the one reading of it
   // (src/reading/statePension.js `sp`): its age is the one the runs start it at, never a fixed one
-  const spWords = spAssumedWords(sp);
+  const spWords = spAssumedHtml(sp);   // its amount and age marked, as the simple view marks them (lead4.md G1)
   const spNote = spWords ? ` <span style="color:var(--warning, #f59e0b);">${spWords} ${SP_CHANGE_IT} (in Settings)</span>` : '';
   if (GILT_LADDER_IDS.has(s.strategyId)) {
     const lasted = fromAnswer ? answerLastedWords(fromAnswer) : '';

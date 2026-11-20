@@ -3,7 +3,7 @@
  * Pure, and the same on every device: no toLocaleString.
  */
 import { LEVEL_LINES, passes } from './rules.js';
-import { money, ageText, moneyK as pot, pctText } from '../../reading/format.js';
+import { money, ageText, moneyK as pot, pctText, weekText } from '../../reading/format.js';
 
 /** 1380 → '£1,380'. Whole pounds; never a minus, never pence; 0 → '£0' (the one formatter: src/reading/format.js). */
 export { money } from '../../reading/format.js';
@@ -136,7 +136,7 @@ export function get(obj, key) {
 }
 
 /** A share of pay as written: 31 → '31%', 26.5 → '26.5%' (the one formatter: src/reading/format.js). */
-export { pctText } from '../../reading/format.js';
+export { pctText, weekText } from '../../reading/format.js';
 
 /** One part of a sentence as text: a string, { key, kind: 'money' | 'age' | 'pot' | 'pct' } or { fixed }. */
 export function partText(part, result) {
@@ -144,7 +144,7 @@ export function partText(part, result) {
   if (part && 'fixed' in part) return String(part.fixed);
   const value = get(result, part.key);
   if (part.kind === 'count') return String(Math.round(value));   // a whole number (months, gilts), as Money draws it
-  return part.kind === 'age' ? ageText(value) : part.kind === 'pot' ? pot(value) : part.kind === 'pct' ? pctText(value) : money(value);
+  return part.kind === 'age' ? ageText(value) : part.kind === 'pot' ? pot(value) : part.kind === 'pct' ? pctText(value) : part.kind === 'week' ? weekText(value) : money(value);
 }
 
 /** The rule of the contract: a sentence's text === its parts joined, each key formatted here. */

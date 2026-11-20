@@ -23,7 +23,7 @@ import { pensionTodayOf } from '../../services/PensionToday.js';
 import { pensionToday, isaToday, giaToday } from '../../reading/money.js';
 import { potAtStop } from '../../reading/atStop.js';
 import { ageToday as readingAgeToday } from '../../reading/timing.js';
-import { money as fmtMoney, moneyK as fmtPot } from '../../reading/format.js';
+import { money as fmtMoney, moneyK as fmtPot, weekText } from '../../reading/format.js';
 import { payInShareOf } from '../../services/SaverPayIn.js';
 import { holdingsSummary, normaliseHoldings } from '../../services/HoldingsRecord.js';
 import { stepsFor, subStepsFor, ALL_STEPS, NEXT_ORDER, NEXT_INFO, DUE_IDS, RETIRED_STAGES, SAVER_STAGES } from './steps.js';
@@ -279,9 +279,11 @@ const potK = (key) => ({ key, kind: 'pot' });
 const DIAL_KINDS = Object.freeze({ count: 'count', age: 'age', money: 'money', percent: 'pct' });
 const DOCUMENT_DIALS = Object.freeze({ sippTotal: 'money', isaTotal: 'money' });
 const age = (key) => ({ key, kind: 'age' });
+/** A State Pension a week: pounds and pence, the fact's one rule (src/reading/format.js weekText). */
+const week = (key) => ({ key, kind: 'week' });
 const pounds = (n) => '£' + String(Math.abs(Math.round(Number(n) || 0))).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 /** A part's text by the one formatter (src/reading/format.js), as the page's Money draws it. */
-const textOf = (p, figures) => (typeof p === 'string' ? p : 'fixed' in p ? String(p.fixed) : p.kind === 'money' ? fmtMoney(figures[p.key]) : p.kind === 'pot' ? fmtPot(figures[p.key]) : String(Math.round(Number(figures[p.key]) || 0)));
+const textOf = (p, figures) => (typeof p === 'string' ? p : 'fixed' in p ? String(p.fixed) : p.kind === 'money' ? fmtMoney(figures[p.key]) : p.kind === 'pot' ? fmtPot(figures[p.key]) : p.kind === 'week' ? weekText(figures[p.key]) : String(Math.round(Number(figures[p.key]) || 0)));
 /** A sentence: an id (for the tests), its parts, and the text as drawn. */
 const sentence = (id, parts, figures) => ({ id, parts, text: parts.map((p) => textOf(p, figures)).join('') });
 
@@ -695,7 +697,7 @@ function planStep(C) {
   const income = [];
   const spWeekly = locked && doc && doc.assumptions ? num(doc.assumptions.spWeeklyAmount) : num(ss.spWeeklyAmount);
   const spDate = locked && doc && doc.assumptions ? doc.assumptions.spStartDate : ss.spStartDate;
-  if (spWeekly > 0) { figures.spWeekly = r0(spWeekly); income.push(line('pots.statePension', [money('spWeekly'), ' a week'], figures, src, { from: spDate ? (spDayWords(spDayOf(spDate)) || String(spDate)) : '' })); }   // (step F2) the date in the one form of words both views use (src/reading/statePension.js)
+  if (spWeekly > 0) { figures.spWeekly = Math.round(spWeekly * 100) / 100; income.push(line('pots.statePension', [week('spWeekly'), ' a week'], figures, src, { from: spDate ? (spDayWords(spDayOf(spDate)) || String(spDate)) : '' })); }   // (step F2) the date in the one form of words both views use (src/reading/statePension.js)
   else if (num(ss.statePension) > 0) {
     // (7.12.0) the plan year the runs start it in (IncomeSchedule.defaultSpYear: the stored 12 is the old default, read as age
     // 67), never the first tax year plus the stored 12 — which put it five years late for someone stopping at 60

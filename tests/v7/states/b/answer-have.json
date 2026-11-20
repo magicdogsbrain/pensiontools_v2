@@ -1285,7 +1285,7 @@
           },
           "howLong": {
             "id": "b.howLong",
-            "text": "In the futures where it runs out before 100, it still pays for 35 of the 40 years to 100.",
+            "text": "In the futures where it runs out before 100, it still pays for 34 of the 40 years to 100.",
             "parts": [
               "In the futures where it runs out before ",
               {
@@ -1293,7 +1293,7 @@
               },
               ", it still pays for ",
               {
-                "fixed": "35"
+                "fixed": "34"
               },
               " of the ",
               {

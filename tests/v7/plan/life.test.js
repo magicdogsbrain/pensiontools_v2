@@ -203,9 +203,10 @@ describe('the weighted part of one answer', () => {
     // (Bold's consequence from the plan's own weighted chance, never a fixed "3 in 10")
     expect(v.slots.bold).toBe(' ' + boldConsequenceOf(a));
     expect(v.sub.id).toBe('lasts.subFixed');
-    // what is left is said once, by the weighted band (to the nearest £1,000)
-    expect(v.rows.map((r) => r.id)).toEqual(expect.arrayContaining(['floorW', 'leftW', 'assumedW']));
+    // what is left is said once, by the weighted band (to the nearest £1,000); (step F3, lead4.md R8) the worst 1 in 10 beside it,
+    // as the full view's card says it
     expect(v.rows.map((r) => r.id)).not.toContain('left');
+    expect(v.rows.map((r) => r.id)).toEqual(expect.arrayContaining(['floorW', 'leftW', 'assumedW', 'leftBadW']));
     expect(verdictWord(0.95)).toBe('yes');   // without a weighted part, the count as before
   });
   it('7.9.0: a contract way always says it is bought by contract; its fixed-age line becomes the band\'s first row', () => {

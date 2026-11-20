@@ -17,8 +17,8 @@ export const wordsOf = (plan, now) => ({
 /** Every step of a plan in the simple view ('' is its home). */
 export const SIMPLE_PAGES = Object.freeze(['', 'plan', 'about', 'income', 'spend', 'pots', 'lasts', 'way', 'mix', 'saving', 'checkin', 'review', 'month', 'where', 'lock', 'hold', 'move', 'budget', 'household']);
 
-/** A press on a simple page that opens a figure drawn closed (the year table on "Does it last?"). */
-export const SIMPLE_PRESS = Object.freeze({ lasts: '[data-testid="plan.lasts.schedule"]' });
+/** The presses on a simple page that open figures drawn closed, in order (the year table and the pots' floors on "Does it last?"). */
+export const SIMPLE_PRESS = Object.freeze({ lasts: Object.freeze(['[data-testid="plan.lasts.schedule"]', '[data-testid="plan.lasts.glidepath"]']) });
 
 /** Every tab and sub-tab of the full view. */
 export const FULL_PAGES = Object.freeze([
@@ -30,7 +30,8 @@ export const FULL_PAGES = Object.freeze([
   { name: 'scenarios', tab: 'stress', sub: 'scenarios' },
   // the year table is drawn on a press in the full view ("Show Schedule") and opened on a press in the simple view
   { name: 'drawdown', tab: 'stress', sub: 'drawdown', press: 'button[data-on-click="showDrawdownScheduleUI()"]' },
-  { name: 'glidepath', tab: 'stress', sub: 'glidepath' },
+  // the pots' floors are drawn on a press ("Show Glidepath"), as the simple view opens its table of floors on a press
+  { name: 'glidepath', tab: 'stress', sub: 'glidepath', press: 'button[data-on-click="showGlidepathUI()"]' },
   { name: 'stress settings', tab: 'stress', sub: 'stresssettings' },
   { name: 'strategies', tab: 'strategies' },
   // this month's figures are worked out on a press ("Calculate"); on a plan not locked that press asks to lock it first, so

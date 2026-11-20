@@ -60,8 +60,7 @@ import { contextFor } from '../../reading/context.js';
 import { lastsInputOf, enginePlanOf } from '../../reading/gather.js';
 import { oneAnswer, worstStarts, earlierTestNote } from '../../services/OneAnswer.js';
 import { namedStartRows, SCENARIO_STARTS, decadeFigures, CONTRACT } from '../../services/NamedStarts.js';
-import { generateDrawdownSchedule } from '../../services/DrawdownService.js';
-import { generateGlidepathSchedule } from '../../services/GlidepathService.js';
+import { yearTablesOf, ASSUMED_PRICES } from '../../reading/yearTable.js';
 import { SCENARIOS } from '../../constants.js';
 import { documentLadder } from '../../services/LadderPosition.js';
 import { normaliseHoldings, emptyHoldings } from '../../services/HoldingsRecord.js';
@@ -356,20 +355,15 @@ export function closedOf(p) {
   return { age: lock.accessAge, short: short ? { perYear: short.perYear, years: shortYearsWords(short) } : null };
 }
 
-/** The prices the planner's Drawdown and Glidepath pages assume by default (their boxes' 2.5%): the preview uses the same, with no box. */
-export const ASSUMED_PRICES = 0.025;
+/** The prices the year tables assume (src/reading/yearTable.js): the plan's own assumption, in both views. */
+export { ASSUMED_PRICES };
 const r0 = (v) => Math.round(+v || 0);
 
 /**
  * What the planner's Drawdown, Glidepath and Scenarios pages show, read off the one test and the plan's own settings
  * (road-to-7.md step 11b: test.schedule, test.glidepath, test.scenarios) — plain data, deterministic, no second run:
- *   schedule    Pots & Valves only (index.html showDrawdownUI): year by year, what is drawn from the pension, the State
- *               Pension, tax, what the ISA tops up, what is left to spend, the ISA left — DrawdownService.generateDrawdownSchedule
- *               on the plan's own length at ASSUMED_PRICES (the planner's page has boxes for both; the preview takes the plan's)
- *   glidepath   Pots & Valves only (showGlidepathUI): the pots' floors year by year — GlidepathService.generateGlidepathSchedule,
- *               with the ISA's balance from the same schedule
- *   own         any other way of drawing (strategyScheduleNotice): its own year-by-year table from the run's cones — the income
- *               in the middle future and the 1-in-10 bad one, what is left in the middle
+ *   schedule, glidepath, own   the year tables: src/reading/yearTable.js yearTablesOf, the ONE function both views draw
+ *               (lead4.md D9): the plan's own length at ASSUMED_PRICES; a bought way's own table from this run's cones
  *   scenarios   the named stresses as starts (the Scenarios tab, post-6.24.0): namedStartRows from each decade's January, with
  *               what the decade did to shares and prices (decadeFigures); the made-up worst decade said apart, with the hardest
  *               real start the test counted. A contract plan (every year bought: the full index-linked gilt ladder, the floored
@@ -379,35 +373,14 @@ const r0 = (v) => Math.round(+v || 0);
  */
 export function extrasOf(settings, strategyId, p, r, a, now) {
   if (!a) return null;
-  const duration = Math.max(1, r0(settings.duration) || 35);
-  const startAge = r0(settings.shapeAgeNow) || r0(p && p.startAge) || 57;
-  const pnv = strategyId === 'pots-and-valves';
-  let schedule = null, glidepath = null, own = null;
-  if (pnv) {
-    const s = { ...settings, duration };
-    try {
-      schedule = generateDrawdownSchedule(s, duration, ASSUMED_PRICES, now).map((x) => ({ year: x.year, age: startAge + x.year, pension: r0(x.sippDraw), state: r0(x.statePension), tax: r0(x.tax), net: r0(x.netIncome), isa: r0(x.isaDraw), ...(x.giaDraw > 0 ? { gia: r0(x.giaDraw) } : {}), spendable: r0(x.spendable), isaLeft: r0(x.isaBalance) }));
-    } catch { schedule = null; }
-    try {
-      const isaByYear = {};
-      for (const x of schedule || []) isaByYear[x.year] = x.isaLeft;
-      glidepath = { tent: !!s.equityGlideEnabled, diversifiers: (+s.diversifierStart || 0) > 0, reserve: !!s.hodlEnabled && (+s.hodlValue || 0) > 0,
-        rows: generateGlidepathSchedule(s, ASSUMED_PRICES).map((x) => ({ year: x.year, age: startAge + x.year, shares: r0(x.equityMin), bonds: r0(x.bondMin), cash: r0(x.cashTarget), diversifiers: r0(x.diversifier), reserve: r0(x.hodl), sharesPct: Math.round((x.equityShareOfPot || 0) * 100), isa: isaByYear[x.year] != null ? isaByYear[x.year] : null, total: r0(x.totalMin) })) };
-    } catch { glidepath = null; }
-  } else if (r && r.affordable && r.cones && r.cones.income && r.cones.wealth) {
-    const inc = r.cones.income, w = r.cones.wealth;
-    const years = Math.max(0, r0(p && p.durationYears) || duration);
-    const sa = r0(p && p.startAge) || startAge;
-    own = [];
-    for (let y = 0; y < years; y++) own.push({ year: y + 1, age: sa + y, incomeMid: r0(inc.p50 && inc.p50[y]), incomeBad: r0(inc.p10 && inc.p10[y]), leftMid: r0(w.p50 && w.p50[y]) });
-  }
+  const { prices, startAge, duration, schedule, glidepath, own } = yearTablesOf({ settings, strategyId, p, r, now });
   // a contract plan: the planner's Scenarios tab is an inflation table (src/ui/oneAnswerView.js scenariosTabHtml) — each row, the made-up decade too
   const cash = CONTRACT.includes(strategyId) && r && r.plan && Array.isArray(r.plan.years) && r.plan.years.length ? (sc) => contractCash(r.plan.years, sc) : null;
   let scenarios = [];
   try { scenarios = namedStartRows(strategyId, p, SCENARIO_STARTS).map((row, i) => { const sc = SCENARIOS[SCENARIO_STARTS[i].key]; return { ...row, key: SCENARIO_STARTS[i].key, decade: decadeFigures(sc), ...(cash ? { cash: cash(sc) } : {}) }; }); } catch { scenarios = []; }
   const hardest = r && Array.isArray(r.histWindows) ? (worstStarts(r.histWindows, 1)[0] || null) : null;
   const synthetic = { name: SCENARIOS.SYNTHETIC_WORST.name, decade: decadeFigures(SCENARIOS.SYNTHETIC_WORST), hardest: hardest ? { year: hardest.year, month: hardest.month || null } : null, ...(cash ? { cash: cash(SCENARIOS.SYNTHETIC_WORST) } : {}) };
-  return { prices: ASSUMED_PRICES, startAge, duration, schedule, glidepath, own, scenarios, synthetic };
+  return { prices, startAge, duration, schedule, glidepath, own, scenarios, synthetic };
 }
 
 /**

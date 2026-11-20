@@ -3,7 +3,7 @@
  * Scenarios tabs as explanations of the one test, the Strategies ranking by futures out of 10, the allocation grid,
  * and the locked document's "earlier test" line. HTML strings only; no DOM, no storage, no engine.
  */
-import { moneyK } from '../reading/format.js';
+import { moneyK, money } from '../reading/format.js';
 import { inflationDecadesSvg } from './giltLadderGraphic.js';
 import { futuresOutOfTen, pctText, tenthsOutOfTen, CHANCE_BARS, rankWays, oneAnswer, boldConsequenceOf, leftText } from '../services/OneAnswer.js';
 import { decadeFigures } from '../services/NamedStarts.js';
@@ -312,6 +312,9 @@ export function countAgeHtml(r, p) {
 const levelSelectHtml = (level) => '<label class="verdict-level">How careful? <select data-on-change="setChanceLevel(this.value)" data-testid="verdict.level" aria-label="How careful?">'
   + LEVEL_IDS.map((k) => '<option value="' + k + '"' + (k === level ? ' selected' : '') + '>' + esc(LEVEL_OPTIONS[k]) + '</option>').join('') + '</select></label>';
 const VERDICT_TITLE = { yes: 'On course', close: 'Close', no: 'Not on course' };
+/** The words after the years covered and the worst 12 months (both views: the simple view's band rows say them after the figure). */
+export const COVER_WORDS = 'of the plan\'s years covered — the share of your planned income the money actually paid, averaged over every future';
+export const WORST12_WORDS = 'worst 12 months lived, at today\'s prices';
 
 /**
  * The verdict block (7.8.0), both apps' words (services/OneAnswer.js weightedWordsOf):
@@ -344,8 +347,9 @@ export function verdictBlockView(r, p, o = {}) {
     // (7.12.0) a plan still saving: the one chance (What you pay in's, the home's, Accumulation's) leads alone; every figure
     // under it is this run's, from the middling pot when work stops, and is said to be
     + '<div class="verdict-heroes">' + hero
-    + (saving ? '' : '<div><span class="hero" style="font-size:30px;">' + pctText(cov) + '</span><span class="hero-sub">of the plan\'s years covered — the share of your planned income the money actually paid, averaged over every future</span></div>'
-    + '<div><span class="hero" style="font-size:30px;">' + markFact('lasts.worst12', gbpC(Math.round(r.worst12.min))) + '</span><span class="hero-sub">worst 12 months lived, today\'s money</span></div>') + '</div>'
+    // (the years covered and the worst 12 months: the simple view's band says both, in the same words: lead4.md R8, step F3)
+    + (saving ? '' : '<div><span class="hero" style="font-size:30px;">' + markFact('lasts.coverage', pctText(cov)) + '</span><span class="hero-sub">' + COVER_WORDS + '</span></div>'
+    + '<div><span class="hero" style="font-size:30px;">' + markFact('lasts.worst12', money(r.worst12.min)) + '</span><span class="hero-sub">' + WORST12_WORDS + '</span></div>') + '</div>'
     + (saving ? '<p class="hint" data-from-stop="1">' + markWithin(esc(fromStopWords(p)), [[/starts from (£[\d,]+) in your pension/, 'pot.atStop']]) + '</p>' : '')
     + '<p class="verdict-fixed" data-fixed="1">' + (a.weighted !== null ? markWithin(esc(w.fixed), LASTS_FINDS.fixed) : esc(w.why || '')) + '</p>'
     + (w.floor ? '<p class="hint">' + markWithin(esc(w.floor), LASTS_FINDS.floor) + '</p>' : '') + '<p class="hint">' + markWithin(esc(w.left), LASTS_FINDS.left) + '</p>'

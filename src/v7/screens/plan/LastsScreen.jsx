@@ -24,6 +24,7 @@ import { LEVELS_WORDS } from '../../copy/common.js';
 import { StressPanel, STRESS_PROBLEMS } from './StressPanel.jsx';
 import { slotFactsOf, lastsRowFindsOf, FIXED_FINDS } from '../../components/facts.js';
 import { factProps } from '../../../reading/mark.js';
+import { TABLES } from '../../../reading/facts.js';
 import { fillMarked, markIn, CHANCE_RE } from '../../components/PlanFigures.jsx';
 
 const LEVEL_IDS = ['careful', 'balanced', 'bold'];
@@ -132,41 +133,43 @@ function History({ v }) {
   );
 }
 
-/** The years one by one and the pots' floors (test.schedule, test.glidepath): the planner's Drawdown and Glidepath pages, closed until opened. */
+/**
+ * The years one by one and the pots' floors (test.schedule, test.glidepath): the planner's Drawdown and Glidepath pages, closed
+ * until opened. The rows, the columns, their labels and every cell are the reading's (src/reading/yearTable.js, through
+ * lasts.js extrasView), marked cell by cell (lead4.md G1) as the full view's pages mark them.
+ */
+const PRICES = Object.freeze({ prices: 'years.prices' });
 function Years({ v, L, dispatch }) {
   const Y = LASTS.years;
   const x = v && v.ok ? v.extras : null;
-  if (!x || (!x.schedule && !x.own)) return null;
+  if (!x || !x.table) return null;
   const toggle = (id) => dispatch({ type: 'ui/toggle', id });
-  const rows = x.schedule || x.own;
-  // the taxable account's column only when it pays a year the pension is closed (7.4.1, DrawdownService closedYear)
-  const gia = x.schedule && x.schedule.some((r) => r.gia) ? ['gia'] : [];
-  const cols = x.schedule ? ['year', 'age', 'pension', 'state', 'tax', 'isa', ...gia, 'spendable', 'isaLeft'] : ['year', 'age', 'incomeMid', 'incomeBad', 'leftMid'];
-  const g = x.glidepath;
-  const gcols = g ? ['year', 'age', 'shares', 'bonds', 'cash', ...(g.diversifiers ? ['diversifiers'] : []), ...(g.reserve ? ['reserve'] : []), 'sharesPct', 'isa', 'total'] : [];
+  const t = x.table;
+  const g = x.floors;
+  const cells = (rows, cols) => rows.map((r) => <tr key={r.key} data-year={r.key} data-age={r.age} data-total={r.raw.total} data-shares-pct={r.raw.sharesPct}>{cols.map((c, i) => (i === 0 ? <th key={c.id} scope="row" data-row={r.key} data-col={c.id}>{r.cells[c.id]}</th> : <td key={c.id} data-row={r.key} data-col={c.id}>{r.cells[c.id]}</td>))}</tr>);
   return (
-    <section class="plan-section lasts-years" data-section="years" data-testid="plan.lasts.years" data-kind={x.schedule ? 'schedule' : 'own'} data-years={rows.length}>
+    <section class="plan-section lasts-years" data-section="years" data-testid="plan.lasts.years" data-kind={t.kind} data-years={t.rows.length}>
       <h3>{Y.title}</h3>
-      <p class="note">{x.schedule ? fill(Y.lead, { prices: x.prices }) : Y.leadOwn}</p>
+      <p class="note">{t.kind === 'schedule' ? fillMarked(Y.lead, { prices: x.prices }, PRICES) : Y.leadOwn}</p>
       <div class="actions-row"><Button testid="plan.lasts.schedule" kind="quiet" aria-expanded={L.scheduleOpen ? 'true' : 'false'} aria-controls={L.scheduleOpen ? 'plan.lasts.schedule.table' : undefined} onClick={() => toggle('lastsSchedule')} {...keepFocus}>{L.scheduleOpen ? Y.hide : Y.show}</Button></div>
       {L.scheduleOpen && (
         <div class="table-wrap">
-          <table class="way-table lasts-table" id="plan.lasts.schedule.table" data-testid="plan.lasts.schedule.table" data-fact-table="years">
-            <thead><tr>{cols.map((c) => <th key={c} scope="col">{Y.columns[c]}</th>)}</tr></thead>
-            <tbody>{rows.map((r) => <tr key={r.year} data-year={r.year} data-age={r.age}>{cols.map((c, i) => (i === 0 ? <th key={c} scope="row" data-row={r.year} data-col={c}>{r[c]}</th> : <td key={c} data-row={r.year} data-col={c}>{r[c]}</td>))}</tr>)}</tbody>
+          <table class="way-table lasts-table" id="plan.lasts.schedule.table" data-testid="plan.lasts.schedule.table" data-fact-table={TABLES.YEARS}>
+            <thead><tr>{t.cols.map((c) => <th key={c.id} scope="col">{c.label}</th>)}</tr></thead>
+            <tbody>{cells(t.rows, t.cols)}</tbody>
           </table>
         </div>
       )}
       {g && (
         <>
           <h4>{Y.floorsTitle}</h4>
-          <p class="note">{fill(g.tent ? Y.floorsLeadTent : Y.floorsLead, { prices: x.prices })}{g.diversifiers ? Y.floorsDiversifiers : ''}{g.reserve ? Y.floorsReserve : ''}</p>
+          <p class="note">{fillMarked(g.tent ? Y.floorsLeadTent : Y.floorsLead, { prices: x.prices }, PRICES)}{g.diversifiers ? Y.floorsDiversifiers : ''}{g.reserve ? Y.floorsReserve : ''}</p>
           <div class="actions-row"><Button testid="plan.lasts.glidepath" kind="quiet" aria-expanded={L.glidepathOpen ? 'true' : 'false'} aria-controls={L.glidepathOpen ? 'plan.lasts.glidepath.table' : undefined} onClick={() => toggle('lastsGlidepath')} {...keepFocus}>{L.glidepathOpen ? Y.floorsHide : Y.floorsShow}</Button></div>
           {L.glidepathOpen && (
             <div class="table-wrap">
-              <table class="way-table lasts-table" id="plan.lasts.glidepath.table" data-testid="plan.lasts.glidepath.table" data-tent={g.tent ? '1' : '0'}>
-                <thead><tr>{gcols.map((c) => <th key={c} scope="col">{Y.floorsColumns[c]}</th>)}</tr></thead>
-                <tbody>{g.rows.map((r) => <tr key={r.year} data-year={r.year} data-total={r.raw.total} data-shares-pct={r.raw.sharesPct}>{gcols.map((c, i) => (i === 0 ? <th key={c} scope="row">{r[c]}</th> : <td key={c}>{c === 'sharesPct' ? r[c] + '%' : r[c]}</td>))}</tr>)}</tbody>
+              <table class="way-table lasts-table" id="plan.lasts.glidepath.table" data-testid="plan.lasts.glidepath.table" data-tent={g.tent ? '1' : '0'} data-fact-table={TABLES.FLOORS}>
+                <thead><tr>{g.cols.map((c) => <th key={c.id} scope="col">{c.label}</th>)}</tr></thead>
+                <tbody>{cells(g.rows, g.cols)}</tbody>
               </table>
             </div>
           )}

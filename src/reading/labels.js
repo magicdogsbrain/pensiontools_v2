@@ -55,6 +55,8 @@ export const LABELS = Object.freeze({
   [FACT.LEFT_BAD]: { label: 'Left at the end, bad case', basis: TODAY },
   [FACT.LEFT_GOOD]: { label: 'Left at the end, good case', basis: TODAY },
   [FACT.WORST_12]: { label: 'Worst 12 months', basis: TODAY },
+  [FACT.YEAR_PRICES]: { label: 'Prices rising', basis: 'a share a year' },
+  [FACT.COVERAGE]: { label: "Of the plan's years covered", basis: 'a share' },
   [FACT.LEVEL]: { label: 'Judged at', basis: 'words' },
   [FACT.LASTS_VERDICT]: { label: 'Does it last?', basis: 'words' },
   [FACT.FLOOR_INCOME]: { label: 'Income that comes anyway', basis: 'a year' },
@@ -94,6 +96,10 @@ export const LABELS = Object.freeze({
   [FACT.PARTNER_CHANCE]: { label: "Your partner's plan lasts", basis: 'a chance' },
   [FACT.HOUSEHOLD_CHANCE]: { label: 'Together, it lasts', basis: 'a chance' }
 });
+
+/** The columns of the year tables (src/reading/yearTable.js), one label each, both views (the simple view's copy reads these). */
+export const YEAR_COLUMNS = Object.freeze({ year: 'Year', age: 'Age', pension: 'From the pension', state: 'State Pension', tax: 'Tax', net: 'After tax, before the ISA', isa: 'From the ISA', gia: 'From other savings', spendable: 'To spend', isaLeft: 'ISA left', incomeMid: 'Income (middle)', incomeBad: 'Income (1 in 10 bad)', leftMid: 'Left (middle)' });
+export const FLOOR_COLUMNS = Object.freeze({ year: 'Year', age: 'Age', shares: 'Shares floor', bonds: 'Bonds floor', cash: 'Cash', diversifiers: 'Gold and trend', reserve: 'Reserve', sharesPct: 'Shares % of the pot', isa: 'ISA', total: 'All floors' });
 
 export function labelOf(id) {
   const p = patternOf(id);

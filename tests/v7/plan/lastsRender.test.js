@@ -176,7 +176,8 @@ describe('the lumpy plan (12): what the page says, and what typing does', () => 
     expect(root.querySelector('[data-testid="plan.lasts.result"] .bar').getAttribute('aria-label')).toBe('in 9 futures out of 10');
     expect(root.querySelectorAll('[data-testid="plan.lasts.result"] .bar-cell.is-on').length).toBe(9);
     expect(root.querySelector('[data-testid="plan.lasts.result.sub"]').textContent).toBe('92.7% of 1,000 futures; 657 real starts since 1871; 39 years, to 92.');
-    expect(text).toContain('Left at the end, at today’s prices: typically £1,806,699; in a bad case (the worst 1 in 10) £135,978; in a good case (the best 1 in 10) £4,200,000.');
+    // (step F3) one precision for what is left in both views: the nearest £1,000 (lead4.md D8)
+    expect(text).toContain('Left at the end, at today’s prices: typically £1,807,000; in a bad case (the worst 1 in 10) £136,000; in a good case (the best 1 in 10) £4,200,000.');
     expect(text).toContain('Income cuts: in 190 of 1,000 futures (41 of them later ran out), typically £4,000 a year less for about 3 years (£12,000 in all; the most in any future £31,000).');
     expect(text).toContain('Run with the spending cuts you set: up to 20% after 3 months in a row below the plan’s line.');
     expect(root.querySelector('[data-testid="plan.lasts.ran"]').textContent).toBe('Worked out just now, on the plan as saved 11 September 2026.');
@@ -204,7 +205,8 @@ describe('the lumpy plan (12): what the page says, and what typing does', () => 
     const sched = opened.root.querySelectorAll('[data-testid="plan.lasts.schedule.table"] tbody tr');
     expect(sched.length).toBe(2);
     expect(sched[0].getAttribute('data-age')).toBe('56');
-    expect(sched[0].textContent).toBe('056£30,000£0£3,486£8,000£34,514£120,000');
+    // (step F3) the columns both views draw: after tax, before the ISA, comes in beside the tax (src/reading/yearTable.js)
+    expect(sched[0].textContent).toBe('056£30,000£0£3,486£26,514£8,000£34,514£120,000');
     const floors = opened.root.querySelectorAll('[data-testid="plan.lasts.glidepath.table"] tbody tr');
     expect(floors.length).toBe(1);
     expect(floors[0].textContent).toBe('056£300,000£200,000£80,00052%£120,000£580,000');

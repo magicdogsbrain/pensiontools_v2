@@ -73,7 +73,7 @@ export const WAY = {
     mixLink: 'Open ‘The mix’',
     noTent: 'The bond tent is not used by this way of drawing.',
     wrongTitle: 'What can go wrong',
-    verdictWord: { yes: 'On course', close: 'Close', no: 'Not yet' }
+    verdictWord: { yes: 'On course', close: 'Close', no: 'Not on course' }
   },
   /** The dials (2.3): every one the planner shows for the way, in plain words. */
   dials: {

@@ -256,9 +256,10 @@ describe('L1 — the words of a result, and the run key', () => {
     expect(v.slots.words).toBe(futuresOutOfTen(0.959).words);
     expect(v.slots.words).toBe('in more than 9 futures out of 10');
     expect(v.sub).toEqual({ id: 'lasts.sub', slots: { pct: '95.9', futures: '1,000', histories: '657', years: '39', toAge: String(saved.endAge) } });
-    expect(v.rows.map((r) => r.id)).toEqual(['left', 'cuts.some', 'ran.cuts']);
-    expect(v.rows[0].slots).toEqual({ typical: '£1,806,699', bad: '£135,978', good: '£4,200,000' });
-    expect(v.rows[1].slots).toEqual({ n: '190', of: '1,000', ranOut: ' (41 of them later ran out)', perYear: '£4,000', years: '3', s: 's', total: '£12,000', worst: '£31,000' });
+    // (step F3) what is left at one precision, the nearest £1,000, in both views; the years covered and the worst 12 months beside it (lead4.md D8, R8)
+    expect(v.rows.map((r) => r.id)).toEqual(['left', 'coverW', 'worst12W', 'cuts.some', 'ran.cuts']);
+    expect(v.rows[0].slots).toEqual({ typical: '£1,807,000', bad: '£136,000', good: '£4,200,000' });
+    expect(v.rows[3].slots).toEqual({ n: '190', of: '1,000', ranOut: ' (41 of them later ran out)', perYear: '£4,000', years: '3', s: 's', total: '£12,000', worst: '£31,000' });
     expect(v.figures).toMatchObject({ chancePct: 95.9, typicalLeft: 1806699, badCaseLeft: 135978, goodCaseLeft: 4200000, futures: 1000, histories: 657, years: 39, cutN: 190, cutPerYear: 4000, cutYears: 3 });
     for (const r of v.rows) expect(LASTS.rows[r.id], r.id).toBeTypeOf('string');
     expect(LASTS.verdict[v.id]).toBeTypeOf('string');
@@ -270,10 +271,10 @@ describe('L1 — the words of a result, and the run key', () => {
     for (const r of [...v.history.worst, ...v.history.named]) expect(LASTS.history.rows[r.id], r.id).toBeTypeOf('string');
     // a bought strategy: no cuts row of its own, the market it was priced on said (one label, src/reading/marketPlain.js); a contract strategy: its own sub line
     const b = verdictOf(fakeResult('ladder-and-ratchet'), saved);
-    expect(b.rows.map((r) => r.id)).toEqual(['left', 'cuts.bought', 'ran.market']);
-    expect(b.rows[2].slots.label).toBe('Gilts priced at the prices of 12 November 2026 (the copy built into the site: the day’s file could not be read).');
+    expect(b.rows.map((r) => r.id)).toEqual(['left', 'coverW', 'worst12W', 'cuts.bought', 'ran.market']);
+    expect(b.rows[4].slots.label).toBe('Gilts priced at the prices of 12 November 2026 (the copy built into the site: the day’s file could not be read).');
     const f = verdictOf(fakeResult('floor-and-flex'), saved);
-    expect(f.rows.map((r) => r.id)).toEqual(['left', 'cuts.flex', 'ran.market']);
+    expect(f.rows.map((r) => r.id)).toEqual(['left', 'coverW', 'worst12W', 'cuts.flex', 'ran.market']);
     const g = verdictOf(fakeResult('full-il-gilt'), saved);
     expect(g.sub.id).toBe('lasts.subContract');
     expect(g.history.contract).toBe(true);
@@ -286,7 +287,7 @@ describe('L1 — the words of a result, and the run key', () => {
     expect(LASTS.history.leadCut).not.toMatch(/ran out/);
     // the cuts switched off, as set
     const off = verdictOf(fakeResult('pots-and-valves', { ran: { family: true, cutsOn: false, cutPct: 20, months: 3 } }), saved);
-    expect(off.rows.map((r) => r.id)).toEqual(['left', 'cuts.some', 'ran.cutsOff']);
+    expect(off.rows.map((r) => r.id)).toEqual(['left', 'coverW', 'worst12W', 'cuts.some', 'ran.cutsOff']);
     // not affordable: no figure, one sentence
     const u = verdictOf({ strategyId: 'ladder-and-ratchet', a: null, reason: 'the base ladder costs more than the pot' }, saved);
     expect(u.ok).toBe(false);

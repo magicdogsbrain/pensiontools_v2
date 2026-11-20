@@ -107,7 +107,7 @@ test.describe('"Does it last?", without an account', () => {
       await expect(band.locator('[data-testid="plan.lasts.result.sub"]')).toHaveAttribute('data-fixed', 'age');
       await expect(band.locator('[data-testid="plan.lasts.result.sub"]')).toContainText(/^If you live to \d+, /);
     } else await expect(band).toContainText('Your plan lasts in');
-    await expect(band.locator('.verdict-word')).toHaveText(/On course|Close|Not yet/);
+    await expect(band.locator('.verdict-word')).toHaveText(/On course|Close|Not on course/);
     // (7.8.0: weighing, what is left is said at the plan-to age, typically and in the best 1 in 10)
     if (node.a.words && node.a.weighted !== null && node.a.weighted !== undefined) await expect(band).toContainText(/what is typically left then is £[\d,]+ at today's prices/);
     else await expect(band).toContainText('Left at the end, at today’s prices: typically £');

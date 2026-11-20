@@ -46,7 +46,9 @@ import { marketLabel } from '../../reading/marketPlain.js';
 import { potAtStop } from '../../reading/atStop.js';
 import { pensionToday, isaToday } from '../../reading/money.js';
 import { sippTodayOf } from '../../services/PotsAtRetirement.js';
-import { moneyK } from '../../reading/format.js';
+import { moneyK, money } from '../../reading/format.js';
+import { yearTablesText } from '../../reading/yearTable.js';
+import { YEAR_COLUMNS, FLOOR_COLUMNS } from '../../reading/labels.js';
 
 export { applyPatch };
 
@@ -387,8 +389,16 @@ export function verdictOf(result, saved, { level = null, chance = null } = {}) {
   // 7.8.0: a run that weighed (it carries its level) reads the weighted band; one that did not reads as before, word for word
   const wb = typeof a.level === 'string' && a.words ? weightedBand(a, years, toAge) : null;
   const rows = [];
-  // (weighing, what is left is the weighted band's own line, at the plan's age and to the nearest £1,000: said once)
-  if (!wb) rows.push({ id: 'left', slots: { typical: pounds(a.typicalLeft), bad: pounds(a.badCaseLeft), good: pounds(a.goodCaseLeft) } });
+  // what is left, to the nearest £1,000 (OneAnswer.leftText: one precision in both views, lead4.md D8). Weighing, the weighted
+  // band's own line says the typical and the best 1 in 10 once; the worst 1 in 10, which the full view's card says too, is
+  // one line beside it (lead4.md R8, step F3). Not weighing, the one row with all three.
+  if (!wb) rows.push({ id: 'left', slots: { typical: moneyK(a.typicalLeft), bad: moneyK(a.badCaseLeft), good: moneyK(a.goodCaseLeft) } });
+  else if (!a.words.left || !/^In more than half/.test(a.words.left)) rows.push({ id: 'leftBadW', slots: { bad: moneyK(a.badCaseLeft) } });
+  // the years covered and the worst 12 months, as the full view's block shows them (lead4.md R8, step F3): not on a plan still
+  // saving (its figures start from the pot at the stop), nor on a document's record
+  const live = !result.document && a.chanceFrom !== 'saving';
+  if (live && Number.isFinite(+a.coverage) && a.coverage !== null) rows.push({ id: 'coverW', slots: { pct: pctText(a.coverage) } });
+  if (live && Number.isFinite(+a.worst12)) rows.push({ id: 'worst12W', slots: { worst: money(a.worst12) } });
   const c = a.cuts;
   // a cut is income that went unpaid: a future that only ran out, with nothing cut before it, is not one (with the cuts
   // switched off every "cut" is a run-out with £0 cut, which the headline already counts)
@@ -457,12 +467,11 @@ const move = (v) => ({ dir: v < 0 ? 'down' : 'up', pct: String(Math.round(Math.a
  */
 export function extrasView(x) {
   if (!x || typeof x !== 'object') return null;
-  // a closed pension's years paid from the taxable account (7.4.1): its column on every row, only when one has it
-  const anyGia = Array.isArray(x.schedule) && x.schedule.some((r) => r.gia > 0);
-  const schedule = Array.isArray(x.schedule) ? x.schedule.map((r) => ({ year: r.year, age: r.age, pension: pounds(r.pension), state: pounds(r.state), tax: pounds(r.tax), isa: pounds(r.isa), ...(anyGia ? { gia: pounds(r.gia || 0) } : {}), spendable: pounds(r.spendable), isaLeft: pounds(r.isaLeft), raw: { pension: r.pension, spendable: r.spendable, isaLeft: r.isaLeft } })) : null;
-  const glidepath = x.glidepath && Array.isArray(x.glidepath.rows) ? { tent: !!x.glidepath.tent, diversifiers: !!x.glidepath.diversifiers, reserve: !!x.glidepath.reserve,
-    rows: x.glidepath.rows.map((r) => ({ year: r.year, age: r.age, shares: pounds(r.shares), bonds: pounds(r.bonds), cash: pounds(r.cash), diversifiers: pounds(r.diversifiers), reserve: pounds(r.reserve), sharesPct: String(r.sharesPct), isa: r.isa == null ? '' : pounds(r.isa), total: pounds(r.total), raw: { total: r.total, sharesPct: r.sharesPct } })) } : null;
-  const own = Array.isArray(x.own) ? x.own.map((r) => ({ year: r.year, age: r.age, incomeMid: pounds(r.incomeMid), incomeBad: pounds(r.incomeBad), leftMid: pounds(r.leftMid), raw: { incomeMid: r.incomeMid, leftMid: r.leftMid } })) : null;
+  // the year tables as both views write them, cell by cell (src/reading/yearTable.js yearTablesText: the one formatter), each
+  // column with its one label (src/reading/labels.js)
+  const T = yearTablesText(x);
+  const table = T.kind ? { kind: T.kind, cols: T.cols.map((id) => ({ id, label: YEAR_COLUMNS[id] || id })), rows: T.rows } : null;
+  const floors = T.floorRows.length ? { ...T.flags, cols: T.floorCols.map((id) => ({ id, label: FLOOR_COLUMNS[id] || id })), rows: T.floorRows } : null;
   // a contract plan's row carries the planner's inflation figures too (lastsRun.js contractCash): one more line, as slots
   const cashOf = (c) => { const p = move(c.prices10); return { id: 'cash.line', slots: { pricesDir: p.dir, pricesPct: p.pct, first: pounds(c.cashFirst), firstAge: String(c.ageFirst), tenth: pounds(c.cashTenth), tenthAge: String(c.ageTenth), worth: pounds(c.realTenth) } }; };
   const scenarios = Array.isArray(x.scenarios) ? x.scenarios.map((row) => {
@@ -472,7 +481,7 @@ export function extrasView(x) {
   }) : [];
   const sy = x.synthetic || null;
   const synthetic = sy ? (() => { const f = move(sy.decade.first), e = move(sy.decade.decade), c = move(sy.decade.prices); const when = sy.hardest ? (sy.hardest.month ? MONTHS[sy.hardest.month - 1] + ' ' : '') + sy.hardest.year : null; return { name: sy.name, decade: { id: 'decade.line', slots: { firstDir: f.dir, firstPct: f.pct, decadeDir: e.dir, decadePct: e.pct, pricesDir: c.dir, pricesPct: c.pct } }, hardest: when, ...(sy.cash ? { cash: cashOf(sy.cash) } : {}) }; })() : null;
-  return { prices: String(Math.round((+x.prices || 0) * 1000) / 10), schedule, glidepath, own, scenarios, synthetic, years: Array.isArray(x.schedule) ? x.schedule.length : Array.isArray(x.own) ? x.own.length : 0 };
+  return { prices: T.prices, table, floors, scenarios, synthetic, years: table ? table.rows.length : 0 };
 }
 
 // ---- "What's different" (research/v7/way-and-mix.md 4, 9.4; index.html runTryStrategyUI's list, lifted) -------------------

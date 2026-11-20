@@ -59,10 +59,14 @@ export const FACT = Object.freeze({
   LEFT_BAD: 'left.badCase',
   LEFT_GOOD: 'left.goodCase',
   WORST_12: 'lasts.worst12',
+  // the share of the plan's years the money paid, averaged over every future (OneAnswer coverage)
+  COVERAGE: 'lasts.coverage',
   LEVEL: 'lasts.level',
   LASTS_VERDICT: 'lasts.verdict',
   FLOOR_INCOME: 'lasts.floorIncome',
   LIVE_LONGER: 'lasts.liveLonger',
+  // the prices a year the year tables assume (src/reading/yearTable.js: the plan's own, 2.5 for 2.5%), said over both views' tables
+  YEAR_PRICES: 'years.prices',
   FOLLOW_TO: 'lasts.followTo',
   // income
   STEP_BEFORE_TAX: 'income.step.#.beforeTax',
@@ -110,6 +114,8 @@ export const FACT = Object.freeze({
 /** The tables, by name: `data-fact-table` values; their cells carry `data-row` and `data-col`. */
 export const TABLES = Object.freeze({
   YEARS: 'years',
+  // the pots' floors year by year (src/reading/yearTable.js): the simple view's second table, the full view's Glidepath page
+  FLOORS: 'floors',
   LADDER: 'ladder'
 });
 

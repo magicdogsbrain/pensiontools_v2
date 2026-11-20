@@ -2861,22 +2861,29 @@
         <div id="stress-drawdown" class="stress-subtab hidden">
           <div class="card">
             <h2>SIPP Drawdown Schedule</h2>
-            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Projected annual SIPP withdrawals based on your settings.</p>
-            <div class="form-grid">
-              <div class="form-group">
-                <label>Assumed Inflation (%)</label>
-                <input type="number" id="ddInflation" value="2.5" step="0.1">
-              </div>
-              <div class="form-group">
-                <label>Duration (years)</label>
-                <input type="number" id="ddDuration" value="35">
-              </div>
-            </div>
+            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Your plan year by year: its own length and its own price assumption, the same table as the simple view's "The years, one by one".</p>
             <div style="margin-top: 20px;">
               <button data-on-click="showDrawdownScheduleUI()">Show Schedule</button>
             </div>
           </div>
           <div id="drawdownResults"></div>
+          <div class="card" id="drawdownWhatIf">
+            <h3>What if? <span class="hint" style="font-weight:normal;">A what-if beside the table: your plan's table does not change, and nothing is saved.</span></h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>What if prices rose (% a year)</label>
+                <input type="number" id="ddInflation" step="0.1">
+              </div>
+              <div class="form-group">
+                <label>What if the plan ran for (years)</label>
+                <input type="number" id="ddDuration">
+              </div>
+            </div>
+            <div style="margin-top: 12px;">
+              <button type="button" class="secondary" data-on-click="showDrawdownWhatIfUI()">Try this what-if</button>
+            </div>
+            <div id="drawdownWhatIfResults"></div>
+          </div>
         </div>
 
         <!-- Glidepath Sub-tab -->
@@ -2909,22 +2916,29 @@
         <div id="stress-glidepath" class="stress-subtab hidden">
           <div class="card">
             <h2>Glidepath Visualization</h2>
-            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Shows how fund minimums decline over time with inflation adjustment.</p>
-            <div class="form-grid">
-              <div class="form-group">
-                <label>Assumed Inflation (%)</label>
-                <input type="number" id="gpInflation" value="2.5" step="0.1">
-              </div>
-              <div class="form-group">
-                <label>Duration (years)</label>
-                <input type="number" id="gpDuration" value="35">
-              </div>
-            </div>
+            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">How the pots' floors run down over your plan: its own length and its own price assumption, the same table as the simple view's "The pots' floors over the plan".</p>
             <div style="margin-top: 20px;">
               <button data-on-click="showGlidepathUI()">Show Glidepath</button>
             </div>
           </div>
           <div id="glidepathResults"></div>
+          <div class="card" id="glidepathWhatIf">
+            <h3>What if? <span class="hint" style="font-weight:normal;">A what-if beside the table: your plan's table does not change, and nothing is saved.</span></h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>What if prices rose (% a year)</label>
+                <input type="number" id="gpInflation" step="0.1">
+              </div>
+              <div class="form-group">
+                <label>What if the plan ran for (years)</label>
+                <input type="number" id="gpDuration">
+              </div>
+            </div>
+            <div style="margin-top: 12px;">
+              <button type="button" class="secondary" data-on-click="showGlidepathWhatIfUI()">Try this what-if</button>
+            </div>
+            <div id="glidepathWhatIfResults"></div>
+          </div>
         </div>
 
         <!-- Stress Settings Sub-tab -->
@@ -4133,8 +4147,8 @@
     } from './src/app.js';
 
     // Import additional services
-    import { generateDrawdownSchedule } from './src/services/DrawdownService.js';
-    import { generateGlidepathSchedule, RISK_PRESETS, DIVERSIFIER_PRESETS, nearestPresetKey, mixFromLevel, levelOfMix, equityGlideFromRisk, equityGlideFromStart, tentGlideForSettings, targetMixForYear } from './src/services/GlidepathService.js';   // the mix as a level and back, lifted pure (6.41.0)
+    import { yearTablesOf, yearTablesText } from './src/reading/yearTable.js'; import { yearTableHtml, whatIfOf, whatIfLineHtml, fillWhatIf } from './src/ui/yearTableHtml.js';   // the year tables, both views (lead4.md D9)
+    import { RISK_PRESETS, DIVERSIFIER_PRESETS, nearestPresetKey, mixFromLevel, levelOfMix, equityGlideFromRisk, equityGlideFromStart, tentGlideForSettings, targetMixForYear } from './src/services/GlidepathService.js';   // the mix as a level and back, lifted pure (6.41.0)
     import { resetStressSettings, invalidateStressCache } from './src/storage/StressRepository.js';
     import {
       invalidateScenarioCache,
@@ -5692,7 +5706,7 @@
       let head;
       if (r.strategyId === 'pots-and-valves') {
         head = '<strong>Ran out of money in ' + pctText(ruinMc, 1, RUIN_BARS) + ' of ' + r.n.mc.toLocaleString() + ' simulated futures</strong> (and ' + pctText(ruinH, 1) + ' of ' + r.n.hist + ' real ' + yrsN + '-year histories since 1871). '
-          + 'Worst 12 months lived: ' + gbp(Math.round(r.worst12.min)) + ' <span class="hint">(median ' + gbp(Math.round(r.worst12.median)) + ')</span>. Guaranteed: ' + markWithin(budEsc(r.guaranteedToAge), [[/from age (\d+)/, 'statePension.age']]) + '.';
+          + 'Worst 12 months lived: ' + markFact('lasts.worst12', fmtMoney(r.worst12.min)) + ' <span class="hint">(median ' + gbp(Math.round(r.worst12.median)) + ')</span>. Guaranteed: ' + markWithin(budEsc(r.guaranteedToAge), [[/from age (\d+)/, 'statePension.age']]) + '.';
       } else if (r.strategyId === 'ladder-and-ratchet') {
         head = (r.signature.ladderYears > 0 ? '<strong>' + gbp(p.targetAnnual) + '/yr bolted on to age ' + (p.startAge + r.signature.ladderYears) + ' by contract</strong> (' + r.signature.ladderYears + ' rungs, ' + gbp(Math.round(r.signature.baseLadderCost)) + '). ' : '<strong>The base ladder has all been paid</strong>: nothing is held by contract from today, so the ratcheted rungs and the sleeve pay. ')
           + 'The ratchet then locked a median ' + Math.round(r.signature.securedMedian) + ' more years in history (' + Math.round(r.signature.securedMedianMc) + ' in the futures; fully secured to the horizon in ' + pctText(r.signature.fullySecuredPct) + ' of histories). '
@@ -5744,13 +5758,16 @@
       try { const rows = incomeLayersRows(r, p); if (rows.length > 1) h += '<div style="margin-top:12px;"><div class="section-title" style="font-size:13px;">What pays you, year by year</div><p class="hint" style="margin:0 0 4px;">Stacked by source, today\'s money: State Pension, other income (DB pension, streams), income bought by contract, and what the median future adds from the market. Dashed = your need (income shape plus any one-off spends); red = the 1-in-10 bad future\'s total.</p><div class="machine-scroll">' + incomeLayersSvg({ rows }) + '</div></div>'; } catch (e) { console.warn('income layers', e); }
       h += cone(r.cones.income, 'Cone of uncertainty — what you\'d have to spend each year', 'Total income by plan year in today\'s money (pension draws + State Pension' + (r.strategyId === 'floor-and-flex' ? ' + treats' : '') + '). A flat line is income bolted on by contract; a spread is market-dependent.');
       const fa = r.failAges || [];
+      const blockOpts = chanceOptsOf(r, opts, window._oneTest), weighedCard = !!(blockOpts && blockOpts.life && !blockOpts.definition);
       const faTxt = fa.length ? (r.ruinLabel ? 'Of the futures that were cut, half were cut before age ' : 'Of the futures that ran out, half did so before age ') + Math.round([...fa].sort((a, b) => a - b)[Math.floor(fa.length / 2)]) + '; the earliest at ' + Math.round(Math.min(...fa)) + '.' : (r.ruinLabel && (r.ruin.mc || 0) > 0 ? 'No simulated future ran out; the cuts are counted above.' : 'No simulated future ran out.');
       h += '<div class="table-scroll-container" style="margin-top:12px;"><table><tbody>'
         + '<tr><td>' + (r.ruinLabel ? 'Chance the plan is cut' : 'Chance of running out') + '</td><td>' + pctText(ruinH, 1) + ' <span class="hint">history</span> · ' + pctText(ruinMc, 1, RUIN_BARS) + ' <span class="hint">Monte Carlo, to ' + (p.startAge + yrsN) + '</span>' + (r.ruinLabel ? ' <span class="hint">— ' + budEsc(r.ruinLabel) + '</span>' : '') + '</td></tr>'
-        + '<tr><td>Worst 12 months you\'d have lived (history)</td><td>' + gbp(Math.round(r.worst12.min)) + ' <span class="hint">(median ' + gbp(Math.round(r.worst12.median)) + ')</span></td></tr>'
+        + '<tr><td>Worst 12 months you\'d have lived (history)</td><td>' + markFact('lasts.worst12', fmtMoney(r.worst12.min)) + ' <span class="hint">(median ' + gbp(Math.round(r.worst12.median)) + ')</span></td></tr>'
         + '<tr><td>Income guaranteed to age</td><td>' + budEsc(guaranteeSaid(r, p)) + '</td></tr>'
         + leftRowHtml(oneAnswer(r, p)) + cutsRowHtml(oneAnswer(r, p))
-        + '<tr><td>' + (r.ruinLabel ? 'When it was cut' : 'When it ran out') + '</td><td>' + faTxt + '</td></tr>'
+        // the run-out age is said once on a card: the block's line (OneAnswer floor.age, the simple view's too) when the plan is
+        // weighed; this row only under the block before 7.8.0, which has no such line (lead4.md D8, step F3)
+        + (weighedCard ? '' : '<tr><td>' + (r.ruinLabel ? 'When it was cut' : 'When it ran out') + '</td><td>' + faTxt + '</td></tr>')
         + '</tbody></table></div><div class="without-cuts"></div>';
       if (r.strategyId === 'ladder-and-ratchet' && r.configs.lr) {
         h += exampleLadderHtml(Array.from({ length: r.signature.ladderYears }, (_, i) => i + 1), r.configs.lr.drawNetOfSp || drawNetFromPlan(p), 'this shows only what the base ladder\'s rungs might cost, sized net of your State Pension.');
@@ -5778,8 +5795,8 @@
       target.innerHTML = '<div class="loading"><div class="spinner"></div>Running ' + budEsc(STRATEGY_NAMES[settings.strategyId] || settings.strategyId || 'Pots & Valves') + ' over every history and 1,000 futures…</div>';
       await new Promise((r) => setTimeout(r, 30));
       try {
-        const { p, r, lockedNote, market } = await oneTestFor(settings);
-        target.innerHTML = lockedNote + strategyResultCard(r, p, { docSheet: !!lockedNote }) + (market ? '<p class="hint" data-line="ran.market">' + markFact('market.gilts', budEsc(marketLabel(market))) + '</p>' : '');
+        const t = await oneTestFor(settings), { p, r, lockedNote, market } = t;
+        target.innerHTML = lockedNote + strategyResultCard(r, p, { docSheet: !!lockedNote }) + (market ? '<p class="hint" data-line="ran.market">' + markFact('market.gilts', budEsc(marketLabel(market))) + '</p>' : '') + ownYearsCardHtml(t);
         withoutCutsTwin(settings, r, p, target);
       } catch (e) {
         if (e && e.noFigures) { target.innerHTML = '<div class="alert alert-info">' + budEsc(e.message) + ' <button type="button" class="risk-btn" data-on-click="openStressSettingsTab()">' + budEsc(DRAFT_WORDS.openSettings) + '</button></div>'; return; }
@@ -5826,7 +5843,7 @@
       window._latestStrategyStress = r;
       const ch = chanceRunOf(sc, { settings, strategyId: sid, p, r, now: ctx.now, level: ctx.level, locked });
       // what a bought way was priced on (the one market), said under the card as the simple view says it; a locked ladder is its document's
-      window._oneTest = { key, settingsKey, p, r, lockedNote, market: !PNV_FAMILY.includes(sid) && !lockedNote ? market : null, chance: ch && { ...ch, savingChance: await savingChanceFor(plans, sc && sc.id, ctx.now, { family: PNV_FAMILY.includes(sid), run: saverRun }) } };   // 7.8.0 weighed; 7.12.0 a saving plan leads with the saver run's chance
+      window._oneTest = { key, settingsKey, settings, now: ctx.now, p, r, lockedNote, market: !PNV_FAMILY.includes(sid) && !lockedNote ? market : null, chance: ch && { ...ch, savingChance: await savingChanceFor(plans, sc && sc.id, ctx.now, { family: PNV_FAMILY.includes(sid), run: saverRun }) } };   // 7.8.0 weighed; 7.12.0 a saving plan leads with the saver run's chance
       return window._oneTest;
     }
     // The "without the cuts" twin: the same futures with the cuts off, as one line of explanation under the one figure.
@@ -11440,121 +11457,96 @@
       }
     };
 
-    // Drawdown schedule
-    async function strategyScheduleNotice(containerId, tabName) {
+    // The year tables (lead4.md D9; step F3): the plan's own tables from the one function both views draw
+    // (src/reading/yearTable.js yearTablesOf, on the one test's settings, plan and result: a locked ladder's document, never a
+    // fresh run), marked cell by cell; the boxes under them are a what-if beside the table that never changes it.
+    async function planYearTables(over = {}) {
       await window._marketReady;   // the one market (lead4.md R5): never priced on the copy built in while the day's file loads
-      try {
-        const st = await getActiveStrategy();
-        if (!st.id || st.id === 'pots-and-valves') return false;
-        const settings = await getStressSettingsAsync();
-        const p = strategyPlanFor(settings);
-        const r = stressTestStrategy(st.id, p);
-        const d = getStrategy(st.id).describe();
-        let h = '<div class="alert alert-info">This plan\'s strategy is <strong>' + budEsc(d.name) + '</strong>. The ' + tabName + ' projection below this notice is the <em>Pots &amp; Valves</em> engine and does not describe your plan. Your strategy\'s own year-by-year schedule is here, and in full on its <button type="button" class="risk-btn" style="padding:2px 10px;" data-on-click="switchToTab(\'strategies\'); setTimeout(() => showStrategyPage(\'' + st.id + '\'), 300);">Strategies page</button>.</div>';
-        if (r.affordable) {
-          const inc = r.cones.income, w = r.cones.wealth;
-          h += '<div class="table-scroll-container"><table><thead><tr><th>Year</th><th>Age</th><th>Income (middle)</th><th>Income (1-in-10 bad)</th><th>What is left (middle)</th></tr></thead><tbody>';
-          for (let y = 0; y < p.durationYears; y++) h += '<tr><td>' + (y + 1) + '</td><td>' + (p.startAge + y) + '</td><td>' + gbp(Math.round(inc.p50[y])) + '</td><td>' + gbp(Math.round(inc.p10[y])) + '</td><td>' + gbp(Math.round(w.p50[y])) + '</td></tr>';
-          h += '</tbody></table></div><p class="hint">Today\'s money, gross. ' + (r.strategyId === 'full-il-gilt' ? 'The order sheet and what-arrives-when table are on the strategy page.' : '') + '</p>';
-        } else h += '<div class="alert alert-danger">Not affordable as configured: ' + budEsc(r.reason || '') + '</div>';
-        const box = document.getElementById(containerId); if (box) box.innerHTML = h;
-        return true;
-      } catch (e) { console.error('strategy schedule notice', e); return false; }
+      await flushSettings(); const t = await oneTestFor(await getStressSettingsAsync());
+      if (!oneAnswer(t.r, t.p)) return { t, tables: null };   // nothing to read off (as the simple view: no table)
+      return { t, tables: yearTablesOf({ settings: t.settings, strategyId: t.settings.strategyId || 'pots-and-valves', p: t.p, r: t.r, now: t.now, ...over }) };
+    }
+    const tableFailHtml = (e) => e && e.noFigures ? '<div class="alert alert-info">' + budEsc(e.message) + ' <button type="button" class="risk-btn" data-on-click="openStressSettingsTab()">' + budEsc(DRAFT_WORDS.openSettings) + '</button></div>' : '<div class="alert alert-danger">Error: ' + budEsc(e && e.message) + '</div>';
+    // a way of drawing that buys its income: its own year-by-year table from the one test's run, in place of the Pots & Valves pages
+    function ownWayTableHtml(t, tables) {
+      const sid = t.settings.strategyId || 'pots-and-valves';
+      let h = '<div class="card"><h2>' + budEsc(STRATEGY_NAMES[sid] || sid) + ' — your plan, year by year</h2><div class="alert alert-info">This plan draws by <strong>' + budEsc(STRATEGY_NAMES[sid] || sid) + '</strong>, so its years are its own: the income in the middle future, the income in a 1-in-10 bad one, and what is left in the middle, read off the same test as "Will it last?". In full on its <button type="button" class="risk-btn" style="padding:2px 10px;" data-on-click="switchToTab(\'strategies\'); setTimeout(() => showStrategyPage(\'' + sid + '\'), 300);">Strategies page</button>.</div>';
+      const text = tables ? yearTablesText(tables) : null;
+      if (text && text.kind === 'own') h += yearTableHtml(text) + '<p class="hint">Today\'s money, gross. ' + (sid === 'full-il-gilt' ? 'The order sheet and what-arrives-when table are on the strategy page.' : '') + '</p>';
+      else h += '<div class="alert alert-danger">Not affordable as configured: ' + budEsc((t.r && t.r.reason) || '') + '</div>';
+      return h + '</div>';
+    }
+    const isPots = (t) => (t.settings.strategyId || 'pots-and-valves') === 'pots-and-valves';
+    // a way that buys its income has no Drawdown or Glidepath page: its own year table is under "Will it last?", as the simple
+    // view shows it under "Does it last?" (lead4.md R8; the same function and run)
+    function ownYearsCardHtml(t) {
+      if (!t || !t.settings || isPots(t) || !oneAnswer(t.r, t.p)) return '';
+      const text = yearTablesText(yearTablesOf({ settings: t.settings, strategyId: t.settings.strategyId, p: t.p, r: t.r, now: t.now }));
+      if (text.kind !== 'own' || !text.rows.length) return '';
+      return '<div class="card"><h3>The years, one by one</h3><p class="hint">Year by year as this way of drawing pays: the income in the middle future, the income in a 1-in-10 bad one, and what is left in the middle — read off the same test as the figure above. Today\'s money, gross.</p>' + yearTableHtml(text) + '</div>';
     }
     window.showDrawdownScheduleUI = async function() {
-      if (await strategyScheduleNotice('drawdownResults', 'drawdown schedule')) return;
-      const inflation = parseFloat(document.getElementById('ddInflation').value) / 100 || 0.025;
-      const duration = parseInt(document.getElementById('ddDuration').value) || 35;
-
+      const box = document.getElementById('drawdownResults');
       try {
-        // A COPY: this tab's duration box must never leak into the plan's cached settings (it used to,
-        // and the Strategies comparison then ran the wrong horizon).
-        const settings = { ...(await getStressSettingsAsync()), duration };
-        const schedule = generateDrawdownSchedule(settings, duration, inflation);
-
+        const { t, tables } = await planYearTables();
+        const wi = document.getElementById('drawdownWhatIf'); if (wi) wi.style.display = isPots(t) ? '' : 'none';
+        if (!isPots(t)) { box.innerHTML = ownWayTableHtml(t, tables); return; }
+        const text = tables ? yearTablesText(tables) : null;
+        if (!text || !text.rows.length) { box.innerHTML = '<div class="alert alert-info">No year-by-year table can be made for this plan as it stands.</div>'; return; }
+        fillWhatIf(document, 'dd', { prices: tables.prices, duration: tables.duration, planId: getActiveScenarioId() });
         let html = '<div class="card"><h2>Projected Drawdown Schedule (SIPP + ISA top-up)</h2>';
-        html += '<div class="alert alert-info" style="margin-bottom:16px;">SIPP is drawn to fill the basic-rate band; the tax-free <strong>ISA tops your income up to the target</strong> and runs down over the years to your State Pension. Deterministic projection at your assumed inflation — the stochastic ISA path is in the Monte-Carlo / Historical results. ' + drawdownIsaNoteHtml(settings, { inflation, locked: await planIsLocked().catch(() => null) }) + '</div>';   // how this table's ISA grows against the runs (6.22.0)
-        html += '<div style="overflow-x: auto;"><table' + tableAttr('years') + '>';   // marked for the parity sweep (lead4.md G1): the cells keyed as the simple view's year table
-        html += '<thead><tr><th>Year</th><th>SIPP Draw</th><th>State</th><th>Tax</th><th>Net (SIPP+SP)</th><th>ISA Top-up</th><th>Spendable</th><th>ISA Left</th></tr></thead>';
-        html += '<tbody>';
-
-        for (const row of schedule) {
-          html += `<tr>
-            <td${cellAttr(row.year, 'year')}>${row.year}</td>
-            <td${cellAttr(row.year, 'pension')} style="color: var(--primary); font-weight: 600;">${formatCurrency(row.sippDraw)}</td>
-            <td${cellAttr(row.year, 'state')}>${formatCurrency(row.statePension)}</td>
-            <td${cellAttr(row.year, 'tax')} style="color: var(--danger);">${fmtMoney(row.tax)}</td>
-            <td${cellAttr(row.year, 'net')}>${formatCurrency(row.netIncome)}</td>
-            <td${cellAttr(row.year, 'isa')} style="color: var(--info);">${formatCurrency(row.isaDraw)}</td>
-            <td${cellAttr(row.year, 'spendable')} style="color: var(--success); font-weight: 600;">${formatCurrency(row.spendable)}</td>
-            <td${cellAttr(row.year, 'isaLeft')}>${formatCurrency(row.isaBalance)}</td>
-          </tr>`;
-        }
-
-        html += '</tbody></table></div></div>';
-        document.getElementById('drawdownResults').innerHTML = html;
+        html += '<div class="alert alert-info" style="margin-bottom:16px;">SIPP is drawn to fill the basic-rate band; the tax-free <strong>ISA tops your income up to the target</strong> and runs down over the years to your State Pension. A steady path at ' + markFact('years.prices', text.prices) + '% a year prices over the plan\'s own length — the stochastic ISA path is in the Monte-Carlo / Historical results. ' + drawdownIsaNoteHtml(t.settings, { inflation: tables.prices, locked: await planIsLocked().catch(() => null) }) + '</div>';   // how this table's ISA grows against the runs (6.22.0)
+        html += yearTableHtml(text) + '</div>';
+        box.innerHTML = html;
       } catch (error) {
         console.error('Drawdown error:', error);
-        document.getElementById('drawdownResults').innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+        box.innerHTML = tableFailHtml(error);
       }
     };
-
-    // Glidepath visualization
-    window.showGlidepathUI = async function() {
-      if (await strategyScheduleNotice('glidepathResults', 'glidepath')) return;
-      const inflation = parseFloat(document.getElementById('gpInflation').value) / 100 || 0.025;
-      const duration = parseInt(document.getElementById('gpDuration').value) || 35;
-
+    // the what-if: the same function on the boxes' prices and length, a second table labelled as a what-if, never marked
+    window.showDrawdownWhatIfUI = async function() {
+      const box = document.getElementById('drawdownWhatIfResults');
       try {
-        // A COPY: this tab's duration box must never leak into the plan's cached settings (it used to,
-        // and the Strategies comparison then ran the wrong horizon).
-        const settings = { ...(await getStressSettingsAsync()), duration };
-        const schedule = generateGlidepathSchedule(settings, inflation);
-        const ddForIsa = generateDrawdownSchedule(settings, duration, inflation);
-        const isaByYear = {};
-        ddForIsa.forEach(r => { isaByYear[r.year] = r.isaBalance; });
-        const tentOn = !!settings.equityGlideEnabled;
-        const hasDiv = (settings.diversifierStart || 0) > 0;
-        const hasHodl = !!settings.hodlEnabled && (settings.hodlValue || 0) > 0;
+        const w = whatIfOf(document, 'dd');
+        const { tables } = await planYearTables({ ...(w.prices != null ? { prices: w.prices } : {}), ...(w.duration != null ? { duration: w.duration } : {}) });
+        const text = tables ? yearTablesText(tables) : null;
+        box.innerHTML = text && text.kind === 'schedule' ? whatIfLineHtml(tables) + yearTableHtml(text, { marked: false }) : '';
+      } catch (error) { box.innerHTML = tableFailHtml(error); }
+    };
 
-        let html = '<div class="card"><h2>Fund Glidepath Over Time</h2>';
-        html += '<div class="alert alert-info" style="margin-bottom: 20px;">';
-        html += tentOn
-          ? '<strong>Bond tent on:</strong> the equity share (Shares %) RISES over the early years then holds; the £ floors inflate with CPI and deplete over time, cash holds its real value, and the ISA runs down as it tops up income.'
-          : '<strong>Glidepath:</strong> Equity & Bond minimums inflate with CPI but deplete over time to £0; cash inflates only (holds real value); the ISA runs down as it tops up income. Turn on the bond tent in Settings to see the equity share rise.';
-        if (hasDiv) html += ' Your diversifiers sleeve (gold + trend/macro — e.g. CGT, PNL) is held flat as a crisis reserve.';
-        if (hasHodl) html += ' The Break-Glass HODL reserve is shown separately and untouched until an emergency.';
-        html += '</div>';
-        html += '<div class="table-scroll-container"><table>';
-        html += '<thead><tr><th>Year</th><th>Equity Min</th><th>Bond Min</th><th>Cash Target</th>'
-          + (hasDiv ? '<th>Diversifiers</th>' : '')
-          + (hasHodl ? '<th>HODL</th>' : '')
-          + '<th>Shares % (of pot)</th><th>ISA Balance</th><th>Total Min</th></tr></thead>';
-        html += '<tbody>';
-
-        for (const row of schedule) {
-          // Equity share of the WHOLE pot incl. diversifiers (a £600k tagged portfolio with
-          // £240k in diversifier trusts is 50% shares, not 83%) — computed by the schedule itself.
-          const sharesPct = Math.round((row.equityShareOfPot || 0) * 100);
-          html += `<tr>
-            <td>${row.year}</td>
-            <td style="color: var(--success);">${formatCurrency(row.equityMin)}</td>
-            <td style="color: var(--info);">${formatCurrency(row.bondMin)}</td>
-            <td style="color: var(--warning);">${formatCurrency(row.cashTarget)}</td>
-            ${hasDiv ? `<td>${formatCurrency(row.diversifier || 0)}</td>` : ''}
-            ${hasHodl ? `<td>${formatCurrency(row.hodl || 0)}</td>` : ''}
-            <td style="font-weight: 600;">${sharesPct}%</td>
-            <td>${formatCurrency(isaByYear[row.year] || 0)}</td>
-            <td style="font-weight: 600;">${formatCurrency(row.totalMin)}</td>
-          </tr>`;
-        }
-
-        html += '</tbody></table></div></div>';
-        document.getElementById('glidepathResults').innerHTML = html;
+    // Glidepath: the pots' floors, from the same function
+    window.showGlidepathUI = async function() {
+      const box = document.getElementById('glidepathResults');
+      try {
+        const { t, tables } = await planYearTables();
+        const wi = document.getElementById('glidepathWhatIf'); if (wi) wi.style.display = isPots(t) ? '' : 'none';
+        if (!isPots(t)) { box.innerHTML = ownWayTableHtml(t, tables); return; }
+        const text = tables ? yearTablesText(tables) : null;
+        if (!text || !text.floorRows.length) { box.innerHTML = '<div class="alert alert-info">No table of the pots\' floors can be made for this plan as it stands.</div>'; return; }
+        fillWhatIf(document, 'gp', { prices: tables.prices, duration: tables.duration, planId: getActiveScenarioId() });
+        const f = text.flags;
+        let html = '<div class="card"><h2>Fund Glidepath Over Time</h2><div class="alert alert-info" style="margin-bottom: 20px;">';
+        html += f.tent
+          ? '<strong>Bond tent on:</strong> the equity share (Shares %) RISES over the early years then holds; the £ floors inflate with prices and deplete over time, cash holds its real value, and the ISA runs down as it tops up income.'
+          : '<strong>Glidepath:</strong> Equity & Bond minimums inflate with prices but run down to nothing over the plan; cash inflates only (holds real value); the ISA runs down as it tops up income. Turn on the bond tent in Settings to see the equity share rise.';
+        html += ' At ' + markFact('years.prices', text.prices) + '% a year prices over the plan\'s own length.';
+        if (f.diversifiers) html += ' Your diversifiers sleeve (gold + trend/macro) has its own floor, run down over the plan.';
+        if (f.reserve) html += ' The Break-Glass HODL reserve is shown separately and untouched until an emergency.';
+        html += '</div>' + yearTableHtml(text, { which: 'floors' }) + '</div>';
+        box.innerHTML = html;
       } catch (error) {
         console.error('Glidepath error:', error);
-        document.getElementById('glidepathResults').innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+        box.innerHTML = tableFailHtml(error);
       }
+    };
+    window.showGlidepathWhatIfUI = async function() {
+      const box = document.getElementById('glidepathWhatIfResults');
+      try {
+        const w = whatIfOf(document, 'gp');
+        const { tables } = await planYearTables({ ...(w.prices != null ? { prices: w.prices } : {}), ...(w.duration != null ? { duration: w.duration } : {}) });
+        const text = tables ? yearTablesText(tables) : null;
+        box.innerHTML = text && text.floorRows.length ? whatIfLineHtml(tables) + yearTableHtml(text, { which: 'floors', marked: false }) : '';
+      } catch (error) { box.innerHTML = tableFailHtml(error); }
     };
 
     // Current selected history entry

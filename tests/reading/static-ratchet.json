@@ -1,18 +1,18 @@
 {
  "note": "Banned direct uses outside the reading layer (lead4.md G6), counted by tests/reading/staticRatchet.js. Baseline written by step G1 (18 Nov 2026). May only go down: lower a count in the same change that removes a use; never raise one.",
  "totals": {
-  "getStressSettingsAsync": 53,
+  "getStressSettingsAsync": 51,
   "DEFAULT_TAX_BANDS": 11,
   "grossToNet": 6,
   "projectAccumulation": 0,
   "diffHoldings": 1,
-  "newDate": 44,
-  "boxValue": 95,
+  "newDate": 43,
+  "boxValue": 91,
   "engineImport": 22
  },
  "byRule": {
   "getStressSettingsAsync": {
-   "index.html": 46,
+   "index.html": 44,
    "src/ui/components/NewPlanFromSeed.js": 1,
    "src/ui/draftPlanLine.js": 1,
    "src/ui/homeBannerUi.js": 1,
@@ -47,7 +47,6 @@
    "src/ui/planCloseUi.js": 2,
    "src/ui/planStartUi.js": 2,
    "src/ui/saverAnswerUi.js": 1,
-   "src/ui/savingPathForLock.js": 1,
    "src/ui/startingPotsWords.js": 1,
    "src/ui/stressPanelUi.js": 1,
    "src/v7/effects/account.js": 3,
@@ -58,7 +57,7 @@
    "src/v7/effects/planWrite.js": 1
   },
   "boxValue": {
-   "index.html": 92,
+   "index.html": 88,
    "src/ui/dbStartSetting.js": 2,
    "src/ui/planStartUi.js": 1
   },

@@ -18,7 +18,7 @@ import { PLAN } from '../../v7/copy/plan.js';
 import { lockedShortOf } from '../../services/PlanCommit.js';
 import { STRESS as STRESS_ON } from '../../answers/shared/rules.js';
 import { markFact } from '../../reading/mark.js';
-import { LABELS, journeyStageWord } from '../../reading/labels.js';
+import { LABELS } from '../../reading/labels.js';
 import { FACT, factId } from '../../reading/facts.js';
 import { GUARDRAIL_FACTS, TAKEN_FACTS, PLAN_MIX_SLOTS, sentenceHtml } from '../../reading/sentenceMarks.js';
 
@@ -259,7 +259,7 @@ export function planDocumentHtml(doc, r = {}) {
   }
   // Journey: the stages this plan has been through, with dates (6.6.0)
   if (Array.isArray(d.journey) && d.journey.length) {
-    h += section('5. Journey', table(['When', 'Stage', 'Note'], d.journey.map((j) => [esc(dateGB(j.at)), esc(journeyStageWord(j)), esc(j.note || '')])) + '<p class="hint">Stages are worked out from your age, the plan start and the lock — never chosen by hand — and each change is dated here.</p>');
+    h += section('5. Journey', table(['When', 'Stage', 'Note'], d.journey.map((j) => [esc(dateGB(j.at)), esc(j.stage === 'bridge' ? 'Retired' : (j.label || j.stage || '')), esc(j.note || '')])) + '<p class="hint">Stages are worked out from your age, the plan start and the lock — never chosen by hand — and each change is dated here.</p>');
   }
   h += '<p class="hint" style="margin-top:12px;">Illustration, not advice. This document records the plan as it was when it was locked; it does not change when markets or the app move. Compare it with the live Decision tool each month.</p>';
   h += '</div>';

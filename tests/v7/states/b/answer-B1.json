@@ -164,7 +164,7 @@
         "level": "balanced",
         "levels": {
           "careful": {
-            "pot": 541000
+            "pot": 539000
           },
           "balanced": {
             "pot": 481000,
@@ -175,19 +175,19 @@
                 "pot": 481000
               }
             ],
-            "weighted": 0.9008873687675223,
-            "fixedAge": 0.796,
-            "potFixedAge": 0.774
+            "weighted": 0.9011838022340088,
+            "fixedAge": 0.801,
+            "potFixedAge": 0.781
           },
           "bold": {
-            "pot": 378000
+            "pot": 379000
           }
         },
         "already": false,
         "chance": {
-          "weighted": 0.2745590382888913,
-          "fixedAge": 0.11,
-          "fails": 890,
+          "weighted": 0.27154981041699644,
+          "fixedAge": 0.102,
+          "fails": 898,
           "n": 1000,
           "planToAge": 100,
           "weightToAge": 104,
@@ -196,13 +196,13 @@
         "onCourse": false,
         "verdict": {
           "band": "no",
-          "lasted": 0.11,
+          "lasted": 0.102,
           "outOfTen": {
             "words": "in only 1 future out of 10",
             "only": true,
             "count": 1
           },
-          "weighted": 0.2745590382888913
+          "weighted": 0.27154981041699644
         },
         "income": {
           "bad": 1380
@@ -259,16 +259,16 @@
                 }
               }
             ],
-            "fails": 204,
-            "lasted": 0.796,
+            "fails": 199,
+            "lasted": 0.801,
             "outOfTen": {
               "words": "in only 8 futures out of 10",
               "only": true,
               "count": 8
             },
             "verdict": "yes",
-            "runOutAge": 90,
-            "weighted": 0.9008873687675223,
+            "runOutAge": 91,
+            "weighted": 0.9011838022340088,
             "potAtStop": {
               "careful": 400324,
               "middling": 523184,
@@ -300,37 +300,37 @@
         "short": 292746,
         "monthlyIfShort": 1380,
         "wholeLife": {
-          "lasted": 0.11,
+          "lasted": 0.102,
           "outOfTen": {
             "words": "in only 1 future out of 10",
             "only": true,
             "count": 1
           },
-          "runOutAge": 68,
-          "weighted": 0.2745590382888913
+          "runOutAge": 69,
+          "weighted": 0.27154981041699644
         },
         "outside": null,
         "levers": {
           "stopLater": {
             "age": 68,
-            "lasted": 0.787,
-            "weighted": 0.9073576732594519
+            "lasted": 0.788,
+            "weighted": 0.9064252054551616
           },
           "payMore": {
             "payIn": 2630,
             "savingsIn": null,
-            "lasted": 0.796,
-            "weighted": 0.9008873687675223
+            "lasted": 0.801,
+            "weighted": 0.9011838022340088
           },
           "spendLess": {
             "spend": 1380,
-            "lasted": 0.829,
-            "weighted": 0.9054694415060803
+            "lasted": 0.842,
+            "weighted": 0.9088261356493458
           },
           "oneOff": {
-            "amount": 221000,
-            "lasted": 0.805,
-            "weighted": 0.9008376893838868,
+            "amount": 220000,
+            "lasted": 0.809,
+            "weighted": 0.9001821948047728,
             "overAllowance": true,
             "over": [
               "you"
@@ -340,14 +340,14 @@
           },
           "moreRisk": {
             "level": "adventurous",
-            "payIn": 2600,
-            "lasted": 0.803,
-            "weighted": 0.9011035714196041,
+            "payIn": 2590,
+            "lasted": 0.801,
+            "weighted": 0.9006615734742954,
             "helps": true
           },
           "accept": {
-            "lasted": 0.11,
-            "weighted": 0.2745590382888913,
+            "lasted": 0.102,
+            "weighted": 0.27154981041699644,
             "short": 292746,
             "monthlyIfShort": 1380
           }
@@ -372,6 +372,7 @@
                 "to": 67
               }
             },
+            "months": 79,
             "takeHome": 2000,
             "fromPension": 2106.47,
             "fromSavings": 0,
@@ -416,6 +417,8 @@
                 "to": 100
               }
             },
+            "months": 396,
+            "waitMonths": 5,
             "takeHome": 2000,
             "fromPension": 1122.35,
             "fromSavings": 0,
@@ -848,7 +851,7 @@
           },
           "line": {
             "id": "b.line",
-            "text": "At Balanced, to spend £2,000 a month from 60, you would want a pot of about £481,000 by then (Careful £541,000, Bold £378,000). Counting how long people your age live, with exactly that at 60 the money lasts as long as you do 18 times in 20.",
+            "text": "At Balanced, to spend £2,000 a month from 60, you would want a pot of about £481,000 by then (Careful £539,000, Bold £379,000). Counting how long people your age live, with exactly that at 60 the money lasts as long as you do 18 times in 20.",
             "parts": [
               "At ",
               "Balanced",
@@ -1288,7 +1291,7 @@
             },
             "oneOff": {
               "id": "b.lever.oneOff",
-              "text": "Put £221,000 into your pension now (what lands, with the tax the government adds back) and keep paying in as now: your money lasts as long as you do 18 times in 20. With what goes in now, that is more than £60,000 in one year: the most that gets the tax the government adds back (less for the highest earners). Allowance not used in the three years before can add to it; that is not counted here.",
+              "text": "Put £220,000 into your pension now (what lands, with the tax the government adds back) and keep paying in as now: your money lasts as long as you do 18 times in 20. With what goes in now, that is more than £60,000 in one year: the most that gets the tax the government adds back (less for the highest earners). Allowance not used in the three years before can add to it; that is not counted here.",
               "parts": [
                 "Put ",
                 {
@@ -1320,7 +1323,7 @@
             },
             "moreRisk": {
               "id": "b.lever.moreRisk",
-              "text": "More risk while saving, about two thirds in shares: paying in £2,600 a month, your money lasts as long as you do 18 times in 20.",
+              "text": "More risk while saving, about two thirds in shares: paying in £2,590 a month, your money lasts as long as you do 18 times in 20.",
               "parts": [
                 "More risk while saving, ",
                 "about two thirds in shares",
@@ -1471,7 +1474,7 @@
             },
             "oneOffFixed": {
               "id": "b.lever.oneOff.fixed",
-              "text": "With £221,000 put in now: if you live to 100, the money lasts that long in 16 of 20 futures we tried.",
+              "text": "With £220,000 put in now: if you live to 100, the money lasts that long in 16 of 20 futures we tried.",
               "parts": [
                 "With ",
                 {
@@ -1518,7 +1521,7 @@
             },
             "moreRiskFixed": {
               "id": "b.lever.moreRisk.fixed",
-              "text": "With more risk, paying in £2,600 a month: if you live to 100, the money lasts that long in 16 of 20 futures we tried.",
+              "text": "With more risk, paying in £2,590 a month: if you live to 100, the money lasts that long in 16 of 20 futures we tried.",
               "parts": [
                 "With more risk, paying in ",
                 {
@@ -1698,7 +1701,7 @@
           },
           "atAim": {
             "id": "b.when",
-            "text": "We follow each future on to 104. In the futures where the money runs out before then, it typically runs out at 75. In the worst 1 in 10 of all the futures, by 68.",
+            "text": "We follow each future on to 104. In the futures where the money runs out before then, it typically runs out at 76. In the worst 1 in 10 of all the futures, by 69.",
             "parts": [
               "We follow each future on to ",
               {
@@ -1708,7 +1711,7 @@
               ", it typically runs out ",
               "at ",
               {
-                "fixed": "75"
+                "fixed": "76"
               },
               ". ",
               "In the worst ",
@@ -1722,7 +1725,7 @@
               " of all the futures, ",
               "by ",
               {
-                "fixed": "68"
+                "fixed": "69"
               },
               "."
             ]
@@ -1835,7 +1838,7 @@
           },
           "guideFixed": {
             "id": "b.guide.fixed",
-            "text": "With exactly that at 60: if you live to 100, the money lasts that long in 15 of 20 futures we tried.",
+            "text": "With exactly that at 60: if you live to 100, the money lasts that long in 16 of 20 futures we tried.",
             "parts": [
               "With exactly that at ",
               {
@@ -1849,7 +1852,7 @@
               },
               ", the money lasts that long in ",
               {
-                "fixed": "15"
+                "fixed": "16"
               },
               " of ",
               {
@@ -1925,12 +1928,12 @@
           },
           "floor": {
             "id": "b.floor",
-            "text": "If the money ran out at 75, you would still have £12,548 a year after tax, from your State Pension.",
+            "text": "If the money ran out at 76, you would still have £12,548 a year after tax, from your State Pension.",
             "parts": [
               "If the money ran out ",
               "at ",
               {
-                "fixed": "75"
+                "fixed": "76"
               },
               ", ",
               "you would still have ",
@@ -1971,6 +1974,7 @@
           "historyEnd": "2023-06",
           "engineVersion": "7.11.1",
           "endAge": 100,
+          "planPath": true,
           "detail": "answer",
           "lifeYears": 54,
           "bondDraws": "life",

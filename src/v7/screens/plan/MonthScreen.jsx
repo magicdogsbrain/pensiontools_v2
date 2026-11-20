@@ -276,7 +276,9 @@ export function MonthScreen(state, dispatch) {
                 {V.paidOffered && <Choice V={V} path="mo.paid" value={typed['mo.paid'] === 'yes' ? 'yes' : 'no'} dispatch={dispatch} words={W.fields['mo.paid']} options={['no', 'yes']} error={shownErrors['mo.paid'] || (V.errors['mo.paid'] ? V.errors['mo.paid'] : null)} />}
                 {V.cadence !== 'monthly' && W.cadence[V.cadence] && <p class="note" data-testid={`${T}.cadence`}>{W.cadence[V.cadence]}</p>}
                 {V.planMonth && <p class="line" data-testid={`${T}.planMonth`}>{fill(W.planMonth, V.planMonth)}</p>}
-                {V.yearLine && <p class="note" data-testid={`${T}.yearDone`}>{V.yearLine.income ? fillMarked(W.yearDoneIncome, V.yearLine, V.yearLine.current ? { income: FACT.YEAR_SET_UP } : {}) : fill(W.yearDone, V.yearLine)}</p>}
+                {/* this tax year first (step F2, D7), then the year of the month chosen when it is another */}
+                {V.thisYearLine && <p class="note" data-testid={`${T}.thisYear`}>{fillMarked(W.yearDoneIncome, V.thisYearLine, { income: FACT.YEAR_SET_UP, from: FACT.YEAR_FROM })}</p>}
+                {V.yearLine && <p class="note" data-testid={`${T}.yearDone`}>{V.yearLine.income ? fillMarked(W.yearDoneIncome, V.yearLine, V.yearLine.current ? { income: FACT.YEAR_SET_UP, from: FACT.YEAR_FROM } : {}) : fill(W.yearDone, V.yearLine)}</p>}
                 {/* step F2 (lead4.md D7): the plan's own figure for the year differs from the set-up: both, and the set-up opened again on a press */}
                 {V.yearLine && V.yearLine.changed && <Sentence s={V.yearLine.changed} source={V.yearLine.changed.figures} marks={{ keys: THIS_YEAR_FACTS }} class="notice" data-testid={`${T}.yearChanged`} />}
                 {V.yearLine && V.yearLine.current && V.editable && <p class="line"><Button testid={`${T}.setUpAgain`} kind={V.yearLine.changed ? 'plain' : 'quiet'} disabled={!!V.saving} aria-busy={V.saving && V.saving.kind === 'taxYearAgain' ? 'true' : undefined} onClick={() => dispatch({ type: 'plan/taxYearAgain', planId })} {...keepFocus}>{V.saving && V.saving.kind === 'taxYearAgain' ? W.setUpAgainWorking : W.setUpAgain}</Button></p>}

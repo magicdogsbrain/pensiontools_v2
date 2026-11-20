@@ -80,7 +80,8 @@ export const FACT_FORMAT = Object.freeze({
   'income.thisYear.beforeTax': money,
   'income.thisYear.planSays': money,
   'income.thisYear.perMonth': money,
-  'income.thisYear.total': money
+  'income.thisYear.total': money,
+  'income.thisYear.from': monthText
 });
 
 /** The value of a fact as every place writes it; '' when nothing is known. */

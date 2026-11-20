@@ -414,7 +414,7 @@ export function readMonth(plan, typed0, { today, nowIso = null, entries = null }
   const partner = entries ? partnerOf(entries, plan) : null;
   const ok = setUpDone && !!result && !problem;
   return {
-    ...base, key, year: yearWords(key), setUpDone, yearLine, planMonth, setUp, pots: P, errors, problem, refused, arrival,
+    ...base, key, year: yearWords(key), setUpDone, yearLine, thisYearLine: thisYearLineOf(plan, key, now), planMonth, setUp, pots: P, errors, problem, refused, arrival,
     gap: gap.length ? { count: gap.length, words: monthsWords(gap), from: gap[0] } : null,
     offer: offer ? {
       months: offer.months, words: offer.months.length ? fillWords(offer.months, offer.setUp.length > 0) : '', count: offer.months.length,
@@ -493,6 +493,19 @@ export function monthRecordPatch(plan, typed, { today, nowIso, stageKey = null }
     : filled.length ? { id: 'recordedFilled', slots: { month: R.monthWords, n: String(filled.length), months: monthsWords(filled), s: filled.length === 1 ? '' : 's' } }
       : { id: 'recorded', slots: { month: R.monthWords } };
   return { ok: true, patch, previous, line, filled, stopped: R.write.stopped };
+}
+
+/**
+ * This tax year as set up, said when the month chosen is in another tax year (step F2, lead4.md D7): the month's own year
+ * is said by its own line, and this one keeps this tax year in view. Null when the month is in this tax year, or this
+ * tax year is not set up.
+ */
+function thisYearLineOf(plan, key, now) {
+  const cur = getTaxYearFromDate(localMonth(now));
+  if (key === cur) return null;
+  let t = null; try { t = thisTaxYearOf(plan, { now }); } catch { t = null; }
+  if (!t || !t.setUp || !(t.setUp.perYear > 0)) return null;
+  return { year: yearWords(cur), from: monthWords(t.setUp.from), income: pounds(t.setUp.perYear), current: true };
 }
 
 /**

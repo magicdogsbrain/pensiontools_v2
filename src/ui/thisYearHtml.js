@@ -9,7 +9,7 @@
  *   yearPlanHtml(t)                       the year as set up, the very sentence "Where you are" says in the simple view
  */
 import { thisTaxYearOf, thisYearSentences } from '../reading/thisYear.js';
-import { sentenceHtml, THIS_YEAR_FACTS } from '../reading/sentenceMarks.js';
+import { sentenceHtml, THIS_YEAR_FACTS, THIS_YEAR_MARKS } from '../reading/sentenceMarks.js';
 import { markFact } from '../reading/mark.js';
 import { FACT } from '../reading/facts.js';
 import { money } from '../reading/format.js';
@@ -30,7 +30,7 @@ const sentenceOf = (t, id) => thisYearSentences(t).find((s) => s.id === id) || n
 
 export function yearPlanHtml(t) {
   const s = sentenceOf(t, 'where.yearPlan');
-  return s ? sentenceHtml(s, s.figures, { keys: THIS_YEAR_FACTS }, esc) : '';
+  return s ? sentenceHtml(s, s.figures, THIS_YEAR_MARKS, esc) : '';
 }
 
 export function yearChangedHtml(t, { button = '' } = {}) {

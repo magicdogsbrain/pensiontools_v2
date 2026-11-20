@@ -82,6 +82,7 @@ export const FACT = Object.freeze({
   YEAR_PLAN_SAYS: 'income.thisYear.planSays',
   YEAR_PER_MONTH: 'income.thisYear.perMonth',
   YEAR_TOTAL: 'income.thisYear.total',
+  YEAR_FROM: 'income.thisYear.from',
   MONTH_TAKE: 'month.take.afterTax',
   MONTH_TAKE_PENSION: 'month.take.pension',
   MONTH_FROM: 'month.take.from',

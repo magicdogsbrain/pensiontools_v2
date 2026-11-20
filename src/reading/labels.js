@@ -76,6 +76,7 @@ export const LABELS = Object.freeze({
   [FACT.YEAR_PLAN_SAYS]: { label: 'This tax year, as the plan says', basis: 'a year before tax' },
   [FACT.YEAR_PER_MONTH]: { label: 'This tax year, as set up', basis: 'a month before tax' },
   [FACT.YEAR_TOTAL]: { label: 'This tax year, as set up, in all', basis: 'before tax' },
+  [FACT.YEAR_FROM]: { label: 'This tax year, set up from', basis: 'a month' },
   [FACT.MONTH_TAKE]: { label: 'This month, after tax', basis: 'a month after tax' },
   [FACT.MONTH_TAKE_PENSION]: { label: 'This month, from the pension', basis: 'a month before tax' },
   [FACT.MONTH_FROM]: { label: 'Taken from', basis: 'words' },

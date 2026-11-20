@@ -90,6 +90,6 @@ describe('the busy mark', () => {
     expect(body).toContain('await drawTab(tab.dataset.tab);');   // step S: the tab's loader is drawTab (src/ui/repaintPlan.js), the repaint's too
     const mod = readFileSync(resolve(process.cwd(), 'src/ui/repaintPlan.js'), 'utf8');
     expect(mod.slice(mod.indexOf('async function drawTab(name) {'))).toContain('await d.loadBudgetUI();');
-    expect(mod).toContain("const repaintPlan = (reason) => trackBusy(repaintPlanNow(reason), 'repaint');");
+    expect(mod).toContain("const repaintPlan = (reason) => trackBusy(inTurn(() => repaintPlanNow(reason)), 'repaint');");   // one change at a time (step LEFT)
   });
 });

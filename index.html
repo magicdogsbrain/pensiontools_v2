@@ -4311,7 +4311,7 @@
     import { whatsNewHtml, versionsPageHtml, safeAffects } from './src/ui/components/ReleaseNotesView.js';
 
     import { getChartStyles } from './src/ui/Charts.js';
-    import { createPlanState, bindPlanState } from './src/ui/planState.js'; import { fillDecisionBoxes, decisionPotsOf } from './src/ui/decisionForm.js'; import { installRepaint } from './src/ui/repaintPlan.js'; import { formatNumberBoxes } from './src/ui/numberOverlays.js'; import { stressSavePatch, settingsFromForm, touches, INCOME_KEYS, TIMING_KEYS, STRATEGY_KEYS } from './src/ui/settingsChanged.js'; import { todayOf, dayKeyOf } from './src/reading/clock.js'; import { phaseChoicePatch } from './src/answers/plan/review.js'; import { isPlanLockedError } from './src/services/LockedPlanGuard.js'; import { contextFor } from './src/reading/context.js'; import { RUN_FUTURES } from './src/reading/runs.js'; import { lastsInputOf, waysInputOf, enginePlanOf } from './src/reading/gather.js'; import { READ_FAULT_WORDS, isPlanReadError } from './src/reading/readFault.js';
+    import { createPlanState, bindPlanState } from './src/ui/planState.js'; import { fillDecisionBoxes, decisionPotsOf } from './src/ui/decisionForm.js'; import { installRepaint } from './src/ui/repaintPlan.js'; import { installLeaveSafely, signOutSafely } from './src/ui/leaveSafely.js'; import { formatNumberBoxes } from './src/ui/numberOverlays.js'; import { stressSavePatch, settingsFromForm, touches, INCOME_KEYS, TIMING_KEYS, STRATEGY_KEYS } from './src/ui/settingsChanged.js'; import { todayOf, dayKeyOf } from './src/reading/clock.js'; import { phaseChoicePatch } from './src/answers/plan/review.js'; import { isPlanLockedError } from './src/services/LockedPlanGuard.js'; import { contextFor } from './src/reading/context.js'; import { RUN_FUTURES } from './src/reading/runs.js'; import { lastsInputOf, waysInputOf, enginePlanOf } from './src/reading/gather.js'; import { READ_FAULT_WORDS, isPlanReadError } from './src/reading/readFault.js';
     // Everything the page knows about the open plan, in ONE object (src/ui/planState.js, lead4.md R2): window._budget,
     // window._oneTest and the rest are its fields. repaintPlan drops it and makes it again on any change of plan.
     const planState = bindPlanState(window, createPlanState());
@@ -4859,7 +4859,7 @@
         invalidateCache();
         invalidateStressCache();
         invalidateScenarioCache();
-        await logOut();
+        await signOutSafely(flushSettings, logOut);   // anything typed is saved first (lead4.md R3)
         document.getElementById('mainApp').classList.add('hidden');
         hideSetupWizard();
         showAuthScreenWithTab('signin');
@@ -5202,7 +5202,7 @@
         invalidateCache();
         invalidateStressCache();
         invalidateScenarioCache();
-        await logOut();
+        await signOutSafely(flushSettings, logOut);   // anything typed is saved first (lead4.md R3)
         document.getElementById('mainApp').classList.add('hidden');
         hideSetupWizard();
         showAuthScreenWithTab('signin');
@@ -9303,7 +9303,8 @@
     window.loadAccumulationUI = async function () {
       try {
         if (window._acAutosave) await window._acAutosave.flush();
-        const box = accumulationBoxes(await getActiveScenarioAsync(), null, todayOf());   // the saver's facts, as "What you pay in" reads them (7.12.0)
+        let sc; try { sc = await getActiveScenarioAsync(); } catch (e) { sayReadFault(READ_FAULT_WORDS); return; }   // the plan cannot be read: every box emptied and said (repaintPlan.js)
+        const box = accumulationBoxes(sc, null, todayOf());   // the saver's facts, as "What you pay in" reads them (7.12.0)
         for (const [id, v] of Object.entries(box.values)) { const el = document.getElementById(id); if (el) el.value = v == null ? (el.tagName === 'SELECT' ? ((el.querySelector('option[selected]') || el.options[0] || {}).value || '') : '') : v; }   // an empty value empties the box: nothing of another plan stays in it (lead4.md R2)
         document.getElementById('acPotLine').innerHTML = box.potLine;   // its pension today marked (step F1)
         await renderAccumulationHoldings();   // 6.7.0: proportions from the ledger (and pot today when the box is empty)
@@ -9366,7 +9367,9 @@
       afterSave: async () => { await repaintAfterWrite('save'); window.runOnTrackCheck(); await window.refreshAccumulationReading(); } });
     // (step F1) the tab's figures read from the plan just saved: the pension today's line and the pot at the stop with its table
     // (the boxes themselves are left as typed)
-    window.refreshAccumulationReading = async () => { try { const box = accumulationBoxes(await getActiveScenarioAsync(), null, todayOf()); const el = document.getElementById('acPotLine'); if (el) el.innerHTML = box.potLine; } catch (e) { /* the line is optional */ } await window.recalcAccumulation(); }; document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushSettings(); });   // the answer on the card follows the boxes; Settings reads the new ages; a page hidden sends what is typed
+    window.refreshAccumulationReading = async () => { try { const box = accumulationBoxes(await getActiveScenarioAsync(), null, todayOf()); const el = document.getElementById('acPotLine'); if (el) el.innerHTML = box.potLine; } catch (e) { /* the line is optional */ } await window.recalcAccumulation(); };    // the answer on the card follows the boxes; Settings reads the new ages
+    const savesWaiting = () => !!(window._ssAutosave && window._ssAutosave.waiting()) || !!(window._acAutosave && window._acAutosave.waiting());   // a person's own change on its way (the budget's save also starts on a redraw, so it is sent, never held for)
+    installLeaveSafely(window, document, { flush: flushSettings, waiting: savesWaiting });   // closing, reloading or hiding the page sends what is typed; a save still on its way holds the page
 
     // In-app confirm modal — replaces window.confirm(), which BLOCKS the whole renderer (and any
     // browser automation) with a native dialog. Promise<boolean>; Escape/backdrop = cancel.
@@ -9830,14 +9833,29 @@
       return out;
     }
 
+    let budLoads = 0;
     async function loadBudgetUI() {
       planState.budLoaded = false; // suppress autosave while (re)loading
+      const load = ++budLoads;   // a later load (another plan opened meanwhile) wins: this one stops at its next step
+      let forId = null; try { forId = await getActiveScenarioId(); } catch (e) { forId = null; }   // the plan this load is for, read once at its start
+      let read = null;
       try {
-        window._budget = normaliseBudget(await getBudgetAsync());
+        read = normaliseBudget(await getBudgetAsync());
       } catch (e) {
         console.error('Budget load error:', e);
-        window._budget = normaliseBudget(defaultBudget());
+        // the budget cannot be read: nothing is shown and nothing typed here is saved (never the starter lines over the plan's own)
+        if (load !== budLoads) return;
+        window._budget = normaliseBudget({ ...defaultBudget(), lines: [], oneOffs: [] });
+        planState.budFor = null;
+        renderBudgetLines(); renderBudgetOneOffs();
+        for (const id of ['budCurrentAge', 'budRetireAge', 'budEndAge', 'budSharePct']) { const el = document.getElementById(id); if (el) el.value = ''; }
+        document.getElementById('budWizBanner').style.display = 'none';
+        sayReadFault(READ_FAULT_WORDS);
+        budSetStatus('Not shown: this plan\u2019s budget could not be read. Nothing here is saved.');
+        return;
       }
+      if (load !== budLoads) return;
+      window._budget = read;
       window._budGuide = await planTargetGuide();   // a plan made from a V7 answer: its own target, which the budget is a guide to (never throws)
       try { const [scs, aid] = await Promise.all([listScenariosAsync(), getActiveScenarioId()]); const el = document.getElementById('budSharedLine'); el.innerHTML = budgetSharedLineHtml({ sharedFromName: window._budget.sharedFrom ? (readingPlanName(scs.find((sc) => sc.id === window._budget.sharedFrom), { now: todayOf() }) || 'another plan') : null, sharedToNames: scs.filter((sc) => sc.id !== aid && budgetSharedFromOf(sc) === aid).map((sc) => readingPlanName(sc, { now: todayOf() }) || sc.id) }); el.style.display = el.innerHTML ? 'block' : 'none'; } catch (e) { /* no line */ }   // one household budget (6.25.0)
       // Fresh budget → seed the curated categories (with hints) so labels are self-explanatory.
@@ -9861,7 +9879,8 @@
       // Nudge brand-new budgets (no amounts entered anywhere) toward the guided walk-through.
       const untouched = !window._budget.lines.some((l) => l.annual) && !window._budget.oneOffs.some((o) => o.amount);
       document.getElementById('budWizBanner').style.display = untouched ? 'block' : 'none';
-      planState.budLoaded = true; try { planState.budFor = await getActiveScenarioId(); } catch (e) { planState.budFor = null; }   // what is typed here belongs to this plan only
+      if (load !== budLoads) return;
+      planState.budLoaded = true; planState.budFor = forId;   // what is typed here belongs to the plan this load was started for, and only that one
       budSetStatus('Autosaves as you edit');
       // Arriving fresh from the setup wizard → open the walk-through directly.
       if (window._budWizAutoOpen) {
@@ -10449,6 +10468,7 @@
 
     window.saveBudgetUI = async function () {
       if (!isLoggedIn()) { showToast('Please sign in to save your budget', 'error'); return; }
+      if (!planState.budFor) { showToast('Nothing was saved: this plan\u2019s budget could not be read. Reload the page to try again.', 'error'); return; }   // never a budget drawn for no plan
       syncHorizonFromInputs();
       showLoading('Saving budget…');
       try {

@@ -274,7 +274,17 @@ export function createAutosave(win, doc, o) {
   }
   /** Whether the form holds typing not yet saved (since it was filled from the plan or last saved). */
   const pending = () => base != null && fp() !== base;
-  return { schedule, flush, loaded, markSaved, checkNow, problems, run, pending };
+  /**
+   * A save on its way: one scheduled, one being written, or a box being typed in that differs from what is saved. The page
+   * is held (the browser asks before closing or reloading) while this is true, so what was typed is never lost unsaid.
+   */
+  const waiting = () => {
+    if (timer || running) return true;
+    const r = root(), ae = doc.activeElement;
+    const typing = !!(r && ae && r.contains(ae) && /^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName) && (!o.include || o.include(ae)));
+    return typing && pending();
+  };
+  return { schedule, flush, loaded, markSaved, checkNow, problems, run, pending, waiting };
 }
 
 // ---- the two forms ----------------------------------------------------------------------------------------------------

@@ -27,6 +27,8 @@ import { invalidateScenarioCache, getActiveScenarioAsync, getActiveScenarioId, l
 import { invalidateStressCache } from '../storage/StressRepository.js';
 import { invalidateCache } from '../storage/DecisionRepository.js';
 import { openingTabOf } from './homeBannerUi.js';
+import { emptyPlanBoxes } from './emptyPlanBoxes.js';
+import { READ_FAULT_WORDS } from '../reading/readFault.js';
 
 const SAME_PLAN = ['lock', 'unlock'];
 
@@ -35,19 +37,30 @@ export function installRepaint(win, doc, d) {
   const call = async (fn, ...a) => { try { if (typeof fn === 'function') return await fn(...a); } catch (e) { /* that part is optional */ } return undefined; };
   const clear = (id) => { const el = doc.getElementById(id); if (el) el.innerHTML = ''; };
 
-  /** The plan cannot be read: the same plain words as the simple view, at the top of the page (or nothing). */
+  /**
+   * The plan cannot be read: the same plain words as the simple view, at the top of the page (or nothing). Every box is
+   * emptied with them (never the plan open before's figures under the words), the budget is bound to no plan (nothing typed
+   * there is saved) and the two Settings forms take the empty boxes as their baseline, so nothing emptied here is written.
+   */
+  const faultSaid = () => !!doc.getElementById('planReadFault');
   function sayReadFault(words) {
     let el = doc.getElementById('planReadFault');
     if (!words) { if (el) el.remove(); return; }
     if (!el) { el = doc.createElement('div'); el.id = 'planReadFault'; el.className = 'alert alert-warning'; el.setAttribute('role', 'alert'); el.style.margin = '8px 0'; doc.getElementById('mainApp')?.prepend(el); }
     el.textContent = words;
+    holdForFault();
+  }
+  function holdForFault() {
+    emptyPlanBoxes(doc);
+    st.budLoaded = false; st.budFor = null;
+    for (const a of [win._ssAutosave, win._acAutosave]) { try { if (a) a.loaded(); } catch (e) { /* nothing to hold */ } }
   }
 
   /** Every cache dropped and every form filled from the plan open now (the first half of repaintPlan; the page's load uses it). */
   async function repaintForms(reason) {
     invalidateCache(); invalidateStressCache();
     st.reset(null); st.markAllStale();   // at once, before anything is awaited: a page pressed meanwhile draws for the plan now open
-    let plan = null; try { plan = await getActiveScenarioAsync(); } catch (e) { plan = null; }
+    let plan = null, unread = false; try { plan = await getActiveScenarioAsync(); } catch (e) { plan = null; unread = true; }
     st.key = planKeyOf(plan);
     win._holdingsLines = []; win._planDocLast = null; d.resetCurrentDecision();
     doc.getElementById('openPlaceNote')?.remove();   // a note that names a plan names the plan it was written for
@@ -62,6 +75,8 @@ export function installRepaint(win, doc, d) {
     await call(win.loadAccumulationUI); await call(d.loadBudgetUI);
     await d.renderScenarioSelector();
     await call(d.refreshDecisionLock); await call(win.updateNextStepBanner); await call(d.loadHouseholdUI);
+    if (unread) sayReadFault(READ_FAULT_WORDS);   // the plan itself could not be read
+    else if (faultSaid()) holdForFault();          // a loader could not read it: whatever a later loader drew goes too
   }
 
   /** A Decision page drawn from the plan open now (its press, and every repaint of the open tab). */
@@ -85,6 +100,7 @@ export function installRepaint(win, doc, d) {
     if (name === 'strategies') await win.loadStrategiesPage();
     win.updateNextStepBanner();
     d.updateDraftLines();
+    if (faultSaid()) holdForFault();   // a tab drawn while the plan cannot be read shows no figures
   }
 
   /** The tab on screen drawn again for the plan open now; a tab this plan does not offer gives way to the plan's first tab. */
@@ -101,7 +117,14 @@ export function installRepaint(win, doc, d) {
   }
 
   async function repaintPlanNow(reason) { await repaintForms(reason); await drawOpenTab(); }
-  const repaintPlan = (reason) => trackBusy(repaintPlanNow(reason), 'repaint');
+  /**
+   * One change at a time (the lead's ruling on step S): a repaint or a change of plan asked for while another is still
+   * drawing waits for it, so two repaints never run at once and none reads "the active plan" while another change moves it.
+   * A change that fails does not hold up the next.
+   */
+  let queue = Promise.resolve();
+  const inTurn = (fn) => { const run = queue.then(fn, fn); queue = run.catch(() => {}); return run; };
+  const repaintPlan = (reason) => trackBusy(inTurn(() => repaintPlanNow(reason)), 'repaint');
 
   /** A change of plan, made safely: anything typed goes to the plan it was typed in, then the change, then the repaint. */
   async function changePlanNow(reason, change) {
@@ -110,7 +133,7 @@ export function installRepaint(win, doc, d) {
     await repaintPlanNow(reason);
     return out;
   }
-  const changePlan = (reason, change) => trackBusy(changePlanNow(reason, change), 'repaint');   // busy from the press on
+  const changePlan = (reason, change) => trackBusy(inTurn(() => changePlanNow(reason, change)), 'repaint');   // busy from the press on
 
   async function repaintAfterWrite() {
     invalidateCache(); invalidateStressCache(); st.dropWorked(); st.markAllStale();

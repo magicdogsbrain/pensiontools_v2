@@ -292,7 +292,8 @@ describe('the retired paths are gone from index.html; the plan\'s own settings r
     expect(script).toMatch(/runInWorker\('household', \{ plan: own, partner, today, limit \}\)/);   // 6.25.0: both ways (as they are / drawing together) through the one test — the simple view's runHousehold since lead4.md D20
     // 6.41.0: the what-if copy is lifted (src/answers/plan/lastsRun.js trySettingsOf): the planner hands it the boxes, and the
     // years clamp to the engines' 45 lives there
-    expect(script).toMatch(/function tryStrategySettings\(s\) \{\s*return trySettingsOf\(s, readTryBoxes\(\)\);/);
+    // (step F3) with the flat income turned back to a year before tax by the one function both views use
+    expect(script).toMatch(/function tryStrategySettings\(s, sc\) \{[^}]*const b = readTryBoxes\(\);\s*return trySettingsOf\(s, \{ \.\.\.b, income: sc \? tryIncomeYearOf\(b\.income, sc,/);
     const lifted = readFileSync(process.cwd() + '/src/answers/plan/lastsRun.js', 'utf8');
     expect(lifted).toContain('export const TRY_YEARS = Object.freeze({ min: 5, max: 45 });');
     expect(lifted).toContain('c.duration = Math.max(TRY_YEARS.min, Math.min(TRY_YEARS.max, +b.years || s.duration || 35));');

@@ -85,7 +85,8 @@ describe('the State Pension the plan assumes when none was entered', () => {
 describe('"Try a strategy" runs the plan\'s full length', () => {
   it('no 35-year cap: the plan\'s own duration, up to the engines\' 45 years', () => {
     // 6.41.0: the copy is made by the lifted trySettingsOf (src/answers/plan/lastsRun.js), the planner handing it the boxes
-    expect(html).toContain('return trySettingsOf(s, readTryBoxes());');
+    // (step F3) the flat income goes back to a year before tax by the one function both views use (src/reading/tryIncome.js)
+    expect(html).toContain('return trySettingsOf(s, { ...b, income: sc ? tryIncomeYearOf(b.income, sc, contextFor(sc, { now: todayOf() })) : 0 });');
     expect(html).not.toContain("Math.min(35, +document.getElementById('tryYears').value");
     const lifted = readFileSync(process.cwd() + '/src/answers/plan/lastsRun.js', 'utf8');
     expect(lifted).toContain('c.duration = Math.max(TRY_YEARS.min, Math.min(TRY_YEARS.max, +b.years || s.duration || 35));');

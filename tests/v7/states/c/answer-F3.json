@@ -150,6 +150,7 @@
                 "to": 99
               }
             },
+            "months": 367,
             "takeHome": 1790,
             "fromPension": 526.07,
             "fromSavings": 0,
@@ -196,6 +197,7 @@
                   "to": 99
                 }
               },
+              "months": 367,
               "takeHome": 2200,
               "fromPension": 1008.43,
               "fromSavings": 0,

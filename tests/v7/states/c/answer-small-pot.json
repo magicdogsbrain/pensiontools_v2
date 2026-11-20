@@ -140,6 +140,7 @@
                 "to": 67
               }
             },
+            "months": 103,
             "takeHome": 100,
             "fromPension": 100,
             "fromSavings": 0,
@@ -177,6 +178,8 @@
                 "to": 99
               }
             },
+            "months": 384,
+            "waitMonths": 5,
             "takeHome": 1045.63,
             "fromPension": 0,
             "fromSavings": 0,

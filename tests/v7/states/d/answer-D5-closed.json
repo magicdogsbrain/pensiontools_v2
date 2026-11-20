@@ -198,6 +198,7 @@
                 "to": 58
               }
             },
+            "months": 55,
             "takeHome": 1800,
             "fromPension": 0,
             "fromSavings": 1800,
@@ -242,6 +243,7 @@
                 "to": 67
               }
             },
+            "months": 108,
             "takeHome": 1800,
             "fromPension": 1871.18,
             "fromSavings": 0,
@@ -286,6 +288,8 @@
                 "to": 98
               }
             },
+            "months": 372,
+            "waitMonths": 5,
             "takeHome": 1800,
             "fromPension": 887.05,
             "fromSavings": 0,
@@ -418,14 +422,26 @@
             "field": null,
             "source": "rule",
             "value": 57,
-            "text": "Your pension is left alone until you are 57; your savings pay until then.",
+            "text": "You can take money from your pension from 57. This plan takes it from April 2031, the first tax year you start at 57 or over; until then your ISA and savings pay.",
             "parts": [
-              "Your pension is left alone until you are ",
+              "You can take money from your pension from ",
               {
                 "key": "pensionOpens.you",
                 "kind": "age"
               },
-              "; your savings pay until then."
+              ".",
+              " ",
+              "This plan takes it from ",
+              {
+                "fixed": "April 2031"
+              },
+              ", the first tax year you start at ",
+              {
+                "key": "pensionOpens.you",
+                "kind": "age"
+              },
+              " or over",
+              "; until then your ISA and savings pay."
             ]
           },
           {
@@ -579,24 +595,36 @@
           {
             "id": "pension-closed",
             "severity": "important",
-            "text": "You can't take money from your pension until you are 57. Until then your ISA and savings pay.",
+            "text": "You can take money from your pension from 57. This plan takes it from April 2031, the first tax year you start at 57 or over; until then your ISA and savings pay.",
             "parts": [
-              "You can't take money from your pension until you are ",
+              "You can take money from your pension from ",
               {
                 "key": "pensionOpens.you",
                 "kind": "age"
               },
-              ". Until then your ISA and savings pay."
+              ".",
+              " ",
+              "This plan takes it from ",
+              {
+                "fixed": "April 2031"
+              },
+              ", the first tax year you start at ",
+              {
+                "key": "pensionOpens.you",
+                "kind": "age"
+              },
+              " or over",
+              "; until then your ISA and savings pay."
             ]
           },
           {
             "id": "long-plan",
             "severity": "important",
-            "text": "We can only test 60 years ahead, so this runs to age 98, not 100.",
+            "text": "We can only test 45 years ahead, so this runs to age 98, not 100.",
             "parts": [
               "We can only test ",
               {
-                "fixed": "60"
+                "fixed": "45"
               },
               " years ahead, so this runs to age ",
               {
@@ -751,7 +779,7 @@
           "madeOf": [
             {
               "id": "d.madeOf.locked",
-              "text": "From 53 until 58: £1,800 a month, all from your savings. Your pension can't be touched until then.",
+              "text": "From 53 until 58: £1,800 a month, all from your savings. You can take money from your pension from 57. This plan takes it from April 2031, the first tax year you start at 57 or over.",
               "parts": [
                 "From ",
                 {
@@ -769,8 +797,24 @@
                   "kind": "money"
                 },
                 " a month, all from your savings. ",
-                "Your pension",
-                " can't be touched until then."
+                "You can take money from your pension from ",
+                {
+                  "key": "pensionOpens.you",
+                  "kind": "age"
+                },
+                ".",
+                " ",
+                "This plan takes it from ",
+                {
+                  "fixed": "April 2031"
+                },
+                ", the first tax year you start at ",
+                {
+                  "key": "pensionOpens.you",
+                  "kind": "age"
+                },
+                " or over",
+                "."
               ]
             },
             {

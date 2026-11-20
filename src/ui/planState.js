@@ -30,6 +30,8 @@ export const PLAN_STATE_FIELDS = Object.freeze([
   // the age chosen for the Strategies Overview's bars, the month chosen in History, the month a "payment already made" tick
   // moved the entry from, and the gilt ladder worked out for the month's overlay (dropped after a write too)
   'cmpAge', 'historyDate', 'entryMonthBeforePaid', 'ladderPos',
+  // the Strategies ranking's order and its "More columns" (step F3): chosen on this plan's page, never carried to the next
+  'cmpRankBy', 'cmpMore',
   // the gilt-rotation watch: the block it would sell and the age below which nothing is sold (worked out from the plan)
   'rotBlock', 'rotCutAge'
 ]);
@@ -45,7 +47,7 @@ const fresh = () => ({
   holdingsDraft: null, holdingsDraftFor: null, transitionLast: null, lifeStage: null, stressFormBase: null,
   stratDials: {}, beAge: null, ffHorizon: null, hhLimit: null, budLastRemoved: null, budImportUndo: null, budPlusTen: false,
   historyYear: 'all', taxYear: null, customAlloc: {}, allocMode: {}, decisionAnchor: null,
-  cmpAge: null, historyDate: null, entryMonthBeforePaid: null, ladderPos: null,
+  cmpAge: null, historyDate: null, entryMonthBeforePaid: null, ladderPos: null, cmpRankBy: null, cmpMore: false,
   rotBlock: null, rotCutAge: null
 });
 
@@ -83,7 +85,7 @@ export const PLAN_STATE_GLOBALS = Object.freeze({
   _transitionLast: 'transitionLast', _lifeStage: 'lifeStage',
   _stratDials: 'stratDials', _beAge: 'beAge', _ffHorizon: 'ffHorizon', _hhLimit: 'hhLimit', _budImportUndo: 'budImportUndo',
   _budPlusTen: 'budPlusTen', _customAlloc: 'customAlloc', _allocMode: 'allocMode', _decisionAnchor: 'decisionAnchor',
-  _cmpAge: 'cmpAge', _entryMonthBeforePaid: 'entryMonthBeforePaid'
+  _cmpAge: 'cmpAge', _entryMonthBeforePaid: 'entryMonthBeforePaid', _cmpRankBy: 'cmpRankBy', _cmpMore: 'cmpMore'
 });
 
 /** Binds the page's names to the one state: `win._budget` is `state.budget`, and so on; nothing is kept beside it. */

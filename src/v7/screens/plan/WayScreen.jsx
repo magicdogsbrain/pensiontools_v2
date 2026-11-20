@@ -194,7 +194,7 @@ function More({ V, dispatch }) {
                 {rows.map((c) => (
                   <tr key={c.id} data-way={c.id}>
                     <td>{c.rank + 1}</td>
-                    <td>{name(c.id)}</td>
+                    <td>{c.facts && c.facts.name ? <Fact id={c.facts.name}>{name(c.id)}</Fact> : name(c.id)}</td>
                     {c.table ? (
                       <>
                         <td>{c.verdict ? c.verdict.words.replace(/^in /, '') : T.none}</td>

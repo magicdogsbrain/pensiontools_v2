@@ -84,6 +84,15 @@ describe('the page\'s names are the one state', () => {
     expect(st.ladderPos).toBe(null); expect(st.historyDate).toBe('2026-10-01');
   });
 
+  it('the ranking\'s order and "More columns" chosen on one plan are not carried to the next (step F3)', () => {
+    const { bindPlanState } = require('../../src/ui/planState.js');
+    const win = {};
+    const st = bindPlanState(win, createPlanState().reset('a|1'));
+    win._cmpMore = true; win._cmpRankBy = 'left';
+    st.reset('b|1');
+    expect(win._cmpMore).toBe(false); expect(win._cmpRankBy).toBe(null);
+  });
+
   it('index.html keeps none of these as a page variable of its own', () => {
     const src = require('node:fs').readFileSync('index.html', 'utf8');
     for (const re of [/let selectedHistoryDate\b/, /let _ladderPosCache\b/, /^ {4}window\._entryMonthBeforePaid = null;/m, /let selectedHistoryYear\b/, /let selectedTaxYear\b/, /let _budLastRemoved\b/, /window\._stratDials = \{\}/, /window\._customAlloc = window\._customAlloc \|\| \{\}/, /window\._allocMode = window\._allocMode \|\| \{\}/, /\|\| window\._decisionAnchor/]) expect(src).not.toMatch(re);

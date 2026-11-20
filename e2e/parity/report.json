@@ -1,5 +1,5 @@
 {
- "at": "2026-11-20T02:30:13.219Z",
+ "at": "2026-11-20T03:08:20.992Z",
  "fixtures": [
   "age-only",
   "budget",
@@ -26,36 +26,18 @@
  "marks": 11687,
  "fieldsBound": 61,
  "disagreements": 80,
- "unmarked": 16230,
+ "unmarked": 16222,
  "oneViewOnly": 2325,
  "readingMismatches": 0,
- "roundTripsFailed": 67,
+ "roundTripsFailed": 64,
  "rose": [
-  "unmarked figures rose on age-only|simple:pots: 33 → 36",
-  "unmarked figures rose on wizard-defaults|simple:pots: 32 → 35",
-  "a round trip fails that known-roundtrips.json does not list: income.spKind|f2s — needs a press",
   "a round trip fails that known-roundtrips.json does not list: income.spKind|s2f — needs a press"
  ],
  "shrank": [
-  "unmarked figures fell on retired-locked-ladder|simple:home: 34 → 33",
-  "unmarked figures fell on retired-locked-ladder|simple:where: 22 → 20",
-  "unmarked figures fell on retired-locked-ladder|full:monthly entry: 47 → 45",
-  "unmarked figures fell on retired-locked-ladder|full:plan document: 275 → 273",
-  "unmarked figures fell on retired-locked-ladder|full:tax years: 14 → 13",
-  "unmarked figures fell on retired-locked-months|simple:home: 34 → 32",
-  "unmarked figures fell on retired-locked-months|simple:month: 27 → 25",
-  "unmarked figures fell on retired-locked-months|simple:where: 25 → 23",
-  "unmarked figures fell on retired-locked-months|full:monthly entry: 37 → 36",
-  "unmarked figures fell on retired-locked-months|full:plan document: 260 → 259",
-  "unmarked figures fell on retired-locked-months|full:tax years: 23 → 22",
-  "unmarked figures fell on retired-locked-pots|simple:home: 26 → 23",
-  "unmarked figures fell on retired-locked-pots|simple:month: 24 → 22",
-  "unmarked figures fell on retired-locked-pots|simple:where: 14 → 10",
-  "unmarked figures fell on retired-locked-pots|full:monthly entry: 33 → 32",
-  "unmarked figures fell on retired-locked-pots|full:plan document: 249 → 248",
-  "unmarked figures fell on retired-locked-pots|full:tax years: 26 → 25",
-  "unmarked figures fell on saver-locked-ladder|full:plan document: 395 → 393",
-  "unmarked figures fell on saver-locked-pots|full:plan document: 301 → 300"
+  "unmarked figures fell on age-only|simple:pots: 33 → 32",
+  "unmarked figures fell on wizard-defaults|simple:pots: 32 → 31",
+  "comes back now, take it out of known-roundtrips.json: about.startWhen|f2s (was needs a press)",
+  "comes back now, take it out of known-roundtrips.json: saving.schemeType|f2s (was needs a press)"
  ],
  "grew": [
   "more places now, raise coverage.json: budget|spend.essentials|full 0 → 1",
@@ -17888,10 +17870,6 @@
     "kind": "needs a press"
    },
    {
-    "key": "about.startWhen|f2s",
-    "kind": "needs a press"
-   },
-   {
     "key": "about.startWhen|s2f",
     "kind": "needs a press"
    },
@@ -17969,10 +17947,6 @@
    },
    {
     "key": "income.spDate|s2f",
-    "kind": "needs a press"
-   },
-   {
-    "key": "income.spKind|f2s",
     "kind": "needs a press"
    },
    {
@@ -18114,10 +18088,6 @@
    },
    {
     "key": "pots.ufplsYears|s2f",
-    "kind": "needs a press"
-   },
-   {
-    "key": "saving.schemeType|f2s",
     "kind": "needs a press"
    },
    {

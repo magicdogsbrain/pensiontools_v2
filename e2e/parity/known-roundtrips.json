@@ -3,7 +3,6 @@
  "entries": {
   "about.age|s2f": "needs a press",
   "about.endAge|s2f": "needs a press",
-  "about.startWhen|f2s": "needs a press",
   "about.startWhen|s2f": "needs a press",
   "about.stopAge|s2f": "needs a press",
   "about.stopMonth|f2s": "needs a press",
@@ -55,7 +54,6 @@
   "pots.taxMode|s2f": "needs a press",
   "pots.ufplsThenIsa|s2f": "needs a press",
   "pots.ufplsYears|s2f": "needs a press",
-  "saving.schemeType|f2s": "needs a press",
   "saving.want.monthly|f2s": "needs a press",
   "saving.want.stopAge|f2s": "needs a press",
   "spend.costs|f2s": "not tried",

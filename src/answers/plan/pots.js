@@ -301,9 +301,12 @@ export function potsPatch(plan, typed, { today }) {
   return { ok: true, errors: {}, patch, previous };
 }
 
-/** The settings of this step a bought strategy ignores (9.1): the planner's own data-pnv-only parts and its "gia" note. */
+/**
+ * The settings of this step a bought strategy ignores (9.1): the planner's own data-pnv-only parts and its "gia" note. How
+ * the tax-free part is taken is not one (step F2, D6): every way of drawing reads it for each "a year before tax".
+ */
 export function notUsedBy(strategyId) {
-  return isBought(strategyId) ? ['taxFree', 'ufplsYears', 'ufplsThenIsa', 'bandFill', 'earnings', 'bedAndIsa'] : [];
+  return isBought(strategyId) ? ['ufplsYears', 'ufplsThenIsa', 'bandFill', 'earnings', 'bedAndIsa'] : [];
 }
 
 /** The derived figures (9.2), as line ids with their slots, from the values as they would be saved (or as saved). */
@@ -367,11 +370,15 @@ export function potsOf(entries, id, { today, typed = null } = {}) {
   const boxes = boxesOf(plan, { today });
   const c = checkPots(plan, typed || {}, { today });
   const shown = { ...boxes, ...(typed || {}) };
+  // (step F2, D2) with no tax-free choice stored, the rule's value is an assumption ("We assumed …"), not "from your plan, saved"
+  const accessAssumed = !saved.locked && !ACCESS_METHODS.includes(saved.stored && saved.stored.accessMethod);
+  const assumedPath = (path) => accessAssumed && (path === 'taxFree' || ((path === 'ufplsYears' || path === 'ufplsThenIsa') && saved.stored[path === 'ufplsYears' ? 'ufplsYears' : 'ufplsThenPcls'] === undefined));
   const fields = POTS_FIELDS.map((f) => ({
     path: f.path, type: f.type, options: f.type === 'choice' ? f.options : null,
     applies: c.applies[f.path] !== false,
     shown: blank(shown[f.path]) ? (f.type === 'choice' && f.default != null ? f.default : '') : String(shown[f.path]),
     saved: f.path in boxes ? boxes[f.path] : null,
+    assumed: assumedPath(f.path),
     error: c.errors[f.path] || null
   }));
   // the derived lines: from the values as they would be saved where every box is right, else as saved

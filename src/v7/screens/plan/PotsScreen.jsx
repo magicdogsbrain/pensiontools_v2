@@ -94,7 +94,7 @@ export function PotsScreen(state, dispatch) {
   /** A box, with the planner's note under it where this way of drawing ignores it or sizes it elsewhere. */
   const F = (path, more = {}) => (
     <>
-      <EditField step="pots" f={field(path)} words={POTS.fields[path]} errors={POTS.errors[path]} source={sourceText} savedWords={POTS.savedValue} planId={planId} dispatch={dispatch} {...more} />
+      <EditField step="pots" f={field(path)} words={POTS.fields[path]} errors={POTS.errors[path]} source={field(path).assumed ? null : sourceText} savedWords={POTS.savedValue} planId={planId} dispatch={dispatch} {...more} />
       {field(path).applies && notUsed.has(path) && <p class="note" data-not-used={path}>{POTS.notUsed}</p>}
       {pt.useNotes[path] && <p class="note" data-use-note={path}>{POTS.useNotes[pt.useNotes[path]]}</p>}
     </>

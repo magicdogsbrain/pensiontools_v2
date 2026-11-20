@@ -126,7 +126,8 @@ describe('T1 — the reading, on every corpus plan at three dates', () => {
     expect(l.pinned).toEqual({ sipp: 640000, isa: 35000 });
     expect(l.values).toMatchObject({ pension: 640000, isa: 35000, isaUse: 'minimiseEarlyTax', charges: 0, pa: 12570 });
     const v = potsOf(entriesAt(TODAY), C['20-locked-start-after-stop'].id, { today: TODAY });
-    expect(v.notUsed).toEqual(['taxFree', 'ufplsYears', 'ufplsThenIsa', 'bandFill', 'earnings', 'bedAndIsa']);
+    // (step F2, D6) how the tax-free part is taken is read for every way of drawing (each "a year before tax"): never "not used"
+    expect(v.notUsed).toEqual(['ufplsYears', 'ufplsThenIsa', 'bandFill', 'earnings', 'bedAndIsa']);
     expect(v.useNotes).toMatchObject({ pension: 'pinned', isa: 'pinned', isaGrowth: 'isaGrowthLocked' });   // locked before the choice: that note wins over the bought one
     expect(v.derived.map((d) => d.id)).toContain('pots.pinned');
     expect(v.derived.map((d) => d.id)).toContain('isa.use.minimiseEarlyTax');
@@ -224,6 +225,13 @@ describe('T1 — the write: the planner\'s keys, as its Save writes them', () =>
     const chosen = potsPatch(fresh, { bedAndIsa: 'no', taxFree: 'drawdown', earnings: '20,000' }, { today: TODAY });
     expect(chosen.patch).toEqual({ [S + 'bedAndIsa']: false, [S + 'accessMethod']: 'drawdown', [S + 'relevantEarnings']: 20000 });
     expect(chosen.previous).toEqual({ [S + 'bedAndIsa']: undefined, [S + 'accessMethod']: undefined, [S + 'relevantEarnings']: undefined });
+    // (step F2, D2) the rule's value is an assumption, said as one ("We assumed …"): the tax-free boxes are not "from your plan,
+    // saved"; once chosen, they are
+    const shownOf = (plan) => potsOf([{ plan }], plan.id, { today: TODAY }).fields.filter((f) => ['taxFree', 'ufplsYears', 'ufplsThenIsa'].includes(f.path));
+    expect(shownOf(fresh).map((f) => [f.path, f.assumed])).toEqual([['taxFree', true], ['ufplsYears', true], ['ufplsThenIsa', true]]);
+    expect(potsOf([{ plan: fresh }], fresh.id, { today: TODAY }).fields.filter((f) => f.assumed).map((f) => f.path)).toEqual(['taxFree', 'ufplsYears', 'ufplsThenIsa']);
+    const madeChoice = applyPatch(fresh, potsPatch(fresh, { taxFree: 'drawdown' }, { today: TODAY }).patch);
+    expect(shownOf(madeChoice).map((f) => f.assumed)).toEqual([false, false, false]);
     // the migration gave the unlocked plan its charge and its ISA choice: the box shows them, and the same value writes nothing
     expect(fresh.stressTool.settings.chargesPct).toBe(0.5);
     expect(fresh.stressTool.settings.isaGrowth).toBe('cash');

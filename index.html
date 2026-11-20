@@ -2961,7 +2961,7 @@
               </div>
             </div>
 
-            <div class="settings-section" data-pnv-only>
+            <div class="settings-section">
               <div class="section-title">How you'll take this pension</div>
 <div>
                 <label style="display:block; margin-bottom:6px;">How you take the tax-free part (a quarter of the pension)</label>
@@ -2983,6 +2983,7 @@
                   basis (reclaimable from HMRC). Neither is modelled here.
                 </p>
                 </details>
+                <div data-pnv-only><!-- (step F2) the choice above is read by every way of drawing; how long UFPLS runs, and the band fill, are Pots & Valves' own -->
                 <div id="ssUfplsPhase" style="display:none; margin-top:10px; padding:12px 14px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--card-alt);">
                   <label style="display:block; margin-bottom:4px;">UFPLS for how many years? <span style="color:var(--text-muted); font-weight:normal;">(blank = whole plan)</span></label>
                   <input type="number" id="ssUfplsYears" min="1" max="60" step="1" placeholder="e.g. 10" style="width:120px;">
@@ -2999,8 +3000,10 @@
                   </p>
                   </details>
                 </div>
+                </div><!-- /data-pnv-only (how long UFPLS runs) -->
                 <input type="hidden" id="ssAccessMethod" value="drawdown">
                 <p id="ssAccessAssumed" class="hint" style="margin:6px 0 0;color:var(--warning);"></p>
+                <div data-pnv-only>
                 <label style="display:flex; align-items:center; gap:8px; margin-top:10px; cursor:pointer;">
                   <input type="checkbox" id="ssBandFillRecycle" style="width:auto;" data-on-change="syncIsaHoldUI('ss')">
                   <span>Fill my basic-rate band &amp; recycle the surplus into my ISA</span>
@@ -3013,6 +3016,7 @@
                   while UFPLS tax-free withdrawals are active.
                 </p>
                 </details>
+                </div><!-- /data-pnv-only (the band fill) -->
               </div>
             </div>
 
@@ -9451,7 +9455,7 @@
     };
     window.syncAccessButtons = function (p) {
       const v = (document.getElementById(p + 'AccessMethod') || {}).value || 'drawdown';
-      document.querySelectorAll("[onclick^=\"setAccessMethod('" + p + "'\"]").forEach((b) => {
+      document.querySelectorAll("[data-on-click^=\"setAccessMethod('" + p + "'\"]").forEach((b) => {   // (step F2) the handlers are data-on-click: the chosen one is shown pressed
         b.classList.toggle('active', b.dataset.access === v);
       });
       const phase = document.getElementById(p + 'UfplsPhase');

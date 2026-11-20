@@ -714,8 +714,6 @@
  "shown": {
   "age-only|age.today|full": 1,
   "age-only|age.today|simple": 2,
-  "age-only|income.step.0.beforeTax|simple": 2,
-  "age-only|income.step.0.monthAfterTax|simple": 1,
   "age-only|isa.today|simple": 2,
   "age-only|lock.state|full": 16,
   "age-only|lock.state|simple": 1,
@@ -2125,8 +2123,6 @@
   "saver-payin|way.name|simple": 1,
   "saver-payin|yearsToGo|full": 1,
   "saver-payin|yearsToGo|simple": 1,
-  "wizard-defaults|income.step.0.beforeTax|simple": 2,
-  "wizard-defaults|income.step.0.monthAfterTax|simple": 1,
   "wizard-defaults|isa.today|simple": 2,
   "wizard-defaults|lock.state|full": 16,
   "wizard-defaults|lock.state|simple": 2,

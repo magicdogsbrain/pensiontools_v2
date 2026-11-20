@@ -31,7 +31,7 @@ import { validateHousehold } from '../shared/household.js';
 import { bandIndexes, STEP } from '../shared/band.js';
 import { potsShareOf, potsNeedByYear } from '../shared/toEngine.js';
 import { shapeOfAnswer, markShapeMoves } from '../shared/shapeAnswer.js';
-import { stopAtPlan, createStopRunner, verdictAt, bandAt, phasesAt, coverAt, leftAtStop } from '../shared/stopAt.js';
+import { stopAtPlan, createStopRunner, verdictAt, bandAt, phasesAt, coverAt, leftAtStop, weighingPlansOf } from '../shared/stopAt.js';
 import { weigherOf } from '../shared/weigh.js';
 import { livesList } from '../shared/lives.js';
 import { lifeFactsOf } from '../shared/lastsWords.js';
@@ -410,7 +410,7 @@ function stressCaseOnPlanPath(inputs, household, sp, pc, startAge, env, defaulte
   const { weigher, toMonth, planToAge } = pc;
   const capped = Boolean(pc.capped) || planToAge < inputs.endAge;
   const plan = runner.plan;
-  const runPlan = capped && !plan.runCapped ? { ...plan, runCapped: true, years: Math.min(plan.years, planToAge - plan.startAge) } : plan;
+  const { runPlan } = weighingPlansOf(sp, runner, inputs.endAge);
   const chance = { planToAge, weightToAge: weigher.weighted ? weigher.weightToAge : planToAge, horizonRule: horizonRuleOf({ defaulted: defaulted.includes('endAge'), capped }) };
   const lf = lifeFactsOf({ chance, basis: levelBasis(level, weigher, inputs, planToAge), level }, weigher, runPlan, inputs);
   const monthsAt = ({ H, shock = null, dragPct = 0 }) => {
@@ -464,7 +464,8 @@ export function answerOnLives(checked, env, ctx) {
   const planToAge = pc ? pc.planToAge : plan.endAge;
   const toMonth = pc ? pc.toMonth : 12 * (planToAge - plan.startAge);
   const capped = pc ? Boolean(pc.capped) || pc.planToAge < inputs.endAge : Boolean(plan.runCapped);
-  const runPlan = pc ? (capped && !runner.plan.runCapped ? { ...runner.plan, runCapped: true, years: Math.min(runner.plan.years, planToAge - runner.plan.startAge) } : runner.plan) : plan;
+  // the plans the weighing words read: on the plan path the kept plan's run and its words plan (shared/stopAt.js)
+  const { runPlan, wordsPlan } = pc ? weighingPlansOf(sp, runner, inputs.endAge) : { runPlan: plan, wordsPlan: plan };
   const shownMonthly = band.levels[level].monthly;
   const levels = Object.fromEntries(LEVEL_IDS.map((id) => [id, { monthly: band.levels[id].monthly, yearly: band.levels[id].yearly, weighted: band.levels[id].chance.weighted, fixedAge: band.levels[id].chance.fixedAge }]));
   const closedYears = closedYearsOf(inputs, sp, band, env);
@@ -502,7 +503,7 @@ export function answerOnLives(checked, env, ctx) {
     const v = verdictAt(sp, runner, inputs.take * 12, { weigher, level, toMonth });
     take = { perMonth: inputs.take, lasted: v.lasted, runOutAge: v.runOutAge, covered: v.verdict === 'yes', weighted: v.weighted, verdict: v.verdict,
       phases: phasesAt(sp, inputs.take * 12).map(asCPhase) };
-    if (weigher.weighted && inputs.take > 0) takeSf = shortfallOf(plan, v.runOutMonths, inputs.take * 12, { toMonth, left: leftAtStop(sp, runner, inputs.take * 12, v.runOutMonths, toMonth) });
+    if (weigher.weighted && inputs.take > 0) takeSf = shortfallOf(wordsPlan, v.runOutMonths, inputs.take * 12, { toMonth, left: leftAtStop(sp, runner, inputs.take * 12, v.runOutMonths, toMonth) });
   }
 
   const mid = sp.middling;
@@ -545,7 +546,7 @@ export function answerOnLives(checked, env, ctx) {
   // 7.8.0, weighing: what the words of the chance read, and the shortfall at the level's amount
   const weighing = weigher.weighted
     ? { lf: lifeFactsOf(result, weigher, runPlan, inputs),
-      sf: shownMonthly > 0 ? shortfallOf(plan, band.levels[level].months, shownMonthly * 12, { toMonth, left: leftAtStop(sp, runner, shownMonthly * 12, band.levels[level].months, toMonth) }) : null, takeSf } : null;
+      sf: shownMonthly > 0 ? shortfallOf(wordsPlan, band.levels[level].months, shownMonthly * 12, { toMonth, left: leftAtStop(sp, runner, shownMonthly * 12, band.levels[level].months, toMonth) }) : null, takeSf } : null;
   // the facts the words read (when the pension opens, the incomes that come anyway and their ages): on the plan path the kept
   // plan's own (its words plan, as C from now reads them), at this start
   const factsPlan = pc ? { ...pc.wordsPlan, yearsFromNow: plan.yearsFromNow, start: plan.start, startMoved: plan.startMoved, movedBy: plan.movedBy, movedFor: plan.movedFor } : plan;

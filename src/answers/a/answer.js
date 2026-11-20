@@ -36,7 +36,7 @@ import { outOfTen } from '../shared/format.js';
 import { agesToShow, spendLevelAMonth, handOverToC, askedAbout, stopYearsOf, shapeOfInputs } from '../shared/schemaParts.js';
 import { livesList } from '../shared/lives.js';
 import { savingRows } from '../shared/saving.js';
-import { stopAtPlan, createStopRunner, verdictAt, bandAt, phasesAt, coverAt, leftAtStop } from '../shared/stopAt.js';
+import { stopAtPlan, createStopRunner, verdictAt, bandAt, phasesAt, coverAt, leftAtStop, weighingPlansOf } from '../shared/stopAt.js';
 import { weigherOf, runToAgeOfInputs } from '../shared/weigh.js';
 import { lifeFactsOf } from '../shared/lastsWords.js';
 import { shortfallOf } from '../shared/shortfall.js';
@@ -639,9 +639,11 @@ export function answerA(inputs, env) {
     if (status === 'ok') {
       // (and what is left at the plan-to age at the shown stop's spend: each life's runs stopped at that month)
       const left = leftAtStop(sc.sp, sc.runner, sc.spendAYear, sc.verdict.runOutMonths, sc.at.toMonth);
-      weighing = { lf: lifeFactsOf(result, sc.at.weigher, plan, ins), sf: shortfallOf(plan, sc.verdict.runOutMonths, sc.spendAYear, { toMonth: sc.at.toMonth, left }) };
+      // (on the plan path the kept plan's run and words plan, as C and D read them: shared/stopAt.js weighingPlansOf)
+      const wp = weighingPlansOf(sc.sp, sc.runner, ins.endAge);
+      weighing = { lf: lifeFactsOf(result, sc.at.weigher, wp.runPlan, ins), sf: shortfallOf(wp.wordsPlan, sc.verdict.runOutMonths, sc.spendAYear, { toMonth: sc.at.toMonth, left }) };
     }
-    else weighing = { lf: lifeFactsOf(result, sc.at.weigher, plan, ins), sf: null };
+    else weighing = { lf: lifeFactsOf(result, sc.at.weigher, weighingPlansOf(sc.sp, sc.runner, ins.endAge).runPlan, ins), sf: null };
   }
   textsFor(result, {
     usedDefault: defaultedFields(ins, env), fullStatePensionAYear: named.fullStatePensionAYear, historyStartYear: historyStartYear(),

@@ -39,6 +39,8 @@
  * The households are made up (Alex and Sam, round figures).
  */
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { answerD, D1, D3, D5, D7, D9, withPlanPath } from '../d/_d.js';
 import { runStressStrip } from '../../../src/answers/shared/stressStrip.js';
 import { answerC } from '../c/_c.js';
@@ -433,4 +435,41 @@ describe('C from a later start: C\'s own keep, the same plan as A\'s (one person
       expect(plan.verdict).toBe('yes');
     });
   }
+});
+
+/**
+ * A, B and C from a later start: the weighing words (when the money runs out, how long and how much of the plan is still
+ * paid, what still comes in) are the kept plan's own (shared/stopAt.js weighingPlansOf: the kept run and its words plan),
+ * as D's and C's from now are. Before, these three read the household's stop plan for the words beside the kept plan's
+ * runs, which counts a future that ran out in month m as m/12 years paid, where the plan counts the whole years before the
+ * year it ran out in (planShortfallOf). The worked fixtures (40 futures, 30 September 2026), each against the kept plan's
+ * own reading: A1 (55, £300,000, £800 a month going in, £60,000 savings, £2,000 a month from 60) "still pays for 30 of
+ * the 40 years to 100" (the household's rule said 31); B3 (58, £90,000, £300 a month, £15,000 savings, £1,800 a month from
+ * 65) 15 of the 35 years (said 16); C's F4 (55, £275,000, £500 and £300 a month going in, from 67) "about £8 of every £10"
+ * (said £9).
+ */
+const fixtureOf = (q, name) => JSON.parse(readFileSync(resolve(process.cwd(), `tests/v7/fixtures/${q}/${name}.json`), 'utf8'));
+describe('A, B and C from a later start: the shortfall words are the kept plan\'s (one person, the plan path)', () => {
+  it('A1 at 60: how long it still pays is the kept plan\'s', () => {
+    const f = fixtureOf('a', 'A1-stop-soon');
+    const a = answerA(f.inputs, { ...f.env, detail: 'chart' });
+    const plan = planShortfall(keptPlansOf('a', a, f.env).yours);
+    expect(plan.howLong).toMatchObject({ paid: 30, of: 40 });
+    expect(a.sentences.howLong.text).toContain(` ${plan.howLong.paid} of the ${plan.howLong.of} years`);
+  }, 60000);
+  it('B3, paying in as now: how long it still pays is the kept plan\'s', () => {
+    const f = fixtureOf('b', 'B3-late-start');
+    const b = answerB(f.inputs, { ...f.env, detail: 'answer' });
+    const plan = planShortfall(keptPlansOf('b', b, f.env).yours);
+    expect(plan.howLong).toMatchObject({ paid: 15, of: 35 });
+    expect(b.sentences.howLong.text).toContain(` ${plan.howLong.paid} of the ${plan.howLong.of} years`);
+  }, 60000);
+  it('C F4 from 67, at its level\'s amount: how much is still paid is the kept plan\'s', () => {
+    const f = fixtureOf('c', 'F4-still-paying-in');
+    const c = answerC(f.inputs, f.env);
+    const plan = planShortfall(keptPlansOf('c', c, f.env).yours);
+    // (the words say whole tenths, rounded down: lastsWords.howMuchParts)
+    expect(Math.floor(plan.howMuch * 10 + 1e-9)).toBe(8);
+    expect(c.sentences.howMuch.text).toContain(`about £${Math.floor(plan.howMuch * 10 + 1e-9)} of every £10`);
+  }, 60000);
 });

@@ -991,6 +991,22 @@ function middlingAtJoin(sp, plan, H, q) {
 }
 
 /**
+ * The plans the weighing words read (when the money runs out, how long, how much still comes in), one function for A, B
+ * and C from a later start: on the plan path (one person, `sp.kept`) the kept plan's own — its run, cut at its plan-to age
+ * when that is below the end age asked (ruling H), for the chance's facts (lastsWords.lifeFactsOf), and its words plan for
+ * the shortfall (shortfall.shortfallOf), as C from now and D read them; else the household's run, both.
+ * → { runPlan, wordsPlan }
+ */
+export function weighingPlansOf(sp, runner, endAge) {
+  const pc = sp.kept;
+  if (!pc) return { runPlan: sp.plan, wordsPlan: sp.plan };
+  const plan = runner.plan;
+  const capped = Boolean(pc.capped) || pc.planToAge < endAge;
+  const runPlan = capped && !plan.runCapped ? { ...plan, runCapped: true, years: Math.min(plan.years, pc.planToAge - plan.startAge) } : plan;
+  return { runPlan, wordsPlan: pc.wordsPlan };
+}
+
+/**
  * The phases of a spend from the stop (C's phasesOf on breakdownAt), at the middling pots or the pots given (per person,
  * plan order, { pension, isa }): £ a month at today's prices. Added for A and B: `work` (part-time earnings before
  * tax), `fromWork` (what they add after tax), `pensionOpen` (false while a pension is closed: nothing from it), and

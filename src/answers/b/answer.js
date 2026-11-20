@@ -57,7 +57,7 @@ import { livesList } from '../shared/lives.js';
 import { savingRows } from '../shared/saving.js';
 import { stopAtPlan, createStopRunner, verdictAt, bandAt, phasesAt, savingsNeeded, potNeededAt, potNeeded,
   lastsWithin, verdictAtPayIns, countsAtPayIns, leastPayIn, coverAt, lastsWithinWeighted, potNeededWeighted, verdictAtPot, leftAtStop,
-  potRunners, leastPotsOf } from '../shared/stopAt.js';
+  potRunners, leastPotsOf, weighingPlansOf } from '../shared/stopAt.js';
 import { shortfallOf } from '../shared/shortfall.js';
 import { gridToShow, spendLevelAMonth, handOverToC, askedAbout, stopYearsOf, payInParts } from '../shared/schemaParts.js';
 import { apartOf, before2028, payKeepsPensions } from '../shared/apart.js';
@@ -874,8 +874,10 @@ export function answerB(inputs, env) {
   if (weigher.weighted) {
     result.basis.weighted = true;
     // what happens if the money runs out, paying in as now (the verdict's figures: today's pay-ins, the whole of each future)
-    facts.weighing = { lf: lifeFactsOf(result, weigher, plan, inp),
-      sf: status === 'ok' ? shortfallOf(plan, whole.runOutMonths, base.H(H), { toMonth: base.at.toMonth, left: leftAtStop(sp, runner, base.H(H), whole.runOutMonths, base.at.toMonth) }) : null };
+    // (on the plan path the kept plan's run and words plan, as C and D read them: shared/stopAt.js weighingPlansOf)
+    const wp = weighingPlansOf(sp, runner, inp.endAge);
+    facts.weighing = { lf: lifeFactsOf(result, weigher, wp.runPlan, inp),
+      sf: status === 'ok' ? shortfallOf(wp.wordsPlan, whole.runOutMonths, base.H(H), { toMonth: base.at.toMonth, left: leftAtStop(sp, runner, base.H(H), whole.runOutMonths, base.at.toMonth) }) : null };
   }
   weighWords(weigher.weighted ? { level, couple: facts.couple } : null);
   try {

@@ -472,15 +472,15 @@
           {
             "id": "life-plan-to",
             "field": "endAge",
-            "source": "entered",
+            "source": "rule",
             "value": 98,
-            "text": "Your plan runs to 98, the age you chose. About 1 in 10 women your age live longer than that, so we still follow each future on to 104.",
+            "text": "We tested to 98, the age your plan runs to. About 1 in 10 women your age live longer than that, so we still follow each future on to 104.",
             "parts": [
-              "Your plan runs to ",
+              "We tested to ",
               {
                 "fixed": "98"
               },
-              ", the age you chose.",
+              ", the age your plan runs to.",
               " About ",
               {
                 "fixed": "1"

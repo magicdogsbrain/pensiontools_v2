@@ -4,7 +4,7 @@
  */
 import { esc } from './ReleaseNotesView.js';
 import { spanText, money } from '../../reading/format.js';
-import { monthWords as monthYearWords } from '../../answers/plan/dates.js';
+import { monthWords as monthYearWords, dayWords } from '../../answers/plan/dates.js';
 import { isaGrowthAssumptionText } from '../isaGrowthSetting.js';
 import { decisionRunWords, mixWords } from '../../services/StrategyWords.js';
 import { assumedStatePensionWords } from '../plannerWords.js';
@@ -73,7 +73,7 @@ export function planDocumentHeaderHtml(doc) {
   const d = doc || {};
   const asOf = potsAsOfWords(d);
   return '<div class="rpt-header"><h1>Plan document — ' + esc(d.planName || 'My plan') + '</h1>'
-    + '<div class="rpt-sub">Locked ' + markFact('lock.date', esc(dateGB(d.lockedAt))) + (d.createdAt && d.createdAt !== d.lockedAt ? ' · document created ' + esc(dateGB(d.createdAt)) : '') + ' · PensionTools v' + esc(d.appVersion || '') + ', engine ' + esc(d.engineVersion || '') + '</div>'
+    + '<div class="rpt-sub">Locked ' + markFact('lock.date', esc(dayWords(d.lockedAt) || dateGB(d.lockedAt))) + (d.createdAt && d.createdAt !== d.lockedAt ? ' · document created ' + esc(dateGB(d.createdAt)) : '') + ' · PensionTools v' + esc(d.appVersion || '') + ', engine ' + esc(d.engineVersion || '') + '</div>'
     + '<table class="rpt-meta"><tr><td>Strategy</td><td>' + (strategyNameOf(d.strategy) ? markFact('way.name', esc(strategyNameOf(d.strategy))) : '—') + '</td><td>' + (startedAtLock(d) ? 'Plan started' : 'Plan starts') + '</td><td>' + esc(d.decisionRun?.year0 || '—') + (asOf ? ' (locked in plan year ' + asOf.planYear + ')' : '') + '</td></tr>'
     + '<tr><td>Priced on</td><td>' + gbp(d.pots?.sipp) + (d.pots?.isa ? (d.pots.isaPolicy === 'hold' ? ', ISA ' + gbp(d.pots.isa) + ' held aside' : ' + ISA ' + gbp(d.pots.isa)) : '') + (d.pots?.gia ? ' + GIA ' + gbp(d.pots.gia) : '') + '</td><td>First step</td><td>' + (d.steps?.[0] ? gbp(d.steps[0].amount) + '/yr from age ' + esc(String(d.steps[0].fromAge)) : '—') + '</td></tr></table></div>';
 }
@@ -336,8 +336,8 @@ function staleText(stale) {
   return ' ' + items.join(' and ') + ': ' + todo + ' for a closer reading.';
 }
 const VERDICT = {
-  'below p10': (P) => '<strong>below the plan\'s 1-in-10 bad line</strong> (' + gbp(P.p10) + ')',
-  'p10–p50': (P) => 'between the 1-in-10 bad line (' + gbp(P.p10) + ') and the median (' + markFact('pot.planMiddle', money(P.p50)) + ')',
+  'below p10': (P) => '<strong>below the plan\'s 1-in-10 bad line</strong> (' + markFact('pot.planLow', money(P.p10)) + ')',
+  'p10–p50': (P) => 'between the 1-in-10 bad line (' + markFact('pot.planLow', money(P.p10)) + ') and the median (' + markFact('pot.planMiddle', money(P.p50)) + ')',
   'p50–p90': (P) => 'between the median (' + markFact('pot.planMiddle', money(P.p50)) + ') and the 1-in-10 good line (' + gbp(P.p90) + ')',
   'above p90': (P) => 'above the plan\'s 1-in-10 good line (' + gbp(P.p90) + ')'
 };

@@ -315,6 +315,8 @@ export const PLAN = {
     'where.step': 'Step {n} of {of} of your plan',
     'where.pot': 'Your pot',
     'where.potMid': 'The plan’s middle line for now',
+    /** The plan's 1-in-10 bad line for now, said where the full view says it: the pot below it or between it and the middle. */
+    'where.potLow': 'The plan’s 1-in-10 bad line for now',
     /** The pot's parts with their dates, when they come from different months (7.12.0): the sentence carries its own words. */
     'where.potParts': '',
     /** The band counts the ISA and no figure for it exists anywhere (7.12.0). */

@@ -6,6 +6,7 @@
 import { expect } from '@playwright/test';
 import { STRATEGY_NAMES } from '../../src/strategies/stressTest.js';
 import { shownPlanName } from '../../src/services/PlanName.js';
+import { LOCK_WORDS } from '../../src/reading/labels.js';
 import { closeNews } from '../scenarios/routes.js';
 
 /** The facts a page shows as words (collect.js counts them outside a mark): the stage, the lock, the way, the plan's name. */
@@ -73,5 +74,6 @@ export async function fullTab(page, { tab, sub }) {
 }
 
 /** The full view's chip says the open plan is locked. */
-export const fullLocked = async (page) => /locked/.test(String(await page.locator('[data-fact="lock.state"]').first().innerText().catch(() => '')));
+// (step F3) the chip says the simple view's two words (src/reading/labels.js LOCK_WORDS)
+export const fullLocked = async (page) => String(await page.locator('[data-fact="lock.state"]').first().innerText().catch(() => '')).trim() === LOCK_WORDS.locked;
 

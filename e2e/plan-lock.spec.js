@@ -171,7 +171,7 @@ test.describe('"Lock the plan", without an account', () => {
     await expect(page.locator('#landingTryGuest')).toBeHidden();
     await expect(page.locator('#openPlaceNote')).toContainText('Opened from the simple view.');
     await expect(page.locator('#scenarioActiveName')).toHaveText('Alex’s plan');
-    await expect(page.locator('#planLockChip')).toContainText('locked', { timeout: 45_000 });
+    await expect(page.locator('#planLockChip [data-fact="lock.state"]')).toHaveText('Locked', { timeout: 45_000 });   // the simple view's word (step F3)
     await expect(page.locator('.sub-tab[data-decisiontab="plandoc"]')).toHaveClass(/active/);
     await expect(page.locator('#planDocumentPage')).toContainText('Alex’s plan', { timeout: 45_000 });
     await expect(page.locator('#planDocumentPage')).not.toContainText('has no plan document yet');

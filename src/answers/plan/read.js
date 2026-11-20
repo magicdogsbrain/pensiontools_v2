@@ -13,6 +13,7 @@
  * Words with {slots} are filled by the screen from copy/plan.js; the ids here match that file. A sentence's figures
  * are `parts` ({ key, kind }) into the step's `figures`, so the screen draws each through Money (data-key, data-value).
  */
+import { LOCK_WORDS } from '../../reading/labels.js';
 import { READ_FAULT_WORDS } from '../../reading/readFault.js';
 import { planStage, settingsForScreen, whereAmIFor, whereAmIInputs, moveInputs, thisMonth, historyAscending, planMoneyOf } from '../../services/PlanReading.js';
 import { CONTRACT_STRATEGIES, planToAgeOfDefinition, guardrailOf, pricesMonthKeyOf } from '../../services/PlanDocument.js';
@@ -272,6 +273,8 @@ export function planRows(entries, { today, source = 'account' } = {}) {
 // ---- figures and sentences -------------------------------------------------------------------------------------------
 
 const money = (key) => ({ key, kind: 'money' });
+/** The pot's band says the 1-in-10 bad line (the full view's strip, PlanDocumentView VERDICT): below it, or between it and the middle. */
+const nearLowLine = (P) => !!P && P.p10 != null && (P.verdict === 'band' || (!P.verdict && P.band)) && (P.band === 'below p10' || P.band === 'p10–p50');
 const count = (key) => ({ key, kind: 'count' });
 /** A pot worked out over many futures: the nearest £1,000 (the one rounding of the pot at the stop, src/reading/format.js). */
 const potK = (key) => ({ key, kind: 'pot' });
@@ -493,6 +496,9 @@ function whereStep(C) {
         ? [money('pot'), ' at the prices of ' + pricesMonthOf(plan.planDocument) + ' (', money(pensionOnly ? 'potPension' : 'potActual'), ' as recorded', ...(named ? [': ', ...inLine] : []), ').']
         : [money(pensionOnly ? 'potPension' : 'pot'), ...(named ? [' (', ...inLine, ')'] : []), '.'], figures, sourceOf(P.source === 'holdings' ? 'hold' : 'record', P.asOf, now)));
       if (P.p50 != null && !older && !w.contract) { figures.potMid = r0(P.p50); lines.push(line('where.potMid', [money('potMid'), '.'], figures, sourceOf('locked', lockedAt, now))); }
+      // (lead4.md D24, R8; step F3) the 1-in-10 bad line, where the full view's strip says it: the pot below it, or between it
+      // and the middle — so a pot under the middle line is read against the bad line too
+      if (nearLowLine(P) && !older && !w.contract) { figures.potLow = r0(P.p10); lines.push(line('where.potLow', [money('potLow'), '.'], figures, sourceOf('locked', lockedAt, now))); }
       const ms = parts.map((x) => ym(x.asOf)).filter(Boolean);
       if (parts.length > 1 && !together && ms.length === parts.length && Math.abs(monthsBetween(ms[0], ms[1])) > 1) {
         const words = parts.map((x, i) => [(x.key === 'isa' ? 'ISA ' : 'Pension '), money('potPart' + i), ', ' + whence(x) + '.']);
@@ -916,13 +922,13 @@ function lockStep(C) {
   const figures = {};
   if (locked) {
     const lockedOn = dayWords(lockedAtOf(plan));
-    return { done: true, result: sentence('lock.locked', ['Locked ' + lockedOn], figures), figures, lines: [], buttons: [link('seeLocked', '#/plan/' + plan.id + '/plan')], notes: [], locked: true, lockedOn, saver, strategyId, bought, hasDocument: !!plan.planDocument };
+    return { done: true, result: sentence('lock.locked', [LOCK_WORDS.locked + ' ' + lockedOn], figures), figures, lines: [], buttons: [link('seeLocked', '#/plan/' + plan.id + '/plan')], notes: [], locked: true, lockedOn, saver, strategyId, bought, hasDocument: !!plan.planDocument };
   }
   const notes = ['lock.what'];
   if (saver) notes.push('lock.saver');
   // a saver's lock says when Month by month opens: the month they stop work (saving-enough-and-check-in.md 4.3)
   const stopMonth = saver ? (monthWords(stage.startMonth) || null) : null;
-  return { done: false, result: sentence('lock.notLocked', ['Not locked'], figures), figures, lines: [], buttons: [], notes, locked: false, lockedOn: null, saver, stopMonth, strategyId, bought, hasDocument: false };
+  return { done: false, result: sentence('lock.notLocked', [LOCK_WORDS.notLocked], figures), figures, lines: [], buttons: [], notes, locked: false, lockedOn: null, saver, stopMonth, strategyId, bought, hasDocument: false };
 }
 
 /** What you hold (2.3 `hold`). */

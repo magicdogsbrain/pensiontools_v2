@@ -67,6 +67,7 @@ export const FACT_FORMAT = Object.freeze({
   'cash.today': money,
   'pot.againstPlan': money,
   'pot.planMiddle': money,
+  'pot.planLow': money,
   'pot.atStop': moneyK,
   'pot.atStop.low': moneyK,
   'pot.atStop.high': moneyK,

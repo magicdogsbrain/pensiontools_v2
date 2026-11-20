@@ -32,6 +32,8 @@ export const FACT = Object.freeze({
   POT_AGAINST_PLAN: 'pot.againstPlan',
   // the plan's middle line for the pot by now (the band's median at this month, in the same prices)
   POT_PLAN_MIDDLE: 'pot.planMiddle',
+  // the plan's 1-in-10 bad line by now, where the pot is near it (below it, or between it and the middle): both views say it
+  POT_PLAN_LOW: 'pot.planLow',
   // the pot at the stop, with its low and high where shown
   POT_AT_STOP: 'pot.atStop',
   POT_AT_STOP_LOW: 'pot.atStop.low',

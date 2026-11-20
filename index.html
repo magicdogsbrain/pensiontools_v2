@@ -4251,7 +4251,7 @@
     import { emptyHoldings, normaliseHoldings, linesFromTaggedFunds, holdingsSummary, stampHoldings, holdingsWith } from './src/services/HoldingsRecord.js';
     import { switchStrategy, cleanParams, activeParams, sortLegacyParams } from './src/services/StrategyState.js';
     import { switchPatch, restoredParamsFor, dialParams } from './src/services/PlanCommit.js';   // the strategy switch as one pure patch (6.40.0)
-    import { compareAll, ladderYearsOfPlan, rankedWays, wayCostOf } from './src/strategies/compareRunner.js'; import { FACT, factId } from './src/reading/facts.js'; import { wayFactIds, wayNameOf, wayReasonOf, wayCannotText, boughtWhenOf, BOUGHT_WORDS } from './src/reading/ways.js'; import { labelOf } from './src/reading/labels.js';   // the nine ways through the one test, one loop (6.40.0); the Compare allocations cells (6.41.0)
+    import { compareAll, ladderYearsOfPlan, rankedWays, wayCostOf } from './src/strategies/compareRunner.js'; import { FACT, factId } from './src/reading/facts.js'; import { LOCK_WORDS, labelOf } from './src/reading/labels.js'; import { dayWords } from './src/answers/plan/dates.js'; import { wayFactIds, wayNameOf, wayReasonOf, wayCannotText, boughtWhenOf, BOUGHT_WORDS } from './src/reading/ways.js';   // the nine ways through the one test, one loop (6.40.0); the Compare allocations cells (6.41.0)
     import { rotationStatus, rotationBlock, rotationMarket, sellTicketRows } from './src/services/RotationStatus.js';
     import { activeEquity, equityDrawdown, equityProvenance, setEquityOverride } from './src/services/EquityIndex.js'; import { loadMarket, marketStamp, marketLabel } from './src/reading/market.js'; import { marketFolderOf } from './src/reading/marketPlain.js'; import { LAYOUT } from './src/appLayout.js';
     import { enterGuestMode, isGuest, leaveGuestMode, clearGuestData } from './src/firebase/index.js';
@@ -4907,7 +4907,8 @@
       // helper the plan list's card uses too (src/ui/stageWords.js), marked for the parity sweep (lead4.md G1)
       const st = window._lifeStage;
       const words = stageWordsHtml({ placing: st, word: window._stageWord, yearsToGo: window._yearsToGo });
-      chip.innerHTML = markFact('lock.state', locked ? '🔒 locked' : '✏️ draft') + (words ? ' · ' + words : '');
+      // the lock in the simple view's two words (src/reading/labels.js LOCK_WORDS, lead4.md R7; step F3), its sign beside them
+      chip.innerHTML = (locked ? '🔒 ' : '✏️ ') + markFact('lock.state', locked ? LOCK_WORDS.locked : LOCK_WORDS.notLocked) + (words ? ' · ' + words : '');
       if (st && st.key !== 'unknown') chip.dataset.stageWhy = st.reasons.join('; ');
       chip.title = locked
         ? 'This plan’s settings are committed so your recorded entries stay consistent.'
@@ -5655,7 +5656,7 @@
       // The rows are GiltLadderPlan.orderSheetRows's (6.43.0): the rungs that pay, numbered from 1 (cash is row 1 above, so each prints n + 1)
       const liveOrders = orderSheetRows(plan);
       const coveredYears = (plan.years || []).filter((y) => y.from !== 'cash' && y.from !== 'none' && !(y.need > 0));
-      liveOrders.forEach((o) => { h += '<tr><td>' + (o.n + 1) + '</td><td>' + budEsc(o.name.replace('Index-linked Treasury ', 'IL ').replace('Index-Linked Treasury ', 'IL ')) + '</td><td>' + budEsc(o.sedol || '') + '</td><td>' + budEsc(o.tidm || '') + '</td><td' + cellAttr(o.tidm, 'matures') + '>' + budEsc(ukMonth(o.matures)) + '</td><td' + cellAttr(o.tidm, 'pays') + '>' + gbp(o.pays) + '</td><td>' + o.taxYears.map((y) => y + '/' + String(y + 1).slice(2)).join(', ') + (o.taxYears.length > 1 ? ' <span class="hint">(surplus held in cash)</span>' : '') + '</td><td>' + (o.indexRatio ? o.indexRatio.toFixed(3) : '—') + '</td><td>' + (o.nominal ? '<strong' + cellAttr(o.tidm, 'units') + '>' + o.nominal.toLocaleString() + '</strong> units<br><span class="hint">(' + Math.round(o.nominal / 100).toLocaleString() + ' if the screen counts £100 lots)</span>' : '—') + '</td><td><span' + cellAttr(o.tidm, 'cost') + '>' + gbp(o.cost) + '</span><br><span class="hint">+ accrued + fee</span></td></tr>'; });
+      liveOrders.forEach((o) => { h += '<tr><td>' + (o.n + 1) + '</td><td>' + budEsc(o.name.replace('Index-linked Treasury ', 'IL ').replace('Index-Linked Treasury ', 'IL ')) + '</td><td>' + budEsc(o.sedol || '') + '</td><td>' + budEsc(o.tidm || '') + '</td><td' + cellAttr(o.tidm, 'matures') + '>' + budEsc(dayWords(o.matures) || ukMonth(o.matures)) + '</td><td' + cellAttr(o.tidm, 'pays') + '>' + gbp(o.pays) + '</td><td>' + o.taxYears.map((y) => y + '/' + String(y + 1).slice(2)).join(', ') + (o.taxYears.length > 1 ? ' <span class="hint">(surplus held in cash)</span>' : '') + '</td><td>' + (o.indexRatio ? o.indexRatio.toFixed(3) : '—') + '</td><td>' + (o.nominal ? '<strong' + cellAttr(o.tidm, 'units') + '>' + o.nominal.toLocaleString() + '</strong> units<br><span class="hint">(' + Math.round(o.nominal / 100).toLocaleString() + ' if the screen counts £100 lots)</span>' : '—') + '</td><td><span' + cellAttr(o.tidm, 'cost') + '>' + gbp(o.cost) + '</span><br><span class="hint">+ accrued + fee</span></td></tr>'; });
       h += '<tr><td colspan="9"><strong>Total</strong> (' + liveOrders.length + ' gilts + cash)</td><td><strong>' + gbp(Math.round(plan.total)) + '</strong></td></tr></tbody></table></div>';
       if (coveredYears.length) {
         const lumps = (window._ssWindfalls || []).filter((w) => w && w.amount > 0 && w.year != null);
@@ -7017,7 +7018,7 @@
       }
       let doc = null; try { doc = await getActivePlanDocument(); } catch (e) { doc = null; }
       let ds = {}; try { ds = await getDecisionSettingsAsync(); } catch (e) { ds = {}; }
-      const when = ds.lockedAt ? new Date(ds.lockedAt).toLocaleDateString('en-GB') : '';
+      const when = ds.lockedAt ? dayWords(ds.lockedAt) : '';   // the lock's day in the simple view's words ("12 November 2024"; step F3)
       banner.style.display = 'flex'; banner.className = 'lock-banner';
       banner.innerHTML = await stressLockBannerHtml({ when, lockedBy: ds.lockedBy || null, hasDocument: !!doc });   // the words, and a closed plan's (6.56.0): src/ui/planCloseUi.js
       setStressSettingsEnabled(false);

@@ -14,6 +14,8 @@ import { FACT, patternOf } from './facts.js';
 const TODAY = "today's money";
 
 export const STAGE_WORDS = Object.freeze(['Saving', 'Moving', 'Living on it']);
+/** The lock's two words, the same in both views (lead4.md R7; step F3): the full view's chip and the simple view's Lock line. */
+export const LOCK_WORDS = Object.freeze({ locked: 'Locked', notLocked: 'Not locked' });
 /** The stage words by LifeStage.stageOf's key (and a closed plan's): the reading's stage (src/reading/timing.js) draws these. */
 export const STAGE_WORD_OF = Object.freeze({ saving: STAGE_WORDS[0], moving: STAGE_WORDS[1], drawing: STAGE_WORDS[2], closed: 'Closed' });
 
@@ -33,6 +35,7 @@ export const LABELS = Object.freeze({
   [FACT.CASH_TODAY]: { label: 'Cash today', basis: TODAY },
   [FACT.POT_AGAINST_PLAN]: { label: 'Your pot, against the plan', basis: "the prices the plan's figures are in" },
   [FACT.POT_PLAN_MIDDLE]: { label: 'The plan expects by now', basis: "the prices the plan's figures are in" },
+  [FACT.POT_PLAN_LOW]: { label: 'The plan’s 1-in-10 bad line for now', basis: "the prices the plan's figures are in" },
   [FACT.POT_AT_STOP]: { label: 'Pension when you stop, middle', basis: TODAY },   // the band's words in both views
   [FACT.POT_AT_STOP_LOW]: { label: 'Pension when you stop, low end', basis: TODAY },
   [FACT.POT_AT_STOP_HIGH]: { label: 'Pension when you stop, high end', basis: TODAY },

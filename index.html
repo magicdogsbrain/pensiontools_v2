@@ -4298,7 +4298,7 @@
     import { hasCloudData, wipeAllUserData, loadUserProfile, saveUserProfile, guestSnapshot, loadAllScenarios, createScenario as createScenarioDoc, saveScenario as saveScenarioDoc, loadScenario as loadScenarioDoc } from './src/firebase/FirestoreService.js';
     import { startSeedEntry, planFromAnswer, planTargetGuide, budgetSummaryWords } from './src/ui/components/NewPlanFromSeed.js'; import { householdStartWords } from './src/services/PlanSeed.js';   // a plan from a V7 answer (V7 design: save-as-plan.md, C.2); the Household tab's line when one plan begins later (couples-different-years.md 7)
     import { startSummaryHtml, potsAtRetirementLine } from './src/ui/startingPotsWords.js'; import { potAtStop } from './src/reading/atStop.js'; import { stepBoxValue, stepFromBox, firstStepNoteOfPlan, planBandsOf, documentStepsOf, accessAssumedNoteOf, spAssumedNoteOf } from './src/ui/incomeStepBox.js'; import { statePensionOf } from './src/reading/statePension.js'; import { spKindOfSettings, spKindForSave, FULL_SP_WEEKLY } from './src/ui/spKindBox.js'; import { stageWordsHtml, whereYouAreHtml } from './src/ui/stageWords.js'; import { stage as readingStage, yearsToGo as readingYearsToGo, ageToday as readingAgeToday, planName as readingPlanName } from './src/reading/timing.js'; import { formatFact, money as fmtMoney } from './src/reading/format.js'; import { budgetLineOf } from './src/reading/budget.js'; import { isaToday as readingIsaToday, pensionBoxOf, isaBoxOf, settingsOf as readingSettingsOf } from './src/reading/money.js'; import { savingInputsOf } from './src/services/PotsAtStop.js'; import { shownPlanName } from './src/services/PlanName.js';
-    import { thisYearOfPlan, yearIncomeHtml, yearChangedHtml, yearPlanHtml } from './src/ui/thisYearHtml.js'; import { setUpAgainConfig } from './src/reading/thisYear.js'; import { incomeStepsOf as incomeStepsOfPlan } from './src/reading/income.js';
+    import { thisYearOfPlan, yearIncomeHtml, yearFromHtml, yearChangedHtml, yearPlanHtml } from './src/ui/thisYearHtml.js'; import { setUpAgainConfig } from './src/reading/thisYear.js'; import { incomeStepsOf as incomeStepsOfPlan } from './src/reading/income.js';
     import { tick as guestTick, readMinutes as guestMinutes, pendingNag as guestPendingNag, markNagShown as guestMarkNag, isBlocked as guestBlocked, bannerText as guestBannerText, savedChipText, stashHandoff as guestStash, readHandoff as guestReadHandoff, clearHandoff as guestClearHandoff, GUEST_ALLOWANCE_MINUTES } from './src/services/GuestMeter.js';
     // Release notes: data + renderers (see RELEASING.md). The pop-up and the What's new page read the same entries.
     import { RELEASES, releasesSince, compareVersions } from './src/releases.js';
@@ -12402,6 +12402,10 @@
         <div class="tax-year-detail-card">
           <h3>Income Configuration</h3>
           <div class="tax-year-grid">
+            <div class="tax-year-field">
+              <label>Set up from</label>
+              <span class="value">${yearFromHtml(ty, { current: taxYear === getCurrentTaxYear() })}</span>
+            </div>
             <div class="tax-year-field">
               <label>Income for the year as set up (before tax, all sources)</label>
               <span class="value">${yearIncomeHtml(ty, { current: taxYear === getCurrentTaxYear() })}</span>

@@ -89,3 +89,20 @@ describe('the page\'s names are the one state', () => {
     for (const re of [/let selectedHistoryDate\b/, /let _ladderPosCache\b/, /^ {4}window\._entryMonthBeforePaid = null;/m, /let selectedHistoryYear\b/, /let selectedTaxYear\b/, /let _budLastRemoved\b/, /window\._stratDials = \{\}/, /window\._customAlloc = window\._customAlloc \|\| \{\}/, /window\._allocMode = window\._allocMode \|\| \{\}/, /\|\| window\._decisionAnchor/]) expect(src).not.toMatch(re);
   });
 });
+
+describe('the gilt-rotation watch keeps its block and cut age in the plan\'s state (step S open problem)', () => {
+  it('both are plan state, dropped on a change of plan and after a write', () => {
+    expect(PLAN_STATE_FIELDS).toEqual(expect.arrayContaining(['rotBlock', 'rotCutAge']));
+    const st = createPlanState();
+    st.rotBlock = { orders: [{ tidm: 'X' }], ages: [80, 90] }; st.rotCutAge = 78;
+    st.dropWorked();
+    expect(st.rotBlock).toBeNull(); expect(st.rotCutAge).toBeNull();
+  });
+  it('index.html: no page global for them; a plan with no block clears the one before', async () => {
+    const { readFileSync } = await import('node:fs');
+    const src = readFileSync('index.html', 'utf8');
+    expect(src).not.toMatch(/window\._rot(Block|CutAge)/);
+    const fn = src.slice(src.indexOf('function rotationWatchHtml(planArg)'), src.indexOf('function rotationWatchHtml(planArg)') + 900);
+    expect(fn).toMatch(/planState\.rotBlock = null;/);
+  });
+});

@@ -29,11 +29,13 @@ export const PLAN_STATE_FIELDS = Object.freeze([
   'customAlloc', 'allocMode', 'decisionAnchor',
   // the age chosen for the Strategies Overview's bars, the month chosen in History, the month a "payment already made" tick
   // moved the entry from, and the gilt ladder worked out for the month's overlay (dropped after a write too)
-  'cmpAge', 'historyDate', 'entryMonthBeforePaid', 'ladderPos'
+  'cmpAge', 'historyDate', 'entryMonthBeforePaid', 'ladderPos',
+  // the gilt-rotation watch: the block it would sell and the age below which nothing is sold (worked out from the plan)
+  'rotBlock', 'rotCutAge'
 ]);
 
 /** The fields worked out from the plan (dropped after a write); the rest are what is being edited. */
-const WORKED = Object.freeze(['budGuide', 'acProjection', 'acHoldingsProps', 'acMixOn', 'shapeRefs', 'oneTest', 'cmpCache', 'latestStrategyStress', 'lifeStage', 'transitionLast', 'beAge', 'ffHorizon', 'ladderPos']);
+const WORKED = Object.freeze(['budGuide', 'acProjection', 'acHoldingsProps', 'acMixOn', 'shapeRefs', 'oneTest', 'cmpCache', 'latestStrategyStress', 'lifeStage', 'transitionLast', 'beAge', 'ffHorizon', 'ladderPos', 'rotBlock', 'rotCutAge']);
 
 const fresh = () => ({
   budget: null, budLoaded: false, budGuide: null, budFor: null,
@@ -43,7 +45,8 @@ const fresh = () => ({
   holdingsDraft: null, holdingsDraftFor: null, transitionLast: null, lifeStage: null, stressFormBase: null,
   stratDials: {}, beAge: null, ffHorizon: null, hhLimit: null, budLastRemoved: null, budImportUndo: null, budPlusTen: false,
   historyYear: 'all', taxYear: null, customAlloc: {}, allocMode: {}, decisionAnchor: null,
-  cmpAge: null, historyDate: null, entryMonthBeforePaid: null, ladderPos: null
+  cmpAge: null, historyDate: null, entryMonthBeforePaid: null, ladderPos: null,
+  rotBlock: null, rotCutAge: null
 });
 
 /** A field's value for a plan just opened (a new object each time). */

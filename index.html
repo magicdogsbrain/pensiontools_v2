@@ -7887,14 +7887,15 @@
     // the trigger status from the nightly equity feed. See research/rotation-plan-aug-2026.md.
     function rotationWatchHtml(planArg) {
       const plan = planArg || (planState.ladderPos && planState.ladderPos.plan);
-      const cutAge = window._rotCutAge || 75;
+      const cutAge = planState.rotCutAge || 75;
       let blockLine = 'The long rungs are dry powder that earns its real yield while you hold it.';
+      planState.rotBlock = null;   // this plan's block or none: never the block of the plan open before
       if (plan) {
         // The block is RotationStatus.rotationBlock's (6.43.0): the rungs, the ages, the value at the prices at lock, the income
         try {
           const blk = rotationBlock(plan, cutAge);
           if (blk) {
-            window._rotBlock = { orders: blk.orders, ages: blk.ages };
+            planState.rotBlock = { orders: blk.orders, ages: blk.ages };
             blockLine = 'The block: <strong>' + blk.rungs + ' rungs funding ages ' + blk.ages[0] + '–' + blk.ages[1] + '</strong>, worth about ' + gbp(Math.round(blk.value)) + ' today, covering ' + gbp(Math.round(blk.income)) + ' of income. It earns its real yield while you wait — the waiting room pays you.';
           }
         } catch (e) { /* generic prose */ }
@@ -7925,9 +7926,9 @@
     window.executeRotation = async function () {
       try {
         const settings = await getStressSettingsAsync();
-        const cutAge = window._rotCutAge || 75;
+        const cutAge = planState.rotCutAge || 75;
         const plan = planState.ladderPos && planState.ladderPos.plan;
-        const blk = window._rotBlock;
+        const blk = planState.rotBlock;
         if (!plan || !blk || !blk.orders.length) { showToast('No rotation block on record — open the ladder card first.', 'error'); return; }
         const soldSet = new Set(blk.orders.map((o) => o.tidm));
         const soldYears = plan.years.filter((y) => soldSet.has(y.from)).map((y) => ({ Y: y.Y, age: y.age, need: y.need }));
@@ -7977,9 +7978,9 @@
         let h = '<div class="alert alert-warning"><strong>Trigger is live: ' + pct + ' below the high.</strong> '
           + 'Sell the whole block at market, whatever the gilt price, and buy the equity fund with all of it. '
           + 'Do not tranche it and do not wait for a deeper fall — both tested worse.</div>';
-        if (window._rotBlock && window._rotBlock.orders && window._rotBlock.orders.length) {
-          h += giltSellTicketHtml(null, { orders: window._rotBlock.orders, title: 'Rotation sell ticket — ages ' + window._rotBlock.ages[0] + '–' + window._rotBlock.ages[1] });
-          h += '<div style="margin-top:10px;"><button type="button" class="risk-btn" style="border-color:var(--warning);" data-on-click="executeRotation()">I\'ve sold them — switch the plan</button> <span class="hint">Switches this plan to "Floor to an age, then decide" (' + (window._rotCutAge || 75) + ') and records the borrowed floor.</span></div>';
+        if (planState.rotBlock && planState.rotBlock.orders && planState.rotBlock.orders.length) {
+          h += giltSellTicketHtml(null, { orders: planState.rotBlock.orders, title: 'Rotation sell ticket — ages ' + planState.rotBlock.ages[0] + '–' + planState.rotBlock.ages[1] });
+          h += '<div style="margin-top:10px;"><button type="button" class="risk-btn" style="border-color:var(--warning);" data-on-click="executeRotation()">I\'ve sold them — switch the plan</button> <span class="hint">Switches this plan to "Floor to an age, then decide" (' + (planState.rotCutAge || 75) + ') and records the borrowed floor.</span></div>';
         }
         box.innerHTML = h;
       } else {
@@ -8048,7 +8049,7 @@
         // the form is set for the way above at once; what follows is priced, so it waits for the one market (lead4.md R5)
         await window._marketReady;
         const params = { ...(settings.strategyParams || {}), ...(st.params || {}) };
-        window._rotCutAge = params.rotateCutAge || 75;
+        planState.rotCutAge = params.rotateCutAge || 75;
         let bannerHtml = banner + borrowedFloorLineHtml(settings);
         const now = todayOf();
         const firstTY = deriveTiming(settings).firstTaxYear;   // 6.4.0: the plan's saved start, not 2026

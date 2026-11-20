@@ -245,8 +245,8 @@ export async function listScenariosAsync() {
   catch (error) { console.error('Error listing scenarios:', error); return []; }
 }
 
-/** The plans as stored, or a throw when the store cannot hand them back (never [] in their place). */
-async function readScenariosAsync() {
+/** The plans as stored, or a throw when the store cannot hand them back (never [] in their place): the plan menu's read. */
+export async function readScenariosAsync() {
   if (cachedScenarios) return cachedScenarios;
   if (!isFirebaseAvailable()) return [];
   const gen = cacheGen;

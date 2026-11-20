@@ -4139,6 +4139,7 @@
     import {
       invalidateScenarioCache,
       listScenariosAsync,
+      readScenariosAsync,
       getActiveScenarioId,
       getActiveScenarioAsync,
       readActiveScenarioAsync,
@@ -4735,7 +4736,7 @@
      */
     async function cancelPlanCreation() {
       hideSetupWizard();
-      const has = await hasCloudData();
+      const has = await hasCloudData().catch(() => true);   // plans not read: back to the planner (it says so), never a new empty plan
       if (has) {
         document.getElementById('mainApp').classList.remove('hidden');
         const dd = document.getElementById('scenarioDropdown');
@@ -4770,10 +4771,14 @@
         if (await seedEntry.keepIfWaiting(user)) return;   // a plan waiting from a V7 answer: confirm and make it (a new account too, instead of onboarding)
         // Check if user has existing data
         console.log('Checking for existing cloud data...');
-        const hasData = imported || await hasCloudData();
+        // A read the store refuses is not "no plans": the planner opens and says it could not read the plan (repaintPlan's
+        // read-fault words, every box empty), never the first-plan wizard to a person who may well have plans (lead4.md D1)
+        let unread = false;
+        const hasData = imported || await hasCloudData().catch((e) => { console.error('Plans not read:', e); unread = true; return false; });
         console.log('Has cloud data:', hasData);
 
-        if (hasData) {
+        if (unread) { hideLandingPage(); showMainApp(user); }
+        else if (hasData) {
           // Existing user - go straight to app
           console.log('Existing user - showing main app');
           hideLandingPage();
@@ -5009,7 +5014,16 @@
     }
 
     async function renderScenarioSelector() {
-      const scenarios = await listScenariosAsync();
+      let scenarios;
+      try { scenarios = await readScenariosAsync(); }
+      catch (e) {   // the plans could not be read: the menu says so, never "No Plan" / "No plans yet" (lead4.md D1)
+        console.error('Plans not read for the menu:', e);
+        const nameEl = document.getElementById('scenarioActiveName');
+        if (nameEl) { nameEl.textContent = 'Plans not read'; nameEl.removeAttribute('data-fact'); }
+        const listEl = document.getElementById('scenarioList');
+        if (listEl) listEl.innerHTML = '<div class="scenario-dropdown-item" style="color:var(--text-muted);cursor:default;">Your plans could not be read just now. Reload the page to try again.</div>';
+        return;
+      }
       const activeId = await getActiveScenarioId(), active = scenarios.find(s => s.id === activeId);   // the plan open in THIS window (a pinned plan, else isActive)
       window._hasPlans = scenarios.length > 0;   // the setup wizard words itself differently for a second plan
 

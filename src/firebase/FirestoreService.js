@@ -169,18 +169,16 @@ export async function loadAllScenarios() {
   const collRef = getUserCollection('scenarios');
   if (!collRef) return [];
 
-  try {
-    const querySnapshot = await getDocs(collRef);
-    const rawScenarios = [];
-    querySnapshot.forEach((docSnap) => {
-      rawScenarios.push({ id: docSnap.id, ...docSnap.data() });
-    });
-    // Normalise (and repair in Firestore) any phantom/legacy documents.
-    return rawScenarios.map((raw) => upgradedForReading(raw));
-  } catch (error) {
-    console.error('Error loading scenarios:', error);
-    return [];
-  }
+  // A read the store refuses (offline, rules, quota) THROWS: "could not read" is never answered as an account with no
+  // plans, which would offer the first-plan wizard, fill the boxes with the factory settings, or delete nothing and
+  // call it done (lead4.md D1). Callers that only need "plans or none" catch it themselves.
+  const querySnapshot = await getDocs(collRef);
+  const rawScenarios = [];
+  querySnapshot.forEach((docSnap) => {
+    rawScenarios.push({ id: docSnap.id, ...docSnap.data() });
+  });
+  // Normalise (and repair in Firestore) any phantom/legacy documents.
+  return rawScenarios.map((raw) => upgradedForReading(raw));
 }
 
 /**
@@ -460,7 +458,7 @@ export async function wipeAllUserData() {
 // ============================================================================
 
 /**
- * Check if user has any data in Firestore
+ * Check if user has any data in Firestore. Rejects when the plans cannot be read (never false for "could not tell").
  * @returns {Promise<boolean>}
  */
 export async function hasCloudData() {

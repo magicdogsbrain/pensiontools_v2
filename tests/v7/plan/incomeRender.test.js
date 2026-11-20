@@ -232,7 +232,7 @@ describe('a plan with no State Pension figure, the locked ladder, a plan shown a
     const { root, text } = draw(incomeState(entries, C['01-fresh-default'].id));
     // (step F2) the words both views say, from the one reading of the State Pension
     const sp = statePensionOf(entries.find((e) => e.plan.id === C['01-fresh-default'].id).plan, { today: TODAY });
-    expect(spAssumedWords(sp)).toBe('We assumed £12,000 a year before tax from age 67: no State Pension was entered.');
+    expect(spAssumedWords(sp)).toBe('State Pension: we assumed £12,000 a year before tax from age 67, as none was entered.');
     expect(root.querySelector('[data-testid="plan.income.assumed"]').textContent).toBe(spAssumedWords(sp) + ' ' + SP_CHANGE_IT);
     expect(root.querySelector('[data-testid="plan.income.spKind.assumed"]').checked).toBe(true);
     expect(text).toContain(spAssumedWords(sp));

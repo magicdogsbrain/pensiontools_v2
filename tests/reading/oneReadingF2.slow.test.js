@@ -46,7 +46,7 @@ describe('one reading of income, the State Pension and the budget line, every pa
       // the State Pension: a start the person gave is a day; an assumed one is said in words with the runs' age
       const s = statePensionOf(plan, { now: NOW });
       if (s.startDate) expect(s.startWords).toMatch(/^\d{1,2} [A-Z][a-z]+ \d{4}$/);
-      if (s.assumed) expect(spAssumedWords(s)).toMatch(/^We assumed £[\d,]+ a year before tax from (age \d+|your State Pension age): no State Pension was entered\.$/);
+      if (s.assumed) expect(spAssumedWords(s)).toMatch(/^State Pension: we assumed £[\d,]+ a year before tax from (age \d+|your State Pension age), as none was entered\.$/);
       // the budget line: the simple view's budget figures are the one function's (a plan's own budget, not shared)
       const B = budgetFiguresOf(plan, entries);
       if (!B.shared && B.workedOut) expect(B.essentialsMonthly).toBe(budgetLineOf(normalisedBudget(plan.budgetTool.settings)).essentials);

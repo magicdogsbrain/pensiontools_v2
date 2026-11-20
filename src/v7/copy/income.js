@@ -10,8 +10,8 @@ export const INCOME = {
   sections: { sp: 'State Pension', fs: 'Final-salary pensions', other: 'Other income for the whole plan', streams: 'Income for some years', lumps: 'Lump sums you expect' },
   /** The planner's fallback when a plan has no State Pension figure (7.1), said in its own words. */
   // (step F2, lead4.md D2) the words both views say (src/reading/statePension.js spAssumedWords + SP_CHANGE_IT)
-  assumedNote: 'We assumed {yearly} a year before tax from age {age}: no State Pension was entered. Change it: choose the full amount, your forecast, or none.',
-  assumedNoteNoAge: 'We assumed {yearly} a year before tax from your State Pension age: no State Pension was entered. Change it: choose the full amount, your forecast, or none.',
+  assumedNote: 'State Pension: we assumed {yearly} a year before tax from age {age}, as none was entered. Change it: choose the full amount, your forecast, or none.',
+  assumedNoteNoAge: 'State Pension: we assumed {yearly} a year before tax from your State Pension age, as none was entered. Change it: choose the full amount, your forecast, or none.',
   fields: {
     spKind:   { label: 'Your State Pension', options: { full: 'The full amount, {full} a year', forecast: 'My forecast', none: 'None', assumed: 'Leave it as assumed for now' }, help: 'Before tax. The plan takes it from your State Pension age; a saved date from your forecast is kept.' },
     spWeekly: { label: 'A week, before tax, from your forecast', help: 'Pounds a week, as the forecast letter gives it.' },
@@ -91,8 +91,8 @@ export const INCOME = {
   derivedTitle: 'What this works out to',
   derived: {
     'sp.none': 'No State Pension: the plan counts none.',
-    'sp.assumed': 'We assumed {yearly} a year before tax from age {age}: no State Pension was entered.',
-    'sp.assumedNoAge': 'We assumed {yearly} a year before tax from your State Pension age: no State Pension was entered.',
+    'sp.assumed': 'State Pension: we assumed {yearly} a year before tax from age {age}, as none was entered.',
+    'sp.assumedNoAge': 'State Pension: we assumed {yearly} a year before tax from your State Pension age, as none was entered.',
     'sp.paid': 'State Pension: {yearly} a year before tax from age {age} (tax year {year}).',
     'sp.noDate': 'State Pension: {yearly} a year before tax from age {age} (tax year {year}), the plan’s usual State Pension age — no date is saved.',
     'sp.noDateNoAge': 'State Pension: {yearly} a year before tax from your State Pension age.',

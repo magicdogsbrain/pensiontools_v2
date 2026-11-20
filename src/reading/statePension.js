@@ -66,6 +66,6 @@ export function statePensionOf(plan, ctx = {}) {
 
 export function spAssumedWords(sp) {
   if (!sp || !sp.assumed) return '';
-  return 'We assumed ' + money(sp.year) + ' a year before tax from ' + (sp.startAge != null ? 'age ' + sp.startAge : 'your State Pension age') + ': no State Pension was entered.';
+  return 'State Pension: we assumed ' + money(sp.year) + ' a year before tax from ' + (sp.startAge != null ? 'age ' + sp.startAge : 'your State Pension age') + ', as none was entered.';
 }
 export const SP_CHANGE_IT = 'Change it: choose the full amount, your forecast, or none.';

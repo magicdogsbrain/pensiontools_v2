@@ -52,7 +52,7 @@ describe('the line above the runs', () => {
   });
   it('an assumed State Pension is said in the words both views use, from the reading (step F2)', () => {
     const sp = { assumed: true, year: 12000, startAge: 67 };
-    expect(plain(startSummaryHtml({ equityMin: 1, bondMin: 2, cashTarget: 3 }, { sp }))).toContain('We assumed £12,000 a year before tax from age 67: no State Pension was entered. Change it: choose the full amount, your forecast, or none.');
+    expect(plain(startSummaryHtml({ equityMin: 1, bondMin: 2, cashTarget: 3 }, { sp }))).toContain('State Pension: we assumed £12,000 a year before tax from age 67, as none was entered. Change it: choose the full amount, your forecast, or none.');
     expect(plain(startSummaryHtml({ equityMin: 1, bondMin: 2, cashTarget: 3, statePension: 12000 }))).not.toContain('assum');
   });
 });

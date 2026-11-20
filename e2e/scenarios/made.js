@@ -3,6 +3,9 @@
  * plan's id and leaves the person signed in on the page it ends on.
  */
 import { expect } from '@playwright/test';
+import { monthlyNet } from '../../src/answers/plan/spend.js';
+
+const DEFAULT_BANDS = { pa: 12570, brl: 50270, hrl: 125140 };
 import { confirmEmail } from './account.js';
 import { at, openSimple, answer, keep, signUp, editAndSave, planAddress, settled, fullPage, closeNews, openFull, planPage } from './routes.js';
 import { SAM_B, KIM_D } from './typed.js';
@@ -174,12 +177,14 @@ export async function stressLadder(page, { pension, cashYears, steps = null }) {
     if (!(await page.locator('button[data-strat="full-il-gilt"].active').isVisible())) { await page.locator('button[data-strat="full-il-gilt"]').click(); held = 0; return false; }
     if (steps) {
       // "Your income shape": the first step's amount by "or a number", then each later step added and typed
-      const want = steps.map((x, i) => [i ? String(x.from) : null, String(x.amount)]);
+      // (step F2) the step boxes are a month after tax (the simple view's monthlyNet on the plan's default bands); "or a
+      // number" still takes the year before tax for the first step
+      const want = steps.map((x, i) => [i ? String(x.from) : null, String(monthlyNet(x.amount, DEFAULT_BANDS))]);
       let got = await typedSteps();
       if (got.length !== want.length || got[0][1] !== want[0][1]) {
         same = false;
         // (each press tried briefly: if the form is drawn again under it, the next look types it again)
-        await page.locator('#shapeStartNumber').fill(want[0][1], { timeout: 3_000 }).catch(() => {});
+        await page.locator('#shapeStartNumber').fill(String(steps[0].amount), { timeout: 3_000 }).catch(() => {});
         await page.getByRole('button', { name: 'Use it' }).click({ timeout: 3_000 }).catch(() => {});
         for (let i = 1; i < want.length; i++) await page.getByRole('button', { name: '+ Add a step' }).click({ timeout: 3_000 }).catch(() => {});
         got = await typedSteps();

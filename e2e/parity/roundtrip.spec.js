@@ -132,6 +132,24 @@ const boxesOf = (page, id) => page.evaluate((field) => {
   return { values: out, hidden: !shown.length && use.length > 0 };
 }, id);
 
+/**
+ * A list chosen from as a person chooses: in the full view the list is focused and the option's words typed, so the change
+ * is the browser's own (a trusted event, as a person's pick is). Playwright's selectOption sends a synthetic change, which
+ * the full view's Settings rightly does not take for a person's (settingsAutosave.js byPerson): that read as "needs a
+ * press" for every list there. Falls back to selectOption when the words did not land.
+ */
+async function chooseIn(page, list, value, view) {
+  if (view === 'full') {
+    const label = await list.evaluate((el, v) => [...el.options].find((o) => o.value === v)?.text.trim() || '', value);
+    if (label) {
+      await list.focus();
+      await page.keyboard.type(label);
+      if ((await list.inputValue()) === value) return;
+    }
+  }
+  await list.selectOption(value);
+}
+
 /** Sets a field's box as a person does: a press where the view keeps it behind buttons, a radio, a tick, a list, or typing. */
 async function setBox(page, view, e, value) {
   const press = view === 'full' && e.full && e.full.set && e.full.set[value];
@@ -143,7 +161,7 @@ async function setBox(page, view, e, value) {
   });
   if (kind === 'radio') await page.locator(`input[type="radio"]${sel}[value="${value}"]`).first().click();
   else if (kind === 'checkbox') await page.locator(`input[type="checkbox"]${sel}`).locator('visible=true').first().setChecked(value === 'yes');
-  else if (kind === 'select') await page.locator(`select${sel}`).locator('visible=true').first().selectOption(value);
+  else if (kind === 'select') await chooseIn(page, page.locator(`select${sel}`).locator('visible=true').first(), value, view);
   else {
     const b = page.locator(`input${sel}, textarea${sel}`).locator('visible=true').first();
     await b.click();

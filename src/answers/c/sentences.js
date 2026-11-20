@@ -194,7 +194,10 @@ function bridgeSentence(result, facts, base, id) {
       : to.finalSalary > 0
         ? [...then, incomes, ' ', /pensions/.test(incomes) ? 'pay ' : 'pays ', M(at + '.shown.finalSalary'), ' of it.']
         : [...then, incomes, ' ', /Pensions/.test(incomes) ? 'pay ' : 'pays ', M(at + '.shown.statePension'), ' of it.'];
-  return S(id, [...span, from, ': ', F(b.years), yearsWord(b.years), ', about ', F(money(b.total)), " at today's prices. ", ...after]);
+  // (the months the plan pays from the pots alone: whole years, and the months over when its first year is part of one)
+  const howLong = [...(b.years > 0 ? [F(b.years), yearsWord(b.years)] : []), ...(b.years > 0 && b.extraMonths > 0 ? [' and '] : []),
+    ...(b.extraMonths > 0 ? [F(b.extraMonths), b.extraMonths === 1 ? ' month' : ' months'] : [])];
+  return S(id, [...span, from, ': ', ...howLong, ', about ', F(money(b.total)), " at today's prices. ", ...after]);
 }
 
 /**

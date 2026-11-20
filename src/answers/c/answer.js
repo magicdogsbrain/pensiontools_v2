@@ -113,6 +113,8 @@ function phasesOf(plan, H) {
     if (shownPots < 0) { shownSp += shownPots; shownPots = 0; }
     return {
       fromAge: plan.startAge + p.from, toAge: plan.startAge + p.to, ages,
+      // (a kept plan's stretch: the months its plan pays in it, year 0 the tax year's months from the pots' day)
+      ...(Number.isFinite(p.months) ? { months: p.months } : {}), ...(p.waitMonths > 0 ? { waitMonths: p.waitMonths } : {}),
       takeHome, fromPension, fromSavings, fromPots: round2(sum('fromPension') + sum('fromSavings')),
       statePension, finalSalary, tax,
       byPerson,
@@ -442,8 +444,9 @@ function fromNowOf(checked, env) {
  * as env.planPath — answers/index.js answerFor): with something to draw on, from today's age, every run is the kept plan's,
  * so the levels' amounts and chances, the amount being tried, the run-out ages and what is left are the figures "Does it
  * last?" shows for the plan keeping the answer writes (tests/v7/cross/answerIsPlan.test.js), and C from now is D at the same
- * spend (tests/v7/d/identity.test.js). The household plan (`plan`) stays the words' source: the phases, the incomes that
- * come anyway, who can draw before 2028. Not (yet) on it: a couple (the household run, the lead's ruling 9), a spending
+ * spend (tests/v7/d/identity.test.js). The words read the kept plan too (planPath wordsPlan: the phases and what each is
+ * made of, the incomes that come anyway, who can draw before 2028, when the money runs out, the facts and the basis); the
+ * household plan only decides whether the answer is on this path. Not (yet) on it: a couple (the household run, the lead's ruling 9), a spending
  * shape, a start moved to the day the pension opens, and three test devices (env.mix, env.solver 'reference', and
  * env.householdRoute: the household run a couple still takes, asked for by name so its fast path, its reference and its
  * month rows stay proved on one person too).
@@ -529,10 +532,10 @@ export function stressCaseOf(inputs, env) {
 /**
  * C from now for one person on the plan path (onPlanPath): the band, the amount being tried and the weighted words, every
  * run the kept plan's; so are the phases, the incomes that come anyway, who can draw before 2028 and when the money runs
- * out (`c.words`, planPath wordsPlan). The household plan (`now.plan`) is read only for what was typed (the facts).
+ * out, and the facts and basis the sentences read (`c.words`, planPath wordsPlan). The household plan (`now.plan`) is not read.
  */
 function answerOnPlanPath(checked, now, env) {
-  const { household, fullStatePensionAYear, plan, level } = now;
+  const { level } = now;
   const ins = checked.inputs;
   const n = env.futures;
   const c = planCaseC(checked, now, env);
@@ -558,20 +561,23 @@ function answerOnPlanPath(checked, now, env) {
   const result = {
     status: 'ok', inputs: ins,
     level, levels,
-    chance: chanceBlock(lv[level].chance, n, c.chanceAges), whose: plan.whose,
+    chance: chanceBlock(lv[level].chance, n, c.chanceAges), whose: c.words.whose,
     // the kept plan's: the middle age the money ran out at in the futures that ran out (its floor line), and what is left
     // at the plan-to age, typically and in the best 1 in 10, at today's prices (its "left at the end")
     floorAge: pc.floorAgeOf(lv[level].months),
     left: { age: pc.planToAge, ...(H > 0 ? pc.leftOf(H, lv[level].months) : { typical: 0, best: 0 }) },
     guaranteed: { monthlyAfterTax: round2(c.words.guaranteedAYear / 12) },
     phases: phasesOf(c.words, H), take, assumed: [], warnings: [], sentences: {},
-    basis: { ...basisOf(plan, env, n, levelBasis(level, weigher, ins, pc.planToAge)), startAge, endAge: pc.planToAge, years: pc.planToAge - startAge },
+    basis: { ...basisOf(c.words, env, n, levelBasis(level, weigher, ins, pc.planToAge)), startAge, endAge: pc.planToAge, years: pc.planToAge - startAge },
     units: UNITS
   };
   const typed = payInTyped(ins);
   if (typed) result.payIn = typed;
-  const facts = factsOf(plan, checked, household, fullStatePensionAYear, env);
-  facts.capped = Boolean(plan.capped) || c.chanceAges.horizonRule === 'capped';
+  // the facts the sentences read (State Pension and final-salary ages, the pension's access age, the start): the kept plan's
+  const facts = factsOf(c.words, checked, null, fullStatePensionYearly(), env);
+  facts.capped = c.chanceAges.horizonRule === 'capped';
+  // the years ahead the test runs to: the kept plan's own (the cap keeping applies, ruling H), never a second constant
+  facts.capYears = c.pc.planYears;
   // the amount shown is what comes in anyway because the pots would make it less (ruling D): a final-salary pension's
   // capped rises are why, and the answer says so
   facts.anywayCapped = Boolean(lv[level].anyway) && Boolean(ins.you.finalSalary && ins.you.finalSalary.has);

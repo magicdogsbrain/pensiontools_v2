@@ -3,8 +3,9 @@
  *   - B: the chance a level stands behind is the weighted chance at the pay-in that gets there, and "what would be enough",
  *     the "Pay in more" way, the one-off sum and the grid are all solved on the same weighted test, so one page says one
  *     pay-in; every chance B says is said as a chance, each beside its own count to a named age
- *   - a run the 60-year cap stops short: no age past its end, the warning names 60 years, no "1 in 10" claim for an end the
- *     cap set
+ *   - a run the 60-year cap stops short: no age past its end, the warning names the kept plan's own years on the plan path
+ *     (the lead's ruling H, 20 Nov 2026: 45, the cap keeping applies), the follow-on line 60, no "1 in 10" claim for an end
+ *     the cap set
  *   - Bold's consequence from the answer's own chance, with no floor of "1 in 10"
  *   - what is left at the plan-to age on every answer; the cost of the other levels on D
  *   - "What we assumed" links to no box the answer does not have, and shows the plan-to age and the couple's rule at once
@@ -93,13 +94,14 @@ describe('B while weighing: one test for every figure of what would be enough', 
 });
 
 describe('a run the 60-year cap stops short', () => {
-  it('C at 30 from now: the age followed on to is the run\'s end; the warning names 60 years; no 1-in-10 claim for the end the cap set', () => {
+  it('C at 30 from now: the age followed on to is the run\'s end; the warning names the plan\'s 45 years; no 1-in-10 claim for the end the cap set', () => {
     const r = answerC({ you: { pot: 0, age: 30 }, savings: 900000, start: { kind: 'now' } }, ENV);
     expect(r.chance.horizonRule).toBe('capped');
     expect(r.chance.weightToAge).toBeLessThanOrEqual(30 + RULES.maxDrawYears);
     expect(r.basis.weightToAge).toBeLessThanOrEqual(30 + RULES.maxDrawYears);
     const warn = r.warnings.find((w) => w.id === 'long-plan');
-    if (warn) expect(warn.text).toMatch(new RegExp(`^We can only test ${RULES.maxDrawYears} years ahead`));
+    // (ruling H: the years the kept plan runs, the cap keeping applies — 30 + 45 = 75 — never the follow-on's 60)
+    if (warn) expect(warn.text).toMatch(new RegExp(`^We can only test ${RULES.maxYears} years ahead, so this runs to age 75,`));
     const said = r.assumed.map((a) => a.text).join(' ');
     expect(said).toMatch(/We could test only to \d+: 60 years is the most we run\./);
     expect(said).not.toMatch(/fewer than 1 in 10/);

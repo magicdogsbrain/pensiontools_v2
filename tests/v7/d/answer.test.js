@@ -43,10 +43,12 @@ export function checkAnswerD(r) {
   if (!(r.levels.careful.monthly <= r.levels.balanced.monthly && r.levels.balanced.monthly <= r.levels.bold.monthly)) out.push('the levels are out of order');
   // P-D6: the headroom's kind agrees with the verdict, and the amount is a whole £10
   const h = r.headroom;
-  if (!['more', 'about', 'less'].includes(h.kind) || h.perMonth % 10 !== 0 || h.perMonth < 0) out.push(`headroom ${JSON.stringify(h)}`);
+  if (!['more', 'about', 'less', 'anyway'].includes(h.kind) || h.perMonth % 10 !== 0 || h.perMonth < 0) out.push(`headroom ${JSON.stringify(h)}`);
   if (r.verdict === 'yes' && h.kind === 'less') out.push('a yes beside "less lasted"');
   if (r.verdict !== 'yes' && h.kind === 'more') out.push('not a yes beside "more"');
-  if (JSON.stringify(h) !== JSON.stringify(headroomOf(r.verdict, r.levels[r.level].monthly, r.spend.perMonth))) out.push('the headroom is not the rule\'s');
+  // (ruling D: 'anyway' only where the level's amount is what comes in anyway — never above it — and it says no difference)
+  if (h.kind === 'anyway') { if (!(r.levels[r.level].monthly <= r.guaranteed.monthlyAfterTax) || h.perMonth !== 0) out.push(`headroom anyway ${JSON.stringify(h)}`); }
+  else if (JSON.stringify(h) !== JSON.stringify(headroomOf(r.verdict, r.levels[r.level].monthly, r.spend.perMonth))) out.push('the headroom is not the rule\'s');
   // the words
   const all = allSentences(r);
   const context = all.map((s) => s.text).join(' ');
@@ -160,14 +162,17 @@ describe('the fixtures of answer-D.md 11.4 that this release covers', () => {
   it('D5 — 53, stopped, the pension closed until 57, savings paying meanwhile: the closed years said, never a wait', () => {
     const r = answerD(D5, ENV);
     expect(r.pensionOpens.you).toBe(57);
-    expect(r.assumed.find((a) => a.id === 'pension-closed-until').text).toBe('Your pension is left alone until you are 57; your savings pay until then.');
-    expect(r.warnings.find((w) => w.id === 'pension-closed').text).toBe("You can't take money from your pension until you are 57. Until then your ISA and savings pay.");
+    // the lead's ruling G: the law's age (57) and the kept plan's first open year (April 2031, worked below), both said,
+    // never one against the other
+    const SAID = 'You can take money from your pension from 57. This plan takes it from April 2031, the first tax year you start at 57 or over';
+    expect(r.assumed.find((a) => a.id === 'pension-closed-until').text).toBe(SAID + '; until then your ISA and savings pay.');
+    expect(r.warnings.find((w) => w.id === 'pension-closed').text).toBe(SAID + '; until then your ISA and savings pay.');
     // what it is made of is the kept plan's (step P2): the plan opens the pension in the first tax year that starts with
     // them 57 — 57 on 30 September 2030, so 2031/32, five tax years from 2026/27 — and its runs keep it closed until then,
     // so the savings pay from 53 to 58 (the household's own years said 57)
     expect(r.phases[0]).toMatchObject({ fromAge: 53, toAge: 58, pensionOpen: false });
     expect(r.sentences.madeOf[0].id).toBe('d.madeOf.locked');
-    expect(r.sentences.madeOf[0].text).toMatch(/all from your savings\. Your pension can't be touched until then\.$/);
+    expect(r.sentences.madeOf[0].text).toMatch(/all from your savings\. You can take money from your pension from 57\. This plan takes it from April 2031, the first tax year you start at 57 or over\.$/);
     expect(r.assumed.find((a) => a.id === 'd-tax-free-some')).toBeUndefined();
   });
   it('D7 — 66, thinking about work: £15,000 a year for 3 years; "some" of the tax-free part counted as taken', () => {

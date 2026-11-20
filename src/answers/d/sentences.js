@@ -15,6 +15,8 @@
  * @property {boolean} madeUpFutures         env.futureReturns (tests): the futures line is left out
  * @property {boolean} capped                the drawing years were cut at the cap (capYears: 45, or 60 while weighing)
  * @property {string[]} drawdown2028         who moves money into drawdown before 6 April 2028 at 55 or 56
+ * @property {object} [pensionOpens]         per person, a pension still closed as the kept plan takes it: { accessAge,
+ *                                           opensTaxYear } (the lead's ruling G)
  */
 import { money, outOfTen, partsText, underNine } from '../shared/format.js';
 import { shareCutPercent } from '../shared/futures.js';
@@ -22,6 +24,7 @@ import { RULES } from '../shared/rules.js';
 import { statePensionAgeOf } from '../shared/schemaParts.js';
 import { savingsGrowthParts } from '../shared/savingsGrowth.js';
 import { taxFreeGone } from './toHousehold.js';
+import { pensionOpensPieces } from '../../services/PensionAge.js';
 import { LEVEL_NAME, countingLead, asLongAs, chanceParts, asksForParts, fixedSentence, boldSentence, whenParts, howLongParts, howMuchParts, floorParts, leftParts, lifeAssumed, costParts } from '../shared/lastsWords.js';
 
 const M = (key) => ({ key, kind: 'money' });
@@ -49,6 +52,8 @@ function shortCount(share) {
   return [F(o.count)];
 }
 const VERDICT_WORD = { yes: 'yes', close: 'close', no: 'not' };
+/** The year the tax year of an ISO day starts in (6 April). */
+const taxYearOf = (iso) => { const [y, m, d] = String(iso).split('-').map(Number); return m > 4 || (m === 4 && d >= 6) ? y : y - 1; };
 /** "Near the end age" (answer-D.md 6.4 d-end-near): the test covers this many years or fewer. */
 export const END_NEAR_YEARS = 7;
 
@@ -77,6 +82,8 @@ export function factsOf(result, ctx = {}) {
       sp: sp.kind !== 'none', spDefault: sp.kind === 'full', spAge, spPaid: sp.kind !== 'none' && spAge <= p.age,
       fs: Boolean(fs.has), fsAge: fs.has ? fs.fromAge : null, fsDefault: used.has(`${who}.finalSalary.has`),
       openAge, closed: (p.pot || 0) > 0 && openAge > p.age,
+      // (the kept plan's own first open year, ruling G: null off the plan path)
+      opens: ctx.pensionOpens && ctx.pensionOpens[who] ? ctx.pensionOpens[who] : null,
       taxFreeTaken: taxFreeGone(p.taxFreeTaken), taxFreeSome: p.taxFreeTaken === 'some'
     };
   });
@@ -89,10 +96,23 @@ export function factsOf(result, ctx = {}) {
     money: result.status === 'ok',
     endAge: result.basis.endAge,
     fullStatePensionAYear: ctx.fullStatePensionAYear || 0, historyStartYear: ctx.historyStartYear || 1871,
-    madeUpFutures: Boolean(ctx.madeUpFutures), capped: Boolean(ctx.capped),
+    madeUpFutures: Boolean(ctx.madeUpFutures), capped: Boolean(ctx.capped), anywayCapped: Boolean(ctx.anywayCapped),
     ...(Number.isFinite(ctx.capYears) ? { capYears: ctx.capYears } : {}),
     drawdown2028: ctx.drawdown2028 || []
   };
+}
+
+/**
+ * A pension still closed, as the kept plan takes it (the lead's ruling G; PensionAge.pensionOpensPieces, the one builder):
+ * "You can take money from your pension from 57. This plan takes it from April 2031, the first tax year you start at 57 or
+ * over" and, with `meanwhile`, "; until then your ISA and savings pay." (else "."). The age is the result's pensionOpens
+ * figure when it is the same age; the month is said as it is.
+ */
+function opensParts(result, x, { meanwhile = true } = {}) {
+  const w = pensionOpensPieces(x.opens);
+  const age = result.pensionOpens && result.pensionOpens[x.who] === x.opens.accessAge ? A(`pensionOpens.${x.who}`) : F(x.opens.accessAge);
+  const map = (list) => list.map((p) => (typeof p === 'string' ? p : p.date ? F(p.date) : age));
+  return [...map(w.law), ' ', ...map(w.plan), ...(meanwhile ? map(w.meanwhile) : ['.'])];
 }
 
 /** "your State Pension and your final-salary pension": what carries on after the pots. */
@@ -131,7 +151,10 @@ function madeOfLines(result, facts) {
     if (ph.pensionOpen === false && ph.fromPension <= 0.005) {
       const closed = ph.byPerson.filter((b) => b.locked).map((b) => b.who);
       const whose = closed.length === 2 ? 'Your pensions' : closed[0] === 'partner' ? "Your partner's pension" : 'Your pension';
-      lines.push(S('d.madeOf.locked', [...span(i), ': ', M(`${at(i)}.shown.takeHome`), ' a month, all from your savings. ', whose, " can't be touched until then."]));
+      // (one person whose plan says when it first takes from the pension: both facts, ruling G)
+      const own = closed.length === 1 ? facts.people.find((x) => x.who === closed[0] && x.opens) : null;
+      lines.push(S('d.madeOf.locked', [...span(i), ': ', M(`${at(i)}.shown.takeHome`), ' a month, all from your savings. ',
+        ...(own ? opensParts(result, own, { meanwhile: false }) : [whose, " can't be touched until then."])]));
     } else {
       const items = [];
       const sp = ph.byPerson.filter((b) => b.statePension > 0).length === 2 ? 'State Pensions' : 'State Pension';
@@ -190,7 +213,9 @@ export function sentencesFor(result, facts) {
   const h = result.headroom || { kind: 'about' };
   if (result.status === 'ok') {
     const LM = 'levels.' + result.level + '.monthly';
-    if (h.kind === 'more') out.headroom = S('d.more', ['You could spend about ', M('headroom.perMonth'), ' a month more. About ', M(LM), ' a month lasted ', ...NINE, '.']);
+    // (rulings D and I: the level is what comes in anyway, not an amount that lasted 9 times in 10)
+    if (h.kind === 'anyway') out.headroom = S('d.anyway', ['About ', M(LM), ' a month comes in anyway.']);
+    else if (h.kind === 'more') out.headroom = S('d.more', ['You could spend about ', M('headroom.perMonth'), ' a month more. About ', M(LM), ' a month lasted ', ...NINE, '.']);
     else if (h.kind === 'less') out.headroom = S('d.less', ['About ', M(LM), ' a month lasted ', ...NINE, '. That is about ', M('headroom.perMonth'), ' a month less than you spend now.']);
     else out.headroom = S('d.about', ['What you spend is about what lasted ', ...NINE, '.']);
     // "Could I spend more?" (3.5): the other two levels (7.8.0: the count's middling and good amounts are no longer
@@ -280,7 +305,10 @@ function weighedSentences(out, result, facts) {
   // "Could I spend more?": the level's amount at its level, with its own fixed-age line in the same block
   const h = result.headroom || { kind: 'about' };
   const atLevel = ['At ', name, ', about ', M(LM), ' a month lasts ', asLongAs(c), ' ', ...chanceParts(shown.weighted), '.'];
-  out.headroom = h.kind === 'more' ? S('d.more', ['You could spend about ', M('headroom.perMonth'), ' a month more. ', ...atLevel], 'weighted')
+  // (the level lifted to what comes in anyway, rulings D and I: said plainly as that, with its own chance — the chance it
+  // keeps its buying power — never as room to spend more or less)
+  out.headroom = h.kind === 'anyway' ? S('d.anyway', ['About ', M(LM), ' a month comes in anyway; it keeps its buying power ', asLongAs(c), ' ', ...chanceParts(shown.weighted), '.'], 'weighted')
+    : h.kind === 'more' ? S('d.more', ['You could spend about ', M('headroom.perMonth'), ' a month more. ', ...atLevel], 'weighted')
     : h.kind === 'less' ? S('d.less', [...atLevel, ' That is ', M('headroom.perMonth'), ' a month less than you spend now.'], 'weighted')
       : S('d.about', ['What you spend is about what ', name, ' allows: ', ...chanceParts(shown.weighted), ', ', asLongAs(c), '.'], 'weighted');
   const fx = fixedSentence('x', shown.fixedAge, lf).parts;
@@ -340,7 +368,7 @@ export function assumedFor(result, facts) {
     else line('quarter-tax-free' + suffix(x), field, 'entered', 'no', x.who === 'you' ? ['A quarter of each withdrawal from your pension is tax-free.'] : ["A quarter of each withdrawal from your partner's pension is tax-free."]);
   }
   for (const x of facts.people.filter((p) => p.closed)) {
-    line('pension-closed-until' + suffix(x), null, 'rule', x.openAge, x.who === 'you'
+    line('pension-closed-until' + suffix(x), null, 'rule', x.openAge, x.opens ? opensParts(result, x) : x.who === 'you'
       ? ['Your pension is left alone until you are ', A('pensionOpens.you'), '; your savings pay until then.']
       : ["Your partner's pension is left alone until they are ", A('pensionOpens.partner'), '; the rest of the money pays until then.']);
   }
@@ -380,16 +408,22 @@ export function warningsFor(result, facts) {
   const endAge = result.basis.endAge;
 
   for (const x of facts.people.filter((p) => p.closed)) {
-    warn('pension-closed' + (x.who === 'you' ? '' : '-partner'), 'important', x.who === 'you'
+    // (the law's age and the plan's own first open year when the kept plan says it, ruling G)
+    warn('pension-closed' + (x.who === 'you' ? '' : '-partner'), 'important', x.opens ? opensParts(result, x) : x.who === 'you'
       ? ["You can't take money from your pension until you are ", A('pensionOpens.you'), '. Until then your ISA and savings pay.']
       : ["Your partner can't take money from their pension until they are ", A('pensionOpens.partner'), '. Until then the rest of the money pays.']);
   }
   const closed = facts.people.filter((p) => p.closed);
   if (closed.length && result.status === 'ok') {
     const first = closed.reduce((b, x) => (!b || x.openAge - x.age < b.openAge - b.age ? x : b), null);
-    if (!facts.anySavings) warn('no-savings-for-gap', 'important', ['You have nothing outside a pension to live on until ', first.who === 'you' ? 'you are ' : 'your partner is ', A(`pensionOpens.${first.who}`), '.']);
-    else if (result.verdict !== 'yes' && result.runOutAge < facts.younger + (first.openAge - first.age)) {
-      warn('d-savings-run-short', 'important', [...BAD_CAP, ' your savings run out ', ...runOutAt(facts, 'runOutAge'), ', before ', first.who === 'you' ? 'you can touch your pension at ' : 'your partner can touch their pension at ', A(`pensionOpens.${first.who}`), '.']);
+    // (when the kept plan says when it first takes from the pension, ruling G: the savings pay until that month, the start of
+    // its first open tax year, run year `y` — the phases' age startAge + y)
+    const y = first.opens ? first.opens.opensTaxYear - taxYearOf(result.basis.today) : null;
+    const until = first.opens ? ['April ', F(first.opens.opensTaxYear)] : null;
+    if (!facts.anySavings) warn('no-savings-for-gap', 'important', ['You have nothing outside a pension to live on until ', ...(until || [first.who === 'you' ? 'you are ' : 'your partner is ', A(`pensionOpens.${first.who}`)]), '.']);
+    else if (result.verdict !== 'yes' && result.runOutAge < facts.younger + (until ? y : first.openAge - first.age)) {
+      warn('d-savings-run-short', 'important', [...BAD_CAP, ' your savings run out ', ...runOutAt(facts, 'runOutAge'), ', before ',
+        ...(until ? ['this plan takes from your pension, in ', ...until] : [first.who === 'you' ? 'you can touch your pension at ' : 'your partner can touch their pension at ', A(`pensionOpens.${first.who}`)]), '.']);
     }
   }
   // 55 or 56 on 6 April 2028 with the tax-free part not all taken (answer-D.md 6.4 d-2028): the 2028 rise is not modelled
@@ -408,6 +442,7 @@ export function warningsFor(result, facts) {
       warn('one-name', 'note', ['Most of the pension is in one name, so one tax allowance is barely used.']);
     }
   }
+  if (facts.anywayCapped) warn('final-salary-capped', 'note', ['Your pension from your final-salary scheme rises by at most ', F('5'), '% a year; in years when prices rise faster it buys less.']);
   if (facts.people.some((x) => x.sp && x.spDefault)) warn('state-pension-assumed', 'note', ['This assumes the full State Pension. If yours is lower, so is the figure.']);
   if (result.status === 'ok' && facts.anyPension && (result.inputs.you.pot || 0) + (c ? result.inputs.partner.pot || 0 : 0) < RULES.smallPot) {
     warn('small-pot', 'note', ['With a pot this size, many people take it as one or a few lump sums instead of a monthly income.']);

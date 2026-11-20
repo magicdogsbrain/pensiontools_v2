@@ -33,9 +33,11 @@ export function laterMore(phases, monthly) {
  * The years before anything comes in anyway, when all of the amount comes from the pots: only when the first stretch has
  * no State Pension and no final-salary pension, pays something from the pots, and a later stretch has one (the first
  * that does ends the bridge: a final-salary pension that starts before the State Pension pays part of the years after it).
- * `years`: whole years from the first stretch's start to that stretch's; `total`: what the pots pay over them, at today's
- * prices, to the nearest £1,000.
- * @returns {null | { toIndex: number, years: number, total: number }}
+ * `months`: the months the pots alone pay — a kept plan's stretches carry the months its plan pays in them (its year 0 has
+ * only the tax year's months from the pots' day), else 12 for each whole year from the first stretch's start to that
+ * stretch's (with a kept plan's `waitMonths`: the months of the State Pension's first tax year before it pays); `years` and `extraMonths`: those months as whole years and the months over; `total`: what the pots pay over
+ * them, at today's prices, to the nearest £1,000.
+ * @returns {null | { toIndex: number, years: number, extraMonths: number, months: number, total: number }}
  */
 export function bridgeOf(phases) {
   if (!Array.isArray(phases) || phases.length < 2) return null;
@@ -45,11 +47,14 @@ export function bridgeOf(phases) {
   if (!isNum(fromPots) || !(fromPots > 0)) return null;
   const toIndex = phases.findIndex((ph, i) => i > 0 && ph && (ph.statePension > 0 || ph.finalSalary > 0));
   if (toIndex < 0) return null;
-  const years = Math.floor(phases[toIndex].fromAge - first.fromAge);
-  if (!(years >= 1)) return null;
-  const total = Math.round((fromPots * 12 * years) / 1000) * 1000;
+  const wholeYears = Math.floor(phases[toIndex].fromAge - first.fromAge);
+  if (!(wholeYears >= 1)) return null;
+  const before = phases.slice(0, toIndex);
+  // (and the months of the State Pension's first tax year before it pays, when it is what ends the bridge)
+  const months = before.every((ph) => isNum(ph.months)) ? before.reduce((s, ph) => s + ph.months, 0) + (phases[toIndex].waitMonths || 0) : 12 * wholeYears;
+  const total = Math.round((fromPots * months) / 1000) * 1000;
   if (!(total > 0)) return null;
-  return { toIndex, years, total };
+  return { toIndex, years: Math.floor(months / 12), extraMonths: months % 12, months, total };
 }
 
 /**

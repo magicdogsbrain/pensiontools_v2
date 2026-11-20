@@ -12,15 +12,19 @@ const OFF = { ...ENV, weighted: false };
 
 describe('D: a run the cap stops short names the cap it used', () => {
   const ALEX = { stopped: 'yes', you: { pot: 0, age: 40, taxFreeTaken: 'yes' }, savings: 900000, spend: { kind: 'amount', amount: 2000 } };
-  it('weighing: the long-plan warning and the capped line both say 60 years', () => {
+  // The lead's ruling H (20 Nov 2026): the warning names the kept plan's own limit, the 45 years keeping applies (40 + 45 =
+  // 85, the age it says the plan runs to); the futures are followed on 60 years at most (the capped line). Before: the warning
+  // said 60 beside "runs to age 85", which is not where the plan stops.
+  it('weighing: the long-plan warning says the plan\'s 45 years, the capped line the 60 the futures are followed', () => {
     const r = answerD(ALEX, ENV);
     expect(r.chance.horizonRule).toBe('capped');
     const warn = r.warnings.find((w) => w.id === 'long-plan');
     expect(warn).toBeTruthy();
-    expect(warn.text).toMatch(new RegExp(`^We can only test ${drawYearsCap(ENV)} years ahead`));
+    expect(warn.text).toMatch(new RegExp(`^We can only test ${RULES.maxYears} years ahead, so this runs to age 85,`));
     expect(drawYearsCap(ENV)).toBe(RULES.maxDrawYears);
     const said = [...r.assumed, ...r.warnings].map((a) => a.text).join(' ');
-    expect(said).not.toMatch(new RegExp(`only test ${RULES.maxYears} years`));
+    expect(said).not.toMatch(new RegExp(`only test ${RULES.maxDrawYears} years`));
+    expect(said).toMatch(new RegExp(`${RULES.maxDrawYears} years is the most we run`));
   });
 
   it('on the count (the rollback): 45 years, as before', () => {

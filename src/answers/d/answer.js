@@ -34,7 +34,7 @@
  */
 import { SCHEMA_D, spendOf, FALL_SHARE } from './schema.js';
 import { checkInputs, defaults, flatten } from '../shared/validate.js';
-import { RULES, drawYearsCap } from '../shared/rules.js';
+import { RULES, drawYearsCap, fullStatePensionYearly } from '../shared/rules.js';
 import { atLeastAnyway } from '../shared/band.js';
 import { VERSION } from '../../constants.js';
 import { validateHousehold, firstOpenAge } from '../shared/household.js';
@@ -82,8 +82,11 @@ function defaultedFields(inputs, env) {
  *   yes:        careful − spend ≥ £20 → 'more', else 'about'
  *   close, no:  spend − careful ≥ £20 → 'less', else 'about'
  * The difference is rounded to the nearest £10.
+ *   anyway:     the level's amount is what comes in anyway (the lead's ruling D: the pots would make it less), so it is
+ *               no measure of how much more or less could be spent: it is said as what it is, with its own chance.
  */
-export function headroomOf(verdict, careful, spend) {
+export function headroomOf(verdict, careful, spend, anyway = false) {
+  if (anyway) return { kind: 'anyway', perMonth: 0 };
   const diff = careful - spend;
   if (verdict === 'yes') return diff >= HEADROOM_LEAST ? { kind: 'more', perMonth: tenner(diff) } : { kind: 'about', perMonth: 0 };
   return -diff >= HEADROOM_LEAST ? { kind: 'less', perMonth: tenner(-diff) } : { kind: 'about', perMonth: 0 };
@@ -238,7 +241,7 @@ export function answerD(inputs, env) {
   const status = anyMoney ? 'ok' : words.guaranteedAYear > 0 ? 'guaranteed-only' : 'none';
   const phases = main.pc ? phasesAt({ plan: words, middling: null }, spendAYear) : phasesAt(main.stop, anyMoney ? spendAYear : 0);
   tell(++step, steps);
-  const headroom = headroomOf(verdict.verdict, shownMonthly, spend);
+  const headroom = headroomOf(verdict.verdict, shownMonthly, spend, Boolean(band.levels[level].anyway));
 
   // "Would some work help?" (answer-D.md 3.6, 7): the verdict with the work at its N years, one band with the work, and
   // a verdict only for 1 to 5 years (the row equal to N is the one above). All on the same lives.
@@ -317,8 +320,16 @@ export function answerD(inputs, env) {
       sf: status === 'ok' ? shortfallOf(wordsPlanOf(main), verdict.runOutMonths, spendAYear, { toMonth, left: leftValuesOf(main, spendAYear, verdict.runOutMonths, toMonth) }) : null };
   }
   textsFor(result, {
-    usedDefault: defaultedFields(ins, env), fullStatePensionAYear: named.fullStatePensionAYear, historyStartYear: historyStartYear(),
-    madeUpFutures: typeof env.futureReturns === 'function', capped: Boolean(words.capped) || chanceAgesOf(main, ins, env).horizonRule === 'capped', capYears: drawYearsCap(env), drawdown2028, weighing
+    // (the full State Pension as the rules, and so the kept plan, count it)
+    usedDefault: defaultedFields(ins, env), fullStatePensionAYear: fullStatePensionYearly(), historyStartYear: historyStartYear(),
+    // a pension still closed, as the kept plan takes it (ruling G): the law's age and the tax year it first takes from it
+    ...(main.pc && words.pensionOpens ? { pensionOpens: { you: words.pensionOpens } } : {}),
+    // the level shown is what comes in anyway because the pots would make it less (ruling D): a final-salary pension's
+    // capped rises are why, and the answer says so (as How much can I take)
+    anywayCapped: Boolean(band.levels[level].anyway) && [ins.you, couple ? ins.partner : null].some((x) => x && x.finalSalary && x.finalSalary.has),
+    madeUpFutures: typeof env.futureReturns === 'function', capped: Boolean(words.capped) || chanceAgesOf(main, ins, env).horizonRule === 'capped', 
+    // the years ahead the test runs to: on the plan path the kept plan's own (the cap keeping applies, ruling H), else the answer's
+    capYears: main.pc ? main.pc.planYears : drawYearsCap(env), drawdown2028, weighing
   });
   if (env.trace) {
     result.trace = { lives: Array.from({ length: n }, (_, i) => ({ id: i, runOutMonth: verdict.runOutMonths[i] })), evaluations: main.runner.evaluations };

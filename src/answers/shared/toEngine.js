@@ -774,6 +774,8 @@ function labelYearsOf(plan, list) {
  * `pensionOpen`; a locked run's closed years are paid from the ISA (fromSavings, nothing from the pension). `pots`
  * (per person { pension, isa }) reads the shares and the ISA of one future instead of the plan's.
  *
+ * A plan carrying its own `breakdownAt(H)` (a kept plan's words, answers/keep/planPath.js) is handed to it.
+ *
  * Couples apart (plan.apart; 4.3 j): before the second stop each period also carries `fromPay` — what the worker's pay
  * covers, H × payCovers, plus whatever of the pots' part nobody's money can pay when the pay makes up gaps — and each
  * person `working` (true for the one still working: every figure of theirs 0). From the second stop the shares are set
@@ -781,6 +783,8 @@ function labelYearsOf(plan, list) {
  * lives) — and the periods are today's shape. Without `atJoin` the first stopper's money at the start is used.
  */
 export function breakdownAt(plan, H0, pots = null, atJoin = null) {
+  // a kept plan's words (answers/keep/planPath.js wordsPlan): what the amount is made of is that plan's own draw
+  if (typeof plan.breakdownAt === 'function') return plan.breakdownAt(H0);
   if (plan.apart) return labelYearsOf(plan, apartBreakdownAt(plan, H0, pots, atJoin));
   return labelYearsOf(plan, plan.periods.map((per) => {
     // the household's take-home in the period's first year (with a shape, H × r there: periods are cut at each step)

@@ -1025,6 +1025,8 @@ export function phasesAt(sp, spendAYear, pots = null, opts = {}) {
     if (shownPots < 0) { shownWork += shownPots; shownPots = 0; }
     return {
       fromAge: plan.startAge + p.from, toAge: plan.startAge + p.to, ages,
+      // (a kept plan's stretch: the months its plan pays in it, year 0 the tax year's months from the pots' day)
+      ...(Number.isFinite(p.months) ? { months: p.months } : {}), ...(p.waitMonths > 0 ? { waitMonths: p.waitMonths } : {}),
       takeHome, fromPension: round2(sum('fromPension')), fromSavings: round2(sum('fromSavings')), fromPots: round2(sum('fromPension') + sum('fromSavings')),
       statePension, finalSalary, tax: round2(sum('tax')), work: round2(sum('work')), fromWork,
       byPerson,

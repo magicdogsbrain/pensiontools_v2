@@ -697,11 +697,11 @@
       },
       "howMuch": {
         "id": "c.howMuch",
-        "text": "Across those futures, about £9 of every £10 you planned to spend is still paid.",
+        "text": "Across those futures, about £8 of every £10 you planned to spend is still paid.",
         "parts": [
           "Across those futures, about ",
           {
-            "fixed": "£9"
+            "fixed": "£8"
           },
           " of every ",
           {

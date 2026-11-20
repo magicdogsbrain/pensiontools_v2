@@ -522,9 +522,10 @@
                           "key": "step0",
                           "kind": "money"
                         },
-                        " a year before tax"
+                        " a year before tax",
+                        " (tax year 2026/27)"
                       ],
-                      "text": "From age 62: £38,000 a year before tax"
+                      "text": "From age 62: £38,000 a year before tax (tax year 2026/27)"
                     },
                     "source": {
                       "kind": "saved",
@@ -549,9 +550,10 @@
                           "kind": "money"
                         },
                         " a year before tax",
+                        " (tax year 2039/40)",
                         ", falling 1% a year"
                       ],
-                      "text": "From age 75: £32,000 a year before tax, falling 1% a year"
+                      "text": "From age 75: £32,000 a year before tax (tax year 2039/40), falling 1% a year"
                     },
                     "source": {
                       "kind": "saved",
@@ -1403,6 +1405,7 @@
         ],
         "current": "plan",
         "answerStale": null,
+        "readFault": null,
         "next": {
           "id": "P.reviewAny",
           "slots": {

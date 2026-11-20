@@ -894,9 +894,10 @@
                           "key": "step0",
                           "kind": "money"
                         },
-                        " a year before tax"
+                        " a year before tax",
+                        " (tax year 2026/27)"
                       ],
-                      "text": "From age 58: £31,000 a year before tax"
+                      "text": "From age 58: £31,000 a year before tax (tax year 2026/27)"
                     },
                     "source": {
                       "kind": "saved",
@@ -920,9 +921,10 @@
                           "key": "step1",
                           "kind": "money"
                         },
-                        " a year before tax"
+                        " a year before tax",
+                        " (tax year 2038/39)"
                       ],
-                      "text": "From age 70: £27,000 a year before tax"
+                      "text": "From age 70: £27,000 a year before tax (tax year 2038/39)"
                     },
                     "source": {
                       "kind": "saved",
@@ -946,9 +948,10 @@
                           "key": "step2",
                           "kind": "money"
                         },
-                        " a year before tax"
+                        " a year before tax",
+                        " (tax year 2048/49)"
                       ],
-                      "text": "From age 80: £23,000 a year before tax"
+                      "text": "From age 80: £23,000 a year before tax (tax year 2048/49)"
                     },
                     "source": {
                       "kind": "saved",
@@ -1974,6 +1977,7 @@
         ],
         "current": "plan",
         "answerStale": null,
+        "readFault": null,
         "next": {
           "id": "P.reviewAny",
           "slots": {

@@ -79,7 +79,7 @@ test.describe('"Lock the plan", without an account', () => {
     await expect(page.getByTestId('plan.step.lock')).toContainText('Lock the plan');
     const panel = page.locator('[data-region="plan-step"]');
     await expect(panel).toContainText('What the lock fixes');
-    await expect(panel).toContainText('the way of drawing (Pots and valves) and its dials;');
+    await expect(panel).toContainText('the way of drawing (Pots & Valves) and its dials;');   // the way's one name in both views (step F3)
     await expect(panel).toContainText('What stays changeable');
     await expect(panel).toContainText('What you get');
     await expect(panel).toContainText('the plan document: the plan as committed');

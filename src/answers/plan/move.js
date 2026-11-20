@@ -30,7 +30,7 @@ import { planStage, settingsForScreen, moveInputs, planMoneyOf } from '../../ser
 import { sequence, tickMove, untickMove } from '../../services/TransitionPlanner.js';
 import { normaliseHoldings } from '../../services/HoldingsRecord.js';
 import { proportions } from '../../services/Holdings.js';
-import { contributionBreakdown } from '../../services/AccumulationEngine.js';
+import { landedMonthlyOf } from '../../services/SaverPayIn.js';
 import { orderSheetRows } from '../../strategies/GiltLadderPlan.js';
 import { rotationWatch } from '../../services/RotationStatus.js';
 import { taxYearLabel, deriveTiming, taxYearStartOf } from '../../services/PlanTiming.js';
@@ -79,8 +79,8 @@ const ym = (s) => { const m = /^(\d{4})-(\d{2})$/.exec(String(s || '')); return 
 export function contributionsMonthlyOf(plan, rec) {
   let m = 0;
   try { m = proportions(rec.lines).contributions.monthly || 0; } catch { m = 0; }
-  // (what lands: the scheme's own sum, AccumulationEngine.contributionBreakdown, as the saving path reads it — never a flat × 1.25)
-  if (!m) { const acc = plan && plan.accumulationTool && isObj(plan.accumulationTool.settings) ? plan.accumulationTool.settings : null; if (acc && (+acc.netMonthly > 0 || +acc.employerMonthly > 0)) { try { m = contributionBreakdown({ netMonthly: +acc.netMonthly || 0, salary: +acc.salary || 0, schemeType: acc.schemeType || 'ras', employerMonthly: +acc.employerMonthly || 0 }).totalMonthly || 0; } catch { m = 0; } } }
+  // (what lands: the scheme's own sum, SaverPayIn.landedMonthlyOf, as the saving path reads it — never a flat × 1.25)
+  if (!m) m = landedMonthlyOf(plan && plan.accumulationTool && isObj(plan.accumulationTool.settings) ? plan.accumulationTool.settings : null);
   return m;
 }
 

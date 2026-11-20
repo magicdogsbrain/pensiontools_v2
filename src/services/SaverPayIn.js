@@ -19,6 +19,7 @@
  *
  * Pure: no storage, no clock.
  */
+import { contributionBreakdown } from './AccumulationEngine.js';
 export const ACCUMULATION_V7_KEYS = Object.freeze(['payInKind', 'ownPct', 'employerPct', 'savingMix']);
 
 /** The planner's own price assumption (CPI 2.5%): a kept plan's pay-in rises with prices (decision D6). */
@@ -88,6 +89,16 @@ export function takeHomeOf(ownLanded, { scheme = 'ras', salary = 0 } = {}) {
   if (scheme === 'salsac') return g * Math.max(0.2, 1 - rateOf(+salary || 0) - niOf(+salary || 0));
   if (scheme === 'netpay') return g * Math.max(0.2, 1 - rateOf(+salary || 0));
   return g * 0.8;
+}
+
+/**
+ * What goes into the pension a month from the Accumulation tool's figures (netMonthly from take-home pay, the employer's
+ * part, the scheme and the pay): AccumulationEngine.contributionBreakdown's total, never a flat × 1.25 (D16). 0 for none.
+ */
+export function landedMonthlyOf(acc) {
+  const a = acc && typeof acc === 'object' ? acc : {};
+  if (!(+a.netMonthly > 0 || +a.employerMonthly > 0)) return 0;
+  try { return contributionBreakdown({ netMonthly: +a.netMonthly || 0, salary: +a.salary || 0, schemeType: a.schemeType || 'ras', employerMonthly: +a.employerMonthly || 0 }).totalMonthly || 0; } catch { return 0; }
 }
 
 /**

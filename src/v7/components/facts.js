@@ -30,6 +30,8 @@ const FIGURES = Object.freeze({
   'where.saverPot:potIsa': 'isa.today',
   'where.taken:drawn': 'taken.againstPlan',
   'where.retired:drawn': 'taken.againstPlan',
+  'where.yearChanged:planYear': 'income.thisYear.planSays',
+  'where.yearChanged:setUpYear': 'income.thisYear.beforeTax',
   'hold.summary:pension': 'holdings.sipp',
   'hold.summary:isa': 'holdings.isa',
   'hold.summary:gia': 'holdings.gia',
@@ -56,7 +58,8 @@ const FIGURES = Object.freeze({
 /** Figures numbered by their place in a list: `${lineId}:${prefix}` → the fact pattern with `#` for the number. */
 const NUMBERED = Object.freeze({
   'income.lump:lump': 'lump.#.amount',
-  'pays.step:step': 'income.step.#.beforeTax'
+  'pays.step:step': 'income.step.#.beforeTax',
+  'where.step:step': 'income.step.#.beforeTax'
 });
 
 export function figureFactOf(lineId, key) {

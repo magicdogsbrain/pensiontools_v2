@@ -15,6 +15,9 @@ import { href } from '../../router/routes.js';
 import { PLAN } from '../../copy/plan.js';
 import { MONTH as W } from '../../copy/month.js';
 import { Fact } from '../../../reading/Mark.jsx';
+import { Sentence } from '../../components/Sentence.jsx';
+import { FACT } from '../../../reading/facts.js';
+import { THIS_YEAR_FACTS } from '../../../reading/sentenceMarks.js';
 
 const w = PLAN.page;
 const keepFocus = { onMouseDown: (e) => e.preventDefault() };
@@ -273,7 +276,10 @@ export function MonthScreen(state, dispatch) {
                 {V.paidOffered && <Choice V={V} path="mo.paid" value={typed['mo.paid'] === 'yes' ? 'yes' : 'no'} dispatch={dispatch} words={W.fields['mo.paid']} options={['no', 'yes']} error={shownErrors['mo.paid'] || (V.errors['mo.paid'] ? V.errors['mo.paid'] : null)} />}
                 {V.cadence !== 'monthly' && W.cadence[V.cadence] && <p class="note" data-testid={`${T}.cadence`}>{W.cadence[V.cadence]}</p>}
                 {V.planMonth && <p class="line" data-testid={`${T}.planMonth`}>{fill(W.planMonth, V.planMonth)}</p>}
-                {V.yearLine && <p class="note" data-testid={`${T}.yearDone`}>{V.yearLine.income ? fill(W.yearDoneIncome, V.yearLine) : fill(W.yearDone, V.yearLine)} {W.yearEdit}</p>}
+                {V.yearLine && <p class="note" data-testid={`${T}.yearDone`}>{V.yearLine.income ? fillMarked(W.yearDoneIncome, V.yearLine, { income: FACT.YEAR_SET_UP }) : fill(W.yearDone, V.yearLine)}</p>}
+                {/* step F2 (lead4.md D7): the plan's own figure for the year differs from the set-up: both, and the set-up opened again on a press */}
+                {V.yearLine && V.yearLine.changed && <Sentence s={V.yearLine.changed} source={V.yearLine.changed.figures} marks={{ keys: THIS_YEAR_FACTS }} class="notice" data-testid={`${T}.yearChanged`} />}
+                {V.yearLine && V.editable && <p class="line"><Button testid={`${T}.setUpAgain`} kind={V.yearLine.changed ? 'plain' : 'quiet'} disabled={!!V.saving} aria-busy={V.saving && V.saving.kind === 'taxYearAgain' ? 'true' : undefined} onClick={() => dispatch({ type: 'plan/taxYearAgain', planId })} {...keepFocus}>{V.saving && V.saving.kind === 'taxYearAgain' ? W.setUpAgainWorking : W.setUpAgain}</Button></p>}
               </section>
               {V.setUp && <SetUp V={V} dispatch={dispatch} open={bandsOpen} />}
               {P && (

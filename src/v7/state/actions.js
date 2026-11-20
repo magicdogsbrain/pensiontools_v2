@@ -234,6 +234,7 @@ export const A = Object.freeze({
   // Month by month (research/v7/months-in-v7.md §3, 7.2.0): ONE write each through effects/planWrite.js
   PLAN_MONTH_RECORD: 'plan/monthRecord',  // { planId }                       "Record": saving { kind: 'month' }; this month and the months filled in before it, the tax years
   PLAN_TAX_YEAR:   'plan/taxYear',        // { planId }                       "Set up 2026/27": saving { kind: 'taxYear' }; the year's set-up
+  PLAN_TAX_YEAR_AGAIN: 'plan/taxYearAgain', // { planId }                    "Set this year up again" (step F2, D7): saving { kind: 'taxYearAgain' }
   PLAN_CALENDAR:   'plan/calendar',       // { planId }                       "Add to my calendar": ui.download { planId, n, what: 'calendar' }; the download effect saves the file
 
   // "Your plans": the plan menu (research/v7/road-to-7.md step 11) — each write through effects/planWrite.js; the download through effects/download.js

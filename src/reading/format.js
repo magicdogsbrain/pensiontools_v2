@@ -75,7 +75,10 @@ export const FACT_FORMAT = Object.freeze({
   'statePension.week': (v) => '£' + (Math.round((+v || 0) * 100) / 100).toFixed(2),
   'statePension.amount': money,
   'statePension.age': ageText,
-  'statePension.start': asIs
+  'statePension.start': asIs,
+  // step F2 (D7): this tax year as set up, and the plan's own figure for it
+  'income.thisYear.beforeTax': money,
+  'income.thisYear.planSays': money
 });
 
 /** The value of a fact as every place writes it; '' when nothing is known. */

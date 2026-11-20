@@ -369,6 +369,7 @@ const anyAction = fc.oneof(
   // Month by month (7.2.0): Record and Set up
   fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_MONTH_RECORD, planId })),
   fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_TAX_YEAR, planId })),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_TAX_YEAR_AGAIN, planId })),
   fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom('link', 'split', 'dismiss', 'budgetShare')).map(([planId, op]) => ({ type: A.PLAN_SAVED, planId, previous: { 'household.partnerScenarioId': null }, line: { id: 'linked', slots: {} }, op, others: [{ planId: 'p2', previous: { 'stressTool.settings.baseSalary': 1 } }] })),
   fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom('noPartner', 'partial')).map(([planId, problem]) => ({ type: A.PLAN_SAVE_FAILED, planId, problem }))
 );

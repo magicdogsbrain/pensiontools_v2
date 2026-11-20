@@ -33,12 +33,12 @@ import { MONTH_FIELDS } from './schema.js';
 import { SAVER_STAGES } from './steps.js';
 import { dateOf, monthWords, monthName, localMonth, dayWords } from './dates.js';
 import { partnerOf } from './household.js';
-import { firstPaymentMonth, monthToRecord } from '../../services/YearPlan.js';
+import { firstPaymentMonth, monthToRecord, sentenceText } from '../../services/YearPlan.js';
+import { thisTaxYearOf, thisYearSentences, setUpAgainConfig } from '../../reading/thisYear.js';
 import { pounds } from './income.js';
 import { takenBeforeTax, targetOfTaken } from '../../services/BeforeTax.js';
 import { CASH_SHORT_LABEL } from '../../services/DecisionOverlay.js';
 import { moveOfAlert } from '../../services/PlanRuleWords.js';
-import { taxFreeFractionOf } from '../../services/FlexibleAccess.js';
 import { shownPlanNameOn } from '../../services/PlanName.js';
 
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
@@ -363,10 +363,15 @@ export function readMonth(plan, typed0, { today, nowIso = null, entries = null }
   const cfg = I.taxYears[key];
   const setUpDone = !!(cfg && cfg.yearSetupComplete === true);
   const setUp = setUpDone ? null : setUpOf(I, plan, key, month, typed, now);
-  const yearTaken = setUpDone && cfg.confirmedSalary > 0
-    ? takenBeforeTax(cfg.confirmedSalary, { taxFreeFraction: taxFreeFractionOf(I.settings, I.history, 0), fixed: (+cfg.other || 0) + (+cfg.statePension || 0), pa: cfg.pa, brl: cfg.brl, hrl: cfg.hrl })
-    : null;
-  const yearLine = setUpDone ? { year: yearWords(key), from: monthWords(addMonth(aprilOf(key), (((Number(cfg.startMonth) || 4) + 8) % 12))), income: yearTaken > 0 ? pounds(yearTaken) : null } : null;
+  // the year as set up and, when the plan's own figure differs, both (step F2, lead4.md D7: src/reading/thisYear.js, the one
+  // reader both views say); "Set this year up again" opens the set-up (setUpAgainPatch)
+  let ty = null; try { ty = setUpDone ? thisTaxYearOf(plan, { now }, { key }) : null; } catch { ty = null; }
+  const changed = ty ? thisYearSentences(ty).find((x) => x.id === 'where.yearChanged') || null : null;
+  const yearLine = setUpDone ? {
+    year: yearWords(key), from: monthWords(addMonth(aprilOf(key), (((Number(cfg.startMonth) || 4) + 8) % 12))),
+    income: ty && ty.setUp && ty.setUp.perYear > 0 ? pounds(ty.setUp.perYear) : null,
+    changed: changed ? { ...changed, text: sentenceText(changed) } : null
+  } : null;
   // before the year is set up, what the locked plan takes this month (7.12.0): its document's row for the year, a twelfth a
   // month, from the pension (what it draws from investments, and what a ladder pays) — so the month's amount and where it
   // comes from are on the page before anything is typed
@@ -486,6 +491,21 @@ export function monthRecordPatch(plan, typed, { today, nowIso, stageKey = null }
     : filled.length ? { id: 'recordedFilled', slots: { month: R.monthWords, n: String(filled.length), months: monthsWords(filled), s: filled.length === 1 ? '' : 's' } }
       : { id: 'recorded', slots: { month: R.monthWords } };
   return { ok: true, patch, previous, line, filled, stopped: R.write.stopped };
+}
+
+/**
+ * "Set this year up again" (step F2, lead4.md D7): the year's set-up opened again by the one rule both views write
+ * (src/reading/thisYear.js setUpAgainConfig) — nothing else changes, and the month's page then asks for the set-up from the
+ * month to record. ONE write of the tax years. Refused on a plan not locked, or a year not set up.
+ */
+export function setUpAgainPatch(plan, { today } = {}) {
+  if (!isLocked(plan) && !isClosedPlan(plan)) return { ok: false, problem: 'notLocked', patch: {}, previous: {} };
+  const now = dateOf(today);
+  const key = getTaxYearFromDate(localMonth(now));
+  const taxYears = (plan.decisionTool && isObj(plan.decisionTool.taxYears)) ? plan.decisionTool.taxYears : {};
+  if (!(taxYears[key] && taxYears[key].yearSetupComplete === true)) return { ok: false, problem: 'notSetUp', patch: {}, previous: {} };
+  const next = { ...taxYears, [key]: setUpAgainConfig(taxYears[key]) };
+  return { ok: true, patch: { 'decisionTool.taxYears': next }, previous: { 'decisionTool.taxYears': prevOf(plan, 'decisionTool.taxYears') }, line: { id: 'setUpAgain', slots: { year: yearWords(key) } } };
 }
 
 /**

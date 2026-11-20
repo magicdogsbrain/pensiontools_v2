@@ -28,7 +28,9 @@ export const MONTH = {
   /** Before the year is set up, a locked plan's month from its document (7.12.0): the amount and the pot it comes from. */
   planMonth: 'In {month} your plan takes {amount} before tax from your pension.',
   yearDoneIncome: 'Tax year {year}: set up from {from}, {income} a year before tax.',
-  yearEdit: 'To change a tax year once it is set up, use the full view for now.',
+  /** "Set this year up again" (step F2, lead4.md D7): the set-up opened again, then asked for from the month to record. */
+  setUpAgain: 'Set this year up again',
+  setUpAgainWorking: 'Opening the set-up…',
   prefilled: 'Filled in from {month}, the last month recorded: change them to what your platform shows today.',
   cadence: { quarterly: 'Your plan draws each quarter. Here each month is recorded on its own for now; the full view records the three months at once.', annual: 'Your plan draws once a year. Here each month is recorded on its own for now; the full view records the twelve months at once.' },
   /**
@@ -202,7 +204,7 @@ export const MONTH = {
   other: 'Record a different month',
   recent: { row: '{month}: {afterTax} after tax, {tax} tax', none: 'No months recorded yet.' },
   later: {
-    items: ['Your months against the plan, by tax year', 'Each tax year as a spreadsheet, and the printed documents', 'Drawing each quarter or once a year', 'Changing a tax year once it is set up'],
+    items: ['Your months against the plan, by tax year', 'Each tax year as a spreadsheet, and the printed documents', 'Drawing each quarter or once a year'],
     until: 'Until then they are in the full view.',
     button: 'Open them in the full view'
   },
@@ -227,6 +229,7 @@ export const MONTH = {
     recordedFilled: '{month} recorded, with {n} month{s} filled in: {months}.',
     stopped: 'Recorded {written} filled-in month(s); the fill stopped before {month} because {year} is not set up. {box} was not recorded.',
     setUp: '{year} set up from {month}.',
+    setUpAgain: '{year} is open to set up again: choose the month and set it up below.',
     recordYes: 'The home will ask for each month.',
     recordNo: 'The home will not ask for months.',
     savedShort: 'Saved.',

@@ -11,6 +11,7 @@ import { ageToday, yearsToGo, stage, planName } from '../../src/reading/timing.j
 import { formatFact } from '../../src/reading/format.js';
 import { incomeStepsOf } from '../../src/reading/income.js';
 import { statePensionOf } from '../../src/reading/statePension.js';
+import { thisTaxYearOf } from '../../src/reading/thisYear.js';
 
 /** [{ fact, want }] for a plan on the day both views run on. */
 export function readingsFor(raw, { now }) {
@@ -31,5 +32,11 @@ export function readingsFor(raw, { now }) {
   // step F2: each income step's two figures, and the State Pension's start (the person's own day)
   try { incomeStepsOf(plan, ctx).steps.forEach((st, i) => { put('income.step.' + i + '.beforeTax', st.beforeTax); put('income.step.' + i + '.monthAfterTax', st.monthAfterTax); }); } catch { /* no steps */ }
   try { const sp = statePensionOf(plan, ctx); if (sp.startWords) put('statePension.start', sp.startWords); } catch { /* none */ }
+  // step F2 (D7): this tax year as set up, and the plan's own figure for it where the two differ (the only place it is said)
+  try {
+    const t = thisTaxYearOf(plan, ctx);
+    if (t.setUp && t.setUp.perYear != null) put('income.thisYear.beforeTax', t.setUp.perYear);
+    if (t.differs && t.planSays) put('income.thisYear.planSays', t.planSays.perYear);
+  } catch { /* not set up */ }
   return out;
 }

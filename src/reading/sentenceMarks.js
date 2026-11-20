@@ -113,6 +113,9 @@ export const GUARDRAIL_FACTS = Object.freeze({ pct: FACT.WITHDRAWAL_RATE });
 /** What was taken this tax year (services/YearPlan.js takenSentence, both views): its figure's key. */
 export const TAKEN_FACTS = Object.freeze({ drawn: FACT.TAKEN_YEAR });
 
+/** This tax year's lines (src/reading/thisYear.js thisYearSentences, both views): the plan's figure and the year as set up. */
+export const THIS_YEAR_FACTS = Object.freeze({ planYear: FACT.YEAR_PLAN_SAYS, setUpYear: FACT.YEAR_SET_UP });
+
 /** The household's headline (HOUSEHOLD.verdict.headline, both views): its chance in words. */
 export const HOUSEHOLD_CHANCE = Object.freeze({ words: FACT.HOUSEHOLD_CHANCE });
 

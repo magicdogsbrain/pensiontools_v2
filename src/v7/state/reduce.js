@@ -1877,6 +1877,13 @@ function reduceAction(state, action) {
       return withPlanDraft({ ...state, checkIn: emptyCheckIn(), ui: { ...state.ui, saving: { planId, kind: 'checkIn' }, saveProblem: null, toast: null } }, { ...base, asked: true });
     }
     // ---- Month by month (research/v7/months-in-v7.md §3, 7.2.0): "Record" and "Set up 2026/27" ------------------------------
+    // "Set this year up again" (step F2, lead4.md D7): one write, nothing typed
+    case A.PLAN_TAX_YEAR_AGAIN: {
+      const { planId } = action;
+      if (typeof planId !== 'string' || !planId) return refuse(action.type + ': needs a plan id');
+      if (state.ui.saving) return state;
+      return { ...state, ui: { ...state.ui, saving: { planId, kind: 'taxYearAgain' }, saveProblem: null, toast: null } };
+    }
     case A.PLAN_MONTH_RECORD:
     case A.PLAN_TAX_YEAR: {
       const { planId } = action;

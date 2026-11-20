@@ -243,6 +243,7 @@ const anyAction = fc.oneof(
   // Month by month (7.2.0): Record and Set up
   fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_MONTH_RECORD, planId })),
   fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_TAX_YEAR, planId })),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_TAX_YEAR_AGAIN, planId })),
   // the budget step (budget-step.md) and "Save this as a plan" (save-as-plan.md)
   saver.map((q) => ({ type: A.DRAFT_ONWARD, q })),
   fc.tuple(saver, fc.constantFrom('lines', 'one')).map(([q, how]) => ({ type: A.SPEND_HOW, q, how })),

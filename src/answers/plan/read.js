@@ -77,7 +77,8 @@ import { closedReading, beforeReading } from '../../services/PlanClosedReading.j
 import { closeQuestionOf, successorName } from '../../services/PlanClose.js';
 import { startLaterOf, laterDraftLeftOf } from '../../services/PlanMove.js';
 import { shownPlanName } from '../../services/PlanName.js';
-import { takenSentence, yearPlanOf, firstPaymentMonth, monthToRecord } from '../../services/YearPlan.js';
+import { takenSentence, firstPaymentMonth, monthToRecord } from '../../services/YearPlan.js';
+import { thisTaxYearOf, thisYearSentences } from '../../reading/thisYear.js';
 // the plans linked to this one, in either direction (6), this plan's own link first; never a closed plan (services/HouseholdLink.js)
 import { partnersOf, partnerIdOf } from '../../services/HouseholdLink.js';
 
@@ -443,20 +444,25 @@ function whereStep(C) {
     Object.assign(figures, said.figures);
     result = sentence('where.retired', said.parts, figures);
     compare = said.compare;
-    // the year as it was set up (7.12.0, YearPlan.yearPlanOf): what the plan takes a month this tax year, and from when when
-    // it was set up part-way; nothing for a year not set up (the to-do asks for the set-up)
-    let yp = null; try { yp = older ? null : yearPlanOf(plan, taxYearKey(parseInt(w.taxYear, 10))); } catch { yp = null; }
-    if (yp) {
-      figures.yearMonthly = Math.round(yp.perMonth); figures.yearTotal = yp.total;
-      const april = yp.from && yp.from.slice(5) === '04' && yp.payments === 12;
-      lines.push(line('where.yearPlan', april
-        ? ['In ' + w.taxYear + ' your plan takes ', money('yearMonthly'), ' a month before tax.']
-        : ['In ' + w.taxYear + ' your plan takes ', money('yearMonthly'), ' a month before tax, from ' + monthWords(yp.from) + ': ' + yp.payments + ' payment' + (yp.payments === 1 ? '' : 's') + ', ', money('yearTotal'), '.'], figures, sourceOf('record', null, now), { year: w.taxYear }));
+    // this tax year (step F2, lead4.md D7: src/reading/thisYear.js, the one reader both views say): the year as it was set up
+    // — what the plan takes a month, and from when when it was set up part-way — and, when the plan's own figure for the year
+    // differs from the set-up, both figures with the set-up's date; nothing for a year not set up (the to-do asks for it)
+    let ty = null; try { ty = older ? null : thisTaxYearOf(plan, { now }, { key: taxYearKey(parseInt(w.taxYear, 10)) }); } catch { ty = null; }
+    for (const s of thisYearSentences(ty)) {
+      Object.assign(figures, s.figures);
+      lines.push(line(s.id, s.parts, figures, sourceOf('record', null, now), { year: w.taxYear }));
     }
     // (7.10.0: the start is changed on "About you and when", by unlock and lock again — no longer a to-do)
     if (older) lines.push(line('where.startLater', ['Your plan is set to start in April ' + C.startLater.start + ', so these months are not read against it yet' + (C.readonly ? '' : '. You can change the start on About you and when')], figures, sourceOf('locked', lockedAt, now), { start: 'April ' + C.startLater.start }));
     if (inc.recorded > 0) lines.push(line('where.taken', [money('drawn')], figures, sourceOf('record', null, now), { year: w.taxYear }));
-    if (w.step && w.step.amount != null) { figures.stepNow = r0(w.step.amount); lines.push(line('where.step', [money('stepNow'), ' a year before tax'], figures, sourceOf('locked', lockedAt, now), { n: String(w.step.index), of: String(w.step.of) })); }
+    // the step in force as the reading gives it (step F2, lead4.md D6): a year before tax as it is taken, never the stored figure
+    if (w.step && w.step.amount != null) {
+      const i = w.step.index - 1;
+      let st = null; try { st = incomeStepsOf(plan, { now }).steps[i] || null; } catch { st = null; }
+      const k = 'step' + i;
+      figures[k] = st && Number.isFinite(+st.beforeTax) ? r0(st.beforeTax) : r0(w.step.amount);
+      lines.push(line('where.step', [money(k), ' a year before tax'], figures, sourceOf('locked', lockedAt, now), { n: String(w.step.index), of: String(w.step.of) }));
+    }
     // the pot (7.12.0): ONE basis, the one the band is in (whereAmI's `real`, as Review and the full view say it), with the
     // figure as recorded in brackets when prices have moved; its parts and their dates when they are more than a month apart;
     // and, when the band counts the ISA and no figure for it exists anywhere, that — never a pot set against the line
@@ -504,7 +510,9 @@ function whereStep(C) {
   // the records by tax year, a spreadsheet per year and the printed documents stay on the classic page (road-to-7.md step 11b, month.exports)
   const older = !w.saving && !!C.startLater && C.startLater.start > C.ty;
   const startHere = older && !C.readonly ? [link('aboutWhen', '#/plan/' + plan.id + '/about')] : [];
-  return { done: true, result, compare, figures, lines, buttons: [...startHere, button('seeDocument', 'document'), button('exports', 'exports')], notes, ...(guardrail ? { guardrail } : {}) };
+  // the plan's figure for this tax year differs from the set-up (step F2, lead4.md D7): the set-up is opened again on Month by month
+  const again = lines.some((l) => l.id === 'where.yearChanged') && !C.readonly ? [link('setUpAgain', '#/plan/' + plan.id + '/month')] : [];
+  return { done: true, result, compare, figures, lines, buttons: [...again, ...startHere, button('seeDocument', 'document'), button('exports', 'exports')], notes, ...(guardrail ? { guardrail } : {}) };
 }
 
 /** The income steps as the plan has them: the document's (locked), else the effective settings'. */
@@ -584,10 +592,14 @@ function planStep(C) {
       figures['saysGross' + i] = st.beforeTax; figures['saysNet' + i] = st.monthAfterTax;
       const parts = [];
       if (st.fromAge != null) { figures['saysAge' + i] = st.fromAge; parts.push('From age ', age('saysAge' + i), ': '); }
-      parts.push(money('saysGross' + i), ' a year before tax, ', money('saysNet' + i), ' a month after tax');
-      if (st.taxYear) parts.push(' (tax year ' + st.taxYear + ')');
+      parts.push(money('saysGross' + i), ' a year before tax, ', money('saysNet' + i), ' a month after tax in a full year');
+      if (st.taxYear) parts.push(' (from tax year ' + st.taxYear + ')');
       lines.push(line('says.pays', parts, figures, src));
     });
+    // this tax year, as it was set up (step F2, lead4.md D7; walk finding W6-H4): the one reader "Where you are" says, so a
+    // part year is never read as the full year above
+    let ty = null; try { ty = thisTaxYearOf(plan, { now }); } catch { ty = null; }
+    for (const s of thisYearSentences(ty)) { Object.assign(figures, s.figures); lines.push(line(s.id, s.parts, figures, sourceOf('record', null, now), { year: ty.year })); }
     const sp = doc.layers && doc.layers.sp;
     const dp = doc.strategy && doc.strategy.p;
     if (sp && num(sp.annual) > 0) { figures.saysSp = r0(sp.annual); figures.saysSpAge = r0(sp.fromAge); lines.push(line('says.sp', ['State Pension: ', money('saysSp'), ' a year from age ', age('saysSpAge')], figures, src)); }

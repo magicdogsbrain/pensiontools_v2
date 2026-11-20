@@ -310,6 +310,8 @@ export const PLAN = {
     'where.taken': 'Taken before tax in {year}',
     /** The year's set-up, once it is set up (7.12.0, YearPlan.yearPlanOf): the sentence carries its own words. */
     'where.yearPlan': '',
+    /** The plan's own figure for the year differs from the year as set up (step F2, lead4.md D7): both, with the set-up's date. */
+    'where.yearChanged': '',
     'where.step': 'Step {n} of {of} of your plan',
     'where.pot': 'Your pot',
     'where.potMid': 'The plan’s middle line for now',
@@ -524,6 +526,7 @@ export const PLAN = {
     startReview: 'Start the review',
     seeChange: 'See what you can change',
     reviewNow: 'Review now',
+    setUpAgain: 'Set this year up again',
     aboutWhen: 'About you and when'
   },
 

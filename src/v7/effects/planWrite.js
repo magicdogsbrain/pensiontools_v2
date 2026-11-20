@@ -203,7 +203,7 @@ import { savingPatch, recordPatch } from '../../answers/plan/saving.js';
 import { checkInDraft, checkInPatch, restartPathPatch, CHECKIN_FUTURES, CHECKIN_SEED } from '../../answers/plan/checkIn.js';
 import { answerInPlanPatch } from '../../answers/plan/useAnswer.js';
 import { shownPlanNameOn } from '../../services/PlanName.js';
-import { monthRecordPatch, taxYearPatch } from '../../answers/plan/month.js';
+import { monthRecordPatch, taxYearPatch, setUpAgainPatch } from '../../answers/plan/month.js';
 import { taskPatch, DISMISS } from '../../answers/plan/tasks.js';
 import { reviewSavePatch, phaseChoicePatch } from '../../answers/plan/review.js';
 import { agreePatch, agreeWithdrawPatch, sayHeldPatch } from '../../answers/plan/agree.js';
@@ -633,12 +633,12 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     const pd = state.draft.plan && state.draft.plan.id === String(planId) ? state.draft.plan : null;
     const typed = pd ? pd.values : {};
     const at = now();
-    const p = kind === 'taxYear' ? taxYearPatch(plan, typed, { today: state.env.today }) : monthRecordPatch(plan, typed, { today: state.env.today, nowIso: at.toISOString() });
+    const p = kind === 'taxYear' ? taxYearPatch(plan, typed, { today: state.env.today }) : kind === 'taxYearAgain' ? setUpAgainPatch(plan, { today: state.env.today }) : monthRecordPatch(plan, typed, { today: state.env.today, nowIso: at.toISOString() });
     if (!p.ok) { fail(planId, p.problem === 'notLocked' || p.problem === 'notSetUp' || p.problem === 'refused' || p.problem === 'setUpAlready' || p.problem === 'noMonth' ? p.problem : p.problem === 'problems' ? 'problems' : 'failed'); return; }
     const data = declaredOnly({ ...p.patch, lastModified: at.toISOString() });
     if (lockedRefusal(plan, data) || monthWriteRefusal(data)) { fail(planId, 'locked'); return; }
     if (!(await send(place, planId, data))) return;
-    dispatch({ type: A.PLAN_SAVED, planId, previous: { ...p.previous, lastModified: plan.lastModified }, line: p.line, op: kind === 'taxYear' ? 'taxYear' : 'month' });
+    dispatch({ type: A.PLAN_SAVED, planId, previous: { ...p.previous, lastModified: plan.lastModified }, line: p.line, op: kind === 'taxYear' || kind === 'taxYearAgain' ? 'taxYear' : 'month' });
     dispatch({ type: A.PLANS_READING });
     later(() => dispatch({ type: A.PLAN_TOAST_CLOSE }));
   }
@@ -1923,7 +1923,7 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     else if (action.type === A.PLAN_CHECK_IN && s.kind === 'checkIn') run(() => checkIn(s.planId));
     else if (action.type === A.PLAN_RESTART_PATH && s.kind === 'restartPath') run(() => fromCheckIn(s.planId));
     // Month by month (7.2.0)
-    else if ((action.type === A.PLAN_MONTH_RECORD && s.kind === 'month') || (action.type === A.PLAN_TAX_YEAR && s.kind === 'taxYear')) run(() => monthWrite(s.planId, s.kind));
+    else if ((action.type === A.PLAN_MONTH_RECORD && s.kind === 'month') || (action.type === A.PLAN_TAX_YEAR && s.kind === 'taxYear') || (action.type === A.PLAN_TAX_YEAR_AGAIN && s.kind === 'taxYearAgain')) run(() => monthWrite(s.planId, s.kind));
     // "Use these in ‘…’" on question B's answer (6.59.0)
     else if (action.type === A.KEEP_USE && s.kind === 'useAnswer') run(() => useAnswer(s.planId, s.q, s.payIn));
     // the plan menu (road-to-7.md step 11)

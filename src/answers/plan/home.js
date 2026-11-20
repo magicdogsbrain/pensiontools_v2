@@ -30,7 +30,8 @@ import { holdingsSummary, normaliseHoldings } from '../../services/HoldingsRecor
 import { moveWindowOf } from '../../services/Phases.js';
 import { asHeldStateOf } from './agree.js';
 import { ym, dayWords, timeLeftWords } from './dates.js';
-import { takenAgainstPlan, yearPlanOf, firstPaymentMonth } from '../../services/YearPlan.js';
+import { takenAgainstPlan, firstPaymentMonth } from '../../services/YearPlan.js';
+import { thisTaxYearOf } from '../../reading/thisYear.js';
 import { startLaterOf } from '../../services/PlanMove.js';
 import { pensionLockForSettings } from '../../services/PlanNeed.js';
 import { CONTRACT_STRATEGIES } from '../../services/PlanDocument.js';
@@ -70,7 +71,7 @@ export const WHERE_LINES = 3;
  * The lines the home shows under the result (which says what was taken against what the plan said, 7.12.0), in this order:
  * the year's plan, the pot and its middle line.
  */
-const WHERE_HEADLINE = ['where.startLater', 'where.yearPlan', 'where.pot', 'where.potNoIsa', 'where.potMid', 'where.ladderMonthly'];
+const WHERE_HEADLINE = ['where.startLater', 'where.yearChanged', 'where.yearPlan', 'where.pot', 'where.potNoIsa', 'where.potMid', 'where.ladderMonthly'];
 /** The tools a home lists, by stage, in order (each a step of the plan with its one-line state). */
 const TOOLS = {
   saving: ['checkin', 'saving', 'budget', 'hold', 'household'],
@@ -223,7 +224,8 @@ function yearOf(plan, page, now) {
   const byMonth = new Map(hist.map((h) => [String(h.date).slice(0, 7), h]));
   // what the plan takes a month this year, for the months still to come: the year's set-up (7.12.0, YearPlan.yearPlanOf);
   // a recorded month's own figure is what that month told the person to take
-  let yp = null; try { yp = older ? null : yearPlanOf(plan, key); } catch { yp = null; }
+  // (step F2, lead4.md D7: src/reading/thisYear.js, the one reader of this tax year in both views)
+  let yp = null; try { yp = older ? null : thisTaxYearOf(plan, { now }, { key }).setUp; } catch { yp = null; }
   const perMonth = yp ? yp.perMonth : null;
   const cfg = plan.decisionTool && plan.decisionTool.taxYears ? plan.decisionTool.taxYears[key] : null;
   const setUp = !!(cfg && cfg.yearSetupComplete);

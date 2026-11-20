@@ -57,7 +57,7 @@ import { RISK_PRESETS } from '../../services/GlidepathService.js';
 import { strategyIdOf, phasesOf, phasesPatch, reviewLogOf, reviewRuleOf, reviewEveryOf, ruleOrNull, windowYearsOrNull, windowOf, windowChosenOf, moveWindowOf, monthsBetween, OFF_COURSE, WINDOW, SAVING_LEVELS, REVIEW_EVERY } from '../../services/Phases.js';
 import { startLaterOf } from '../../services/PlanMove.js';
 import { taxYearStartOf, taxYearLabel, taxYearKey } from '../../services/PlanTiming.js';
-import { yearPlanOf } from '../../services/YearPlan.js';
+import { thisTaxYearOf } from '../../reading/thisYear.js';
 import { documentAtOf } from '../../services/PlanAmendments.js';
 import { isExamplePlan } from '../../services/GuestPlans.js';
 import { isClosedPlan } from '../../services/PlanClosed.js';
@@ -181,7 +181,8 @@ function livingReadingOf(plan, { now, pots, entered, older }) {
   if (GUARDRAIL_STRATEGIES.includes(w.strategyId)) { try { g = guardrailOf(doc, w); } catch { g = null; } }
   // what the plan takes this tax year: the year's set-up (7.12.0, YearPlan.yearPlanOf), never the document's year row,
   // which is frozen at the lock in the lock's prices; nothing said for a year not set up
-  let yp = null; try { yp = yearPlanOf(plan, taxYearKey(taxYearStartOf(now))); } catch { yp = null; }
+  // (step F2, lead4.md D7: src/reading/thisYear.js, the one reader of this tax year in both views)
+  let yp = null; try { yp = thisTaxYearOf(plan, { now }, { key: taxYearKey(taxYearStartOf(now)) }).setUp; } catch { yp = null; }
   const taken = yp ? { planned: r0(yp.total), year: w.taxYear } : null;
   return { w, band, guardrail: g, taken, ladder: w.ladder || null };
 }

@@ -14,10 +14,9 @@
  *
  * Every household is made up (Alex and Sam, round figures). At 40 futures and, for the worked example, 400.
  *
- * 7.12.0 (one answer for the same household, step P): one person's D runs on the plan keeping it would write
- * (answers/keep/planPath.js), and so does C from now: I-D1 and I-D2 hold for one person again. A does not yet, so for ONE
- * PERSON I-D3 and I-D4 do not hold until A's stop-now row is on the plan path too: those checks are `it.fails` (they turn
- * red the day A moves, and become `it` again). A couple's D, C and A are all the household run (ruling 9): theirs still hold, as do I-D5 and the household.
+ * 7.12.0 (one answer for the same household, step P): one person's D, C from now and A's stop-now row run on the plan
+ * keeping it would write (answers/keep/planPath.js); a couple's all three on the two plans keeping it would write (planPath
+ * coupleCaseOf, the lead's ruling 9, step P4). So I-D1 to I-D4 hold for both, as do I-D5 and the household.
  */
 import { describe, it, expect } from 'vitest';
 import { answerD, TEST_ENV, D1, D2, D3, D7 } from './_d.js';

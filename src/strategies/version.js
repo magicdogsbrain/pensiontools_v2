@@ -118,5 +118,15 @@
  *           middle pot says it does in that future (a sleeve's market is that future's, at the middle pot's sleeve). It
  *           priced one middling pot: a saver's full gilt ladder said "lasts in every future" where some lives' pots at the
  *           stop cannot buy it. The verdict on "What you pay in" reads the plan's own way (it was worked out as pots).
+ *           A couple's household run (lead4-engine.md ruling 9) is the two plans' own runs (answers/keep/planPath.js
+ *           coupleCaseOf): "Will it last?", "How much can I take?" from now and the "When could I stop?" row at which both
+ *           stop today, for a couple, run on the two plans keeping
+ *           would write, each its own Pots & Valves run with its own tax bands, State Pension share and glidepath, on the
+ *           same futures, the household running out when the first of them does; a future is weighed by the chance either
+ *           of the two is alive at the start of the year it ran out in (it was the household model's own run, weighed month
+ *           by month). Two linked plans say that same household figure (householdRun.householdLastsOf). The answers'
+ *           amounts for a couple move, for some by over £100 a month (each plan taxes and shares its own); a one-person household is the plan
+ *           test, as before. A couple with someone under the age a pension can be touched today, a couple who stop in
+ *           different years, and a couple from a later stop stay on the household model's own run for now.
  */
 export const ENGINE_VERSION = '6.39.0';

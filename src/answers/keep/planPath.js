@@ -91,7 +91,9 @@ function resultAt(source, ins, env, perMonth, startAge = ins.you.age, saver = nu
     return {
       status: 'ok', inputs: ins, whose: 'you', level, levels: { [level]: source === 'b' ? { pot: null, payIn: null } : {} }, chance: {}, phases: [],
       spend: { perMonth, perYear: perMonth * 12, kind: ins.spend.kind, level: ins.spend.kind === 'level' ? ins.spend.level : null },
-      ...(source === 'b' ? { stop: { age: saver.stopAge } } : { shown: { age: saver.stopAge, phases: [] } }),
+      ...(source === 'b' ? { stop: { age: saver.stopAge } } : { shown: { age: saver.stopAge, phases } }),
+      // (a couple: who the answer is about, so the keep reads the stop as that person's)
+      ...(saver.askedAbout === 'partner' ? { askedAbout: 'partner' } : {}),
       saving: saver.saving, pensionOpens: saver.pensionOpens,
       basis: { today: env.today, endAge: ins.endAge, engineVersion: null, historyEnd: null }
     };
@@ -262,7 +264,7 @@ function wordsPlanFrom({ p, settings, life, asGiven, work = asGiven, planYears, 
 }
 
 /** The fields the fast path reads once per run from its base (fastEngine.js prepareRun): every config of a case shares them. */
-const PREPARED = ['equityMin', 'bondMin', 'cashTarget', 'duration', 'pa', 'brl', 'hrl', 'spendingProfile', 'spStartYear', 'spWeeklyAmount', 'spFirstYearRatio', 'dbAmount', 'dbStartYear', 'years'];
+const PREPARED = ['equityMin', 'bondMin', 'cashTarget', 'duration', 'pa', 'brl', 'hrl', 'spendingProfile', 'spStartYear', 'spWeeklyAmount', 'spFirstYearRatio', 'dbAmount', 'dbStartYear', 'dbIndexation', 'years'];
 const sameBase = (a, b) => PREPARED.every((k) => a[k] === b[k]) && JSON.stringify(a.extraIncomes || []) === JSON.stringify(b.extraIncomes || []);
 
 /**
@@ -602,9 +604,9 @@ export function planCaseOf(source, ins, env, { lives = null, dragPct = 0, fromAg
 /**
  * THE HOUSEHOLD RUN FROM TWO PLANS (7.12.0, the lead's ruling 9, step P4): one adapter feeds the couple's run from the two
  * plans' settings: two linked plans read their household figure through it (householdReadingOf, householdRun.js
- * householdLastsOf), and a couple's answer run on it (D, C from now: source 'd' | 'c') is the two kept plans' figure. The
- * answers are not moved onto it yet (step P4's handover: with A, C and D for couples moved together, so A's stop-now row
- * stays C, and D stays C from now); tests/v7/cross/coupleIsPlans.test.js holds what is done and marks what is open.
+ * householdLastsOf), and a couple's answer runs on it (D, C from now, A's row at which both stop today: source 'd' | 'c' |
+ * 'a'), so it is the two kept plans' figure; A, C and D for couples moved together, so A's stop-now row is still C and D
+ * is still C from now (tests/v7/cross/coupleIsPlans.test.js, tests/v7/cross/questions.test.js X1, tests/v7/d/identity.test.js).
  *
  *   plans at H → PlanReading.effectiveStressSettings, each       the one settings recipe
  *             → lastsRun.planFor, weightedPlanFor, each           each plan's own run, followed on to the household's
@@ -618,23 +620,25 @@ export function planCaseOf(source, ins, env, { lives = null, dragPct = 0, fromAg
  * household plan says them ("until the younger of you is …"). With one plan this is the plan path's own case (planCaseOf):
  * a one-person household run is the plan test (tests/v7/cross/coupleIsPlans.test.js holds it to the bit).
  *
- * Pots & Valves only; both from now (a couple who stop in different years, a spending shape and a start moved to the day a
- * pension opens stay on the household plan's own run).
+ * Pots & Valves only; both from now (a couple who stop in different years, a spending shape, a start moved to the day a
+ * pension opens and someone under the age a pension can be touched today stay on the household plan's own run:
+ * couplesOnPlans).
  *
  *   coupleCaseOf(source, ins, env, { lives, dragPct, phasesAt, planAt, H0 }) → planCaseOf's case less the words (`words`
  *     stays the household plan's; wordsPlan is not given)
- *     source 'd' | 'c' (a couple's answer from now): at H the plans keeping the answer would write (keptPlansAt), with the
- *            household's split at H (`phasesAt(H)`: the answer's phases, each one's part of the take-home)
+ *     source 'd' | 'c' | 'a' (a couple's answer from now): at H the plans keeping the answer would write (keptPlansAt), with
+ *            the household's split at H (`phasesAt(H)`: the answer's phases, each one's part of the take-home); A's row hands
+ *            in `saver` (its stop, what goes in as now, each one's pots), as for one person
  *     planAt () → { yours, partner }: two saved plans as they are (householdReadingOf): the plans' own amounts, H unread
  */
-export function coupleCaseOf(source, ins, env, { lives = null, dragPct = 0, phasesAt = null, planAt = null, H0 = null } = {}) {
+export function coupleCaseOf(source, ins, env, { lives = null, dragPct = 0, phasesAt = null, planAt = null, H0 = null, saver = null } = {}) {
   const now = dateOf(env.today);
   const memo = new Map();
   const at = (H) => {
     const key = planAt ? 0 : H;
     let c = memo.get(key);
     if (c) return c;
-    const two = planAt ? planAt(H) : keptPlansAt(source, ins, env, H / 12, { phases: phasesAt(H) });
+    const two = planAt ? planAt(H) : keptPlansAt(source, ins, env, H / 12, { phases: phasesAt(H), saver });
     if (!two || !two.yours) throw new Error('coupleCaseOf: the answer cannot be kept at ' + H);
     c = [two.yours, two.partner].filter(Boolean).map((kept, idx) => {
       const settings = effectiveStressSettings(kept, { now });
@@ -775,7 +779,7 @@ export function coupleCaseOf(source, ins, env, { lives = null, dragPct = 0, phas
   };
   const anywayNet = Array.from({ length: planYears }, (_, y) => anyway.reduce((t, a) => t + a.net[y], 0));
   return {
-    source, couple: first.length > 1, plan, sp: { n, lives: L }, runner, weigher, toMonth, planYears, years, startAge, planToAge, weightToAge,
+    source, household: true, couple: first.length > 1, plan, sp: { n, lives: L }, runner, weigher, toMonth, planYears, years, startAge, planToAge, weightToAge,
     drawFutures, driversFor, configsAtH,
     level: planLevelOf(first[0].kept), capped: plan.runCapped, reason,
     keptAt: (H) => at(H).map((x) => x.kept), settingsAt: (H) => at(H).map((x) => x.settings),
@@ -784,6 +788,31 @@ export function coupleCaseOf(source, ins, env, { lives = null, dragPct = 0, phas
     // one's own taxed alone)
     anywayK: Math.floor(Math.min(...anywayNet) / 12 / STEP + 1e-9)
   };
+}
+
+/**
+ * Whether a couple's answer from now runs on the two plans keeping it would write (coupleCaseOf), read from the household
+ * plan of the stop: both stop in the same year, no spending shape, a start not moved, something to draw on, and both of
+ * them at or over the age a pension can be touched today. Someone younger stays on the household plan's own run, with a
+ * pension or without one (so £1 in it and nothing in it are the same run: tests/v7/c/review.test.js §2), until the lead
+ * rules whose money pays a closed partner's part (step P4's question 1: in the two kept plans each pays their own closed
+ * years from their own savings; the household plan lets the other's money pay).
+ */
+export function couplesOnPlans(plan) {
+  if (!(plan.totalPots > 0) || plan.apart || plan.shape || plan.startMoved) return false;
+  return plan.people.every((p) => firstOpenAge(p.ageAtStart, plan.today, 0) <= p.ageAtStart);
+}
+
+/**
+ * A couple's words (the household plan: what an amount is made of, person by person) over the years the two kept plans run:
+ * the household plan's own periods cut at the kept plans' plan-to age (the keep's 45-year cap, ruling H, where the household
+ * plan would run on), so the phases end where the chance is counted. The plan itself when it already ends there.
+ */
+export function householdWordsTo(plan, c) {
+  const years = c.planYears;
+  if (!(plan.years > years) || plan.startAge !== c.startAge) return plan;
+  return { ...plan, years, endAge: c.planToAge, capped: true,
+    periods: plan.periods.filter((per) => per.from < years).map((per) => (per.to > years ? { ...per, to: years } : per)) };
 }
 
 /**

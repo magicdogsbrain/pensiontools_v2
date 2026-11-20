@@ -169,13 +169,32 @@ function onPlanPath(inputs, household, sp, env) {
   return firstOpenAge(you.age, env.today, sp.S) <= you.age + sp.S;
 }
 
-/** What planSeed reads of A's row at a stop (planPath resultAt 'a'): the stop, what goes in as now, the pots at the stop. */
+/**
+ * A COUPLE STOPPING NOW IS ON THE PLAN PATH TOO (the lead's ruling 9, step P4): a row at which both of a couple stop today
+ * runs on the two plans keeping that row would write (keep/planPath.js coupleCaseOf), as C and D from now do, so A's
+ * stop-now row is still C's and D's. Not (yet) on it: a couple from a later stop (the saving lives per person), a couple
+ * who stop in different years, a spending shape, and a pension still closed today (planPath couplesOnPlans).
+ */
+function coupleNow(inputs, sp, env) {
+  if (inputs.household !== 'couple' || !inputs.partner || !(env.planPath && typeof env.planPath.coupleCaseOf === 'function')) return false;
+  if (env.mix || env.householdRoute || sp.stops.some((s) => s.S !== 0) || sp.household.shape) return false;
+  return env.planPath.couplesOnPlans(sp.plan);
+}
+
+/**
+ * What planSeed reads of A's row at a stop (planPath resultAt 'a'): the stop, what goes in as now, the pots at the stop
+ * (each person's, a couple's both), and who the row is about.
+ */
 function keptSaverOf(sp, stopAge, inputs, env) {
-  const p = payInOf(inputs.you);
+  const people = inputs.household === 'couple' && inputs.partner ? ['you', 'partner'] : ['you'];
   return {
-    S: sp.S, stopAge, pensionOpens: { you: firstOpenAge(inputs.you.age, env.today) },
-    saving: [{ who: 'you', yearsSaving: sp.S, payIn: { total: p.total, own: p.own, employer: p.employer },
-      potAtStop: { pension: spreadOf(sp.pots[0].pension), savings: spreadOf(sp.pots[0].savings) } }]
+    S: sp.S, stopAge, pensionOpens: Object.fromEntries(people.map((who) => [who, firstOpenAge(inputs[who].age, env.today)])),
+    ...(askedAbout(inputs) === 'partner' ? { askedAbout: 'partner' } : {}),
+    saving: people.map((who, j) => {
+      const p = payInOf(inputs[who]);
+      return { who, yearsSaving: sp.stops[j].S, payIn: { total: p.total, own: p.own, employer: p.employer },
+        potAtStop: { pension: spreadOf(sp.pots[j].pension), savings: spreadOf(sp.pots[j].savings) } };
+    })
   };
 }
 
@@ -187,10 +206,20 @@ function keptSaverOf(sp, stopAge, inputs, env) {
 export function stopPlanOf(ins, env, age, lives) {
   const { household } = toHousehold(ins, env, age);
   const sp = stopAtPlan(household, stopsAt(ins, age).engineStop, env, lives);
+  if (coupleNow(ins, sp, env)) {
+    // a couple stopping now: the runs are the two kept plans' (`sp.couple`), the household's split at each amount (this
+    // row's phases) what the keep writes, and the words the household plan's cut at the kept plans' years
+    const longer = (T) => (T <= lives[0].years ? lives : livesList(lives.length, T, env));
+    const pc = env.planPath.coupleCaseOf('a', ins, env, { lives: longer, phasesAt: (H) => phasesAt(sp, H), H0: spendAYearOf(ins), saver: keptSaverOf(sp, age, ins, env) });
+    return { sp: { ...sp, plan: env.planPath.householdWordsTo(sp.plan, pc), couple: pc }, pc };
+  }
   const pc = onPlanPath(ins, household, sp, env) ? env.planPath.planCaseOf('a', ins, env, { lives, saver: keptSaverOf(sp, age, ins, env) }) : null;
   if (pc) sp.kept = pc;
   return { sp, pc };
 }
+
+/** The spend as typed, a year (a level's own figure for a level). */
+const spendAYearOf = (ins) => 12 * (ins.spend.kind === 'level' ? spendLevelAMonth(ins.household, ins.spend.level) : ins.spend.amount);
 
 /**
  * Everything about one stop age, built once and kept for the answer: the stop plan on the shared lives, its runner,
@@ -202,14 +231,16 @@ function stopCase(ctx, age, { partTime = 'asTyped' } = {}) {
   if (hit) return hit;
   const ins = partTime === 'asTyped' ? ctx.inputs : { ...ctx.inputs, partTime };
   const { sp, pc } = stopPlanOf(ins, ctx.env, age, ctx.lives);
-  const runner = createStopRunner(sp);
+  // (a couple stopping now: the two kept plans' runner on their lives, `runSp`)
+  const runner = sp.couple ? pc.runner : createStopRunner(sp);
+  const runSp = sp.couple ? pc.sp : sp;
   // the spend as typed, in this row's first year: a step at or before this stop is in force from it (spending-shape.md 6.3)
   const spendAYear = startAYear(ctx.spendAYear, sp.plan);
   // the weights of this stop and the verdict at the level (7.8.0; on the plan path the kept plan's, to its plan-to age)
   const at = pc ? { weigher: pc.weigher, level: ctx.level, toMonth: pc.toMonth }
     : { weigher: weigherOf(sp.plan, ins, ctx.env), level: ctx.level, toMonth: 12 * (sp.plan.endAge - sp.plan.startAge) };
-  const verdict = verdictAt(sp, runner, spendAYear, at);
-  const c = { age, S: sp.S, own: ownOf(sp), sp, runner, pc, verdict, band: null, inputs: ins, spendAYear, at };
+  const verdict = verdictAt(runSp, runner, spendAYear, at);
+  const c = { age, S: sp.S, own: ownOf(sp), sp, runSp, runner, pc, verdict, band: null, inputs: ins, spendAYear, at };
   ctx.cases.set(key, c);
   return c;
 }
@@ -253,7 +284,7 @@ function bandOf(ctx, c, estimate, levels = [ctx.level]) {
   const key = estimateKey(c.inputs, ctx.env, c.age);
   // (7.8.0: each level's search starts where the rows before say its rise over its count is — carried on to this age as
   // the estimate is, estimateAt; a hint only, as the estimate is)
-  c.band = bandAt(c.sp, c.runner, smallerPass(key, ctx.n) || estimate, { weigher: c.at.weigher, levels, toMonth: c.at.toMonth, levelRatios: ratiosAt(ctx.ratios, c.age) });
+  c.band = bandAt(c.sp.couple ? { ...c.runSp, couple: c.sp.couple } : c.sp, c.runner, smallerPass(key, ctx.n) || estimate, { weigher: c.at.weigher, levels, toMonth: c.at.toMonth, levelRatios: ratiosAt(ctx.ratios, c.age) });
   if (c.band.solver && c.band.solver.levelRatios && c === ctx.cases.get(`${c.age}:asTyped`)) ctx.ratios.set(c.age, c.band.solver.levelRatios);
   const byN = remembered.get(key) || new Map();
   byN.set(ctx.n, { ...c.band.k });
@@ -611,7 +642,7 @@ export function answerA(inputs, env) {
     partTime,
     saving: savingOf(ctx, sc),
     // (on the plan path what comes in anyway is the kept plan's own, its words plan: as C and D say it)
-    guaranteed: { monthlyAfterTax: round2((sc.pc ? sc.pc.wordsPlan.guaranteedAYear : plan.guaranteedAYear) / 12) },
+    guaranteed: { monthlyAfterTax: round2((sc.sp.kept ? sc.pc.wordsPlan.guaranteedAYear : plan.guaranteedAYear) / 12) },
     handOver: { c: handOverToC(ins, shownAge, env.today) },
     assumed: [], warnings: [], sentences: {},
     basis: {
@@ -650,7 +681,7 @@ export function answerA(inputs, env) {
     madeUpFutures: typeof env.futureReturns === 'function', capped: sc.pc ? sc.pc.planToAge < ins.endAge : Boolean(plan.capped), capYears: sc.pc ? sc.pc.planYears : drawYearsCap(env), drawdown2028,
     ...(apartCtx ? { apart: apartCtx } : {}), weighing,
     // the kept plan's own first tax year it takes from the pension (the lead's ruling G; planPath wordsPlan)
-    ...(sc.pc && sc.pc.wordsPlan.pensionOpens ? { pensionOpens: { you: sc.pc.wordsPlan.pensionOpens } } : {})
+    ...(sc.sp.kept && sc.pc.wordsPlan.pensionOpens ? { pensionOpens: { you: sc.pc.wordsPlan.pensionOpens } } : {})
   });
 
   if (env.trace) {

@@ -21,8 +21,12 @@
  * would write, so the count that lasts to the plan-to age, the weighted chance, the bad-case run-out age, the middle
  * run-out age and what is typically left are the kept plan's "Does it last?" figures (tests/v7/cross/answerIsPlan.test.js).
  * The plan-to age is the kept plan's (at most 45 years). A couple's household run stays the couple's engine (the lead's
- * ruling 9), as does a household with nothing to draw on (no run at all). Until C and A are on the plan path too, D's band
- * is no longer C's from now nor its verdict A's stop-now row (tests/v7/d/identity.test.js says so).
+ * ruling 9), fed by one adapter from the two plans keeping the answer would write (planPath coupleCaseOf: each one's own
+ * run, on the same futures, weighed by the chance either is alive), so the two kept plans read as one household say the
+ * answer's figures (tests/v7/cross/coupleIsPlans.test.js); its words stay the household's stop plan's, cut at the kept
+ * plans' years. A couple with someone under the age a pension can be touched today stays on the household run (planPath
+ * couplesOnPlans, the one rule A, C and D read). A household with nothing to draw on has no run at all. C from now and A's
+ * stop-now row run on the same cases, so D is C from now and A stopping now (tests/v7/d/identity.test.js).
  *
  * Pure: the same inputs and env give the same result on every device. Reads no clock, storage, network or screen.
  * Never throws for a bad value: returns status 'invalid' with the problems.
@@ -65,7 +69,7 @@ function envProblems(env) {
 }
 
 /** One person is on the plan path; it must be handed in (answers/index.js answerFor), never left out silently. */
-const planPathProblems = (couple, env) => (!couple && !(env.planPath && typeof env.planPath.planCaseOf === 'function') ? [{ field: 'env.planPath', messageId: 'required' }] : []);
+const planPathProblems = (couple, env) => (!(env.planPath && typeof env.planPath.planCaseOf === 'function' && typeof env.planPath.coupleCaseOf === 'function') ? [{ field: 'env.planPath', messageId: 'required' }] : []);
 
 /** Whether the household has a pension or savings to draw on (the inputs as checked). */
 const anyPotIn = (ins) => [ins.you, ins.household === 'couple' ? ins.partner : null].some((p) => p && p.pot > 0) || ins.savings > 0;
@@ -118,6 +122,16 @@ function stopCaseOf(ins, env, lives, stopAge, dragPct = 0) {
   if (!couple && anyPotIn(ins)) {
     const pc = env.planPath.planCaseOf('d', ins, env, { lives, dragPct });
     return { sp: pc.sp, runner: pc.runner, weigher: pc.weigher, toMonth: pc.toMonth, pc, stop: null, words: pc.wordsPlan };
+  }
+  // a couple with something to draw on: the runs are the two plans keeping the answer would write, fed to the household run
+  // by the one adapter (planPath coupleCaseOf, the lead's ruling 9); the household's split at each amount (each one's part,
+  // its phases) is what the keep writes, and the words stay the household's stop plan's
+  if (couple && anyPotIn(ins) && !env.householdRoute) {
+    const sp = stopAtPlan(toHousehold(ins, env).household, stopAge, env, lives(0));
+    if (env.planPath.couplesOnPlans(sp.plan)) {
+      const pc = env.planPath.coupleCaseOf('d', ins, env, { lives, dragPct, phasesAt: (H) => phasesAt(sp, H), H0: spendOf(ins) * 12 });
+      return { sp: pc.sp, runner: pc.runner, weigher: pc.weigher, toMonth: pc.toMonth, pc, stop: sp, words: env.planPath.householdWordsTo(sp.plan, pc) };
+    }
   }
   const { household: named } = toHousehold(ins, env);
   const household = dragPct > 0 ? { ...named, returnDragPct: dragPct } : named;
@@ -239,7 +253,9 @@ export function answerD(inputs, env) {
   const words = main.words;
   const anyMoney = main.pc ? true : main.stop.pots.some((q) => q.pension.some((v) => v > 0) || q.savings.some((v) => v > 0));
   const status = anyMoney ? 'ok' : words.guaranteedAYear > 0 ? 'guaranteed-only' : 'none';
-  const phases = main.pc ? phasesAt({ plan: words, middling: null }, spendAYear) : phasesAt(main.stop, anyMoney ? spendAYear : 0);
+  const own = main.pc && !main.pc.couple;
+  // (a couple on the two kept plans: the household's stop plan, its words cut at the kept plans' years, as C's and A's)
+  const phases = own ? phasesAt({ plan: words, middling: null }, spendAYear) : phasesAt(main.pc ? { ...main.stop, plan: words } : main.stop, anyMoney ? spendAYear : 0);
   tell(++step, steps);
   const headroom = headroomOf(verdict.verdict, shownMonthly, spend, Boolean(band.levels[level].anyway));
 
@@ -309,7 +325,7 @@ export function answerD(inputs, env) {
   };
   // who moves money into drawdown before 6 April 2028 at 55 or 56 (shared/apart.js): everyone it applies to
   // (on the plan path the kept plan's own: its age today from its date of birth, its pension)
-  const drawdown2028 = before2028(words.people.map((p) => ({ who: p.who, age: main.pc ? p.ageToday : ins[p.who].age, S: 0, pension: p.pension > 0 })), env.today);
+  const drawdown2028 = before2028(words.people.map((p) => ({ who: p.who, age: own ? p.ageToday : ins[p.who].age, S: 0, pension: p.pension > 0 })), env.today);
   // 7.8.0, weighing: the basis says so, and the words read the chance's facts and the shortfall at the spend (the amount
   // the verdict is about: when the money runs out at it, how much is still paid, what comes in after)
   let weighing = null;
@@ -323,7 +339,7 @@ export function answerD(inputs, env) {
     // (the full State Pension as the rules, and so the kept plan, count it)
     usedDefault: defaultedFields(ins, env), fullStatePensionAYear: fullStatePensionYearly(), historyStartYear: historyStartYear(),
     // a pension still closed, as the kept plan takes it (ruling G): the law's age and the tax year it first takes from it
-    ...(main.pc && words.pensionOpens ? { pensionOpens: { you: words.pensionOpens } } : {}),
+    ...(own && words.pensionOpens ? { pensionOpens: { you: words.pensionOpens } } : {}),
     // the level shown is what comes in anyway because the pots would make it less (ruling D): a final-salary pension's
     // capped rises are why, and the answer says so (as How much can I take)
     anywayCapped: Boolean(band.levels[level].anyway) && [ins.you, couple ? ins.partner : null].some((x) => x && x.finalSalary && x.finalSalary.has),

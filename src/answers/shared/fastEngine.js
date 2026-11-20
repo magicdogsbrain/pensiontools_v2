@@ -197,6 +197,11 @@ const emptyList = (v) => v === undefined || v === null || (Array.isArray(v) && v
  * Whether a run's base config is exactly the shape this replica covers. Every field the engine reads is
  * checked, so a config that switches anything on falls back to `simulate`.
  */
+/** The final-salary pension rises the replica sums as the engine does (fixedIncomeFor). */
+const DB_RISES = ['cpi', 'lpi5', 'level'];
+/** InflationModel's cap on a final-salary pension's rises ('lpi5'): fixedIncomeFor's 0.05. */
+const DB_CAP = 0.05;
+
 export function fastEligible(c) {
   if (!c || typeof c !== 'object') return false;
   const finite = (v) => typeof v === 'number' && Number.isFinite(v);
@@ -219,7 +224,9 @@ export function fastEligible(c) {
       || (Number.isInteger(c.year0Months) && !(c.lockedMonths > 0) && !(c.coverMonths > 0)))
     && isZero(c.taxableStart) && emptyList(c.windfalls)
     && (c.accessMethod === 'ufpls' || c.accessMethod === 'drawdown') && !c.ufplsYears && !c.ufplsThenPcls && !c.bandFillRecycle
-    && (c.dbAmount === undefined || finite(c.dbAmount)) && (!(c.dbAmount > 0) || c.dbIndexation === 'cpi')
+    // a final-salary pension's rises (SimulationEngine fixedIncomeFor): with prices ('cpi'), with prices capped at 5% a year
+    // ('lpi5', the engine's default when none is named), or none ('level') — each the engine's own sum (prepareRun)
+    && (c.dbAmount === undefined || finite(c.dbAmount)) && (!(c.dbAmount > 0) || c.dbIndexation === undefined || DB_RISES.includes(c.dbIndexation))
     && (c.extraIncomes === undefined || (Array.isArray(c.extraIncomes) && c.extraIncomes.every((e) => e && e.indexation === 'cpi' && finite(e.annual) && (e.endYear === undefined || e.endYear === null || Number.isInteger(e.endYear)))))
     && (c.lockedMonths === undefined || (Number.isInteger(c.lockedMonths) && c.lockedMonths >= 0
       && (c.lockedSchedule === undefined ? c.lockedMonths === 0 : (Array.isArray(c.lockedSchedule) && c.lockedSchedule.length === c.years && c.lockedSchedule.every(finite)))))
@@ -330,6 +337,8 @@ function prepareRun(base, pf, years) {
   const fixed = new Float64Array(years), sf = new Float64Array(years);
   const yearsUntilSp = new Int32Array(years);
   const hrlBase = base.hrl || DEFAULT_HRL;
+  const dbMode = base.dbIndexation || 'lpi5';
+  let dbCapped = base.dbAmount;
   for (let year = 0; year < years; year++) {
     const cumInf = pf.cumInf[year];
     eqMin[year] = calculateGlidepath(base.equityMin, year, base.duration, cumInf, true);
@@ -347,8 +356,11 @@ function prepareRun(base, pf, years) {
       if (year === base.spStartYear && base.spFirstYearRatio !== undefined) statePension = spAnnual * base.spFirstYearRatio * cumInf;
       else statePension = spAnnual * cumInf;
     }
+    // (capped rises: InflationModel.cappedInflation over the years' rates so far, the engine's yearlyInf — inf[1..year] —
+    // multiplied on in the same order, so the same figure to the bit)
+    if (year > 0) dbCapped *= (1 + Math.min(pf.inf[year], DB_CAP));
     let dbPension = 0;
-    if (base.dbAmount > 0 && year >= (base.dbStartYear || 0)) dbPension = base.dbAmount * cumInf;
+    if (base.dbAmount > 0 && year >= (base.dbStartYear || 0)) dbPension = dbMode === 'cpi' ? base.dbAmount * cumInf : dbMode === 'level' ? base.dbAmount : dbCapped;
     let extraIncome = 0;
     for (const inc of base.extraIncomes || []) {
       if (inc.annual > 0 && year >= (inc.startYear || 0) && (inc.endYear == null || year <= inc.endYear)) extraIncome += inc.annual * cumInf;

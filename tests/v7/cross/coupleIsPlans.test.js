@@ -3,21 +3,21 @@
  * engine, and ONE adapter feeds it from two plans' settings (answers/keep/planPath.js coupleCaseOf):
  *   - a one-person household run is the plan test: householdReadingOf on one plan says what "Does it last?" (lastsOf) says;
  *   - two linked plans say one household figure, read from either plan (householdRun.householdLastsOf);
- *   - OPEN (it.fails): the answer for a couple runs on the two plans keeping it would write, so those two plans read as one
- *     household give the answer's figure. Today a couple's answer is still the household model's own run.
+ *   - the answer for a couple from now (D, C at each level, A's row at which both stop today) runs on the two plans keeping it
+ *     would write, so those two plans read as one household give the answer's figure, to the bit, at the same futures.
  *
- * Measured (40 futures, 30 Sep 2026; the answer's figure, then the two kept plans read as one household):
+ * Measured (40 futures, 30 Sep 2026; the household model's own run before, the two kept plans after):
  *   D2 at £3,800 a month (Alex 72 and Sam 70, £250,000 and £150,000, £30,000 savings, an £8,000 final-salary pension):
- *   answer "yes", 30 of 40 last, weighted 0.917; the two kept plans "close", 27 of 40, weighted 0.868, middle run-out 96,
- *   bad case 93, left £152,350 (best £709,886). D2 at £2,800: 40 of 40 both. Running D's couple on the two kept plans
- *   (the saved patch steps/P4-couples-answers-on-adapter.wip.patch) makes every block here pass, and moves D2's levels from
- *   £3,710 / £3,830 / £4,160 to £3,590 / £3,730 / £4,080 a month.
+ *   the answer said "yes", 30 of 40 last, weighted 0.917; the two kept plans say "close", 27 of 40, weighted 0.868, middle
+ *   run-out 96, bad case 93, left £152,350 (best £709,886), and the answer now says the same. D2 at £2,800: 40 of 40 both.
+ *   D2's levels moved from £3,710 / £3,830 / £4,160 to £3,590 / £3,730 / £4,080 a month.
  *
  * The households are made up (Alex, Sam, Jo, Pat, Kim; round figures).
  */
 import { describe, it, expect } from 'vitest';
 import { answerD, D1, D2, D3, D9 } from '../d/_d.js';
 import { answerC } from '../c/_c.js';
+import { answerA } from '../a/_a.js';
 import { keptPlansOf } from '../../../src/answers/keep/keptPlan.js';
 import { lastsOf } from '../../../src/answers/plan/lastsRun.js';
 import { planShortfallOf } from '../../../src/services/OneAnswer.js';
@@ -55,7 +55,7 @@ describe('a one-person household run is the plan test', () => {
 
 describe('a couple: the answer is the two plans kept from it, read as one household', () => {
   const D2more = { ...D2, spend: { kind: 'amount', amount: 3800 } };
-  // D2 at £2,800 lasts in every future on both runs; D2 at £3,800 is the open fault (see the header)
+  // D2 at £2,800 lasts in every future on both runs; at £3,800 some futures run out (see the header)
   it('D2: the same count, weighted chance, verdict, run-out ages, left at the end and plan-to age (every future lasts)', () => {
     const res = answerD(D2, ENV);
     const kept = keptPlansOf('d', res, ENV);
@@ -63,7 +63,7 @@ describe('a couple: the answer is the two plans kept from it, read as one househ
     expect({ lasted: Math.round(res.chance.fixedAge * N), weighted: res.chance.weighted, verdict: res.verdict, worstAge: res.runOutAge, planToAge: res.chance.planToAge })
       .toEqual({ lasted: h.lasted, weighted: h.weighted, verdict: h.verdict, worstAge: h.worstAge, planToAge: h.planToAge });
   });
-  for (const [name, inputs] of Object.entries({ D2more })) it.fails(`${name}: the same count, weighted chance, verdict, run-out ages, left at the end and plan-to age`, () => {
+  for (const [name, inputs] of Object.entries({ D2more })) it(`${name}: the same count, weighted chance, verdict, run-out ages, left at the end and plan-to age`, () => {
     const res = answerD(inputs, ENV);
     const kept = keptPlansOf('d', res, ENV);
     expect(kept.partner).not.toBeNull();
@@ -91,7 +91,7 @@ const JO_KIM = { household: 'couple', you: { age: 66, pot: 300000 }, partner: { 
 
 describe('a couple, How much can I take from now: each level\'s amount, kept, is the two plans\' household reading', () => {
   for (const level of ['careful', 'balanced', 'bold']) {
-    it.fails(`${level}: the same count, weighted chance, verdict, run-out ages, left at the end and plan-to age`, () => {
+    it(`${level}: the same count, weighted chance, verdict, run-out ages, left at the end and plan-to age`, () => {
       const c = answerC({ ...JO_KIM, confidence: level }, ENV);
       const m = c.levels[level].monthly;
       const at = answerC({ ...JO_KIM, confidence: level, take: m }, ENV);
@@ -104,6 +104,25 @@ describe('a couple, How much can I take from now: each level\'s amount, kept, is
       // £10 a month more, kept as tried, is not "yes" at the level
       const more = keptPlansOf('c', answerC({ ...JO_KIM, confidence: level, take: m + 10 }, ENV), ENV, { take: 'tried' });
       expect(householdReading(more.yours, more.partner).verdict).not.toBe('yes');
+    });
+  }
+});
+
+describe('a couple, When could I stop, the row at which both stop today: kept, it is the two plans\' household reading', () => {
+  // Jo and Kim as A asks it: stopping today, nothing paid in, spending £1,500 and £2,200 a month (one lasts in every
+  // future, one does not)
+  for (const amount of [1500, 2200]) {
+    it(`£${amount.toLocaleString('en-GB')} a month: the same count, weighted chance, verdict, bad case and plan-to age`, () => {
+      const inputs = { household: 'couple', you: { age: 66, pot: 300000, payIn: { kind: 'total', total: 0 } }, partner: { age: 63, pot: 120000, payIn: { kind: 'total', total: 0 } },
+        savings: 20000, stop: { kind: 'age', age: 66 }, spend: { kind: 'amount', amount }, partTime: { has: false } };
+      const a = answerA(inputs, { ...ENV, detail: 'chart', ages: [66] });
+      expect(a.status).toBe('ok');
+      expect(a.basis.planPath).toBe(true);
+      const kept = keptPlansOf('a', a, ENV);
+      expect(kept.partner).not.toBeNull();
+      const h = householdReading(kept.yours, kept.partner);
+      expect({ lasted: Math.round(a.shown.lasted * N), weighted: a.shown.weighted, verdict: a.shown.verdict, worstAge: a.shown.runOutAge, planToAge: a.chance.planToAge })
+        .toEqual({ lasted: h.lasted, weighted: h.weighted, verdict: h.verdict, worstAge: h.worstAge, planToAge: h.planToAge });
     });
   }
 });

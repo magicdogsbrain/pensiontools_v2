@@ -145,8 +145,11 @@ describe('C — metamorphic relations', () => {
     expect(swapped(other)).toBeNull();
   });
 
-  // (7.12.0: one person answers on the plan path, a couple on the household run (the lead's ruling 9) until the couple's
-  // two kept plans feed that run through one adapter: step P's remaining list. Until then the two are not the same run.)
+  // (7.12.0: from now, a couple's runs are the two kept plans' (planPath coupleCaseOf, the lead's ruling 9, step P4), and a
+  // partner with nothing has no run, so the counts and amounts are the single's. Still open (step P4's handover): a couple's
+  // WORDS (what each amount is made of, the phases) are the household plan's where the single's are the kept plan's, and a
+  // couple from a later start (C on the lives) is still the household run. The counterexample found first is such a start:
+  // 18, nothing in the pot, £10,000 a month going in, from now, so the money is first taken at 57.)
   it.fails('M6 a partner with nothing — no pot, no State Pension, no final-salary pension, the same age — is the single answer, to the penny', () => {
     // no savings: a couple's savings are split between them, so a partner would then have something
     fc.assert(fc.property(arbitraryInputs(SCHEMA_C, ENV).filter((i) => i.household === 'single' && !(i.savings > 0)), (single) => {

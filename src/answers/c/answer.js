@@ -450,18 +450,26 @@ function fromNowOf(checked, env) {
  * last?" shows for the plan keeping the answer writes (tests/v7/cross/answerIsPlan.test.js), and C from now is D at the same
  * spend (tests/v7/d/identity.test.js). The words read the kept plan too (planPath wordsPlan: the phases and what each is
  * made of, the incomes that come anyway, who can draw before 2028, when the money runs out, the facts and the basis); the
- * household plan only decides whether the answer is on this path. Not (yet) on it: a couple (the household run, the lead's ruling 9), a spending
+ * household plan only decides whether the answer is on this path. A couple from now is on it too (the lead's ruling 9,
+ * step P4): the runs are the two kept plans' (planPath coupleCaseOf), the household's split at each amount is what the keep
+ * writes, and the words stay the household plan's, cut at the kept plans' years (planPath householdWordsTo). Not (yet) on
+ * it: a couple who stop in different years or with a pension still closed today (planPath couplesOnPlans), a spending
  * shape, a start moved to the day the pension opens, and three test devices (env.mix, env.solver 'reference', and
  * env.householdRoute: the household run a couple still takes, asked for by name so its fast path, its reference and its
  * month rows stay proved on one person too).
  */
+/** A couple's answer (the two plans keeping it would write, fed to the household run by planPath coupleCaseOf: ruling 9). */
+const coupleOf = (ins) => ins.household === 'couple' && !!ins.partner;
+
 function onPlanPath(ins, now, env) {
-  const couple = ins.household === 'couple' && !!ins.partner;
-  return !couple && now.plan.totalPots > 0 && !now.household.shape && !now.plan.startMoved && !env.mix && env.solver !== 'reference' && !env.householdRoute;
+  if (env.mix || env.solver === 'reference' || env.householdRoute) return false;
+  // (a couple: planPath couplesOnPlans, the one rule A, C and D read — a pension still closed today stays on the household run)
+  if (coupleOf(ins)) return !now.household.shape && !!env.planPath && typeof env.planPath.couplesOnPlans === 'function' && env.planPath.couplesOnPlans(now.plan);
+  return now.plan.totalPots > 0 && !now.plan.apart && !now.household.shape && !now.plan.startMoved;
 }
 
 /** The plan path must be handed in for one person from now (answers/index.js answerFor), never left out silently. */
-const planPathProblems = (env) => (env.planPath && typeof env.planPath.planCaseOf === 'function' ? [] : [{ field: 'env.planPath', messageId: 'required' }]);
+const planPathProblems = (env) => (env.planPath && typeof env.planPath.planCaseOf === 'function' && typeof env.planPath.coupleCaseOf === 'function' ? [] : [{ field: 'env.planPath', messageId: 'required' }]);
 
 /** The answer's lives, made once and made again only longer (a shorter run reads the first years of the same lives). */
 function livesOf(n, env) {
@@ -475,13 +483,18 @@ function livesOf(n, env) {
 /** The case on the plan path: the kept plan's runner, weights, plan-to month and the ages its chance is said to. */
 function planCaseC(checked, now, env, { lives = livesOf(env.futures, env), dragPct = 0 } = {}) {
   const ins = checked.inputs;
-  const pc = env.planPath.planCaseOf('c', ins, env, { lives, dragPct, fromAge: now.plan.startAge });
+  // a couple: the runs are the two kept plans', the household's split at each amount (its phases) what the keep writes, and
+  // the words the household plan's (now.plan)
+  const couple = coupleOf(ins);
+  const pc = couple
+    ? env.planPath.coupleCaseOf('c', ins, env, { lives, dragPct, phasesAt: (H) => phasesOf(now.plan, H) })
+    : env.planPath.planCaseOf('c', ins, env, { lives, dragPct, fromAge: now.plan.startAge });
   const capped = Boolean(pc.capped) || pc.planToAge < ins.endAge;
   const chanceAges = { planToAge: pc.planToAge, weightToAge: pc.weigher.weighted ? pc.weigher.weightToAge : pc.planToAge,
     horizonRule: horizonRuleOf({ defaulted: defaultedFields(ins, env).includes('endAge'), capped }) };
   // the plan the words read (what comes in each year, the State Pension's start, when the money runs out): the kept plan's
   // own (planPath wordsPlan), over its years to the plan-to age (at most 45: its phases end where its chance is counted)
-  const words = pc.wordsPlan;
+  const words = couple ? env.planPath.householdWordsTo(now.plan, pc) : pc.wordsPlan;
   // the plan the words read the run from: cut short (the kept plan's 45 years) says so as a cap, "We could test only to …"
   const runPlan = capped && !pc.runner.plan.runCapped ? { ...pc.runner.plan, runCapped: true, years: Math.min(pc.runner.plan.years, pc.planToAge - pc.runner.plan.startAge) } : pc.runner.plan;
   return { pc, sp: pc.sp, runner: pc.runner, weigher: pc.weigher, toMonth: pc.toMonth, chanceAges, words, lives, runPlan };
@@ -578,15 +591,17 @@ function answerOnPlanPath(checked, now, env) {
   const typed = payInTyped(ins);
   if (typed) result.payIn = typed;
   // the facts the sentences read (State Pension and final-salary ages, the pension's access age, the start): the kept plan's
-  const facts = factsOf(c.words, checked, null, fullStatePensionYearly(), env);
+  const couple = coupleOf(ins);
+  const facts = factsOf(c.words, checked, couple ? now.household : null, fullStatePensionYearly(), env);
   facts.capped = c.chanceAges.horizonRule === 'capped';
   // the years ahead the test runs to: the kept plan's own (the cap keeping applies, ruling H), never a second constant
   facts.capYears = c.pc.planYears;
   // the amount shown is what comes in anyway because the pots would make it less (ruling D): a final-salary pension's
   // capped rises are why, and the answer says so
-  facts.anywayCapped = Boolean(lv[level].anyway) && Boolean(ins.you.finalSalary && ins.you.finalSalary.has);
-  // who moves money into drawdown before 6 April 2028: the kept plan's own (its age today from its date of birth)
-  facts.drawdown2028 = before2028(c.words.people.map((p) => ({ who: p.who, age: p.ageToday, S: 0, pension: p.pension > 0 })), env.today);
+  facts.anywayCapped = Boolean(lv[level].anyway) && [ins.you, couple ? ins.partner : null].some((x) => x && x.finalSalary && x.finalSalary.has);
+  // who moves money into drawdown before 6 April 2028: the kept plan's own (its age today from its date of birth); a couple's
+  // as the household plan's facts have it
+  if (!couple) facts.drawdown2028 = before2028(c.words.people.map((p) => ({ who: p.who, age: p.ageToday, S: 0, pension: p.pension > 0 })), env.today);
   if (weigher.weighted) {
     result.basis.weighted = true;
     facts.weighing = { lf: lifeFactsOf(result, weigher, c.runPlan, ins),

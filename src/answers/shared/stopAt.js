@@ -411,6 +411,9 @@ export function leftAtStop(sp, runner, spendAYear, months, toMonth) {
     if (!atStop) leftRunners.set(runner, atStop = { run: (r, i, config, hook, until) => runner.fastRun(r, i, config, hook, until), startOf: (i) => runner.potsFor(0, i) });
     return sp.kept.leftTermsOf(spendAYear, months, atStop);
   }
+  // a couple from now on the two kept plans' runs (sp.couple: keep/planPath.js coupleCaseOf, the lead's ruling 9): their own
+  // reading, the two plans' pots added at the plan's price level
+  if (sp.couple) return sp.couple.leftTermsOf(spendAYear, months);
   const plan = runner.plan;
   if (plan.apart || !plan.runs.length || plan.runs.some((run) => run.offset > 0)) return null;
   // (a run only `simulate` can make cannot stop part-way: then nothing is said, rather than a figure from another engine)
@@ -460,8 +463,10 @@ export function bandAt(sp, runner = createStopRunner(sp), estimate = null, opts 
     runOutMonths, solver, engineRuns: solver.engineRuns, evaluations: solver.evaluations
   };
   if (want.length) out.levels = levelsFromSolver(solver, solved, opts.weigher, want, opts.toMonth ?? Infinity, null, opts.levelRatios || null);
-  // on the plan path (one person, `sp.kept`): never less than what comes in anyway (the lead's ruling D), as C and D say it
-  if (want.length && sp.kept) out.levels = atLeastAnyway(out.levels, solver, opts.weigher, opts.toMonth ?? Infinity, sp.kept.anywayK);
+  // on the plan path (one person, `sp.kept`; a couple, `sp.couple`): never less than what comes in anyway (the lead's
+  // ruling D), as C and D say it
+  const kept = sp.kept || sp.couple;
+  if (want.length && kept) out.levels = atLeastAnyway(out.levels, solver, opts.weigher, opts.toMonth ?? Infinity, kept.anywayK);
   return out;
 }
 
@@ -1010,12 +1015,13 @@ function middlingAtJoin(sp, plan, H, q) {
  * → { runPlan, wordsPlan }
  */
 export function weighingPlansOf(sp, runner, endAge) {
-  const pc = sp.kept;
+  const pc = sp.kept || sp.couple;
   if (!pc) return { runPlan: sp.plan, wordsPlan: sp.plan };
   const plan = runner.plan;
   const capped = Boolean(pc.capped) || pc.planToAge < endAge;
   const runPlan = capped && !plan.runCapped ? { ...plan, runCapped: true, years: Math.min(plan.years, pc.planToAge - plan.startAge) } : plan;
-  return { runPlan, wordsPlan: pc.wordsPlan };
+  // (a couple's words are the household plan's, cut at the kept plans' years: sp.plan, planPath householdWordsTo)
+  return { runPlan, wordsPlan: sp.kept ? pc.wordsPlan : sp.plan };
 }
 
 /**

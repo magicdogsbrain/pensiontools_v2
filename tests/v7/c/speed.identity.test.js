@@ -176,6 +176,39 @@ describe('the engine replica is today\'s engine, run by run', () => {
     expect(compared).toBeGreaterThan(1000);
   }, 120_000);
 
+  // 7.12.0 (step P4): a kept plan's final-salary pension rises as its scheme says (PlanFromSeed: prices capped at 5% a year
+  // by default), so a couple's runs on the two kept plans carry dbIndexation 'lpi5'. The replica sums those rises as the
+  // engine does (InflationModel.cappedInflation over the years' rates so far, in the same order), and 'level' too. By hand,
+  // £9,000 from year 2 in a future whose prices rise 3% then 7%: year 1 nothing; year 2 9,000 × 1.03 × 1.05 = £9,733.50
+  // capped (9,000 × 1.03 × 1.07 = £9,918.90 with prices; £9,000 level) — the engine's own sum, which the runs compare to.
+  it('7.12.0 a final-salary pension whose rises are capped at 5%, or level: the fixtures and 40 random households, to the bit', () => {
+    const env = { today: TEST_ENV.today, seed: 0 };
+    const households = [...fixtures.map((f) => f.inputs), ...random(40, env)];
+    let compared = 0, moved = 0;
+    for (const inputs of households) {
+      const c = cases(inputs, env, 8, [0, 30, 200]);
+      if (!c) continue;
+      for (const configs of c.configsAtK) {
+        for (const { config } of configs) {
+          for (const dbIndexation of ['lpi5', 'level', undefined]) {
+            const dc = { ...config, dbAmount: 9000, dbStartYear: 2, dbIndexation };
+            expect(fastEligible(dc)).toBe(true);
+            for (const future of c.futures) {
+              const a = simulate(dc, future.returns, future.seed);
+              const b = simulateFast(dc, future);
+              if (!same(a, b)) expect.fail(`differs with dbIndexation ${dbIndexation}: ${JSON.stringify(inputs)} in future ${future.id}`);
+              const cpi = simulate({ ...dc, dbIndexation: 'cpi' }, future.returns, future.seed);
+              if (cpi.finalEquity + cpi.finalBond + cpi.finalCash + cpi.finalIsa !== a.finalEquity + a.finalBond + a.finalCash + a.finalIsa) moved++;
+              compared++;
+            }
+          }
+        }
+      }
+    }
+    expect(compared).toBeGreaterThan(1000);
+    expect(moved).toBeGreaterThan(100);   // the rule changes the sums, so the comparison is not of identical runs
+  }, 120_000);
+
   it('the runner shares a future\'s drivers between runs and gives the same outcome as a fresh replica', () => {
     const env = { today: TEST_ENV.today, seed: 0 };
     const c = cases(fixtures.find((f) => f.id === 'F2').inputs, env, 25, [40, 300, 450, 380]);

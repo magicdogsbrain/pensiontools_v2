@@ -121,6 +121,8 @@ describe('the full view draws the same reading', () => {
   it('never ranks a plan with no figures', () => {
     expect(html).toMatch(/if \(sc && !planHasFigures\(sc\)\) return \{ noFigures: missingWords\(settings\)/);
     expect(html).toMatch(/if \(c\.noFigures\) return/);
+    // nor prices one way on its own page
+    expect(html).toMatch(/if \(sc0 && !planHasFigures\(sc0\)\) \{ if \(!stale\(\)\) box\.innerHTML/);
   });
   it('the simple view\'s screen marks the same', () => {
     const scr = read('src/v7/screens/plan/WayScreen.jsx');

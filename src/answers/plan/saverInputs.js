@@ -352,7 +352,10 @@ export function saverDraftOf(plan, { today, plans = [] } = {}) {
   if (!read.ok) return { ok: false, why: read.why };
   const exactMix = !read.env || !read.env.mix;
   // (step F2) a plan that takes every pound taxed carries that too, so B opened from it counts the plan's own tax
-  const mixes = exactMix ? null : { risk: read.inputs.risk, savingRisk: read.inputs.savingRisk, mix: read.env.mix, savingMix: read.env.savingMix || read.env.mix, ...(read.env.taxFreeTaken ? { taxFreeTaken: true } : {}) };
+  // read as kept (the answer's own levels): the levels alone, with the access method when the plan takes every pound taxed
+  const levels = { risk: read.inputs.risk, savingRisk: read.inputs.savingRisk };
+  const taxed = read.env && read.env.taxFreeTaken ? { taxFreeTaken: true } : null;
+  const mixes = exactMix ? (taxed ? { ...levels, ...taxed } : null) : { ...levels, mix: read.env.mix, savingMix: read.env.savingMix || read.env.mix, ...(taxed || {}) };
   // (a plan's part in pounds is what lands: with no way said, B reads it so — payIn.js — and the line under the boxes says it)
   return { ok: true, values: draftTextOf(SCHEMA_B, read.inputs), exactMix, mixes };
 }

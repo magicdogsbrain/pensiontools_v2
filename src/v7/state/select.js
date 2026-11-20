@@ -122,7 +122,7 @@ export function planMixOf(state, q) {
   if (!pm) return null;
   const parsed = parsedDraft(state, q);
   if (!parsed.ok || parsed.inputs.risk !== pm.risk || parsed.inputs.savingRisk !== pm.savingRisk) return null;
-  return { mix: pm.mix, savingMix: pm.savingMix, ...(pm.taxFreeTaken ? { taxFreeTaken: true } : {}) };
+  return { ...(pm.mix ? { mix: pm.mix, savingMix: pm.savingMix } : {}), ...(pm.taxFreeTaken ? { taxFreeTaken: true } : {}) };   // (step F2) a plan read as kept: the access method alone
 }
 
 export function currentKey(state, q) {

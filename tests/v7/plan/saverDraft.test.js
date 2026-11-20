@@ -93,6 +93,31 @@ describe('the text of B\'s boxes reads back to the inputs it was written from (v
   });
 });
 
+describe('(step F2, D6) a plan kept from B, read as kept, that takes every pound taxed: B opened from it counts that tax', () => {
+  it('the draft carries the access method beside the levels, B runs with it, and the plan\'s verdict and B\'s agree', () => {
+    const { plan } = kept(sam({ kind: 'total', total: 500 }));
+    plan.stressTool.settings.accessMethod = 'drawdown';
+    const read = saverInputsOf(plan, { today: KEPT_ON });
+    expect(read.env.taxFreeTaken).toBe(true);
+    const filled = saverDraftOf(plan, { today: KEPT_ON });
+    expect(filled.exactMix).toBe(true);
+    expect(filled.mixes).toEqual({ risk: read.inputs.risk, savingRisk: read.inputs.savingRisk, taxFreeTaken: true });
+    const s = reduce(onPlan(plan), { type: A.DRAFT_LOAD, q: 'b', values: filled.values, mixes: filled.mixes });
+    expect(planMixOf(s, 'b')).toEqual({ taxFreeTaken: true });
+    const parsed = parsedDraft(s, 'b');
+    const own = answerB(read.inputs, { ...ENV, ...read.env });
+    const inB = answerB(parsed.inputs, { ...ENV, ...planMixOf(s, 'b') });
+    expect(inB.chance.fails).toBe(own.chance.fails);
+    expect(inB.payIn.needed).toBe(own.payIn.needed);
+    // and differs from the same plan taking a quarter tax-free (so the fact is really carried)
+    const quarter = answerB(parsed.inputs, ENV);
+    expect(quarter.payIn.needed).not.toBe(own.payIn.needed);
+    // a risk box changed: the plan's reading goes, as with the mixes
+    const other = ['cautious', 'balanced', 'adventurous'].find((l) => l !== read.inputs.risk);
+    expect(planMixOf(reduce(s, { type: A.DRAFT_SET, q: 'b', path: 'risk', value: other }), 'b')).toBe(null);
+  }, 30000);
+});
+
 describe('the round trip: a plan kept from B, opened back into B from its rail, gives B\'s same answer', () => {
   const cases = {
     'a share of pay, saving more boldly than drawing': sam({ kind: 'share', pay: 38000, ownPct: 6, employerPct: 4 }, { savingRisk: 'adventurous', risk: 'balanced' }),

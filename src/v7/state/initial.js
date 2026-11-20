@@ -132,8 +132,11 @@ export function cleanPlanMix(x) {
     }
     return out;
   };
+  if (!RISK_LEVELS.includes(x.risk) || !RISK_LEVELS.includes(x.savingRisk)) return null;
+  // (step F2) a plan read as kept (its levels exactly) that takes every pound taxed: the levels and that fact, no mixes
+  if (x.mix === undefined && x.savingMix === undefined) return x.taxFreeTaken === true ? { risk: x.risk, savingRisk: x.savingRisk, taxFreeTaken: true } : null;
   const mix = mixOf(x.mix), savingMix = mixOf(x.savingMix);
-  if (!RISK_LEVELS.includes(x.risk) || !RISK_LEVELS.includes(x.savingRisk) || !mix || !savingMix) return null;
+  if (!mix || !savingMix) return null;
   return { risk: x.risk, savingRisk: x.savingRisk, mix, savingMix, ...(x.taxFreeTaken === true ? { taxFreeTaken: true } : {}) };   // (step F2) the plan's access method
 }
 

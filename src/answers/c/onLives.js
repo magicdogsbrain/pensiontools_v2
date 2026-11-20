@@ -416,9 +416,10 @@ function stressCaseOnPlanPath(inputs, household, sp, pc, startAge, env, defaulte
     let s = sp, r = runner;
     if (shock || dragPct > 0) {
       const livesEnv = shock ? { ...env, shock: { ...shock, from: 12 * sp.S } } : null;
-      // (lower returns are the drawing years' alone, the kept case's: the saving years, the pots at the start, are this
-      // stop plan's as they are)
-      s = livesEnv ? stopAtPlan(household, startAge, env, livesList(sp.n, sp.T, livesEnv)) : { ...sp };
+      // (the fall starts at the start, 12·S months in, and lower returns are the drawing years' alone: both are the kept
+      // case's; the saving years, so the pots at the start, are this stop plan's as they are — the stop runner reads only
+      // its pots when it carries a kept case)
+      s = { ...sp };
       s.kept = keptCaseOf(inputs, household, s, startAge, env, { dragPct, livesEnv });
       r = createStopRunner(s);
     }

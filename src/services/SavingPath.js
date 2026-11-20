@@ -152,14 +152,44 @@ export function savingCoreFrom({ settings = {}, timing, accumulation = null, hol
  * at its fixed rate where the plan has no ISA choice. → { out: { pension, savings, price, paidIn } (life i, year y at
  * i × W + y, pounds of the day), W }.
  */
+/**
+ * The saving path's lives, `count` of them for T years (V7's lives, seed SAVING_PATH_SEED): the first of one longer list,
+ * kept. Each life is the first years of a longer one and life i does not depend on how many there are (lives.js), and the
+ * saving years read only their own years of it, so the figures are the same to the bit (step P3's speed).
+ */
+let LIVES_KEPT = null;
+function savingLives(count, T) {
+  if (!LIVES_KEPT || LIVES_KEPT.count < count || LIVES_KEPT.T < T) {
+    // (ten years more than asked: an answer asks again at later stops, a year at a time)
+    const c = Math.max(count, LIVES_KEPT ? LIVES_KEPT.count : 0), t = Math.max(T, LIVES_KEPT ? LIVES_KEPT.T : 0) + 10;
+    LIVES_KEPT = { count: c, T: t, lives: livesList(c, t, { seed: SAVING_PATH_SEED }) };
+  }
+  return LIVES_KEPT.count === count ? LIVES_KEPT.lives : LIVES_KEPT.lives.slice(0, count);
+}
+
+const GROW_MEMO = new Map();
+const GROW_MEMO_SIZE = 4;
 function growLives(core, count, env = {}) {
+  // the last few, kept by their core and count (read only by their callers): an answer asks the plan keeping would write at
+  // each amount it tries, and the saving years are the same at every amount (step P3's speed: each was 1,000 lives again)
+  const made = !!(env && env.futureReturns);                         // tests: made-up futures, never kept
+  const key = made ? null : JSON.stringify([core, count]);
+  const hit = made ? null : GROW_MEMO.get(key);
+  if (hit) return hit;
+  const res = growLivesOnce(core, count, env);
+  if (made) return res;
+  GROW_MEMO.set(key, res);
+  while (GROW_MEMO.size > GROW_MEMO_SIZE) GROW_MEMO.delete(GROW_MEMO.keys().next().value);
+  return res;
+}
+function growLivesOnce(core, count, env = {}) {
   const { years, potNow, isaNow, totalMonthly, isaMonthly, chargesPct, isaGrowth, fundsMix, mixes } = core;
   const household = {
     people: [{ who: 'you', age: 0, pots: { pension: potNow, isa: isaNow }, saving: { payIn: { total: totalMonthly }, savingsIn: isaMonthly } }],
     chargesPct, ...(isaGrowth ? { isaGrowth } : {}), portfolio: { kind: 'risk', level: 'balanced' }
   };
   const plan = savingPlan(household, years, { mix: mixes.drawing, savingMix: mixes.saving });
-  const lives = livesList(count, years + 1, { seed: SAVING_PATH_SEED, ...(env && env.futureReturns ? { futureReturns: env.futureReturns } : {}) });
+  const lives = env && env.futureReturns ? livesList(count, years + 1, { seed: SAVING_PATH_SEED, futureReturns: env.futureReturns }) : savingLives(count, years + 1);
   const esc = core.escalation;
   const out = savingYearsByLife(plan, 0, lives, { ...(esc === null ? {} : { escalation: esc }), ...(fundsMix ? { savingsMix: fundsMix } : {}) });
   const W = years + 1;

@@ -1,5 +1,5 @@
 {
- "at": "2026-11-20T06:11:47.096Z",
+ "at": "2026-11-20T08:12:00.496Z",
  "fixtures": [
   "age-only",
   "budget",
@@ -21,13 +21,13 @@
   "wizard-defaults"
  ],
  "factsMarked": 88,
- "factsInBoth": 76,
+ "factsInBoth": 78,
  "pagesOpened": 635,
- "marks": 11682,
+ "marks": 11742,
  "fieldsBound": 61,
  "disagreements": 78,
- "unmarked": 16170,
- "oneViewOnly": 2321,
+ "unmarked": 16158,
+ "oneViewOnly": 2282,
  "readingMismatches": 0,
  "roundTripsFailed": 63,
  "rose": [
@@ -37,52 +37,86 @@
   "fewer places of a fact than before (a mark taken off?): wizard-defaults|income.step.0.monthAfterTax|simple 1 → 0"
  ],
  "shrank": [
-  "agrees now, take it out of known-disagreements.json: age-only|field:spend.first",
-  "agrees now, take it out of known-disagreements.json: wizard-defaults|field:spend.first",
-  "in both views now, take it out of one-view-only.json: age-only|income.step.0.beforeTax",
-  "in both views now, take it out of one-view-only.json: age-only|income.step.0.monthAfterTax",
-  "in both views now, take it out of one-view-only.json: wizard-defaults|income.step.0.beforeTax",
-  "in both views now, take it out of one-view-only.json: wizard-defaults|income.step.0.monthAfterTax",
-  "unmarked figures fell on age-only|simple:spend: 12 → 6",
-  "unmarked figures fell on couple|simple:saving: 36 → 34",
-  "unmarked figures fell on mover-holdings|simple:saving: 30 → 28",
-  "unmarked figures fell on mover-totals|simple:saving: 24 → 22",
-  "unmarked figures fell on saver-checkin|simple:saving: 52 → 50",
-  "unmarked figures fell on saver-draft|simple:saving: 55 → 53",
-  "unmarked figures fell on saver-ladder-draft|simple:saving: 65 → 63",
-  "unmarked figures fell on saver-locked-ladder|simple:saving: 45 → 43",
-  "unmarked figures fell on saver-locked-pots|simple:saving: 25 → 23",
-  "unmarked figures fell on saver-payin|simple:saving: 45 → 43",
-  "unmarked figures fell on wizard-defaults|simple:plan: 12 → 10",
-  "unmarked figures fell on wizard-defaults|simple:about: 6 → 5",
-  "unmarked figures fell on wizard-defaults|simple:income: 8 → 7",
-  "unmarked figures fell on wizard-defaults|simple:spend: 12 → 5",
-  "unmarked figures fell on wizard-defaults|simple:pots: 31 → 30",
-  "unmarked figures fell on wizard-defaults|simple:lasts: 13 → 12",
-  "unmarked figures fell on wizard-defaults|simple:way: 40 → 39",
-  "unmarked figures fell on wizard-defaults|simple:mix: 22 → 21",
-  "unmarked figures fell on wizard-defaults|simple:saving: 3 → 2",
-  "unmarked figures fell on wizard-defaults|simple:checkin: 2 → 1",
-  "unmarked figures fell on wizard-defaults|simple:review: 2 → 1",
-  "unmarked figures fell on wizard-defaults|simple:month: 2 → 1",
-  "unmarked figures fell on wizard-defaults|simple:where: 2 → 1",
-  "unmarked figures fell on wizard-defaults|simple:lock: 2 → 1",
-  "unmarked figures fell on wizard-defaults|simple:hold: 2 → 1",
-  "unmarked figures fell on wizard-defaults|simple:move: 2 → 1",
-  "unmarked figures fell on wizard-defaults|simple:budget: 11 → 10",
-  "unmarked figures fell on wizard-defaults|simple:household: 2 → 1"
+  "in both views now, take it out of one-view-only.json: age-only|statePension.age",
+  "in both views now, take it out of one-view-only.json: age-only|statePension.amount",
+  "in both views now, take it out of one-view-only.json: budget|statePension.amount",
+  "in both views now, take it out of one-view-only.json: budget|statePension.week",
+  "in both views now, take it out of one-view-only.json: closed-successor|statePension.amount",
+  "in both views now, take it out of one-view-only.json: closed-successor|statePension.week",
+  "in both views now, take it out of one-view-only.json: couple|statePension.amount",
+  "in both views now, take it out of one-view-only.json: couple|statePension.week",
+  "in both views now, take it out of one-view-only.json: mover-holdings|statePension.amount",
+  "in both views now, take it out of one-view-only.json: mover-holdings|statePension.week",
+  "in both views now, take it out of one-view-only.json: mover-totals|statePension.amount",
+  "in both views now, take it out of one-view-only.json: mover-totals|statePension.week",
+  "in both views now, take it out of one-view-only.json: retired-draft|statePension.amount",
+  "in both views now, take it out of one-view-only.json: retired-draft|statePension.week",
+  "in both views now, take it out of one-view-only.json: retired-everything|statePension.amount",
+  "in both views now, take it out of one-view-only.json: retired-everything|statePension.week",
+  "in both views now, take it out of one-view-only.json: retired-locked-ladder|statePension.age",
+  "in both views now, take it out of one-view-only.json: retired-locked-ladder|statePension.amount",
+  "in both views now, take it out of one-view-only.json: retired-locked-ladder|statePension.week",
+  "in both views now, take it out of one-view-only.json: retired-locked-months|statePension.amount",
+  "in both views now, take it out of one-view-only.json: retired-locked-months|statePension.week",
+  "in both views now, take it out of one-view-only.json: retired-locked-pots|statePension.amount",
+  "in both views now, take it out of one-view-only.json: retired-locked-pots|statePension.week",
+  "in both views now, take it out of one-view-only.json: saver-checkin|statePension.amount",
+  "in both views now, take it out of one-view-only.json: saver-checkin|statePension.week",
+  "in both views now, take it out of one-view-only.json: saver-draft|statePension.amount",
+  "in both views now, take it out of one-view-only.json: saver-draft|statePension.week",
+  "in both views now, take it out of one-view-only.json: saver-ladder-draft|statePension.age",
+  "in both views now, take it out of one-view-only.json: saver-ladder-draft|statePension.amount",
+  "in both views now, take it out of one-view-only.json: saver-ladder-draft|statePension.week",
+  "in both views now, take it out of one-view-only.json: saver-locked-ladder|statePension.age",
+  "in both views now, take it out of one-view-only.json: saver-locked-ladder|statePension.amount",
+  "in both views now, take it out of one-view-only.json: saver-locked-ladder|statePension.week",
+  "in both views now, take it out of one-view-only.json: saver-locked-pots|statePension.amount",
+  "in both views now, take it out of one-view-only.json: saver-locked-pots|statePension.week",
+  "in both views now, take it out of one-view-only.json: saver-payin|statePension.amount",
+  "in both views now, take it out of one-view-only.json: saver-payin|statePension.week",
+  "in both views now, take it out of one-view-only.json: wizard-defaults|statePension.age",
+  "in both views now, take it out of one-view-only.json: wizard-defaults|statePension.amount",
+  "unmarked figures fell on age-only|full:will it last: 8 → 6",
+  "unmarked figures fell on age-only|full:stress history: 6 → 4",
+  "unmarked figures fell on age-only|full:scenarios: 6 → 4",
+  "unmarked figures fell on wizard-defaults|full:will it last: 8 → 6",
+  "unmarked figures fell on wizard-defaults|full:stress history: 6 → 4",
+  "unmarked figures fell on wizard-defaults|full:scenarios: 6 → 4"
  ],
  "grew": [
+  "more places now, raise coverage.json: age-only|statePension.age|full 0 → 3",
+  "more places now, raise coverage.json: age-only|statePension.amount|full 0 → 3",
   "more places now, raise coverage.json: budget|spend.essentials|full 0 → 1",
   "more places now, raise coverage.json: budget|spend.essentials|simple 0 → 1",
   "more places now, raise coverage.json: budget|spend.total|full 0 → 1",
   "more places now, raise coverage.json: budget|spend.total|simple 0 → 1",
+  "more places now, raise coverage.json: budget|statePension.age|full 1 → 2",
+  "more places now, raise coverage.json: budget|statePension.amount|full 0 → 1",
+  "more places now, raise coverage.json: budget|statePension.week|full 0 → 1",
+  "more places now, raise coverage.json: closed-successor|statePension.age|full 1 → 2",
+  "more places now, raise coverage.json: closed-successor|statePension.amount|full 0 → 1",
+  "more places now, raise coverage.json: closed-successor|statePension.week|full 0 → 1",
   "more places now, raise coverage.json: couple|income.step.0.beforeTax|simple 2 → 3",
   "more places now, raise coverage.json: couple|income.step.0.monthAfterTax|simple 1 → 2",
+  "more places now, raise coverage.json: couple|statePension.age|full 1 → 2",
+  "more places now, raise coverage.json: couple|statePension.amount|full 0 → 1",
+  "more places now, raise coverage.json: couple|statePension.week|full 0 → 1",
   "more places now, raise coverage.json: mover-holdings|income.step.0.beforeTax|simple 2 → 3",
   "more places now, raise coverage.json: mover-holdings|income.step.0.monthAfterTax|simple 1 → 2",
+  "more places now, raise coverage.json: mover-holdings|statePension.age|full 1 → 2",
+  "more places now, raise coverage.json: mover-holdings|statePension.amount|full 0 → 1",
+  "more places now, raise coverage.json: mover-holdings|statePension.week|full 0 → 1",
   "more places now, raise coverage.json: mover-totals|income.step.0.beforeTax|simple 2 → 3",
   "more places now, raise coverage.json: mover-totals|income.step.0.monthAfterTax|simple 1 → 2",
+  "more places now, raise coverage.json: mover-totals|statePension.age|full 1 → 2",
+  "more places now, raise coverage.json: mover-totals|statePension.amount|full 0 → 1",
+  "more places now, raise coverage.json: mover-totals|statePension.week|full 0 → 1",
+  "more places now, raise coverage.json: retired-draft|statePension.age|full 1 → 2",
+  "more places now, raise coverage.json: retired-draft|statePension.amount|full 0 → 1",
+  "more places now, raise coverage.json: retired-draft|statePension.week|full 0 → 1",
+  "more places now, raise coverage.json: retired-everything|statePension.age|full 1 → 2",
+  "more places now, raise coverage.json: retired-everything|statePension.amount|full 0 → 1",
+  "more places now, raise coverage.json: retired-everything|statePension.week|full 0 → 1",
   "more places now, raise coverage.json: retired-locked-ladder|income.step.0.beforeTax|full 1 → 4",
   "more places now, raise coverage.json: retired-locked-ladder|income.step.0.beforeTax|simple 2 → 3",
   "more places now, raise coverage.json: retired-locked-ladder|income.step.0.monthAfterTax|full 1 → 2",
@@ -94,6 +128,9 @@
   "more places now, raise coverage.json: retired-locked-ladder|income.thisYear.from|simple 0 → 1",
   "more places now, raise coverage.json: retired-locked-ladder|income.thisYear.perMonth|full 0 → 2",
   "more places now, raise coverage.json: retired-locked-ladder|income.thisYear.perMonth|simple 0 → 3",
+  "more places now, raise coverage.json: retired-locked-ladder|statePension.age|full 0 → 1",
+  "more places now, raise coverage.json: retired-locked-ladder|statePension.amount|full 0 → 1",
+  "more places now, raise coverage.json: retired-locked-ladder|statePension.week|full 0 → 1",
   "more places now, raise coverage.json: retired-locked-months|income.step.0.beforeTax|full 1 → 4",
   "more places now, raise coverage.json: retired-locked-months|income.step.0.beforeTax|simple 2 → 3",
   "more places now, raise coverage.json: retired-locked-months|income.step.0.monthAfterTax|full 1 → 2",
@@ -105,6 +142,9 @@
   "more places now, raise coverage.json: retired-locked-months|income.thisYear.perMonth|simple 0 → 3",
   "more places now, raise coverage.json: retired-locked-months|pot.planMiddle|full 0 → 2",
   "more places now, raise coverage.json: retired-locked-months|pot.planMiddle|simple 0 → 2",
+  "more places now, raise coverage.json: retired-locked-months|statePension.age|full 2 → 3",
+  "more places now, raise coverage.json: retired-locked-months|statePension.amount|full 0 → 1",
+  "more places now, raise coverage.json: retired-locked-months|statePension.week|full 0 → 1",
   "more places now, raise coverage.json: retired-locked-pots|income.step.0.beforeTax|full 1 → 4",
   "more places now, raise coverage.json: retired-locked-pots|income.step.0.beforeTax|simple 2 → 3",
   "more places now, raise coverage.json: retired-locked-pots|income.step.0.monthAfterTax|full 1 → 2",
@@ -116,24 +156,47 @@
   "more places now, raise coverage.json: retired-locked-pots|income.thisYear.perMonth|simple 0 → 3",
   "more places now, raise coverage.json: retired-locked-pots|income.thisYear.total|full 0 → 2",
   "more places now, raise coverage.json: retired-locked-pots|income.thisYear.total|simple 0 → 3",
+  "more places now, raise coverage.json: retired-locked-pots|statePension.age|full 2 → 3",
+  "more places now, raise coverage.json: retired-locked-pots|statePension.amount|full 0 → 1",
+  "more places now, raise coverage.json: retired-locked-pots|statePension.week|full 0 → 1",
   "more places now, raise coverage.json: saver-checkin|income.step.0.beforeTax|simple 2 → 3",
   "more places now, raise coverage.json: saver-checkin|income.step.0.monthAfterTax|simple 1 → 2",
+  "more places now, raise coverage.json: saver-checkin|statePension.age|full 1 → 2",
+  "more places now, raise coverage.json: saver-checkin|statePension.amount|full 0 → 1",
+  "more places now, raise coverage.json: saver-checkin|statePension.week|full 0 → 1",
   "more places now, raise coverage.json: saver-draft|income.step.0.beforeTax|simple 2 → 3",
   "more places now, raise coverage.json: saver-draft|income.step.0.monthAfterTax|simple 1 → 2",
+  "more places now, raise coverage.json: saver-draft|statePension.age|full 1 → 2",
+  "more places now, raise coverage.json: saver-draft|statePension.amount|full 0 → 1",
+  "more places now, raise coverage.json: saver-draft|statePension.week|full 0 → 1",
   "more places now, raise coverage.json: saver-ladder-draft|income.step.0.beforeTax|simple 2 → 3",
   "more places now, raise coverage.json: saver-ladder-draft|income.step.0.monthAfterTax|simple 1 → 2",
+  "more places now, raise coverage.json: saver-ladder-draft|statePension.age|full 0 → 1",
+  "more places now, raise coverage.json: saver-ladder-draft|statePension.amount|full 0 → 1",
+  "more places now, raise coverage.json: saver-ladder-draft|statePension.week|full 0 → 1",
   "more places now, raise coverage.json: saver-locked-ladder|income.step.0.beforeTax|full 1 → 3",
   "more places now, raise coverage.json: saver-locked-ladder|income.step.0.beforeTax|simple 2 → 3",
   "more places now, raise coverage.json: saver-locked-ladder|income.step.0.monthAfterTax|full 1 → 2",
   "more places now, raise coverage.json: saver-locked-ladder|income.step.0.monthAfterTax|simple 1 → 2",
   "more places now, raise coverage.json: saver-locked-ladder|income.step.1.beforeTax|full 0 → 2",
   "more places now, raise coverage.json: saver-locked-ladder|income.step.1.monthAfterTax|full 0 → 1",
+  "more places now, raise coverage.json: saver-locked-ladder|statePension.age|full 0 → 1",
+  "more places now, raise coverage.json: saver-locked-ladder|statePension.amount|full 0 → 1",
+  "more places now, raise coverage.json: saver-locked-ladder|statePension.week|full 0 → 1",
   "more places now, raise coverage.json: saver-locked-pots|income.step.0.beforeTax|full 1 → 3",
   "more places now, raise coverage.json: saver-locked-pots|income.step.0.beforeTax|simple 2 → 3",
   "more places now, raise coverage.json: saver-locked-pots|income.step.0.monthAfterTax|full 1 → 2",
   "more places now, raise coverage.json: saver-locked-pots|income.step.0.monthAfterTax|simple 1 → 2",
+  "more places now, raise coverage.json: saver-locked-pots|statePension.age|full 2 → 3",
+  "more places now, raise coverage.json: saver-locked-pots|statePension.amount|full 0 → 1",
+  "more places now, raise coverage.json: saver-locked-pots|statePension.week|full 0 → 1",
   "more places now, raise coverage.json: saver-payin|income.step.0.beforeTax|simple 2 → 3",
-  "more places now, raise coverage.json: saver-payin|income.step.0.monthAfterTax|simple 1 → 2"
+  "more places now, raise coverage.json: saver-payin|income.step.0.monthAfterTax|simple 1 → 2",
+  "more places now, raise coverage.json: saver-payin|statePension.age|full 1 → 2",
+  "more places now, raise coverage.json: saver-payin|statePension.amount|full 0 → 1",
+  "more places now, raise coverage.json: saver-payin|statePension.week|full 0 → 1",
+  "more places now, raise coverage.json: wizard-defaults|statePension.age|full 0 → 3",
+  "more places now, raise coverage.json: wizard-defaults|statePension.amount|full 0 → 3"
  ],
  "notQuiet": [],
  "detail": {
@@ -3945,18 +4008,6 @@
     "view": "full"
    },
    {
-    "key": "age-only|statePension.age",
-    "fixture": "age-only",
-    "fact": "statePension.age",
-    "view": "simple"
-   },
-   {
-    "key": "age-only|statePension.amount",
-    "fixture": "age-only",
-    "fact": "statePension.amount",
-    "view": "simple"
-   },
-   {
     "key": "age-only|table:years:0:isa",
     "fixture": "age-only",
     "fact": "table:years:0:isa",
@@ -5703,18 +5754,6 @@
     "view": "simple"
    },
    {
-    "key": "budget|statePension.amount",
-    "fixture": "budget",
-    "fact": "statePension.amount",
-    "view": "simple"
-   },
-   {
-    "key": "budget|statePension.week",
-    "fixture": "budget",
-    "fact": "statePension.week",
-    "view": "simple"
-   },
-   {
     "key": "budget|table:years:0:age",
     "fixture": "budget",
     "fact": "table:years:0:age",
@@ -6183,18 +6222,6 @@
     "view": "simple"
    },
    {
-    "key": "closed-successor|statePension.amount",
-    "fixture": "closed-successor",
-    "fact": "statePension.amount",
-    "view": "simple"
-   },
-   {
-    "key": "closed-successor|statePension.week",
-    "fixture": "closed-successor",
-    "fact": "statePension.week",
-    "view": "simple"
-   },
-   {
     "key": "closed-successor|table:years:0:age",
     "fixture": "closed-successor",
     "fact": "table:years:0:age",
@@ -6553,18 +6580,6 @@
     "fixture": "couple",
     "fact": "left.badCase",
     "view": "full"
-   },
-   {
-    "key": "couple|statePension.amount",
-    "fixture": "couple",
-    "fact": "statePension.amount",
-    "view": "simple"
-   },
-   {
-    "key": "couple|statePension.week",
-    "fixture": "couple",
-    "fact": "statePension.week",
-    "view": "simple"
    },
    {
     "key": "couple|table:years:0:age",
@@ -6996,18 +7011,6 @@
     "key": "mover-holdings|mix.held.diversifiers",
     "fixture": "mover-holdings",
     "fact": "mix.held.diversifiers",
-    "view": "simple"
-   },
-   {
-    "key": "mover-holdings|statePension.amount",
-    "fixture": "mover-holdings",
-    "fact": "statePension.amount",
-    "view": "simple"
-   },
-   {
-    "key": "mover-holdings|statePension.week",
-    "fixture": "mover-holdings",
-    "fact": "statePension.week",
     "view": "simple"
    },
    {
@@ -7461,18 +7464,6 @@
     "view": "full"
    },
    {
-    "key": "mover-totals|statePension.amount",
-    "fixture": "mover-totals",
-    "fact": "statePension.amount",
-    "view": "simple"
-   },
-   {
-    "key": "mover-totals|statePension.week",
-    "fixture": "mover-totals",
-    "fact": "statePension.week",
-    "view": "simple"
-   },
-   {
     "key": "mover-totals|table:years:0:age",
     "fixture": "mover-totals",
     "fact": "table:years:0:age",
@@ -7920,18 +7911,6 @@
     "key": "retired-draft|pot.today",
     "fixture": "retired-draft",
     "fact": "pot.today",
-    "view": "simple"
-   },
-   {
-    "key": "retired-draft|statePension.amount",
-    "fixture": "retired-draft",
-    "fact": "statePension.amount",
-    "view": "simple"
-   },
-   {
-    "key": "retired-draft|statePension.week",
-    "fixture": "retired-draft",
-    "fact": "statePension.week",
     "view": "simple"
    },
    {
@@ -8433,18 +8412,6 @@
     "view": "simple"
    },
    {
-    "key": "retired-everything|statePension.amount",
-    "fixture": "retired-everything",
-    "fact": "statePension.amount",
-    "view": "simple"
-   },
-   {
-    "key": "retired-everything|statePension.week",
-    "fixture": "retired-everything",
-    "fact": "statePension.week",
-    "view": "simple"
-   },
-   {
     "key": "retired-everything|table:years:0:age",
     "fixture": "retired-everything",
     "fact": "table:years:0:age",
@@ -8898,24 +8865,6 @@
     "key": "retired-locked-ladder|mix.held.shares",
     "fixture": "retired-locked-ladder",
     "fact": "mix.held.shares",
-    "view": "simple"
-   },
-   {
-    "key": "retired-locked-ladder|statePension.age",
-    "fixture": "retired-locked-ladder",
-    "fact": "statePension.age",
-    "view": "simple"
-   },
-   {
-    "key": "retired-locked-ladder|statePension.amount",
-    "fixture": "retired-locked-ladder",
-    "fact": "statePension.amount",
-    "view": "simple"
-   },
-   {
-    "key": "retired-locked-ladder|statePension.week",
-    "fixture": "retired-locked-ladder",
-    "fact": "statePension.week",
     "view": "simple"
    },
    {
@@ -10329,18 +10278,6 @@
     "view": "full"
    },
    {
-    "key": "retired-locked-months|statePension.amount",
-    "fixture": "retired-locked-months",
-    "fact": "statePension.amount",
-    "view": "simple"
-   },
-   {
-    "key": "retired-locked-months|statePension.week",
-    "fixture": "retired-locked-months",
-    "fact": "statePension.week",
-    "view": "simple"
-   },
-   {
     "key": "retired-locked-months|table:years:1:age",
     "fixture": "retired-locked-months",
     "fact": "table:years:1:age",
@@ -11271,18 +11208,6 @@
     "view": "full"
    },
    {
-    "key": "retired-locked-pots|statePension.amount",
-    "fixture": "retired-locked-pots",
-    "fact": "statePension.amount",
-    "view": "simple"
-   },
-   {
-    "key": "retired-locked-pots|statePension.week",
-    "fixture": "retired-locked-pots",
-    "fact": "statePension.week",
-    "view": "simple"
-   },
-   {
     "key": "retired-locked-pots|table:years:0:age",
     "fixture": "retired-locked-pots",
     "fact": "table:years:0:age",
@@ -11709,18 +11634,6 @@
     "view": "full"
    },
    {
-    "key": "saver-checkin|statePension.amount",
-    "fixture": "saver-checkin",
-    "fact": "statePension.amount",
-    "view": "simple"
-   },
-   {
-    "key": "saver-checkin|statePension.week",
-    "fixture": "saver-checkin",
-    "fact": "statePension.week",
-    "view": "simple"
-   },
-   {
     "key": "saver-checkin|table:years:0:age",
     "fixture": "saver-checkin",
     "fact": "table:years:0:age",
@@ -12103,18 +12016,6 @@
     "fixture": "saver-draft",
     "fact": "payIn.total",
     "view": "full"
-   },
-   {
-    "key": "saver-draft|statePension.amount",
-    "fixture": "saver-draft",
-    "fact": "statePension.amount",
-    "view": "simple"
-   },
-   {
-    "key": "saver-draft|statePension.week",
-    "fixture": "saver-draft",
-    "fact": "statePension.week",
-    "view": "simple"
    },
    {
     "key": "saver-draft|table:years:0:age",
@@ -12666,24 +12567,6 @@
     "key": "saver-ladder-draft|mix.held.diversifiers",
     "fixture": "saver-ladder-draft",
     "fact": "mix.held.diversifiers",
-    "view": "simple"
-   },
-   {
-    "key": "saver-ladder-draft|statePension.age",
-    "fixture": "saver-ladder-draft",
-    "fact": "statePension.age",
-    "view": "simple"
-   },
-   {
-    "key": "saver-ladder-draft|statePension.amount",
-    "fixture": "saver-ladder-draft",
-    "fact": "statePension.amount",
-    "view": "simple"
-   },
-   {
-    "key": "saver-ladder-draft|statePension.week",
-    "fixture": "saver-ladder-draft",
-    "fact": "statePension.week",
     "view": "simple"
    },
    {
@@ -14229,24 +14112,6 @@
     "view": "simple"
    },
    {
-    "key": "saver-locked-ladder|statePension.age",
-    "fixture": "saver-locked-ladder",
-    "fact": "statePension.age",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|statePension.amount",
-    "fixture": "saver-locked-ladder",
-    "fact": "statePension.amount",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|statePension.week",
-    "fixture": "saver-locked-ladder",
-    "fact": "statePension.week",
-    "view": "simple"
-   },
-   {
     "key": "saver-locked-ladder|table:years:1:age",
     "fixture": "saver-locked-ladder",
     "fact": "table:years:1:age",
@@ -15315,18 +15180,6 @@
     "view": "full"
    },
    {
-    "key": "saver-locked-pots|statePension.amount",
-    "fixture": "saver-locked-pots",
-    "fact": "statePension.amount",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-pots|statePension.week",
-    "fixture": "saver-locked-pots",
-    "fact": "statePension.week",
-    "view": "simple"
-   },
-   {
     "key": "saver-locked-pots|table:years:0:age",
     "fixture": "saver-locked-pots",
     "fact": "table:years:0:age",
@@ -15741,18 +15594,6 @@
     "view": "full"
    },
    {
-    "key": "saver-payin|statePension.amount",
-    "fixture": "saver-payin",
-    "fact": "statePension.amount",
-    "view": "simple"
-   },
-   {
-    "key": "saver-payin|statePension.week",
-    "fixture": "saver-payin",
-    "fact": "statePension.week",
-    "view": "simple"
-   },
-   {
     "key": "saver-payin|table:years:0:age",
     "fixture": "saver-payin",
     "fact": "table:years:0:age",
@@ -16110,18 +15951,6 @@
     "key": "wizard-defaults|pot.today",
     "fixture": "wizard-defaults",
     "fact": "pot.today",
-    "view": "simple"
-   },
-   {
-    "key": "wizard-defaults|statePension.age",
-    "fixture": "wizard-defaults",
-    "fact": "statePension.age",
-    "view": "simple"
-   },
-   {
-    "key": "wizard-defaults|statePension.amount",
-    "fixture": "wizard-defaults",
-    "fact": "statePension.amount",
     "view": "simple"
    },
    {

@@ -351,7 +351,9 @@ describe('"Does it last?" — the engine reaches the worker lazily, and nowhere 
     expect(importers.sort()).toEqual(['src/answers/keep/planPath.js', 'src/answers/plan/householdRun.js', 'src/answers/plan/keepRun.js', 'src/answers/plan/mixRun.js', 'src/answers/plan/moveRun.js', 'src/answers/plan/stressPanelRun.js', 'src/answers/plan/waysRun.js', 'src/v7/effects/answerWorker.js']);
     expect(staticReach(['src/v7/effects/answerWorker.js']).has('src/answers/plan/lastsRun.js'), 'the worker imports the run statically').toBe(false);
     const planPathImporters = [...V7, ...ANSWERS].filter((f) => targetsOf(f).includes('src/answers/keep/planPath.js'));
-    expect(planPathImporters, 'the plan path is imported by answers/index.js alone').toEqual(['src/answers/index.js']);
+    // (7.12.0, ruling 9: the Household run reads the two plans' household figure through the plan path's one adapter —
+    // householdRun.js, itself reached only by the worker's import())
+    expect(planPathImporters.sort(), 'the plan path is imported by answers/index.js and the lazy Household run alone').toEqual(['src/answers/index.js', 'src/answers/plan/householdRun.js']);
     for (const entry of ['src/v7/main.jsx', 'src/v7/effects/answerWorker.js']) expect(staticReach([entry]).has('src/answers/keep/planPath.js'), `${entry} imports the plan path statically`).toBe(false);
     for (const lazy of ['src/answers/plan/waysRun.js', 'src/answers/plan/mixRun.js', 'src/answers/plan/householdRun.js', 'src/answers/plan/moveRun.js', 'src/answers/plan/keepRun.js', 'src/answers/plan/stressPanelRun.js']) {
       const lazyImporters = [...V7, ...ANSWERS].filter((f) => targetsOf(f).includes(lazy));

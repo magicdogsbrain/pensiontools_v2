@@ -15,6 +15,12 @@
  *     together: the same drawing together (when the split applies) or null, fig: comparisonFigures's or null,
  *     timeline: householdIncomeTimeline's rows, basis: { today, engine: 'one-test', runs }
  *   }
+ *   householdLastsOf(plan, partner, { today, futures }) → the two plans' household figure (7.12.0, the lead's ruling 9): the
+ *     one adapter's household run (keep/planPath.js householdReadingOf, the run a couple's answer makes on the two plans
+ *     keeping it writes) — the count that lasts to the plan-to age, the weighted chance (either of the two alive), the
+ *     verdict at this plan's level, the middle and bad-case run-out ages and what is left; { reason } when it cannot run
+ *     (a way of drawing other than Pots & Valves). A linked couple's plan says its weighted figure from this; runHousehold
+ *     carries it as `lasts`.
  *   runSurvivor(plan, partner, { today, who, atAge, spendPct, dbPct, onProgress }) → runSurvivorCheck's result less the
  *     what-if settings, with who, atAge, deathYear (the planner's years from now), spendPct, dbPct and the basis
  *   runCare(plan, partner, { today, who, fromAge, years, cost, onProgress }) → runCareCheck's result less the what-if settings,
@@ -33,6 +39,7 @@ import { ageNowOf } from './household.js';
 import { dateOf } from './dates.js';
 import { shownPlanNameOn } from '../../services/PlanName.js';
 import { testReadyOf } from '../../services/PlanFigures.js';
+import { householdReadingOf } from '../keep/planPath.js';
 
 const plain = (v) => JSON.parse(JSON.stringify(v, (k, x) => (typeof x === 'function' ? undefined : (typeof x === 'number' && !Number.isFinite(x)) ? null : x)));
 /** The name a plan is shown by (services/PlanName.js, 7.12.0). */
@@ -85,7 +92,13 @@ export function runHousehold(plan, partner, { today, limit = null, need = null, 
   if (bad) return plain({ ok: false, reason: 'unaffordable', which: bad[0], why: bad[1].reason || '', names, basis: { today, engine: 'one-test', runs } });
   const fig = split.applies && res.together && res.together.combined ? comparisonFigures(split, res) : null;
   const timeline = householdIncomeTimeline(s.a, s.b, null, now);
-  return plain({ ok: true, names, offsets, split: compactSplit(split), own: res.own, together: res.together || null, fig, timeline, basis: { today, engine: 'one-test', runs } });
+  const lasts = householdLastsOf(plan, partner, { today });
+  return plain({ ok: true, names, offsets, split: compactSplit(split), own: res.own, together: res.together || null, fig, timeline, lasts, basis: { today, engine: 'one-test', runs } });
+}
+
+/** The two plans' household figure (see the header): the one adapter's run, at the plan's own count of futures unless given. */
+export function householdLastsOf(plan, partner, { today, futures = 1000 } = {}) {
+  return plain(householdReadingOf(plan, partner, { today, futures }));
 }
 
 /**

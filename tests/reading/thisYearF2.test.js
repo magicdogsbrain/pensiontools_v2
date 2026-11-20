@@ -84,6 +84,23 @@ describe('the plan changed after the year was set up: one line, both figures, no
     expect(thisYearSentences(t).map((s) => s.id)).toEqual(['where.yearPlan']);
   });
 
+  it('an older set-up (no figure kept of what the plan said then) made when a first year was grown by a year of prices: no line', () => {
+    // the set-up rule before 7.12.0 grew a plan's first year by the year's prices (cpi) before it had passed; a set-up kept
+    // from then holds that grown figure, and with nothing else kept it is read as the plan as it was, not as a change
+    const t0 = thisTaxYearOf(plan, { now: NOW });
+    const grown = JSON.parse(JSON.stringify(plan));
+    const cfg = grown.decisionTool.taxYears['26/27'];
+    delete cfg.planSaid;   // made before the set-up kept it
+    cfg.confirmedSalary = Math.round(t0.planSays.stored * (1 + (+cfg.cpi || 0.04)));
+    const t = thisTaxYearOf(grown, { now: NOW });
+    expect(t.setUp.stored).toBe(cfg.confirmedSalary);
+    expect(t.planSays.stored).toBe(t0.planSays.stored);
+    expect(t.differs).toBe(false);
+    // set up at any other figure, it is a change and said so
+    cfg.confirmedSalary = Math.round(t0.planSays.stored * 1.2);
+    expect(thisTaxYearOf(grown, { now: NOW }).differs).toBe(true);
+  });
+
   it('a raise in spending after the set-up: the plan\'s new figure and the year as set up, with its date', () => {
     const raised = JSON.parse(JSON.stringify(plan));
     const ss = raised.stressTool.settings;

@@ -20,7 +20,8 @@
  *     paymentsLeft: number | null       the months from this month (or the year's first payment, if later) to March with no record
  *     differs: boolean                  the plan was changed after the set-up: what it says for the year is not what the
  *                                       year was set up on (the suggestion then, kept as `planSaid`; for an older set-up
- *                                       with none kept, the year as set up)
+ *                                       with none kept, the year as set up, or that grown by the year's prices: the
+ *                                       first-year rule before 7.12.0)
  *   }
  *   thisYearSentences(t) → [{ id, parts, figures }]  the words both views say: 'where.yearPlan' (the year as set up) and,
  *                                       when the plan differs, 'where.yearChanged' — both figures with their dates and
@@ -39,6 +40,7 @@ import { storedStressSettings } from '../services/PlanReading.js';
 import { takenBeforeTax } from '../services/BeforeTax.js';
 import { taxFreeFractionOf } from '../services/FlexibleAccess.js';
 import { getTaxYearFromDate } from '../services/legacyDecision.js';
+import { DECISION_ASSUMED_CPI } from '../services/InflationModel.js';
 import { monthWords, dayWords } from '../answers/plan/dates.js';
 
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
@@ -91,8 +93,13 @@ export function thisTaxYearOf(plan, ctx = {}, { key: k = null } = {}) {
     let planStored = null; try { planStored = planStoredFor(plan, key, cfg, I, now); } catch { planStored = null; }
     if (planStored != null) {
       out.planSays = { perYear: asTaken(planStored, cfg, I), stored: planStored };
-      const then = num(cfg.planSaid) != null ? +cfg.planSaid : stored;
-      out.differs = then != null && Math.abs(planStored - then) >= 1;
+      if (num(cfg.planSaid) != null) out.differs = Math.abs(planStored - +cfg.planSaid) >= 1;
+      else if (stored != null) {
+        // an older set-up, made before it kept what the plan said: the year as set up, or that figure grown by the year's
+        // prices (the rule before 7.12.0 grew a first year so), is the plan as it was then — anything else is a change
+        const grown = Math.round(planStored * (1 + (num(cfg.cpi) != null ? +cfg.cpi : DECISION_ASSUMED_CPI)));
+        out.differs = Math.abs(planStored - stored) >= 1 && Math.abs(grown - stored) >= 1;
+      }
     }
   }
   return out;

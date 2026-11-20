@@ -401,11 +401,17 @@ export function planCaseOf(source, ins, env, { lives = null, dragPct = 0, fromAg
    * lasted the plan's years, its pots then at today's prices by that future's own prices over the plan's years (the engine's
    * finalReal + finalIsa / cumInflation); £0 where it ran out. The words read these (shortfall.js leftOf), the figure
    * beside them leftOf below: one reading of what is left.
+   * A saver's lives (`atStop`: the stop runner of B, A or C from a later start, stopAt.js leftAtStop) each start from their
+   * own pots at the stop: `atStop.run` is that runner's fast run (each life's pots put in as the plan test puts them) and
+   * `atStop.startOf(i)` life i's pots, for a run only `simulate` can make (a final-salary pension beside the pots), which is
+   * then the plan test's own (stressTest.js stopLifeOf, pnvRun: life i's config on its market from the stop, engine seed i).
+   * The price level is the plan's own terminal's in every case (SimulationEngine cumInflation: a year whose prices did not
+   * move is 0, where the run's models read 2.5%), never the fast path's drivers'.
    */
   let lastLeft = null;
-  const leftTermsOf = (H, ms) => {
+  const leftTermsOf = (H, ms, atStop = null) => {
     // (the words and the figure beside them read the same runs: the last ones are kept)
-    if (lastLeft && lastLeft.H === H && lastLeft.ms === ms) return lastLeft.terms;
+    if (lastLeft && lastLeft.H === H && lastLeft.ms === ms && lastLeft.atStop === atStop) return lastLeft.terms;
     const terms = new Float64Array(n);
     const config = configsAtH(H)[0].config;
     for (let i = 0; i < n; i++) {
@@ -415,14 +421,17 @@ export function planCaseOf(source, ins, env, { lives = null, dragPct = 0, fromAg
       let cumInfl = 1;
       for (let y = 0; y < planYears; y++) cumInfl *= (1 + (ret.inflation[y] ?? 0.025));
       if (fast.stoppable(0, config)) {
-        const s = fast.run(0, i, config, null, toMonth);
+        const s = atStop ? atStop.run(0, i, config, null, toMonth) : fast.run(0, i, config, null, toMonth);
         terms[i] = (s.equity + s.bond + s.cash) / cumInfl + (s.isa || 0) / cumInfl;
       } else {
-        const s = simulate(planConfigAt(H), sliceReturns(L[i], 0, planYears), L[i].seed);
+        const q = atStop ? atStop.startOf(i) : null;
+        const c = planConfigAt(H);
+        const own = q ? { ...c, equityStart: q.equity, bondStart: q.bond, cashStart: q.cash, equityMin: q.equityMin ?? q.equity, bondMin: q.bondMin ?? q.bond, cashTarget: q.cashTarget ?? q.cash, isaBalance: q.isa } : c;
+        const s = simulate(own, sliceReturns(L[i], S0, planYears), L[i].seed);
         terms[i] = s.failed ? 0 : s.finalReal + (s.finalIsa || 0) / (s.cumInflation || 1);
       }
     }
-    lastLeft = { H, ms, terms };
+    lastLeft = { H, ms, atStop, terms };
     return terms;
   };
   /** What is typically left at the plan-to age at H and in the best 1 in 10 (OneAnswer a.left: the plan's terminal p50, p90). */

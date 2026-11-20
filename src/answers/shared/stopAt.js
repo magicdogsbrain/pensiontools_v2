@@ -394,11 +394,21 @@ export function verdictAt(sp, runner, spendAYear, at = null) {
     runOutMonths: months, sumW: c.sumW, weighted: c.weighted };
 }
 
+/** The kept case's view of a stop runner (leftAtStop): one per runner, so the kept case's last reading is found again. */
+const leftRunners = new WeakMap();
+
 /**
  * What is left at the plan-to month in every life at a spend (7.8.0; band.js leftAt on the stop runner, each run stopped
  * at that month). null for a couple apart (the hand-over at the second stop is not followed part-way) or nothing to draw on.
  */
 export function leftAtStop(sp, runner, spendAYear, months, toMonth) {
+  // one person on the plan path (sp.kept): the kept plan's own reading of what is left, each life from its own pots at the
+  // stop (keep/planPath.js leftTermsOf: the plan's price level, and the plan test's run where only `simulate` can make it)
+  if (sp.kept) {
+    let atStop = leftRunners.get(runner);
+    if (!atStop) leftRunners.set(runner, atStop = { run: (r, i, config, hook, until) => runner.fastRun(r, i, config, hook, until), startOf: (i) => runner.potsFor(0, i) });
+    return sp.kept.leftTermsOf(spendAYear, months, atStop);
+  }
   const plan = runner.plan;
   if (plan.apart || !plan.runs.length || plan.runs.some((run) => run.offset > 0)) return null;
   // (a run only `simulate` can make cannot stop part-way: then nothing is said, rather than a figure from another engine)

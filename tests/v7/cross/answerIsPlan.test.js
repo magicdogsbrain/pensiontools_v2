@@ -353,8 +353,8 @@ describe('B: the plan kept from a saver\'s answer is the answer (one person, the
     it(`B kept paying in as now, stop ${stop} at £${spend}: the same count, weighted chance, verdict and plan-to age`, () => {
       const b = samB(stop, spend);
       const plan = planReading(keptPlansOf('b', b, ENV).yours);
-      expect({ lasted: N - b.chance.fails, weighted: b.chance.weighted, verdict: b.verdict.band, planToAge: b.chance.planToAge })
-        .toEqual({ lasted: plan.lasted, weighted: plan.weighted, verdict: plan.verdict, planToAge: plan.planToAge });
+      expect({ lasted: N - b.chance.fails, weighted: b.chance.weighted, verdict: b.verdict.band, planToAge: b.chance.planToAge, leftWords: b.sentences.left ? b.sentences.left.text : null })
+        .toEqual({ lasted: plan.lasted, weighted: plan.weighted, verdict: plan.verdict, planToAge: plan.planToAge, leftWords: plan.leftWords });
     });
   }
   it('B kept paying in what would be enough: the kept plan passes at the level with the count and weighted chance B said there', () => {
@@ -375,8 +375,8 @@ describe('A: the plan kept from a saver\'s answer is the answer (one person, the
     it(`A at ${age}: the same count, weighted chance, verdict and plan-to age`, () => {
       const a = answerA({ ...SAM, spend: { kind: 'amount', amount: 2000 }, stop: { kind: 'age', age }, partTime: { has: false } }, { ...ENV, detail: 'chart' });
       const plan = planReading(keptPlansOf('a', a, ENV).yours);
-      expect({ lasted: N - a.chance.fails, weighted: a.chance.weighted, verdict: a.shown.verdict, planToAge: a.chance.planToAge })
-        .toEqual({ lasted: plan.lasted, weighted: plan.weighted, verdict: plan.verdict, planToAge: plan.planToAge });
+      expect({ lasted: N - a.chance.fails, weighted: a.chance.weighted, verdict: a.shown.verdict, planToAge: a.chance.planToAge, leftWords: a.sentences.left ? a.sentences.left.text : null })
+        .toEqual({ lasted: plan.lasted, weighted: plan.weighted, verdict: plan.verdict, planToAge: plan.planToAge, leftWords: plan.leftWords });
     });
   }
 });
@@ -430,8 +430,8 @@ describe('C from a later start: C\'s own keep, the same plan as A\'s (one person
     it(`${x.label}: the balanced amount, kept, is the kept plan's own count, weighted chance and plan-to age, and passes`, () => {
       const c = laterC(x);
       const plan = planReading(keptPlansOf('c', c, ENV).yours);
-      expect({ lasted: N - c.chance.fails, weighted: c.chance.weighted, planToAge: c.chance.planToAge })
-        .toEqual({ lasted: plan.lasted, weighted: plan.weighted, planToAge: plan.planToAge });
+      expect({ lasted: N - c.chance.fails, weighted: c.chance.weighted, planToAge: c.chance.planToAge, leftWords: c.sentences.left ? c.sentences.left.text : null })
+        .toEqual({ lasted: plan.lasted, weighted: plan.weighted, planToAge: plan.planToAge, leftWords: plan.leftWords });
       expect(plan.verdict).toBe('yes');
     });
   }
@@ -472,4 +472,31 @@ describe('A, B and C from a later start: the shortfall words are the kept plan\'
     expect(Math.floor(plan.howMuch * 10 + 1e-9)).toBe(8);
     expect(c.sentences.howMuch.text).toContain(`about £${Math.floor(plan.howMuch * 10 + 1e-9)} of every £10`);
   }, 60000);
+});
+
+/**
+ * A AND B FROM A LATER START: what is left at the plan-to age is the kept plan's (fix round 2 of step P3). The answer read
+ * what is left from each life's run stopped at the plan-to month, priced by the run's own price level, where a year whose
+ * prices did not move reads 2.5% (the engine's models' rule); the plan's own terminal prices it as it moved (SimulationEngine
+ * cumInflation: 0 is 0). So a life with such a year said 2.5% less: Sam B at 62, £1,800 a month (100 futures, 30 September
+ * 2026), best 1 in 10 £939,000 against the kept plan's £962,000 (962,138 / 1.025 = 938,671). And where the run is one only
+ * `simulate` can make (a final-salary pension beside the pots: Pat), the answer said nothing is left at all, where the kept plan
+ * says £45,000 typical at £2,300 a month (its own figure: 44,558, to the nearest £1,000).
+ */
+const N100 = 100;
+const ENV100 = { today: TODAY, futures: N100, seed: 0, trace: false };
+const PAT = { household: 'single', you: { age: 60, pot: 200000, statePension: { kind: 'full' }, finalSalary: { has: true, yearly: 9000, fromAge: 63 }, payIn: { kind: 'total', total: 600 } },
+  savings: 20000, isaGrowth: 'invested', savingsIn: 0, savingRisk: 'balanced', risk: 'balanced', charge: 0.5, endAge: 95 };
+const leftWordsOf = (plan) => lastsOf(plan, { today: TODAY, futures: N100, histories: false }).a.words.left;
+describe('A and B from a later start: what is left is the kept plan\'s (one person, the plan path)', () => {
+  for (const [who, name, stop, spend] of [[SAM, 'Sam', 62, 1800], [PAT, 'Pat', 63, 2300]]) {
+    it(`${name}, B at ${stop}, £${spend} a month: the left sentence is the kept plan's`, () => {
+      const b = answerB({ ...who, spend: { kind: 'amount', amount: spend }, stop: { age: stop }, confidence: 'balanced' }, { ...ENV100, detail: 'answer' });
+      expect(b.sentences.left ? b.sentences.left.text : null).toBe(leftWordsOf(keptPlansOf('b', b, ENV100).yours));
+    }, 60000);
+    it(`${name}, A at ${stop}, £${spend} a month: the left sentence is the kept plan's`, () => {
+      const a = answerA({ ...who, spend: { kind: 'amount', amount: spend }, stop: { kind: 'age', age: stop }, partTime: { has: false }, confidence: 'balanced' }, { ...ENV100, detail: 'chart' });
+      expect(a.sentences.left ? a.sentences.left.text : null).toBe(leftWordsOf(keptPlansOf('a', a, ENV100).yours));
+    }, 60000);
+  }
 });

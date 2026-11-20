@@ -90,9 +90,10 @@ export const FACT_FORMAT = Object.freeze({
   'income.thisYear.perMonth': money,
   'income.thisYear.total': money,
   'income.thisYear.from': monthText,
-  // step F3: each way's figures in the ways list (src/reading/ways.js wayFiguresOf), whole pounds as both views wrote them
-  'way.#.left': money,
-  'way.#.badLeft': money,
+  // step F3: each way's figures in the ways list (src/reading/ways.js wayFiguresOf). What is left at the end is worked out
+  // over many futures: the nearest £1,000, as "Does it last?" says it (lead4.md D8: one precision); the rest whole pounds
+  'way.#.left': moneyK,
+  'way.#.badLeft': moneyK,
   'way.#.worst12': money,
   'way.#.spent': money
 });

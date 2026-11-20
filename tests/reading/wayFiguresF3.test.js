@@ -22,7 +22,7 @@ const subjectOf = (f) => { const plans = f.plans(); const raw = plans.find((p) =
 const marked = (html, id) => [...html.matchAll(new RegExp('data-fact="' + id.replace(/[.]/g, '\\.') + '">([^<]*)<', 'g'))].map((m) => m[1]);
 
 describe('each way\'s left, bad case and worst 12 months are facts of their own', () => {
-  it('ids, patterns, labels and one rule', () => {
+  it('ids, patterns, labels and one rule (what is left: the nearest £1,000, as "Does it last?" says it)', () => {
     expect(wayFactIds('floor-to-age')).toMatchObject({ left: 'way.floor-to-age.left', badLeft: 'way.floor-to-age.badLeft', worst12: 'way.floor-to-age.worst12' });
     expect(patternOf('way.floor-to-age.left')).toBe(FACT.WAY_LEFT);
     expect(patternOf('way.floor-to-age.badLeft')).toBe(FACT.WAY_BAD_LEFT);
@@ -31,16 +31,16 @@ describe('each way\'s left, bad case and worst 12 months are facts of their own'
     for (const id of ['way.pots-and-valves.covered', 'way.pots-and-valves.spent', 'way.pots-and-valves.bumpiness']) expect(labelOf(id), id).toBeTruthy();
     for (const id of ['way.pots-and-valves.left', 'way.pots-and-valves.badLeft', 'way.pots-and-valves.worst12', 'way.pots-and-valves.spent']) {
       expect(labelOf(id), id).toBeTruthy();
-      expect(formatFact(id, 123456.6), id).toBe('£123,457');
+      expect(formatFact(id, 123456.6), id).toBe(/left$|badLeft$/i.test(id) ? '£123,000' : '£123,457');
     }
   });
   it('one reading writes them, from an engine result or a card\'s result alike', () => {
     const engine = { terminal: { p10: 1200.4, p50: 98765.5, p90: 1 }, worst12: { min: 30123.7, median: 1 }, coverage: 96.4, spentMedian: 812345.2 };
     const card = { terminal: { p10: 1200.4, p50: 98765.5, p90: 1 }, worst12: 30123.7, coverage: 96.4, spentMedian: 812345.2, vol: 0.084 };
-    const want = { left: '£98,766', badLeft: '£1,200', worst12: '£30,124', covered: '96%', spent: '£812,345', bumpiness: '8%' };
+    const want = { left: '£99,000', badLeft: '£1,000', worst12: '£30,124', covered: '96%', spent: '£812,345', bumpiness: '8%' };
     expect(wayFiguresOf(engine, { vol: 0.084 })).toEqual(want);
     expect(wayFiguresOf(card, card)).toEqual(want);
-    expect(wayFiguresOf({ terminal: { p10: 0, p50: 5 }, worst12: null })).toEqual({ left: '£5', badLeft: '£0', worst12: null, covered: null, spent: null, bumpiness: null });
+    expect(wayFiguresOf({ terminal: { p10: 0, p50: 5 }, worst12: null })).toEqual({ left: '£0', badLeft: '£0', worst12: null, covered: null, spent: null, bumpiness: null });
   });
 });
 
@@ -54,7 +54,7 @@ describe('the simple view marks them', () => {
     const c = v.cards.find((x) => x.id === 'floor-and-flex');
     expect(c.facts).toMatchObject({ left: 'way.floor-and-flex.left', badLeft: 'way.floor-and-flex.badLeft', worst12: 'way.floor-and-flex.worst12' });
     expect(c.table.worst12).toBe('£30,000');
-    expect(c.table.left).toBe('£42,695');
+    expect(c.table.left).toBe('£43,000');
     expect(c.table).toMatchObject({ covered: '97%', spent: '£500,000', bumpiness: '6%' });
     expect(c.facts).toMatchObject({ covered: 'way.floor-and-flex.covered', spent: 'way.floor-and-flex.spent', bumpiness: 'way.floor-and-flex.bumpiness' });
     const tried = cardsOf(reading, { key: reading.runKey, status: 'done', result: { ways: [ff] }, tried: { 'floor-and-flex': { status: 'done', values: {}, result: { ...ff } } } });

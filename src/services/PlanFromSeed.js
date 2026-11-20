@@ -677,10 +677,12 @@ function planFor(seed, p, other, name, savedOn, lockedAt, names, record) {
   // retirement, which the runs start from (PlanTiming.isaAtRetirementOf). Until the review of 6.22.0 the savings at the
   // stop stood in for today's savings too, and the readers that now add what goes in each month counted it twice.
   const preset = RISK_PRESETS[seed.risk];
+  // The three pots in pounds and pence (7.12.0): whole pounds bent the mix of a pension of a few pounds today (£3 at
+  // Balanced was £2 / £1 / £0), and the pots at the stop, worked from today's, carried that mix instead of the risk level's.
   const sippBase = later && !(p.pension.today > 0) ? p.pension.atStop.middling : p.pension.today;
-  const equity = Math.round(sippBase * preset.equity), bond = Math.round(sippBase * preset.bond);
+  const equity = round2(sippBase * preset.equity), bond = round2(sippBase * preset.bond);
   Object.assign(S, {
-    equityMin: equity, bondMin: bond, cashTarget: Math.round(sippBase) - equity - bond,
+    equityMin: equity, bondMin: bond, cashTarget: round2(sippBase - equity - bond),
     allocMode: 'risk', taggedFunds: [], diversifierStart: 0, equityGlideEnabled: false,
     isaBalance: p.savings.today,
     isaDrawdownStrategy: 'minimiseEarlyTax', isaReturn: 0.03,

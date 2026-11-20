@@ -460,6 +460,21 @@ describe('the cases (C.3)', () => {
     expect(make(seedBCouple()).partner.accumulationTool).toBeUndefined();
   });
 
+  it('a pension of a few pounds today keeps the risk level\'s mix: the three pots in pounds and pence, never whole pounds', () => {
+    // Worked by hand: a pension of £3 today at Balanced (50 / 40 / 10) is £1.50 in shares, £1.20 in bonds and £0.30 in cash.
+    // Kept to whole pounds it was £2 / £1 / £0 — two thirds in shares, a third in bonds, no cash — and the pots at the stop,
+    // worked from today's pots, carried that mix instead of the risk level's. Adventurous (70 / 25 / 5) on £7: £4.90 / £1.75
+    // / £0.35 (whole pounds: £5 / £2 / £0).
+    const few = (pot, risk) => { const s = seedZeroPot(); s.risk = risk; s.people[0].pension.today = pot; return make(s).yours.stressTool.settings; };
+    const b = few(3, 'balanced');
+    expect([b.equityMin, b.bondMin, b.cashTarget]).toEqual([1.5, 1.2, 0.3]);
+    const a = few(7, 'adventurous');
+    expect([a.equityMin, a.bondMin, a.cashTarget]).toEqual([4.9, 1.75, 0.35]);
+    // a whole number of pounds that the mix divides is written as before
+    const w = few(250000, 'balanced');
+    expect([w.equityMin, w.bondMin, w.cashTarget]).toEqual([125000, 100000, 25000]);
+  });
+
   it('£0 in a pension today with money going in: the middling pot at the stop stands in, so nothing is scaled (Q10)', () => {
     const seed = seedZeroPot();
     const plan = make(seed).yours;

@@ -121,3 +121,40 @@ describe('the worker\'s saver lane runs the plan path', () => {
     expect(said(out.result)).toEqual(planTest(plan));
   });
 });
+
+/**
+ * A STOP BEFORE THE PENSION OPENS IS ON THE PLAN PATH TOO (fix round 2 of step P3): one person whose pension is still
+ * closed at the stop, the savings paying until it opens. Before, A, B and the saver verdict on the plan kept from them ran
+ * the household's drawing years (a second adapter) and said a figure the kept plan's own test does not: Alex (50,
+ * £300,000 pension, £100,000 invested savings, £500 a month going in, £2,000 a month) stopping at 55, at 100 futures on
+ * 30 September 2026: A and B 67 of 100 (weighted 0.7692), the kept plan's test 69 of 100 (0.7793), the saver verdict on
+ * that plan 67 (0.7692). At a stop of 60 (the pension open) all three already agreed: 94 of 100, 0.9555.
+ * OPEN (it.fails, the stop at 55): taking the closed stop onto the plan path makes these two pass, but B's own search for
+ * the savings the closed years need (b/solve, b/enough, b/metamorphic M-B9), C's closed years (c/review, cross/reviewRound3
+ * R2 and R3) and A's savings-run-short words are the household's machinery and have no plan-path reading yet: 30 tests
+ * fail with it. The change is kept as a patch beside the handover (steps/P-fix2-closed-at-stop-on-plan-path.wip.patch).
+ */
+const N100 = 100;
+const ENV100 = { ...ENV, futures: N100 };
+const ALEX = { household: 'single', you: { age: 50, pot: 300000, statePension: { kind: 'full' }, finalSalary: { has: false }, payIn: { kind: 'total', total: 500 } },
+  savings: 100000, isaGrowth: 'invested', savingsIn: 0, savingRisk: 'balanced', risk: 'balanced', charge: 0.5, endAge: 95, confidence: 'balanced' };
+const test100 = (plan) => { const { a } = lastsOf(plan, { today: TODAY, futures: N100, histories: false }); return { lasted: Math.round(a.fixedAge * N100), weighted: a.weighted, verdict: a.verdict }; };
+const said100 = (b) => ({ lasted: N100 - b.chance.fails, weighted: b.chance.weighted, verdict: b.verdict.band });
+describe('a stop before the pension opens: the answer, the kept plan and its saver verdict say one figure', () => {
+  for (const stop of [55, 60]) {
+    const itAt = stop === 55 ? it.fails : it;
+    itAt(`Alex stopping at ${stop}: B, the plan kept from it and that plan's saver verdict`, async () => {
+      const b = answerB({ ...ALEX, stop: { age: stop }, spend: { kind: 'amount', amount: 2000 } }, { ...ENV100, detail: 'answer' });
+      const plan = { ...keptPlansOf('b', b, ENV100).yours, id: 'p1' };
+      const test = test100(plan);
+      expect(said100(b)).toEqual(test);
+      const v = saverVerdictOf([{ plan }], plan.id, { today: TODAY });
+      expect(said100(await answerFor('b', v.inputs, { ...RUN, futures: N100, ...(v.env || {}) }))).toEqual(test);
+    }, 120000);
+    itAt(`Alex stopping at ${stop}: A and the plan kept from it`, () => {
+      const a = answerA({ ...ALEX, spend: { kind: 'amount', amount: 2000 }, stop: { kind: 'age', age: stop }, partTime: { has: false } }, { ...ENV100, detail: 'chart' });
+      const plan = keptPlansOf('a', a, ENV100).yours;
+      expect({ lasted: N100 - a.chance.fails, weighted: a.chance.weighted, verdict: a.shown.verdict }).toEqual(test100(plan));
+    }, 120000);
+  }
+});

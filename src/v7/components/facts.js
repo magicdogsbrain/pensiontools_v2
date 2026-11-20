@@ -26,6 +26,7 @@ const FIGURES = Object.freeze({
   'where.pot:potIsa': 'isa.today',
   'where.saverPot:actual': 'pot.today',
   'where.saverPot:potAgainst': 'pot.againstPlan',
+  'where.potMid:potMid': 'pot.planMiddle',
   'where.saverPot:potPension': 'pot.today',
   'where.saverPot:potIsa': 'isa.today',
   'where.taken:drawn': 'taken.againstPlan',

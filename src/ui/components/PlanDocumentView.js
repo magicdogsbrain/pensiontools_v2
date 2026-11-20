@@ -337,8 +337,8 @@ function staleText(stale) {
 }
 const VERDICT = {
   'below p10': (P) => '<strong>below the plan\'s 1-in-10 bad line</strong> (' + gbp(P.p10) + ')',
-  'p10–p50': (P) => 'between the 1-in-10 bad line (' + gbp(P.p10) + ') and the median (' + gbp(P.p50) + ')',
-  'p50–p90': (P) => 'between the median (' + gbp(P.p50) + ') and the 1-in-10 good line (' + gbp(P.p90) + ')',
+  'p10–p50': (P) => 'between the 1-in-10 bad line (' + gbp(P.p10) + ') and the median (' + markFact('pot.planMiddle', money(P.p50)) + ')',
+  'p50–p90': (P) => 'between the median (' + markFact('pot.planMiddle', money(P.p50)) + ') and the 1-in-10 good line (' + gbp(P.p90) + ')',
   'above p90': (P) => 'above the plan\'s 1-in-10 good line (' + gbp(P.p90) + ')'
 };
 /**
@@ -380,17 +380,20 @@ export function whereAmIPotText(pot) {
   const actual = pensionOnly ? markFact('pot.today', money(P.actual)) : moved ? gbp(P.actual) : markFact('pot.againstPlan', money(P.actual));
   let pt = 'Your pot: ' + (moved ? markFact('pot.againstPlan', money(P.real)) + (month ? ' at the prices of ' + month : ' in the prices the plan’s figures are in') + ' (' + actual + (from ? ', ' + from : ' as recorded') + ')'
     : actual + (from ? ' (' + from + ')' : ''));
-  const expects = ' against ' + gbp(P.p50) + ' the plan expects by then';
+  const mid = markFact('pot.planMiddle', money(P.p50));   // (step F2) the plan's middle by now, marked as the simple view marks it (read.js where.potMid)
+  const expects = ' against ' + mid + ' the plan expects by then';
   const verdict = P.verdict || (P.band ? 'band' : null);
   let s;
   if (verdict === 'gilts-held-to-pay') {
     // The band holds the gilts as held to repay (at cost in a document locked before 6.34.0), the record at their market
     // value: no verdict (RUNGS_HELD_TO_PAY).
-    s = pt + expects + (P.flat ? '; the plan\'s path is bought by contract' : '') + '. The plan counts its gilts ' + (P.atCost ? 'at what they cost' : 'as held until they repay') + ', and your figure is at today\'s market prices, which move with interest rates, so the gap between the two is not read as ahead or behind: the rungs still pay what they were bought to pay.';
+    // (step F2) a path bought by contract: the simple view says no middle line for it (read.js where.potMid), so the figure
+    // here is not the marked fact — joining the two is the ladder's step (F6)
+    s = pt + ' against ' + gbp(P.p50) + ' the plan expects by then' + (P.flat ? '; the plan\'s path is bought by contract' : '') + '. The plan counts its gilts ' + (P.atCost ? 'at what they cost' : 'as held until they repay') + ', and your figure is at today\'s market prices, which move with interest rates, so the gap between the two is not read as ahead or behind: the rungs still pay what they were bought to pay.';
   } else if (verdict === 'start') {
     s = P.planYear < 0
-      ? pt + ' against ' + gbp(P.p50) + ' the plan starts from; the band opens once the plan has started.'
-      : pt + ' at the start of the plan, priced on ' + gbp(P.p50) + '; the band opens as the year goes on.';
+      ? pt + ' against ' + mid + ' the plan starts from; the band opens once the plan has started.'
+      : pt + ' at the start of the plan, priced on ' + mid + '; the band opens as the year goes on.';
   } else if (verdict === 'not-open') {
     s = pt + expects + '; the plan\'s band has not opened yet.';
   } else if (verdict === 'band' && VERDICT[P.band]) {

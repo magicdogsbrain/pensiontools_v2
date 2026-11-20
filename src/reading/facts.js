@@ -30,6 +30,8 @@ export const FACT = Object.freeze({
   CASH_TODAY: 'cash.today',
   // the pot Where you are sets against the plan's band: its accounts, in the prices the plan's figures are in
   POT_AGAINST_PLAN: 'pot.againstPlan',
+  // the plan's middle line for the pot by now (the band's median at this month, in the same prices)
+  POT_PLAN_MIDDLE: 'pot.planMiddle',
   // the pot at the stop, with its low and high where shown
   POT_AT_STOP: 'pot.atStop',
   POT_AT_STOP_LOW: 'pot.atStop.low',

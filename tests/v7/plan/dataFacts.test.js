@@ -61,4 +61,17 @@ describe('every mark holds the figure the register reads there', () => {
     expect(pot).not.toBeNull();
     expect(text(pot).trim()).toMatch(/^£[\d,]+$/);
   });
+  it('(step F2) the plan\'s middle by now is one marked fact: the simple view\'s Where you are line (the full view\'s strip marks the same: PlanDocumentView, "the plan expects by then")', () => {
+    const found = Object.keys(C).map((k) => entryOf(C[k], TODAY)).map((e) => {
+      const root = document.createElement('div');
+      render(h(App, { state: stateWith([e], '#/plan/' + e.plan.id + '/where', { today: TODAY }), dispatch: () => {} }), root);
+      const m = root.querySelector('[data-fact="pot.planMiddle"]');
+      const line = root.querySelector('[data-line="where.potMid"]');
+      const out = { m: m && text(m).trim(), line: !!line };
+      render(null, root);
+      return out;
+    });
+    expect(found.some((f) => f.line)).toBe(true);
+    for (const f of found) if (f.line) expect(f.m).toMatch(/^£[\d,]+$/);
+  });
 });

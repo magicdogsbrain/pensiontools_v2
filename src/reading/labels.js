@@ -32,6 +32,7 @@ export const LABELS = Object.freeze({
   [FACT.GIA_TODAY]: { label: 'General account today', basis: TODAY },
   [FACT.CASH_TODAY]: { label: 'Cash today', basis: TODAY },
   [FACT.POT_AGAINST_PLAN]: { label: 'Your pot, against the plan', basis: "the prices the plan's figures are in" },
+  [FACT.POT_PLAN_MIDDLE]: { label: 'The plan expects by now', basis: "the prices the plan's figures are in" },
   [FACT.POT_AT_STOP]: { label: 'Pension when you stop, middle', basis: TODAY },   // the band's words in both views
   [FACT.POT_AT_STOP_LOW]: { label: 'Pension when you stop, low end', basis: TODAY },
   [FACT.POT_AT_STOP_HIGH]: { label: 'Pension when you stop, high end', basis: TODAY },

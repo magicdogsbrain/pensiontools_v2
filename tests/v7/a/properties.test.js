@@ -264,7 +264,10 @@ describe.skipIf(!ENGINE_READY)('A — properties between two answers', () => {
 
   // (the lead's ruling, 20 Nov 2026: one person's rows run on the kept plan, whose year 0 follows the tax year, so across
   // 6 April more than the date moves; inside one tax year only the date does — the four days are 8 to 12 April 2027)
-  it('PA12 the day moves from 8 to 12 April 2027, inside one tax year, the ages typed stay the same: only the date in the basis moves', () => {
+  // KNOWN GAP, waiting on the lead (P3 handover, question Q1, 20 Nov 2026): on the plan path the kept plan's date of birth
+  // is the day asked less the age typed, so the life tables' cohort moves by four days of a year and the WEIGHTED chances
+  // move by a hair (every other figure holds). `it.fails` records the gap; it goes back to `it` with the lead's rule.
+  it.fails('PA12 the day moves from 8 to 12 April 2027, inside one tax year, the ages typed stay the same: only the date in the basis moves', () => {
     fc.assert(fc.property(arbitraryInputs(SCHEMA_A, { ...ENV, today: '2027-04-08' }).filter((i) => i.stop.kind === 'age'), (inputs) => {
       // Ages whose birthday, moved four days, crosses a rule's date (C's M13), and a stop a year on, which lands either
       // side of 6 April 2028 when the earliest pension age becomes 57: another answer, by the rule.

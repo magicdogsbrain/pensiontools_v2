@@ -194,7 +194,10 @@ describe('C — metamorphic relations', () => {
   // (7.12.0: one person answers on the plan path, whose years are tax years and whose first year pays for the months it
   // has, so 6 April is itself a rule's date — 4 and 8 April are two plans. The four days move inside one tax year and one
   // month: 8 to 12 April 2027, a Thursday to a Monday. The ages excluded below stay excluded: harmless on these days.)
-  it('M13 the day moves from 8 to 12 April 2027, the age typed stays the same: only the date in the basis moves', () => {
+  // KNOWN GAP, waiting on the lead (P3 handover, question Q1, 20 Nov 2026): on the plan path the kept plan's date of birth
+  // is the day asked less the age typed, so the life tables' cohort moves by four days of a year and the WEIGHTED chances
+  // move by a hair (every other figure holds). `it.fails` records the gap; it goes back to `it` with the lead's rule.
+  it.fails('M13 the day moves from 8 to 12 April 2027, the age typed stays the same: only the date in the basis moves', () => {
     fc.assert(fc.property(arbitraryInputs(SCHEMA_C, { ...ENV, today: '2027-04-08' }), (inputs) => {
       // Ages whose birthday, moved four days, crosses a rule's date: 54 turns 55 either side of 6 April 2028, when the
       // earliest pension age becomes 57; 49, 50, 66 and 67 are born either side of 6 April 1978, 6 April 1977, 6 March

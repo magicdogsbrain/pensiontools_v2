@@ -468,7 +468,10 @@ test.describe('parity round trips: a new plan after another', () => {
     const hits = new Map();
     const scan = async (where) => {
       const got = await page.evaluate((nums) => {
-        const text = document.body.innerText;
+        // fixed page text (a rule of the tax system, data-fixed="rule") and example hints (data-example) are nobody's
+        // figures: they are left out of the look (the lead's ruling on step S), and nothing else is
+        let text = document.body.innerText;
+        for (const el of document.querySelectorAll('[data-fixed="rule"], [data-example]')) { const t = el.innerText; if (t) text = text.replace(t, ' '); }
         const boxes = [...document.querySelectorAll('input, select, textarea')].filter((el) => el.type !== 'hidden' && !!(el.offsetWidth || el.offsetHeight)).map((el) => String(el.value));
         const found = [];
         for (const n of nums) {

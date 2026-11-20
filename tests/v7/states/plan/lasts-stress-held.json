@@ -2737,8 +2737,6 @@
               "net": 13737,
               "yearMonthly": 2600,
               "yearTotal": 31200,
-              "planYear": 30000,
-              "setUpYear": 31200,
               "step0": 30000,
               "pot": 602808,
               "potActual": 612740,
@@ -2765,39 +2763,6 @@
                     " a month before tax."
                   ],
                   "text": "In 2026/27 your plan takes £2,600 a month before tax."
-                },
-                "source": {
-                  "kind": "record",
-                  "at": null,
-                  "stale": false
-                }
-              },
-              {
-                "id": "where.yearChanged",
-                "slots": {
-                  "year": "2026/27"
-                },
-                "sentence": {
-                  "id": "where.yearChanged",
-                  "parts": [
-                    "Your plan takes ",
-                    {
-                      "key": "planYear",
-                      "kind": "money"
-                    },
-                    " a year before tax. This tax year was set up at ",
-                    {
-                      "key": "setUpYear",
-                      "kind": "money"
-                    },
-                    ", so each month still takes ",
-                    {
-                      "key": "yearMonthly",
-                      "kind": "money"
-                    },
-                    " before tax until you set this year up again."
-                  ],
-                  "text": "Your plan takes £30,000 a year before tax. This tax year was set up at £31,200, so each month still takes £2,600 before tax until you set this year up again."
                 },
                 "source": {
                   "kind": "record",
@@ -2939,11 +2904,6 @@
             ],
             "buttons": [
               {
-                "id": "setUpAgain",
-                "href": "#/plan/SamBad03/month",
-                "slots": {}
-              },
-              {
                 "id": "seeDocument",
                 "place": "document",
                 "slots": {}
@@ -2996,8 +2956,6 @@
               "saysAge0": 63,
               "yearMonthly": 2600,
               "yearTotal": 31200,
-              "planYear": 30000,
-              "setUpYear": 31200,
               "saysSp": 11211,
               "saysSpAge": 67,
               "saysBad": 157539,
@@ -3073,39 +3031,6 @@
                     " a month before tax."
                   ],
                   "text": "In 2026/27 your plan takes £2,600 a month before tax."
-                },
-                "source": {
-                  "kind": "record",
-                  "at": null,
-                  "stale": false
-                }
-              },
-              {
-                "id": "where.yearChanged",
-                "slots": {
-                  "year": "2026/27"
-                },
-                "sentence": {
-                  "id": "where.yearChanged",
-                  "parts": [
-                    "Your plan takes ",
-                    {
-                      "key": "planYear",
-                      "kind": "money"
-                    },
-                    " a year before tax. This tax year was set up at ",
-                    {
-                      "key": "setUpYear",
-                      "kind": "money"
-                    },
-                    ", so each month still takes ",
-                    {
-                      "key": "yearMonthly",
-                      "kind": "money"
-                    },
-                    " before tax until you set this year up again."
-                  ],
-                  "text": "Your plan takes £30,000 a year before tax. This tax year was set up at £31,200, so each month still takes £2,600 before tax until you set this year up again."
                 },
                 "source": {
                   "kind": "record",

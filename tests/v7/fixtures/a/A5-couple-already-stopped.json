@@ -566,35 +566,35 @@
         "stopYear": "2026",
         "status": "final",
         "verdict": "yes",
-        "lasted": 0.875,
+        "lasted": 0.9,
         "outOfTen": {
           "words": "in 9 futures out of 10",
           "only": false,
           "count": 9
         },
-        "runOutAge": 97,
-        "weighted": 0.9245073315687478,
+        "runOutAge": 100,
+        "weighted": 0.9416043072938919,
         "levels": {
           "careful": {
-            "monthly": 3420,
-            "yearly": 41040,
-            "weighted": 0.9525933770928532,
+            "monthly": 3470,
+            "yearly": 41640,
+            "weighted": 0.9544063495239243,
             "fixedAge": 0.9
           },
           "balanced": {
-            "monthly": 3570,
-            "yearly": 42840,
-            "weighted": 0.9022053160937503,
-            "fixedAge": 0.85
+            "monthly": 3600,
+            "yearly": 43200,
+            "weighted": 0.9009384599979967,
+            "fixedAge": 0.825
           },
           "bold": {
-            "monthly": 4020,
-            "yearly": 48240,
-            "weighted": 0.7022664083633572,
-            "fixedAge": 0.575
+            "monthly": 4040,
+            "yearly": 48480,
+            "weighted": 0.7036749952472746,
+            "fixedAge": 0.6
           }
         },
-        "spare": 70,
+        "spare": 100,
         "potAtStop": {
           "careful": 1010000,
           "middling": 1010000,
@@ -630,10 +630,10 @@
         "phases": null,
         "oneMoreYear": {
           "toAge": 56,
-          "extraMonthly": 100,
-          "lastedFrom": 0.875,
+          "extraMonthly": 70,
+          "lastedFrom": 0.9,
           "lastedTo": 0.925,
-          "runOutFrom": 97,
+          "runOutFrom": 100,
           "runOutTo": 101,
           "potExtra": 27418,
           "sameish": false
@@ -2198,7 +2198,7 @@
       "chart": [
         {
           "id": "a.chart.row",
-          "text": "Your partner stopping at 55, you could spend about £3,570 a month; £3,500 a month lasted in just under 9 futures out of 10.",
+          "text": "Your partner stopping at 55, you could spend about £3,600 a month; £3,500 a month lasted in 9 futures out of 10.",
           "parts": [
             "Your partner stopping at ",
             {
@@ -2216,7 +2216,7 @@
               "kind": "money"
             },
             " a month lasted ",
-            "in just under ",
+            "in ",
             {
               "fixed": "9"
             },

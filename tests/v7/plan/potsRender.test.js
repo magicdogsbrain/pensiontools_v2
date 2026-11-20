@@ -78,8 +78,11 @@ describe('every corpus plan at three dates: the boxes, the sources, the notes, t
             const drawn = f.type === 'choice' ? root.querySelector(`[data-field="${f.path}"] legend`) : root.querySelector(`label[for="plan.pots.${f.path}"]`);
             if (vf.applies && !drawn) problems.push(`${e.plan.id}: no label for ${f.path}`);
             if (!vf.applies && drawn) problems.push(`${e.plan.id}: ${f.path} drawn though it does not apply`);
-            if (vf.applies && vf.saved !== null && !root.querySelector(`[data-saved-for="${f.path}"]`)) problems.push(`${e.plan.id}: no saved value beside ${f.path}`);
+            if (vf.applies && vf.saved !== null && !vf.assumed && !root.querySelector(`[data-saved-for="${f.path}"]`)) problems.push(`${e.plan.id}: no saved value beside ${f.path}`);
             const src = root.querySelector(`[data-saved-for="${f.path}"]`);
+            // (step F2, D2) a value the rule gave (no tax-free choice stored) is said as assumed, never "from your plan, saved"
+            if (vf.assumed && src) problems.push(`${e.plan.id}: the assumed ${f.path} said as saved`);
+            if (vf.assumed && f.path === 'taxFree' && !root.querySelector('[data-line="pots.tax.free.assumed"]')) problems.push(`${e.plan.id}: no "We assumed" for the tax-free choice`);
             if (src && !/From your plan|As saved in the plan/.test(src.textContent)) problems.push(`${e.plan.id}: no source beside ${f.path}`);
           }
           for (const path of v.notUsed) if (v.fields.find((x) => x.path === path).applies && !root.querySelector(`[data-not-used="${path}"]`)) problems.push(`${e.plan.id}: no "not used" under ${path}`);

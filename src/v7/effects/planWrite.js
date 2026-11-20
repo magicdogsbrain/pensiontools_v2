@@ -356,7 +356,9 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     if (state.route && state.route.screen === 'plan' && state.route.step === 'household') { await saveWhoPays(planId, place, plan, state); return; }
     const { step, patchOf } = stepOf(state);
     const pd = state.draft.plan && state.draft.plan.id === String(planId) ? state.draft.plan : null;
-    const typed = pd ? pd.values : {};
+    // (step F2) a choice that saves at once sends its own boxes alone (reduce.js `only`); the rest of the page stays typed
+    const only = state.ui.saving && Array.isArray(state.ui.saving.only) ? state.ui.saving.only : null;
+    const typed = !pd ? {} : only ? Object.fromEntries(Object.entries(pd.values).filter(([k]) => only.includes(k))) : pd.values;
     // "What you pay in" (road-to-7.md step 11b) is outside the lock, as the planner's Accumulation page is: the guard alone decides.
     // On a locked plan's "About you and when", the one write is the answer to "When did you stop work?" (6.53.0, about.js
     // stopAskPatch): the month, or "Leave it" — keys the guard lets a locked plan write.
@@ -370,7 +372,8 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     if (auto && (!p.ok || !Object.keys(p.patch).length)) { dispatch({ type: A.PLAN_SAVE_NONE, planId }); return; }
     if (!p.ok) { fail(planId, p.errors.plan === 'locked' || p.errors.plan === 'notLocked' ? 'locked' : 'problems'); return; }
     const about = state.plans.view && state.plans.view.page && state.plans.view.page[step] && state.plans.view.page.forId === String(planId) ? state.plans.view.page[step] : null;
-    const line = lockedAbout ? p.line : about && about.savedLine ? about.savedLine : null;
+    // the page's sentence counts every box as typed: a save of some boxes alone says "Saved." without it
+    const line = lockedAbout ? p.line : only ? null : about && about.savedLine ? about.savedLine : null;
     if (!Object.keys(p.patch).length) { dispatch({ type: A.PLAN_SAVED, planId, previous: {}, line }); later(() => dispatch({ type: A.PLAN_TOAST_CLOSE })); return; }
     const data = declaredOnly({ ...p.patch, lastModified: now().toISOString() });
     if (lockedRefusal(plan, data)) { fail(planId, 'locked'); return; }
@@ -1888,7 +1891,7 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     const s = state.ui.saving;
     if (!s) return;
     // (7.12.0) a box left while a save was under way is saved straight after it (reduce.js saveAgain)
-    const run = (fn) => { busy = true; fn().catch(() => fail(s.planId, 'failed')).finally(() => { busy = false; const again = store.getState().ui.saveAgain; if (again && !stopped) dispatch({ type: A.PLAN_SAVE, planId: again, auto: true }); }); };
+    const run = (fn) => { busy = true; fn().catch(() => fail(s.planId, 'failed')).finally(() => { busy = false; const ui = store.getState().ui; const again = ui.saveAgain; if (again && !stopped) dispatch({ type: A.PLAN_SAVE, planId: again, auto: true, ...(ui.saveAgainOnly ? { only: ui.saveAgainOnly } : {}) }); }); };
     if (action.type === A.PLAN_SAVE && s.kind === 'save') run(() => save(s.planId));
     else if (action.type === A.PLAN_UNDO && s.kind === 'undo') run(() => undo(s.planId, s.previous, s.op || null, s.lockedAt || null, s.others || []));
     else if (action.type === A.PLAN_LOCK && s.kind === 'lock') run(() => lock(s.planId));

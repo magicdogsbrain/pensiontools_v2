@@ -13,12 +13,13 @@
  *     source   the sentence beside the saved value ("From your plan, saved 22 August 2026"), or null
  *     slots    fills {yearNow} and the like in option words and error sentences
  *     nested   for a choice: { option: vnode } drawn inside that option's row
+ *     onPick   for a choice: called with the option just chosen, after it is put in the draft (a choice that saves at once)
  */
 import { simpleFieldId } from '../../reading/fields.js';
 
 const fill = (text, slots = {}) => String(text == null ? '' : text).replace(/\{(\w+)\}/g, (m, k) => (k in slots && slots[k] != null ? String(slots[k]) : m));
 
-export function EditField({ f, words = {}, errors = {}, source = null, savedWords = '({value})', planId, dispatch, slots = {}, nested = null, help, extra = null, step = 'about', onLeave = null }) {
+export function EditField({ f, words = {}, errors = {}, source = null, savedWords = '({value})', planId, dispatch, slots = {}, nested = null, help, extra = null, step = 'about', onLeave = null, onPick = null }) {
   if (!f || f.applies === false) return null;
   const id = `plan.${step}.${f.path}`;
   // the box's mark in the field table (src/reading/fields.js): the same id as the full view's box of the same field
@@ -44,7 +45,7 @@ export function EditField({ f, words = {}, errors = {}, source = null, savedWord
           <div class="option" key={o}>
             <div class="option-row">
               <input type="radio" id={`${id}.${o}`} data-testid={`${id}.${o}`} data-field={bound} name={id} value={o} checked={f.shown === o}
-                onClick={() => { if (f.shown !== o) set(o); }} onChange={() => {}} onBlur={touch} />
+                onClick={() => { if (f.shown !== o) { set(o); if (typeof onPick === 'function') onPick(o); } }} onChange={() => {}} onBlur={touch} />
               <label for={`${id}.${o}`}>{fill((words.options && words.options[o]) || o, slots)}</label>
             </div>
             {nested && nested[o]}

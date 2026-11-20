@@ -156,6 +156,8 @@ describe('the lumpy plan (12): what the page says, and what typing does', () => 
     box.dispatchEvent(new Event('blur'));
     expect(actions.pop()).toEqual({ type: 'plan/touch', planId: id, path: 'fs.0.fromAge' });
     root.querySelector('[data-testid="plan.income.spKind.none"]').click();
+    // (step F2 fix, lead4.md R3) a State Pension choice whole by itself is saved at once: its own boxes alone
+    expect(actions.pop()).toEqual({ type: 'plan/save', planId: id, auto: true, only: ['spKind', 'spWeekly', 'spDate'] });
     expect(actions.pop()).toEqual({ type: 'plan/edit', planId: id, path: 'spKind', value: 'none' });
     root.querySelector('[data-testid="plan.income.lumps.add"]').click();
     expect(actions.pop()).toEqual({ type: 'plan/edit', planId: id, path: 'lumps.ids', value: '0,1,n1' });

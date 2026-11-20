@@ -21,6 +21,8 @@ const w = PLAN.page;
  * does not move under the pointer) before the click lands. Save marks every box itself; Add and Remove need no mark.
  */
 const keepFocus = { onMouseDown: (e) => e.preventDefault() };
+/** The State Pension's own boxes: what its choice saves at once (step F2). */
+const SP_PATHS = Object.freeze(['spKind', 'spWeekly', 'spDate']);
 
 function Head({ view }) {
   return (
@@ -166,6 +168,9 @@ export function IncomeScreen(state, dispatch) {
     if (el) el.focus();
   };
   const onCancel = () => dispatch({ type: 'plan/cancel', planId });
+  // (step F2, lead4.md R3) the State Pension choice saves at once when it is whole by itself (the full amount, none, or left
+  // as assumed): its own boxes alone, the rest of the page as typed. "My forecast" waits for its weekly figure and Save.
+  const pickSp = (kind) => { if (kind !== 'forecast') dispatch({ type: 'plan/save', planId, auto: true, only: SP_PATHS }); };
   const notUsed = new Set(inc.notUsed || []);
   const problem = inc.problem ? (INCOME.problems[inc.problem] || INCOME.problems.failed) : null;
   // beside the State Pension choice: "(My forecast, £230.25 a week)" when a forecast is saved
@@ -184,7 +189,7 @@ export function IncomeScreen(state, dispatch) {
           <section class="income-section" data-section="sp">
             <h2>{INCOME.sections.sp}</h2>
             {inc.assumed && <p class="note" data-testid="plan.income.assumed">{fill(inc.assumed.age != null ? INCOME.assumedNote : INCOME.assumedNoteNoAge, inc.assumed)}</p>}
-            {F('spKind', { nested: { forecast: F('spWeekly') }, savedWords: spSavedWords })}
+            {F('spKind', { nested: { forecast: F('spWeekly') }, savedWords: spSavedWords, onPick: pickSp })}
             {F('spDate')}
             {notUsed.has('spKind') && <p class="note">{INCOME.notUsed}</p>}
           </section>

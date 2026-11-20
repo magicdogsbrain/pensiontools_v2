@@ -768,14 +768,28 @@ function reduceAction(state, action) {
     case A.PLAN_SAVE: {
       const { planId } = action;
       if (typeof planId !== 'string' || !planId) return refuse('plan/save: needs a plan id');
+      // (step F2) `only`: a choice that saves at once writes its own boxes alone (the State Pension on "Money that comes in"),
+      // never the rest of the page as typed (lead4.md R3: a save writes only what the person changed)
+      const only = Array.isArray(action.only) && action.only.length && action.only.every((x) => isPlanEditPath(x)) ? [...action.only] : null;
       // (7.12.0) a box left with a change while a write is under way: saved straight after it (planWrite reads saveAgain)
-      if (state.ui.saving) return action.auto === true && state.ui.saveAgain !== planId ? { ...state, ui: { ...state.ui, saveAgain: planId } } : state;
+      if (state.ui.saving) {
+        if (action.auto !== true) return state;
+        if (state.ui.saveAgain !== planId) return { ...state, ui: { ...state.ui, saveAgain: planId, ...(only ? { saveAgainOnly: only } : {}) } };
+        // already queued: a whole-page save queued stays whole; two of the same boxes stay as they are
+        const queued = state.ui.saveAgainOnly || null;
+        const merged = !queued || !only ? null : [...new Set([...queued, ...only])];
+        return JSON.stringify(merged) === JSON.stringify(queued) ? state : { ...state, ui: { ...state.ui, saveAgainOnly: merged } };
+      }
       const pd = planDraftOf(state);
       const base = pd.id === planId ? pd : { ...emptyPlanDraft(), id: planId };
+      const unqueued = { ...(state.ui.saveAgain ? { saveAgain: null } : {}), ...(state.ui.saveAgainOnly ? { saveAgainOnly: null } : {}) };
       // a box left (auto, 7.12.0): the same one write, remembering what it sends — what is typed meanwhile stays; the other
       // boxes are not "asked" (their problems show once each is left, as before)
-      if (action.auto === true) return withPlanDraft({ ...state, ui: { ...state.ui, saving: { planId, kind: 'save', auto: true, sent: { ...base.values } }, ...(state.ui.saveAgain ? { saveAgain: null } : {}) } }, base);
-      return withPlanDraft({ ...state, ui: { ...state.ui, saving: { planId, kind: 'save' }, ...(state.ui.saveAgain ? { saveAgain: null } : {}), saveProblem: null, toast: null } }, { ...base, asked: true });
+      if (action.auto === true) {
+        const sent = only ? Object.fromEntries(Object.entries(base.values).filter(([k]) => only.includes(k))) : { ...base.values };
+        return withPlanDraft({ ...state, ui: { ...state.ui, saving: { planId, kind: 'save', auto: true, sent, ...(only ? { only } : {}) }, ...unqueued } }, base);
+      }
+      return withPlanDraft({ ...state, ui: { ...state.ui, saving: { planId, kind: 'save' }, ...unqueued, saveProblem: null, toast: null } }, { ...base, asked: true });
     }
     case A.PLAN_SAVE_NONE: {
       // (7.12.0) a box left with nothing ready to save (no change, or a box with a problem, said beside it): the write ends

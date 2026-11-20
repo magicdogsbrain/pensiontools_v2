@@ -64,7 +64,7 @@ export const LASTS = {
   noFiguresPots: 'Your pots and tax',
   noFiguresSpend: 'What you spend',
   /** A plan that starts before its pension can usually be taken (7.4.0): from 7.4.1 the run holds the pension back until then. */
-  pensionAccess: 'Before {age}, this plan pays you from your other savings, not your pension.',
+  pensionAccess: 'You can take money from your pension from {age}. This plan takes it from {date}, the first tax year you start at {age} or over; until then your ISA and savings pay.',
   /** (7.12.0) a plan still saving: the chance is the one What you pay in works out, said once. */
   chanceFromSaving: 'The chance is the one “What you pay in” works out, letting each future save its own pot.',
   /** … and when the other savings cannot pay those years in full (7.4.1): the run cuts them to what can be paid. The figure is

@@ -13,7 +13,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { PENSION_ACCESS, accessAgeOn } from '../src/services/PensionAge.js';
 import { pensionLockOf, payClosedYears, closedYearsWords, closedYearsShort, pensionPotOf } from '../src/services/PensionLock.js';
-import { accessAgeOf, earlyPensionDrawOf, earlyPensionDrawWords, ageOnDate, pensionOpensOf } from '../src/services/PlanTiming.js';
+import { accessAgeOf, earlyPensionDrawOf, earlyPensionDrawWords, ageOnDate, pensionOpensOf, pensionOpensSentence } from '../src/services/PlanTiming.js';
 import { RULES } from '../src/answers/shared/rules.js';
 import { ACCUMULATION_RULES } from '../src/services/AccumulationEngine.js';
 import { PENSION_AGE_CHANGE, householdDrawSplit } from '../src/services/HouseholdDraw.js';
@@ -127,7 +127,7 @@ describe('pensionLockOf: the closed years of one person’s plan', () => {
     expect(pensionLockOf(alex({ currentAge: 57, currentAgeAsOf: null, spStartDate: null }), { now: NOW })).toBeNull();
     expect(pensionOpensOf(alex({ currentAge: 56, currentAgeAsOf: null, spStartDate: null }), 2026, NOW)).toEqual({ accessAge: 55, opensTaxYear: 2026 });
     // the words and the 7.4.0 fact read the same year
-    expect(earlyPensionDrawOf(jan, NOW)).toEqual({ age: 55, taxYear: 2026 });
+    expect(earlyPensionDrawOf(jan, NOW)).toEqual({ age: 55, taxYear: 2026, opensTaxYear: 2027 });
     expect(earlyPensionDrawOf(oct, NOW)).toBeNull();
   });
   it('null at or past the access age, with no pension, without an age, and for a plan with no age (legacy)', () => {
@@ -165,17 +165,22 @@ describe('payClosedYears and the words', () => {
     expect(r.spent).toEqual([80, 70]);
   });
   it('enough: what the plan does; not enough: by about how much a year, and when', () => {
+    // ruling G (20 Nov 2026): the law's age and the plan's first open year, both said; without that year, the age alone
+    expect(closedYearsWords({ accessAge: 57, fromTaxYear: 2026, opensTaxYear: 2029, unpaid: [0, 0, 0] })).toBe('You can take money from your pension from 57. This plan takes it from April 2029, the first tax year you start at 57 or over; until then your ISA and savings pay.');
     expect(closedYearsWords({ accessAge: 57, fromTaxYear: 2026, unpaid: [0, 0, 0] })).toBe('Before 57, this plan pays you from your other savings, not your pension.');
     expect(closedYearsWords({ accessAge: 57, fromTaxYear: 2026, unpaid: [0, 12340, 30000] })).toBe('Before 57 your plan can’t take money from your pension. Your other savings run short by about £21,200 a year in 2027/28 to 2028/29.');
     expect(closedYearsWords({ accessAge: 55, fromTaxYear: 2026, unpaid: [0, 0, 9000] })).toBe('Before 55 your plan can’t take money from your pension. Your other savings run short by about £9,000 a year in 2028/29.');
     expect(closedYearsShort({ fromTaxYear: 2026, unpaid: [0, 0.5] })).toBeNull();
-    expect(earlyPensionDrawWords({ age: 57 })).toBe('Before 57, this plan pays you from your other savings, not your pension.');
+    expect(earlyPensionDrawWords({ age: 57, taxYear: 2026, opensTaxYear: 2030 })).toBe('You can take money from your pension from 57. This plan takes it from April 2030, the first tax year you start at 57 or over; until then your ISA and savings pay.');
   });
   it('the words pass the banned list in both apps', () => {
     for (const t of [HOME.pensionAccess, LASTS.pensionAccess, LASTS.pensionShort]) {
-      expect(bannedHits(fill(t, { age: '57', amount: '£12,300', years: '2027/28 to 2029/30' }), SCOPES), t).toEqual([]);
+      expect(bannedHits(fill(t, { age: '57', date: 'April 2034', amount: '£12,300', years: '2027/28 to 2029/30' }), SCOPES), t).toEqual([]);
     }
     expect(bannedHits(closedYearsWords({ accessAge: 57, fromTaxYear: 2026, unpaid: [0, 5000] }), SCOPES)).toEqual([]);
+    expect(bannedHits(closedYearsWords({ accessAge: 57, fromTaxYear: 2026, opensTaxYear: 2028, unpaid: [0, 0] }), SCOPES)).toEqual([]);
+    // ruling G: one builder; the V7 home's and Does it last?'s copy say exactly its sentence
+    for (const t of [HOME.pensionAccess, LASTS.pensionAccess]) expect(fill(t, { age: '57', date: 'April 2034' })).toBe(pensionOpensSentence({ accessAge: 57, opensTaxYear: 2034 }));
   });
 });
 
@@ -227,7 +232,8 @@ describe('the bought strategies buy nothing from the pension for the closed year
     const rich = alex({ isaBalance: 400000 });
     const p = planOf(rich);
     expect(p.pensionLock.unpaid.every((v) => v === 0)).toBe(true);
-    expect(closedYearsWords(pensionLockForSettings(rich, NOW))).toBe('Before 57, this plan pays you from your other savings, not your pension.');
+    // (Alex's plan opens the pension in 2034/35, as the tax-year set-up below reads it)
+    expect(closedYearsWords(pensionLockForSettings(rich, NOW))).toBe('You can take money from your pension from 57. This plan takes it from April 2034, the first tax year you start at 57 or over; until then your ISA and savings pay.');
     expect(closedOf(p)).toEqual({ age: 57, short: null });
   });
   it('not enough: the words say by about how much and when, in both apps', () => {
@@ -239,7 +245,7 @@ describe('the bought strategies buy nothing from the pension for the closed year
     expect(words).toMatch(/^Before 57 your plan can’t take money from your pension\. Your other savings run short by about £[\d,]+ a year in \d{4}\/\d{2}( to \d{4}\/\d{2})?\.$/);
     // the classic run summary
     expect(startSummaryHtml(poor)).toContain(words);
-    expect(startSummaryHtml(alex({ isaBalance: 400000 }))).toContain('Before 57, this plan pays you from your other savings, not your pension.');
+    expect(startSummaryHtml(alex({ isaBalance: 400000 }))).toContain('You can take money from your pension from 57. This plan takes it from April 2034, the first tax year you start at 57 or over; until then your ISA and savings pay.');
     expect(startSummaryHtml(alex({ currentAge: 60 }))).not.toContain('pension-access');
     // the new app's answer
     const v = verdictOf({ strategyId: 'pots-and-valves', a: { share: 0.9, chancePct: 90, years: 40, typicalLeft: 1, badCaseLeft: 1, goodCaseLeft: 1, futures: 1000, histories: 900, histRanOutN: 0 }, closed: closedOf(planOf(poor)) }, { endAge: 90 });
@@ -296,7 +302,8 @@ describe('the year-by-year table and the month', () => {
     expect(d.sippDraw).toBe(0);
     expect(d.isaDraw).toBeGreaterThan(0);
     expect(d.pensionClosed.accessAge).toBe(57);
-    expect(d.alerts.some((a) => a.type === 'pension-closed' && a.message === 'Before 57, this plan pays you from your other savings, not your pension.')).toBe(true);
+    // (50 on 1 June 2026: 57 on 2 June 2033; 2033/34 starts with Alex 56, so the plan takes from the pension from April 2034)
+    expect(d.alerts.some((a) => a.type === 'pension-closed' && a.message === 'You can take money from your pension from 57. This plan takes it from April 2034, the first tax year you start at 57 or over; until then your ISA and savings pay.')).toBe(true);
     const short = decideMonth(I, '2026-11', { equity: 400000, bond: 200000, cash: 60000, isa: 100 }, { taxYears });
     expect(short.sippDraw).toBe(0);
     expect(short.pensionClosed.shortMonthly).toBeGreaterThan(0);
@@ -354,7 +361,7 @@ describe('the pension the run starts from', () => {
     expect(pensionPotOf(null)).toBe(0);
   });
   it('earlyPensionDrawOf still says when the plan starts before the age (the fact the home shows)', () => {
-    expect(earlyPensionDrawOf(ALEX, NOW)).toEqual({ age: 57, taxYear: 2026 });
+    expect(earlyPensionDrawOf(ALEX, NOW)).toEqual({ age: 57, taxYear: 2026, opensTaxYear: 2034 });
     expect(Object.keys(STRATEGY_NAMES)).toHaveLength(9);
   });
 });
@@ -431,7 +438,7 @@ describe('the review of 7.4.1: every engine and screen reads the closed years th
     expect(short.short.years).toMatch(/^\d{4}\/\d{2}( to \d{4}\/\d{2})?$/);
     expect(bannedHits(fill(HOME.pensionShort, { age: short.age, ...short.short }), SCOPES)).toEqual([]);
     const fine = pensionAccessOf(planWith({ isaBalance: 900000 }), null, NOW);
-    expect(fine).toEqual({ age: '57' });
+    expect(fine).toEqual({ age: '57', date: 'April 2034' });   // (ruling G: and the month the plan first takes from the pension)
   });
   it('the month: the tax-free lump is never suggested while the pension is closed, and is suggested in the year it opens', () => {
     const raw = read('02-pnv-draft');
@@ -455,7 +462,7 @@ describe('the review of 7.4.1: every engine and screen reads the closed years th
     const ctxOf = (ym) => wizardDataFrom(ym, { settings, stressSettings: ALEX, existingConfig: defaultTaxYearConfig(), allTaxYears: {}, statePensionInfo: { amount: 0 }, now: NOW });
     const ctx = ctxOf('2026-11');
     expect(ctx.pensionClosed).toMatchObject({ accessAge: 57, opensTaxYear: 2034 });
-    expect(ctx.pensionClosed.words).toBe('Before 57, this plan pays you from your other savings, not your pension.');
+    expect(ctx.pensionClosed.words).toBe('You can take money from your pension from 57. This plan takes it from April 2034, the first tax year you start at 57 or over; until then your ISA and savings pay.');
     const inputs = { pa: 12570, brl: 50270, hrl: 125140, cpi: 0.03, other: 0, grossIncomeToDate: 0, confirmedSalary: 30000, isaSavingsAllocation: null, isTaxEfficient: true };
     const calc = isaCalcFor(ctx, inputs);
     expect(calc.pensionClosed).toBe(true);

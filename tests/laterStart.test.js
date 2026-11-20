@@ -327,9 +327,12 @@ describe('a plan that draws from a pension before it can usually be taken says s
   const base = { currentAge: 52, currentAgeAsOf: '2026-06-01', retired: true, stoppedWork: '2026-06', equityMin: 200000, bondMin: 100000, cashTarget: 30000, duration: 40 };
   it('a fictional Sam who stopped at 52: 55 (55 before 6 April 2028? no: 57)', () => {
     const e = earlyPensionDrawOf(base, NOW);
-    expect(e).toEqual({ age: 57, taxYear: 2026 });
-    expect(earlyPensionDrawWords(e)).toBe('Before 57, this plan pays you from your other savings, not your pension.');   // a fact from 7.4.1: the engines hold it back
-    expect(earlyPensionDrawOf({ ...base, currentAge: 54 }, NOW)).toEqual({ age: 55, taxYear: 2026 });
+    // 52 on 1 June 2026, so 57 on 2 June 2031: the tax year from 6 April 2031 starts with Sam 56, the plan opens the pension
+    // from April 2032 (ruling G: both facts said, the law's age and the plan's first open year)
+    expect(e).toEqual({ age: 57, taxYear: 2026, opensTaxYear: 2032 });
+    expect(earlyPensionDrawWords(e)).toBe('You can take money from your pension from 57. This plan takes it from April 2032, the first tax year you start at 57 or over; until then your ISA and savings pay.');
+    // 54: 55 on 2 June 2027 (before 6 April 2028, so 55); 2027/28 starts with them 54, so it opens from April 2028
+    expect(earlyPensionDrawOf({ ...base, currentAge: 54 }, NOW)).toEqual({ age: 55, taxYear: 2026, opensTaxYear: 2028 });
   });
   it('absent at or past the age, with no pension pot, and without an age', () => {
     expect(earlyPensionDrawOf({ ...base, currentAge: 60 }, NOW)).toBeNull();

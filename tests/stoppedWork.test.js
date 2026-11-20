@@ -361,13 +361,14 @@ describe('the Timing block\'s words for a plan that has started say what is past
     const long = words({ currentAge: 63, currentAgeAsOf: '2026-09-30', retired: true, stoppedWork: '2006-06', duration: 50 });
     // 7.3.3: the fact and a caveat, never advice to start the plan later
     // 7.4.1 review: the tax year named is the first the plan draws the pension in, the first that starts with them at the age
-    expect(long).toContain('Income steps started at age 43. Your pension can be drawn from age 55. This plan first draws it in tax year 2019/20; until then it pays you from your ISA, cash and other savings.');
+    // ruling G (20 Nov 2026): the law's age and the plan's first open year in one sentence, the year as the month it starts
+    expect(long).toContain('Income steps started at age 43. You can take money from your pension from 55. This plan takes it from April 2019, the first tax year you start at 55 or over; until then your ISA and savings pay.');
     const young = words({ currentAge: 52, currentAgeAsOf: '2026-09-30', retired: true, stoppedWork: '2026-06', duration: 40 });
-    expect(young).toContain('Your pension can be drawn from age 57. This plan first draws it in tax year 2032/33;');
+    expect(young).toContain('You can take money from your pension from 57. This plan takes it from April 2032, the first tax year you start at 57 or over;');
     // a start chosen at or after that age says nothing of it; nor does a plan that does not say when work stopped
-    expect(words({ currentAge: 52, currentAgeAsOf: '2026-09-30', retired: true, stoppedWork: '2026-06', firstTaxYear: 2032, duration: 35 })).not.toContain('can be drawn from age');
+    expect(words({ currentAge: 52, currentAgeAsOf: '2026-09-30', retired: true, stoppedWork: '2026-06', firstTaxYear: 2032, duration: 35 })).not.toContain('take money from your pension');
     // a start in the tax year the birthday falls in is still before it: the year that starts at 56 draws nothing from the pension
-    expect(words({ currentAge: 52, currentAgeAsOf: '2026-09-30', retired: true, stoppedWork: '2026-06', firstTaxYear: 2031, duration: 35 })).toContain('This plan first draws it in tax year 2032/33;');
-    expect(words({ currentAge: 52, currentAgeAsOf: '2026-09-30', retired: true, firstTaxYear: 2026, duration: 40 })).not.toContain('can be drawn from age');
+    expect(words({ currentAge: 52, currentAgeAsOf: '2026-09-30', retired: true, stoppedWork: '2026-06', firstTaxYear: 2031, duration: 35 })).toContain('This plan takes it from April 2032,');
+    expect(words({ currentAge: 52, currentAgeAsOf: '2026-09-30', retired: true, firstTaxYear: 2026, duration: 40 })).not.toContain('take money from your pension');
   });
 });

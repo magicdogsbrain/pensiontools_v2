@@ -19,7 +19,7 @@ import { assessProtection, growthVsGlide, diversifierGlidepath, isBelow, PROTECT
 import { planTaxBoost, BOOST_DEFAULTS, planBandFillRecycle, RECYCLE_DEFAULTS } from './TaxBoostStrategy.js';
 import { planSourcing, planSourcingOrdered } from './WithdrawalSourcing.js';
 import { newSleeve, topUpFromSleeve, withdrawFromSleeve, incomeTaxOnSleeve, routeWindfall, GIA_DEFAULTS } from './TaxableSleeve.js';
-import { decisionAnchorYear, taxYearKey, taxYearLabel } from './PlanTiming.js';
+import { decisionAnchorYear, taxYearKey, taxYearLabel, pensionOpensSentence } from './PlanTiming.js';
 import { taxFreeFractionOf, LUMP_SUM_ALLOWANCE } from './FlexibleAccess.js';
 
 // Tax year from a "YYYY-MM" string. Delegates to the canonical helper, which honours the
@@ -632,7 +632,8 @@ export function calcDecision(dateStr, equity, bond, cash, deps) {
         const age = deps.pensionAccessAge;
         alerts.push(closedShort > 0
           ? { message: 'Before ' + age + ' your plan can’t take money from your pension. Your other savings are about £' + Math.round(closedShort).toLocaleString('en-GB') + ' short this month.', severity: 'danger', type: 'pension-closed' }
-          : { message: 'Before ' + age + ', this plan pays you from your other savings, not your pension.', severity: 'info', type: 'pension-closed' });
+          // (ruling G: the law's age and the plan's first open year, PlanTiming.pensionOpensSentence)
+          : { message: Number.isFinite(deps.pensionOpensTaxYear) ? pensionOpensSentence({ accessAge: age, opensTaxYear: deps.pensionOpensTaxYear }) : 'Before ' + age + ', this plan pays you from your other savings, not your pension.', severity: 'info', type: 'pension-closed' });
       }
       if (boostAmount > 50) {
         alerts.push({ message: `Tax Boost: +£${Math.round(boostAmount).toLocaleString()}/mo catch-up from protection shortfall`, severity: 'success', type: 'tax-boost' });

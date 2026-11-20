@@ -21,7 +21,7 @@
  *
  * Pure: no storage, no DOM; the clock only as `now`.
  */
-import { deriveTiming, pensionOpensOf, taxYearLabel, sippTodayOf } from './PlanTiming.js';
+import { deriveTiming, pensionOpensOf, taxYearLabel, sippTodayOf, pensionOpensSentence } from './PlanTiming.js';
 
 /**
  * The closed years of one person's plan, counted from the tax year its run starts in (`fromTaxYear`: the plan's year 0, or
@@ -108,7 +108,8 @@ export function shortYearsWords(short) {
  */
 export function closedYearsWords(lock) {
   const short = closedYearsShort(lock);
-  if (!short) return 'Before ' + lock.accessAge + ', this plan pays you from your other savings, not your pension.';
+  // (what the plan does, ruling G: the law's age and the plan's own first open year; without that year, the age alone)
+  if (!short) return Number.isFinite(lock.opensTaxYear) ? pensionOpensSentence(lock) : 'Before ' + lock.accessAge + ', this plan pays you from your other savings, not your pension.';
   return 'Before ' + lock.accessAge + ' your plan can’t take money from your pension. Your other savings run short by about £'
     + short.perYear.toLocaleString('en-GB') + ' a year in ' + shortYearsWords(short) + '.';
 }

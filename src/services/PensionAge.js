@@ -38,3 +38,34 @@ export function accessAgeFromAgeBeforeChange(ageThen) {
   if (ageThen == null || !Number.isFinite(+ageThen)) return null;
   return +ageThen >= PENSION_ACCESS.before ? PENSION_ACCESS.before : PENSION_ACCESS.from;
 }
+
+/**
+ * A pension still closed, said as the plan takes it (the lead's ruling G, 20 Nov 2026): the law's age and the plan's own
+ * first open year, both facts, never one against the other. Every plan opens the pension from the first tax year that STARTS
+ * with the person at or over the access age (PensionLock.js), so it is said as that: "You can take money from your pension
+ * from 57. This plan takes it from April 2031, the first tax year you start at 57 or over; until then your ISA and savings
+ * pay." The one builder of these words (no imports, so every caller can read it): the plan pages (PlanTiming's Timing words and
+ * earlyPensionDrawWords, PensionLock.closedYearsWords, the month's alert, the V7 home and Does it last?) and the answers (D's warning, assumption and closed stretch, as parts) read it.
+ * Pieces: strings, { age } for the access age and { date } for the month the plan first takes from the pension.
+ *   law        "You can take money from your pension from 57."
+ *   plan       "This plan takes it from April 2031, the first tax year you start at 57 or over"
+ *   meanwhile  "; until then your ISA and savings pay."
+ * @param {{ accessAge: number, opensTaxYear: number }} o
+ */
+export function pensionOpensPieces(o) {
+  const date = 'April ' + o.opensTaxYear;
+  const age = { age: o.accessAge };
+  return {
+    date,
+    law: ['You can take money from your pension from ', age, '.'],
+    plan: ['This plan takes it from ', { date }, ', the first tax year you start at ', age, ' or over'],
+    meanwhile: ['; until then your ISA and savings pay.']
+  };
+}
+
+/** pensionOpensPieces as one string: the law, then the plan, and what pays meanwhile (unless `meanwhile` is false). */
+export function pensionOpensSentence(o, { meanwhile = true } = {}) {
+  const w = pensionOpensPieces(o);
+  const text = (list) => list.map((x) => (typeof x === 'string' ? x : x.date || String(x.age))).join('');
+  return text(w.law) + ' ' + text(w.plan) + (meanwhile ? text(w.meanwhile) : '.');
+}

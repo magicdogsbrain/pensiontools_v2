@@ -304,7 +304,7 @@ export function wizardDataFrom(selectedMonth, { settings, stressSettings = null,
   let pensionClosed = null;
   try {
     const lock = stressSettings ? pensionLockOf(stressSettings, { now, fromTaxYear: yearOfTaxKey(taxYear) }) : null;
-    if (lock) pensionClosed = { accessAge: lock.accessAge, opensTaxYear: lock.opensTaxYear, words: closedYearsWords({ accessAge: lock.accessAge }) };
+    if (lock) pensionClosed = { accessAge: lock.accessAge, opensTaxYear: lock.opensTaxYear, words: closedYearsWords({ accessAge: lock.accessAge, opensTaxYear: lock.opensTaxYear }) };
   } catch { pensionClosed = null; }
 
   const suggestedSalary = scheduleSuggestedSalary ?? chainSuggestedSalary;

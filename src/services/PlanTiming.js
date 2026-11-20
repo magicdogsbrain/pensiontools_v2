@@ -31,7 +31,8 @@ import { isaFundsDecide } from './IsaFunds.js';
 import { potScaleOf, sippTodayOf } from './PotsAtRetirement.js';
 import { INFLATION_DEFAULTS } from '../constants.js';
 import { planToAgeOf } from './AgeConvention.js';
-import { lastDayBeforeChange, accessAgeFromAgeBeforeChange } from './PensionAge.js';
+import { lastDayBeforeChange, accessAgeFromAgeBeforeChange, pensionOpensSentence } from './PensionAge.js';
+export { pensionOpensPieces, pensionOpensSentence } from './PensionAge.js';
 
 const MS_PER_DAY = 24 * 3600 * 1000;
 
@@ -553,8 +554,9 @@ function pensionAccessWords(t, s, now) {
   if (!(+s.currentAge > 0) || !(t.shapeAgeNow > 0)) return '';
   const o = pensionOpensOf(s, t.firstTaxYear, now);
   if (!o || !(o.opensTaxYear > t.firstTaxYear)) return '';
-  return 'Your pension can be drawn from age ' + o.accessAge + '. This plan first draws it in tax year ' + taxYearLabel(o.opensTaxYear) + '; until then it pays you from your ISA, cash and other savings.';
+  return pensionOpensSentence(o);
 }
+
 
 /**
  * Does this plan start before the age a pension can usually first be taken (7.4.0)? 55 for someone who is 55 before
@@ -562,7 +564,8 @@ function pensionAccessWords(t, s, now) {
  * today — its year 0, or this tax year once that has passed — is reached at an age below it, and the plan has a pension
  * pot. From 7.4.1 every engine holds the pension back until then and pays those years from the other savings
  * (services/PensionLock.js), so both apps say what the plan does beside its draws. Null otherwise, and without an age.
- * @returns {null | { age: number, taxYear: number }}  the access age, and the tax year the plan's income is first drawn in
+ * @returns {null | { age: number, taxYear: number, opensTaxYear: number }}  the access age, the tax year the plan's income is
+ *   first drawn in, and the tax year it first takes from the pension
  */
 export function earlyPensionDrawOf(settings, now = new Date()) {
   const s = settings || {};
@@ -572,12 +575,12 @@ export function earlyPensionDrawOf(settings, now = new Date()) {
   if (!(pot > 0) && !(+(s.potAtRetirement && s.potAtRetirement.sipp) > 0)) return null;
   const firstDrawn = Math.max(+t.firstTaxYear, taxYearStartOf(now));
   const o = pensionOpensOf(s, firstDrawn, now);   // the engines' own reading of the year the pension opens
-  return o && o.opensTaxYear > firstDrawn ? { age: o.accessAge, taxYear: firstDrawn } : null;
+  return o && o.opensTaxYear > firstDrawn ? { age: o.accessAge, taxYear: firstDrawn, opensTaxYear: o.opensTaxYear } : null;
 }
 
-/** The words for earlyPensionDrawOf, in both apps: what the plan does until the pension can be taken. */
+/** The words for earlyPensionDrawOf, in both apps: what the plan does until the pension can be taken (ruling G). */
 export function earlyPensionDrawWords(e) {
-  return 'Before ' + e.age + ', this plan pays you from your other savings, not your pension.';
+  return pensionOpensSentence({ accessAge: e.age, opensTaxYear: e.opensTaxYear });
 }
 
 /**

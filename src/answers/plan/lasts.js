@@ -277,7 +277,7 @@ export function lastsOf(entries, id, { today, typed = null } = {}) {
     atStop: saved.ss && saved.ss.retired === false && saved.ss.potAtRetirement && num(saved.ss.potAtRetirement.sipp) > 0 ? r0(saved.ss.potAtRetirement.sipp) : null,
     fields, errors: c.errors, ok: c.ok, derived, notUsed: notUsedBy(saved.strategyId), partners,
     // the plan draws from a pension before it can usually be taken (7.4.0, PlanTiming.earlyPensionDrawOf): said beside the answer
-    pensionAccess: (() => { try { const now = dateOf(today); const e = earlyPensionDrawOf(safeSettings(plan, now), now); return e ? { age: String(e.age) } : null; } catch { return null; } })(),
+    pensionAccess: (() => { try { const now = dateOf(today); const e = earlyPensionDrawOf(safeSettings(plan, now), now); return e ? { age: String(e.age), date: 'April ' + e.opensTaxYear } : null; } catch { return null; } })(),
     changed: Object.keys(p.patch).length > 0, patch: p.patch, previous: p.previous,
     // the one sentence the toast says after a save
     savedLine: c.ok ? (v.cutsOn === 'yes'

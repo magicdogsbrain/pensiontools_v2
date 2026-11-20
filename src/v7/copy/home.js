@@ -181,7 +181,7 @@ export const HOME = {
   /** The full reading, with where each figure is from, is on the "Where you are" step. */
   whereMore: 'See where you are in full',
   /** A plan that starts before its pension can usually be taken (7.4.0): from 7.4.1 the plan holds the pension back until then. */
-  pensionAccess: 'Before {age}, this plan pays you from your other savings, not your pension.',
+  pensionAccess: 'You can take money from your pension from {age}. This plan takes it from {date}, the first tax year you start at {age} or over; until then your ISA and savings pay.',
   /** … and when the other savings cannot pay those years in full (7.4.1): the words of the "Does it last?" step (LASTS.pensionShort). */
   pensionShort: 'Before {age} your plan can’t take money from your pension. Your other savings run short by {amount} a year in {years}.',
 

@@ -50,7 +50,8 @@ export function pensionAccessOf(plan, pg, now) {
   let lock = null; try { lock = pensionLockForSettings(s, now); } catch { lock = null; }
   const short = lock ? closedYearsShort(lock) : null;
   if (short) return { age: String(lock.accessAge), short: { amount: '£' + short.perYear.toLocaleString('en-GB'), years: shortYearsWords(short) } };
-  return e ? { age: String(e.age) } : null;
+  // (ruling G: the law's age and the month the plan first takes from the pension, PlanTiming.pensionOpensPieces)
+  return e ? { age: String(e.age), date: 'April ' + e.opensTaxYear } : null;
 }
 
 /** At most this many to-dos are shown at once — the plan's own and a partner's in one list; the rest are "and N more" (7.10.0). */

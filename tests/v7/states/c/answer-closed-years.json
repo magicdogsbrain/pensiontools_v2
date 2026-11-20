@@ -316,12 +316,12 @@
           "monthly": 180,
           "partnerUntil": null,
           "reachable": 4835,
-          "need": 36240,
+          "need": 36720,
           "instead": {
             "age": 57,
-            "monthly": 1510,
-            "fixedAge": 0.827,
-            "weighted": 0.9046570288743824
+            "monthly": 1530,
+            "fixedAge": 0.831,
+            "weighted": 0.9037570960745216
           }
         },
         "assumed": [
@@ -1036,7 +1036,7 @@
           },
           "none": {
             "id": "c.none.closed",
-            "text": "You can't take money from your pension until you are 57. Until then only your savings can pay, so a steady amount from 55 could be only about £180 a month. Starting at 57 instead, you could have about £1,510 a month after tax until you are 100, going up each year with prices.",
+            "text": "You can't take money from your pension until you are 57. Until then only your savings can pay, so a steady amount from 55 could be only about £180 a month. Starting at 57 instead, you could have about £1,530 a month after tax until you are 100, going up each year with prices.",
             "parts": [
               "You can't take money from your pension until you are ",
               {

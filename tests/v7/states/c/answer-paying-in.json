@@ -105,28 +105,28 @@
         "level": "balanced",
         "levels": {
           "careful": {
-            "monthly": 2150,
-            "yearly": 25800,
-            "weighted": 0.9513390119690448,
-            "fixedAge": 0.876
+            "monthly": 2140,
+            "yearly": 25680,
+            "weighted": 0.9506495036724955,
+            "fixedAge": 0.875
           },
           "balanced": {
-            "monthly": 2340,
-            "yearly": 28080,
-            "weighted": 0.9027536377236247,
-            "fixedAge": 0.755
+            "monthly": 2330,
+            "yearly": 27960,
+            "weighted": 0.9035738318506629,
+            "fixedAge": 0.775
           },
           "bold": {
-            "monthly": 2880,
-            "yearly": 34560,
-            "weighted": 0.7003235570974649,
-            "fixedAge": 0.437
+            "monthly": 2860,
+            "yearly": 34320,
+            "weighted": 0.7041084115263074,
+            "fixedAge": 0.44
           }
         },
         "chance": {
-          "weighted": 0.9027536377236247,
-          "fixedAge": 0.755,
-          "fails": 245,
+          "weighted": 0.9035738318506629,
+          "fixedAge": 0.775,
+          "fails": 225,
           "n": 1000,
           "planToAge": 100,
           "weightToAge": 104,
@@ -146,30 +146,30 @@
                 "to": 100
               }
             },
-            "takeHome": 2340,
-            "fromPension": 1522.35,
+            "takeHome": 2330,
+            "fromPension": 1510.58,
             "fromSavings": 0,
-            "fromPots": 1522.35,
+            "fromPots": 1510.58,
             "statePension": 1045.63,
             "finalSalary": 0,
-            "tax": 227.98,
+            "tax": 226.21,
             "byPerson": [
               {
                 "who": "you",
                 "statePension": 1045.63,
                 "finalSalary": 0,
-                "fromPension": 1522.35,
+                "fromPension": 1510.58,
                 "fromSavings": 0,
-                "tax": 227.98,
-                "takeHome": 2340,
+                "tax": 226.21,
+                "takeHome": 2330,
                 "higherRate": false,
                 "locked": false
               }
             ],
             "beforeStatePension": false,
             "shown": {
-              "takeHome": 2340,
-              "fromPots": 1294,
+              "takeHome": 2330,
+              "fromPots": 1284,
               "statePension": 1046,
               "finalSalary": 0
             }
@@ -494,7 +494,7 @@
         "sentences": {
           "head": {
             "id": "c.head",
-            "text": "About £2,340 a month",
+            "text": "About £2,330 a month",
             "parts": [
               "About ",
               {
@@ -525,7 +525,7 @@
           },
           "line": {
             "id": "c.line",
-            "text": "With a pot of £275,000 today, £800 a month going in until 67 and your State Pension, at Balanced you could have about £2,340 a month after tax, from age 67 until you are 100. Counting how long people your age live, the money lasts as long as you do 18 times in 20.",
+            "text": "With a pot of £275,000 today, £800 a month going in until 67 and your State Pension, at Balanced you could have about £2,330 a month after tax, from age 67 until you are 100. Counting how long people your age live, the money lasts as long as you do 18 times in 20.",
             "parts": [
               "With ",
               "a pot of ",
@@ -586,7 +586,7 @@
           },
           "bad": {
             "id": "c.when",
-            "text": "We follow each future on to 104. In the futures where the money runs out before then, it typically runs out at 95. In the worst 1 in 10 of all the futures, by 91.",
+            "text": "We follow each future on to 104. In the futures where the money runs out before then, it typically runs out at 95. In the worst 1 in 10 of all the futures, by 92.",
             "parts": [
               "We follow each future on to ",
               {
@@ -610,14 +610,14 @@
               " of all the futures, ",
               "by ",
               {
-                "fixed": "91"
+                "fixed": "92"
               },
               "."
             ]
           },
           "range": {
             "id": "c.range",
-            "text": "You could take: Careful £2,150, Balanced £2,340, Bold £2,880 a month.",
+            "text": "You could take: Careful £2,140, Balanced £2,330, Bold £2,860 a month.",
             "parts": [
               "You could take: Careful ",
               {
@@ -640,7 +640,7 @@
           "madeOf": [
             {
               "id": "c.madeOf.paid",
-              "text": "Your State Pension (£1,046 a month) + £1,294 from your pot.",
+              "text": "Your State Pension (£1,046 a month) + £1,284 from your pot.",
               "parts": [
                 "Your ",
                 "State Pension",
@@ -662,7 +662,7 @@
             },
             {
               "id": "c.madeOf.tax",
-              "text": "Tax of £228 a month is already taken off.",
+              "text": "Tax of £226 a month is already taken off.",
               "parts": [
                 "Tax of ",
                 {
@@ -675,7 +675,7 @@
           ],
           "fixed": {
             "id": "c.fixed",
-            "text": "If you live to 100, the money lasts that long in 15 of 20 futures we tried.",
+            "text": "If you live to 100, the money lasts that long in 16 of 20 futures we tried.",
             "parts": [
               "If you live to ",
               {
@@ -683,7 +683,7 @@
               },
               ", the money lasts that long in ",
               {
-                "fixed": "15"
+                "fixed": "16"
               },
               " of ",
               {
@@ -753,7 +753,7 @@
           },
           "left": {
             "id": "c.left",
-            "text": "If you live to 100, what is typically left then is £337,000 at today's prices. In the best 1 in 10 futures it is £2,120,000 or more.",
+            "text": "If you live to 100, what is typically left then is £362,000 at today's prices. In the best 1 in 10 futures it is £2,131,000 or more.",
             "parts": [
               "If you live to ",
               {
@@ -761,7 +761,7 @@
               },
               ", what is typically left then is ",
               {
-                "fixed": "£337,000"
+                "fixed": "£362,000"
               },
               " at today's prices. In the best ",
               {
@@ -773,14 +773,14 @@
               },
               " futures it is ",
               {
-                "fixed": "£2,120,000"
+                "fixed": "£2,131,000"
               },
               " or more."
             ]
           },
           "cost": {
             "id": "c.cost",
-            "text": "Careful asks for £190 a month less than Balanced. Bold would let you take £540 a month more.",
+            "text": "Careful asks for £190 a month less than Balanced. Bold would let you take £530 a month more.",
             "parts": [
               "Careful asks for ",
               {
@@ -790,7 +790,7 @@
               " ",
               "Bold would let you take ",
               {
-                "fixed": "£540"
+                "fixed": "£530"
               },
               " a month more."
             ]
@@ -893,6 +893,7 @@
           ],
           "strategyId": "pots-and-valves",
           "cutsSwitchedOff": true,
+          "planPath": true,
           "yearsSaving": 12,
           "lifeYears": 49,
           "bondDraws": "life",

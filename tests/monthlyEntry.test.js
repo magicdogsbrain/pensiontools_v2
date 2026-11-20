@@ -382,3 +382,34 @@ describe('the entry card opened on a plan starts with the "already been made" ti
     expect(readMonthlyEntry({ contract: false, hasDiversifiers: false }).paidAhead).toBe(false);
   });
 });
+
+describe('a plan opened after a gilt-ladder plan asks for its own figures (the entry shape is the plan open now)', () => {
+  // Plan A (a ladder) drew the entry card asking total and cash only; plan B (pots) is opened next. Its record must fill
+  // the bonds box, and Calculate must read B's own split, the same as B opened directly.
+  const FORM = '<input type="month" id="entryMonth" value="2026-11"><input type="checkbox" id="entryPaidThisMonth">'
+    + '<div id="entryPlatform"></div><div id="entryByType"><input type="number" id="entryEquity"><input type="number" id="entryBond"><input type="number" id="entryCash">'
+    + '<div id="entryDiversifierGroup"><input type="number" id="entryDiversifier" value="0"></div></div><p id="entryModeNote"></p><input id="entryIsa">';
+  const histB = [{ date: '2026-10', equity: 300000, bond: 100000, cash: 50000, entered: { mode: 'platform', typed: { total: 450000, cash: 50000, bonds: 100000 } } }];
+  beforeEach(() => { document.body.innerHTML = FORM; try { localStorage.clear(); } catch (e) { /* jsdom */ } vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date(2026, 10, 3, 12)); });
+  afterEach(() => { vi.useRealTimers(); });
+  it('resetMonthlyEntry forgets the ladder shape: the bonds box is filled and Calculate reads 300,000 / 100,000', async () => {
+    const m = await import('../src/ui/monthlyEntry.js');
+    m.configureMonthlyEntry({ hasDiversifiers: false }); m.configureMonthlyEntry({ contract: true });   // plan A drawn
+    m.resetMonthlyEntry({ contract: false, hasDiversifiers: false }); m.openMonthlyEntry(histB);   // plan B opened
+    m.configureMonthlyEntry({ contract: false });   // B's Decision tab drawn
+    expect(document.getElementById('entryPlatBonds').value).toBe('100000');
+    expect(m.readMonthlyEntry()).toMatchObject({ equity: 300000, bond: 100000, cash: 50000 });
+  });
+  it('the entry shape of a plan: a ladder way asks total and cash; a pots plan with a gold-and-trend sleeve keeps that box', async () => {
+    const { entryOptionsOf } = await import('../src/ui/monthlyEntry.js');
+    expect(entryOptionsOf('full-il-gilt', {})).toEqual({ contract: true, hasDiversifiers: false });
+    expect(entryOptionsOf('pots-and-valves', { diversifierStart: 5000 })).toEqual({ contract: false, hasDiversifiers: true });
+    expect(entryOptionsOf(undefined, null)).toEqual({ contract: false, hasDiversifiers: false });
+  });
+  it('the full view sets the whole entry shape on every plan load, never merging the previous plan\'s', () => {
+    const src = readFileSync('index.html', 'utf8');
+    const init = src.slice(src.indexOf('async function initializeAllInputsFromSettings'), src.indexOf('async function initializeAllInputsFromSettings') + 2500);
+    expect(init).toMatch(/resetMonthlyEntry\(entryOptionsOf\(/);
+    expect(init).not.toMatch(/configureMonthlyEntry\(\{ hasDiversifiers/);
+  });
+});

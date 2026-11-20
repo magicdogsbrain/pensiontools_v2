@@ -4230,7 +4230,8 @@
     import { installKeepHandlers, transitionGaps, transitionHeld, transitionOpensAt, nameTransitionTab, installKeepTestHandlers, transitionKeepTest, keepLineHtml } from './src/ui/keepHoldingsUi.js'; import { installStressPanel } from './src/ui/stressPanelUi.js'; import { markFact, markWithin, tableAttr, cellAttr } from './src/reading/mark.js'; import { markFieldBoxes, fieldAttrOf } from './src/reading/fields.js'; import { trackBusy } from './src/reading/busy.js'; import { HELD_MIX_FINDS } from './src/reading/sentenceMarks.js';   // "Try the bad years" on the Scenarios page (7.9.0)
     import { parsePaste, matchRows, mergeLedger, categorise, applyPaste } from './src/services/HoldingsPaste.js';
     import { pastePreviewHtml } from './src/ui/components/HoldingsPasteView.js';   // every pasted line counts (6.23)
-    import { configureMonthlyEntry, readMonthlyEntry, openMonthlyEntry, confirmFundsIfLow, installMonthlyEntryHandlers } from './src/ui/monthlyEntry.js';   // the platform view of the monthly entry (6.23)
+    import { CONTRACT_IDS } from './src/services/DecisionOverlay.js';   // the ways that pay by contract (one list)
+    import { configureMonthlyEntry, resetMonthlyEntry, entryOptionsOf, readMonthlyEntry, openMonthlyEntry, confirmFundsIfLow, installMonthlyEntryHandlers } from './src/ui/monthlyEntry.js';   // the platform view of the monthly entry (6.23)
     import { emptyHoldings, normaliseHoldings, linesFromTaggedFunds, holdingsSummary, stampHoldings, holdingsWith } from './src/services/HoldingsRecord.js';
     import { switchStrategy, cleanParams, activeParams, sortLegacyParams } from './src/services/StrategyState.js';
     import { switchPatch, restoredParamsFor, dialParams } from './src/services/PlanCommit.js';   // the strategy switch as one pure patch (6.40.0)
@@ -4349,7 +4350,7 @@
       if (out) out.innerHTML = '<div class="card"><div class="loading"><p>Enter your fund values and click Calculate to see this month’s figures.</p></div></div>';
       ['entryEquity', 'entryBond', 'entryCash', 'entryIsa', 'entryDiversifier', 'entryGia', 'entryGiaBasis'].forEach((id) => { const e = document.getElementById(id); if (e) e.value = ''; });
       { const w = document.getElementById('whereAmILine'); if (w) w.innerHTML = ''; }   // the strip is drawn for the plan open, at Calculate
-      currentDecision = null; monthEntry.setState('none');   // nothing calculated for this plan yet: Save off, and the line says so (3 Nov 2026)
+      currentDecision = null; monthEntry.reset(); monthEntry.setState('none');   // nothing calculated for this plan yet: Save off, and the line says so (3 Nov 2026)
     }
 
     // The one entry after any change of plan, and after a write (src/ui/repaintPlan.js, lead4.md R2)
@@ -4631,7 +4632,7 @@
         try { const st = await getActiveStrategy(); window._activeStrategyId = (st && st.id) || stressSettings.strategyId || 'pots-and-valves'; } catch (e) { window._activeStrategyId = stressSettings.strategyId || 'pots-and-valves'; }
 
         // Monthly Entry captures THIS MONTH's values — never the plan's starting minimums: last month's record is pre-filled, to change (6.23).
-        configureMonthlyEntry({ hasDiversifiers: decisionSettings.diversifierStart > 0 || !!decisionSettings.diversifiers }); openMonthlyEntry(await getHistoryAsync({ limit: 1000 }).catch(() => []));
+        resetMonthlyEntry(entryOptionsOf(window._activeStrategyId, decisionSettings)); openMonthlyEntry(await getHistoryAsync({ limit: 1000 }).catch(() => []));   // the whole shape of THIS plan, never merged onto the plan open before
         prefillGiaBasis();
         monthEntry.refreshOffer();   // the offer to fill in the missed months, against the records just read (3 Nov 2026)
 
@@ -8003,7 +8004,6 @@
     // no protection cuts — every year is bought. Showing the Pots & Valves machinery for such a
     // plan is noise at best and misleading at worst, so it is hidden and the monthly entry form
     // collapses to what actually exists: the gilts, the cash, the ISA.
-    const CONTRACT_IDS = ['full-il-gilt', 'gilt-rotation', 'floor-the-schedule'];
     function applyDecisionStrategyMode(sid) {
       const contract = CONTRACT_IDS.includes(sid);
       for (const id of ['dsAllocSection', 'dsProtectionSection', 'dsSpendingProfileRow']) {
@@ -9801,7 +9801,7 @@
         fillDecisionForm(s);   // the same filler as the page's first fill: the tagged funds, the custom split and the mode restored too
 
         // Monthly Entry captures THIS MONTH's values — last month's record pre-filled, never the plan's starting minimums (6.23).
-        configureMonthlyEntry({ hasDiversifiers: s.diversifierStart > 0 || !!s.diversifiers }); openMonthlyEntry(await getHistoryAsync({ limit: 1000 }).catch(() => []));
+        configureMonthlyEntry(entryOptionsOf(window._activeStrategyId, s)); openMonthlyEntry(await getHistoryAsync({ limit: 1000 }).catch(() => []));
         prefillGiaBasis();
         monthEntry.refreshOffer();   // the offer to fill in the missed months, against the records just read (3 Nov 2026)
 

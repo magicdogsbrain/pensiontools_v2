@@ -39,7 +39,7 @@ import { shortfallOf } from '../shared/shortfall.js';
 import { LEVEL_IDS, levelOfInputs, levelBasis, chanceBlock, horizonRuleOf } from '../shared/levels.js';
 import { savingRows } from '../shared/saving.js';
 import { apartOf } from '../shared/apart.js';
-import { toHousehold as toSaverHousehold, payInOf } from '../a/toHousehold.js';
+import { toHousehold as toSaverHousehold } from '../a/toHousehold.js';
 import { firstOpenAge } from '../shared/household.js';
 
 const round2 = (x) => Math.round(x * 100) / 100;
@@ -218,26 +218,27 @@ const keyOf = (inputs, env) => { const { take, ...rest } = inputs; void take; re
 
 /**
  * ONE PERSON IS ON THE PLAN PATH (7.12.0, one answer for the same household; lead4-engine.md P, ruling 8): C from a later
- * start is A's row at that stop (one test everywhere), so its drawing years are the plan's that keeping A's row at the
- * start would write (keep/planPath.js planCaseOf 'a', A's inputs for C's: saverInputsOf), each life drawing from its own
- * pots at the start on its own market from there; the saving years stay the lives' own. Not on it: a couple, a spending
- * shape, a pension still closed at the start, and the test devices env.mix and env.householdRoute. → the case, or null.
+ * start runs on the plan C's OWN Keep writes for that start (keep/planPath.js planCaseOf 'c' with the start and what goes
+ * in until then: the lead's ruling L), each life drawing from its own pots at the start on its own market from there; the
+ * saving years stay the lives' own. That plan is the plan A's Keep writes for a stop at the same age, apart from the
+ * income (tests/v7/cross/answerIsPlan.test.js), so C at an age equals A's row. Not on it: a couple, a spending shape, a
+ * pension still closed at the start, and the test devices env.mix and env.householdRoute. → the case, or null.
  */
 function keptCaseOf(inputs, household, sp, startAge, env, { dragPct = 0, livesEnv = null } = {}) {
   if (!(env.planPath && typeof env.planPath.planCaseOf === 'function') || env.mix || env.householdRoute) return null;
   if (inputs.household === 'couple' || household.shape || household.people.length !== 1) return null;
   const you = household.people[0];
   if (firstOpenAge(you.age, env.today, sp.S) > you.age + sp.S) return null;
-  const ins = saverInputsOf(inputs, startAge);
-  const p = payInOf(ins.you);
+  const p = sp.saving.people[0].payIn;
+  // (what C's own result says of the years until the start: answerOnLives's `saving`, as Keep reads it)
   const saver = {
-    S: sp.S, stopAge: startAge, pensionOpens: { you: firstOpenAge(ins.you.age, env.today) },
-    saving: [{ who: 'you', yearsSaving: sp.S, payIn: { total: p.total, own: p.own, employer: p.employer },
+    S: sp.S, stopAge: startAge,
+    saving: [{ who: 'you', yearsSaving: sp.S, payIn: { total: p.total, own: p.own, employer: p.employer, savings: 0 },
       potAtStop: { pension: spreadOf(sp.pots[0].pension), savings: spreadOf(sp.pots[0].savings) } }]
   };
   // (made worse — "Try the bad years" — the same lives as the stop plan's, made longer when the kept plan runs further)
   const lives = livesEnv ? (T) => livesList(sp.n, Math.max(T, sp.T), livesEnv) : sp.lives;
-  return env.planPath.planCaseOf('a', ins, env, { lives, saver, dragPct });
+  return env.planPath.planCaseOf('c', inputs, env, { lives, saver, dragPct, fromAge: startAge });
 }
 
 /**

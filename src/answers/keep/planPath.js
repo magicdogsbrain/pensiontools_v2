@@ -93,14 +93,17 @@ function resultAt(source, ins, env, perMonth, startAge = ins.you.age, saver = nu
       basis: { today: env.today, endAge: ins.endAge, engineVersion: null, historyEnd: null }
     };
   }
-  // C from now (one person): the level's amount is what is kept, from the age today; its plan-to age the answer's end age
+  // C (one person): the level's amount is what is kept, from the start; its plan-to age the answer's end age. From a later
+  // start (`saver`: the start and what goes in until then, with the pots at the start in its lives) what planSeed reads of
+  // C's own result there (c/onLives.js: saving, payIn) — C's own Keep, never A's (the lead's ruling L)
   if (source === 'c') {
     return {
       status: 'ok', inputs: ins, whose: 'you', level, levels, chance: {}, phases: [],
-      basis: { today: env.today, endAge: ins.endAge, startAge, engineVersion: null, historyEnd: null }
+      ...(saver ? { saving: saver.saving, payIn: { total: saver.saving.reduce((t, s) => t + s.payIn.total, 0), byPerson: saver.saving.map((s) => ({ who: s.who, total: s.payIn.total })) } } : {}),
+      basis: { today: env.today, endAge: ins.endAge, startAge: saver ? saver.stopAge : startAge, engineVersion: null, historyEnd: null }
     };
   }
-  if (source !== 'd') throw new Error('planCaseOf: only questions A and B (one person), C (from now) and D are on the plan path so far');
+  if (source !== 'd') throw new Error('planCaseOf: only questions A, B, C (one person) and D are on the plan path so far');
   const who = ins.household === 'couple' && ins.partner ? ['you', 'partner'] : ['you'];
   return {
     status: 'ok', inputs: ins, whose: 'you', level, levels, chance: {},

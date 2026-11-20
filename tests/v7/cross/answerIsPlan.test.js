@@ -378,3 +378,59 @@ describe('A: the plan kept from a saver\'s answer is the answer (one person, the
     });
   }
 });
+
+/**
+ * C FROM A LATER START (the lead's ruling L, 20 Nov 2026): C runs on the plan C's OWN Keep writes for the later start, and
+ * that plan is the plan A's Keep writes for a stop at the same age, apart from the income (asked in A, found in C) and the
+ * record of which question made it (planDetails, fromAnswer). So "C at an age equals A's row" follows from the two plans
+ * being equal. Four made-up people (40 futures, 30 September 2026), each kept at C's balanced amount from the start age,
+ * which is A's spend: a saver paying in two parts; one with a final-salary pension from 63 and invested savings; one whose
+ * pension opens at 57 under the 2028 rule, with cash savings; one already past the access age, still paying in.
+ */
+const LATER = [
+  { label: '45, paying in two parts, from 60', you: { age: 45, pot: 60000, statePension: { kind: 'full' }, finalSalary: { has: false }, payIn: { has: 'yes', kind: 'split', own: 500, employer: 300 } }, savings: 10000, start: 60 },
+  { label: '60, final-salary from 63, from 63', you: { age: 60, pot: 150000, statePension: { kind: 'full' }, finalSalary: { has: true, yearly: 9000, fromAge: 63 }, payIn: { has: 'yes', kind: 'total', total: 600 } }, savings: 20000, isaGrowth: 'invested', start: 63 },
+  { label: '50, nothing going in, from 57', you: { age: 50, pot: 250000, statePension: { kind: 'full' }, finalSalary: { has: false } }, savings: 20000, isaGrowth: 'cash', start: 57 },
+  { label: '56, paying in, from 58', you: { age: 56, pot: 300000, statePension: { kind: 'full' }, finalSalary: { has: false }, payIn: { has: 'yes', kind: 'total', total: 1000 } }, savings: 50000, isaGrowth: 'invested', start: 58 }
+];
+const laterC = (x) => answerC({ household: 'single', you: x.you, savings: x.savings, risk: 'balanced', charge: 0.5, endAge: 95, start: { kind: 'age', age: x.start }, confidence: 'balanced',
+  ...(x.isaGrowth ? { isaGrowth: x.isaGrowth } : {}) }, ENV);
+const laterA = (x, perMonth) => {
+  const { has, ...pay } = x.you.payIn || {};
+  void has;
+  return answerA({ household: 'single', you: { ...x.you, payIn: x.you.payIn ? pay : { kind: 'total', total: 0 } }, savings: x.savings, savingsIn: 0, savingRisk: 'balanced', risk: 'balanced',
+    charge: 0.5, endAge: 95, spend: { kind: 'amount', amount: perMonth }, stop: { kind: 'age', age: x.start }, partTime: { has: false }, confidence: 'balanced',
+    ...(x.isaGrowth ? { isaGrowth: x.isaGrowth } : {}) }, { ...ENV, detail: 'chart' });
+};
+/** A kept plan without the record of the question that made it. */
+const asPlan = (s) => { const { planDetails, fromAnswer, ...rest } = JSON.parse(JSON.stringify(s)); void planDetails; void fromAnswer; return rest; };
+
+describe('C from a later start: C\'s own keep, the same plan as A\'s (one person, the plan path)', () => {
+  for (const x of LATER) {
+    it(`${x.label}: the plan C's Keep writes is the plan A's Keep writes at that stop, apart from the income`, () => {
+      const c = laterC(x);
+      expect(c.status).toBe('ok');
+      const m = c.levels.balanced.monthly;
+      const a = laterA(x, m);
+      expect(asPlan(keptPlansOf('c', c, ENV).yours)).toEqual(asPlan(keptPlansOf('a', a, ENV).yours));
+    });
+    it(`${x.label}: the plan path keeps what C's answer keeps (C's own keep, never A's)`, () => {
+      const c = laterC(x);
+      const m = c.levels.balanced.monthly;
+      const s = c.saving[0];
+      const saver = { S: s.yearsSaving, stopAge: c.basis.startAge, saving: c.saving };
+      const mine = keptPlanAt('c', c.inputs, ENV, m, c.basis.startAge, saver);
+      const real = keptPlansOf('c', c, ENV).yours;
+      expect(mine.stressTool.settings).toEqual(real.stressTool.settings);
+      expect(mine.accumulationTool).toEqual(real.accumulationTool);
+      expect(mine.fromAnswer.source).toBe('c');
+    });
+    it(`${x.label}: the balanced amount, kept, is the kept plan's own count, weighted chance and plan-to age, and passes`, () => {
+      const c = laterC(x);
+      const plan = planReading(keptPlansOf('c', c, ENV).yours);
+      expect({ lasted: N - c.chance.fails, weighted: c.chance.weighted, planToAge: c.chance.planToAge })
+        .toEqual({ lasted: plan.lasted, weighted: plan.weighted, planToAge: plan.planToAge });
+      expect(plan.verdict).toBe('yes');
+    });
+  }
+});

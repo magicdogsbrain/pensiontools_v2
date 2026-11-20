@@ -2084,6 +2084,33 @@
           "from your pensions",
           "."
         ]
+      },
+      "left": {
+        "id": "a.left",
+        "text": "If you live to 99, what is typically left then is £2,000 at today's prices. In the best 1 in 10 futures it is £222,000 or more.",
+        "parts": [
+          "If you live to ",
+          {
+            "fixed": "99"
+          },
+          ", what is typically left then is ",
+          {
+            "fixed": "£2,000"
+          },
+          " at today's prices. In the best ",
+          {
+            "fixed": "1"
+          },
+          " in ",
+          {
+            "fixed": "10"
+          },
+          " futures it is ",
+          {
+            "fixed": "£222,000"
+          },
+          " or more."
+        ]
       }
     },
     "basis": {

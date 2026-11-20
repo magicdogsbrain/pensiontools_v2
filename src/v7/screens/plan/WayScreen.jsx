@@ -37,6 +37,7 @@ const marksOf = (card, id) => {
   if (COST_LINES.includes(id) && card.costFact) m.cost = card.costFact;
   if (VERDICT_LINES.includes(id) && f.verdict) m.words = f.verdict;
   if (COST_LINES.includes(id) && id !== 'cannot' && card.costFact && f.bought) m.bought = f.bought;
+  if (id === 'left' && f.left) { m.typical = f.left; m.bad = f.badLeft; }   // what is typically left and the bad case, the way's own
   return m;
 };
 
@@ -197,8 +198,8 @@ function More({ V, dispatch }) {
                     {c.table ? (
                       <>
                         <td>{c.verdict ? c.verdict.words.replace(/^in /, '') : T.none}</td>
-                        <td>{cell(c.table.worst12)}</td>
-                        <td>{c.verdict ? '£' + String(c.verdict.typicalLeft).replace(/\B(?=(\d{3})+(?!\d))/g, ',') : T.none}</td>
+                        <td>{c.table.worst12 != null && c.facts.worst12 ? <Fact id={c.facts.worst12}>{c.table.worst12}</Fact> : cell(c.table.worst12)}</td>
+                        <td>{c.facts.left ? <Fact id={c.facts.left}>{c.table.left}</Fact> : cell(c.table.left)}</td>
                         <td>{cell(c.table.covered)}</td>
                         <td>{cell(c.table.coverage)}</td>
                         <td>{cell(c.table.spent)}</td>

@@ -11,7 +11,10 @@
  *   boughtWhenOf(settings, timing)        when a bought way is bought: 'today' (a plan living on its money) or 'atStop' (a plan
  *                                         still saving: bought from the pots when work stops, priced at today's prices)
  *   BOUGHT_WORDS[when]                    the words for it, the same in both views
- *   wayFactIds(id)                        { name, verdict, cost } the marks each way's figures carry (way.<id>.name, ...)
+ *   wayFactIds(id)                        { name, verdict, cost, left, badLeft, worst12 } the marks each way's figures carry
+ *                                         (way.<id>.name, ...)
+ *   wayFiguresOf(r)                       { left, badLeft, worst12 } as both views write them: what is typically left, the bad
+ *                                         case (the worst 1 in 10) and the worst 12 months lived (null when the run has none)
  *
  * Pure: no clock, no engine run, no page. A plan with no figures of its own is never ranked (planHasFigures): both views
  * say what is missing instead (lead4.md D2, carry-over F3).
@@ -19,6 +22,7 @@
 import { FACT, factId } from './facts.js';
 import { futuresOutOfTen } from '../services/OneAnswer.js';
 import { WAY } from '../v7/copy/way.js';
+import { formatFact } from './format.js';
 
 const num = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
 const r0 = (v) => Math.round(+v || 0);
@@ -35,7 +39,22 @@ export const wayNameOf = (id) => WAY.names[id] || String(id || '');
 export const wayVerdictOf = (share) => futuresOutOfTen(share).words;
 
 /** The marks of one way's figures. */
-export const wayFactIds = (id) => ({ name: factId(FACT.WAY_EACH_NAME, id), verdict: factId(FACT.WAY_VERDICT, id), cost: factId(FACT.WAY_COST, id) });
+export const wayFactIds = (id) => ({
+  name: factId(FACT.WAY_EACH_NAME, id), verdict: factId(FACT.WAY_VERDICT, id), cost: factId(FACT.WAY_COST, id),
+  left: factId(FACT.WAY_LEFT, id), badLeft: factId(FACT.WAY_BAD_LEFT, id), worst12: factId(FACT.WAY_WORST_12, id)
+});
+
+/**
+ * One way's figures as both views write them, from the engine's result (worst12 { min }) or a card's (answers/plan/waysRun.js
+ * wayResult: worst12 a number): what is typically left (the middle future), the bad case (the worst 1 in 10) and the worst
+ * 12 months lived (null when the run gives none).
+ */
+export function wayFiguresOf(r) {
+  const x = r || {};
+  const t = x.terminal || {};
+  const w = x.worst12 && typeof x.worst12 === 'object' ? num(x.worst12.min) : num(x.worst12);
+  return { left: formatFact(FACT.WAY_LEFT, num(t.p50) ?? 0), badLeft: formatFact(FACT.WAY_BAD_LEFT, num(t.p10) ?? 0), worst12: w == null ? null : formatFact(FACT.WAY_WORST_12, w) };
+}
 
 /** Why a way cannot be bought: the cost the configs priced (or the ladder's own) against the pot, or no gilt long enough. */
 export function wayReasonOf(id, r, p, configs) {

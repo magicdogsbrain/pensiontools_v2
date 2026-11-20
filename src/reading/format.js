@@ -89,7 +89,11 @@ export const FACT_FORMAT = Object.freeze({
   'income.thisYear.planSays': money,
   'income.thisYear.perMonth': money,
   'income.thisYear.total': money,
-  'income.thisYear.from': monthText
+  'income.thisYear.from': monthText,
+  // step F3: each way's figures in the ways list (src/reading/ways.js wayFiguresOf), whole pounds as both views wrote them
+  'way.#.left': money,
+  'way.#.badLeft': money,
+  'way.#.worst12': money
 });
 
 /** The value of a fact as every place writes it; '' when nothing is known. */

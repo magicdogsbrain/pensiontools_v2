@@ -103,6 +103,10 @@ export const FACT = Object.freeze({
   // and when a bought way is bought (today, or when a plan still saving stops, at today's prices)
   WAY_EACH_NAME: 'way.#.name',
   WAY_VERDICT: 'way.#.verdict',
+  // and, per way, what is typically left, the bad case (the worst 1 in 10) and the worst 12 months lived (wayFiguresOf)
+  WAY_LEFT: 'way.#.left',
+  WAY_BAD_LEFT: 'way.#.badLeft',
+  WAY_WORST_12: 'way.#.worst12',
   WAY_BOUGHT: 'way.bought',
   // what a bought way was priced on (src/reading/market.js marketLabel): the prices' date and source
   MARKET_GILTS: 'market.gilts',

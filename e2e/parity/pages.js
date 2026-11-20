@@ -23,7 +23,9 @@ export const SIMPLE_PAGES = Object.freeze(['', 'plan', 'about', 'income', 'spend
 export const SIMPLE_PRESS = Object.freeze({
   lasts: Object.freeze(['[data-testid="plan.lasts.schedule"]', '[data-testid="plan.lasts.glidepath"]', '[data-testid="plan.lasts.stress.run"]']),
   // "Which mix lasts best?", as the full view's Compare allocations is pressed
-  mix: Object.freeze(['[data-testid="plan.mix.compare.run"]'])
+  mix: Object.freeze(['[data-testid="plan.mix.compare.run"]']),
+  // "More columns" under the ways' cards: the worst 12 months and what is left per way, as the full view's ranking shows them
+  way: Object.freeze(['[data-testid="plan.way.more"]'])
 });
 
 /** A page's presses as a list (a page may name one press or several, in order). */

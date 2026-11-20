@@ -3,7 +3,7 @@
  * household model (household.js) and the input lists (schemaParts.js, which imports household.js) can both read it
  * without importing each other. schemaParts.js exports it on, so the answers read it from there.
  *
- *   payInParts(p) → { kind, total, own, employer, pay }
+ *   payInParts(p, scheme?) → { kind, total, own, employer, pay }
  *
  * `p` is a form's pay-in as checked — kind 'total' (one figure), 'split' (own and employer in pounds) or 'share' (pay a
  * year before tax, the person's part and the employer's part as percentages of it) — or the household model's
@@ -19,14 +19,28 @@
  * yes, or nothing given: nothing goes in. Pure.
  *
  * Your part in pounds ('split') can be said two ways (7.12.0, question B's step 1): `ownFrom: 'takeHome'` — what leaves
- * take-home pay, to which the provider adds the basic-rate tax back, so what lands is that × 1.25 to the penny — or
+ * take-home pay, to which the tax is added back by the scheme's own sum (AccumulationEngine.contributionBreakdown: relief at
+ * source at the basic rate when `scheme` — { kind: 'ras' | 'netpay' | 'salsac', salary } — is not known), to the penny — or
  * 'lands' (and, for everything saved before 7.12.0, no `ownFrom` at all): what lands, as before. `own` is always what
  * lands; `ownTyped` is the figure as given and `ownFrom` how it was given.
  */
+import { contributionBreakdown } from '../../services/AccumulationEngine.js';
+
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
 const round2 = (n) => Math.round(n * 100) / 100;
+const SCHEMES = ['ras', 'netpay', 'salsac'];
 
-export function payInParts(p) {
+/**
+ * What lands for `typed` a month from take-home pay: the scheme-aware sum (AccumulationEngine.contributionBreakdown, whose
+ * exact inverse SaverPayIn.takeHomeOf says it back), on the scheme and pay a plan knows (`scheme`: { kind, salary }), else
+ * relief at source at the basic rate (typed / 0.8).
+ */
+function landsFromTakeHome(typed, scheme) {
+  const known = scheme && typeof scheme === 'object' && SCHEMES.includes(scheme.kind) ? scheme : null;
+  return round2(contributionBreakdown({ netMonthly: typed, salary: known ? +known.salary || 0 : 0, schemeType: known ? known.kind : 'ras' }).grossMonthly);
+}
+
+export function payInParts(p, scheme = null) {
   const none = { kind: 'total', total: 0, own: null, employer: null, pay: null };
   if (!p || typeof p !== 'object') return none;
   if ('has' in p && p.has !== 'yes') return none;
@@ -40,7 +54,7 @@ export function payInParts(p) {
     const typed = isNum(p.own) ? p.own : 0;
     const employer = isNum(p.employer) ? p.employer : 0;
     if (p.ownFrom === 'takeHome') {
-      const own = round2(typed * 1.25);
+      const own = landsFromTakeHome(typed, scheme);
       return { kind: 'split', total: round2(own + employer), own, employer, pay: null, ownTyped: typed, ownFrom: 'takeHome' };
     }
     return { kind: 'split', total: round2(typed + employer), own: typed, employer, pay: null };

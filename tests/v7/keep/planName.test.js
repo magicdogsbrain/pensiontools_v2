@@ -295,3 +295,13 @@ describe('B names no pay-in (7.12.0, lead decision 9; the second walk: "· payin
     expect(name('b', 'answer-B5-couple')).toBe('Stop at 60 and 58 · £3,200 a month');
   });
 });
+
+describe('D with work tried (the lead\'s ruling A, 19 Nov 2026): Keep keeps the main verdict, so the name names no work', () => {
+  it('Pat, 60, £1,500 a month, work tried at £20,000 a year for 3 years: "From 60 · £1,500 a month", the name without the lever', () => {
+    // Keep writes no work (ruling A: a lever is a try, carried into a plan only by its own control, and D's work has none),
+    // so a name "· working to 63" would name what the plan does not hold. Worked by hand: from 60, £1,500 a month.
+    const inputs = { household: 'single', you: { age: 60 }, work: { has: true, yearly: 20000, years: 3 } };
+    const result = { status: 'ok', spend: { perMonth: 1500 }, work: { toAge: 63 } };
+    expect(suggestedPlanName('d', inputs, result)).toBe('From 60 · £1,500 a month');
+  });
+});

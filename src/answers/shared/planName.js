@@ -138,14 +138,12 @@ function suggestB(inputs, result) {
 
 /**
  * D (research/v7/answer-D.md 10): the spend tried, from today — "From 68 · £2,100 a month"; a couple "From 70 and 66 ·
- * £2,800 a month"; with work kept " · working to 71" when it fits in 50 characters.
+ * £2,800 a month". Work tried is a lever Keep does not write (the lead's ruling A, 19 Nov 2026), so the name never names it.
  */
 function suggestD(inputs, result) {
   if (!result.spend || !isNum(result.spend.perMonth)) return '';
   const couple = coupleOf(inputs);
-  const base = `From ${agesText(inputs.you.age, couple ? inputs.partner.age : null)}${PLAN_NAME.sep}${tenner(result.spend.perMonth)} a month`;
-  const work = result.work && isNum(result.work.toAge) ? `${base}${PLAN_NAME.sep}working to ${whole(result.work.toAge)}` : base;
-  return chars(work) > PLAN_NAME.suggestMax ? base : work;
+  return `From ${agesText(inputs.you.age, couple ? inputs.partner.age : null)}${PLAN_NAME.sep}${tenner(result.spend.perMonth)} a month`;
 }
 
 const SUGGEST = { c: suggestC, a: suggestA, b: suggestB, d: suggestD };

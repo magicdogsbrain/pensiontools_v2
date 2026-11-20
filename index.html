@@ -3588,7 +3588,7 @@
                 </div>
                 <div class="form-group">
                   <label>Weekly Amount (£)</label>
-                  <input type="number" id="ssSpWeeklyAmount" step="0.01" placeholder="e.g. 221.20" data-on-input="spWeeklyTyped()">
+                  <input type="number" id="ssSpWeeklyAmount" step="0.01" placeholder="e.g. 221.20" data-on-input="spWeeklyTyped(this.value)">
                 </div>
                 <div class="form-group">
                   <label>Annual Amount (£/yr)</label>
@@ -7714,8 +7714,8 @@
       return false;
     };
     // a weekly figure typed is a forecast (the simple view's rule: only "My forecast" takes a typed amount)
-    window.spWeeklyTyped = function () {
-      const k = document.getElementById('ssSpKind'), wk = +document.getElementById('ssSpWeeklyAmount')?.value || 0;
+    window.spWeeklyTyped = function (typed) {
+      const k = document.getElementById('ssSpKind'), wk = +typed || 0;
       if (k && wk > 0 && Math.abs(wk - FULL_SP_WEEKLY) >= 0.005) k.value = 'forecast';
       callIfDefined('renderIncomeShapePreview');
     };

@@ -480,7 +480,10 @@ async function buildPlanStates({ today }) {
   const plant = (raw, id, name, { active = false } = {}) => { const p = JSON.parse(JSON.stringify(raw)); p.id = id; p.planDetails = { ...(p.planDetails || {}), name }; p.isActive = active; delete p.household; return p; };
   const alex = plant(C['02-pnv-draft'], 'AlexWay01', 'Alex’s plan', { active: true });
   const sam = plant(C['20-locked-start-after-stop'], 'SamLocked02', 'Sam’s plan');
+  // Alex's first plan with its figures as given (step F3: a plan with no figures of its own is never ranked, so the state of
+  // three ways the pot cannot buy is drawn on the same plan with its income said to be Alex's own)
   const fresh = plant(C['01-fresh-default'], 'AlexFresh03', 'Alex’s first plan');
+  fresh.stressTool.settings.configured = true;
   const entries = [alex, sam, fresh].map((p) => entryOf(p, today));
   const planOf = (id) => entries.find((e) => e.plan.id === id).plan;
   const runs = new Map();

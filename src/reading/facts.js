@@ -97,6 +97,11 @@ export const FACT = Object.freeze({
   WAY_NAME: 'way.name',
   // what a bought way costs (compareRunner.wayCostOf), one fact per way: the way's id is the key (way.full-il-gilt.cost)
   WAY_COST: 'way.#.cost',
+  // the ways list (src/reading/ways.js; step F3): each way's name and how many futures out of 10 it lasts, keyed by its id;
+  // and when a bought way is bought (today, or when a plan still saving stops, at today's prices)
+  WAY_EACH_NAME: 'way.#.name',
+  WAY_VERDICT: 'way.#.verdict',
+  WAY_BOUGHT: 'way.bought',
   // what a bought way was priced on (src/reading/market.js marketLabel): the prices' date and source
   MARKET_GILTS: 'market.gilts',
   WITHDRAWAL_RATE: 'withdrawal.rate',

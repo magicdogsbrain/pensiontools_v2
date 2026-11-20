@@ -37,14 +37,12 @@ import { waysInputOf, enginePlanOf } from '../../reading/gather.js';
 import { dayWords } from './dates.js';
 import { documentLadder } from '../../services/LadderPosition.js';
 import { WAY_IDS, WAY_DIALS } from './schema.js';
+import { availablePot, wayReasonOf } from '../../reading/ways.js';
 import { stratDialsOf, dialUnitsOf } from './way.js';
 
 const plain = (v) => JSON.parse(JSON.stringify(v, (k, x) => (typeof x === 'function' ? undefined : (typeof x === 'number' && !Number.isFinite(x)) ? null : x)));
 const num = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
 const r0 = (v) => Math.round(+v || 0);
-
-/** The money a bought way may spend (stressTest.js availablePot): the pension and the ISA, unless the ISA is held aside. */
-const availablePot = (p) => (+p.pot || 0) + (p.isaHold ? 0 : (+p.isa || 0));
 
 /**
  * The ENGINE's default of each dial on this plan (way-and-mix.md 2.3: what runs when the key is absent — compareRunner.js
@@ -98,22 +96,13 @@ export function ranWith(id, p, defaults) {
   return out;
 }
 
-/** Why a way cannot be bought: the cost the configs priced (or the ladder's own) against the pot, or no gilt long enough. */
-function unaffordableReason(id, r, p, configs) {
-  const c = configs || {};
-  const cost = id === 'ladder-and-ratchet' ? c.baseLadderCost : id === 'floor-and-flex' ? c.ffFloorCost : id === 'floor-the-schedule' ? c.fsFloorCost : id === 'floor-to-age' ? c.faFloorCost : id === 'bridge-and-engine' ? c.beCost : (r && r.plan && num(r.plan.total));
-  const pot = availablePot(p);
-  if (num(cost) != null && cost > pot) return { why: 'cost', cost: r0(cost), short: r0(cost - pot) };
-  return { why: 'noGilt', cost: num(cost) != null ? r0(cost) : null, short: null };
-}
-
 const BOUGHT = ['ladder-and-ratchet', 'bridge-and-engine', 'floor-and-flex', 'floor-the-schedule', 'floor-to-age', 'full-il-gilt', 'gilt-rotation'];
 
 /** One way's result as plain data: the figures every planner screen reads (OneAnswer, scoreStrategy) and the cost line. */
 export function wayResult(id, r, p, configs = null) {
   const defaults = dialDefaults(id, p);
   const dials = { defaults, ranWith: ranWith(id, p, defaults) };
-  if (!r || !r.affordable) return { id, affordable: false, reason: unaffordableReason(id, r, p, configs), a: null, bought: BOUGHT.includes(id), dials };
+  if (!r || !r.affordable) return { id, affordable: false, reason: wayReasonOf(id, r, p, configs), a: null, bought: BOUGHT.includes(id), dials };
   const a = oneAnswer(r, p);
   const sc = scoreStrategy(r, p);
   const cost = wayCostOf(r);   // the one reader, the full view's overview reads it too

@@ -15,10 +15,10 @@ import { SUCCESS, planToAgeOf } from '../answers/shared/rules.js';
 import { withSavingChance } from '../answers/shared/savingChance.js';
 import { markFact, markWithin, tableAttr, cellAttr } from '../reading/mark.js';
 import { TABLES } from '../reading/facts.js';
+import { wayFactIds, wayVerdictOf } from '../reading/ways.js';
 import { LASTS_FINDS } from '../reading/sentenceMarks.js';
 import { MIX } from '../v7/copy/mix.js';
 
-const futuresWords = (share) => futuresOutOfTen(share).words;
 
 const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
@@ -167,7 +167,7 @@ export function rankingCardHtml({ scored, names, colors, rankBy = 'lasts', more 
   const ranked = rankWays(scored, rankBy);   // the share and the order (OneAnswer.rankWays, 6.40.0): one ranking for the planner and V7
   const rows = own && ranked.some((x) => x.id === own) ? [...ranked.filter((x) => x.id === own), ...ranked.filter((x) => x.id !== own)] : ranked;
   const mine = own && rows.length && rows[0].id === own;
-  for (const x of rows) { x.lasts = futuresWords(x.share); }
+  for (const x of rows) { x.lasts = wayVerdictOf(x.share); }   // the one reading of a way's verdict (src/reading/ways.js), the simple view's cards' too
   const btn = (k, label) => '<button type="button" class="risk-btn' + (rankBy === k ? ' active' : '') + '" style="padding:3px 10px;font-size:12px;" data-on-click="setCmpRank(\'' + k + '\')">' + label + '</button>';
   let h = (mine ? '<div class="card"><h2>Your plan: ' + esc(names[own] || own) + '</h2><p class="hint" style="margin:0 0 8px;" id="rankOwnPlan">This is the strategy your plan is locked on. The others ran the same test on your figures, for comparison only; they are not ranked against your plan.</p>' : '<div class="card"><h2>Which strategy? — ranked on your plan</h2>')
     + '<p class="hint" style="margin:0 0 8px;">All ' + (scored.length + unaffordable.length) + ' ran <strong>your</strong> plan (pot, ISA policy, income shape, State Pension, full length) through the <strong>same one test</strong> — every real stretch of markets since 1871 and 1,000 possible futures' + (cutsWords ? ', ' + esc(cutsWords) : '') + '. The first column is the one figure every screen shows for your own strategy. What each one costs you to live with — a cut, a cliff, a bumpy pot — is yours to weigh; the columns beside it are the trade-offs.</p>'
@@ -178,8 +178,8 @@ export function rankingCardHtml({ scored, names, colors, rankBy = 'lasts', more 
     + '</tr></thead><tbody>';
   rows.forEach((x, i) => {
     const r = x.r;
-    h += '<tr' + (i === 0 ? ' style="font-weight:600;"' : '') + '><td>' + (mine ? (i === 0 ? '' : '—') : (i + 1)) + '</td><td><span style="display:inline-block;width:10px;height:10px;background:' + esc(colors[x.id] || '#888') + ';border-radius:2px;margin-right:6px;"></span>' + esc(names[x.id] || x.id) + (mine && i === 0 ? ' <span class="hint">(your plan)</span>' : '') + ' <button type="button" class="risk-btn" style="padding:1px 7px;font-size:11px;" data-on-click="showStrategyPage(\'' + esc(x.id) + '\')">read →</button></td>'
-      + '<td>lasts ' + esc(x.lasts) + ' <span class="hint">(' + pctText(x.share * 100, 0, CHANCE_BARS) + (r.strategyId === 'floor-and-flex' ? ', no lean year' : r.ruinLabel ? ', else cut' : '') + ')</span></td>'
+    h += '<tr' + (i === 0 ? ' style="font-weight:600;"' : '') + '><td>' + (mine ? (i === 0 ? '' : '—') : (i + 1)) + '</td><td><span style="display:inline-block;width:10px;height:10px;background:' + esc(colors[x.id] || '#888') + ';border-radius:2px;margin-right:6px;"></span>' + markFact(wayFactIds(x.id).name, esc(names[x.id] || x.id)) + (mine && i === 0 ? ' <span class="hint">(your plan)</span>' : '') + ' <button type="button" class="risk-btn" style="padding:1px 7px;font-size:11px;" data-on-click="showStrategyPage(\'' + esc(x.id) + '\')">read →</button></td>'
+      + '<td>lasts ' + markFact(wayFactIds(x.id).verdict, esc(x.lasts)) + ' <span class="hint">(' + pctText(x.share * 100, 0, CHANCE_BARS) + (r.strategyId === 'floor-and-flex' ? ', no lean year' : r.ruinLabel ? ', else cut' : '') + ')</span></td>'
       + '<td>' + gbp(r.worst12 && r.worst12.min) + '</td><td>' + gbp(r.terminal.p50) + '</td><td>' + gbp(r.terminal.p10) + '</td>'
       + (more ? '<td>' + (r.coverage != null ? pctText(r.coverage) : '—') + '</td><td>' + (x.sc ? x.sc.coverageRatio.toFixed(2) : '—') + '</td><td>' + (r.spentMedian != null ? gbp(r.spentMedian) : '—') + '</td><td>' + (x.sc ? (x.sc.vol * 100).toFixed(0) + '%/yr' : '—') + '</td><td><strong>' + (x.sc ? x.sc.vac.toFixed(1) : '—') + '</strong></td>' : '')
       + '</tr>';

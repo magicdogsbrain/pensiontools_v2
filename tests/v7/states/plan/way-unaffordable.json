@@ -2724,6 +2724,7 @@
               "statePension": 12000,
               "statePensionYear": 12,
               "taxMode": "inflates",
+              "configured": true,
               "chargesPct": 0.5,
               "isaGrowth": "cash"
             }
@@ -2945,15 +2946,22 @@
             "state": "current",
             "done": false,
             "result": {
-              "id": "plan.nothing",
+              "id": "plan.noAge",
               "parts": [
-                "No figures yet"
+                {
+                  "key": "yearly",
+                  "kind": "money"
+                },
+                " a year before tax"
               ],
-              "text": "No figures yet"
+              "text": "£28,235 a year before tax"
             },
             "figures": {
+              "yearly": 28235,
               "years": 35,
-              "sipp": 0,
+              "step0": 28235,
+              "stepAge0": 57,
+              "sipp": 500000,
               "isa": 0,
               "gia": 0,
               "shares": 250000,
@@ -3027,12 +3035,25 @@
                 "id": "pays",
                 "lines": [
                   {
-                    "id": "pays.notSet",
+                    "id": "pays.step",
                     "slots": {},
                     "sentence": {
-                      "id": "pays.notSet",
-                      "parts": [],
-                      "text": ""
+                      "id": "pays.step",
+                      "parts": [
+                        "From age ",
+                        {
+                          "key": "stepAge0",
+                          "kind": "age"
+                        },
+                        ": ",
+                        {
+                          "key": "step0",
+                          "kind": "money"
+                        },
+                        " a year before tax",
+                        " (tax year 2026/27)"
+                      ],
+                      "text": "From age 57: £28,235 a year before tax (tax year 2026/27)"
                     },
                     "source": {
                       "kind": "saved",
@@ -3059,7 +3080,7 @@
                           "kind": "money"
                         }
                       ],
-                      "text": "£0"
+                      "text": "£500,000"
                     },
                     "source": {
                       "kind": "saved",
@@ -3636,7 +3657,7 @@
                 "facts": [
                   {
                     "k": "stress",
-                    "v": false,
+                    "v": true,
                     "kind": "yesNo"
                   },
                   {
@@ -3906,7 +3927,8 @@
           "family": true,
           "endAge": 92,
           "atStop": null,
-          "runKey": "AlexFresh03|2026-09-28T18:42:10.000Z|1bod9md|U",
+          "noFigures": false,
+          "runKey": "AlexFresh03|2026-09-28T18:42:10.000Z|xtda8p|U",
           "stash": {
             "pots-and-valves": {},
             "buckets-in-order": {},
@@ -4024,6 +4046,12 @@
               },
               "compare": null,
               "costFact": null,
+              "facts": {
+                "name": "way.pots-and-valves.name",
+                "verdict": "way.pots-and-valves.verdict",
+                "cost": "way.pots-and-valves.cost",
+                "bought": "way.bought"
+              },
               "asLocked": null
             },
             {
@@ -4137,6 +4165,12 @@
               },
               "compare": null,
               "costFact": null,
+              "facts": {
+                "name": "way.buckets-in-order.name",
+                "verdict": "way.buckets-in-order.verdict",
+                "cost": "way.buckets-in-order.cost",
+                "bought": "way.bought"
+              },
               "asLocked": null
             },
             {
@@ -4174,6 +4208,7 @@
                   "id": "cost",
                   "slots": {
                     "cost": "£324,216",
+                    "bought": "bought today",
                     "left": "£175,784"
                   }
                 }
@@ -4230,6 +4265,12 @@
               },
               "compare": null,
               "costFact": "way.bridge-and-engine.cost",
+              "facts": {
+                "name": "way.bridge-and-engine.name",
+                "verdict": "way.bridge-and-engine.verdict",
+                "cost": "way.bridge-and-engine.cost",
+                "bought": "way.bought"
+              },
               "asLocked": null
             },
             {
@@ -4267,6 +4308,7 @@
                   "id": "cost",
                   "slots": {
                     "cost": "£450,410",
+                    "bought": "bought today",
                     "left": "£49,590"
                   }
                 }
@@ -4311,6 +4353,12 @@
               },
               "compare": null,
               "costFact": "way.floor-to-age.cost",
+              "facts": {
+                "name": "way.floor-to-age.name",
+                "verdict": "way.floor-to-age.verdict",
+                "cost": "way.floor-to-age.cost",
+                "bought": "way.bought"
+              },
               "asLocked": null
             },
             {
@@ -4348,6 +4396,7 @@
                   "id": "cost",
                   "slots": {
                     "cost": "£360,497",
+                    "bought": "bought today",
                     "left": "£139,503"
                   }
                 }
@@ -4431,6 +4480,12 @@
               },
               "compare": null,
               "costFact": "way.ladder-and-ratchet.cost",
+              "facts": {
+                "name": "way.ladder-and-ratchet.name",
+                "verdict": "way.ladder-and-ratchet.verdict",
+                "cost": "way.ladder-and-ratchet.cost",
+                "bought": "way.bought"
+              },
               "asLocked": null
             },
             {
@@ -4468,6 +4523,7 @@
                   "id": "cost",
                   "slots": {
                     "cost": "£235,930",
+                    "bought": "bought today",
                     "left": "£264,070"
                   }
                 }
@@ -4567,6 +4623,12 @@
               },
               "compare": null,
               "costFact": "way.floor-and-flex.cost",
+              "facts": {
+                "name": "way.floor-and-flex.name",
+                "verdict": "way.floor-and-flex.verdict",
+                "cost": "way.floor-and-flex.cost",
+                "bought": "way.bought"
+              },
               "asLocked": null
             },
             {
@@ -4598,7 +4660,13 @@
               "tried": null,
               "table": null,
               "compare": null,
-              "costFact": null,
+              "costFact": "way.floor-the-schedule.cost",
+              "facts": {
+                "name": "way.floor-the-schedule.name",
+                "verdict": null,
+                "cost": "way.floor-the-schedule.cost",
+                "bought": "way.bought"
+              },
               "asLocked": null
             },
             {
@@ -4659,7 +4727,13 @@
               "tried": null,
               "table": null,
               "compare": null,
-              "costFact": null,
+              "costFact": "way.full-il-gilt.cost",
+              "facts": {
+                "name": "way.full-il-gilt.name",
+                "verdict": null,
+                "cost": "way.full-il-gilt.cost",
+                "bought": "way.bought"
+              },
               "asLocked": null
             },
             {
@@ -4756,7 +4830,13 @@
               "tried": null,
               "table": null,
               "compare": null,
-              "costFact": null,
+              "costFact": "way.gilt-rotation.cost",
+              "facts": {
+                "name": "way.gilt-rotation.name",
+                "verdict": null,
+                "cost": "way.gilt-rotation.cost",
+                "bought": "way.bought"
+              },
               "asLocked": null
             }
           ],
@@ -4904,7 +4984,7 @@
     "kept": null
   },
   "ways": {
-    "key": "AlexFresh03|2026-09-28T18:42:10.000Z|1bod9md|U",
+    "key": "AlexFresh03|2026-09-28T18:42:10.000Z|xtda8p|U",
     "status": "done",
     "reason": null,
     "result": {

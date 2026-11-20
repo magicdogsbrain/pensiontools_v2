@@ -2724,6 +2724,7 @@
               "statePension": 12000,
               "statePensionYear": 12,
               "taxMode": "inflates",
+              "configured": true,
               "chargesPct": 0.5,
               "isaGrowth": "cash"
             }
@@ -4079,6 +4080,7 @@
           "family": true,
           "endAge": 96,
           "atStop": null,
+          "noFigures": false,
           "runKey": "AlexWay01|2026-08-14T10:05:00.000Z|13z6pso|U",
           "stash": {
             "pots-and-valves": {},
@@ -4197,6 +4199,12 @@
               },
               "compare": null,
               "costFact": null,
+              "facts": {
+                "name": "way.pots-and-valves.name",
+                "verdict": "way.pots-and-valves.verdict",
+                "cost": "way.pots-and-valves.cost",
+                "bought": "way.bought"
+              },
               "asLocked": null
             },
             {
@@ -4233,6 +4241,7 @@
                   "id": "cost",
                   "slots": {
                     "cost": "£571,304",
+                    "bought": "bought today",
                     "left": "£173,696"
                   }
                 }
@@ -4263,6 +4272,12 @@
               },
               "compare": null,
               "costFact": "way.floor-the-schedule.cost",
+              "facts": {
+                "name": "way.floor-the-schedule.name",
+                "verdict": "way.floor-the-schedule.verdict",
+                "cost": "way.floor-the-schedule.cost",
+                "bought": "way.bought"
+              },
               "asLocked": null
             },
             {
@@ -4299,6 +4314,7 @@
                   "id": "cost",
                   "slots": {
                     "cost": "£644,443",
+                    "bought": "bought today",
                     "left": "£100,557"
                   }
                 }
@@ -4358,6 +4374,12 @@
               },
               "compare": null,
               "costFact": "way.full-il-gilt.cost",
+              "facts": {
+                "name": "way.full-il-gilt.name",
+                "verdict": "way.full-il-gilt.verdict",
+                "cost": "way.full-il-gilt.cost",
+                "bought": "way.bought"
+              },
               "asLocked": null
             },
             {
@@ -4471,6 +4493,12 @@
               },
               "compare": null,
               "costFact": null,
+              "facts": {
+                "name": "way.buckets-in-order.name",
+                "verdict": "way.buckets-in-order.verdict",
+                "cost": "way.buckets-in-order.cost",
+                "bought": "way.bought"
+              },
               "asLocked": null
             },
             {
@@ -4508,6 +4536,7 @@
                   "id": "cost",
                   "slots": {
                     "cost": "£427,363",
+                    "bought": "bought today",
                     "left": "£317,637"
                   }
                 }
@@ -4552,6 +4581,12 @@
               },
               "compare": null,
               "costFact": "way.floor-to-age.cost",
+              "facts": {
+                "name": "way.floor-to-age.name",
+                "verdict": "way.floor-to-age.verdict",
+                "cost": "way.floor-to-age.cost",
+                "bought": "way.bought"
+              },
               "asLocked": null
             },
             {
@@ -4589,6 +4624,7 @@
                   "id": "cost",
                   "slots": {
                     "cost": "£644,443",
+                    "bought": "bought today",
                     "left": "£100,557"
                   }
                 }
@@ -4684,6 +4720,12 @@
               },
               "compare": null,
               "costFact": "way.gilt-rotation.cost",
+              "facts": {
+                "name": "way.gilt-rotation.name",
+                "verdict": "way.gilt-rotation.verdict",
+                "cost": "way.gilt-rotation.cost",
+                "bought": "way.bought"
+              },
               "asLocked": null
             },
             {
@@ -4721,6 +4763,7 @@
                   "id": "cost",
                   "slots": {
                     "cost": "£187,137",
+                    "bought": "bought today",
                     "left": "£557,863"
                   }
                 }
@@ -4777,6 +4820,12 @@
               },
               "compare": null,
               "costFact": "way.bridge-and-engine.cost",
+              "facts": {
+                "name": "way.bridge-and-engine.name",
+                "verdict": "way.bridge-and-engine.verdict",
+                "cost": "way.bridge-and-engine.cost",
+                "bought": "way.bought"
+              },
               "asLocked": null
             },
             {
@@ -4814,6 +4863,7 @@
                   "id": "cost",
                   "slots": {
                     "cost": "£388,208",
+                    "bought": "bought today",
                     "left": "£356,792"
                   }
                 }
@@ -4897,6 +4947,12 @@
               },
               "compare": null,
               "costFact": "way.ladder-and-ratchet.cost",
+              "facts": {
+                "name": "way.ladder-and-ratchet.name",
+                "verdict": "way.ladder-and-ratchet.verdict",
+                "cost": "way.ladder-and-ratchet.cost",
+                "bought": "way.bought"
+              },
               "asLocked": null
             },
             {
@@ -4934,6 +4990,7 @@
                   "id": "cost",
                   "slots": {
                     "cost": "£275,590",
+                    "bought": "bought today",
                     "left": "£469,410"
                   }
                 }
@@ -5033,6 +5090,12 @@
               },
               "compare": null,
               "costFact": "way.floor-and-flex.cost",
+              "facts": {
+                "name": "way.floor-and-flex.name",
+                "verdict": "way.floor-and-flex.verdict",
+                "cost": "way.floor-and-flex.cost",
+                "bought": "way.bought"
+              },
               "asLocked": null
             }
           ],

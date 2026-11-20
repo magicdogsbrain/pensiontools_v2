@@ -2724,6 +2724,7 @@
               "statePension": 12000,
               "statePensionYear": 12,
               "taxMode": "inflates",
+              "configured": true,
               "chargesPct": 0.5,
               "isaGrowth": "cash"
             }
@@ -4730,6 +4731,7 @@
           "family": false,
           "endAge": 86,
           "atStop": null,
+          "noFigures": false,
           "runKey": "SamLocked02|2026-09-02T18:30:00.000Z|wudskr|L",
           "stash": {
             "pots-and-valves": {},
@@ -4790,6 +4792,7 @@
                   "id": "cost",
                   "slots": {
                     "cost": "£341,846",
+                    "bought": "bought today",
                     "left": "£333,154"
                   }
                 }
@@ -4849,6 +4852,12 @@
               },
               "compare": null,
               "costFact": "way.full-il-gilt.cost",
+              "facts": {
+                "name": "way.full-il-gilt.name",
+                "verdict": "way.full-il-gilt.verdict",
+                "cost": "way.full-il-gilt.cost",
+                "bought": "way.bought"
+              },
               "asLocked": "1 July 2026"
             },
             {
@@ -4958,6 +4967,12 @@
                 }
               },
               "costFact": null,
+              "facts": {
+                "name": "way.pots-and-valves.name",
+                "verdict": "way.pots-and-valves.verdict",
+                "cost": "way.pots-and-valves.cost",
+                "bought": "way.bought"
+              },
               "asLocked": null
             },
             {
@@ -5079,6 +5094,12 @@
                 }
               },
               "costFact": null,
+              "facts": {
+                "name": "way.buckets-in-order.name",
+                "verdict": "way.buckets-in-order.verdict",
+                "cost": "way.buckets-in-order.cost",
+                "bought": "way.bought"
+              },
               "asLocked": null
             },
             {
@@ -5115,6 +5136,7 @@
                   "id": "cost",
                   "slots": {
                     "cost": "£288,707",
+                    "bought": "bought today",
                     "left": "£386,293"
                   }
                 }
@@ -5153,6 +5175,12 @@
                 }
               },
               "costFact": "way.floor-the-schedule.cost",
+              "facts": {
+                "name": "way.floor-the-schedule.name",
+                "verdict": "way.floor-the-schedule.verdict",
+                "cost": "way.floor-the-schedule.cost",
+                "bought": "way.bought"
+              },
               "asLocked": null
             },
             {
@@ -5190,6 +5218,7 @@
                   "id": "cost",
                   "slots": {
                     "cost": "£319,146",
+                    "bought": "bought today",
                     "left": "£355,854"
                   }
                 }
@@ -5293,6 +5322,12 @@
                 }
               },
               "costFact": "way.gilt-rotation.cost",
+              "facts": {
+                "name": "way.gilt-rotation.name",
+                "verdict": "way.gilt-rotation.verdict",
+                "cost": "way.gilt-rotation.cost",
+                "bought": "way.bought"
+              },
               "asLocked": null
             },
             {
@@ -5330,6 +5365,7 @@
                   "id": "cost",
                   "slots": {
                     "cost": "£260,608",
+                    "bought": "bought today",
                     "left": "£414,392"
                   }
                 }
@@ -5387,6 +5423,12 @@
                 }
               },
               "costFact": null,
+              "facts": {
+                "name": "way.floor-to-age.name",
+                "verdict": null,
+                "cost": "way.floor-to-age.cost",
+                "bought": "way.bought"
+              },
               "asLocked": null
             },
             {
@@ -5424,6 +5466,7 @@
                   "id": "cost",
                   "slots": {
                     "cost": "£34,000",
+                    "bought": "bought today",
                     "left": "£641,000"
                   }
                 }
@@ -5488,6 +5531,12 @@
                 }
               },
               "costFact": "way.bridge-and-engine.cost",
+              "facts": {
+                "name": "way.bridge-and-engine.name",
+                "verdict": "way.bridge-and-engine.verdict",
+                "cost": "way.bridge-and-engine.cost",
+                "bought": "way.bought"
+              },
               "asLocked": null
             },
             {
@@ -5525,6 +5574,7 @@
                   "id": "cost",
                   "slots": {
                     "cost": "£196,157",
+                    "bought": "bought today",
                     "left": "£478,843"
                   }
                 }
@@ -5616,6 +5666,12 @@
                 }
               },
               "costFact": "way.ladder-and-ratchet.cost",
+              "facts": {
+                "name": "way.ladder-and-ratchet.name",
+                "verdict": "way.ladder-and-ratchet.verdict",
+                "cost": "way.ladder-and-ratchet.cost",
+                "bought": "way.bought"
+              },
               "asLocked": null
             },
             {
@@ -5653,6 +5709,7 @@
                   "id": "cost",
                   "slots": {
                     "cost": "£120,433",
+                    "bought": "bought today",
                     "left": "£554,567"
                   }
                 }
@@ -5760,6 +5817,12 @@
                 }
               },
               "costFact": "way.floor-and-flex.cost",
+              "facts": {
+                "name": "way.floor-and-flex.name",
+                "verdict": "way.floor-and-flex.verdict",
+                "cost": "way.floor-and-flex.cost",
+                "bought": "way.bought"
+              },
               "asLocked": null
             }
           ],

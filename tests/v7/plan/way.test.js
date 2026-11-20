@@ -8,6 +8,7 @@
  * dials typed go into the switch; the root strategy block is setActiveStrategy's shape.
  */
 import { describe, it, expect } from 'vitest';
+import { planHasFigures } from '../../../src/services/PlanFigures.js';
 import fc from 'fast-check';
 import { wayOf, checkDials, cardsOf, wayPatch, applyPatch, dialUnitsOf, stratDialsOf, stashOf, rankedIds, cardLines, runKeyOf } from '../../../src/answers/plan/way.js';
 import { switchPatch, restoredParamsFor, dialParams } from '../../../src/services/PlanCommit.js';
@@ -48,7 +49,9 @@ describe('the reading (wayOf) on every corpus plan at three dates', () => {
         expect(w.cuts.protectionOn === 'yes' || w.cuts.protectionOn === 'no').toBe(true);
         expect(w.locked).toBe(isLocked(e.plan));
         expect(w.editable).toBe(!w.locked);
-        expect(w.runKey).toBe(runKeyOf(e.plan));
+        // a plan with no figures of its own is never run (step F3): no key, and the page says what is missing
+        expect(w.runKey).toBe(planHasFigures(e.plan) ? runKeyOf(e.plan) : null);
+        expect(w.noFigures).toBe(!planHasFigures(e.plan));
         if (w.locked) { expect(w.lockedOn).toBeTypeOf('string'); expect(w.source.kind).toBe('locked'); }
         expect(w.endAge).toBeGreaterThan(60);
       }

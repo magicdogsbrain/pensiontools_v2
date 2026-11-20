@@ -19,14 +19,26 @@ import { planView, planWayView } from '../../state/select.js';
 import { href } from '../../router/routes.js';
 import { PLAN } from '../../copy/plan.js';
 import { WAY } from '../../copy/way.js';
+import { LASTS } from '../../copy/lasts.js';
 import { RANK_BYS } from '../../../answers/plan/schema.js';
 
 const w = PLAN.page;
 const keepFocus = { onMouseDown: (e) => e.preventDefault() };
 const name = (id) => WAY.names[id] || id;
 const seconds = (ms) => (Math.round((ms || 0) / 100) / 10).toFixed(1);
-/** The lines whose {cost} is what the way costs (way.js cardLines; not 'cannot', the price a pot could not pay). */
-const COST_LINES = ['cost', 'costAll', 'costAtStop', 'costAllAtStop'];
+/** The lines whose {cost} is what the way costs or would cost (way.js cardLines; src/reading/ways.js wayCannotText). */
+const COST_LINES = ['cost', 'costAll', 'costAtStop', 'costAllAtStop', 'cannot'];
+/** The lines whose {words} is how many futures out of 10 the way lasts (way.<id>.verdict) and whose {bought} is when it is bought. */
+const VERDICT_LINES = ['lasts', 'lastsYours'];
+/** The marks a line's slots carry (lead4.md G1): the cost, the verdict and when it is bought, each the way's own fact. */
+const marksOf = (card, id) => {
+  const f = card.facts || {};
+  const m = {};
+  if (COST_LINES.includes(id) && card.costFact) m.cost = card.costFact;
+  if (VERDICT_LINES.includes(id) && f.verdict) m.words = f.verdict;
+  if (COST_LINES.includes(id) && id !== 'cannot' && card.costFact && f.bought) m.bought = f.bought;
+  return m;
+};
 
 function Head({ view }) {
   return (
@@ -48,7 +60,7 @@ function Figures({ card }) {
       data-affordable={card.affordable ? '1' : '0'} data-chance={v ? v.chancePct : undefined} data-typical={v ? v.typicalLeft : undefined} data-bad={v ? v.badCaseLeft : undefined}>
       {v && <p class="lasts-bar"><span class={`verdict-word is-${v.word}`} data-verdict={v.word}>{WAY.card.verdictWord[v.word]}</span> <OutOfTenBar source={v} k="share" /></p>}
       <ul class="plan-lines">
-        {card.lines.map((l, i) => <li key={i} class="plan-line" data-line={'way.' + l.id}>{fillMarked(WAY.card[l.id] || '', { ...l.slots, docWay: l.slots.docWay ? name(l.slots.docWay) : undefined, way: l.slots.way ? name(l.slots.way) : undefined }, COST_LINES.includes(l.id) && card.costFact ? { cost: card.costFact } : {})}</li>)}
+        {card.lines.map((l, i) => <li key={i} class="plan-line" data-line={'way.' + l.id}>{fillMarked(WAY.card[l.id] || '', { ...l.slots, docWay: l.slots.docWay ? name(l.slots.docWay) : undefined, way: l.slots.way ? name(l.slots.way) : undefined }, marksOf(card, l.id))}</li>)}
       </ul>
     </div>
   );
@@ -113,7 +125,7 @@ function Card({ card, V, planId, dispatch, held = false }) {
   const toggle = () => dispatch({ type: 'ui/toggle', id: 'wayConfirm' });
   return (
     <article class={`way-card${open ? ' is-open' : ''}${card.current ? ' is-current' : ''}`} data-way={id} data-testid={`plan.way.card.${id}`} data-open={open ? '1' : '0'} data-current={card.current ? '1' : '0'} data-rank={card.rank == null ? undefined : card.rank}>
-      <h3 class="way-name">{name(id)}</h3>
+      <h3 class="way-name">{card.facts && card.facts.name ? <Fact id={card.facts.name}>{name(id)}</Fact> : name(id)}</h3>
       <p class="way-promise">{WAY.promise[id]}</p>
       {/* while the ring is held (7.3.0, the working spinner's least time) a card waits with the others: no figure pops in */}
       {card.has && !held ? <Figures card={card} /> : held || V.run.status === 'working' ? <p class="working-note" role="status">{WAY.working.one}</p> : null}
@@ -239,8 +251,10 @@ export function WayScreen(state, dispatch) {
   const run = V.run || { status: 'idle' };
   const working = !!V.runKey && (run.status === 'working' || run.status === 'idle') && !V.has;
   const problem = V.problem ? (WAY.problems[V.problem] || WAY.problems.failed) : null;
-  const yours = V.cards[0] || null;
-  const others = V.cards.slice(1);
+  // a plan with no figures of its own runs no way, so no card is drawn: the line above says what to add (the full view the same)
+  const shown = V.noFigures && !V.readonly ? [] : V.cards;
+  const yours = shown[0] || null;
+  const others = shown.slice(1);
   return {
     question: null, rail, full: false,
     // the working spinner (7.3.0): the ring shows at least a moment, and the cards' figures wait for it, so the verdict of
@@ -254,7 +268,9 @@ export function WayScreen(state, dispatch) {
         {V.locked && <p class="note" data-testid="plan.way.locked">{WAY.locked.lead} {fill(WAY.locked.fixed, { date: V.lockedOn })}</p>}
         {V.readonly && <p class="notice" role="status" data-testid="plan.way.readonly">{WAY.readonly}</p>}
         <section class="plan-panel way-answer" data-region="plan-way-answer" data-status={V.runKey ? (held && !working ? 'working' : run.status) : 'none'} data-has={V.has && !held ? '1' : '0'}>
-          {!V.runKey && <p class="notice" role="status" data-testid="plan.way.notRun">{WAY.notRun}</p>}
+          {!V.runKey && (V.noFigures && !V.readonly
+            ? <p class="notice" role="status" data-testid="plan.way.noFigures">{WAY.noFigures} <a href={href.plan(planId, 'pots')}>{LASTS.noFiguresPots}</a> · <a href={href.plan(planId, 'spend')}>{LASTS.noFiguresSpend}</a></p>
+            : <p class="notice" role="status" data-testid="plan.way.notRun">{WAY.notRun}</p>)}
           {held && (
             <div class="working" role="status" data-testid="plan.way.working">
               <p class="working-title">{WAY.working.title}</p>

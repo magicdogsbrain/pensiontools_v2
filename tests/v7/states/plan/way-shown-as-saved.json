@@ -2724,6 +2724,7 @@
               "statePension": 12000,
               "statePensionYear": 12,
               "taxMode": "inflates",
+              "configured": true,
               "chargesPct": 0.5,
               "isaGrowth": "cash"
             }
@@ -4069,6 +4070,7 @@
           "family": true,
           "endAge": 96,
           "atStop": null,
+          "noFigures": false,
           "runKey": null,
           "stash": {
             "pots-and-valves": {},
@@ -4151,6 +4153,12 @@
               "table": null,
               "compare": null,
               "costFact": null,
+              "facts": {
+                "name": "way.pots-and-valves.name",
+                "verdict": null,
+                "cost": "way.pots-and-valves.cost",
+                "bought": "way.bought"
+              },
               "asLocked": null
             },
             {
@@ -4228,6 +4236,12 @@
               "table": null,
               "compare": null,
               "costFact": null,
+              "facts": {
+                "name": "way.buckets-in-order.name",
+                "verdict": null,
+                "cost": "way.buckets-in-order.cost",
+                "bought": "way.bought"
+              },
               "asLocked": null
             },
             {
@@ -4305,6 +4319,12 @@
               "table": null,
               "compare": null,
               "costFact": null,
+              "facts": {
+                "name": "way.ladder-and-ratchet.name",
+                "verdict": null,
+                "cost": "way.ladder-and-ratchet.cost",
+                "bought": "way.bought"
+              },
               "asLocked": null
             },
             {
@@ -4355,6 +4375,12 @@
               "table": null,
               "compare": null,
               "costFact": null,
+              "facts": {
+                "name": "way.bridge-and-engine.name",
+                "verdict": null,
+                "cost": "way.bridge-and-engine.cost",
+                "bought": "way.bought"
+              },
               "asLocked": null
             },
             {
@@ -4448,6 +4474,12 @@
               "table": null,
               "compare": null,
               "costFact": null,
+              "facts": {
+                "name": "way.floor-and-flex.name",
+                "verdict": null,
+                "cost": "way.floor-and-flex.cost",
+                "bought": "way.bought"
+              },
               "asLocked": null
             },
             {
@@ -4472,6 +4504,12 @@
               "table": null,
               "compare": null,
               "costFact": null,
+              "facts": {
+                "name": "way.floor-the-schedule.name",
+                "verdict": null,
+                "cost": "way.floor-the-schedule.cost",
+                "bought": "way.bought"
+              },
               "asLocked": null
             },
             {
@@ -4510,6 +4548,12 @@
               "table": null,
               "compare": null,
               "costFact": null,
+              "facts": {
+                "name": "way.floor-to-age.name",
+                "verdict": null,
+                "cost": "way.floor-to-age.cost",
+                "bought": "way.bought"
+              },
               "asLocked": null
             },
             {
@@ -4563,6 +4607,12 @@
               "table": null,
               "compare": null,
               "costFact": null,
+              "facts": {
+                "name": "way.full-il-gilt.name",
+                "verdict": null,
+                "cost": "way.full-il-gilt.cost",
+                "bought": "way.bought"
+              },
               "asLocked": null
             },
             {
@@ -4652,6 +4702,12 @@
               "table": null,
               "compare": null,
               "costFact": null,
+              "facts": {
+                "name": "way.gilt-rotation.name",
+                "verdict": null,
+                "cost": "way.gilt-rotation.cost",
+                "bought": "way.bought"
+              },
               "asLocked": null
             }
           ],

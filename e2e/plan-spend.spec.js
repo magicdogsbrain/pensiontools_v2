@@ -150,8 +150,9 @@ test.describe('"What you spend", without an account', () => {
     const stepRows = page.locator('#incomeStepsEditor input[type="number"]');
     const values = await stepRows.evaluateAll((els) => els.map((e) => e.value));
     expect(values).toContain('85');
-    expect(values).toContain(String(yearlyGross(3000, b)));
-    expect(values).toContain(String(yearlyGross(2000, b)));
+    // (step F2) the full view's step boxes ask a month after tax, as the simple view does: the figures typed there read back
+    expect(values).toContain('3000');
+    expect(values).toContain('2000');
     await expect(page.locator('#ssBaseSalary')).toHaveValue(String(yearlyGross(3000, b)));
     // the planner's own loader stamps its upgrade as it always has; this step's keys are as the preview wrote them
     const plansNow = await storedPlans(page);

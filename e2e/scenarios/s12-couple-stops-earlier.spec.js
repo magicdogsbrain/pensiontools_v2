@@ -113,11 +113,11 @@ test('s12 · Kim and Sam in the full view: what each types stays, and Will it la
     // decision 11: the first screen asks what everyone has; the tax-free cash rules wait under "More detail"
     const first = await visibleText(page, '#stress-stresssettings');
     q.never('Settings, as it opens', ['UFPLS', 'Money Purchase Annual Allowance', 'bed-and-ISA'].filter((w) => first.includes(w)), { must: 'no tax-free-cash rules before a pot and an income', owner: 'VIEWS' });
-    q.reach('the income step empty, never a figure Kim did not give', (await page.locator('#incomeStepsEditor input[type=number][step="1000"]').first().inputValue()) === '', { did: 'a figure in the first step', owner: 'VIEWS' });
+    q.reach('the income step empty, never a figure Kim did not give', (await page.locator('#incomeStepsEditor input[data-step-amount]').first().inputValue()) === '', { did: 'a figure in the first step', owner: 'VIEWS' });
     // Kim types: the pension, the ISA, the first step, and the State Pension date as a platform shows it
     await q.step('type the pension, the ISA and what Kim wants a year', async () => {
       await typeBox(page, '#ssPot', KIM66.pot); await typeBox(page, '#ssIsaBalance', KIM66.isa);
-      await typeBox(page, '#incomeStepsEditor input[type=number][step="1000"]', 28000);
+      await typeBox(page, '#incomeStepsEditor input[data-step-amount]', 2076);   // (step F2) a month after tax: £28,000 a year before tax
     });
     await q.step('type the State Pension date as 2026-08', async () => {
       await typeBox(page, '#ssSpStartDate', '2026-08');
@@ -133,7 +133,7 @@ test('s12 · Kim and Sam in the full view: what each types stays, and Will it la
     await q.step('reload, Stress tester > Settings', async () => { await page.reload(); await fullPage(page, 'stress settings'); });
     q.exact('Kim\'s pension pot box after a reload', Number(await page.locator('#ssPot').inputValue()), KIM66.pot, { byHand: 'typed', owner: 'VIEWS' });
     q.exact('Kim\'s ISA box after a reload', Number(await page.locator('#ssIsaBalance').inputValue()), KIM66.isa, { byHand: 'typed', owner: 'VIEWS' });
-    q.exact('Kim\'s first income step after a reload', Number(await page.locator('#incomeStepsEditor input[type=number][step="1000"]').first().inputValue()), 28000, { byHand: 'typed', owner: 'VIEWS' });
+    q.exact('Kim\'s first income step after a reload', Number(await page.locator('#incomeStepsEditor input[data-step-amount]').first().inputValue()), 2076, { byHand: 'typed', owner: 'VIEWS' });
     // Will it last?: the what-if starts from Kim's own figures
     await q.step('Will it last?', () => fullPage(page, 'will it last'));
     q.exact('Try a strategy\'s pension pot, Kim\'s', Number(await page.locator('#tryPot').inputValue()), KIM66.pot, { byHand: 'Kim\'s pension as typed', owner: 'VIEWS' });
@@ -148,7 +148,7 @@ test('s12 · Kim and Sam in the full view: what each types stays, and Will it la
     });
     q.reach('"Saved" by the Accumulation heading', await savedLine(page, 'accumulation.saveState'), { did: await visibleText(page, 'accumulation.saveState'), owner: 'VIEWS' });
     // what Sam wants: £1,300 a month after tax, typed as the year before tax on Settings
-    await q.step('Settings: what Sam wants a year', async () => { await fullPage(page, 'stress settings'); await typeBox(page, '#incomeStepsEditor input[type=number][step="1000"]', 16358); });
+    await q.step('Settings: what Sam wants a year', async () => { await fullPage(page, 'stress settings'); await typeBox(page, '#incomeStepsEditor input[data-step-amount]', 1300); });
     q.reach('"Saved" by the Settings heading', await savedLine(page, 'settings.saveState'), { did: await visibleText(page, 'settings.saveState'), byHand: '(16,358 − 12,570) × 20% = 757.60 tax; 16,358 − 757.60 = 15,600.40 a year = £1,300 a month', owner: 'VIEWS' });
     await q.step('Will it last?', () => fullPage(page, 'will it last'));
     q.exact('Try a strategy\'s pension pot on Sam\'s plan: Sam\'s, never Kim\'s or a default', Number(await page.locator('#tryPot').inputValue()), SAM61.pot, { byHand: 'Sam\'s pension today, as typed on the Accumulation tab', owner: 'VIEWS' });

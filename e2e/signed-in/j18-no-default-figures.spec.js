@@ -51,7 +51,7 @@ test('a new plan from the wizard: no income, no ticked bed-and-ISA, empty what-i
   // Settings: the income step empty, bed-and-ISA not ticked
   await page.evaluate(() => window.switchToTab('stress'));
   await page.locator('.sub-tab[data-stresstab="stresssettings"]').click();
-  await expect(page.locator('#incomeStepsEditor input[type=number][step="1000"]').first()).toHaveValue('');
+  await expect(page.locator('#incomeStepsEditor input[data-step-amount]').first()).toHaveValue('');
   await expect(page.locator('#ssBedAndIsa')).not.toBeChecked();
   // Will it last?: the what-if's income empty, and Run the test says what to add instead of a result
   await page.locator('.sub-tab[data-stresstab="montecarlo"]').click();

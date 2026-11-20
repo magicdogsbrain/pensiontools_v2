@@ -33,7 +33,7 @@ import { cleanParams } from '../../services/StrategyState.js';
 import { get, applyPatch, safeSettings, safeTiming, bandsOf } from './about.js';
 import { pounds } from './income.js';
 import { isBought } from './pots.js';
-import { monthlyNet, yearlyGross, guaranteedAtYear } from './spend.js';
+import { guaranteedAtYear } from './spend.js';
 import { takenOfTarget } from '../../services/BeforeTax.js';
 import { LASTS_FIELDS, LASTS_WRITES, TRY_FIELDS, TRY_WRITES, WAY_IDS } from './schema.js';
 import { dateOf, dayWords, MONTHS } from './dates.js';
@@ -48,6 +48,7 @@ import { pensionToday, isaToday } from '../../reading/money.js';
 import { sippTodayOf } from '../../services/PotsAtRetirement.js';
 import { moneyK, money } from '../../reading/format.js';
 import { yearTablesText } from '../../reading/yearTable.js';
+import { tryIncomeStartOf, tryIncomeYearOf } from '../../reading/tryIncome.js';
 import { YEAR_COLUMNS, FLOOR_COLUMNS } from '../../reading/labels.js';
 
 export { applyPatch };
@@ -621,15 +622,15 @@ function monthWordsOf(at) {
 export function tryBoxesOf(plan, { today }) {
   const saved = savedLasts(plan, { today });
   const ss = saved.ss;
-  const bands = bandsOf(ss);
-  const first = Array.isArray(ss.targetSchedule) && ss.targetSchedule.length ? r0(ss.targetSchedule[0]) : r0(ss.baseSalary);
   const start = tryStartOf(plan, { today });
+  // the flat-income box: the plan's current step, a month after tax, from the one reading both views fill it from (step F3)
+  const income = tryIncomeStartOf(plan, { now: dateOf(today) });
   return {
     'try.way': WAY_IDS.includes(ss.strategyId) ? ss.strategyId : 'pots-and-valves',
     // the one start (tryStartOf): no pension known anywhere, the box empty (7.12.0); a locked plan's from its last record
     'try.pot': start.pot == null ? '' : String(start.pot),
     'try.isa': String(start.isa), 'try.isaPolicy': 'saved',
-    'try.incomeMode': 'shape', 'try.income': String(monthlyNet(first, bands)),
+    'try.incomeMode': 'shape', 'try.income': income == null ? '' : String(income),
     'try.years': String(num(ss.duration) || 35), 'try.cuts': 'saved', 'try.cutPct': '', 'try.cutEsc': ''
   };
 }
@@ -657,10 +658,9 @@ export function checkTry(plan, typed, { today }) {
   if (applies['try.income']) take('try.income');
   take('try.years'); take('try.cuts'); take('try.cutPct'); take('try.cutEsc');
   const ok = Object.keys(errors).length === 0;
-  const bands = bandsOf(saved.ss);
   const run = ok ? {
     way: values['try.way'], pot: values['try.pot'], isa: values['try.isa'] || 0, isaPolicy: values['try.isaPolicy'],
-    incomeMode: values['try.incomeMode'], income: applies['try.income'] ? yearlyGross(values['try.income'], bands) : 0,
+    incomeMode: values['try.incomeMode'], income: applies['try.income'] ? tryIncomeYearOf(values['try.income'], plan, { now: dateOf(today) }) : 0,   // the one way back (src/reading/tryIncome.js)
     years: values['try.years'], cuts: values['try.cuts'], cutPct: values['try.cutPct'] == null ? '' : values['try.cutPct'], cutEsc: values['try.cutEsc'] == null ? '' : values['try.cutEsc']
   } : null;
   return { ok, values, errors, applies, run, saved };

@@ -2809,7 +2809,7 @@
               <div class="form-group"><label>ISA (£)</label><input type="number" id="tryIsa" step="5000"></div>
               <div class="form-group"><label>ISA policy</label><select id="tryIsaPolicy"><option value="">as saved</option><option value="hold">Hold (powder dry)</option><option value="">Draw as configured</option></select></div>
               <div class="form-group"><label>Income</label><select id="tryIncomeMode" data-on-change="tryIncomeModeChanged(this.value)"><option value="shape">My income shape (as saved)</option><option value="flat">A flat amount</option></select></div>
-              <div class="form-group" id="tryIncomeWrap" style="display:none;"><label>Flat income (£/yr gross, today's money)</label><input type="number" id="tryIncome" step="1000"></div>
+              <div class="form-group" id="tryIncomeWrap" style="display:none;"><label>Flat income (a month after tax, today's money)</label><input type="number" id="tryIncome" step="10"></div>
               <div class="form-group"><label>Years</label><input type="number" id="tryYears" min="5" max="45"></div>
               <div class="form-group" id="tryCutsWrap"><label>Spending cuts in a slump (Pots &amp; Valves)</label><select id="tryCuts"><option value="">as saved</option><option value="on">On</option><option value="off">Off — paid in full until it runs out</option></select></div>
               <div class="form-group"><label>Cut depth (%)</label><input type="number" id="tryCutPct" placeholder="as saved" min="0" max="60" step="5"></div>
@@ -4177,7 +4177,7 @@
     import { tagPortfolio, allocationFromTags, mixFromFunds } from './src/services/PortfolioTagger.js';   // the mix a funds list makes, lifted pure (6.41.0)
     import { searchFunds as searchFundsIn } from './src/services/FundCatalogue.js';   // the fuzzy fund search, lifted pure (6.41.0)
     import { trySettingsOf, documentSuccessOf, chanceRunOf } from './src/answers/plan/lastsRun.js';   // "Try a strategy": the what-if copy of the settings, lifted pure (6.41.0)
-    import { tryDifferencesOf } from './src/answers/plan/lasts.js'; import { tryStartOf } from './src/reading/tryStart.js';   // … and its "What's different" list (6.41.0); where its boxes start, as the simple view's (step F1)
+    import { tryDifferencesOf } from './src/answers/plan/lasts.js'; import { tryStartOf, tryIncomeStartOf, tryIncomeYearOf } from './src/reading/tryStart.js';   // … and its "What's different" list (6.41.0); where its boxes start, as the simple view's (step F1)
     import { SUB_ASSET_PROFILES, FUND_TAG_MAP, FUND_CATALOGUE, catalogueEntry, subClassOptionsByBucket } from './src/services/SubAssetModel.js';
     import {
       initAdminConfig, activeFundCatalogue, liveCatalogueEntry, isAdminUser, adminPassphrase,
@@ -4243,7 +4243,7 @@
     import { proportions as holdingsProportions, describeMix } from './src/services/Holdings.js';
     import { targetHoldings, diffHoldings, sequence as transitionSequence, progress as transitionProgress, tickMove, untickMove, yearNeedsOf } from './src/services/TransitionPlanner.js';
     import { transitionHtml } from './src/ui/components/TransitionView.js';
-    import { installKeepHandlers, transitionGaps, transitionHeld, transitionOpensAt, nameTransitionTab, installKeepTestHandlers, transitionKeepTest, keepLineHtml } from './src/ui/keepHoldingsUi.js'; import { installStressPanel } from './src/ui/stressPanelUi.js'; import { markFact, markWithin, tableAttr, cellAttr } from './src/reading/mark.js'; import { markFieldBoxes, fieldAttrOf } from './src/reading/fields.js'; import { trackBusy } from './src/reading/busy.js'; import { HELD_MIX_FINDS } from './src/reading/sentenceMarks.js';   // "Try the bad years" on the Scenarios page (7.9.0)
+    import { installKeepHandlers, transitionGaps, transitionHeld, transitionOpensAt, nameTransitionTab, installKeepTestHandlers, transitionKeepTest, keepLineHtml } from './src/ui/keepHoldingsUi.js'; import { installStressPanel } from './src/ui/stressPanelUi.js'; import { markFact, markWithin, tableAttr, cellAttr, asWhatIf } from './src/reading/mark.js'; import { markFieldBoxes, fieldAttrOf } from './src/reading/fields.js'; import { trackBusy } from './src/reading/busy.js'; import { HELD_MIX_FINDS } from './src/reading/sentenceMarks.js';   // "Try the bad years" on the Scenarios page (7.9.0)
     import { parsePaste, matchRows, mergeLedger, categorise, applyPaste } from './src/services/HoldingsPaste.js';
     import { pastePreviewHtml } from './src/ui/components/HoldingsPasteView.js';   // every pasted line counts (6.23)
     import { CONTRACT_IDS } from './src/services/DecisionOverlay.js';   // the ways that pay by contract (one list)
@@ -5878,7 +5878,10 @@
       document.getElementById('tryIsaPolicy').value = '';
       document.getElementById('tryIncomeMode').value = 'shape';
       document.getElementById('tryIncomeWrap').style.display = 'none';
-      document.getElementById('tryIncome').value = s.baseSalary > 0 && !s.incomeNotSet ? Math.round(s.baseSalary) : '';   // none given: empty (7.12.0)
+      // the flat-income box: the plan's current step, a month after tax, as the simple view fills its box (src/reading/tryIncome.js,
+      // step F3); none given: empty (7.12.0)
+      let inc = null; try { inc = sc ? tryIncomeStartOf(sc, contextFor(sc, { now: todayOf() })) : null; } catch (e) { inc = null; }
+      document.getElementById('tryIncome').value = inc == null ? '' : inc;
       document.getElementById('tryYears').value = s.duration || 35;
       document.getElementById('tryCuts').value = '';
       document.getElementById('tryCutPct').value = ''; document.getElementById('tryCutEsc').value = '';
@@ -5888,6 +5891,7 @@
     };
     // The boxes of the what-if card as the lifted function takes them (answers/plan/lastsRun.js trySettingsOf, 6.41.0): the
     // ISA policy's third option ("Draw as configured", value '') is 'draw'; a blank cut depth or months is "as saved".
+    // `income` is the box as typed, a month after tax; tryStrategySettings turns it into the year before tax the run takes
     function readTryBoxes() {
       const pol = document.getElementById('tryIsaPolicy');
       const cuts = document.getElementById('tryCuts').value;
@@ -5904,8 +5908,11 @@
         cutEsc: document.getElementById('tryCutEsc').value
       };
     }
-    function tryStrategySettings(s) {
-      return trySettingsOf(s, readTryBoxes());   // the what-if copy, lifted pure (6.41.0): the preview's Try runs the same function
+    function tryStrategySettings(s, sc) {
+      // the what-if copy, lifted pure (6.41.0): the preview's Try runs the same function; the flat income back to a year before
+      // tax by the one way back the simple view's box uses (src/reading/tryIncome.js, step F3)
+      const b = readTryBoxes();
+      return trySettingsOf(s, { ...b, income: sc ? tryIncomeYearOf(b.income, sc, contextFor(sc, { now: todayOf() })) : 0 });
     }
     // "What's different", the planner's words for each line the lifted list gives (answers/plan/lasts.js tryDifferencesOf):
     // the six it always said, and the three it left out until 6.41.0 — the ISA policy, the cut depth, the escalation months.
@@ -5924,7 +5931,8 @@
       await window._marketReady;   // the one market (lead4.md R5): never priced on the copy built in while the day's file loads
       const out = document.getElementById('tryResults');
       await flushSettings(); const s = await getStressSettingsAsync();
-      const c = tryStrategySettings(s); { const miss = missingWords({ ...c, potsNotSet: false, incomeNotSet: !!s.incomeNotSet && readTryBoxes().incomeMode !== 'flat' }); if (miss) { out.innerHTML = '<div class="alert alert-info">' + budEsc(miss) + '</div>'; return; } }   // a what-if on figures nobody gave: said, never run (7.12.0)
+      let sc = null; try { sc = await getActiveScenarioAsync(); } catch (e) { sc = null; }
+      const c = tryStrategySettings(s, sc); { const miss = missingWords({ ...c, potsNotSet: false, incomeNotSet: !!s.incomeNotSet && readTryBoxes().incomeMode !== 'flat' }); if (miss) { out.innerHTML = '<div class="alert alert-info">' + budEsc(miss) + '</div>'; return; } }   // a what-if on figures nobody gave: said, never run (7.12.0)
       // Hold the height while running: swapping a long result for a spinner shrinks the page and the
       // browser clamps the scroll position to the top — the reader would lose their place.
       out.style.minHeight = (out.offsetHeight || 0) + 'px';
@@ -5943,7 +5951,7 @@
         // "What's different": the lifted list (answers/plan/lasts.js tryDifferencesOf, 6.41.0) in the planner's words
         const diff = tryDifferencesOf(s, c, window._tryBase).map((d) => TRY_DIFF_WORDS[d.id](d));   // against where the boxes started (tryStartOf)
         out.innerHTML = (diff.length ? '<div class="alert alert-warning" style="font-size:12px;"><strong>What-if, not your plan:</strong> ' + budEsc(diff.join(' · ')) + '. Nothing has been saved.</div>' : '<div class="alert alert-info" style="font-size:12px;">This is your plan as saved, run through ' + budEsc(STRATEGY_NAMES[c.strategyId]) + '.</div>')
-          + strategyResultCard(r, p);
+          + asWhatIf(strategyResultCard(r, p));   // a what-if is never marked as the plan's figure (src/reading/mark.js, step F3)
         document.getElementById('tryUseBtn').style.display = '';
       } catch (e) { console.error('Try strategy error:', e); out.innerHTML = '<div class="alert alert-danger">Could not run: ' + budEsc(e.message) + '</div>'; }
     };
@@ -8684,7 +8692,7 @@
       const p = strategyPlanFor(settings);
       const r = stressTestStrategy(id, p);
       const st = getStrategy(id).describe();
-      return '<div class="card"><h2>' + budEsc(st.name) + '</h2><p style="font-size:14px;"><strong>' + budEsc(st.promise) + '</strong></p><p class="hint">Full page (machine, dials, two decades) coming next; the honest numbers on your plan are below.</p></div>' + strategyResultCard(r, p);
+      return '<div class="card"><h2>' + budEsc(st.name) + '</h2><p style="font-size:14px;"><strong>' + budEsc(st.promise) + '</strong></p><p class="hint">Full page (machine, dials, two decades) coming next; the honest numbers on your plan are below.</p></div>' + asWhatIf(strategyResultCard(r, p));   // a fresh run on this way: a what-if, never marked as the plan's
     }
     function stepperHtml(frames, current, onSel) {
       const f = frames[current - 1];
@@ -8749,7 +8757,7 @@
         + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Years funded from cash first (1–3 is normal; cash is priced at inflation −1%)<input type="number" min="0" max="5" value="' + Math.min(5, prm.cashYears ?? 2) + '" style="width:80px;" data-on-change="setGiltDial(\'cashYears\', this.value)"></label>'
         + '<div class="hint" style="flex:1 1 260px;">Income shape: <strong>' + budEsc(shape) + '</strong>; State Pension ' + gbp(Math.round(p.spAnnual)) + ' from age ' + (p.startAge + (p.spStartYear ?? 0)) + '; horizon age ' + (p.startAge + p.durationYears) + '. <button type="button" class="risk-btn" style="padding:2px 8px;" data-on-click="switchToTab(\'stress\'); setTimeout(() => openToolSettingsTab(\'stress\'), 300);">Change these in Settings</button></div>'
         + '</div>';
-      if (plan.affordable && typeof r !== 'undefined' && r && r.affordable) h += '<div style="margin-top:10px;">' + verdictBlockHtml(r, p, chanceOptsOf(r, {}, window._oneTest)) + '</div>';
+      if (plan.affordable && typeof r !== 'undefined' && r && r.affordable) { const vb = verdictBlockHtml(r, p, chanceOptsOf(r, {}, window._oneTest)); h += '<div style="margin-top:10px;">' + (fromDoc ? vb : asWhatIf(vb)) + '</div>'; }   // the plan document's own figures keep their marks; a fresh run is a what-if
       h += '<div class="alert ' + (plan.affordable ? 'alert-success' : 'alert-danger') + '" style="margin-top:10px;">' + (plan.affordable
         ? '<strong>Affordable.</strong> Cash ' + gbp(Math.round(plan.cash)) + ' + ' + plan.orders.length + ' gilts ' + gbp(Math.round(plan.giltsCost)) + ' = <strong>' + gbp(Math.round(plan.total)) + '</strong> of your ' + gbp(Math.round(p.pot + (p.isaHold ? 0 : (p.isa || 0)))) + (p.isaHold && p.isa ? ' (ISA held aside)' : '') + ' → ' + gbp(Math.round(plan.spare)) + ' left over.'
         : '<strong>Not affordable as it stands:</strong> ' + budEsc(plan.reason || '') + '. Every £1k a year across the whole plan is roughly £27k; the cheapest years to trim are the early ones (they cost nearly £1 per £1), the dearest to add are the late ones (about 55p per £1).') + '</div>';
@@ -8811,7 +8819,7 @@
         + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Buy the schedule to age<input type="number" min="60" max="95" value="' + age + '" style="width:80px;" data-on-change="setFtaDial(this.value)"></label>'
         + '<div class="hint" style="flex:1 1 260px;">Income shape, State Pension and horizon come from Settings. <button type="button" class="risk-btn" style="padding:2px 8px;" data-on-click="switchToTab(\'stress\'); setTimeout(() => openToolSettingsTab(\'stress\'), 300);">Change them</button></div></div>';
       const cb = sg.canBuy.map((x) => gbp(Math.round(x.amount)) + '/yr to the horizon (' + gbp(Math.round(x.cost)) + ' at ' + sg.floorToAge + '): <strong>' + pctText(x.mc, 0, CHANCE_BARS) + '</strong> of futures, ' + pctText(x.hist) + ' of real histories').join('; ');
-      h += '<div style="margin-top:10px;">' + verdictBlockHtml(r, p, chanceOptsOf(r, {}, window._oneTest)) + '</div>';
+      h += '<div style="margin-top:10px;">' + asWhatIf(verdictBlockHtml(r, p, chanceOptsOf(r, {}, window._oneTest))) + '</div>';   // a fresh run on this way's dials: a what-if
       h += '<div class="alert ' + (r.ruin.mc <= 10 ? 'alert-success' : r.ruin.mc <= 25 ? 'alert-warning' : 'alert-danger') + '" style="margin-top:10px;">'
         + '<strong>Bought to ' + sg.floorToAge + ': ' + gbp(Math.round(sg.floorCost)) + ' (' + Math.round(sg.shareOfPot * 100) + '% of the pot). Reserve today: ' + gbp(Math.round(sg.sleeveE0)) + '.</strong> '
         + 'At ' + sg.floorToAge + ' it is worth a median ' + gbp(Math.round(sg.sleeveAtA.p50)) + ' (1-in-10 bad ' + gbp(Math.round(sg.sleeveAtA.p10)) + ', 1-in-10 good ' + gbp(Math.round(sg.sleeveAtA.p90)) + '). Chance it can then buy ' + cb + '. '
@@ -8828,7 +8836,7 @@
         + '<div class="settings-section" style="margin:0;"><div class="section-title" style="font-size:13px;">What you do</div><ul><li><strong>Once:</strong> buy the rungs to ' + sg.floorToAge + ' and one world-equity fund.</li><li><strong>Monthly:</strong> nothing.</li><li><strong>Yearly:</strong> one look at the reserve against its line; if it is far ahead, buy rungs beyond ' + sg.floorToAge + '.</li><li><strong>At ' + sg.floorToAge + ':</strong> price the rest, decide once.</li></ul></div>'
         + '<div class="settings-section" style="margin:0;"><div class="section-title" style="font-size:13px;">How you get out</div><ul><li>Any time: sell the reserve; sell the rungs at market.</li><li>At ' + sg.floorToAge + ' or later: an RPI-linked annuity turns the reserve into income for life in one transaction.</li></ul></div>'
         + '</div></div>';
-      h += '</div>' + strategyResultCard(r, p, { title: '5 · The honest numbers' });
+      h += '</div>' + asWhatIf(strategyResultCard(r, p, { title: '5 · The honest numbers' }));
       if (window._ftaBorrowedLine) h = window._ftaBorrowedLine + h;
       return h;
     }
@@ -9022,7 +9030,7 @@
       const m = spec.machine(r, p); m.frames = spec.frames; window._specMachine = m;
       h += '<div class="strat-block"><div class="section-title">1 · The machine</div><div id="specMachine" class="machine-scroll">' + m.fn(m.d, window._specFrame) + '</div><div id="specStepper">' + stepperHtml(spec.frames, window._specFrame, 'setSpecFrame') + '</div></div>';
       h += '<div class="strat-block"><div class="section-title">2 · Turn the dials</div><div class="row-flex" style="align-items:flex-end;">' + spec.dials(prm, over) + '<div class="hint">Income shape, State Pension, horizon and allocation: <button type="button" class="risk-btn" style="padding:2px 8px;" data-on-click="switchToTab(\'stress\'); setTimeout(() => openToolSettingsTab(\'stress\'), 300);">Settings</button></div></div>';
-      h += '<div style="margin-top:10px;">' + verdictBlockHtml(r, p, chanceOptsOf(r, {}, window._oneTest)) + '</div>';
+      { const vb = verdictBlockHtml(r, p, chanceOptsOf(r, {}, window._oneTest)); h += '<div style="margin-top:10px;">' + (docOwn ? vb : asWhatIf(vb)) + '</div>'; }   // a fresh run on this way's dials is a what-if
       h += '<div class="alert ' + (r.ruin.mc <= 5 ? 'alert-success' : r.ruin.mc <= 15 ? 'alert-warning' : 'alert-danger') + '" style="margin-top:10px;">' + spec.verdict(r, p) + '</div>';
       h += '<div style="margin-top:8px;"><button type="button" data-on-click="useSpecStrategy(\'' + id + '\')">Use this as my plan\'s strategy</button></div></div>';
       h += '<div class="strat-block"><div class="section-title">3 · Three real starts</div><div class="machine-scroll">' + spec.decades(r, p) + '</div></div>';
@@ -9032,7 +9040,7 @@
         + '<div class="settings-section" style="margin:0;"><div class="section-title" style="font-size:13px;color:var(--warning);">How it fails</div>' + list(spec.fails) + '</div>'
         + '<div class="settings-section" style="margin:0;"><div class="section-title" style="font-size:13px;">What you do</div>' + list(spec.doWhat) + '</div>'
         + '<div class="settings-section" style="margin:0;"><div class="section-title" style="font-size:13px;">How you get out</div>' + list(spec.exit) + '</div></div></div>';
-      h += '</div>' + strategyResultCard(r, p, { title: '5 · The honest numbers', docSheet: !!docOwn });
+      { const card = strategyResultCard(r, p, { title: '5 · The honest numbers', docSheet: !!docOwn }); h += '</div>' + (docOwn ? card : asWhatIf(card)); }   // a fresh run on this way's dials is a what-if
       return h;
     }
 

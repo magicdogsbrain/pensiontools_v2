@@ -17,6 +17,17 @@ export const STAGE_WORDS = Object.freeze(['Saving', 'Moving', 'Living on it']);
 /** The stage words by LifeStage.stageOf's key (and a closed plan's): the reading's stage (src/reading/timing.js) draws these. */
 export const STAGE_WORD_OF = Object.freeze({ saving: STAGE_WORDS[0], moving: STAGE_WORDS[1], drawing: STAGE_WORDS[2], closed: 'Closed' });
 
+/** A stored placing (LifeStage.STAGES, as a plan's journey records it) in the three words: '' for one not placed. */
+const PLACING_WORD = Object.freeze({
+  'committed-saving': STAGE_WORDS[0], approaching: STAGE_WORDS[1], transition: STAGE_WORDS[1],
+  running: STAGE_WORDS[2], bridge: STAGE_WORDS[2], 'draft-retired': STAGE_WORDS[2]
+});
+/** A journey entry's stage (a dated record, lead4.md R4) in the stage words both views use (R7). */
+export function journeyStageWord(entry) {
+  const k = entry && entry.stage;
+  return STAGE_WORD_OF[k] || PLACING_WORD[k] || '';
+}
+
 export const LABELS = Object.freeze({
   [FACT.STAGE]: { label: 'Stage', basis: 'words' },
   [FACT.PLAN_NAME]: { label: 'Plan', basis: 'words' },

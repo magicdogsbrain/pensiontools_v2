@@ -189,7 +189,9 @@ export function createStopRunner(sp, lives = sp.lives, kernels = sp.kernels, opt
     const pension = run.role === 'savings' ? 0 : q.pension;
     return { equity: pension * mix.equity, bond: pension * mix.bond, cash: pension * mix.cash, isa: q.isa };
   };
-  const fast = keptCase ? createFastRunner(plan, keptCase.drawFutures, { potsFor, driversFor: keptCase.driversFor }) : createFastRunner(plan, sp.drawFutures, { potsFor, driversFor: sp.driversFor });
+  // (a saved plan on a way that buys its income: its own test's engine, keep/planPath.js runnerFor)
+  const fast = keptCase ? (keptCase.runnerFor ? keptCase.runnerFor({ potsFor }) : createFastRunner(plan, keptCase.drawFutures, { potsFor, driversFor: keptCase.driversFor }))
+    : createFastRunner(plan, sp.drawFutures, { potsFor, driversFor: sp.driversFor });
   const perLife = plan.runs.length > 1;                              // two people: the shares of the need differ by life
   const byK = new Map();
   const byH = new Map();

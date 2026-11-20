@@ -110,7 +110,13 @@
  *           lives, with their 1-in-10 low and high, as before. The engine's own draws (the bond model) start at the stop, as
  *           every run's do. A plan locked from now keeps those lives' figures with its pots at the stop, so it runs the same
  *           lives as when it was locked. A plan whose pots at the stop the person typed, a plan locked before (its document's
- *           one pot), a stop this year, the real histories and the named starts run on the one pot as before; so do the
- *           bought ways for now.
+ *           one pot), a stop this year, the real histories and the named starts run on the one pot as before.
+ *           The ways that buy their income (the full gilt ladder and the rotation built on it, the floors, Bridge & engine,
+ *           Ladder & Ratchet) read the same lives for a plan still saving (ruling 7): each life buys the way with its own
+ *           pot at the stop (the pension and the savings it may use, scaled from the middle as a Pots & Valves life is), or
+ *           cannot and fails in year 0 with nothing bought or left; a life that buys it lasts as the way's own test at the
+ *           middle pot says it does in that future (a sleeve's market is that future's, at the middle pot's sleeve). It
+ *           priced one middling pot: a saver's full gilt ladder said "lasts in every future" where some lives' pots at the
+ *           stop cannot buy it. The verdict on "What you pay in" reads the plan's own way (it was worked out as pots).
  */
 export const ENGINE_VERSION = '6.39.0';

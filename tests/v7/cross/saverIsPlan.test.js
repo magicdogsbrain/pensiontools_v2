@@ -24,6 +24,11 @@ import { lastsOf } from '../../../src/answers/plan/lastsRun.js';
 import { saverVerdictOf } from '../../../src/answers/plan/saving.js';
 import { answerFor } from '../../../src/answers/index.js';
 import { createHandler } from '../../../src/v7/effects/answerWorker.js';
+import { effectiveStressSettings } from '../../../src/services/PlanReading.js';
+import { planFor } from '../../../src/answers/plan/lastsRun.js';
+import { dateOf } from '../../../src/answers/plan/dates.js';
+import { stressTestStrategy } from '../../../src/strategies/stressTest.js';
+import { stopPotsByLife } from '../../../src/services/SavingPath.js';
 
 const TODAY = '2026-09-30';
 const N = 40;
@@ -155,6 +160,53 @@ describe('a stop before the pension opens: the answer, the kept plan and its sav
       const a = answerA({ ...ALEX, spend: { kind: 'amount', amount: 2000 }, stop: { kind: 'age', age: stop }, partTime: { has: false } }, { ...ENV100, detail: 'chart' });
       const plan = keptPlansOf('a', a, ENV100).yours;
       expect({ lasted: N100 - a.chance.fails, weighted: a.chance.weighted, verdict: a.shown.verdict }).toEqual(test100(plan));
+    }, 120000);
+  }
+});
+
+/**
+ * A SAVER'S PLAN DRAWS BY ITS OWN WAY (the lead's ruling 7, fix round 2 of step P3): the saver verdict on a plan that buys
+ * its income, or draws Buckets in order, is the plan's own test, never a Pots & Valves verdict from the household. A way
+ * that buys its income asks of each life "can the pot at the stop buy it": the plan's own test of a plan still saving reads
+ * its lives so (stressTest.boughtOnLives), and the verdict reads the same.
+ * Measured before (100 futures, 30 September 2026), the plan's test, then the saver verdict: Sam's plan on the full gilt
+ * ladder 100 of 100 "yes" (one middling pot priced), the verdict 61 of 100 (0.7072) "no", a Pots & Valves verdict with
+ * £1,210 a month "enough"; Jo's plan on Floor & Flex 0 of 100, the verdict 56; Jo's on Buckets 61 (0.6883), the verdict
+ * 56 (0.6581).
+ */
+const SAM = { household: 'single', you: { age: 45, pot: 60000, statePension: { kind: 'full' }, finalSalary: { has: false }, payIn: { kind: 'split', own: 500, employer: 300 } },
+  savings: 10000, savingsIn: 0, savingRisk: 'balanced', risk: 'balanced', charge: 0.5, endAge: 95, stop: { age: 62 }, confidence: 'balanced' };
+const onWay = (plan, strategyId) => withSettings(plan, { strategyId });
+/**
+ * The plan's test said as B says it: a way whose purchases follow the plan's length has no weighted figure (life.js
+ * DURATION_SHAPED: null in the plan's reading), and B's chance block then carries the count's share in that field
+ * (levels.js chanceBlock, not weighing) — the same count, said in B's shape, asserted exactly.
+ */
+const asB = (t) => (t.weighted === null ? { ...t, weighted: t.lasted / N } : t);
+describe('a saver\'s plan on another way of drawing: the verdict is the plan\'s own test', () => {
+  it('Sam on the full gilt ladder: the plan\'s test counts the lives whose pot at the stop buys the ladder, and the verdict says it', async () => {
+    const plan = onWay(keptB(SAM, 1800), 'full-il-gilt');
+    const test = planTest(plan);
+    // by hand: the ladder's cost at the middle pot, and each life's pot that may buy it (pension and savings, scaled from
+    // the middle as the plan test scales a life)
+    const now = dateOf(TODAY);
+    const p = planFor(effectiveStressSettings(plan, { now }), now);
+    const mid = stressTestStrategy('full-il-gilt', { ...p, mcRuns: N, stopLives: null });
+    const cost = mid.plan.total;
+    const lives = stopPotsByLife(p.stopLives.core, N);
+    const buys = lives.pension.filter((v, i) => p.pot * v / p.stopLives.sipp + (p.isa || 0) * (p.stopLives.isa > 0 ? lives.savings[i] / p.stopLives.isa : 1) >= cost).length;
+    expect(buys).toBeGreaterThan(0);
+    expect(buys).toBeLessThan(N);
+    expect(test.lasted).toBe(buys);
+    const b = await saverRun(plan);
+    expect(said(b)).toEqual(asB(test));
+    // what would be enough: the pay-in at which the level's count of lives buy the ladder
+    expect(b.enough.atLevel.payIn).toBeGreaterThan(800);
+  }, 120000);
+  for (const way of ['floor-and-flex', 'buckets-in-order', 'ladder-and-ratchet']) {
+    it(`Jo's plan on ${way}: the saver verdict is the plan's test`, async () => {
+      const plan = onWay(keptB(JO, 1800), way);
+      expect(said(await saverRun(plan))).toEqual(asB(planTest(plan)));
     }, 120000);
   }
 });

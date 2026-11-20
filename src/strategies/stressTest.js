@@ -879,6 +879,77 @@ export function pnvDecadeSeries(p, year, month = 1) {
   return pnvRun(p.pnvCfg, annualNominal(rtr, cpi, s, planYears), s, planYears, p.startAge);
 }
 
+/**
+ * WAYS THAT BUY THEIR INCOME, FOR A PLAN STILL SAVING (lead4-engine.md ruling 7; lead4.md D12). What the way costs at the
+ * stop: the least pot that may buy (availablePot: the pension and the savings it may use) that buys it, read from its own
+ * test's result and configs — the gilt ladders' total (GiltLadderPlan: affordable when the total is at most the pot), the
+ * floors', Bridge & engine's and Ladder & Ratchet's base cost (compareRunner: affordable when the pot is more).
+ */
+const BOUGHT_COST = Object.freeze({
+  'full-il-gilt': (r) => (r.plan ? r.plan.total : null),
+  'gilt-rotation': (r) => (r.plan ? r.plan.total : null),
+  'ladder-and-ratchet': (r, c) => c.baseLadderCost,
+  'floor-and-flex': (r, c) => c.ffFloorCost,
+  'floor-the-schedule': (r, c) => c.fsFloorCost,
+  'floor-to-age': (r, c) => c.faFloorCost,
+  'bridge-and-engine': (r, c) => c.beCost
+});
+/** Whether a way buys its income (the ways BOUGHT_COST prices). */
+export const buysIncome = (strategyId) => Object.prototype.hasOwnProperty.call(BOUGHT_COST, strategyId);
+/** The cost at the stop of a way that buys its income, from its test's result at the middle pot; null where it is not bought. */
+export function boughtCostOf(strategyId, r, configs) {
+  const f = BOUGHT_COST[strategyId];
+  const v = f && r && r.affordable ? f(r, configs || r.configs || {}) : null;
+  return typeof v === 'number' && Number.isFinite(v) ? v : null;
+}
+/**
+ * Life i's pot that may buy (availablePot) from its own pension and savings at the stop: the plan's pots scaled by the
+ * life's over the lives' middle, as stopLifeOf scales a Pots & Valves life.
+ */
+export function lifeAvailableOf(p, pension, savings) {
+  const sl = p.stopLives;
+  const k = sl && sl.sipp > 0 ? pension / sl.sipp : 1;
+  const kIsa = sl && sl.isa > 0 ? savings / sl.isa : 1;
+  return (p.pot || 0) * k + (p.isaHold ? 0 : (p.isa || 0) * kIsa);
+}
+/**
+ * Life i on a way that buys its income: when its pot buys it, the way's own result in future i (its test at the middle pot:
+ * a gilt ladder lasts in every future once bought; a sleeve's market is future i's); when it cannot, it fails in year 0
+ * with nothing bought and nothing left. One rule for the plan's own test and for question B on the plan (keep/planPath.js).
+ */
+export function boughtLifeOf(r, i, buys) {
+  const f = r.futuresMc || {};
+  const at = (a) => (Array.isArray(a) && a.length ? a[Math.min(i, a.length - 1)] : undefined);
+  if (!buys) return { survived: false, failYear: 0, terminal: 0, unpaid: null };
+  const s = at(r.survivedMc);
+  const fy = at(f.failYear);
+  const t = at(f.terminal);
+  const u = at(f.unpaid);
+  return { survived: s !== false, failYear: fy === undefined ? null : fy, terminal: typeof t === 'number' && Number.isFinite(t) ? t : 0, unpaid: typeof u === 'number' ? u : null };
+}
+/** The test of a plan still saving on a way that buys its income, read over its lives (in place): see boughtLifeOf. */
+function boughtOnLives(strategyId, r, p, configs) {
+  const cost = boughtCostOf(strategyId, r, configs);
+  if (cost === null) return;
+  const runs = p.mcRuns || 400;
+  const lives = stopPotsByLife(p.stopLives.core, runs);
+  const f = r.futuresMc || {};
+  const out = Array.from({ length: runs }, (_, i) => boughtLifeOf(r, i, lifeAvailableOf(p, lives.pension[i], lives.savings[i]) >= cost));
+  const buys = out.map((x, i) => lifeAvailableOf(p, lives.pension[i], lives.savings[i]) >= cost);
+  const cannotBuy = buys.filter((b) => !b).length;
+  const terms = out.map((x) => x.terminal);
+  r.survivedMc = out.map((x) => x.survived);
+  r.futuresMc = { ...f, failYear: out.map((x) => (x.survived ? null : x.failYear)), terminal: terms,
+    ...(Array.isArray(f.unpaid) ? { unpaid: out.map((x) => (x.survived ? null : x.unpaid)) } : {}) };
+  delete r.futuresMc.cutReal;
+  r.ruin = { ...(r.ruin || {}), mc: 100 * out.filter((x) => !x.survived).length / runs };
+  r.n = { ...(r.n || {}), mc: runs };
+  r.terminal = { ...(r.terminal || {}), p10: pct(terms, 0.10), p50: pct(terms, 0.5), p90: pct(terms, 0.90) };
+  // the lives whose pot at the stop cannot buy it: said beside the way's own figures
+  r.lives = { cost, cannotBuy, n: runs };
+  if (cannotBuy > 0) r.failAges = [...(r.failAges || []), ...Array(cannotBuy).fill(p.startAge)];
+}
+
 /** Stress-test ONE strategy on the plan. */
 /**
  * The Pots & Valves row is P&V whatever the plan's SAVED strategy. A plan saved on Buckets in order
@@ -943,6 +1014,8 @@ export function stressTestStrategy(strategyId, p, configs = deriveCompareConfigs
   const fn = { 'pots-and-valves': pnvPlain, 'buckets-in-order': bucketsTest, 'ladder-and-ratchet': ladderTest, 'bridge-and-engine': bridgeTest, 'floor-and-flex': flexTest, 'floor-the-schedule': scheduleFloorTest, 'floor-to-age': floorToAgeTest, 'full-il-gilt': fullGiltTest, 'gilt-rotation': rotationTest }[strategyId];
   if (!fn) throw new Error('unknown strategy ' + strategyId);
   const r = fn(p, configs);
+  // a plan still saving on a way that buys its income: each life buys it with its own pots at the stop, or cannot (ruling 7)
+  if (p.stopLives && r.affordable && BOUGHT_COST[strategyId]) boughtOnLives(strategyId, r, p, configs);
   if (strategyId !== 'pots-and-valves' && strategyId !== 'buckets-in-order') closedYearsCut(r, p);
   // A bought way's guaranteed line names, beside what the contract buys, every source that comes anyway (State Pension
   // first, as the Pots & Valves family's line: incomeAnyway.js), which its worst 12 months already count (7.12.0).

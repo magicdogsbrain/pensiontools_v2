@@ -70,8 +70,6 @@ import { bandsOf, netOf } from './about.js';
 import { flexibleAccessAlong } from '../../services/FlexibleAccess.js';
 import { dateOf } from './dates.js';
 
-/** The ways of drawing a saver's verdict is worked out on as they are: pots and valves (B's own) and buckets (worked out as pots). */
-export const POTS_WAYS = Object.freeze(['pots-and-valves', 'buckets-in-order']);
 
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
@@ -244,14 +242,13 @@ export function saverInputsOf(plan, { today, checkIn = null, plans = [] } = {}) 
   // the plan itself (the lead's ruling 10): B's drawing years are this plan's own at each stop and amount B asks
   // (keep/planPath.js planAtStop), so every figure they read is the plan's — the State Pension's date, the access method,
   // the final-salary rule, the plan-to age, lump sums, a taxable account — and the charge is the plan's to the hundredth
-  // (Pots & Valves, the plan path's way. Buckets and the ways that buy their income are still worked out as pots, on B's own
-  // drawing years, and say the way they draw: notes.way — the lead's ruling 7, still to come)
-  const pnv = !ss.strategyId || ss.strategyId === 'pots-and-valves';
-  const fromPlan = pnv ? { plan, stopAge, monthly: aim.aimMonthly, charge } : null;
+  // — in the plan's own way of drawing (the lead's ruling 7): Pots & Valves, Buckets in order, or a way that buys its
+  // income, whose verdict is whether each life's pot at the stop buys it, as the plan's own test reads its lives
+  const fromPlan = { plan, stopAge, monthly: aim.aimMonthly, charge };
   // the plan's own mixes, exact — unless they are the levels named, exactly (a plan kept as an answer's levels): then the
   // levels say them, and B's boxes hold them as they are (saverDraftOf `exactMix`)
   const exactLevels = isPreset(mixes.drawing, inputs.risk) && isPreset(mixes.saving, inputs.savingRisk);
-  const env = { ...(exactLevels ? {} : { mix: mixes.drawing, savingMix: mixes.saving }), ...(scheme ? { scheme } : {}), ...(fromPlan ? { fromPlan } : {}) };
+  const env = { ...(exactLevels ? {} : { mix: mixes.drawing, savingMix: mixes.saving }), ...(scheme ? { scheme } : {}), fromPlan };
 
   // the answer's own level (7.8.0): the person's only when they chose it (the kept answer row's `levelChosen`); a level
   // stored before 7.8.0 ("9 in 10" was everyone's default) is Balanced. No figure of the plan's, so it stays the answer's
@@ -278,17 +275,12 @@ export function saverInputsOf(plan, { today, checkIn = null, plans = [] } = {}) 
   // a couple's plan is read on its own until two plans are read together (release step R5): the screen says so
   const couple = !!(plan && plan.household && typeof plan.household.partnerScenarioId === 'string' && plan.household.partnerScenarioId)
     || !!(plan && isObj(plan.fromAnswer) && plan.fromAnswer.household === 'couple');
-  // the verdict is worked out as if the money were drawn from pots (B's own way, pots and valves; buckets is worked out the
-  // same way): a plan that draws by another way is told so, with the way it draws (7.10.0, spec-7100 §6). Said only then,
-  // so every other plan's notes are as they were
-  const way = typeof ss.strategyId === 'string' && ss.strategyId && !POTS_WAYS.includes(ss.strategyId) ? ss.strategyId : null;
   return {
     ok: true, inputs, env,
     notes: {
       aimYearly: aim.aimYearly, aimMonthly: inputs.spend && inputs.spend.amount != null ? inputs.spend.amount : aim.aimMonthly, stopAge,
       rise, share: read.share ? { ownPct: read.share.ownPct, employerPct: read.share.employerPct } : null,
-      potFrom, fromAccumulation: !!stage.fromAccumulation, couple,
-      ...(way ? { way } : {})
+      potFrom, fromAccumulation: !!stage.fromAccumulation, couple
     }
   };
 }

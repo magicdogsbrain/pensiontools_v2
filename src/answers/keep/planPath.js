@@ -64,6 +64,7 @@ import { firstOpenAge } from '../shared/household.js';
 import { LEVEL_IDS } from '../shared/levels.js';
 import { RISK_PRESETS } from '../../services/GlidepathService.js';
 import { wantWrites } from '../plan/saving.js';
+import { stressTestStrategy, pnvFamilyPlan, buysIncome, boughtCostOf, boughtLifeOf, lifeAvailableOf } from '../../strategies/stressTest.js';
 
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
 const STRATEGY = 'pots-and-valves';
@@ -280,7 +281,13 @@ export function planCaseOf(source, ins, env, { lives = null, dragPct = 0, fromAg
   const H0 = isNum(spendAYear) && spendAYear > 0 ? spendAYear : 12 * STEP;
   const first = at(H0);
   const strategyId = first.settings.strategyId || STRATEGY;
-  if (strategyId !== STRATEGY) throw new Error('planCaseOf: a kept answer draws by Pots & Valves');
+  // a SAVED plan draws by its own way (the lead's ruling 7): Buckets in order on the Pots & Valves family's config
+  // (stressTest.pnvFamilyPlan; `simulate` runs it, as the plan test does), a way that buys its income by its own test,
+  // each life buying it with its own pots at the stop or not (stressTest.boughtLifeOf, the plan test's own rule)
+  const bought = !!planAt && buysIncome(strategyId);
+  const ordered = !!planAt && strategyId === 'buckets-in-order';
+  if (strategyId !== STRATEGY && !bought && !ordered) throw new Error('planCaseOf: a kept answer draws by Pots & Valves');
+  const familyCfg = (pl) => (ordered ? pnvFamilyPlan(strategyId, pl).pnvCfg : pl.pnvCfg);
   const p0 = first.p;
   // (env.lifeTable: tests only, another table in LongevityModel's shape, as weigh.js reads it)
   const table = env.lifeTable || undefined;
@@ -302,13 +309,27 @@ export function planCaseOf(source, ins, env, { lives = null, dragPct = 0, fromAg
     if (c) return c;
     const { settings, p } = at(H);
     const pRun = extend ? weightedPlanFor(settings, p, w.years, now) : p;
-    c = withIsaMix({ ...pRun.pnvCfg, ...drag, years: pRun.durationYears });
+    c = withIsaMix({ ...familyCfg(pRun), ...drag, years: pRun.durationYears });
     configMemo.set(H, c);
     return c;
   };
   const base = configAt(H0);
   // the plan's years, for the left at the end: the plan's own config (no run to the weighting age)
-  const planConfigAt = (H) => withIsaMix({ ...at(H).p.pnvCfg, ...drag, years: planYears });
+  const planConfigAt = (H) => withIsaMix({ ...familyCfg(at(H).p), ...drag, years: planYears });
+  /**
+   * A way that buys its income at H a year (`bought`): its own test on the plan at H, on the answer's futures (the plan test's
+   * seeds), at the middle pot — what each life reads when its pot buys it — and what it costs at the stop.
+   */
+  const boughtMemo = new Map();
+  const boughtAt = (H) => {
+    let b = boughtMemo.get(H);
+    if (b) return b;
+    const q = { ...at(H).p, mcRuns: n, stride: 1e9, stopLives: null, ...(isNum(dragPct) && dragPct > 0 ? { returnDragPct: dragPct } : {}) };
+    const r = stressTestStrategy(strategyId, q);
+    b = { r, cost: boughtCostOf(strategyId, r, r.configs) };
+    boughtMemo.set(H, b);
+    return b;
+  };
 
   // a saver (B): the drawing years start S years from today, in each life's own years from there
   const S0 = saver ? saver.S : 0;
@@ -341,8 +362,8 @@ export function planCaseOf(source, ins, env, { lives = null, dragPct = 0, fromAg
   const configsAtH = (H) => {
     let c = byH.get(H);
     if (!c) {
-      const config = configAt(H);
-      if (!sameBase(config, base)) throw new Error('planCaseOf: the kept plan at another amount changes more than the amount');
+      const config = bought ? { ...configAt(H), bought: boughtAt(H) } : configAt(H);
+      if (!bought && !sameBase(config, base)) throw new Error('planCaseOf: the kept plan at another amount changes more than the amount');
       c = [{ who: 'you', role: 'pension', config }];
       byH.set(H, c);
     }
@@ -417,6 +438,12 @@ export function planCaseOf(source, ins, env, { lives = null, dragPct = 0, fromAg
     for (let i = 0; i < n; i++) {
       const m = ms[i];
       if (m !== null && m !== undefined && m < toMonth) { terms[i] = 0; continue; }
+      if (bought) {
+        const b = boughtAt(H);
+        const q = atStop ? atStop.startOf(i) : null;
+        terms[i] = b.cost === null ? 0 : boughtLifeOf(b.r, i, q ? q.avail >= b.cost : true).terminal;
+        continue;
+      }
       const ret = drawFutures[i].returns;
       let cumInfl = 1;
       for (let y = 0; y < planYears; y++) cumInfl *= (1 + (ret.inflation[y] ?? 0.025));
@@ -451,8 +478,8 @@ export function planCaseOf(source, ins, env, { lives = null, dragPct = 0, fromAg
     const { p, settings } = at(H);
     const leftSaid = shortfallLeftOf(left);
     const own = ms.map((m) => m !== null && m !== undefined && m < toMonth);
-    const r = { strategyId: STRATEGY, survivedMc: own.map((x) => !x), futuresMc: { failYear: ms.map((m, i) => (own[i] ? runYearOf(m, startAge) : null)) } };
-    const rW = extend ? { strategyId: STRATEGY, survivedMc: ms.map((m) => m === null || m === undefined), futuresMc: { failYear: ms.map((m) => (m === null || m === undefined ? null : runYearOf(m, startAge))) } } : null;
+    const r = { strategyId, survivedMc: own.map((x) => !x), futuresMc: { failYear: ms.map((m, i) => (own[i] ? runYearOf(m, startAge) : null)) } };
+    const rW = extend ? { strategyId, survivedMc: ms.map((m) => m === null || m === undefined), futuresMc: { failYear: ms.map((m) => (m === null || m === undefined ? null : runYearOf(m, startAge))) } } : null;
     const s = planShortfallOf(r, p, {}, rW ? { rW, wYears: years } : {});
     if (!s.when) return { when: null, howLong: null, howMuch: 1, floor: null, ...(leftSaid ? { left: leftSaid } : {}) };
     const ys = ms.filter((m) => m !== null && m !== undefined).map((m) => runYearOf(m, startAge)).sort((a, b) => a - b);
@@ -521,7 +548,8 @@ export function planCaseOf(source, ins, env, { lives = null, dragPct = 0, fromAg
   // a SAVED plan's case (`planAt`: the saver verdict on a kept plan, ruling 10): its own config scaled by the life's pension
   // over the lives' middle, pots and floors alike — the plan test's own rule (stressTest.js stopLifeOf), whatever its mix
   const midSipp = planAt && p0.stopLives && p0.stopLives.sipp > 0 ? p0.stopLives.sipp : null;
-  const potsAt = midSipp ? (q) => {
+  // a way that buys its income: life i's pot that may buy it (stressTest.lifeAvailableOf, as the plan test reads its lives)
+  const potsAt = bought ? (q) => ({ pension: q.pension, isa: q.isa, avail: p0.stopLives ? lifeAvailableOf(p0, q.pension, q.isa) : q.pension + q.isa }) : midSipp ? (q) => {
     const k = q.pension / midSipp;
     return { equity: base.equityStart * k, bond: base.bondStart * k, cash: base.cashStart * k,
       equityMin: base.equityMin * k, bondMin: base.bondMin * k, cashTarget: base.cashTarget * k, isa: isaAt(q) };
@@ -530,8 +558,24 @@ export function planCaseOf(source, ins, env, { lives = null, dragPct = 0, fromAg
     return { equity: e, bond: b, cash: q.pension - e - b, isa: isaAt(q) };
   };
 
+  /**
+   * The stop runner's engine for a way that buys its income (stopAt.js createStopRunner): life i, with its pots at the stop
+   * (`potsFor`), lasts as the way's own test says it does in future i when its pot buys it, and runs out in year 0 when it
+   * cannot — the plan test's rule (stressTest.boughtLifeOf), so B's counts and searches read the plan's own test.
+   */
+  const runnerFor = bought ? ({ potsFor }) => ({
+    eligible: [false],
+    run(r, i, config) {
+      const b = config.bought;
+      const life = b.cost === null ? { survived: false, failYear: 0 } : boughtLifeOf(b.r, i, potsFor(r, i).avail >= b.cost);
+      return life.survived ? { failed: false, failMonth: null } : { failed: true, failMonth: 12 * (isNum(life.failYear) ? life.failYear : planYears - 1) };
+    },
+    driversOf: () => null,
+    stoppable: () => false
+  }) : null;
+
   return {
-    source, plan, sp: { n, lives: L }, runner, weigher, toMonth, planYears, years, startAge, planToAge, weightToAge,
+    source, plan, sp: { n, lives: L }, runner, weigher, ...(runnerFor ? { runnerFor } : {}), toMonth, planYears, years, startAge, planToAge, weightToAge,
     S: S0, drawFutures, driversFor, configsAtH, potsAt,
     level: planLevelOf(first.kept), capped: plan.runCapped, reason,
     keptAt: (H) => at(H).kept, settingsAt: (H) => at(H).settings,

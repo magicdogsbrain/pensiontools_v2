@@ -4141,6 +4141,7 @@
       listScenariosAsync,
       getActiveScenarioId,
       getActiveScenarioAsync,
+      readActiveScenarioAsync,
       getActiveScenarioAsStored,
       switchScenario,
       createNewScenario,
@@ -9301,7 +9302,7 @@
     window.loadAccumulationUI = async function () {
       try {
         if (window._acAutosave) await window._acAutosave.flush();
-        let sc; try { sc = await getActiveScenarioAsync(); } catch (e) { sayReadFault(READ_FAULT_WORDS); return; }   // the plan cannot be read: every box emptied and said (repaintPlan.js)
+        let sc; try { sc = await readActiveScenarioAsync(); } catch (e) { sayReadFault(READ_FAULT_WORDS); return; }   // the plan cannot be read: every box emptied and said (repaintPlan.js)
         const box = accumulationBoxes(sc, null, todayOf());   // the saver's facts, as "What you pay in" reads them (7.12.0)
         for (const [id, v] of Object.entries(box.values)) { const el = document.getElementById(id); if (el) el.value = v == null ? (el.tagName === 'SELECT' ? ((el.querySelector('option[selected]') || el.options[0] || {}).value || '') : '') : v; }   // an empty value empties the box: nothing of another plan stays in it (lead4.md R2)
         document.getElementById('acPotLine').innerHTML = box.potLine;   // its pension today marked (step F1)
@@ -11598,8 +11599,8 @@
       if (!tabsContainer || !detailContainer) return;
 
       tabsContainer.innerHTML = '<span class="loading">Loading...</span>';
-
       fillHistoryMonthList(document.getElementById('historyMobileSelector'), []);   // the plan open now's months only: no return below leaves another plan's
+
       allHistoryData = await getHistoryAsync({ sortDesc: false, limit: 500 }); historyTaxYears = await getAllTaxYearsAsync().catch(() => null);
       // The record view needs the plan's strategy (records saved before 6.4.2 carry no flag) — resolve it
       // here rather than relying on the Monthly Entry panel having rendered first (6.5.3).

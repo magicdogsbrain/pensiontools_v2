@@ -23,7 +23,7 @@ import { todayOf } from '../reading/clock.js';
 import { planKeyOf } from './planState.js';
 import { planStage } from '../services/PlanReading.js';
 import { journeyAppend } from '../services/LifeStage.js';
-import { invalidateScenarioCache, getActiveScenarioAsync, getActiveScenarioId, listScenariosAsync, saveActiveJourney } from '../storage/ScenarioRepository.js';
+import { invalidateScenarioCache, getActiveScenarioAsync, readActiveScenarioAsync, getActiveScenarioId, listScenariosAsync, saveActiveJourney } from '../storage/ScenarioRepository.js';
 import { invalidateStressCache } from '../storage/StressRepository.js';
 import { invalidateCache } from '../storage/DecisionRepository.js';
 import { openingTabOf } from './homeBannerUi.js';
@@ -60,7 +60,7 @@ export function installRepaint(win, doc, d) {
   async function repaintForms(reason) {
     invalidateCache(); invalidateStressCache();
     st.reset(null); st.markAllStale();   // at once, before anything is awaited: a page pressed meanwhile draws for the plan now open
-    let plan = null, unread = false; try { plan = await getActiveScenarioAsync(); } catch (e) { plan = null; unread = true; }
+    let plan = null, unread = false; try { plan = await readActiveScenarioAsync(); } catch (e) { plan = null; unread = true; }
     st.key = planKeyOf(plan);
     win._holdingsLines = []; win._planDocLast = null; d.resetCurrentDecision();
     doc.getElementById('openPlaceNote')?.remove();   // a note that names a plan names the plan it was written for

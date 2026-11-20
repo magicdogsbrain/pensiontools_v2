@@ -18,7 +18,7 @@ import { DEFAULT_CHARGES_PCT } from '../services/Charges.js';
 import { simulationConfigFromSettings } from '../services/SimulationConfig.js';
 import { DEFAULT_ISA_GROWTH } from '../services/IsaGrowth.js';
 export { scheduleFromSteps, defaultSpYear };
-import { saveActiveStressSettings, activePlanLocked, storedActiveSettings, getDefaultStressSettings, getActiveScenarioAsync } from './ScenarioRepository.js';
+import { saveActiveStressSettings, activePlanLocked, storedActiveSettings, getDefaultStressSettings, readActiveScenarioAsync } from './ScenarioRepository.js';
 import { todayOf, dayKeyOf } from '../reading/clock.js';
 import { PlanReadError } from '../reading/readFault.js';
 import { onPlanCopyStale } from './planCopies.js';
@@ -94,10 +94,9 @@ export function loadStressDB() {
 export async function loadStressDBAsync() {
   if (!isFirebaseAvailable()) return getDefaultStressDB();
   const now = todayOf();
-  let plan = null;
-  try { plan = await getActiveScenarioAsync(); } catch (e) { plan = null; }
-  let key, settings;
+  let plan = null, key, settings;
   try {
+    plan = await readActiveScenarioAsync();   // a read that fails throws: never effectiveStressSettings(null), the factory settings
     key = stressReadingKeyOf(plan, now);
     if (cachedStressDB && sameStressReadingKey(cachedStressDB.key, key)) return cachedStressDB.db;
     settings = effectiveStressSettings(plan, { now });

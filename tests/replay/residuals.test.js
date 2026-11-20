@@ -23,7 +23,7 @@ vi.mock('../../src/storage/ScenarioRepository.js', () => ({
   storedActiveSettings: async (kind) => (kind === 'stress' && store.stress ? JSON.parse(JSON.stringify(store.stress)) : undefined),
   activePlanLocked: async () => false,
   // step S: the loader reads the plan itself (PlanReading.effectiveStressSettings), the same reading as the simple view
-  getActiveScenarioAsync: async () => ({ id: 'p', lastModified: null, ...(store.stress ? { stressTool: { settings: JSON.parse(JSON.stringify(store.stress)) } } : {}), ...(store.budget ? { budgetTool: { settings: JSON.parse(JSON.stringify(store.budget)) } } : {}) }),
+  readActiveScenarioAsync: async () => ({ id: 'p', lastModified: null, ...(store.stress ? { stressTool: { settings: JSON.parse(JSON.stringify(store.stress)) } } : {}), ...(store.budget ? { budgetTool: { settings: JSON.parse(JSON.stringify(store.budget)) } } : {}) }),
   getDefaultStressSettings: () => ({})
 }));
 

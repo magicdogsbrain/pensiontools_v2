@@ -9,7 +9,9 @@
  * Household tab in index.html), so one run here is what both show.
  *
  * Worked by hand:
- *   Kim's money at the start: pension 180,000 + 70,000 + 30,000 = £280,000, ISA £40,000: £320,000 in all.
+ *   Kim's money at the start: pension 180,000 + 70,000 + 30,000 = £280,000, ISA £40,000: £320,000 in all; Sam's at the stop
+ *   is each of his lives' own (a plan still saving runs whole lives), so the household's middle is £320,000 plus the middle
+ *   of those lives.
  *   The stored, stale start: 320,000 + 169,898 = £489,898.
  *   A year less of saving takes off at least a year of what goes in, £300 net (£375 with tax relief) + £200 employer =
  *   £575 a month, 12 × 575 = £6,900 in today's prices; and at most that plus a tenth of a pot under £170,000 as a year's
@@ -20,6 +22,8 @@ import { kimAndSam, KIM_AND_SAM_TODAY } from './fixtures/kimAndSam.js';
 import { effectiveStressSettings } from '../src/services/PlanReading.js';
 import { aboutPatch, applyPatch } from '../src/answers/plan/about.js';
 import { runHousehold } from '../src/answers/plan/householdRun.js';
+import { planFor } from '../src/answers/plan/lastsRun.js';
+import { stressTestStrategy } from '../src/strategies/stressTest.js';
 import { upgradeScenario } from '../src/firebase/scenarioMigration.js';
 import { readFileSync } from 'node:fs';
 
@@ -68,7 +72,18 @@ describe('the household starts from the pot at the new stop', () => {
     const r = runHousehold(kim, sam, { today: KIM_AND_SAM_TODAY });
     expect(r.ok).toBe(true);
     const start = r.own.combined.potFan[0].p50;
-    expect(Math.abs(start - (KIM_START + atStop(sam)))).toBeLessThanOrEqual(1);
+    // Sam's plan still saves, so each of his futures starts from its own life's pots at 62 (whole lives): the household's
+    // middle starts from Kim's £320,000 plus the middle of the lives the fan reads (Sam's run's own sampled futures), which
+    // sits inside his 1-in-10 low and high at the stop. (Before whole lives every future started from his one middling pot.)
+    const ss = effectiveStressSettings(sam, { now: NOW });
+    const samRun = stressTestStrategy(ss.strategyId || 'pots-and-valves', planFor(ss, NOW));
+    const lives = samRun.samples.wealth.map((w) => w[0]).sort((x, y) => x - y);
+    const middle = lives[Math.min(lives.length - 1, Math.floor(0.5 * lives.length))];
+    expect(Math.abs(start - (KIM_START + middle))).toBeLessThanOrEqual(1);
+    const at = ss.potAtRetirement;
+    expect(middle).toBeGreaterThan(at.careful);
+    expect(middle).toBeLessThan(at.good);
+    expect(lives[lives.length - 1] - lives[0]).toBeGreaterThan(1000);
     expect(Math.abs(start - STALE)).toBeGreaterThan(1000);
     // the same run from Sam's side: the same start
     const back = runHousehold(sam, kim, { today: KIM_AND_SAM_TODAY });

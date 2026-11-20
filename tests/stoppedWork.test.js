@@ -298,7 +298,9 @@ describe('the ladder\'s month for someone who stopped this tax year or earlier: 
     expect([s.potsAsOf, firstY, lp.phase, lp.monthsLeft]).toEqual(['today', 2026, 'running', 5]);
     expect(lp.spread).toBe(true);
     expect(lp.monthly).toBeCloseTo(need / 12, 6);
-    expect(lp.instruction).toContain('over the twelve months from November 2026, the month its pots were entered');
+    // one sentence (step F2, walk finding W7-M1): the year's payments counted from November to March, as every page counts them
+    expect(lp.instruction).toContain('In 2026/27 that is 5 payments, November 2026 to March 2027: ');
+    expect(lp.instruction).not.toContain('twelve months from');
     expect(lp.remaining).toBeCloseTo(need, 6);                 // the year's money not yet drawn is all still held
   });
   it('stopped in an earlier tax year: the ladder bought from this tax year is paid the same way', () => {

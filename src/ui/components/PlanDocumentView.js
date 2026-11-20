@@ -19,7 +19,7 @@ import { lockedShortOf } from '../../services/PlanCommit.js';
 import { STRESS as STRESS_ON } from '../../answers/shared/rules.js';
 import { markFact } from '../../reading/mark.js';
 import { LABELS } from '../../reading/labels.js';
-import { FACT } from '../../reading/facts.js';
+import { FACT, factId } from '../../reading/facts.js';
 import { GUARDRAIL_FACTS, TAKEN_FACTS, PLAN_MIX_SLOTS, sentenceHtml } from '../../reading/sentenceMarks.js';
 
 const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
@@ -464,8 +464,12 @@ export function strategyNameOf(st) {
   return st.id === 'bridge-and-engine' ? 'Gilts to State Pension, then shares' : (st.name || st.id || '');
 }
 
-/** The "where you are" strip. */
-export function whereAmIHtml(w, g = null) {
+/**
+ * The "where you are" strip. `opts` (step F2, lead4.md D6, D7): `steps`, the reading's income steps (src/reading/income.js
+ * incomeStepsOf: each step a year before tax as it is taken), and `year`, this tax year's lines already drawn
+ * (src/ui/thisYearHtml.js: `plan` the year as set up, `changed` the line when the plan's figure differs).
+ */
+export function whereAmIHtml(w, g = null, { steps = null, year = null } = {}) {
   if (!w) return '';
   const parts = [];
   if (w.saving && w.beforeStart) {
@@ -497,7 +501,11 @@ export function whereAmIHtml(w, g = null) {
   // (7.12.0) the step is in the plan's own prices, named, so it is not read as this tax year's figure (the set-up's, in this
   // year's prices, on Month by month and Tax Years)
   const stepPrices = w.pot && w.pot.prices && w.pot.prices.since ? ' at ' + whenText(w.pot.prices.since) + ' prices' : '';
-  if (w.step) parts.push('Income step ' + w.step.index + ' of ' + w.step.of + ': ' + gbp(w.step.amount) + '/yr gross' + stepPrices + (w.step.next ? '; next step ' + gbp(w.step.next.amount) + ' from age ' + w.step.next.fromAge + ' (' + esc(w.step.next.taxYear || '') + ', ' + w.step.next.yearsAway + ' year' + (w.step.next.yearsAway === 1 ? '' : 's') + ' away)' : '; no further steps') + '.');
+  // (step F2, lead4.md D6) each step as the reading gives it: a year before tax as it is taken, never the stored figure as "gross"
+  const stepRead = (i) => (Array.isArray(steps) && steps[i] && Number.isFinite(+steps[i].beforeTax) ? steps[i].beforeTax : null);
+  const stepMoney = (i, stored) => (stepRead(i) != null ? markFact(factId(FACT.STEP_BEFORE_TAX, i), esc(money(stepRead(i)))) + ' a year before tax' : gbp(stored) + '/yr gross');
+  if (w.step) parts.push('Income step ' + w.step.index + ' of ' + w.step.of + ': ' + stepMoney(w.step.index - 1, w.step.amount) + stepPrices + (w.step.next ? '; next step ' + stepMoney(w.step.index, w.step.next.amount).replace(/ a year before tax$/, '').replace(/\/yr gross$/, '') + ' from age ' + w.step.next.fromAge + ' (' + esc(w.step.next.taxYear || '') + ', ' + w.step.next.yearsAway + ' year' + (w.step.next.yearsAway === 1 ? '' : 's') + ' away)' : '; no further steps') + '.');
+  if (year && year.plan) parts.push(year.plan);
   const income = incomeThisYearText(w.incomeThisYear);
   if (income) parts.push(income);
   const potText = whereAmIPotText(w.pot);
@@ -505,7 +513,7 @@ export function whereAmIHtml(w, g = null) {
   if (w.ladder && w.ladder.instruction) parts.push(esc(w.ladder.instruction));
   // the guardrail reading (7.9.0; services/PlanDocument.js guardrailOf, passed in by the page): the words V7 says
   const guard = g && STRESS_ON.guardrail && STRESS.guardrail[g.state] ? '<p class="hint" id="planDocGuardrail" data-guardrail="' + esc(g.state) + '" style="margin:6px 0 0;">' + fillSlotsMarked(STRESS.guardrail[g.state], g.slots, GUARDRAIL_FACTS) + esc(g.cutsOn ? ' ' + STRESS.guardrail.cuts : '') + '</p>' : '';
-  return '<div class="alert alert-info pd-where"><div class="section-title" style="font-size:13px;">Where you are — ' + esc(dateGB(w.today)) + '</div><p style="margin:4px 0 0;">' + parts.join(' ') + '</p>' + guard + '</div>';
+  return '<div class="alert alert-info pd-where"><div class="section-title" style="font-size:13px;">Where you are — ' + esc(dateGB(w.today)) + '</div><p style="margin:4px 0 0;">' + parts.join(' ') + '</p>' + guard + (year && year.changed ? year.changed : '') + '</div>';
 }
 /** The same, escaped, with the slots that hold a figure of the fact register marked (lead4.md G1). */
 const fillSlotsMarked = (t, slots, marks) => String(t).split(/(\{\w+\})/).map((piece) => {

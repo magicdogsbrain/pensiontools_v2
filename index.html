@@ -4298,6 +4298,7 @@
     import { hasCloudData, wipeAllUserData, loadUserProfile, saveUserProfile, guestSnapshot, loadAllScenarios, createScenario as createScenarioDoc, saveScenario as saveScenarioDoc, loadScenario as loadScenarioDoc } from './src/firebase/FirestoreService.js';
     import { startSeedEntry, planFromAnswer, planTargetGuide, budgetSummaryWords } from './src/ui/components/NewPlanFromSeed.js'; import { householdStartWords } from './src/services/PlanSeed.js';   // a plan from a V7 answer (V7 design: save-as-plan.md, C.2); the Household tab's line when one plan begins later (couples-different-years.md 7)
     import { startSummaryHtml, potsAtRetirementLine } from './src/ui/startingPotsWords.js'; import { potAtStop } from './src/reading/atStop.js'; import { stepBoxValue, stepFromBox, firstStepNoteOfPlan, planBandsOf, documentStepsOf, accessAssumedNoteOf, spAssumedNoteOf } from './src/ui/incomeStepBox.js'; import { statePensionOf } from './src/reading/statePension.js'; import { spKindOfSettings, spKindForSave, FULL_SP_WEEKLY } from './src/ui/spKindBox.js'; import { stageWordsHtml, whereYouAreHtml } from './src/ui/stageWords.js'; import { stage as readingStage, yearsToGo as readingYearsToGo, ageToday as readingAgeToday, planName as readingPlanName } from './src/reading/timing.js'; import { formatFact, money as fmtMoney } from './src/reading/format.js'; import { budgetLineOf } from './src/reading/budget.js'; import { isaToday as readingIsaToday, pensionBoxOf, isaBoxOf, settingsOf as readingSettingsOf } from './src/reading/money.js'; import { savingInputsOf } from './src/services/PotsAtStop.js'; import { shownPlanName } from './src/services/PlanName.js';
+    import { thisYearOfPlan, yearIncomeHtml, yearChangedHtml, yearPlanHtml } from './src/ui/thisYearHtml.js'; import { setUpAgainConfig } from './src/reading/thisYear.js'; import { incomeStepsOf as incomeStepsOfPlan } from './src/reading/income.js';
     import { tick as guestTick, readMinutes as guestMinutes, pendingNag as guestPendingNag, markNagShown as guestMarkNag, isBlocked as guestBlocked, bannerText as guestBannerText, savedChipText, stashHandoff as guestStash, readHandoff as guestReadHandoff, clearHandoff as guestClearHandoff, GUEST_ALLOWANCE_MINUTES } from './src/services/GuestMeter.js';
     // Release notes: data + renderers (see RELEASING.md). The pop-up and the What's new page read the same entries.
     import { RELEASES, releasesSince, compareVersions } from './src/releases.js';
@@ -7042,6 +7043,14 @@
       document.querySelector('.sub-tab[data-decisiontab="plandoc"]')?.click();
     };
     const planDocumentRenderers = () => ({ strategyCard: (r, p, opts) => strategyResultCard(r, p, opts), staircaseSvg: (args) => incomeStaircaseSvg(args) });
+    // (step F2, lead4.md D6, D7) the strip's step figures and this tax year's lines, from the one reading of the plan as saved
+    async function whereExtrasNow() {
+      let sc = null; try { sc = await getActiveScenarioAsync(); } catch (e) { sc = null; }
+      if (!sc) return {};
+      let steps = null; try { steps = incomeStepsOfPlan(sc, { now: todayOf() }).steps; } catch (e) { steps = null; }
+      const t = thisYearOfPlan(sc, todayOf());
+      return { steps, year: t && t.setUp ? { plan: yearPlanHtml(t), changed: yearChangedHtml(t, { button: `reconfigureTaxYear('${t.key}')` }) } : null };
+    }
     async function whereAmINow(doc) {
       let history = []; try { history = await getHistoryAsync({ sortDesc: false, limit: 500 }); } catch (e) { history = []; }
       let ladderPos = null;
@@ -7061,7 +7070,7 @@
         }
         const w = await whereAmINow(doc);
         await paintPlanDocumentTools(document);   // no new version of a closed plan's document (6.56.0)
-        let html = planDocumentHtml(doc, { ...planDocumentRenderers(), steps: documentStepsOf(await getActiveScenarioAsync().catch(() => null), todayOf(), doc), whereAmI: whereAmIHtml(w, guardrailOf(doc, w)) + keepLineHtml(await getActiveScenarioAsStored().catch(() => null)), notice: await planNoticeHtml() });   // 7.7.0: what was kept and agreed, one line   // the closed / carried-on line (6.56.0)
+        let html = planDocumentHtml(doc, { ...planDocumentRenderers(), steps: documentStepsOf(await getActiveScenarioAsync().catch(() => null), todayOf(), doc), whereAmI: whereAmIHtml(w, guardrailOf(doc, w), await whereExtrasNow()) + keepLineHtml(await getActiveScenarioAsStored().catch(() => null)), notice: await planNoticeHtml() });   // 7.7.0: what was kept and agreed, one line   // the closed / carried-on line (6.56.0)
         const archive = await getActivePlanDocumentArchive();
         if (archive.length) {
           html += '<details class="card" style="margin-top:12px;"><summary class="hint" style="cursor:pointer;">Previous versions (' + archive.length + ')</summary>'
@@ -7096,7 +7105,7 @@
       const doc = window._planDocLast || await getActivePlanDocument();
       if (!doc) { showToast('No plan document yet.', 'info'); return; }
       const w = await whereAmINow(doc);
-      const html = planDocumentHtml(doc, { ...planDocumentRenderers(), steps: documentStepsOf(await getActiveScenarioAsync().catch(() => null), todayOf(), doc), whereAmI: whereAmIHtml(w, guardrailOf(doc, w)), notice: await planNoticeHtml() }).replace(/<details class="pd-section"(?! open)/g, '<details class="pd-section" open');
+      const html = planDocumentHtml(doc, { ...planDocumentRenderers(), steps: documentStepsOf(await getActiveScenarioAsync().catch(() => null), todayOf(), doc), whereAmI: whereAmIHtml(w, guardrailOf(doc, w), await whereExtrasNow()), notice: await planNoticeHtml() }).replace(/<details class="pd-section"(?! open)/g, '<details class="pd-section" open');
       printPortal(html);
     };
     window.renderWhereAmILine = async function () {
@@ -7104,7 +7113,7 @@
       try {
         const doc = await getActivePlanDocument(); if (!doc) { el.innerHTML = ''; return; }
         const w = await whereAmINow(doc);
-        el.innerHTML = w ? (await planNoticeHtml()) + whereAmIHtml(w).replace('</p>', ' <a href="#" data-on-click="openPlanDocument(); return false;">Open the plan document</a></p>') : '';
+        el.innerHTML = w ? (await planNoticeHtml()) + whereAmIHtml(w, null, await whereExtrasNow()).replace('</p>', ' <a href="#" data-on-click="openPlanDocument(); return false;">Open the plan document</a></p>') : '';
       } catch (e) { el.innerHTML = ''; }
     };
 
@@ -12362,7 +12371,10 @@
           <div class="alert alert-info" style="margin-top:12px;"><strong>Rebalance:</strong> ${rebalanceMsg}</div>
         </div>`;
 
-      let html = `<div class="no-print" style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:12px;"><button class="btn secondary" data-on-click="printAnnualReport('${taxYear}')">Download PDF</button> <button class="btn secondary" data-on-click="exportAnnualCsv('${taxYear}')">Export CSV</button></div>` + allocCard + `
+      // this tax year (step F2, lead4.md D7): the one reader both views say — the year as set up, and when the plan's own figure
+      // for it differs, both figures with the set-up's date and "Set this year up again"
+      let ty = null; try { ty = thisYearOfPlan(await getActiveScenarioAsync(), todayOf(), taxYear); } catch (e) { ty = null; }
+      let html = yearChangedHtml(ty, { button: `reconfigureTaxYear('${taxYear}')` }) + `<div class="no-print" style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:12px;"><button class="btn secondary" data-on-click="printAnnualReport('${taxYear}')">Download PDF</button> <button class="btn secondary" data-on-click="exportAnnualCsv('${taxYear}')">Export CSV</button></div>` + allocCard + `
         <!-- Tax Thresholds -->
         <div class="tax-year-detail-card">
           <h3>Tax Thresholds</h3>
@@ -12391,8 +12403,8 @@
           <h3>Income Configuration</h3>
           <div class="tax-year-grid">
             <div class="tax-year-field">
-              <label>Target income for the year (gross, all sources)</label>
-              <span class="value">${fmt(config.confirmedSalary)}</span>
+              <label>Income for the year as set up (before tax, all sources)</label>
+              <span class="value">${yearIncomeHtml(ty)}</span>
             </div>
             <div class="tax-year-field">
               <label>Other Taxable Income (Annual)</label>
@@ -12599,14 +12611,13 @@
 
     // Reconfigure a tax year
     window.reconfigureTaxYear = async function(taxYear) {
-      if (!await appConfirm(`This will allow you to reconfigure tax year ${taxYear}. The setup wizard will be triggered when you next calculate a decision for this year. Continue?`)) {
+      if (!await appConfirm(`Set ${taxYear} up again? The set-up opens the next time you work out a month in this tax year. Nothing else changes.`)) {
         return;
       }
 
       try {
-        const config = await getTaxYearConfigAsync(taxYear);
-        config.yearSetupComplete = false;
-        await saveTaxYearConfig(taxYear, config);
+        // the one rule both views write (step F2, lead4.md D7: src/reading/thisYear.js setUpAgainConfig)
+        await saveTaxYearConfig(taxYear, setUpAgainConfig(await getTaxYearConfigAsync(taxYear)));
         await renderTaxYears();
         showToast(`Tax year ${taxYear} marked for reconfiguration. Calculate a decision for this year to run the wizard again.`, 'success', 5000);
       } catch (error) {

@@ -86,6 +86,8 @@ export function ladderPosition(plan, o = {}) {
   const potsDay = o.potsDay ? new Date(o.potsDay) : null;
   const spread = !!cur && Y === first && !!potsDay && Number.isFinite(potsDay.getTime()) && taxYearOf(potsDay) === Y;
   const monthly = spread ? need / 12 : monthsLeft > 0 ? remaining / monthsLeft : 0;
+  // the payments of a first year begun part-way: from the month its pots were entered to March
+  const payInYear = spread ? 12 - ((potsDay.getMonth() - 3 + 12) % 12) : 0;
 
   // What the cash years still need (7.12.0, as "Your plan's mix" reads it, answers/plan/held.js): this year's payments still
   // to come (the month's payment times the months left), and every later year the plan pays from cash. A gilt that has
@@ -127,7 +129,9 @@ export function ladderPosition(plan, o = {}) {
     spread,
     instruction: cur
       // what the plan's rule does this month, never an order to give (7.12.0 round 3, decision 6)
-      ? (spread ? `The plan pays ${fmt(monthly)} a month: it pays this tax year's income over the twelve months from ${MONTHS[potsDay.getMonth()]} ${potsDay.getFullYear()}, the month its pots were entered.`
+      // a first year begun part-way (step F2, lead4.md D7; walk finding W7-M1): one sentence, the year's payments counted to March
+      // as every other page counts them — never "over the twelve months from", which read as owing April to June as well
+      ? (spread ? `The plan pays ${fmt(monthly)} a month (${fmt(need)} a year before tax). In ${Y}/${String(Y + 1).slice(2)} that is ${payInYear} payment${payInYear === 1 ? '' : 's'}, ${MONTHS[potsDay.getMonth()]} ${potsDay.getFullYear()} to March ${Y + 1}: ${fmt(monthly * payInYear)}.`
         : `The plan pays ${fmt(monthly)} a month for the ${monthsLeft} month${monthsLeft === 1 ? '' : 's'} to 5 April ${Y + 1}.`)
       : (phase === 'before' ? `The ladder starts in ${first}/${String(first + 1).slice(2)}.` : 'The ladder has paid its last year.')
   };

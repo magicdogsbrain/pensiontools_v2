@@ -106,6 +106,17 @@ export const FACT = Object.freeze({
   MIX_HELD: 'mix.held.#',
   HOLDINGS_TOTAL: 'holdings.total',
   HOLDINGS_WRAPPER: 'holdings.#',
+  // "Try the bad years" (lead4.md R6; step F3): each row's figures, keyed by the row's id (stressPanel.js ROW_IDS) — its weighted
+  // chance and its count to one age (each sentence as said, with the reference beside it), where it runs out, its verdict word,
+  // the size of the change it makes; and what still comes in, said once above the rows
+  STRESS_CHANCE: 'stress.#.chance',
+  STRESS_FIXED: 'stress.#.fixedChance',
+  STRESS_RUNS_OUT: 'stress.#.runsOut',
+  STRESS_VERDICT: 'stress.#.verdict',
+  STRESS_CHANGE: 'stress.#.change',
+  STRESS_FLOOR: 'stress.floorIncome',
+  // the mix grid's best cell, said under it: its chance in hundredths (the grid's own cells are the table 'mix')
+  MIX_BEST: 'mix.best',
   // the household
   PARTNER_CHANCE: 'partner.chance',
   HOUSEHOLD_CHANCE: 'household.chance'
@@ -116,6 +127,9 @@ export const TABLES = Object.freeze({
   YEARS: 'years',
   // the pots' floors year by year (src/reading/yearTable.js): the simple view's second table, the full view's Glidepath page
   FLOORS: 'floors',
+  // the mix grid ("Which mix lasts best?" / Compare allocations, answers/plan/mixRun.js runMixCompare): a row per mix (own,
+  // cautious, balanced, adventurous), a column per tent (flat, tent) for its words and (flat.sub, tent.sub) for the line under
+  MIX: 'mix',
   LADDER: 'ladder'
 });
 

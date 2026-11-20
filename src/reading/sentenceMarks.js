@@ -145,3 +145,14 @@ export const LASTS_FINDS = Object.freeze({
   assumed: Object.freeze([[/About (\d+ in \d+)[^.]*live longer/, FACT.LIVE_LONGER], [/follow each future on to (\d+)/, FACT.FOLLOW_TO]]),
   fixed: Object.freeze([[FIXED_CHANCE_WORDS, FACT.LASTS_FIXED], [/live to (\d+)/, FACT.END_AGE]])
 });
+
+/** "Try the bad years" (step F3): the ids of a row's marks, and the figure in its "what it changes" lines and in the floor line. */
+export const stressMarksOf = (rowId) => Object.freeze({
+  chance: 'stress.' + rowId + '.chance',
+  fixed: 'stress.' + rowId + '.fixedChance',
+  runsOut: 'stress.' + rowId + '.runsOut',
+  verdict: 'stress.' + rowId + '.verdict',
+  what: Object.freeze([[/(\d+(?:\.\d+)?%)/, 'stress.' + rowId + '.change']])
+});
+export const STRESS_FLOOR_FINDS = Object.freeze([[/still have (£[\d,]+)/, FACT.STRESS_FLOOR]]);
+

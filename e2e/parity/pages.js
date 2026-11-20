@@ -18,16 +18,26 @@ export const wordsOf = (plan, now) => ({
 export const SIMPLE_PAGES = Object.freeze(['', 'plan', 'about', 'income', 'spend', 'pots', 'lasts', 'way', 'mix', 'saving', 'checkin', 'review', 'month', 'where', 'lock', 'hold', 'move', 'budget', 'household']);
 
 /** The presses on a simple page that open figures drawn closed, in order (the year table and the pots' floors on "Does it last?"). */
-export const SIMPLE_PRESS = Object.freeze({ lasts: Object.freeze(['[data-testid="plan.lasts.schedule"]', '[data-testid="plan.lasts.glidepath"]']) });
+// "Try the bad years" too, as a person reading the rows presses it in each view (the full view's on its Scenarios page)
+export const SIMPLE_PRESS = Object.freeze({
+  lasts: Object.freeze(['[data-testid="plan.lasts.schedule"]', '[data-testid="plan.lasts.glidepath"]', '[data-testid="plan.lasts.stress.run"]']),
+  // "Which mix lasts best?", as the full view's Compare allocations is pressed
+  mix: Object.freeze(['[data-testid="plan.mix.compare.run"]'])
+});
+
+/** A page's presses as a list (a page may name one press or several, in order). */
+export const pressesOf = (press) => (press ? [].concat(press) : []);
 
 /** Every tab and sub-tab of the full view. */
 export const FULL_PAGES = Object.freeze([
   { name: 'budget', tab: 'budget' },
   // the full view works the one test out on a press ("Run the test"); the simple view without one — the sweep presses it, as a
   // person reading the figure does, so the figures can be compared (that a press is needed is said in the handover, lead4.md D24)
-  { name: 'will it last', tab: 'stress', sub: 'montecarlo', press: 'button[data-on-click="runMonteCarloUI()"]' },
+  // then "Compare allocations", the mix grid the simple view's mix page draws on a press (step F3): presses in order, the first the page's own
+  { name: 'will it last', tab: 'stress', sub: 'montecarlo', press: ['button[data-on-click="runMonteCarloUI()"]', '#optimiseBtnMC'] },
   { name: 'stress history', tab: 'stress', sub: 'historical' },
-  { name: 'scenarios', tab: 'stress', sub: 'scenarios' },
+  // "Try the bad years" runs on a press in both views; the sweep presses it in both (step F3)
+  { name: 'scenarios', tab: 'stress', sub: 'scenarios', press: '#stressPanelRun' },
   // the year table is drawn on a press in the full view ("Show Schedule") and opened on a press in the simple view
   { name: 'drawdown', tab: 'stress', sub: 'drawdown', press: 'button[data-on-click="showDrawdownScheduleUI()"]' },
   // the pots' floors are drawn on a press ("Show Glidepath"), as the simple view opens its table of floors on a press

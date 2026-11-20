@@ -13,7 +13,8 @@ import { chanceWords, fixedAgeWords, twentiethsOfFutures } from '../answers/shar
 import { LEVEL_IDS } from '../answers/shared/shown.js';
 import { SUCCESS, planToAgeOf } from '../answers/shared/rules.js';
 import { withSavingChance } from '../answers/shared/savingChance.js';
-import { markFact, markWithin } from '../reading/mark.js';
+import { markFact, markWithin, tableAttr, cellAttr } from '../reading/mark.js';
+import { TABLES } from '../reading/facts.js';
 import { LASTS_FINDS } from '../reading/sentenceMarks.js';
 import { MIX } from '../v7/copy/mix.js';
 
@@ -108,6 +109,8 @@ export function scenariosTabHtml({ strategyId, name, a, r, p, rows = [], scenari
   let h = '<div class="card"><h2>Scenarios — the named stresses</h2>';
   if (!a) return h + '<div class="alert alert-warning">The strategy is not affordable on this plan, so there is nothing to run the scenarios through. Fix the plan in Settings first.</div></div>';
   if (strategyId === 'full-il-gilt' && r && r.plan && r.plan.years && r.plan.years.length) {
+    // under "Try the bad years" (its rows above), the decades' table is a fold to open, as for every other way (step F3)
+    if (rowsShown) return h + '<details class="named-stresses"><summary>The named decades: what each would do to the cash the rungs pay</summary>' + scenariosTabHtml({ strategyId, name, a, r, p, rows, scenarios, startYears, worst, rowsShown: false }).replace(/^<div class="card"><h2>[^<]*<\/h2>/, '').replace(/<\/div>$/, '') + '</details></div>';
     const plan = r.plan, n = plan.years.length;
     const cpiPath = (sc) => { const out = [1]; let c = 1; for (let i = 1; i < n; i++) { c *= 1 + (sc.inflation[i - 1] ?? 0.025); out.push(c); } return out; };
     h += '<div class="alert alert-info"><strong>Every year of this plan is bought today, index-linked.</strong> Equity crashes, lost decades and 2008 do nothing to its income — the only thing a scenario changes is the number of <em>pounds</em> that arrive, and they always buy the same.' + (r.signature && r.signature.spareGrowth ? ' The money left over is in shares (your setting): a crash does cut what you would have left, never the income.' : '') + ' So the honest scenario test is inflation: here is what each famous decade would do to the cash arriving, against the plan in today\'s money.</div>';
@@ -129,9 +132,11 @@ export function scenariosTabHtml({ strategyId, name, a, r, p, rows = [], scenari
   // with "Try the bad years" above (7.9.0), the plan's own figure is the As planned line there: no second figure here. The
   // lines above are futures only, so the real starts are named as a set of their own (the words of "Does it last?")
   h += rowsShown
-    ? '<p data-stress-hint="1">The lines above make one thing worse on purpose. Each named stress below is a real decade: the real history from its first year is one of the ' + n0(a.histories) + ' real starts since 1871 that the one test counts beside its futures. Here is what the decade did, and what retiring into it would have done to <strong>' + esc(name) + '</strong> on your plan — its own cuts setting, its full length, today\'s money.</p>'
+    ? '<p data-stress-hint="1">The lines above make one thing worse on purpose. Each named stress below is a real decade: the real history from its first year is one of the ' + n0(a.histories) + ' real starts since 1871 that the one test counts beside its futures. Here is what the decade did, and what retiring into it would have done to <strong>' + markFact('way.name', esc(name)) + '</strong> on your plan — its own cuts setting, its full length, today\'s money.</p>'
     : '<p>Each named stress is a real decade. The one test already contains it: the real history that starts at that decade\'s first year is one of the ' + n0(a.histories) + ' starts behind your figure of <strong>' + pctText(a.chancePct, 0, CHANCE_BARS) + '</strong> (lasts ' + esc(a.outOfTen.words) + '). Here is what the decade did, and what retiring into it would have done to <strong>' + esc(name) + '</strong> on your plan — its own cuts setting, its full length, today\'s money.</p>';
-  h += '<div class="table-scroll-container"><table><thead><tr><th>Named stress</th><th>What the decade did</th><th>Retiring into it: what happened to this plan</th><th>Lowest 12 months</th><th>Left at the end</th></tr></thead><tbody>';
+  // under "Try the bad years" (its rows above), the decades one by one are a fold to open: the simple view says them under its
+  // history (step F3)
+  h += (rowsShown ? '<details class="named-stresses"><summary>The named decades, one at a time</summary>' : '') + '<div class="table-scroll-container"><table><thead><tr><th>Named stress</th><th>What the decade did</th><th>Retiring into it: what happened to this plan</th><th>Lowest 12 months</th><th>Left at the end</th></tr></thead><tbody>';
   for (const [k, sc] of Object.entries(scenarios)) {
     const y = startYears[k];
     const sw = '<span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:' + esc(sc.color) + ';margin-right:6px;"></span>';
@@ -144,7 +149,7 @@ export function scenariosTabHtml({ strategyId, name, a, r, p, rows = [], scenari
     const cells = x ? startRowHtml(x).replace(/^<tr>/, '').replace(/<\/tr>$/, '').replace(/^<td>.*?<\/td>/, '') : '<td colspan="3" class="hint">not run</td>';
     h += '<tr><td>' + sw + esc(sc.name) + '<br><span class="hint">from January ' + y + '</span></td><td>' + esc(decadeWords(sc)) + '</td>' + cells + '</tr>';
   }
-  h += '</tbody></table></div>';
+  h += '</tbody></table></div>' + (rowsShown ? '</details>' : '');
   h += rowsShown
     ? '</div>'
     : '<p class="hint" style="margin-top:8px;">Until 6.24 this tab ran each decade over and over for the whole plan and marked the plan as failed — a test nothing real has ever set. The one test counts every real start once; the named decades are explained here, not re-run.</p></div>';
@@ -205,20 +210,22 @@ export function mixGridHtml(view) {
   const C = MIX.compare;
   const fill = (t, slots) => String(t).replace(/\{(\w+)\}/g, (m, k) => (slots[k] != null ? String(slots[k]) : m));
   const cellOf = (key, tent) => (view.cells || []).find((c) => c.key === key && c.tent === tent) || null;
-  const td = (c) => {
+  // each cell marked as the simple view's grid marks it (lead4.md G1; step F3): its words and the line under them
+  const td = (c, key, tent) => {
     if (!c || !c.affordable) return '<td style="text-align:center;padding:10px;border:1px solid var(--border);" class="hint">' + esc(C.cannot) + '</td>';
-    return '<td style="text-align:center;padding:10px;border:1px solid var(--border);' + (c.best ? 'background:rgba(16,185,129,0.12);' : '') + '"><div style="font-size:20px;font-weight:700;color:var(--' + (c.best ? 'success' : 'text') + ');">' + esc(fill(C.cell, { words: c.words })) + '</div><div style="font-size:11px;color:var(--text-muted);">' + esc(fill(C.cellSub, c)) + '</div>' + (c.current ? '<div class="hint" style="font-size:11px;">' + esc(C.thisIs) + '</div>' : '') + '</td>';
+    const col = tent ? 'tent' : 'flat';
+    return '<td style="text-align:center;padding:10px;border:1px solid var(--border);' + (c.best ? 'background:rgba(16,185,129,0.12);' : '') + '"><div style="font-size:20px;font-weight:700;color:var(--' + (c.best ? 'success' : 'text') + ');"' + cellAttr(key, col) + '>' + esc(fill(C.cell, { words: c.words })) + '</div><div style="font-size:11px;color:var(--text-muted);"' + cellAttr(key, col + '.sub') + '>' + esc(fill(C.cellSub, c)) + '</div>' + (c.current ? '<div class="hint" style="font-size:11px;">' + esc(C.thisIs) + '</div>' : '') + '</td>';
   };
   let h = '<h3 style="margin-bottom:6px;">Compare allocations</h3>';
   h += '<p style="color:var(--text-muted);font-size:13px;margin-bottom:12px;">' + esc(MIX.notes.compare) + '</p>';
-  h += '<table style="border-collapse:collapse;width:100%;max-width:640px;"><thead><tr><th style="text-align:left;padding:8px;">' + esc(C.columns.mix) + '</th><th style="padding:8px;">' + esc(C.columns.flat) + '</th><th style="padding:8px;">' + esc(C.columns.tent) + '</th></tr></thead><tbody>';
+  h += '<table' + tableAttr(TABLES.MIX) + ' style="border-collapse:collapse;width:100%;max-width:640px;"><thead><tr><th style="text-align:left;padding:8px;">' + esc(C.columns.mix) + '</th><th style="padding:8px;">' + esc(C.columns.flat) + '</th><th style="padding:8px;">' + esc(C.columns.tent) + '</th></tr></thead><tbody>';
   for (const key of ['own', 'cautious', 'balanced', 'adventurous']) {
     const any = cellOf(key, false) || cellOf(key, true);
     if (!any) continue;
-    h += '<tr><td style="padding:8px;border:1px solid var(--border);"><strong>' + esc(C.rows[key]) + '</strong><br><span style="font-size:11px;color:var(--text-muted);">' + esc(fill(C.cellAmounts, any.amounts)) + '</span></td>' + td(cellOf(key, false)) + td(cellOf(key, true)) + '</tr>';
+    h += '<tr><td style="padding:8px;border:1px solid var(--border);"><strong>' + esc(C.rows[key]) + '</strong><br><span style="font-size:11px;color:var(--text-muted);"' + cellAttr(key, 'amounts') + '>' + esc(fill(C.cellAmounts, any.amounts)) + '</span></td>' + td(cellOf(key, false), key, false) + td(cellOf(key, true), key, true) + '</tr>';
   }
   h += '</tbody></table>';
-  if (view.best) h += '<p style="margin-top:12px;font-size:13px;"><strong>' + esc(fill(C.best, { row: C.rows[view.best.key], tent: view.best.tent ? MIX.tentOnOff.on : MIX.tentOnOff.off, words: view.best.words, pct: view.best.pct })) + '</strong> Set it in Settings if you would like it.</p>';
+  if (view.best) h += '<p style="margin-top:12px;font-size:13px;"><strong>' + esc(fill(C.best, { row: C.rows[view.best.key], tent: view.best.tent ? MIX.tentOnOff.on : MIX.tentOnOff.off, words: view.best.words, pct: '\u0000' })).replace('\u0000', markFact('mix.best', esc(view.best.pct))) + '</strong> Set it in Settings if you would like it.</p>';
   return h;
 }
 
@@ -314,7 +321,7 @@ const levelSelectHtml = (level) => '<label class="verdict-level">How careful? <s
 const VERDICT_TITLE = { yes: 'On course', close: 'Close', no: 'Not on course' };
 /** The words after the years covered and the worst 12 months (both views: the simple view's band rows say them after the figure). */
 export const COVER_WORDS = 'of the plan\'s years covered — the share of your planned income the money actually paid, averaged over every future';
-export const WORST12_WORDS = 'worst 12 months lived, at today\'s prices';
+export const WORST12_WORDS = 'the worst year of income lived, at today\'s prices';
 
 /**
  * The verdict block (7.8.0), both apps' words (services/OneAnswer.js weightedWordsOf):

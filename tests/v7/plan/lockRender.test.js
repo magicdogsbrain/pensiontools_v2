@@ -93,7 +93,7 @@ describe('the draft (02): what the screen says and what pressing does', () => {
     const { root, text, actions } = draw(lockState(entries, id));
     expect(text).toContain('Locking fixes the plan and writes the plan document, so you can follow it month by month.');
     expect(text).toContain('What the lock fixes');
-    expect(text).toContain('the way of drawing (Pots and valves) and its dials;');
+    expect(text).toContain('the way of drawing (Pots & Valves) and its dials;');
     expect(text).toContain('What stays changeable');
     expect(text).toContain('your monthly records and each tax year’s set-up;');
     expect(text).toContain('What you get');

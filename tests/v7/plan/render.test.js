@@ -148,7 +148,7 @@ describe('the locked ladder in its run-up (03) and the committed saver (05)', ()
     expect(text).toContain('At the prices of July 2026.');
     expect(text).toContain('From age 66: £34,000 a year before tax (tax year 2027/28)');
     expect(text).toContain('From age 79: £24,000 a year before tax (tax year 2040/41), falling 1% a year');
-    expect(text).toContain('How the money is taken: Full gilt ladder.');
+    expect(text).toContain('How the money is taken: Full index-linked gilt ladder.');
     expect(root.querySelector('[data-testid^="plan.plan.change."]')).toBe(null);   // no Change on a locked plan
     expect(root.querySelector('[data-testid="plan.plan.openDocument"]').textContent).toBe('Open the plan document in the full view');
     expect(root.querySelector('[data-testid="plan.plan.testLocked"]')).not.toBe(null);

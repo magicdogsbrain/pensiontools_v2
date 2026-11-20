@@ -6705,6 +6705,7 @@
       say(budEsc(MIX_COMPARE_WORKING));
       const s = await getStressSettingsAsync();
       const done = () => { if (btn) { btn.disabled = false; btn.textContent = 'Compare allocations (Pots & Valves)'; } };
+      { const missing = missingWords(s); if (missing) { if (resultsDiv) resultsDiv.innerHTML = '<div class="alert alert-info">' + budEsc(missing) + '</div>'; done(); return; } }   // nothing to run on: said, never a default income (as the simple view's mix page, step F3)
       if (s.strategyId && !PNV_FAMILY.includes(s.strategyId)) {
         if (resultsDiv) resultsDiv.innerHTML = '<div class="alert alert-info">This button compares <strong>Pots &amp; Valves</strong> allocations (cautious / balanced / adventurous, with and without a bond tent). Your plan runs <strong>' + budEsc(STRATEGY_NAMES[s.strategyId] || s.strategyId) + '</strong>, which has no split to sweep — all ' + strategyCountWord() + ' strategies, compared on your plan through the same test, are in the <button type="button" class="risk-btn" style="padding:2px 10px;" data-on-click="switchToTab(\'strategies\')">Strategies tab</button>.</div>';
         done(); return;
@@ -8410,7 +8411,8 @@
         const st = await getActiveStrategy();
         { const tsc = await getActiveScenarioAsync().catch(() => null); const k = tryFillKeyOf(await getActiveScenarioId(), await getStressSettingsAsync(), tsc ? tsc.lastModified || null : null); if (tryNeedsFill(window._tryFilledFor, k, window._tryTouched)) { try { await resetTryStrategyUI(); window._tryFilledFor = k; } catch (e2) { /* settings not ready */ } } }   // Try a strategy's boxes follow the plan open and its figures, unless a what-if was typed (src/ui/tryBoxes.js)
         const isPnv = !st.id || st.id === 'pots-and-valves';
-        { const b = document.getElementById('optimiseBtnMC'); if (b) b.style.display = isPnv ? '' : 'none'; const fam = !st.id || PNV_FAMILY.includes(st.id); document.querySelectorAll('[data-stresstab="drawdown"], [data-stresstab="glidepath"]').forEach((t) => { t.style.display = fam ? '' : 'none'; }); }   // the fund boxes' schedule and glidepath mean nothing to a bought strategy (sweep 18 Oct 2026)
+        { const fam = !st.id || PNV_FAMILY.includes(st.id); const b = document.getElementById('optimiseBtnMC'); if (b) b.style.display = fam ? '' : 'none';   // the mix grid for both ways the simple view offers it (step F3)
+  document.querySelectorAll('[data-stresstab="drawdown"], [data-stresstab="glidepath"]').forEach((t) => { t.style.display = fam ? '' : 'none'; }); }   // the fund boxes' schedule and glidepath mean nothing to a bought strategy (sweep 18 Oct 2026)
         if (st.id && st.id !== 'pots-and-valves') {
           const d = getStrategy(st.id).describe();
           el.innerHTML = '<div class="alert alert-info">This plan runs <strong>' + d.name + '</strong>. <em>Run the test</em> runs ' + d.name + ' through the one test — every real stretch since 1871 and 1,000 futures — and draws its cones. The full picture — the machine, the dials, three real starts — is on its page in the <button type="button" class="risk-btn" style="padding:2px 10px;" data-on-click="switchToTab(\'strategies\'); setTimeout(() => showStrategyPage(\'' + st.id + '\'), 300);">Strategies tab</button>.</div>';
@@ -11470,7 +11472,7 @@
     // a way of drawing that buys its income: its own year-by-year table from the one test's run, in place of the Pots & Valves pages
     function ownWayTableHtml(t, tables) {
       const sid = t.settings.strategyId || 'pots-and-valves';
-      let h = '<div class="card"><h2>' + budEsc(STRATEGY_NAMES[sid] || sid) + ' — your plan, year by year</h2><div class="alert alert-info">This plan draws by <strong>' + budEsc(STRATEGY_NAMES[sid] || sid) + '</strong>, so its years are its own: the income in the middle future, the income in a 1-in-10 bad one, and what is left in the middle, read off the same test as "Will it last?". In full on its <button type="button" class="risk-btn" style="padding:2px 10px;" data-on-click="switchToTab(\'strategies\'); setTimeout(() => showStrategyPage(\'' + sid + '\'), 300);">Strategies page</button>.</div>';
+      let h = '<div class="card"><h2>' + budEsc(STRATEGY_NAMES[sid] || sid) + ' — your plan, year by year</h2><div class="alert alert-info">This plan draws by <strong>' + markFact('way.name', budEsc(STRATEGY_NAMES[sid] || sid)) + '</strong>, so its years are its own: the income in the middle future, the income in a 1-in-10 bad one, and what is left in the middle, read off the same test as "Will it last?". In full on its <button type="button" class="risk-btn" style="padding:2px 10px;" data-on-click="switchToTab(\'strategies\'); setTimeout(() => showStrategyPage(\'' + sid + '\'), 300);">Strategies page</button>.</div>';
       const text = tables ? yearTablesText(tables) : null;
       if (text && text.kind === 'own') h += yearTableHtml(text) + '<p class="hint">Today\'s money, gross. ' + (sid === 'full-il-gilt' ? 'The order sheet and what-arrives-when table are on the strategy page.' : '') + '</p>';
       else h += '<div class="alert alert-danger">Not affordable as configured: ' + budEsc((t.r && t.r.reason) || '') + '</div>';

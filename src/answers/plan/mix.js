@@ -33,6 +33,7 @@ import { get, applyPatch, safeSettings, safeTiming } from './about.js';
 import { pounds } from './income.js';
 import { isBought } from './pots.js';
 import { FAMILY, runKeyOf } from './lasts.js';
+import { planHasFigures } from '../../services/PlanFigures.js';
 import { MIX_FIELDS, MIX_LISTS, MIX_LEVELS, MIX_SPLIT, MIX_WRAPPERS, MIX_WHATS, MIX_WRITES, isCardId } from './schema.js';
 import { dateOf, dayWords } from './dates.js';
 import { shownPlanNameOn } from '../../services/PlanName.js';
@@ -447,7 +448,8 @@ export function mixOf(entries, id, { today, typed = null, M = null, base = null 
   const readonly = !!(entry.newer || entry.failed);
   const saved = savedMix(plan, { today });
   const editable = !saved.locked && !readonly;
-  const runKey = readonly ? null : runKeyOf(plan);
+  // a plan with no figures of its own runs nothing here, as on "Does it last?" (never on a default income: step F3)
+  const runKey = readonly || !planHasFigures(plan) ? null : runKeyOf(plan);
   const boxes = boxesOf(plan, { today });
   const c = checkMix(plan, typed || {}, { today });
   const shown = { ...boxes, ...(typed || {}) };

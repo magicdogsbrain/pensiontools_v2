@@ -25,6 +25,8 @@ import { esc } from './components/ReleaseNotesView.js';
 import { stressRowInputOf } from '../reading/gather.js';
 import { contextFor } from '../reading/context.js';
 import { todayOf, dayKeyOf } from '../reading/clock.js';
+import { factAttr, markFact, markWithin } from '../reading/mark.js';
+import { stressMarksOf, STRESS_FLOOR_FINDS } from '../reading/sentenceMarks.js';
 
 const say = (part) => esc(sayStress(part, STRESS));
 
@@ -61,8 +63,8 @@ export function stressPanelOf(scenario, { today }) {
 
 const lineHtml = (l) => '<p class="stress-line" data-line="' + esc(l.id) + '">' + say(l) + '</p>';
 /** A row's chance line: the weighted chance as [data-weighted] with its count to one named age beside it, in one line. */
-const chanceHtml = (c) => (!c || !c.fixed ? '' : '<p class="stress-line stress-chance" data-line="chance">'
-  + (c.weighted ? '<span data-weighted="1">' + say(c.weighted) + '</span>' + esc(STRESS.short.join) + '<span data-fixed="age">' + say(c.fixed) + '</span>' : say(c.fixed)) + '</p>');
+const chanceHtml = (c, m) => (!c || !c.fixed ? '' : '<p class="stress-line stress-chance" data-line="chance">'
+  + (c.weighted ? '<span data-weighted="1"' + factAttr(m.chance) + '>' + say(c.weighted) + '</span>' + esc(STRESS.short.join) + '<span data-fixed="age"' + factAttr(m.fixed) + '>' + say(c.fixed) + '</span>' : markFact(m.fixed, say(c.fixed))) + '</p>');
 /** The rest of a row, closed until opened: "More about this line". */
 const moreHtml = (lines, id) => (!lines.length ? '' : '<details class="stress-more" id="' + esc(id) + '"><summary>' + esc(STRESS.short.more) + '</summary>' + lines.map(lineHtml).join('') + '</details>');
 
@@ -82,13 +84,15 @@ function rowHtml(row, v) {
   const p = row.parts;
   const can = !v.closed;
   const T = 'stressRow-' + row.id;
-  const verdict = row.a && row.status === 'done' && !row.na && !row.same ? ' <span class="stress-verdict is-' + esc(row.a.verdict) + '" data-verdict="' + esc(row.a.verdict) + '">' + esc(LASTS.verdict.word[row.a.verdict] || '') + '</span>' : '';
+  // the row's marks (lead4.md G1; step F3): the simple view's rows carry the same (src/reading/sentenceMarks.js)
+  const m = stressMarksOf(row.id);
+  const verdict = row.a && row.status === 'done' && !row.na && !row.same ? ' <span class="stress-verdict is-' + esc(row.a.verdict) + '" data-verdict="' + esc(row.a.verdict) + '"' + factAttr(m.verdict) + '>' + esc(LASTS.verdict.word[row.a.verdict] || '') + '</span>' : '';
   let h = '<li class="stress-row" id="' + T + '" data-row="' + esc(row.id) + '" data-status="' + esc(row.status) + '" data-same="' + (row.same ? '1' : '0') + '">';
   h += '<h3 class="stress-title">' + say(p.title) + verdict + '</h3>';
-  h += p.what.map((w) => '<p class="hint">' + say(w) + '</p>').join('');
+  h += p.what.map((w) => '<p class="hint">' + markWithin(say(w), m.what) + '</p>').join('');
   if (p.na) h += '<p class="hint" data-na="' + esc(row.na || 'same') + '">' + (p.na.id === 'na.notCounted' ? esc(STRESS.na.notCounted) : say(p.na)) + '</p>';
-  h += chanceHtml(p.chance);
-  if (p.runsOut) h += '<p class="stress-line" data-line="runsOut">' + say(p.runsOut) + '</p>';
+  h += chanceHtml(p.chance, m);
+  if (p.runsOut) h += '<p class="stress-line" data-line="runsOut">' + markFact(m.runsOut, say(p.runsOut)) + '</p>';
   if (p.closedYear) h += '<p class="stress-line" data-line="closedYear">' + say(p.closedYear) + '</p>';
   if (p.heldGap) h += '<p class="hint" id="' + T + '-gap">' + say(p.heldGap) + '</p>';
   if (row.id === 'fall' && !row.na) h += '<p class="hint"><a href="#" id="stressBadStarts" data-on-click="showBadStarts(); return false">' + esc(STRESS.handOver) + '</a></p>';
@@ -134,7 +138,7 @@ export function stressPanelHtml(scenario, { today = dayKeyOf(todayOf()) } = {}) 
   if (!tried) h += agreementsHtml(v);
   if (run.status === 'working') h += '<p class="hint" role="status" id="stressWorking">' + say({ id: 'working', slots: { i: String(Math.min(run.total, run.done + 1)), n: String(run.total) } }) + '</p>';
   if (run.status === 'failed' && run.reason !== 'stopped') h += '<p class="alert alert-warning" role="alert" id="stressFailed">' + esc(run.reason === 'noWorker' ? STRESS.noWorker : STRESS.failed) + '</p>';
-  if (tried && v.floor) h += '<p class="stress-line stress-floor" id="stressFloor">' + say(v.floor) + '</p>';
+  if (tried && v.floor) h += '<p class="stress-line stress-floor" id="stressFloor">' + markWithin(say(v.floor), STRESS_FLOOR_FINDS) + '</p>';
   // a locked ladder's four market rows: why they are not tried, said once, above the rows
   if (tried && v.notTried) h += '<p class="hint" id="stressNotTried" data-na="lockedLadder">' + say(v.notTried) + '</p>';
   if (tried) h += '<ul class="stress-rows" id="stressRows">' + v.rows.map((row) => rowHtml(row, v)).join('') + '</ul>';

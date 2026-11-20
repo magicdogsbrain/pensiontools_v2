@@ -93,6 +93,13 @@ export const LABELS = Object.freeze({
   [FACT.MIX_HELD]: { label: 'What you hold', basis: 'a share' },
   [FACT.HOLDINGS_TOTAL]: { label: 'Held in all', basis: TODAY },
   [FACT.HOLDINGS_WRAPPER]: { label: 'Held', basis: TODAY },
+  [FACT.STRESS_CHANCE]: { label: 'This line: the money lasts as long as you do', basis: 'a chance' },
+  [FACT.STRESS_FIXED]: { label: 'This line: lasts to the age named', basis: 'a count of futures' },
+  [FACT.STRESS_RUNS_OUT]: { label: 'This line: where it runs out', basis: 'ages' },
+  [FACT.STRESS_VERDICT]: { label: 'This line', basis: 'words' },
+  [FACT.STRESS_CHANGE]: { label: 'What this line changes', basis: 'a share' },
+  [FACT.STRESS_FLOOR]: { label: 'If it runs out, still comes in', basis: 'a year after tax' },
+  [FACT.MIX_BEST]: { label: 'Lasts best', basis: 'a share' },
   [FACT.PARTNER_CHANCE]: { label: "Your partner's plan lasts", basis: 'a chance' },
   [FACT.HOUSEHOLD_CHANCE]: { label: 'Together, it lasts', basis: 'a chance' }
 });

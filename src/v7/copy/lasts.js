@@ -53,8 +53,8 @@ export const LASTS = {
     whyW: '{words}',
     /** the years covered and the worst 12 months, as the full view's block says them after its figures (step F3) */
     coverW: '{pct} of the plan’s years covered — the share of your planned income the money actually paid, averaged over every future.',
-    worst12W: '{worst}: worst 12 months lived, at today’s prices.',
-    leftBadW: 'In the worst 1 in 10 futures, {bad} is left then.'
+    worst12W: '{worst}: the worst year of income lived, at today’s prices.',
+    leftBadW: 'In a bad case (the worst tenth of the futures), {bad} is left then.'
   },
   /** Where the figures came from. */
   ran: { now: 'Worked out just now, on the plan as saved {date}.', nowUndated: 'Worked out just now, on the plan as saved.', document: 'Worked out when the plan was locked on {date}.', today: 'Today’s test on the same plan:' },
@@ -162,8 +162,8 @@ export const LASTS = {
     'cuts.off': 'No cuts: the plan is paid in full until the money runs out.',
     'reserve.on': 'An emergency reserve of {amount}, touched only when the plan would otherwise run out.',
     'reserve.off': 'No emergency reserve.',
-    'notUsed.bought': 'Not used by this way of drawing: it pays the plan in full until it cannot. The dials are kept for the day you switch to Pots and valves or Buckets in order.',
-    'notUsed.flex': 'Not used by this way of drawing: the treats flex instead. The dials are kept for the day you switch to Pots and valves or Buckets in order.'
+    'notUsed.bought': 'Not used by this way of drawing: it pays the plan in full until it cannot. The dials are kept for the day you switch to Pots & Valves or Buckets in order.',
+    'notUsed.flex': 'Not used by this way of drawing: the treats flex instead. The dials are kept for the day you switch to Pots & Valves or Buckets in order.'
   },
   partner: '{name}’s plan is tested on {name}’s plan.',
   partnerLink: 'Open ‘{name}’: does it last?',

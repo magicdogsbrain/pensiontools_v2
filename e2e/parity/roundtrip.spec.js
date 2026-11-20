@@ -34,7 +34,7 @@ import { resetTo, subjectOf, waitChange } from './account.js';
 import { REGISTRY, DIRECTIONS, valueIn, canonOf, entryOf } from './fields.js';
 import { switchDifferences } from './gate.js';
 import { collectMarks, waitQuiet } from './collect.js';
-import { FULL_PAGES, fullTab, fullLocked } from './pages.js';
+import { FULL_PAGES, fullTab, fullLocked, pressesOf } from './pages.js';
 import { signIn, openSimple, openFull, closeNews, fullWizard } from '../scenarios/routes.js';
 
 const OUT = join(process.cwd(), 'test-results', 'parity', 'roundtrips');
@@ -326,7 +326,7 @@ async function readFullView(page) {
     const opened = await fullTab(page, p);
     if (!opened) { out[p.name] = null; continue; }
     if (p.press && (!p.onlyLocked || await fullLocked(page))) {
-      const run = page.locator(p.press).first();
+      const run = page.locator(pressesOf(p.press)[0]).first();
       if (await run.isVisible().catch(() => false)) await run.click();
     }
     await waitQuiet(page);
@@ -362,7 +362,7 @@ test.describe('parity round trips: a plan chosen inside the full view, the page 
           return;
         }
         if (p.press && (!p.onlyLocked || await fullLocked(page))) {
-          const run = page.locator(p.press).first();
+          const run = page.locator(pressesOf(p.press)[0]).first();
           if (await run.isVisible().catch(() => false)) await run.click();
         }
         await waitQuiet(page);

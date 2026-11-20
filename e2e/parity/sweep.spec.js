@@ -19,7 +19,7 @@ import { collectMarks, waitQuiet } from './collect.js';
 import { readingsFor } from './readings.js';
 import { entryOf, canonOf } from './fields.js';
 import { at, signIn, openSimple, openFull, closeNews } from '../scenarios/routes.js';
-import { wordsOf, SIMPLE_PAGES, SIMPLE_PRESS, FULL_PAGES, fullTab, fullLocked } from './pages.js';
+import { wordsOf, SIMPLE_PAGES, SIMPLE_PRESS, FULL_PAGES, fullTab, fullLocked, pressesOf } from './pages.js';
 
 export { SIMPLE_PAGES, SIMPLE_PRESS, FULL_PAGES };
 
@@ -90,9 +90,13 @@ test.describe('parity sweep', () => {
         const opened = await fullTab(page, p);
         let pressed;
         if (opened && p.press && (!p.onlyLocked || await fullLocked(page))) {
-          const run = page.locator(p.press).first();
-          pressed = await run.isVisible().catch(() => false);
-          if (pressed) await run.click();
+          for (const [i, press] of pressesOf(p.press).entries()) {
+            if (i > 0) await waitQuiet(page);   // the next button is drawn once the run before has landed
+            const run = page.locator(press).first();
+            const shown = await run.isVisible().catch(() => false);
+            if (i === 0) pressed = shown;   // the page's press, as the floor counts it: the first
+            if (shown) await run.click();
+          }
         }
         if (opened && p.openFolds) { await waitQuiet(page); await page.evaluate((sel) => { for (const d of document.querySelectorAll(sel + ' details')) d.open = true; }, p.openFolds); }
         await readPage(page, out, 'full', p.name, opened, { pressed, words });

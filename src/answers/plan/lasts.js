@@ -393,12 +393,13 @@ export function verdictOf(result, saved, { level = null, chance = null } = {}) {
   // band's own line says the typical and the best 1 in 10 once; the worst 1 in 10, which the full view's card says too, is
   // one line beside it (lead4.md R8, step F3). Not weighing, the one row with all three.
   if (!wb) rows.push({ id: 'left', slots: { typical: moneyK(a.typicalLeft), bad: moneyK(a.badCaseLeft), good: moneyK(a.goodCaseLeft) } });
-  else if (!a.words.left || !/^In more than half/.test(a.words.left)) rows.push({ id: 'leftBadW', slots: { bad: moneyK(a.badCaseLeft) } });
+  else if (!result.document && !/^In more than half/.test(String(a.words.left || ''))) rows.push({ id: 'leftBadW', slots: { bad: moneyK(a.badCaseLeft) } });
   // the years covered and the worst 12 months, as the full view's block shows them (lead4.md R8, step F3): not on a plan still
   // saving (its figures start from the pot at the stop), nor on a document's record
   const live = !result.document && a.chanceFrom !== 'saving';
   if (live && Number.isFinite(+a.coverage) && a.coverage !== null) rows.push({ id: 'coverW', slots: { pct: pctText(a.coverage) } });
-  if (live && Number.isFinite(+a.worst12)) rows.push({ id: 'worst12W', slots: { worst: money(a.worst12) } });
+  // (the worst 12 months also on a plan still saving: the full view's card says it there too, from the pot at the stop)
+  if (!result.document && Number.isFinite(+a.worst12)) rows.push({ id: 'worst12W', slots: { worst: money(a.worst12) } });
   const c = a.cuts;
   // a cut is income that went unpaid: a future that only ran out, with nothing cut before it, is not one (with the cuts
   // switched off every "cut" is a run-out with £0 cut, which the headline already counts)

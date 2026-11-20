@@ -172,7 +172,8 @@ describe('Stress tester → Drawdown: the fixed table says how its ISA grows (re
     for (const t of texts) for (const b of BANNED.filter((x) => x.scope === 'all' && x.id !== 'stress-tester')) expect(b.re.test(t), b.id + ': ' + t).toBe(false);
   });
   it('index.html: the table\'s note carries it, with the plan\'s lock and the table\'s own rise in prices', () => {
-    expect(fnBody('window.showDrawdownScheduleUI', 2500)).toContain('drawdownIsaNoteHtml(settings, { inflation, locked: await planIsLocked().catch(() => null) })');
+    // (step F3) the table's own rise in prices is the plan's (src/reading/yearTable.js), the settings the one test's
+    expect(fnBody('window.showDrawdownScheduleUI', 2500)).toContain('drawdownIsaNoteHtml(t.settings, { inflation: tables.prices, locked: await planIsLocked().catch(() => null) })');
   });
 });
 

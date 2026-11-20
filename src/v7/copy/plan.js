@@ -392,17 +392,17 @@ export const PLAN = {
   },
   /** What a lump sum is (the planner's wrapper), in words. */
   wrappers: { cash: 'a cash lump sum', pension: 'an inherited pension', isa: 'an inherited ISA' },
-  /** The strategies in plain names. The one with an ampersand is spelt as the planner spells it. */
+  /** The strategies, by the one name each has in both views (the planner's, stressTest.js STRATEGY_NAMES; WAY.names). */
   strategies: {
-    'pots-and-valves': 'Pots and valves',
+    'pots-and-valves': 'Pots & Valves',
     'buckets-in-order': 'Buckets in order',
     'bridge-and-engine': 'Gilts to State Pension, then shares',
-    'ladder-and-ratchet': 'Ladder and ratchet',
-    'floor-and-flex': 'Floor and flex',
+    'ladder-and-ratchet': 'Ladder & Ratchet',
+    'floor-and-flex': 'Floor & Flex',
     'floor-the-schedule': 'Floor the schedule',
-    'floor-to-age': 'Floor to an age',
-    'full-il-gilt': 'Full gilt ladder',
-    'gilt-rotation': 'Gilt ladder with a rotation'
+    'floor-to-age': 'Floor to an age, then decide',
+    'full-il-gilt': 'Full index-linked gilt ladder',
+    'gilt-rotation': 'Gilt ladder + rotation'
   },
   /** The strategies' dials, by key. A key not here is shown as it is named. */
   dials: {

@@ -1,8 +1,6 @@
 {
  "note": "Fact x fixture pairs shown in one view and nowhere in the other (lead4.md G4). May only shrink.",
  "pairs": [
-  "age-only|income.step.0.beforeTax",
-  "age-only|income.step.0.monthAfterTax",
   "age-only|isa.today",
   "age-only|payIn.fromTakeHome",
   "age-only|payIn.total",
@@ -2032,8 +2030,6 @@
   "saver-payin|table:years:8:net",
   "saver-payin|table:years:9:age",
   "saver-payin|table:years:9:net",
-  "wizard-defaults|income.step.0.beforeTax",
-  "wizard-defaults|income.step.0.monthAfterTax",
   "wizard-defaults|isa.today",
   "wizard-defaults|pot.today",
   "wizard-defaults|statePension.age",

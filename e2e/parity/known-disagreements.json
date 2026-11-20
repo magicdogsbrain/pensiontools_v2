@@ -9,14 +9,6 @@
     ""
    ]
   },
-  "age-only|field:spend.first": {
-   "full:stress settings": [
-    ""
-   ],
-   "simple:spend": [
-    "2210"
-   ]
-  },
   "age-only|lock.state": {
    "full:accumulation": [
     "✏️ draft"
@@ -1977,14 +1969,6 @@
    ],
    "simple:about": [
     ""
-   ]
-  },
-  "wizard-defaults|field:spend.first": {
-   "full:stress settings": [
-    ""
-   ],
-   "simple:spend": [
-    "2210"
    ]
   },
   "wizard-defaults|lock.state": {

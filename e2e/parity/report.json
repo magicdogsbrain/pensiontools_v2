@@ -1,5 +1,5 @@
 {
- "at": "2026-11-20T04:13:01.571Z",
+ "at": "2026-11-20T06:11:47.096Z",
  "fixtures": [
   "age-only",
   "budget",
@@ -23,22 +23,66 @@
  "factsMarked": 88,
  "factsInBoth": 76,
  "pagesOpened": 635,
- "marks": 11670,
+ "marks": 11682,
  "fieldsBound": 61,
- "disagreements": 80,
- "unmarked": 16219,
- "oneViewOnly": 2325,
+ "disagreements": 78,
+ "unmarked": 16170,
+ "oneViewOnly": 2321,
  "readingMismatches": 0,
- "roundTripsFailed": 64,
+ "roundTripsFailed": 63,
  "rose": [
-  "a round trip fails that known-roundtrips.json does not list: income.spKind|s2f — needs a press"
+  "fewer places of a fact than before (a mark taken off?): age-only|income.step.0.beforeTax|simple 2 → 0",
+  "fewer places of a fact than before (a mark taken off?): age-only|income.step.0.monthAfterTax|simple 1 → 0",
+  "fewer places of a fact than before (a mark taken off?): wizard-defaults|income.step.0.beforeTax|simple 2 → 0",
+  "fewer places of a fact than before (a mark taken off?): wizard-defaults|income.step.0.monthAfterTax|simple 1 → 0"
  ],
- "shrank": [],
+ "shrank": [
+  "agrees now, take it out of known-disagreements.json: age-only|field:spend.first",
+  "agrees now, take it out of known-disagreements.json: wizard-defaults|field:spend.first",
+  "in both views now, take it out of one-view-only.json: age-only|income.step.0.beforeTax",
+  "in both views now, take it out of one-view-only.json: age-only|income.step.0.monthAfterTax",
+  "in both views now, take it out of one-view-only.json: wizard-defaults|income.step.0.beforeTax",
+  "in both views now, take it out of one-view-only.json: wizard-defaults|income.step.0.monthAfterTax",
+  "unmarked figures fell on age-only|simple:spend: 12 → 6",
+  "unmarked figures fell on couple|simple:saving: 36 → 34",
+  "unmarked figures fell on mover-holdings|simple:saving: 30 → 28",
+  "unmarked figures fell on mover-totals|simple:saving: 24 → 22",
+  "unmarked figures fell on saver-checkin|simple:saving: 52 → 50",
+  "unmarked figures fell on saver-draft|simple:saving: 55 → 53",
+  "unmarked figures fell on saver-ladder-draft|simple:saving: 65 → 63",
+  "unmarked figures fell on saver-locked-ladder|simple:saving: 45 → 43",
+  "unmarked figures fell on saver-locked-pots|simple:saving: 25 → 23",
+  "unmarked figures fell on saver-payin|simple:saving: 45 → 43",
+  "unmarked figures fell on wizard-defaults|simple:plan: 12 → 10",
+  "unmarked figures fell on wizard-defaults|simple:about: 6 → 5",
+  "unmarked figures fell on wizard-defaults|simple:income: 8 → 7",
+  "unmarked figures fell on wizard-defaults|simple:spend: 12 → 5",
+  "unmarked figures fell on wizard-defaults|simple:pots: 31 → 30",
+  "unmarked figures fell on wizard-defaults|simple:lasts: 13 → 12",
+  "unmarked figures fell on wizard-defaults|simple:way: 40 → 39",
+  "unmarked figures fell on wizard-defaults|simple:mix: 22 → 21",
+  "unmarked figures fell on wizard-defaults|simple:saving: 3 → 2",
+  "unmarked figures fell on wizard-defaults|simple:checkin: 2 → 1",
+  "unmarked figures fell on wizard-defaults|simple:review: 2 → 1",
+  "unmarked figures fell on wizard-defaults|simple:month: 2 → 1",
+  "unmarked figures fell on wizard-defaults|simple:where: 2 → 1",
+  "unmarked figures fell on wizard-defaults|simple:lock: 2 → 1",
+  "unmarked figures fell on wizard-defaults|simple:hold: 2 → 1",
+  "unmarked figures fell on wizard-defaults|simple:move: 2 → 1",
+  "unmarked figures fell on wizard-defaults|simple:budget: 11 → 10",
+  "unmarked figures fell on wizard-defaults|simple:household: 2 → 1"
+ ],
  "grew": [
   "more places now, raise coverage.json: budget|spend.essentials|full 0 → 1",
   "more places now, raise coverage.json: budget|spend.essentials|simple 0 → 1",
   "more places now, raise coverage.json: budget|spend.total|full 0 → 1",
   "more places now, raise coverage.json: budget|spend.total|simple 0 → 1",
+  "more places now, raise coverage.json: couple|income.step.0.beforeTax|simple 2 → 3",
+  "more places now, raise coverage.json: couple|income.step.0.monthAfterTax|simple 1 → 2",
+  "more places now, raise coverage.json: mover-holdings|income.step.0.beforeTax|simple 2 → 3",
+  "more places now, raise coverage.json: mover-holdings|income.step.0.monthAfterTax|simple 1 → 2",
+  "more places now, raise coverage.json: mover-totals|income.step.0.beforeTax|simple 2 → 3",
+  "more places now, raise coverage.json: mover-totals|income.step.0.monthAfterTax|simple 1 → 2",
   "more places now, raise coverage.json: retired-locked-ladder|income.step.0.beforeTax|full 1 → 4",
   "more places now, raise coverage.json: retired-locked-ladder|income.step.0.beforeTax|simple 2 → 3",
   "more places now, raise coverage.json: retired-locked-ladder|income.step.0.monthAfterTax|full 1 → 2",
@@ -72,12 +116,24 @@
   "more places now, raise coverage.json: retired-locked-pots|income.thisYear.perMonth|simple 0 → 3",
   "more places now, raise coverage.json: retired-locked-pots|income.thisYear.total|full 0 → 2",
   "more places now, raise coverage.json: retired-locked-pots|income.thisYear.total|simple 0 → 3",
+  "more places now, raise coverage.json: saver-checkin|income.step.0.beforeTax|simple 2 → 3",
+  "more places now, raise coverage.json: saver-checkin|income.step.0.monthAfterTax|simple 1 → 2",
+  "more places now, raise coverage.json: saver-draft|income.step.0.beforeTax|simple 2 → 3",
+  "more places now, raise coverage.json: saver-draft|income.step.0.monthAfterTax|simple 1 → 2",
+  "more places now, raise coverage.json: saver-ladder-draft|income.step.0.beforeTax|simple 2 → 3",
+  "more places now, raise coverage.json: saver-ladder-draft|income.step.0.monthAfterTax|simple 1 → 2",
   "more places now, raise coverage.json: saver-locked-ladder|income.step.0.beforeTax|full 1 → 3",
+  "more places now, raise coverage.json: saver-locked-ladder|income.step.0.beforeTax|simple 2 → 3",
   "more places now, raise coverage.json: saver-locked-ladder|income.step.0.monthAfterTax|full 1 → 2",
+  "more places now, raise coverage.json: saver-locked-ladder|income.step.0.monthAfterTax|simple 1 → 2",
   "more places now, raise coverage.json: saver-locked-ladder|income.step.1.beforeTax|full 0 → 2",
   "more places now, raise coverage.json: saver-locked-ladder|income.step.1.monthAfterTax|full 0 → 1",
   "more places now, raise coverage.json: saver-locked-pots|income.step.0.beforeTax|full 1 → 3",
-  "more places now, raise coverage.json: saver-locked-pots|income.step.0.monthAfterTax|full 1 → 2"
+  "more places now, raise coverage.json: saver-locked-pots|income.step.0.beforeTax|simple 2 → 3",
+  "more places now, raise coverage.json: saver-locked-pots|income.step.0.monthAfterTax|full 1 → 2",
+  "more places now, raise coverage.json: saver-locked-pots|income.step.0.monthAfterTax|simple 1 → 2",
+  "more places now, raise coverage.json: saver-payin|income.step.0.beforeTax|simple 2 → 3",
+  "more places now, raise coverage.json: saver-payin|income.step.0.monthAfterTax|simple 1 → 2"
  ],
  "notQuiet": [],
  "detail": {
@@ -96,23 +152,6 @@
       "view": "full",
       "page": "stress settings",
       "text": "cash"
-     }
-    ]
-   },
-   {
-    "key": "age-only|field:spend.first",
-    "fixture": "age-only",
-    "fact": "field:spend.first",
-    "values": [
-     {
-      "view": "simple",
-      "page": "spend",
-      "text": "2210"
-     },
-     {
-      "view": "full",
-      "page": "stress settings",
-      "text": ""
      }
     ]
    },
@@ -3767,23 +3806,6 @@
     ]
    },
    {
-    "key": "wizard-defaults|field:spend.first",
-    "fixture": "wizard-defaults",
-    "fact": "field:spend.first",
-    "values": [
-     {
-      "view": "simple",
-      "page": "spend",
-      "text": "2210"
-     },
-     {
-      "view": "full",
-      "page": "stress settings",
-      "text": ""
-     }
-    ]
-   },
-   {
     "key": "wizard-defaults|lock.state",
     "fixture": "wizard-defaults",
     "fact": "lock.state",
@@ -3904,18 +3926,6 @@
    }
   ],
   "oneViewOnly": [
-   {
-    "key": "age-only|income.step.0.beforeTax",
-    "fixture": "age-only",
-    "fact": "income.step.0.beforeTax",
-    "view": "simple"
-   },
-   {
-    "key": "age-only|income.step.0.monthAfterTax",
-    "fixture": "age-only",
-    "fact": "income.step.0.monthAfterTax",
-    "view": "simple"
-   },
    {
     "key": "age-only|isa.today",
     "fixture": "age-only",
@@ -16091,18 +16101,6 @@
     "view": "full"
    },
    {
-    "key": "wizard-defaults|income.step.0.beforeTax",
-    "fixture": "wizard-defaults",
-    "fact": "income.step.0.beforeTax",
-    "view": "simple"
-   },
-   {
-    "key": "wizard-defaults|income.step.0.monthAfterTax",
-    "fixture": "wizard-defaults",
-    "fact": "income.step.0.monthAfterTax",
-    "view": "simple"
-   },
-   {
     "key": "wizard-defaults|isa.today",
     "fixture": "wizard-defaults",
     "fact": "isa.today",
@@ -17942,10 +17940,6 @@
    },
    {
     "key": "income.spDate|s2f",
-    "kind": "needs a press"
-   },
-   {
-    "key": "income.spKind|s2f",
     "kind": "needs a press"
    },
    {

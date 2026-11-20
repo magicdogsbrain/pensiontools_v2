@@ -8146,8 +8146,9 @@
       const G = E0 * Math.pow(1 + gp, (tMonths || 0) / 12);
       const surplus = Math.max(0, V - G);
       const nextRungYear = (sg.ladderYears || 0) + 1;   // conservative: next unsecured year
-      const draw = Array.isArray(sg.drawNet) ? +(sg.drawNet[nextRungYear - 1] ?? sg.drawNet[sg.drawNet.length - 1] ?? 0) : 0;
-      const rungCost = Math.max(0, draw) * Math.pow(1 + realYieldForYear(nextRungYear), -(nextRungYear - (tMonths || 0) / 12));
+      // the next rung's cost is the plan's own run's (its rungCost, on the run's prices), never a second price sum here (step F3)
+      const costs = Array.isArray(sg.rungCost) ? sg.rungCost : [];
+      const rungCost = Math.max(0, +(costs[nextRungYear - 1] ?? costs[costs.length - 1] ?? 0));
       if (V >= b * G) {
         const lockable = Math.floor(surplus / Math.max(1, rungCost));
         box.innerHTML = '<div class="alert alert-success"><strong>Trigger! Sleeve ' + gbp(V) + ' is above the band (' + gbp(Math.round(b * G)) + ').</strong> '

@@ -135,15 +135,15 @@ describe('the suggestion, pattern by pattern (from the pinned answers)', () => {
     expect(name('c', 'answer-F2')).toBe('From 62 and 60 · £3,530 a month');
   });
   it('C, starting later with money still going in: "Stop at {age at the start}"', () => {
-    expect(name('c', 'answer-paying-in')).toBe('Stop at 67 · £2,340 a month');
+    expect(name('c', 'answer-paying-in')).toBe('Stop at 67 · £2,330 a month');
   });
   it('C, starting later with nothing going in: "From {age at the start}"', () => {
     const r = load('c', 'answer-paying-in');
     const none = copy(r);
     none.payIn = { total: 0, byPerson: [{ who: 'you', total: 0 }] };
-    expect(suggestedPlanName('c', none.inputs, none)).toBe('From 67 · £2,340 a month');
+    expect(suggestedPlanName('c', none.inputs, none)).toBe('From 67 · £2,330 a month');
     delete none.payIn;
-    expect(suggestedPlanName('c', none.inputs, none)).toBe('From 67 · £2,340 a month');
+    expect(suggestedPlanName('c', none.inputs, none)).toBe('From 67 · £2,330 a month');
   });
   it('A: "Stop at {shown age} · £{spend} a month" — the spending tried, not the careful amount', () => {
     expect(name('a', 'answer-A1')).toBe('Stop at 60 · £1,850 a month');

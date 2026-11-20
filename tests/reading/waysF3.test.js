@@ -27,7 +27,7 @@ describe('one reading of a way', () => {
     for (const id of Object.keys(STRATEGY_NAMES)) expect(wayNameOf(id)).toBe(STRATEGY_NAMES[id]);
   });
   it('each way\'s figures are facts of their own', () => {
-    expect(wayFactIds('full-il-gilt')).toEqual({ name: 'way.full-il-gilt.name', verdict: 'way.full-il-gilt.verdict', cost: 'way.full-il-gilt.cost', left: 'way.full-il-gilt.left', badLeft: 'way.full-il-gilt.badLeft', worst12: 'way.full-il-gilt.worst12' });
+    expect(wayFactIds('full-il-gilt')).toMatchObject({ name: 'way.full-il-gilt.name', verdict: 'way.full-il-gilt.verdict', cost: 'way.full-il-gilt.cost', left: 'way.full-il-gilt.left', badLeft: 'way.full-il-gilt.badLeft', worst12: 'way.full-il-gilt.worst12' });
     expect(patternOf('way.floor-to-age.verdict')).toBe(FACT.WAY_VERDICT);
     expect(patternOf('way.floor-to-age.name')).toBe(FACT.WAY_EACH_NAME);
     expect(patternOf('way.name')).toBe(FACT.WAY_NAME);

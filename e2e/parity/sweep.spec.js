@@ -91,7 +91,7 @@ test.describe('parity sweep', () => {
         let pressed;
         if (opened && p.press && (!p.onlyLocked || await fullLocked(page))) {
           for (const [i, press] of pressesOf(p.press).entries()) {
-            if (i > 0) await waitQuiet(page);   // the next button is drawn once the run before has landed
+            await waitQuiet(page);   // a button is drawn once the page's run (or the run before) has landed
             const run = page.locator(press).first();
             const shown = await run.isVisible().catch(() => false);
             if (i === 0) pressed = shown;   // the page's press, as the floor counts it: the first

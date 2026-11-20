@@ -93,7 +93,8 @@ export const FACT_FORMAT = Object.freeze({
   // step F3: each way's figures in the ways list (src/reading/ways.js wayFiguresOf), whole pounds as both views wrote them
   'way.#.left': money,
   'way.#.badLeft': money,
-  'way.#.worst12': money
+  'way.#.worst12': money,
+  'way.#.spent': money
 });
 
 /** The value of a fact as every place writes it; '' when nothing is known. */

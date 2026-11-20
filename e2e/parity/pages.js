@@ -46,7 +46,8 @@ export const FULL_PAGES = Object.freeze([
   // the pots' floors are drawn on a press ("Show Glidepath"), as the simple view opens its table of floors on a press
   { name: 'glidepath', tab: 'stress', sub: 'glidepath', press: 'button[data-on-click="showGlidepathUI()"]' },
   { name: 'stress settings', tab: 'stress', sub: 'stresssettings' },
-  { name: 'strategies', tab: 'strategies' },
+  // the ranking's "More columns", as the sweep opens the simple view's under the ways' cards (step F3)
+  { name: 'strategies', tab: 'strategies', press: 'button[data-on-click="setCmpMore(true)"]' },
   // this month's figures are worked out on a press ("Calculate"); on a plan not locked that press asks to lock it first, so
   // the sweep presses it only on a locked plan (the simple view shows the month only once locked)
   { name: 'monthly entry', tab: 'decision', sub: 'entry', press: '#decisionForm button[type="submit"]', onlyLocked: true },

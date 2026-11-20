@@ -326,6 +326,7 @@ async function readFullView(page) {
     const opened = await fullTab(page, p);
     if (!opened) { out[p.name] = null; continue; }
     if (p.press && (!p.onlyLocked || await fullLocked(page))) {
+      await waitQuiet(page);   // a button is drawn once the page's run has landed (the ranking's "More columns")
       const run = page.locator(pressesOf(p.press)[0]).first();
       if (await run.isVisible().catch(() => false)) await run.click();
     }
@@ -362,6 +363,7 @@ test.describe('parity round trips: a plan chosen inside the full view, the page 
           return;
         }
         if (p.press && (!p.onlyLocked || await fullLocked(page))) {
+          await waitQuiet(page);   // a button is drawn once the page's run has landed (the ranking's "More columns")
           const run = page.locator(pressesOf(p.press)[0]).first();
           if (await run.isVisible().catch(() => false)) await run.click();
         }

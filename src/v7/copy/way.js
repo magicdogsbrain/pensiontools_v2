@@ -164,7 +164,7 @@ export const WAY = {
     lead: 'The full view’s other columns, on the same runs.',
     rankBy: 'Rank by',
     orders: { lasts: 'How many futures it lasts', left: 'What is typically left', score: 'Score', coverage: 'Coverage' },
-    columns: { way: 'Way of drawing', lasts: 'Lasts', worst12: 'Worst 12 months', left: 'Typically left', covered: 'Years covered', coverage: 'Coverage', spent: 'Spent over the plan', bumpiness: 'Bumpiness (% a year)', score: 'Score' },
+    columns: { way: 'Way of drawing', lasts: 'Lasts', worst12: 'Worst 12 months', left: 'Typically left', covered: 'Years covered', coverage: 'Coverage', spent: 'Spent over the plan', bumpiness: 'Bumpiness (a year)', score: 'Score' },
     score: 'The score weighs what is paid, how much is left and how bumpy the ride was; higher is better. It never decides the order of the cards.',
     none: '—',
     cannot: 'cannot be bought'

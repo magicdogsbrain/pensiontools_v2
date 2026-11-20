@@ -107,6 +107,10 @@ export const FACT = Object.freeze({
   WAY_LEFT: 'way.#.left',
   WAY_BAD_LEFT: 'way.#.badLeft',
   WAY_WORST_12: 'way.#.worst12',
+  // and, under "More columns", the share of the plan's years it paid for and what it paid out over the plan
+  WAY_COVERED: 'way.#.covered',
+  WAY_SPENT: 'way.#.spent',
+  WAY_BUMPINESS: 'way.#.bumpiness',
   WAY_BOUGHT: 'way.bought',
   // what a bought way was priced on (src/reading/market.js marketLabel): the prices' date and source
   MARKET_GILTS: 'market.gilts',

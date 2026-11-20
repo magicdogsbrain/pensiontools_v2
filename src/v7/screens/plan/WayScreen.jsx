@@ -200,10 +200,10 @@ function More({ V, dispatch }) {
                         <td>{c.verdict ? c.verdict.words.replace(/^in /, '') : T.none}</td>
                         <td>{c.table.worst12 != null && c.facts.worst12 ? <Fact id={c.facts.worst12}>{c.table.worst12}</Fact> : cell(c.table.worst12)}</td>
                         <td>{c.facts.left ? <Fact id={c.facts.left}>{c.table.left}</Fact> : cell(c.table.left)}</td>
-                        <td>{cell(c.table.covered)}</td>
+                        <td>{c.table.covered != null && c.facts.covered ? <Fact id={c.facts.covered}>{c.table.covered}</Fact> : cell(c.table.covered)}</td>
                         <td>{cell(c.table.coverage)}</td>
-                        <td>{cell(c.table.spent)}</td>
-                        <td>{cell(c.table.bumpiness)}</td>
+                        <td>{c.table.spent != null && c.facts.spent ? <Fact id={c.facts.spent}>{c.table.spent}</Fact> : cell(c.table.spent)}</td>
+                        <td>{c.table.bumpiness != null && c.facts.bumpiness ? <Fact id={c.facts.bumpiness}>{c.table.bumpiness}</Fact> : cell(c.table.bumpiness)}</td>
                         <td>{cell(c.table.score)}</td>
                       </>
                     ) : <td colSpan={8}>{T.cannot}</td>}

@@ -191,14 +191,14 @@ export function cardLines(w, { endAge = null, current = false, atStop = null } =
 /** The "More columns" row of one way: the planner's extra columns in V7's names. */
 function tableRow(w) {
   if (!w || !w.affordable) return null;
-  const fig = wayFiguresOf(w);   // the one reading (src/reading/ways.js), the full view's ranking and table too
+  const fig = wayFiguresOf(w, w);   // the one reading (src/reading/ways.js), the full view's ranking and table too
   return {
     worst12: fig.worst12,
     left: fig.left,
-    covered: w.coverage == null ? null : pctText(w.coverage),
+    covered: fig.covered,
     coverage: w.coverageRatio == null ? null : w.coverageRatio.toFixed(2),
-    spent: w.spentMedian == null ? null : pounds(w.spentMedian),
-    bumpiness: w.vol == null ? null : String(Math.round(w.vol * 100)),
+    spent: fig.spent,
+    bumpiness: fig.bumpiness,
     score: w.vac == null ? null : w.vac.toFixed(1)
   };
 }
@@ -267,7 +267,7 @@ export function cardsOf(reading, W) {
       // the way's name, always its own mark; how many futures out of 10 it lasts, marked only on the plan's own run (a try is a
       // what-if); when a bought way is bought (one fact for the plan)
       // what is typically left, the bad case and the worst 12 months: the plan's own run only, as the verdict
-      facts: (() => { const own = !!(shownResult && shownResult === ran && ran.affordable), f = wayFactIds(id); return { ...f, verdict: own ? f.verdict : null, left: own ? f.left : null, badLeft: own ? f.badLeft : null, worst12: own ? f.worst12 : null, bought: FACT.WAY_BOUGHT }; })(),
+      facts: (() => { const own = !!(shownResult && shownResult === ran && ran.affordable), f = wayFactIds(id); return { ...f, verdict: own ? f.verdict : null, left: own ? f.left : null, badLeft: own ? f.badLeft : null, worst12: own ? f.worst12 : null, covered: own ? f.covered : null, spent: own ? f.spent : null, bumpiness: own ? f.bumpiness : null, bought: FACT.WAY_BOUGHT }; })(),
       // a locked ladder's own way, read from its plan document (waysRun.lockedOwnOf): the day it was locked, said once
       asLocked: shownResult && shownResult === ran && ran.asLocked ? ran.asLocked : null
     };

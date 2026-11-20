@@ -13,14 +13,16 @@
  *   BOUGHT_WORDS[when]                    the words for it, the same in both views
  *   wayFactIds(id)                        { name, verdict, cost, left, badLeft, worst12 } the marks each way's figures carry
  *                                         (way.<id>.name, ...)
- *   wayFiguresOf(r)                       { left, badLeft, worst12 } as both views write them: what is typically left, the bad
- *                                         case (the worst 1 in 10) and the worst 12 months lived (null when the run has none)
+ *   wayFiguresOf(r, sc)                   { left, badLeft, worst12, covered, spent, bumpiness } as both views write them:
+ *                                         what is typically left, the bad case (the worst 1 in 10), the worst 12 months lived,
+ *                                         the share of the plan's years paid for, what was paid out over the plan and, from
+ *                                         the score (sc: scoreStrategy's { vol }), how bumpy the ride was (null when none)
  *
  * Pure: no clock, no engine run, no page. A plan with no figures of its own is never ranked (planHasFigures): both views
  * say what is missing instead (lead4.md D2, carry-over F3).
  */
 import { FACT, factId } from './facts.js';
-import { futuresOutOfTen } from '../services/OneAnswer.js';
+import { futuresOutOfTen, pctText } from '../services/OneAnswer.js';
 import { WAY } from '../v7/copy/way.js';
 import { formatFact } from './format.js';
 
@@ -41,7 +43,8 @@ export const wayVerdictOf = (share) => futuresOutOfTen(share).words;
 /** The marks of one way's figures. */
 export const wayFactIds = (id) => ({
   name: factId(FACT.WAY_EACH_NAME, id), verdict: factId(FACT.WAY_VERDICT, id), cost: factId(FACT.WAY_COST, id),
-  left: factId(FACT.WAY_LEFT, id), badLeft: factId(FACT.WAY_BAD_LEFT, id), worst12: factId(FACT.WAY_WORST_12, id)
+  left: factId(FACT.WAY_LEFT, id), badLeft: factId(FACT.WAY_BAD_LEFT, id), worst12: factId(FACT.WAY_WORST_12, id),
+  covered: factId(FACT.WAY_COVERED, id), spent: factId(FACT.WAY_SPENT, id), bumpiness: factId(FACT.WAY_BUMPINESS, id)
 });
 
 /**
@@ -49,11 +52,16 @@ export const wayFactIds = (id) => ({
  * wayResult: worst12 a number): what is typically left (the middle future), the bad case (the worst 1 in 10) and the worst
  * 12 months lived (null when the run gives none).
  */
-export function wayFiguresOf(r) {
+export function wayFiguresOf(r, sc = null) {
   const x = r || {};
   const t = x.terminal || {};
   const w = x.worst12 && typeof x.worst12 === 'object' ? num(x.worst12.min) : num(x.worst12);
-  return { left: formatFact(FACT.WAY_LEFT, num(t.p50) ?? 0), badLeft: formatFact(FACT.WAY_BAD_LEFT, num(t.p10) ?? 0), worst12: w == null ? null : formatFact(FACT.WAY_WORST_12, w) };
+  const covered = x.coverage == null ? null : num(x.coverage), spent = x.spentMedian == null ? null : num(x.spentMedian);
+  return {
+    left: formatFact(FACT.WAY_LEFT, num(t.p50) ?? 0), badLeft: formatFact(FACT.WAY_BAD_LEFT, num(t.p10) ?? 0), worst12: w == null ? null : formatFact(FACT.WAY_WORST_12, w),
+    covered: covered == null ? null : pctText(covered), spent: spent == null ? null : formatFact(FACT.WAY_SPENT, spent),
+    bumpiness: sc && num(sc.vol) != null ? Math.round(sc.vol * 100) + '%' : null
+  };
 }
 
 /** Why a way cannot be bought: the cost the configs priced (or the ladder's own) against the pot, or no gilt long enough. */

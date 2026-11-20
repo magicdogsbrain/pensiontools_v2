@@ -62,17 +62,6 @@
     "Not locked"
    ]
   },
-  "age-only|way.name": {
-   "full:decision settings": [
-    "Pots & Valves"
-   ],
-   "full:monthly entry": [
-    "Pots & Valves"
-   ],
-   "simple:plan": [
-    "Pots and valves"
-   ]
-  },
   "budget|lock.state": {
    "full:budget": [
     "✏️ draft"
@@ -172,41 +161,6 @@
    ],
    "simple:where": [
     "Not locked"
-   ]
-  },
-  "budget|table:years:15:isa": {
-   "full:drawdown": [
-    "£0.00"
-   ],
-   "simple:lasts": [
-    "£0"
-   ]
-  },
-  "budget|table:years:32:isa": {
-   "full:drawdown": [
-    "£0.00"
-   ],
-   "simple:lasts": [
-    "£0"
-   ]
-  },
-  "budget|table:years:8:isa": {
-   "full:drawdown": [
-    "£0.00"
-   ],
-   "simple:lasts": [
-    "£0"
-   ]
-  },
-  "budget|way.name": {
-   "full:decision settings": [
-    "Pots & Valves"
-   ],
-   "full:monthly entry": [
-    "Pots & Valves"
-   ],
-   "simple:plan": [
-    "Pots and valves"
    ]
   },
   "closed-successor|lock.state": {
@@ -310,17 +264,6 @@
     "Not locked"
    ]
   },
-  "closed-successor|way.name": {
-   "full:decision settings": [
-    "Pots & Valves"
-   ],
-   "full:monthly entry": [
-    "Pots & Valves"
-   ],
-   "simple:plan": [
-    "Pots and valves"
-   ]
-  },
   "couple|lock.state": {
    "full:accumulation": [
     "✏️ draft"
@@ -372,17 +315,6 @@
    ],
    "simple:lock": [
     "Not locked"
-   ]
-  },
-  "couple|way.name": {
-   "full:decision settings": [
-    "Pots & Valves"
-   ],
-   "full:monthly entry": [
-    "Pots & Valves"
-   ],
-   "simple:plan": [
-    "Pots and valves"
    ]
   },
   "mover-holdings|lock.state": {
@@ -489,33 +421,6 @@
     "Not locked"
    ]
   },
-  "mover-holdings|table:years:3:isa": {
-   "full:drawdown": [
-    "£0.00"
-   ],
-   "simple:lasts": [
-    "£0"
-   ]
-  },
-  "mover-holdings|table:years:6:isa": {
-   "full:drawdown": [
-    "£0.00"
-   ],
-   "simple:lasts": [
-    "£0"
-   ]
-  },
-  "mover-holdings|way.name": {
-   "full:decision settings": [
-    "Pots & Valves"
-   ],
-   "full:monthly entry": [
-    "Pots & Valves"
-   ],
-   "simple:plan": [
-    "Pots and valves"
-   ]
-  },
   "mover-totals|lock.state": {
    "full:accumulation": [
     "✏️ draft"
@@ -620,17 +525,6 @@
     "Not locked"
    ]
   },
-  "mover-totals|way.name": {
-   "full:decision settings": [
-    "Pots & Valves"
-   ],
-   "full:monthly entry": [
-    "Pots & Valves"
-   ],
-   "simple:plan": [
-    "Pots and valves"
-   ]
-  },
   "retired-draft|lock.state": {
    "full:budget": [
     "✏️ draft"
@@ -732,41 +626,6 @@
     "Not locked"
    ]
   },
-  "retired-draft|table:years:15:isa": {
-   "full:drawdown": [
-    "£0.00"
-   ],
-   "simple:lasts": [
-    "£0"
-   ]
-  },
-  "retired-draft|table:years:32:isa": {
-   "full:drawdown": [
-    "£0.00"
-   ],
-   "simple:lasts": [
-    "£0"
-   ]
-  },
-  "retired-draft|table:years:8:isa": {
-   "full:drawdown": [
-    "£0.00"
-   ],
-   "simple:lasts": [
-    "£0"
-   ]
-  },
-  "retired-draft|way.name": {
-   "full:decision settings": [
-    "Pots & Valves"
-   ],
-   "full:monthly entry": [
-    "Pots & Valves"
-   ],
-   "simple:plan": [
-    "Pots and valves"
-   ]
-  },
   "retired-everything|lock.state": {
    "full:budget": [
     "✏️ draft"
@@ -866,17 +725,6 @@
    ],
    "simple:where": [
     "Not locked"
-   ]
-  },
-  "retired-everything|way.name": {
-   "full:decision settings": [
-    "Pots & Valves"
-   ],
-   "full:monthly entry": [
-    "Pots & Valves"
-   ],
-   "simple:plan": [
-    "Pots and valves"
    ]
   },
   "retired-locked-ladder|lock.date": {
@@ -983,20 +831,6 @@
    ],
    "simple:lock": [
     "Locked"
-   ]
-  },
-  "retired-locked-ladder|way.name": {
-   "full:decision settings": [
-    "Full index-linked gilt ladder"
-   ],
-   "full:monthly entry": [
-    "Full index-linked gilt ladder"
-   ],
-   "full:plan document": [
-    "Full index-linked gilt ladder"
-   ],
-   "simple:plan": [
-    "Full gilt ladder"
    ]
   },
   "retired-locked-months|lock.date": {
@@ -1223,44 +1057,6 @@
     "Locked"
    ]
   },
-  "retired-locked-pots|table:years:15:isa": {
-   "full:drawdown": [
-    "£0.00"
-   ],
-   "simple:lasts": [
-    "£0"
-   ]
-  },
-  "retired-locked-pots|table:years:32:isa": {
-   "full:drawdown": [
-    "£0.00"
-   ],
-   "simple:lasts": [
-    "£0"
-   ]
-  },
-  "retired-locked-pots|table:years:8:isa": {
-   "full:drawdown": [
-    "£0.00"
-   ],
-   "simple:lasts": [
-    "£0"
-   ]
-  },
-  "retired-locked-pots|way.name": {
-   "full:decision settings": [
-    "Pots & Valves"
-   ],
-   "full:monthly entry": [
-    "Pots & Valves"
-   ],
-   "full:plan document": [
-    "Pots & Valves"
-   ],
-   "simple:plan": [
-    "Pots and valves"
-   ]
-  },
   "saver-checkin|lock.state": {
    "full:accumulation": [
     "✏️ draft"
@@ -1312,25 +1108,6 @@
    ],
    "simple:lock": [
     "Not locked"
-   ]
-  },
-  "saver-checkin|way.name": {
-   "full:decision settings": [
-    "Pots & Valves"
-   ],
-   "full:monthly entry": [
-    "Pots & Valves"
-   ],
-   "simple:plan": [
-    "Pots and valves"
-   ]
-  },
-  "saver-draft|lasts.verdict": {
-   "full:will it last": [
-    "Not on course"
-   ],
-   "simple:lasts": [
-    "Not yet"
    ]
   },
   "saver-draft|lock.state": {
@@ -1386,41 +1163,6 @@
     "Not locked"
    ]
   },
-  "saver-draft|table:years:15:isa": {
-   "full:drawdown": [
-    "£0.00"
-   ],
-   "simple:lasts": [
-    "£0"
-   ]
-  },
-  "saver-draft|table:years:3:isa": {
-   "full:drawdown": [
-    "£0.00"
-   ],
-   "simple:lasts": [
-    "£0"
-   ]
-  },
-  "saver-draft|table:years:32:isa": {
-   "full:drawdown": [
-    "£0.00"
-   ],
-   "simple:lasts": [
-    "£0"
-   ]
-  },
-  "saver-draft|way.name": {
-   "full:decision settings": [
-    "Pots & Valves"
-   ],
-   "full:monthly entry": [
-    "Pots & Valves"
-   ],
-   "simple:plan": [
-    "Pots and valves"
-   ]
-  },
   "saver-ladder-draft|lock.state": {
    "full:accumulation": [
     "✏️ draft"
@@ -1466,17 +1208,6 @@
    ],
    "simple:lock": [
     "Not locked"
-   ]
-  },
-  "saver-ladder-draft|way.name": {
-   "full:decision settings": [
-    "Full index-linked gilt ladder"
-   ],
-   "full:monthly entry": [
-    "Full index-linked gilt ladder"
-   ],
-   "simple:plan": [
-    "Full gilt ladder"
    ]
   },
   "saver-locked-ladder|lock.date": {
@@ -1740,28 +1471,6 @@
     "22 November 2055"
    ]
   },
-  "saver-locked-ladder|way.name": {
-   "full:decision settings": [
-    "Full index-linked gilt ladder"
-   ],
-   "full:monthly entry": [
-    "Full index-linked gilt ladder"
-   ],
-   "full:plan document": [
-    "Full index-linked gilt ladder"
-   ],
-   "simple:plan": [
-    "Full gilt ladder"
-   ]
-  },
-  "saver-locked-pots|lasts.verdict": {
-   "full:will it last": [
-    "Not on course"
-   ],
-   "simple:lasts": [
-    "Not yet"
-   ]
-  },
   "saver-locked-pots|lock.date": {
    "full:plan document": [
     "1 October 2026"
@@ -1877,28 +1586,6 @@
     "Locked"
    ]
   },
-  "saver-locked-pots|way.name": {
-   "full:decision settings": [
-    "Pots & Valves"
-   ],
-   "full:monthly entry": [
-    "Pots & Valves"
-   ],
-   "full:plan document": [
-    "Pots & Valves"
-   ],
-   "simple:plan": [
-    "Pots and valves"
-   ]
-  },
-  "saver-payin|lasts.verdict": {
-   "full:will it last": [
-    "Not on course"
-   ],
-   "simple:lasts": [
-    "Not yet"
-   ]
-  },
   "saver-payin|lock.state": {
    "full:accumulation": [
     "✏️ draft"
@@ -1950,17 +1637,6 @@
    ],
    "simple:lock": [
     "Not locked"
-   ]
-  },
-  "saver-payin|way.name": {
-   "full:decision settings": [
-    "Pots & Valves"
-   ],
-   "full:monthly entry": [
-    "Pots & Valves"
-   ],
-   "simple:plan": [
-    "Pots and valves"
    ]
   },
   "wizard-defaults|field:about.stopped": {
@@ -2022,17 +1698,6 @@
    ],
    "simple:lock": [
     "Not locked"
-   ]
-  },
-  "wizard-defaults|way.name": {
-   "full:decision settings": [
-    "Pots & Valves"
-   ],
-   "full:monthly entry": [
-    "Pots & Valves"
-   ],
-   "simple:plan": [
-    "Pots and valves"
    ]
   }
  }

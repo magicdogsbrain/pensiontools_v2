@@ -294,8 +294,8 @@
     "levers": {
       "stopLater": {
         "age": 67,
-        "lasted": 0.8,
-        "weighted": 0.9226923533249647
+        "lasted": 0.775,
+        "weighted": 0.9217491107527167
       },
       "payMore": {
         "payIn": 1640,

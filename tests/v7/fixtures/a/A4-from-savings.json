@@ -114,9 +114,9 @@
     "level": "balanced",
     "levels": {
       "careful": {
-        "stopAge": 57,
-        "weighted": 0.9520834416151047,
-        "fixedAge": 0.9
+        "stopAge": 58,
+        "weighted": 0.9789212003350258,
+        "fixedAge": 0.925
       },
       "balanced": {
         "stopAge": 56,
@@ -768,11 +768,11 @@
         "phases": null,
         "oneMoreYear": {
           "toAge": 57,
-          "extraMonthly": 110,
+          "extraMonthly": 80,
           "lastedFrom": 0.85,
-          "lastedTo": 0.9,
+          "lastedTo": 0.875,
           "runOutFrom": 97,
-          "runOutTo": 100,
+          "runOutTo": 99,
           "potExtra": 60745,
           "sameish": false
         }
@@ -785,35 +785,35 @@
         "stopYear": "2036",
         "status": "final",
         "verdict": "yes",
-        "lasted": 0.9,
+        "lasted": 0.875,
         "outOfTen": {
           "words": "in 9 futures out of 10",
           "only": false,
           "count": 9
         },
-        "runOutAge": 100,
-        "weighted": 0.9520834416151047,
+        "runOutAge": 99,
+        "weighted": 0.9438727166270837,
         "levels": {
           "careful": {
-            "monthly": 2210,
-            "yearly": 26520,
-            "weighted": 0.9503895749570802,
+            "monthly": 2170,
+            "yearly": 26040,
+            "weighted": 0.9516108082840219,
             "fixedAge": 0.9
           },
           "balanced": {
-            "monthly": 2400,
-            "yearly": 28800,
-            "weighted": 0.9007478690473363,
+            "monthly": 2370,
+            "yearly": 28440,
+            "weighted": 0.9006033995188772,
             "fixedAge": 0.8
           },
           "bold": {
-            "monthly": 3020,
-            "yearly": 36240,
-            "weighted": 0.7016730070114136,
+            "monthly": 3000,
+            "yearly": 36000,
+            "weighted": 0.7003974413499237,
             "fixedAge": 0.55
           }
         },
-        "spare": 200,
+        "spare": 170,
         "potAtStop": {
           "careful": 646805,
           "middling": 865730,
@@ -855,24 +855,24 @@
           "count": 9
         },
         "runOutAge": 100,
-        "weighted": 0.995592345809564,
+        "weighted": 0.9968200429575518,
         "levels": {
           "careful": {
-            "monthly": 2580,
-            "yearly": 30960,
-            "weighted": 0.9504159478703513,
-            "fixedAge": 0.875
+            "monthly": 2610,
+            "yearly": 31320,
+            "weighted": 0.9514380255015567,
+            "fixedAge": 0.9
           },
           "balanced": {
             "monthly": 2810,
             "yearly": 33720,
-            "weighted": 0.9005242192186416,
+            "weighted": 0.9000991739332675,
             "fixedAge": 0.8
           },
           "bold": {
-            "monthly": 3770,
-            "yearly": 45240,
-            "weighted": 0.7014309823513031,
+            "monthly": 3690,
+            "yearly": 44280,
+            "weighted": 0.7010515122441575,
             "fixedAge": 0.55
           }
         },
@@ -921,25 +921,25 @@
         "weighted": 1,
         "levels": {
           "careful": {
-            "monthly": 4060,
-            "yearly": 48720,
-            "weighted": 0.9504545388743282,
-            "fixedAge": 0.875
+            "monthly": 4040,
+            "yearly": 48480,
+            "weighted": 0.9511803297325969,
+            "fixedAge": 0.85
           },
           "balanced": {
-            "monthly": 4630,
-            "yearly": 55560,
-            "weighted": 0.9004271046025678,
+            "monthly": 4580,
+            "yearly": 54960,
+            "weighted": 0.9011601320467889,
             "fixedAge": 0.775
           },
           "bold": {
-            "monthly": 6430,
-            "yearly": 77160,
-            "weighted": 0.7002733663888648,
+            "monthly": 6510,
+            "yearly": 78120,
+            "weighted": 0.7007288224063813,
             "fixedAge": 0.45
           }
         },
-        "spare": 2430,
+        "spare": 2380,
         "potAtStop": {
           "careful": 964642,
           "middling": 1615895,
@@ -1846,7 +1846,7 @@
         },
         {
           "id": "a.chart.row",
-          "text": "At 57, you could spend about £2,400 a month; £2,200 a month lasted in 9 futures out of 10.",
+          "text": "At 57, you could spend about £2,370 a month; £2,200 a month lasted in just under 9 futures out of 10.",
           "parts": [
             "At ",
             {
@@ -1864,7 +1864,7 @@
               "kind": "money"
             },
             " a month lasted ",
-            "in ",
+            "in just under ",
             {
               "fixed": "9"
             },
@@ -1908,7 +1908,7 @@
         },
         {
           "id": "a.chart.row",
-          "text": "At 68, you could spend about £4,630 a month; £2,200 a month lasted in every future we tried.",
+          "text": "At 68, you could spend about £4,580 a month; £2,200 a month lasted in every future we tried.",
           "parts": [
             "At ",
             {

@@ -231,7 +231,8 @@ export function createHandler(answers = ANSWERS, { lasts = null, document = null
           lastStep = step;
           post({ id, progress: { done, total } });
         };
-        post({ id, result: cloneSafe(entry.answer(msg.inputs, env)) });
+        // (on the plan path, as B is asked: a saved plan's verdict is that plan's own drawing years, env.fromPlan)
+        withEnvFor('b', env, (e) => post({ id, result: cloneSafe(entry.answer(msg.inputs, e)) }), post, id);
         return;
       }
       if (msg.type === 'answer') {

@@ -215,7 +215,8 @@ describe('a saver\'s plan whose mixes are not a level\'s: B opened from its rail
       const parsed = parsedDraft(s, 'b');
       expect(parsed.ok).toBe(true);
       // 7.12.0: the plan's verdict also carries how the tax is added back (env.scheme), which B's boxes do not hold
-      const { scheme, ...mixEnv } = read.env; void scheme;
+      // (and the plan itself, env.fromPlan, whose drawing years the verdict runs on: the lead's ruling 10)
+      const { scheme, fromPlan, ...mixEnv } = read.env; void scheme; void fromPlan;
       expect(planMixOf(s, 'b')).toEqual(mixEnv);
       const inB = answerB(parsed.inputs, { ...RUN, ...planMixOf(s, 'b') });
       expect(inB.chance.fails, e.plan.id).toBe(own.chance.fails);

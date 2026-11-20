@@ -28,13 +28,23 @@ const fill = (text, slots) => String(text || '').replace(/\{(\w+)\}/g, (m, k) =>
 export const SAVER_ENV = Object.freeze({ futures: 1000, seed: 0, trace: false, detail: 'answer' });
 
 /**
+ * Question B as every caller asks it (answers/index.js answerFor; the worker's 'saver' lane): on the plan path, so a saved
+ * plan's verdict is that plan's own drawing years (env.fromPlan; the lead's ruling 10). Loaded when it is needed.
+ */
+async function planPathB() {
+  const { ANSWERS, envFor } = await import('../answers/index.js');
+  const planEnv = await envFor('b', {});
+  return (inputs, env) => ANSWERS.b.answer(inputs, { ...env, planPath: planEnv.planPath });
+}
+
+/**
  * (7.12.0) One run per plan as it stands: question B's answer on the plan's figures, kept for the page's life by what it
  * was run on, so the Accumulation tab's answer and the Stress tester's "Will it last?" read the same run (one chance).
  */
 const RUNS = new Map();
 function keptAnswer(answer) {
   return (inputs, env) => {
-    const key = JSON.stringify([inputs, env]);
+    const key = JSON.stringify([inputs, env]);   // (env.fromPlan: the plan read, so a change to it asks again)
     if (RUNS.has(key)) return RUNS.get(key);
     const out = answer(inputs, env);
     if (RUNS.size >= 8) RUNS.delete(RUNS.keys().next().value);
@@ -54,8 +64,7 @@ export async function savingChanceFor(plans, id, now, { family = true } = {}) {
     const entries = entriesOf(plans, now);
     const v = saverVerdictOf(entries, id, { today: dayOf(now) });
     if (!v || !v.ok) return null;
-    const { answerB } = await import('../answers/b/answer.js');
-    const res = keptAnswer(answerB)(v.inputs, { today: dayOf(now), ...SAVER_ENV, ...(v.env || {}) });
+    const res = keptAnswer(await planPathB())(v.inputs, { today: dayOf(now), ...SAVER_ENV, ...(v.env || {}) });
     const w = res && res.verdict && res.verdict.weighted;
     return typeof w === 'number' && Number.isFinite(w) ? w : null;
   } catch { return null; }
@@ -161,8 +170,7 @@ export async function paintSaverAnswer(doc, deps, problem = null) {
     el.innerHTML = saverBlockHtml(first, id, form); wire();
     if (first.state !== 'working') return first;
     await new Promise((r) => setTimeout(r, 30));   // let "Working…" paint
-    const { answerB } = await import('../answers/b/answer.js');
-    const block = saverAnswerBlock(entries, id, { today, answer: keptAnswer(answerB) });
+    const block = saverAnswerBlock(entries, id, { today, answer: keptAnswer(await planPathB()) });
     el.innerHTML = saverBlockHtml(block, id, form); wire();
     return block;
   } catch (e) {

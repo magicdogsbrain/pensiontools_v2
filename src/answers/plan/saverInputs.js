@@ -9,8 +9,8 @@
  *                                              as the text of question B's boxes (the rail's "Ask a question", 4.1), and
  *                                              the plan's own mixes B runs with
  *     inputs   SCHEMA_B inputs, checked (validate.js checkInputs)
- *     env      { mix, savingMix } — the plan's own mixes, exact, so no mix is rounded to a level; empty when the plan still
- *              says what the B answer it was kept from said (below)
+ *     env      { mix, savingMix, scheme?, fromPlan } — the plan's own mixes, exact, so no mix is rounded to a level; the
+ *              plan itself as B reads it (below)
  *     notes    what the screen says beside the verdict: the plan's aim a year before tax and a month after it, the plan's
  *              own yearly rise in pay-ins when it is not the price rise B assumes (and something goes in), the share of pay
  *              while it agrees, where the pot came from (`potFrom`: the check-in, a record, What you hold, the saved pot
@@ -29,14 +29,15 @@
  * income as the engines read it from its start — the figure in force then, a year before tax, as a month after tax by
  * the one tax module — with the steps after it as B's spending shape.
  *
- * The round trip (section 8): a plan kept from a B answer, read on the day it was kept, gives back that answer's count and
- * pay-in exactly. The plan holds the answer's figures as the planner holds them (pounds after × 0.8, a year before tax,
- * a mix in pounds), which do not all turn back to the penny. So each group of B's inputs — what goes in, what is spent,
- * the State Pension, the final-salary pension, the mixes, the savings, the last age — is taken from the answer the plan
- * was kept from (its `fromAnswer` record) while the plan still holds exactly what keeping that answer wrote for it
- * (PlanFromSeed.seedToScenario made again from the record); a group the person has changed since is read from the plan.
- * The answer's chance for what would be enough (`confidence`, 9 in 10 or 3 in 4) is its own choice, not a figure the plan
- * holds, so it is taken from the record whenever there is one; without one it is B's own default, 9 in 10.
+ * The plan itself (the lead's ruling 10, lead4.md D12): `env.fromPlan` carries the plan, the stop and the amount read here
+ * and the plan's charge to the hundredth; question B then runs its drawing years on that plan's own (keep/planPath.js
+ * planAtStop through planCaseOf), at its stop and amount and at every stop and amount B's levers ask, so the verdict is the
+ * plan's own test ("Does it last?") and what would be enough is asked of the plan. B's inputs here are the saving years
+ * (what is held and what goes in) and the words; the State Pension's date, the access method, the final-salary rule, the
+ * plan-to age, lump sums and a taxable account are read from the plan by the plan's own reading, never from these inputs.
+ * The answer a plan was kept from is never put in the plan's place: a plan kept from A, B or C reads the same.
+ * The chance for what would be enough (`confidence`) is the plan's level (life.planLevelOf) when the answer it was kept
+ * from chose one, else B's own default.
  * A couple's plan is read alone (one person, their own figures) until couples are read together (release step R5), and
  * `notes.couple` says so.
  *
@@ -65,7 +66,6 @@ import { isIsaGrowth } from '../../services/IsaGrowth.js';
 import { RISK_PRESETS } from '../../services/GlidepathService.js';
 import { savingMixOf, PRICE_RISE_PCT } from '../../services/SaverPayIn.js';
 import { saverFacts, payInOf } from '../../services/SaverFacts.js';
-import { seedToScenario } from '../../services/PlanFromSeed.js';
 import { bandsOf, netOf } from './about.js';
 import { flexibleAccessAlong } from '../../services/FlexibleAccess.js';
 import { dateOf } from './dates.js';
@@ -78,10 +78,12 @@ const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
 const num = (v) => (v == null || v === '' || !Number.isFinite(+v) ? null : +v);
 const round2 = (n) => Math.round(n * 100) / 100;
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
-const same = (a, b) => JSON.stringify(a === undefined ? null : a) === JSON.stringify(b === undefined ? null : b);
 const hasSavingSettings = (plan) => !!(plan && plan.accumulationTool && isObj(plan.accumulationTool.settings));
 const accOf = (plan) => (plan && plan.accumulationTool && isObj(plan.accumulationTool.settings) ? plan.accumulationTool.settings : {});
 const LEVELS = ['cautious', 'balanced', 'adventurous'];
+
+/** Whether a mix is a level's own, to the last bit (RISK_PRESETS). */
+const isPreset = (mix, level) => !!mix && !!RISK_PRESETS[level] && ['equity', 'bond', 'cash'].every((k) => (mix[k] || 0) === (RISK_PRESETS[level][k] || 0));
 
 /** The risk level nearest a mix by its share in shares (the level only names the mix in B's words; the run uses the mix). */
 function levelOf(mix) {
@@ -179,21 +181,6 @@ function finalSalaryOf(ss, clockAge) {
 }
 
 /**
- * The plan as keeping its B answer wrote it, made again from the plan's own record of that answer (PlanFromSeed is pure:
- * the same seed gives the same plan); null when the plan was not kept from B, holds a couple's part, or cannot be made again.
- */
-function keptFrom(plan, now) {
-  const fa = plan && plan.fromAnswer;
-  if (!isObj(fa) || fa.source !== 'b' || fa.household !== 'single' || !Array.isArray(fa.people) || fa.people.length !== 1 || !isObj(fa.inputs)) return null;
-  try {
-    const { who, savedOn, ...rest } = fa;
-    void who;
-    const made = seedToScenario({ ...rest, budget: null }, savedOn || fa.today).yours;
-    return { plan: made, ss: effectiveStressSettings(made, { now }), acc: accOf(made), inputs: fa.inputs, answer: isObj(fa.answer) ? fa.answer : null };
-  } catch { return null; }
-}
-
-/**
  * @param {object} plan   a saved plan, brought up to date in memory
  * @param {{ today: string, checkIn?: object|null, plans?: object[] }} o  `plans`: the plans at hand (plans or entries), so
  *   money taken flexibly on a plan before this one is read too (FlexibleAccess.flexibleAccessAlong)
@@ -254,36 +241,18 @@ export function saverInputsOf(plan, { today, checkIn = null, plans = [] } = {}) 
   };
   // how the tax is added back, so what leaves take-home pay is said exactly (7.12.0): the plan's own scheme, with its pay
   const scheme = hasSavingSettings(plan) ? { kind: facts.payIn.scheme, salary: facts.payIn.salary } : null;
-  let env = { mix: mixes.drawing, savingMix: mixes.saving, ...(scheme ? { scheme } : {}) };
-  const from = {};
+  // the plan itself (the lead's ruling 10): B's drawing years are this plan's own at each stop and amount B asks
+  // (keep/planPath.js planAtStop), so every figure they read is the plan's — the State Pension's date, the access method,
+  // the final-salary rule, the plan-to age, lump sums, a taxable account — and the charge is the plan's to the hundredth
+  // (Pots & Valves, the plan path's way. Buckets and the ways that buy their income are still worked out as pots, on B's own
+  // drawing years, and say the way they draw: notes.way — the lead's ruling 7, still to come)
+  const pnv = !ss.strategyId || ss.strategyId === 'pots-and-valves';
+  const fromPlan = pnv ? { plan, stopAge, monthly: aim.aimMonthly, charge } : null;
+  // the plan's own mixes, exact — unless they are the levels named, exactly (a plan kept as an answer's levels): then the
+  // levels say them, and B's boxes hold them as they are (saverDraftOf `exactMix`)
+  const exactLevels = isPreset(mixes.drawing, inputs.risk) && isPreset(mixes.saving, inputs.savingRisk);
+  const env = { ...(exactLevels ? {} : { mix: mixes.drawing, savingMix: mixes.saving }), ...(scheme ? { scheme } : {}), ...(fromPlan ? { fromPlan } : {}) };
 
-  // The answer the plan was kept from, group by group, while the plan still holds what keeping it wrote (the round trip).
-  // A check-in brings its own figures, so no group is taken from the answer then — but the answer's own chance for what
-  // would be enough still is (below), so a check-in leads with the same figure as What you pay in on the same plan.
-  const kept = keptFrom(plan, now);
-  if (kept && !ci) {
-    const b = kept.inputs;
-    const S = (keys) => keys.every((k) => same(ss[k], kept.ss[k]));
-    const A = (keys) => keys.every((k) => same(acc[k], kept.acc[k]));
-    const noRecords = ['saved', 'answer', 'plan', 'none'].includes(potFrom);
-    const noHoldings = !lines.length;
-    if (age === b.you.age && stopAge === (b.stop && b.stop.age) && S(['currentAge', 'retireAge', 'retired'])) from.ages = true;
-    if (from.ages && A(['netMonthly', 'employerMonthly', 'salary', 'schemeType', 'payInKind', 'ownPct', 'employerPct'])) { inputs.you.payIn = b.you.payIn; from.payIn = true; }
-    // the pot the answer was given: said as that, so the words beside the verdict never say "nothing" while it is counted
-    if (from.ages && noRecords && noHoldings && A(['potNow'])) { inputs.you.pot = b.you.pot; from.pot = true; if ((potFrom === 'none' || potFrom === 'plan') && b.you.pot > 0) potFrom = 'answer'; }
-    if (from.ages && S(['incomeShape', 'baseSalary', 'incomeSteps', 'targetSchedule', 'shapeAgeNow', 'duration', 'pa', 'brl', 'hrl'])) {
-      inputs.spend = b.spend; inputs.endAge = b.endAge; from.spend = true;
-    }
-    if (from.ages && S(['statePension', 'spWeeklyAmount', 'spStartDate'])) { inputs.you.statePension = b.you.statePension; from.statePension = true; }
-    if (from.ages && S(['dbAmount', 'dbStartYear', 'dbStartAge', 'shapeAgeNow'])) { inputs.you.finalSalary = b.you.finalSalary; from.finalSalary = true; }
-    // the mix: the answer's levels while the plan still holds the mixes it was kept with — but a saving level the person
-    // chose since (phases.saving.strategy.level, savingPathMixes `fromLevel`) is the saving years' level, as the check-in's
-    // path and the lock's path read it: one mix for the path and the verdict
-    if (noHoldings && S(['equityMin', 'bondMin', 'cashTarget']) && A(['savingMix'])) { inputs.risk = b.risk; inputs.savingRisk = mixes.fromLevel || b.savingRisk; env = scheme ? { scheme } : {}; from.mix = true; }
-    if (noRecords && noHoldings && S(['isaBalance']) && A(['isaMonthly'])) { inputs.savings = b.savings; inputs.savingsIn = b.savingsIn; from.savings = true; }
-    if (S(['chargesPct'])) inputs.charge = b.charge;
-    if (S(['isaGrowth'])) { if (b.isaGrowth !== undefined) inputs.isaGrowth = b.isaGrowth; else delete inputs.isaGrowth; }
-  }
   // the answer's own level (7.8.0): the person's only when they chose it (the kept answer row's `levelChosen`); a level
   // stored before 7.8.0 ("9 in 10" was everyone's default) is Balanced. No figure of the plan's, so it stays the answer's
   // for as long as the plan keeps the record of it — with a check-in too
@@ -318,7 +287,7 @@ export function saverInputsOf(plan, { today, checkIn = null, plans = [] } = {}) 
     notes: {
       aimYearly: aim.aimYearly, aimMonthly: inputs.spend && inputs.spend.amount != null ? inputs.spend.amount : aim.aimMonthly, stopAge,
       rise, share: read.share ? { ownPct: read.share.ownPct, employerPct: read.share.employerPct } : null,
-      potFrom, from, fromAccumulation: !!stage.fromAccumulation, couple,
+      potFrom, fromAccumulation: !!stage.fromAccumulation, couple,
       ...(way ? { way } : {})
     }
   };
@@ -329,7 +298,20 @@ export function saverInputsOf(plan, { today, checkIn = null, plans = [] } = {}) 
  * figures have not changed keeps its answer; any change asks again.
  */
 export function saverRunKey(planId, read) {
-  return read && read.ok ? 'saver:' + String(planId) + ':' + JSON.stringify([read.inputs, read.env]) : null;
+  if (!read || !read.ok) return null;
+  const { fromPlan, ...env } = read.env || {};
+  return 'saver:' + String(planId) + ':' + JSON.stringify([read.inputs, env]) + (fromPlan ? ':' + hashOf(JSON.stringify(fromPlan)) : '');
+}
+
+/** A short hash of a text (FNV-1a, 32 bits, twice): the run key names the plan read without carrying it. */
+function hashOf(text) {
+  let h1 = 0x811c9dc5, h2 = 0x01000193;
+  for (let i = 0; i < text.length; i++) {
+    const c = text.charCodeAt(i);
+    h1 = Math.imul(h1 ^ c, 0x01000193) >>> 0;
+    h2 = Math.imul(h2 ^ c, 0x811c9dc5) >>> 0;
+  }
+  return h1.toString(36) + h2.toString(36);
 }
 
 /**

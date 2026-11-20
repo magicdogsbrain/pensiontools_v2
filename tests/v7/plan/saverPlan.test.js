@@ -17,7 +17,9 @@
 import { describe, it, expect } from 'vitest';
 import { h, render } from 'preact';
 import { App } from '../../../src/v7/App.jsx';
-import { answerB } from '../../../src/answers/b/answer.js';
+// B as every caller asks it (answers/index.js answerFor): on the plan path, so a saved plan's verdict is that plan's own
+// drawing years (env.fromPlan; the lead's ruling 10)
+import { answerB } from '../b/_b.js';
 import { buildPlanSeed } from '../../../src/answers/keep/planSeed.js';
 import { seedToScenario } from '../../../src/services/PlanFromSeed.js';
 import { upgradeScenario } from '../../../src/firebase/scenarioMigration.js';
@@ -97,9 +99,8 @@ describe('the round trip: a plan kept from B gives back B\'s count and pay-in on
     const { plan } = kept(sam({ kind: 'split', own: 333.33, employer: 211.17 }));
     plan.accumulationTool.settings = { ...plan.accumulationTool.settings, netMonthly: 400 };
     const read = saverInputsOf(plan, { today: KEPT_ON });
-    expect(read.notes.from.payIn).toBeUndefined();
+    // (every group is the plan's: no group is taken from the answer any more, the lead's ruling 10)
     expect(read.inputs.you.payIn).toEqual({ kind: 'split', own: 500, employer: 211.17 });
-    expect(read.notes.from.spend).toBe(true);
   });
   it('asked at Bold: the plan gives back the answer\'s level too (the person chose it: levelChosen, 7.8.0), not a plan figure', () => {
     const { result, plan } = kept(sam({ kind: 'share', pay: 38000, ownPct: 6, employerPct: 4 }, { confidence: 'bold' }));
@@ -171,8 +172,9 @@ describe('a pension today with nothing going in, and the words beside the verdic
     expect(saverInputsOf({ ...plan, accumulationTool: { settings: { ...plan.accumulationTool.settings, escalationPct: 0 } } }, { today: KEPT_ON }).notes.rise).toBe(null);
   }, 30000);
   it('a plan with no saving figures for its pot: the words beside the verdict always say what the run counted', () => {
-    // kept from an answer of an older V7 tab (seed version 1 writes no saving figures for a pot alone): on the day kept
-    // the answer's pot is counted, and said to be
+    // kept from an answer of an older V7 tab (seed version 1 writes no saving figures for a pot alone): the pot is counted,
+    // and said to be the plan's own pension total (the answer it was kept from is never read in the plan's place: the lead's
+    // ruling 10; before, "the answer's" — the same £61,000)
     const result = answerB(samStopped(), ENV);
     const seed = { ...buildPlanSeed({ source: 'b', result, env: { today: KEPT_ON, appVersion: 'test' }, name: 'Sam saving', createdAt: KEPT_ON + 'T10:00:00.000Z' }), seedVersion: 1 };
     const v1 = seedToScenario(seed, KEPT_ON).yours;
@@ -180,7 +182,7 @@ describe('a pension today with nothing going in, and the words beside the verdic
     expect(v1.accumulationTool).toBeUndefined();
     const read = saverInputsOf(upgradeScenario(copy(v1), { now: noon(KEPT_ON) }).scenario, { today: KEPT_ON });
     expect(read.inputs.you.pot).toBe(61000);
-    expect(read.notes.potFrom).toBe('answer');
+    expect(read.notes.potFrom).toBe('plan');
     expect(read.notes.rise).toBe(null);   // no saving figures at all: nothing said about how pay-ins rise
     // kept before keeping wrote them (the section missing from a plan this code would write it for): 7.12.0 reads the
     // plan's own pension total, which holds the pension today, so the pot is still counted and said to be the plan's

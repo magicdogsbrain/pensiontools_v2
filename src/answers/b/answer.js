@@ -193,7 +193,9 @@ function createAges(inputs, env, lives, ctx) {
       const sp = stopAtPlan(household, inputs.you.age + own.you, env, lives);
       // one person whose pension is open at the stop: the drawing years are the plan's that keeping this stop would write
       // (keep/planPath.js; the stop runner draws on it), the saving years this stop plan's own
-      const pc = onPlanPath(inputs, household, sp, env) ? env.planPath.planCaseOf('b', asked, env, { lives, saver: keptSaverOf(sp, stopAge, asked, env) }) : null;
+      // (a saved plan read as B, env.fromPlan: its drawing years are that plan's own at this stop, keep/planPath.js planAtStop)
+      const planAt = env.fromPlan ? (H) => env.planPath.planAtStop(env.fromPlan, stopAge, H, env.today) : null;
+      const pc = onPlanPath(inputs, household, sp, env) ? env.planPath.planCaseOf('b', asked, env, { lives, saver: keptSaverOf(sp, stopAge, asked, env), ...(planAt ? { planAt } : {}) }) : null;
       if (pc) sp.kept = pc;
       const runner = createStopRunner(sp);
       row = { stopAge, sp, runner, household, pc, numbers: new Map(), floors: new Map(), whole: null, band: null };
@@ -271,7 +273,8 @@ function createAges(inputs, env, lives, ctx) {
  * closed there, and the test devices env.mix and env.householdRoute.
  */
 function onPlanPath(inputs, household, sp, env) {
-  if (!(env.planPath && typeof env.planPath.planCaseOf === 'function') || env.mix || env.householdRoute) return false;
+  // (a saved plan's own mix, env.mix beside env.fromPlan, is the plan's: its drawing years are the plan itself)
+  if (!(env.planPath && typeof env.planPath.planCaseOf === 'function') || (env.mix && !env.fromPlan) || env.householdRoute) return false;
   if (inputs.household === 'couple' || askedAbout(inputs) === 'partner' || household.shape) return false;
   // (a pension at the stop, in the middle of the lives: a kept plan with none draws its target untaxed from savings alone,
   // so it is no plan to put the pension the searches try into)
@@ -422,6 +425,20 @@ function payInsThatGetThere(row, H, ctx, least = null) {
   return { outside: o ? outsideIn : null, savingsIn, needed };
 }
 
+/**
+ * A saved plan read as B (env.fromPlan, answers/plan/saverInputs.js; the lead's ruling 10): the charge the plan holds, to the
+ * hundredth (B's box takes steps of 0.05; the saving years are worked out on the plan's own), and the amount in force at the
+ * stop, flat — the plan's own steps after it are in the plan, whose drawing years the runs read (keep/planPath.js planAtStop).
+ */
+function fromPlanInputs(inp, env) {
+  const f = env && env.fromPlan;
+  // (only where the plan path runs it: one person, open at the stop — onPlanPath; elsewhere B's own inputs, as asked)
+  if (!f || !(env.planPath && typeof env.planPath.planCaseOf === 'function') || inp.household === 'couple' || askedAbout(inp) === 'partner') return inp;
+  if (firstOpenAge(inp.you.age, env.today, stopYearsOf(inp, inp.stop.age).you) > inp.you.age + stopYearsOf(inp, inp.stop.age).you) return inp;
+  const charge = typeof f.charge === 'number' && Number.isFinite(f.charge) ? f.charge : inp.charge;
+  return { ...inp, charge, spend: inp.spend.kind === 'amount' ? { kind: 'amount', amount: inp.spend.amount } : inp.spend };
+}
+
 export function answerB(inputs, env) {
   const problems = envProblems(env);
   if (problems.length) return { status: 'invalid', problems };
@@ -430,7 +447,7 @@ export function answerB(inputs, env) {
   // a try (7.12.0, P2.1): the pay-in being tried and a one-off sum of your own put in now are worked out as the figures
   // tested; what was typed as now is kept beside them (result.tried), never written over
   const tryRead = tryOf(checked.inputs);
-  const inp = tryRead.inputs;
+  const inp = fromPlanInputs(tryRead.inputs, env);
   // the person the answer is about: you, or — "I've already stopped" — your partner, who must still be working
   const partnerAsked = askedAbout(inp) === 'partner';
   if (partnerAsked && !(inp.partner.stop && inp.partner.stop.kind === 'age')) {

@@ -277,7 +277,10 @@ describe('the one write file: "Use these in ‘…’" is ONE write of What you 
     await tick();
     expect(p.writes[1].data['accumulationTool.settings']).toBe(null);
     const back = p.docs.find((d) => d.id === plan.id);
-    expect(saverInputsOf(back, { today: DAY })).toEqual(before);
+    // (all of it but the plan object read, env.fromPlan.plan: the plan put back, with its write's own stamps)
+    const read = (r) => ({ ...r, env: { ...r.env, fromPlan: { ...r.env.fromPlan, plan: null } } });
+    const after = saverInputsOf(back, { today: DAY });
+    expect(read(after)).toEqual(read(before));
     p.stop();
   });
 

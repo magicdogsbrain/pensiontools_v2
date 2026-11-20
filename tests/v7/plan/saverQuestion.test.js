@@ -8,7 +8,8 @@
  * Every figure expected is worked out by hand in the test, from the share or the pounds the answer gives.
  */
 import { describe, it, expect } from 'vitest';
-import { answerB } from '../../../src/answers/b/answer.js';
+// B as every caller asks it (answers/index.js answerFor; the worker's 'saver' lane): on the plan path (the lead's ruling 10)
+import { answerB } from '../b/_b.js';
 import { buildPlanSeed } from '../../../src/answers/keep/planSeed.js';
 import { seedToScenario } from '../../../src/services/PlanFromSeed.js';
 import { upgradeScenario } from '../../../src/firebase/scenarioMigration.js';

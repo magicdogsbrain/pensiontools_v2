@@ -16,7 +16,7 @@ import { viewFor, upgradedList } from '../../../src/v7/effects/planSource.js';
 import { startSaverRunner } from '../../../src/v7/effects/saver.js';
 import { createHandler } from '../../../src/v7/effects/answerWorker.js';
 import { NO_WORKER } from '../../../src/v7/effects/workerClient.js';
-import { ANSWERS } from '../../../src/answers/index.js';
+import { ANSWERS, answerFor } from '../../../src/answers/index.js';
 import { corpus, TODAY, noon } from '../plan/_plans.js';
 
 const C = corpus();
@@ -40,21 +40,22 @@ function fakeClient(saver) {
 }
 
 describe('the worker\'s "saver" message: B\'s own answer, in its own lane', () => {
-  it('answers with question B on the inputs given, once; never kept as B\'s last answer', () => {
+  it('answers with question B on the inputs given, once; never kept as B\'s last answer', async () => {
     const inputs = { household: 'single', you: { pot: 62000, age: 41, payIn: { kind: 'total', total: 500 } }, stop: { age: 63 }, spend: { kind: 'amount', amount: 1810 } };
     const env = { today: '2026-11-04', futures: 100, seed: 0, trace: false, detail: 'answer' };
     const out = [];
     const handle = createHandler();
-    handle({ id: 7, type: 'saver', inputs, env }, (m) => out.push(m));
+    // (B as every caller asks it, answers/index.js answerFor: the lane loads the plan path first — lead4-engine.md ruling 10)
+    await new Promise((resolve) => handle({ id: 7, type: 'saver', inputs, env }, (m) => { out.push(m); if ('result' in m || 'error' in m) resolve(); }));
     const last = out[out.length - 1];
     expect(last.id).toBe(7);
-    expect(last.result).toEqual(JSON.parse(JSON.stringify(ANSWERS.b.answer(inputs, env))));
+    expect(last.result).toEqual(JSON.parse(JSON.stringify(await answerFor('b', inputs, env))));
     expect(out.filter((m) => 'result' in m).length).toBe(1);
     // a following question B is not offered the plan's verdict as its `reuse`
     let seen = null;
     const spy = createHandler({ ...ANSWERS, b: { ...ANSWERS.b, answer: (i, e) => { seen = e; return { status: 'ok' }; } } });
     spy({ id: 8, type: 'saver', inputs, env }, () => {});
-    spy({ id: 9, type: 'answer', q: 'b', inputs, env }, () => {});
+    await new Promise((resolve) => spy({ id: 9, type: 'answer', q: 'b', inputs, env }, () => resolve()));
     expect('reuse' in seen).toBe(false);
     const bad = [];
     createHandler()({ id: 10, type: 'saver', env }, (m) => bad.push(m));

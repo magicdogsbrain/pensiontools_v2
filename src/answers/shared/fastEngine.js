@@ -652,7 +652,8 @@ export function createFastRunner(plan, futures, opts = {}) {
     if (!byI) { byI = new Array(futures.length).fill(null); preparedAt.set(g, byI); }
     return byI[i] || (byI[i] = driversFor(i, g, yearsOf[r]));
   };
-  const baseFor = (r, start) => (start ? { ...plan.runs[r].base, equityMin: start.equity, bondMin: start.bond, cashTarget: start.cash } : plan.runs[r].base);
+  // (a start may name its own floors — a saved plan's, scaled as the plan test scales them; else each floor is its start)
+  const baseFor = (r, start) => (start ? { ...plan.runs[r].base, equityMin: start.equityMin ?? start.equity, bondMin: start.bondMin ?? start.bond, cashTarget: start.cashTarget ?? start.cash } : plan.runs[r].base);
   const forRun = (r, i) => {
     let t = runTables[r][i];
     if (!t) {
@@ -678,7 +679,7 @@ export function createFastRunner(plan, futures, opts = {}) {
           throw new Error('fastEngine: a run with cover months, a hand-over, a month limit, a later start or a resumed state can only be run by the fast path');
         }
         const start = potsFor ? potsFor(r, i) : null;
-        const c = start ? { ...config, equityStart: start.equity, bondStart: start.bond, cashStart: start.cash, equityMin: start.equity, bondMin: start.bond, cashTarget: start.cash, isaBalance: start.isa } : config;
+        const c = start ? { ...config, equityStart: start.equity, bondStart: start.bond, cashStart: start.cash, equityMin: start.equityMin ?? start.equity, bondMin: start.bondMin ?? start.bond, cashTarget: start.cashTarget ?? start.cash, isaBalance: start.isa } : config;
         const s = simulate(c, futures[i].returns, futures[i].seed);
         return { failed: s.failed, failMonth: s.failMonth, equity: s.finalEquity, bond: s.finalBond, cash: s.finalCash, isa: s.finalIsa };
       }

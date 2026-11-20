@@ -36,7 +36,11 @@ describe('the verdict says it is worked out as if drawn from pots, only when the
       const { way, ...rest } = other.notes;
       expect(rest).toEqual(plain.notes);
       expect(other.inputs).toEqual(plain.inputs);
-      expect(other.env).toEqual(plain.env);
+      // (the plan's own mixes the same; a Pots & Valves plan's verdict also carries the plan itself, env.fromPlan, whose
+      // drawing years it runs on — the lead's ruling 10; a way that buys its income is still worked out as pots: ruling 7)
+      const { fromPlan, ...plainEnv } = plain.env;
+      expect(fromPlan.plan).toBe(base);
+      expect(other.env).toEqual(plainEnv);
     }
   });
 

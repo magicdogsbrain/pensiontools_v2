@@ -48,7 +48,9 @@ describe('the saving level the person chose decides the saving mix; nothing deri
     const derived = phasesOf(plan, { now: noon(TODAY) }).saving.strategy.level;
     expect(['cautious', 'balanced', 'adventurous']).toContain(derived);
     const windowOnly = { ...plan, ...phasesPatch(plan, 'window', 4, { at: AT }) };
-    expect(JSON.stringify(saverInputsOf(windowOnly, { today: TODAY }))).toBe(JSON.stringify(read0));
+    // (everything but the plan read, env.fromPlan.plan — the plan with its window, which is what the drawing years run on)
+    const noPlan = (r) => JSON.stringify({ ...r, env: { ...r.env, fromPlan: { ...r.env.fromPlan, plan: null } } });
+    expect(noPlan(saverInputsOf(windowOnly, { today: TODAY }))).toBe(noPlan(read0));
     const other = ['cautious', 'balanced', 'adventurous'].find((l) => l !== read0.inputs.savingRisk) || 'adventurous';
     const read1 = saverInputsOf(withLevel(plan, other), { today: TODAY });
     expect(read1.inputs.savingRisk).toBe(other);
@@ -71,7 +73,9 @@ describe('the saving level the person chose decides the saving mix; nothing deri
     const plan = upgradeScenario(copy(made), { now: noon(KEPT_ON) }).scenario;
     const r0 = saverInputsOf(plan, { today: KEPT_ON });
     expect(r0.inputs.savingRisk).toBe('balanced');
-    expect(r0.env).toEqual({ scheme: { kind: 'ras', salary: 0 } });   // 7.12.0: only how the tax is added back, so take-home pay is said exactly
+    // 7.12.0: how the tax is added back, so take-home pay is said exactly; and the plan itself, whose drawing years the
+    // verdict runs on (the lead's ruling 10): its stop, the amount read at it and its charge. The mixes are the levels'.
+    expect(r0.env).toEqual({ scheme: { kind: 'ras', salary: 0 }, fromPlan: { plan, stopAge: 63, monthly: 1810, charge: 0.5 } });
     const chose = { ...plan, ...phasesPatch(plan, 'saving.level', 'adventurous', { at: KEPT_ON + 'T12:00:00.000Z' }) };
     const r1 = saverInputsOf(chose, { today: KEPT_ON });
     expect(r1.inputs.savingRisk).toBe('adventurous');

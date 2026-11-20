@@ -190,13 +190,17 @@ export function savedWant(plan, { today }) {
     path, stepAge: atStop ? +atStop.fromAge : null };
 }
 
-/** The want's boxes as typed (blank: as saved) → { ok, errors, monthly, stopAge, changed: { monthly, stopAge } }. */
-export function checkWant(plan, typed, { today }) {
+/**
+ * The want's boxes as typed (blank: as saved) → { ok, errors, monthly, stopAge, changed: { monthly, stopAge } }.
+ * `tryOnly`: a reading of the plan with the change (keep/planPath.js planAtStop: question B's stops and amounts on a saved
+ * plan), never written — so a locked plan is read with it too.
+ */
+export function checkWant(plan, typed, { today, tryOnly = false }) {
   const w = savedWant(plan, { today });
   const t = typed || {};
   const none = { ok: true, errors: {}, monthly: w.monthly, stopAge: w.stopAge, changed: { monthly: false, stopAge: false }, saved: w };
   // nothing to change: a plan not saving, or locked (its want is said, never boxed)
-  if (!w.open || w.locked) return none;
+  if (!w.open || (w.locked && !tryOnly)) return none;
   const errors = {};
   let monthly = w.monthly, stopAge = w.stopAge;
   const m = t['want.monthly'];
@@ -228,8 +232,8 @@ export function checkWant(plan, typed, { today }) {
  * leaves it) → { ok, errors, patch, plan } — `plan` with them folded on, for What you pay in's own write to be worked on.
  * Exported (7.12.0) for "Use these in ‘…’" on B's answer, which carries the age and the amount tried (answers/plan/useAnswer.js).
  */
-export function wantWrites(plan, typed, { today }) {
-  const w = checkWant(plan, typed, { today });
+export function wantWrites(plan, typed, { today, tryOnly = false }) {
+  const w = checkWant(plan, typed, { today, tryOnly });
   if (!w.ok) return { ok: false, errors: w.errors, patch: {}, plan };
   let base = plan;
   const patch = {};

@@ -63,6 +63,7 @@ import { WEIGHT_ONE, accessAgeOn, RULES } from '../shared/rules.js';
 import { firstOpenAge } from '../shared/household.js';
 import { LEVEL_IDS } from '../shared/levels.js';
 import { RISK_PRESETS } from '../../services/GlidepathService.js';
+import { wantWrites } from '../plan/saving.js';
 
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
 const STRATEGY = 'pots-and-valves';
@@ -124,6 +125,24 @@ export function keptPlanAt(source, ins, env, perMonth, startAge = undefined, sav
   const seed = buildPlanSeed({ source, result, env: { today: env.today, appVersion: '' }, name: null, createdAt: env.today + 'T00:00:00.000Z', tryWork });
   if (!seed) return null;
   return seedToScenario(seed, env.today).yours;
+}
+
+/**
+ * A SAVED plan still saving as question B reads it at a stop and an amount (the saver verdict on a kept plan: the lead's
+ * ruling 10, lead4.md D12; env.fromPlan, answers/plan/saverInputs.js): the plan itself when the stop is the plan's own and
+ * H / 12 is the amount in force at it as the plan is read (`fromPlan.stopAge`, `fromPlan.monthly`); else the plan with the
+ * want's own writes applied (answers/plan/saving.js wantWrites: About's stop age and What you spend's amount in force at
+ * the stop, whole pounds a month after tax) — a reading of the plan with the change, never written, locked or not.
+ */
+export function planAtStop(fromPlan, stopAge, H, today) {
+  const m = Math.round(H / 12);
+  const typed = {};
+  if (stopAge !== fromPlan.stopAge) typed['want.stopAge'] = String(stopAge);
+  if (m !== fromPlan.monthly) typed['want.monthly'] = String(m);
+  if (!Object.keys(typed).length) return fromPlan.plan;
+  const w = wantWrites(fromPlan.plan, typed, { today, tryOnly: true });
+  if (!w.ok) throw new Error('planAtStop: the plan cannot be read at ' + JSON.stringify(typed));
+  return w.plan;
 }
 
 /**
@@ -242,15 +261,15 @@ const sameBase = (a, b) => PREPARED.every((k) => a[k] === b[k]) && JSON.stringif
  *   plan's years to the weighting age, `startAge`, `endAge` = the plan-to age, `guaranteedAtStartAYear` 0 (the plan's first
  *   tax year pays a share of the State Pension, so nothing above £0 lasts in every future for certain), `totalPots`.
  */
-export function planCaseOf(source, ins, env, { lives = null, dragPct = 0, fromAge = undefined, saver = null } = {}) {
+export function planCaseOf(source, ins, env, { lives = null, dragPct = 0, fromAge = undefined, saver = null, planAt = null } = {}) {
   const now = dateOf(env.today);
   const spendAYear = ins.spend && isNum(ins.spend.amount) ? ins.spend.amount * 12 : null;
   const memo = new Map();
-  /** The kept plan at H a year, its settings, its plan and the plan followed on to the weighting age. */
+  /** The kept plan at H a year (a saved plan's own, `planAt`), its settings, its plan and the plan followed on to the weighting age. */
   const at = (H) => {
     let c = memo.get(H);
     if (c) return c;
-    const kept = keptPlanAt(source, ins, env, H / 12, fromAge, saver);
+    const kept = planAt ? planAt(H) : keptPlanAt(source, ins, env, H / 12, fromAge, saver);
     if (!kept) throw new Error('planCaseOf: the answer cannot be kept at ' + H);
     const settings = effectiveStressSettings(kept, { now });
     const p = planFor(settings, now);
@@ -489,9 +508,17 @@ export function planCaseOf(source, ins, env, { lives = null, dragPct = 0, fromAg
    */
   const preset = RISK_PRESETS[ins.risk] || RISK_PRESETS.balanced;
   const midIsa = p0.stopLives ? p0.stopLives.isa : (base.isaBalance || 0);
-  const potsAt = (q) => {
+  const isaAt = (q) => (midIsa > 0 ? (base.isaBalance || 0) * (q.isa / midIsa) : q.isa);
+  // a SAVED plan's case (`planAt`: the saver verdict on a kept plan, ruling 10): its own config scaled by the life's pension
+  // over the lives' middle, pots and floors alike — the plan test's own rule (stressTest.js stopLifeOf), whatever its mix
+  const midSipp = planAt && p0.stopLives && p0.stopLives.sipp > 0 ? p0.stopLives.sipp : null;
+  const potsAt = midSipp ? (q) => {
+    const k = q.pension / midSipp;
+    return { equity: base.equityStart * k, bond: base.bondStart * k, cash: base.cashStart * k,
+      equityMin: base.equityMin * k, bondMin: base.bondMin * k, cashTarget: base.cashTarget * k, isa: isaAt(q) };
+  } : (q) => {
     const e = q.pension * preset.equity, b = q.pension * preset.bond;
-    return { equity: e, bond: b, cash: q.pension - e - b, isa: midIsa > 0 ? (base.isaBalance || 0) * (q.isa / midIsa) : q.isa };
+    return { equity: e, bond: b, cash: q.pension - e - b, isa: isaAt(q) };
   };
 
   return {

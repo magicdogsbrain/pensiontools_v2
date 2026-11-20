@@ -2945,21 +2945,14 @@
             "state": "current",
             "done": false,
             "result": {
-              "id": "plan.noAge",
+              "id": "plan.nothing",
               "parts": [
-                {
-                  "key": "yearly",
-                  "kind": "money"
-                },
-                " a year before tax"
+                "No figures yet"
               ],
-              "text": "£28,235 a year before tax"
+              "text": "No figures yet"
             },
             "figures": {
-              "yearly": 28235,
               "years": 35,
-              "step0": 28235,
-              "stepAge0": 57,
               "sipp": 0,
               "isa": 0,
               "gia": 0,
@@ -3034,25 +3027,12 @@
                 "id": "pays",
                 "lines": [
                   {
-                    "id": "pays.step",
+                    "id": "pays.notSet",
                     "slots": {},
                     "sentence": {
-                      "id": "pays.step",
-                      "parts": [
-                        "From age ",
-                        {
-                          "key": "stepAge0",
-                          "kind": "age"
-                        },
-                        ": ",
-                        {
-                          "key": "step0",
-                          "kind": "money"
-                        },
-                        " a year before tax",
-                        " (tax year 2026/27)"
-                      ],
-                      "text": "From age 57: £28,235 a year before tax (tax year 2026/27)"
+                      "id": "pays.notSet",
+                      "parts": [],
+                      "text": ""
                     },
                     "source": {
                       "kind": "saved",

@@ -2959,7 +2959,7 @@
               "shares": 380000,
               "bonds": 150000,
               "cash": 60000,
-              "spWeekly": 216,
+              "spWeekly": 215.6,
               "dial_bucketBand": 10,
               "mixShares": 380000,
               "mixBonds": 150000,
@@ -3347,11 +3347,11 @@
                       "parts": [
                         {
                           "key": "spWeekly",
-                          "kind": "money"
+                          "kind": "week"
                         },
                         " a week"
                       ],
-                      "text": "£216 a week"
+                      "text": "£215.60 a week"
                     },
                     "source": {
                       "kind": "locked",

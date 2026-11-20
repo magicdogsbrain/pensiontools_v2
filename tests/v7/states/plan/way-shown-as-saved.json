@@ -2974,7 +2974,7 @@
               "shares": 420000,
               "bonds": 210000,
               "cash": 70000,
-              "spWeekly": 221,
+              "spWeekly": 221.2,
               "mixShares": 420000,
               "mixBonds": 210000,
               "mixCash": 70000
@@ -3225,11 +3225,11 @@
                       "parts": [
                         {
                           "key": "spWeekly",
-                          "kind": "money"
+                          "kind": "week"
                         },
                         " a week"
                       ],
-                      "text": "£221 a week"
+                      "text": "£221.20 a week"
                     },
                     "source": {
                       "kind": "saved",

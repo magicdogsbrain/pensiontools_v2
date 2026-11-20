@@ -769,7 +769,7 @@
               "shares": 210000,
               "bonds": 405000,
               "cash": 65000,
-              "spWeekly": 226,
+              "spWeekly": 226.4,
               "dial_cashYears": 3,
               "dial_isaTotal": 40000,
               "dial_rotateCutAge": 80,
@@ -1053,11 +1053,11 @@
                       "parts": [
                         {
                           "key": "spWeekly",
-                          "kind": "money"
+                          "kind": "week"
                         },
                         " a week"
                       ],
-                      "text": "£226 a week"
+                      "text": "£226.40 a week"
                     },
                     "source": {
                       "kind": "saved",

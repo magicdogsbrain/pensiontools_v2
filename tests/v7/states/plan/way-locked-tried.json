@@ -3334,7 +3334,7 @@
               "shares": 180000,
               "bonds": 400000,
               "cash": 60000,
-              "spWeekly": 230,
+              "spWeekly": 230.25,
               "dial_cashYears": 2,
               "dial_isaTotal": 35000,
               "dial_sippTotal": 640000
@@ -3819,11 +3819,11 @@
                       "parts": [
                         {
                           "key": "spWeekly",
-                          "kind": "money"
+                          "kind": "week"
                         },
                         " a week"
                       ],
-                      "text": "£230 a week"
+                      "text": "£230.25 a week"
                     },
                     "source": {
                       "kind": "locked",

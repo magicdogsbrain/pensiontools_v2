@@ -3,9 +3,18 @@
  * plan's id and leaves the person signed in on the page it ends on.
  */
 import { expect } from '@playwright/test';
-import { monthlyNet } from '../../src/answers/plan/spend.js';
 
-const DEFAULT_BANDS = { pa: 12570, brl: 50270, hrl: 125140 };
+/**
+ * A year before tax as a month after tax, by hand on the default bands (no app code: scenarios stay independent). The
+ * allowance falls by £1 for every £2 over £100,000; 20% to the basic-rate limit, 40% to the higher-rate limit, 45% above.
+ */
+function monthAfterTax(gross) {
+  const g = Math.max(0, +gross || 0);
+  const pa = Math.max(0, 12570 - Math.max(0, g - 100000) / 2);
+  const slice = (lo, hi) => Math.max(0, Math.min(g, hi) - lo);
+  const tax = 0.2 * slice(pa, 50270) + 0.4 * slice(Math.max(pa, 50270), 125140) + 0.45 * Math.max(0, g - 125140);
+  return Math.round((g - tax) / 12);
+}
 import { confirmEmail } from './account.js';
 import { at, openSimple, answer, keep, signUp, editAndSave, planAddress, settled, fullPage, closeNews, openFull, planPage } from './routes.js';
 import { SAM_B, KIM_D } from './typed.js';
@@ -177,9 +186,9 @@ export async function stressLadder(page, { pension, cashYears, steps = null }) {
     if (!(await page.locator('button[data-strat="full-il-gilt"].active').isVisible())) { await page.locator('button[data-strat="full-il-gilt"]').click(); held = 0; return false; }
     if (steps) {
       // "Your income shape": the first step's amount by "or a number", then each later step added and typed
-      // (step F2) the step boxes are a month after tax (the simple view's monthlyNet on the plan's default bands); "or a
+      // (step F2) the step boxes are a month after tax (worked out by hand on the default bands); "or a
       // number" still takes the year before tax for the first step
-      const want = steps.map((x, i) => [i ? String(x.from) : null, String(monthlyNet(x.amount, DEFAULT_BANDS))]);
+      const want = steps.map((x, i) => [i ? String(x.from) : null, String(monthAfterTax(x.amount))]);
       let got = await typedSteps();
       if (got.length !== want.length || got[0][1] !== want[0][1]) {
         same = false;

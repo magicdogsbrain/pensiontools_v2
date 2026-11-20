@@ -111,8 +111,11 @@ for (const [q, Q] of Object.entries(QUESTIONS)) {
       }
 
       it('is the same answer in a child process under TZ=UTC and TZ=Europe/London', () => {
+        // (the plan path handed in, as the worker hands it — src/answers/index.js answerFor: a couple's row at which both
+        // stop today runs on the two kept plans, step P4)
         const code = `import { ${Q.fn} } from '${resolve(process.cwd(), Q.file)}';
-          const r = ${Q.fn}(${JSON.stringify(fx.inputs)}, ${JSON.stringify(env)});
+          import * as planPath from '${resolve(process.cwd(), 'src/answers/keep/planPath.js')}';
+          const r = ${Q.fn}(${JSON.stringify(fx.inputs)}, { ...${JSON.stringify(env)}, planPath });
           process.stdout.write(JSON.stringify(r));`;
         for (const TZ of ['UTC', 'Europe/London']) {
           const out = execFileSync(process.execPath, ['--input-type=module', '-e', code], { env: { ...process.env, TZ }, maxBuffer: 64 * 1024 * 1024 }).toString();

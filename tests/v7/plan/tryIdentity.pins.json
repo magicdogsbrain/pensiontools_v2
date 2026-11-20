@@ -1516,7 +1516,7 @@
     "cutPct": "",
     "cutEsc": ""
    },
-   "copy": "f4ff6dc872b9df69"
+   "copy": "d27ccdf06b2fbb23"
   },
   "way": {
    "boxes": {
@@ -1531,7 +1531,7 @@
     "cutPct": "",
     "cutEsc": ""
    },
-   "copy": "04437801def46fed"
+   "copy": "935e6608b6481997"
   },
   "pot": {
    "boxes": {
@@ -1546,7 +1546,7 @@
     "cutPct": "",
     "cutEsc": ""
    },
-   "copy": "744b95db5eab1e84"
+   "copy": "32cc2596e46e115d"
   },
   "isa": {
    "boxes": {
@@ -1561,7 +1561,7 @@
     "cutPct": "",
     "cutEsc": ""
    },
-   "copy": "9a1e1556b79070a6"
+   "copy": "50daed6eba7931cc"
   },
   "isaPolicy": {
    "boxes": {
@@ -1576,7 +1576,7 @@
     "cutPct": "",
     "cutEsc": ""
    },
-   "copy": "9cf577d335c3a57e"
+   "copy": "58314592ee89292c"
   },
   "income": {
    "boxes": {
@@ -1591,7 +1591,7 @@
     "cutPct": "",
     "cutEsc": ""
    },
-   "copy": "08935c11f7c19b6c"
+   "copy": "dc1d129032106f9d"
   },
   "years": {
    "boxes": {
@@ -1606,7 +1606,7 @@
     "cutPct": "",
     "cutEsc": ""
    },
-   "copy": "da978cddf3cb888c"
+   "copy": "306e094159f9939c"
   },
   "cuts": {
    "boxes": {
@@ -1621,7 +1621,7 @@
     "cutPct": "",
     "cutEsc": ""
    },
-   "copy": "3ab401f458ac6414"
+   "copy": "c3de5368d76c2068"
   },
   "cutPct": {
    "boxes": {
@@ -1636,7 +1636,7 @@
     "cutPct": "30",
     "cutEsc": ""
    },
-   "copy": "93174e0f92e41d4b"
+   "copy": "410fd40db219fa37"
   },
   "cutEsc": {
    "boxes": {
@@ -1651,7 +1651,7 @@
     "cutPct": "",
     "cutEsc": "6"
    },
-   "copy": "ea79a0a1d44f5485"
+   "copy": "1e5a7e367b427876"
   },
   "all": {
    "boxes": {
@@ -1666,7 +1666,7 @@
     "cutPct": "30",
     "cutEsc": "6"
    },
-   "copy": "8507fc9d3a62efe4"
+   "copy": "98e207fafab062aa"
   }
  },
  "11-guest-demo": {
@@ -2518,7 +2518,7 @@
     "cutPct": "",
     "cutEsc": ""
    },
-   "copy": "6bf794943fc48aa6"
+   "copy": "4cf6a0a626f8bea7"
   },
   "way": {
    "boxes": {
@@ -2533,7 +2533,7 @@
     "cutPct": "",
     "cutEsc": ""
    },
-   "copy": "b8dff60398cf429f"
+   "copy": "c30735072f0b334a"
   },
   "pot": {
    "boxes": {
@@ -2548,7 +2548,7 @@
     "cutPct": "",
     "cutEsc": ""
    },
-   "copy": "50878f9c9dbcffb8"
+   "copy": "0383b8c3e2ff1ec4"
   },
   "isa": {
    "boxes": {
@@ -2563,7 +2563,7 @@
     "cutPct": "",
     "cutEsc": ""
    },
-   "copy": "f489f52241f29644"
+   "copy": "23370790904b28d4"
   },
   "isaPolicy": {
    "boxes": {
@@ -2578,7 +2578,7 @@
     "cutPct": "",
     "cutEsc": ""
    },
-   "copy": "db51efb208683437"
+   "copy": "eaee373fc604447f"
   },
   "income": {
    "boxes": {
@@ -2593,7 +2593,7 @@
     "cutPct": "",
     "cutEsc": ""
    },
-   "copy": "bb27f0a4d3296403"
+   "copy": "65902b0cb5cfd7a7"
   },
   "years": {
    "boxes": {
@@ -2608,7 +2608,7 @@
     "cutPct": "",
     "cutEsc": ""
    },
-   "copy": "6e5121e49ef007bd"
+   "copy": "2e4be61ac7ddd446"
   },
   "cuts": {
    "boxes": {
@@ -2623,7 +2623,7 @@
     "cutPct": "",
     "cutEsc": ""
    },
-   "copy": "ae15aadc0132b613"
+   "copy": "735bbd4c07a5e02b"
   },
   "cutPct": {
    "boxes": {
@@ -2638,7 +2638,7 @@
     "cutPct": "30",
     "cutEsc": ""
    },
-   "copy": "918e90e28388ea89"
+   "copy": "b08d40aff980f3d0"
   },
   "cutEsc": {
    "boxes": {
@@ -2653,7 +2653,7 @@
     "cutPct": "",
     "cutEsc": "6"
    },
-   "copy": "1a2127a0ed3ccdf2"
+   "copy": "b9b83712c40fc28d"
   },
   "all": {
    "boxes": {
@@ -2668,7 +2668,7 @@
     "cutPct": "30",
     "cutEsc": "6"
    },
-   "copy": "9bef6a3d2d517eec"
+   "copy": "8c800866e22632d8"
   }
  },
  "19-back-to-work": {

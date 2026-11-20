@@ -62,7 +62,12 @@ export function lifeFactsOf(result, weigher, plan, inputs) {
   }
   // a capped run keeps how its plan-to age was set: typed when it is not the tables' own (the default rule's)
   let rule = ch.horizonRule || 'survival';
-  if (rule === 'capped') rule = weigher && isNum(weigher.planToAge) && isNum(ins.endAge) && ins.endAge !== weigher.planToAge ? 'chosen' : 'survival';
+  // (a plan-to age below the end age asked for is the kept plan's own limit, the cap keeping applies — ruling H: nobody chose
+  // it, and the words say it is the age the plan runs to, as the kept plan's own "Does it last?" says it)
+  if (rule === 'capped') {
+    rule = weigher && isNum(weigher.planToAge) && isNum(ins.endAge) && planToAge < ins.endAge ? 'limit'
+      : weigher && isNum(weigher.planToAge) && isNum(ins.endAge) && ins.endAge !== weigher.planToAge ? 'chosen' : 'survival';
+  }
   return {
     weighted: Boolean(weigher && weigher.weighted), couple, level: result.level || 'balanced', sex, given, asked, planToAge, weightToAge,
     rule, capped, capYears: plan.years, liveLonger, startAge
@@ -219,11 +224,13 @@ export function lifeAssumed(lf, { endAgeField = 'endAge' } = {}) {
   const cut = lf.capped && !(lf.planToAge < lf.weightToAge);
   if (cut) {
     // (nothing more: "We could test only to …" says the age every figure is counted to)
-  } else if (lf.rule === 'chosen') {
+  } else if (lf.rule === 'chosen' || lf.rule === 'limit') {
     const k = isNum(lf.liveLonger) ? Math.round(lf.liveLonger * 10) : null;
     const many = k === null ? [] : k <= 0 ? [' Fewer than 1 in 10 ', like, lf.couple ? ' still have one of you alive then' : ' live longer than that'] : k >= 10 ? [' Almost all ', like, lf.couple ? ' still have one of you alive then' : ' live longer than that']
       : [' About ', F(k), ' in ', F('10'), ' ', like, lf.couple ? ' still have one of you alive then' : ' live longer than that'];
-    line('life-plan-to', endAgeField, 'entered', lf.planToAge, ['Your plan runs to ', ...toWhom, ', the age you chose.', ...many,
+    // (the kept plan's own limit set it: "We tested to 98, the age your plan runs to.", the kept plan's words)
+    const head = lf.rule === 'limit' ? ['We tested to ', ...toWhom, ', the age your plan runs to.'] : ['Your plan runs to ', ...toWhom, ', the age you chose.'];
+    line('life-plan-to', endAgeField, lf.rule === 'limit' ? 'rule' : 'entered', lf.planToAge, [...head, ...many,
       lf.capped ? '.' : [many.length ? ', so we' : ' We', ' still follow each future on to ', F(lf.weightToAge), '.']], true);
   } else {
     line('life-plan-to', endAgeField, 'default', lf.planToAge, ['Your plan runs to ', ...toWhom, ', when fewer than ', F('1'), ' in ', F('10'), ' ', like,

@@ -173,6 +173,13 @@ describe('the words, weighing', () => {
     expect(c.assumed.find((a) => a.id === 'life-plan-to').text).toMatch(/^Your plan runs to when the younger of you is \d+, when fewer than 1 in 10 couples your ages still have one of you alive\. We follow each future on to \d+, when fewer than 1 in 50 do\.$/);
     const chosen = answerC({ ...ALEX_C, endAge: 85 }, ENV).assumed.find((a) => a.id === 'life-plan-to');
     expect(chosen.text).toMatch(/^Your plan runs to 85, the age you chose\. About \d+ in 10 women your age live longer than that, so we still follow each future on to \d+\.$/);
+    // a plan-to age the kept plan's own limit set (45 years from the start: the cap keeping applies, ruling H) is nobody's
+    // choice: Jo, 53, £250,000 and £60,000 in savings, £1,500 a month, the end age left at its default (100), is tested to
+    // 53 + 45 = 98, and the words say so as the kept plan's own "Does it last?" does (P2 check, round 3, fault 2)
+    const jo = answerD({ you: { pot: 250000, age: 53, taxFreeTaken: 'no' }, savings: 60000, spend: { kind: 'amount', amount: 1500 } }, ENV);
+    const joLine = jo.assumed.find((a) => a.id === 'life-plan-to');
+    expect(joLine.text).toMatch(/^We tested to 98, the age your plan runs to\. (About \d+ in 10|Fewer than 1 in 10) women your age live longer than that, so we still follow each future on to \d+\.$/);
+    expect(joLine.text).not.toMatch(/the age you chose/);
     // the rollback keeps the lines it had
     const off = answerC(SAM_C, OFF);
     expect(off.assumed.map((a) => a.id)).toEqual(expect.arrayContaining(['plan-to', 'both-alive']));

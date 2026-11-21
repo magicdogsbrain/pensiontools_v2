@@ -403,6 +403,18 @@ export const LOCK_WRITES = Object.freeze([
 ]);
 
 /**
+ * The Stress settings a lock writes as the plan read them (lock.js lockPatch, beside LOCK_WRITES, never in an Undo of the
+ * lock): the charge and how the ISA grows. A plan saved before either existed reads them from the upgrade
+ * (storage/migrations.js toV2, toV3), which leaves a LOCKED plan alone, so a lock that did not write them would leave the
+ * plan reading 0% and a fixed 3% from then on, unlike the document it was locked with. The same two the unlock writes for
+ * a plan locked before them (UNLOCK_WRITES).
+ */
+export const LOCK_AS_READ_WRITES = Object.freeze([
+  'stressTool.settings.chargesPct',
+  'stressTool.settings.isaGrowth'
+]);
+
+/**
  * Every dotted field path the unlock may write (PlanLock.unlockPlan + ScenarioRepository.archivePlanDocument /
  * archivePlanOfRecord, and the defaults of PlanCommit.unlockPatchesOf): the document and the plan of record each into its
  * archive (the last ten kept) and cleared, the flag off, the unlock dated and counted, and the Stress defaults a plan locked

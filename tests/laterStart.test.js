@@ -33,7 +33,7 @@ import { applyPatch, aboutPatch, lockedStartOf, aboutOf } from '../src/answers/p
 import { lockPatch } from '../src/answers/plan/lock.js';
 import { splitPatches } from '../src/answers/plan/household.js';
 import { homeOf } from '../src/answers/plan/home.js';
-import { ALL_WRITES, LOCK_WRITES, LATER_DRAFT_WRITES } from '../src/answers/plan/schema.js';
+import { ALL_WRITES, LOCK_WRITES, LATER_DRAFT_WRITES, LOCK_AS_READ_WRITES } from '../src/answers/plan/schema.js';
 import { lockedPlanWriteRefusal } from '../src/services/LockedPlanGuard.js';
 import { getDefaultStressSettings } from '../src/storage/stressDefaults.js';
 import { setLinkersOverride } from '../src/services/LinkerUniverse.js';
@@ -255,7 +255,7 @@ describe('a retired draft saved with a later start is read from the earlier one,
     expect(out.ok).toBe(true);
     expect(out.patch[S + '.firstTaxYear']).toBe(2024);
     expect(out.patch[D + '.firstTaxYear']).toBe(2024);
-    for (const k of Object.keys(out.patch)) expect([...LOCK_WRITES, ...LATER_DRAFT_WRITES]).toContain(k);
+    for (const k of Object.keys(out.patch)) expect([...LOCK_WRITES, ...LATER_DRAFT_WRITES, ...LOCK_AS_READ_WRITES]).toContain(k);   // step F5: the charge and the ISA choice as read
     // Undo of the lock gives back the draft with its start saved as it read: the reversal is the lock's own paths only
     for (const k of Object.keys(out.previous)) expect(LOCK_WRITES).toContain(k);
     const after = applyPatch(p, out.patch);

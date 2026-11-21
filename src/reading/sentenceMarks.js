@@ -122,6 +122,10 @@ export const THIS_YEAR_FROM_FIND = /, from ((?:January|February|March|April|May|
 export const THIS_YEAR_ON_FIND = / set up on (\d{1,2} (?:January|February|March|April|May|June|July|August|September|October|November|December) \d{4})\b/;
 export const THIS_YEAR_MARKS = Object.freeze({ keys: THIS_YEAR_FACTS, finds: [[THIS_YEAR_FROM_FIND, FACT.YEAR_FROM], [THIS_YEAR_ON_FIND, FACT.YEAR_SET_UP_ON]] });
 
+/** The month an income step's figures are priced in ("… a year before tax at April 2026 prices"; src/reading/where.js), both views. */
+export const PRICES_FIND = / at ((?:January|February|March|April|May|June|July|August|September|October|November|December) \d{4}) prices\b/;
+export const STEP_FINDS = Object.freeze([[PRICES_FIND, FACT.PRICES_FROM]]);
+
 /** The household's headline (HOUSEHOLD.verdict.headline, both views): its chance in words. */
 export const HOUSEHOLD_CHANCE = Object.freeze({ words: FACT.HOUSEHOLD_CHANCE });
 

@@ -86,6 +86,5 @@ export function stepKeysOf(s) {
   }
   return keys;
 }
-/** The month the step's figures are priced in ("… a year before tax at April 2026 prices"), the same find in both views. */
-export const PRICES_FIND = / at ((?:January|February|March|April|May|June|July|August|September|October|November|December) \d{4}) prices\b/;
-export const STEP_FINDS = Object.freeze([[PRICES_FIND, FACT.PRICES_FROM]]);
+/** The month the step's figures are priced in: the find both views mark it by (src/reading/sentenceMarks.js). */
+export { STEP_FINDS } from './sentenceMarks.js';

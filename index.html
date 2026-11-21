@@ -4318,7 +4318,7 @@
     // Import auth helpers and data check
     import { isLoggedIn, logOut, getCurrentUser, deleteAccount, onAuthStateChange, viewNotesAtSignIn } from './src/firebase/index.js';
     import { hasCloudData, wipeAllUserData, loadUserProfile, saveUserProfile, guestSnapshot, loadAllScenarios, createScenario as createScenarioDoc, saveScenario as saveScenarioDoc, loadScenario as loadScenarioDoc } from './src/firebase/FirestoreService.js';
-    import { startSeedEntry, planFromAnswer, planTargetGuide, budgetSummaryWords } from './src/ui/components/NewPlanFromSeed.js'; import { householdStartWords } from './src/services/PlanSeed.js';   // a plan from a V7 answer (V7 design: save-as-plan.md, C.2); the Household tab's line when one plan begins later (couples-different-years.md 7)
+    import { startSeedEntry, planFromAnswer, planTargetGuide, budgetSummaryWords } from './src/ui/components/NewPlanFromSeed.js'; import { householdStartWords } from './src/services/PlanSeed.js'; import { timingSettingsOf } from './src/services/PlanFromSeed.js';   // a partner's plan: the one timing seed (step F6)   // a plan from a V7 answer (V7 design: save-as-plan.md, C.2); the Household tab's line when one plan begins later (couples-different-years.md 7)
     import { startSummaryHtml, potsAtRetirementLine } from './src/ui/startingPotsWords.js'; import { potAtStop } from './src/reading/atStop.js'; import { stepBoxValue, stepFromBox, firstStepNoteOfPlan, planBandsOf, documentStepsOf, accessAssumedNoteOf, spLineOfPlan } from './src/ui/incomeStepBox.js'; import { statePensionOf } from './src/reading/statePension.js'; import { spKindOfSettings, spKindForSave, FULL_SP_WEEKLY } from './src/ui/spKindBox.js'; import { stageWordsHtml, whereYouAreHtml } from './src/ui/stageWords.js'; import { stage as readingStage, yearsToGo as readingYearsToGo, ageToday as readingAgeToday, planName as readingPlanName } from './src/reading/timing.js'; import { formatFact, money as fmtMoney } from './src/reading/format.js'; import { budgetLineOf } from './src/reading/budget.js'; import { isaToday as readingIsaToday, pensionBoxOf, isaBoxOf, settingsOf as readingSettingsOf } from './src/reading/money.js'; import { savingInputsOf } from './src/services/PotsAtStop.js'; import { shownPlanName } from './src/services/PlanName.js';
     import { thisYearOfPlan, yearIncomeHtml, yearFromHtml, yearChangedHtml, yearPlanHtml } from './src/ui/thisYearHtml.js'; import { setUpAgainConfig } from './src/reading/thisYear.js'; import { incomeStepsOf as incomeStepsOfPlan } from './src/reading/income.js';
     import { tick as guestTick, readMinutes as guestMinutes, pendingNag as guestPendingNag, markNagShown as guestMarkNag, isBlocked as guestBlocked, bannerText as guestBannerText, savedChipText, stashHandoff as guestStash, readHandoff as guestReadHandoff, clearHandoff as guestClearHandoff, GUEST_ALLOWANCE_MINUTES } from './src/services/GuestMeter.js';
@@ -9325,7 +9325,16 @@
         // Their plan starts from what THIS plan already knows about them: ages from the plan wizard,
         // sharing on, and this person as their partner — not the 45/60 defaults.
         let mine = null; try { mine = await getBudgetAsync(); } catch (e) { mine = null; }
-        await createNewScenario(name, 'Partner plan (household)', ['stress', 'decision'], {}, true);
+        let myId = null; try { myId = await getActiveScenarioId(); } catch (e) { myId = null; }
+        // their timing through the one timing seed a plan made from an answer gets (PlanFromSeed.timingSettingsOf; lead4.md D2,
+        // D20; step F6): the age given, dated today; stopping at the age given, else already stopped; nothing stored that
+        // nobody gave — so their plan never starts in a month already past
+        const ageGiven = mine && +mine.partnerAge > 0 ? Math.round(+mine.partnerAge) : null, stopGiven = mine && +mine.partnerRetirementAge > 0 ? Math.round(+mine.partnerRetirementAge) : null;
+        const later = !!ageGiven && !(mine && mine.partnerRetired) && stopGiven > ageGiven;
+        const timing = !ageGiven ? {} : later || (mine && mine.partnerRetired) ? timingSettingsOf({}, { ageToday: ageGiven, later, ageAtStop: later ? stopGiven : null }, dayKeyOf(todayOf())) : { currentAge: ageGiven, currentAgeAsOf: dayKeyOf(todayOf()) };
+        await createNewScenario(name, 'Partner plan (household)', ['stress', 'decision'], { stressSettings: timing }, true);
+        // linked to this plan, as the simple view links a couple's two plans (either side's link reads both ways)
+        if (myId) { try { await setHouseholdPartnerId(myId); } catch (e) { console.warn('Partner link skipped:', e); } }
         try {
           const theirs = await getBudgetAsync();
           if (mine && theirs) {
@@ -9338,7 +9347,7 @@
             await saveBudget(theirs);
           }
         } catch (e) { console.warn('Partner budget seed skipped:', e); }
-        showToast(name + ' created — fill in their Stress settings, then come back to Household and pick them.', 'success', 6000);
+        showToast(name + ' created and linked to this plan — fill in their pensions and spending in their plan.', 'success', 6000);
         location.reload();
       } catch (e) {
         showToast('Could not create the plan: ' + e.message, 'error');

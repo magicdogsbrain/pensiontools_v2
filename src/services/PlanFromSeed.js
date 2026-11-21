@@ -639,6 +639,21 @@ function describe(seed, p, names = null) {
 }
 
 /**
+ * Who, when (step F6: the one timing seed, for a plan made from an answer and for the full view's partner plan): the age
+ * today dated `today` ('YYYY-MM-DD'), stopping later at `ageAtStop` or taking money now (from the tax year work stopped,
+ * `since`, when known), the plan's first tax year and its start age — derived as every later load derives them, on top of
+ * `base` (the State Pension date, when given, is the birthday ages are reckoned from). Pure.
+ */
+export function timingSettingsOf(base, { ageToday, later, ageAtStop = null, since = null }, today) {
+  const T = localDate(today);
+  const S = { ...(base || {}), configured: true, currentAge: ageToday, currentAgeAsOf: today, retired: !later, retireAge: later ? ageAtStop : null, ...(since ? { stoppedWork: since } : {}) };
+  S.firstTaxYear = later ? deriveTiming(S, T).firstTaxYear : since ? taxYearOfMonth(since) : taxYearStartOf(T);
+  S.shapeAgeNow = deriveTiming(S, T).shapeAgeNow;
+  const { configured, currentAge, currentAgeAsOf, retired, retireAge, stoppedWork, firstTaxYear, shapeAgeNow } = S;
+  return { configured, currentAge, currentAgeAsOf, retired, retireAge, ...(since ? { stoppedWork } : {}), firstTaxYear, shapeAgeNow };
+}
+
+/**
  * One person's plan (Contract C.3). `S` = stressTool.settings. `seed` is read as version 2 (asVersion2), so `p` carries
  * their own stop and years: the plan starts at their stop and ends with the household's plan. `record` is the seed as it
  * came, and this person in it, for `fromAnswer`.
@@ -665,9 +680,7 @@ function planFor(seed, p, other, name, savedOn, lockedAt, names, record) {
   // when (`since`, 6.51.0): the plan's year 0 is then that tax year and the years since are lived, so the plan runs that many
   // years longer and still ends where the answer's years end.
   const since = !later && p.stop && p.stop.since ? stoppedWorkOf({ stoppedWork: p.stop.since }) : null;
-  Object.assign(S, { configured: true, currentAge: p.ageToday, currentAgeAsOf: seed.today, retired: !later, retireAge: later ? p.ageAtStop : null, ...(since ? { stoppedWork: since } : {}) });
-  S.firstTaxYear = later ? deriveTiming(S, T).firstTaxYear : since ? taxYearOfMonth(since) : taxYearStartOf(T);
-  S.shapeAgeNow = deriveTiming(S, T).shapeAgeNow;
+  Object.assign(S, timingSettingsOf(S, { ageToday: p.ageToday, later, ageAtStop: p.ageAtStop, since }, seed.today));
   const lived = since ? Math.max(0, taxYearStartOf(T) - S.firstTaxYear) : 0;
   S.duration = p.years + lived;
 

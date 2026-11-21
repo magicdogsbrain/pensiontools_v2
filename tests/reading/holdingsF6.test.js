@@ -141,3 +141,25 @@ describe('keep and stands-in years: one parser, one refusal, the same words in b
     expect(words).toMatch(/^This gilt pays on \d+ \w+ 2028, after 2027\/28 ends, so it cannot pay for 2027\/28\.$/);
   });
 });
+
+describe('a partner\'s plan made in the full view (lead4.md D2, D20)', () => {
+  it('is made through the one timing seed, dated, and linked; nothing nobody gave is stored', () => {
+    const src = readFileSync('index.html', 'utf8');
+    const at = src.indexOf('window.createPartnerPlanReal = async function');
+    const body = src.slice(at, src.indexOf('location.reload()', at));
+    expect(body).toContain('timingSettingsOf(');
+    expect(body).toContain('setHouseholdPartnerId(');
+    expect(body).not.toMatch(/createNewScenario\([^)]*, \{\}, true\)/);
+  });
+  it('a partner still working stops in a month ahead; one already stopped has no stop month to come', async () => {
+    const { timingSettingsOf } = await import('../../src/services/PlanFromSeed.js');
+    const { deriveTiming, taxYearStartOf } = await import('../../src/services/PlanTiming.js');
+    const working = timingSettingsOf({}, { ageToday: 58, later: true, ageAtStop: 62 }, PARITY_DAY);
+    expect(working).toMatchObject({ currentAge: 58, currentAgeAsOf: PARITY_DAY, retired: false, retireAge: 62 });
+    const t = deriveTiming(working, NOW);
+    expect(t.startMonth > PARITY_DAY.slice(0, 7)).toBe(true);
+    expect(working.firstTaxYear).toBeGreaterThanOrEqual(taxYearStartOf(NOW));
+    const stopped = timingSettingsOf({}, { ageToday: 70, later: false }, PARITY_DAY);
+    expect(stopped).toMatchObject({ currentAge: 70, retired: true, retireAge: null, firstTaxYear: taxYearStartOf(NOW) });
+  });
+});

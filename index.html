@@ -7356,7 +7356,7 @@
           + '</tbody></table></div>' : '<p class="hint">Nothing recorded yet. One line a month is enough — the plan document reads it against the locked path once the plan is locked.</p>';
         if (strip) {
           const doc = await getActivePlanDocument();
-          if (doc && doc.accumulation) { const w = await whereAmINow(); strip.innerHTML = w ? whereAmIHtml(w) : ''; }   // the one gatherer (step F5)
+          if (doc && doc.accumulation) { const w = await whereAmINow(); strip.innerHTML = w ? whereAmIHtml(w, null, { steps: (await whereExtrasNow()).steps }) : ''; }   // the one gatherer (step F5)
           else strip.innerHTML = window._lifeStage && ['saving', 'approaching'].includes(window._lifeStage.key) ? '<p class="hint">If you lock the plan (Stress tester → Settings), this strip also reads each month\'s pot against the path drawn then. You do not need to lock it while you are saving.</p>' : '';
         }
       } catch (e) { el.innerHTML = '<p class="hint">Could not read the records: ' + budEsc(e.message) + '</p>'; }

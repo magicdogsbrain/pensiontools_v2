@@ -419,6 +419,10 @@ function whereStep(C) {
       } else lines.push(line('where.saverPot', [money('actual')], figures, sourceOf(s.actualSource === 'holdings' ? 'hold' : 'record', s.recordedAt || s.at, now)));
       lines.push(line('where.saverLine', [money('expected')], figures, sourceOf('locked', lockedAt, now)));
     }
+    // the income step the plan starts with, the sentence the full view's strip says for a saver too (step F5, R8)
+    let steps = null; try { steps = incomeStepsOf(plan, { now }).steps; } catch { steps = null; }
+    const stepSaid = stepSentence(w, steps);
+    if (stepSaid) { Object.assign(figures, stepSaid.figures); lines.push(line(stepSaid.id, stepSaid.parts, figures, sourceOf('locked', lockedAt, now))); }
   } else {
     // A plan stored the old way (C.startLater) whose year 0 is still later than this tax year: this year's figure is year 0's,
     // a later tax year's, so the months recorded are said with what was taken and nothing is read against a plan figure until

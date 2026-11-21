@@ -387,7 +387,8 @@ function documentBlockHtml(r, p, def) {
     : '<div><span class="hero" style="font-size:30px;">' + esc(twentiethsOfFutures(w.fixedAge)) + '</span><span class="hero-sub">' + esc(L.headline) + '</span></div>';
   return '<div class="verdict verdict-' + tone + '" data-level="' + esc(def.level) + '"><div class="verdict-title">' + (r.ruinLabel ? 'Will you get what you planned? — ' : 'Will your money last? — ') + VERDICT_TITLE[v] + ' at ' + name + ', when it was locked</div>'
     + '<div class="verdict-heroes">' + head + '</div>'
-    + '<p class="verdict-fixed" data-fixed="1">' + markWithin(esc(L.fixed), DOC_LASTS_FINDS) + '</p>'
+    // the count marked where the simple view says it too (its "Your plan as locked" line, a document with the weighted chance)
+    + '<p class="verdict-fixed" data-fixed="1">' + (L.tested === 'weighted' ? markWithin(esc(L.fixed), DOC_LASTS_FINDS) : esc(L.fixed)) + '</p>'
     + '<div class="verdict-basis">The figures this plan was locked with; the document keeps them.</div></div>';
 }
 

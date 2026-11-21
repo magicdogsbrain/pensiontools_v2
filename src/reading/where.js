@@ -43,14 +43,16 @@ export function stepSentence(w, steps = null) {
   if (!w || !w.step || w.step.amount == null) return null;
   const i = w.step.index - 1;
   const read = (k) => (Array.isArray(steps) && steps[k] && Number.isFinite(+steps[k].beforeTax) ? r0(steps[k].beforeTax) : null);
-  const figures = { ['step' + i]: read(i) != null ? read(i) : r0(w.step.amount) };
+  // a step the reading could not give is said as stored, under a key no view marks: it is not the reading's figure
+  const keyOf = (k) => (read(k) != null ? 'step' + k : 'storedStep' + k);
+  const figures = { [keyOf(i)]: read(i) != null ? read(i) : r0(w.step.amount) };
   const since = w.pot && w.pot.prices && w.pot.prices.since ? monthText(w.pot.prices.since) : '';
-  const parts = ['Income step ' + w.step.index + ' of ' + w.step.of + ': ', money('step' + i), ' a year before tax' + (since ? ' at ' + since + ' prices' : '')];
+  const parts = ['Income step ' + w.step.index + ' of ' + w.step.of + ': ', money(keyOf(i)), ' a year before tax' + (since ? ' at ' + since + ' prices' : '')];
   const nx = w.step.next;
   if (nx) {
-    figures['step' + (i + 1)] = read(i + 1) != null ? read(i + 1) : r0(nx.amount);
+    figures[keyOf(i + 1)] = read(i + 1) != null ? read(i + 1) : r0(nx.amount);
     figures['from' + (i + 1)] = r0(nx.fromAge);
-    parts.push('; the next step is ', money('step' + (i + 1)), ' from age ', { key: 'from' + (i + 1), kind: 'age' }, (nx.taxYear ? ' (' + nx.taxYear + ')' : '') + '.');
+    parts.push('; the next step is ', money(keyOf(i + 1)), ' from age ', { key: 'from' + (i + 1), kind: 'age' }, (nx.taxYear ? ' (' + nx.taxYear + ')' : '') + '.');
   } else parts.push('; no further steps.');
   return { id: 'where.step', parts, figures };
 }

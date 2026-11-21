@@ -39,7 +39,7 @@ describe('History: what the plan\'s rule did that month, read as the live month 
     expect(recordMovesOf({ date: '2026-11-03', rebal: 'Move £8,000 Equity→Bond', contract: true })).toEqual([]);
     expect(recordMovesOf(null)).toEqual([]);
     for (const id of ['sharesToBonds', 'bondsToShares']) {
-      expect(MONTH.advice.movesThen[id]).toMatch(/^The plan’s rule moved \{amount\}/);
+      expect(MONTH.advice.movesThen[id]).toMatch(/^The plan’s rule moved money from/);   // the record's own figures are its balances; the move's size is not one of them (the gate counts it as a figure no reading gives)
       expect(MONTH.advice.movesThen[id]).not.toMatch(/Equity|Bond→|Move £|should|recommend/);
     }
     expect(MONTH.advice.movesThenTitle).toBe('What the plan’s rule did in {month}');

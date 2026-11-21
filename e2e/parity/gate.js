@@ -211,7 +211,8 @@ export const lineOf = (r) => `parity: ${r.fixtures.length} plans · facts marked
 
 // ---- round trips (lead4.md G5) -----------------------------------------------------------------------------------------
 
-export const TRIP_KINDS = Object.freeze(['not reachable', 'not saved', 'not in the other view', 'shows another value', 'differs from opened directly', 'carried over', 'sweep breaks', 'not tried', 'needs a press', 'ok']);
+// 'written otherwise' (step F5): an action stored in a way the other view would not store it (its stamp, a key it never asked for)
+export const TRIP_KINDS = Object.freeze(['not reachable', 'not saved', 'written otherwise', 'not in the other view', 'shows another value', 'differs from opened directly', 'carried over', 'sweep breaks', 'not tried', 'needs a press', 'ok']);
 
 /** The kind a trip is counted as: its own, or "needs a press" when it came back but only after the Save button. */
 export const tripKindOf = (t) => (t.kind === 'ok' && t.press ? 'needs a press' : t.kind);

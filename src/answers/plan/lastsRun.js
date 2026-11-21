@@ -20,7 +20,7 @@
  *     the plan built WITH the budget's essentials (strategyPlanFor's second argument, index.html _shapeRefs), the strategy run
  *     live (never the document's own: a new version re-prices a ladder at today's bundled curve, as the planner's does at
  *     the day's prices), `p` and `r` trimmed as PlanDocument.buildPlanDocument trims them (trimPlan, trimResult: no samples,
- *     no per-future lists, no functions), and a saver's path drawn on the saving-years engine (src/ui/savingPathForLock.js:
+ *     no per-future lists, no functions), and a saver's path drawn on the saving-years engine (savingPathFor:
  *     absent unless the plan stops later). The document itself is built on the page (answers/plan/lock.js) with these.
  *
  *   trySettingsOf(s, boxes) → the what-if copy of the Stress settings "Try a strategy" runs (index.html tryStrategySettings,
@@ -245,7 +245,7 @@ export const documentAccumulationOf = (plan) => (plan && plan.accumulationTool &
 export const documentHoldingsOf = (plan) => (plan && plan.holdings && typeof plan.holdings === 'object' ? normaliseHoldings(plan.holdings) : emptyHoldings());
 
 /**
- * src/ui/savingPathForLock.js, without its lazy import: a saver's path on the saving-years engine, undefined for a plan that
+ * A saver's path on the saving-years engine, undefined for a plan that
  * is not stopping later (buildPlanDocument then draws the FCA path, as before 6.22.0).
  */
 export function savingPathFor({ settings, accumulation = null, holdings = null, now, phases = null, plan = null }) {

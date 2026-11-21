@@ -20,7 +20,7 @@ import { resolve } from 'node:path';
 import { buildPlanDocument, whereAmI, PLAN_DOCUMENT_VERSION } from '../src/services/PlanDocument.js';
 import { saverReading, saverPrices, pathStart, savingPathVersion, pathCountsIsa, saverPotOf, OLD_PATH_CPI, monthOf, potRecordOf, figureOrNull, recordIsaOf } from '../src/services/SaverReading.js';
 import { buildSavingPath, savingPathMixes, SAVING_PATH_LIVES } from '../src/services/SavingPath.js';
-import { savingPathForLock } from '../src/ui/savingPathForLock.js';
+import { savingPathFor } from '../src/answers/plan/lastsRun.js';
 import { whereAmIHtml, saverReadingText, planDocumentHtml } from '../src/ui/components/PlanDocumentView.js';
 import { deriveTiming } from '../src/services/PlanTiming.js';
 import { deriveStage, arrivalCheck } from '../src/services/LifeStage.js';
@@ -218,15 +218,15 @@ describe('new locks (plan document version 3): the saving path on V7\'s saving-y
     const d = buildPlanDocument({ settings: saver, now: NOW, savingPath: p });
     expect(plain(planDocumentHtml(d))).toMatch(/locked before it had a pension figure to draw a saving path from/);
   });
-  it('nothing for someone already retired; the lock loads the engine on demand and falls back to the old path if it cannot', async () => {
+  // retaken in step F5 (lead4.md D18): both views lock through the one document run (answers/plan/lastsRun.js savingPathFor);
+  // src/ui/savingPathForLock.js and its lazy import are gone with the full view's own document builder
+  it('nothing for someone already retired; a saver\'s path is drawn on the saving-years engine', () => {
     const retired = { ...saver, retired: true, retireAge: null, firstTaxYear: 2026 };
     expect(buildSavingPath({ settings: retired, timing: deriveTiming(retired, NOW), accumulation, now: NOW })).toBeNull();
-    expect(await savingPathForLock({ settings: retired, accumulation, now: NOW })).toBeUndefined();
-    const viaLock = await savingPathForLock({ settings: saver, accumulation, now: NOW });
+    expect(savingPathFor({ settings: retired, accumulation, now: NOW })).toBeUndefined();
+    const viaLock = savingPathFor({ settings: saver, accumulation, now: NOW });
     expect(viaLock.version).toBe(3);
     expect(viaLock.lives).toBe(SAVING_PATH_LIVES);
-    const src = readFileSync(resolve(process.cwd(), 'src/ui/savingPathForLock.js'), 'utf8');
-    expect(src).toMatch(/await import\('\.\.\/services\/SavingPath\.js'\)/);   // its own chunk: the main bundle does not grow
     expect(readFileSync(resolve(process.cwd(), 'src/services/PlanDocument.js'), 'utf8')).not.toMatch(/answers\//);
   });
   it('the document shows the path in today\'s money with the 1-in-10 lines, both figures it was locked with, and the charge', () => {
@@ -350,11 +350,6 @@ describe('the lock and the refresh draw the new path; the reading helpers', () =
     const at = src.indexOf('export function runForDocument');
     expect(src.slice(at, at + 2500)).toContain('savingPathFor({ settings, accumulation: documentAccumulationOf(plan), holdings: documentHoldingsOf(plan), now, phases: (plan && plan.phases) || null, plan })');
     expect(readFileSync(resolve(process.cwd(), 'index.html'), 'utf8')).not.toContain('savingPathForLock(');
-  });
-  it('savingPathForLock with no day given reads the one clock (src/reading/clock.js), not new Date()', () => {
-    const src = readFileSync(resolve(process.cwd(), 'src/ui/savingPathForLock.js'), 'utf8');
-    expect(src).toContain('now = todayOf()');
-    expect(src).not.toContain('now = new Date()');
   });
   it('saverPotOf: the latest record, else the pot for today, else What you hold', () => {
     expect(saverPotOf({ accHistory: [{ date: '2027-01', sipp: 1, isa: 2 }, { date: '2027-03', sipp: 3, isa: 4 }] })).toMatchObject({ source: 'record', at: '2027-03', pension: 3, isa: 4 });

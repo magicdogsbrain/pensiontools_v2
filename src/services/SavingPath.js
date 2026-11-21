@@ -19,9 +19,8 @@
  *    price guess is needed) and in the prices of the day it was drawn (`real`, what the document's table shows); the
  *    pension's and the ISA's own middle lines; and what had gone in.
  *
- * Loaded only when a plan is locked or its document refreshed (index.html imports src/ui/savingPathForLock.js, which
- * imports this with `await import`): it is the first part of today's app to use V7's engine (src/answers), and the main
- * bundle stays as it was. Pure: no DOM, no storage, no clock (the caller passes `now`). Plain JSON out — no typed arrays,
+ * Drawn when a plan is locked or its document refreshed, in both views through the one document run
+ * (answers/plan/lastsRun.js savingPathFor, in the engine worker; step F5). Pure: no DOM, no storage, no clock (the caller passes `now`). Plain JSON out — no typed arrays,
  * functions or lives (CLAUDE.md: never store functions or samples in the plan document).
  */
 import { livesList } from '../answers/shared/lives.js';

@@ -403,7 +403,7 @@ describe('"Lock the plan" — the commit\'s pure parts, lifted out of the reposi
     for (const t of targetsOf(f)) expect(under(t, 'src/storage') || under(t, 'src/firebase') || under(t, 'src/ui') || t.startsWith('firebase'), `${f} imports ${t}`).toBe(false);
     const code = codeOf(f);
     for (const re of [...OUTSIDE, ...CLOCK]) expect(re.test(code), `${f} uses ${re}`).toBe(false);
-    for (const never of ['src/services/PlanLock.js', 'src/storage/ScenarioRepository.js', 'src/storage/DecisionRepository.js', 'src/ui/savingPathForLock.js']) expect(REACHED, never).not.toContain(never);
+    for (const never of ['src/services/PlanLock.js', 'src/storage/ScenarioRepository.js', 'src/storage/DecisionRepository.js']) expect(REACHED, never).not.toContain(never);
     // the repositories and PlanLock keep their names as re-exports over the service
     expect(targetsOf('src/storage/ScenarioRepository.js')).toContain(f);
     expect(targetsOf('src/storage/DecisionRepository.js')).toContain(f);

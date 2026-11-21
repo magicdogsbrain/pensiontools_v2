@@ -129,7 +129,7 @@ describe('the verdict: the household first, each pot second', () => {
     expect(d.querySelector('#hhHouseholdVerdict').textContent).toContain('When one plan falls short, the other pays that share; the household falls short only when both have.');
     const rows = [...d.querySelectorAll('tbody tr')].map((tr) => tr.children[0].textContent);
     expect(rows[0]).toContain('The household together');
-    expect(rows[1]).toBe('Alex\'s plan on its own');
+    expect(rows[1]).toBe('Alex’s plan on its own');   // the simple view's row words (step F6)
     expect(rows[3]).toBe('Both plans, each lasting on its own');
     expect(d.querySelector('#hhStartsNote').textContent).toBe('Sam\'s plan begins later.');
     expect(householdVerdictHtml({ jointSuccess: 0.95, pooled: null })).toContain('On course');
@@ -138,7 +138,7 @@ describe('the verdict: the household first, each pot second', () => {
   it('the other sections render from their data', () => {
     const rows = householdIncomeTimeline(stressA, stressB, null, NOW);
     expect(text(timelineSectionHtml(rows, 'Alex', 'Sam', 2026))).toContain('Where the money comes from, year by year');
-    expect(text(wealthSectionHtml(runs.own.combined.potFan, 2026))).toContain('What you\'d have left, combined');
+    expect(text(wealthSectionHtml(runs.own.combined.potFan, 2026))).toContain('What you would have left, combined');
     expect(whatToDoHtml({ jointSuccess: 0.95, successA: 0.95, successB: 0.99, pooled: { success: 0.95 } }, 'Alex', 'Sam')).toBe('');
     expect(text(whatToDoHtml({ jointSuccess: 0.5, successA: 0.5, successB: 0.99, pooled: null }, 'Alex', 'Sam'))).toContain('The weaker side is Alex');
     const sc = doc(survivorCareHtml('Alex', 'Sam'));
@@ -185,7 +185,7 @@ describe('the full view\'s verdict says the simple view\'s sentences (7.12.0)', 
     expect(d.querySelector('#hhHouseholdVerdict').textContent).toBe('On course together. The household’s money lasts in more than 9 futures out of 10. Each plan is tested until its owner is 95. '
       + 'When one plan falls short, the other pays that share; the household falls short only when both have. In 37 of 1,000 futures Sam’s plan fell short and Kim’s paid, typically from when Sam is 93 (87 at the earliest).');
     const cells = [...d.querySelectorAll('tbody tr')].map((tr) => [tr.children[0].textContent, tr.children[1].textContent]);
-    expect(cells).toEqual([['The household together', 'more than 9 futures out of 10'], ['Kim\'s plan on its own', 'more than 9 futures out of 10 (97%)'], ['Sam\'s plan on its own', '9 futures out of 10 (94.9%)'], ['Both plans, each lasting on its own', '9 futures out of 10 (93%)']]);
+    expect(cells).toEqual([['The household together', 'more than 9 futures out of 10'], ['Kim’s plan on its own', 'more than 9 futures out of 10 (97%)'], ['Sam’s plan on its own', '9 futures out of 10 (94.9%)'], ['Both plans, each lasting on its own', '9 futures out of 10 (93%)']]);
   });
 });
 

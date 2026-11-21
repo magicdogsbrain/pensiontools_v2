@@ -13,7 +13,9 @@
 import { PlanRail, changeAction, EditField, UndoToast, fill, Button, LinkButton, RunRing, Held } from '../../components/index.js';
 import { LOCK_DATE } from '../../components/facts.js';
 import { HOUSEHOLD_CHANCE } from '../../../reading/sentenceMarks.js';
-import { fillMarked } from '../../components/PlanFigures.jsx';
+import { fillMarked, markIn } from '../../components/PlanFigures.jsx';
+import { householdSlotMarks, householdRowFact, HOUSEHOLD_LEAD_FINDS } from '../../../reading/sentenceMarks.js';
+import { TABLES } from '../../../reading/facts.js';
 import { planView, planHouseholdView } from '../../state/select.js';
 import { href } from '../../router/routes.js';
 import { PLAN } from '../../copy/plan.js';
@@ -119,10 +121,11 @@ function Detail({ V, dispatch }) {
           <h3>{D.timeline.title}</h3>
           {waiting && <p class="note" data-testid={`${T}.waitingNote`}>{fill(D.timeline.waiting, { year: String(Number(waiting.year) + 1) })}</p>}
           <div class="table-wrap">
-            <table class="way-table" data-testid={`${T}.timeline`}>
-              <thead><tr><th>{D.timeline.columns.year}</th><th>{D.timeline.columns.draw}</th><th>{fill(D.timeline.columns.a, { name: V.names.a })}</th><th>{fill(D.timeline.columns.b, { name: V.names.b })}</th><th>{D.timeline.columns.sp}</th><th>{D.timeline.columns.other}</th></tr></thead>
-              <tbody>{V.timeline.filter((r, i, all) => i % 5 === 0 || (i > 0 && (r.workingA !== all[i - 1].workingA || r.workingB !== all[i - 1].workingB || r.endedA !== all[i - 1].endedA || r.endedB !== all[i - 1].endedB || r.sp !== all[i - 1].sp || r.other !== all[i - 1].other))).map((r) => (
-                <tr key={r.year} data-year={r.year}><td>{r.year}</td><td>{r.draw}</td><td>{r.workingA ? D.timeline.working : r.endedA ? D.timeline.ended : r.needA}</td><td>{r.workingB ? D.timeline.working : r.endedB ? D.timeline.ended : r.needB}</td><td>{r.sp}</td><td>{r.other}</td></tr>
+            <table class="way-table" data-testid={`${T}.timeline`} data-fact-table={TABLES.HOUSEHOLD_YEARS}>
+              <thead><tr><th>{D.timeline.columns.year}</th><th>{D.timeline.columns.draw}</th><th>{fillMarked(D.timeline.columns.a, { name: V.names.a }, householdSlotMarks('column', { name: V.names.a }, V.names.a))}</th><th>{fillMarked(D.timeline.columns.b, { name: V.names.b }, householdSlotMarks('column', { name: V.names.b }, V.names.a))}</th><th>{D.timeline.columns.sp}</th><th>{D.timeline.columns.other}</th></tr></thead>
+              {/* the rows shown are the one reader's (household.js householdYearsOf `shown`; step F6), as the full view draws them */}
+              <tbody>{V.timeline.filter((r) => r.shown !== false).map((r) => (
+                <tr key={r.year} data-year={r.year}><td>{r.year}</td><td data-row={r.year} data-col="draw">{r.draw}</td><td data-row={r.year} data-col="a">{r.workingA ? D.timeline.working : r.endedA ? D.timeline.ended : r.needA}</td><td data-row={r.year} data-col="b">{r.workingB ? D.timeline.working : r.endedB ? D.timeline.ended : r.needB}</td><td data-row={r.year} data-col="sp">{r.sp}</td><td data-row={r.year} data-col="other">{r.other}</td></tr>
               ))}</tbody>
             </table>
           </div>
@@ -130,9 +133,9 @@ function Detail({ V, dispatch }) {
           <h3>{D.left.title}</h3>
           <p class="note">{D.left.lead}</p>
           <div class="table-wrap">
-            <table class="way-table" data-testid={`${T}.left`}>
+            <table class="way-table" data-testid={`${T}.left`} data-fact-table={TABLES.HOUSEHOLD_LEFT}>
               <thead><tr><th>{D.left.columns.year}</th><th>{D.left.columns.p10}</th><th>{D.left.columns.p50}</th><th>{D.left.columns.p90}</th></tr></thead>
-              <tbody>{V.left.map((f) => <tr key={f.year}><td>{f.year}</td><td>{f.p10}</td><td>{f.p50}</td><td>{f.p90}</td></tr>)}</tbody>
+              <tbody>{V.left.map((f) => <tr key={f.year}><td>{f.year}</td><td data-row={f.year} data-col="p10">{f.p10}</td><td data-row={f.year} data-col="p50">{f.p50}</td><td data-row={f.year} data-col="p90">{f.p90}</td></tr>)}</tbody>
             </table>
           </div>
         </>
@@ -168,18 +171,19 @@ function Verdict({ V, dispatch }) {
       {status === 'done' && v && (
         <div class="lever-result" data-testid={`${T}.result`} data-head={v.head}>
           <p class="figure" data-testid={`${T}.headline`}>{C.head[v.head]}. {fillMarked(C.headline, { words: v.words }, HOUSEHOLD_CHANCE)}</p>
-          {v.tested && <p class="note" data-testid={`${T}.tested`}>{v.tested.same ? fill(C.tested, v.tested) : fill(C.testedTwo, v.tested)}</p>}
-          {V.starts && <p class="note" data-testid={`${T}.starts`}>{V.starts}</p>}
+          {/* the names of this plan and the figures marked as the full view marks them (household.js householdSlotMarks; step F6) */}
+          {v.tested && <p class="note" data-testid={`${T}.tested`}>{fillMarked(v.tested.same ? C.tested : C.testedTwo, v.tested, householdSlotMarks('tested', v.tested, V.names.a))}</p>}
+          {V.startsSlots ? <p class="note" data-testid={`${T}.starts`}>{fillMarked(C.starts.line, V.startsSlots, householdSlotMarks('starts', V.startsSlots, V.names.a))}</p> : V.starts && <p class="note" data-testid={`${T}.starts`}>{V.starts}</p>}
           {v.pooled && <p class="note" data-testid={`${T}.pooled`}>{C.pooled}</p>}
-          {v.covered.map((x) => <p class="note" key={x.side} data-testid={`${T}.covered`} data-side={x.side}>{fill(x.earliest ? C.coveredEarliest : C.covered, x)}</p>)}
+          {v.covered.map((x) => <p class="note" key={x.side} data-testid={`${T}.covered`} data-side={x.side}>{fillMarked(x.earliest ? C.coveredEarliest : C.covered, x, householdSlotMarks('covered', x, V.names.a))}</p>)}
           <div class="table-wrap">
             <table class="way-table household-rows" data-testid={`${T}.rows`}>
               <tbody>{v.rows.map((r) => (
-                <tr key={r.id} data-row={r.id} data-pct={r.pct}><th scope="row">{fill(C.rows[r.id], { name: r.name || '' })}</th><td>{r.id === 'household' ? fill(C.cellHousehold, { words: r.words }) : fill(C.cell, { words: r.words, pct: r.pct })}</td></tr>
+                <tr key={r.id} data-row={r.id} data-pct={r.pct}><th scope="row">{fillMarked(C.rows[r.id], { name: r.name || '' }, householdSlotMarks('row', { name: r.name || '' }, V.names.a))}</th><td>{r.id === 'household' ? fill(C.cellHousehold, { words: r.words }) : fillMarked(C.cell.replace('{pct}%', '{pct}'), { words: r.words, pct: r.pct + '%' }, { pct: householdRowFact(r.id) })}</td></tr>
               ))}</tbody>
             </table>
           </div>
-          <p class="note">{fill(C.ways, { wayA: WAY.names[V.sids.a] || V.sids.a, wayB: WAY.names[V.sids.b] || V.sids.b, a: V.names.a, b: V.names.b })}{v.shifted ? ' ' + C.shifted : ''}</p>
+          {(() => { const ws = { wayA: WAY.names[V.sids.a] || V.sids.a, wayB: WAY.names[V.sids.b] || V.sids.b, a: V.names.a, b: V.names.b }; return <p class="note">{fillMarked(C.ways, ws, householdSlotMarks('ways', ws, V.names.a))}{v.shifted ? ' ' + C.shifted : ''}</p>; })()}
           <p class="note">{C.same}</p>
           {v.weak && <p class="note" data-testid={`${T}.whatToDo`}>{fill(C.whatToDo, v.weak)}</p>}
           {V.stale && <p class="working-note" data-testid={`${T}.stale`}>{C.stale}</p>}
@@ -320,7 +324,7 @@ function Question({ what, V, dispatch, F }) {
   return (
     <section class="plan-section" data-section={what} data-status={q.status} data-testid={base}>
       <h2>{W.sections[what]}</h2>
-      <p class="note">{Q.lead}</p>
+      <p class="note">{markIn(Q.lead, HOUSEHOLD_LEAD_FINDS[what])}</p>
       {paths.map((p) => F(p, { slots: { a: V.names.a, b: V.names.b } }))}
       {(q.status === 'off' || q.status === 'done' || q.status === 'failed') && V.partner.configured && <div class="actions-row"><Button testid={`${base}.button`} kind={q.status === 'off' ? 'primary' : 'quiet'} disabled={!boxes} onClick={ask} {...keepFocus}>{q.status === 'off' ? Q.button : Q.again}</Button></div>}
       {q.status === 'working' && <p class="working-note" role="status" data-testid={`${base}.working`}>{Q.working}</p>}

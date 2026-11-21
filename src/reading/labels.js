@@ -123,7 +123,12 @@ export const LABELS = Object.freeze({
   [FACT.STRESS_FLOOR]: { label: 'If it runs out, still comes in', basis: 'a year after tax' },
   [FACT.MIX_BEST]: { label: 'Lasts best', basis: 'a share' },
   [FACT.PARTNER_CHANCE]: { label: "Your partner's plan lasts", basis: 'a chance' },
-  [FACT.HOUSEHOLD_CHANCE]: { label: 'Together, it lasts', basis: 'a chance' }
+  [FACT.HOUSEHOLD_CHANCE]: { label: 'Together, it lasts', basis: 'a chance' },
+  [FACT.HOUSEHOLD_ALONE]: { label: 'On its own, it lasts', basis: 'a share' },
+  [FACT.HOUSEHOLD_START_TOTAL]: { label: 'The household check starts from', basis: TODAY },
+  [FACT.HOUSEHOLD_START]: { label: 'This plan starts from', basis: TODAY },
+  [FACT.HOUSEHOLD_SURVIVOR_SPEND]: { label: 'The one who is left spends', basis: 'a share' },
+  [FACT.HOUSEHOLD_CARE_COST]: { label: 'Nursing care often costs', basis: 'a year, at today’s prices' }
 });
 
 /** The columns of the year tables (src/reading/yearTable.js), one label each, both views (the simple view's copy reads these). */

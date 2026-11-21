@@ -9,6 +9,7 @@
  *   tableAttr(id), cellAttr(r, c)  ' data-fact-table="id"', ' data-row="r" data-col="c"'
  *   fieldAttr(id)                  ' data-field="id"' on a box bound to one field of the plan
  *   setFact(el, id)                the attribute set on a DOM element
+ *   fillHtml(text, slots, marks)   words with {slots} as escaped HTML, the slots named in marks drawn marked
  *   markWithin(html, finds)        words already written, with group 1 of the first match of each [RegExp, id] marked
  *   unmarked(html)                 the same HTML with the fact marks taken off (for tests that read the words)
  *   asWhatIf(html)                 a what-if's HTML: every fact and table mark taken off (never the plan's figure)
@@ -44,6 +45,15 @@ export const fieldAttr = (id) => ' data-field="' + attr(id) + '"';
 export function setFact(el, id) {
   if (el && el.setAttribute) el.setAttribute('data-fact', checked(id));
   return el;
+}
+
+/**
+ * Words with {slots} as the full view's HTML: every slot written escaped, a slot named in `marks` drawn marked with its fact
+ * (the simple view's fillMarked, src/v7/components/PlanFigures.jsx, does the same as elements). A slot not given stays as written.
+ */
+export function fillHtml(text, slots = {}, marks = {}) {
+  const t = (v) => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return t(text).replace(/\{(\w+)\}/g, (m, k) => (slots && k in slots && slots[k] != null ? (marks && marks[k] ? markFact(marks[k], t(slots[k])) : t(slots[k])) : m));
 }
 
 /** Words already written (escaped HTML with no tags inside the figures), with the figures found in them marked. */

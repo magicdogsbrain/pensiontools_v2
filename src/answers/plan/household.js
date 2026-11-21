@@ -22,7 +22,7 @@
  *
  * Every path written is in schema.js HOUSEHOLD_WRITES (tested), or, on a draft read from an earlier start, LATER_DRAFT_WRITES.
  */
-import { householdStartsOf, startsWords } from '../../services/HouseholdStarts.js';
+import { householdStartsOf, startsWords, startsSlotsOf } from '../../services/HouseholdStarts.js';
 import { settingsForScreen } from '../../services/PlanReading.js';
 import { testReadyOf } from '../../services/PlanFigures.js';
 import { personProfile, splitFingerprint, SPLIT_HEADLINE_MIN, settingsWithSchedule, noSplitWords } from '../../services/HouseholdDraw.js';
@@ -49,6 +49,7 @@ import { shownPlanNameOn } from '../../services/PlanName.js';
  * The survivor and care checks' starting figures, ONE set for both views (lead4.md D20; step F6): the full view's Household tab
  * fills its boxes from these, the simple view's from the same (in years from now there, as ages here).
  */
+/** The survivor and care checks' one set of starting figures, both views (step F6). */
 export const CHECK_DEFAULTS = Object.freeze({ survivorInYears: 10, spendPct: 70, dbPct: 50, careInYears: 15, careYears: 3, careCost: 90000 });
 
 export { runKeyOf };
@@ -368,9 +369,34 @@ const r5 = (fan) => (Array.isArray(fan) ? fan.filter((f, i) => i % 5 === 0) : []
 const endAgeOf = (ss, now) => (ss ? planEndAgeOf(ss, now) : null);
 
 /**
+ * The year rows of "Where the money comes from" (HouseholdService.householdIncomeTimeline), as both views show them (step F6):
+ * calendar years, the money in pounds, and `shown` on the rows drawn — the first, every fifth, and each row where what the
+ * table says changes (who is working, whose plan has ended, the State Pensions, the other income). One rule for both views.
+ */
+export function householdYearsOf(timeline, thisYear) {
+  const rows = Array.isArray(timeline) ? timeline : [];
+  const said = (r) => [!!r.workingA, !!r.workingB, !!r.endedA, !!r.endedB, pounds((+r.spA || 0) + (+r.spB || 0)), pounds((+r.db || 0) + (+r.other || 0))].join('|');
+  return rows.map((r, i) => ({
+    year: String(r.calendarYear != null ? r.calendarYear : thisYear + r.year), shown: i % 5 === 0 || (i > 0 && said(r) !== said(rows[i - 1])),
+    beforeStatePension: !!r.beforeStatePension, workingA: !!r.workingA, workingB: !!r.workingB, endedA: !!r.endedA, endedB: !!r.endedB,
+    needA: pounds(r.needA), needB: pounds(r.needB), sp: pounds((+r.spA || 0) + (+r.spB || 0)), other: pounds((+r.db || 0) + (+r.other || 0)), draw: pounds(r.drawNeed)
+  }));
+}
+
+/** "What you would have left, combined": every fifth year of the pooled fan, in pounds (both views; step F6). */
+export function householdLeftOf(potFan, thisYear) {
+  return r5(potFan).map((f) => ({ year: String(thisYear + f.year), p10: pounds(f.p10), p50: pounds(f.p50), p90: pounds(f.p90) }));
+}
+
+export { householdMarksOf, HOUSEHOLD_SLOT_MARKS, householdSlotMarks, householdRowFact } from '../../reading/sentenceMarks.js';
+
+
+/**
  * The pooled verdict and each plan alone, in words with slots (householdView.verdictSectionHtml says the same). Until when each
  * plan is tested (7.12.0); when one plan fell short and the other paid, said per side in that plan's owner's ages.
+ * Both views read it (step F6): the full view hands the pooled run as `{ combined }`.
  */
+export function householdVerdictOf(res, names, offsets, ends) { return verdictView(res, names, offsets, ends); }
 function verdictView(res, names, offsets, ends) {
   const c = res && res.combined;
   if (!c) return null;
@@ -545,9 +571,10 @@ export function householdOf(entries, id, { today, typed = null, H = null, source
     verdict: ok ? verdictView(result.own, names, result.offsets, { a: endAgeOf(saved.ssA, now), b: endAgeOf(saved.ssB, now) }) : null,
     // what the check starts from (7.12.0, services/HouseholdStarts.js): each plan's pension and ISA at its own start, and the sum
     starts: ok && saved.ssA && saved.ssB ? startsWords(householdStartsOf(saved.ssA, saved.ssB, names, result.offsets || {}, now)) : null,
+    startsSlots: ok && saved.ssA && saved.ssB ? startsSlotsOf(householdStartsOf(saved.ssA, saved.ssB, names, result.offsets || {}, now)) : null,
     // the years are calendar years (7.12.0), never a row's count from today; a plan past its last age is said to have ended
-    timeline: ok && Array.isArray(result.timeline) ? result.timeline.map((r) => ({ year: String(r.calendarYear != null ? r.calendarYear : now.getFullYear() + r.year), beforeStatePension: !!r.beforeStatePension, workingA: !!r.workingA, workingB: !!r.workingB, endedA: !!r.endedA, endedB: !!r.endedB, needA: pounds(r.needA), needB: pounds(r.needB), sp: pounds(r.spA + r.spB), other: pounds(r.db + r.other), draw: pounds(r.drawNeed) })) : [],
-    left: ok && result.own && result.own.combined ? r5(result.own.combined.potFan).map((f) => ({ year: String(now.getFullYear() + f.year), p10: pounds(f.p10), p50: pounds(f.p50), p90: pounds(f.p90) })) : [],
+    timeline: ok && Array.isArray(result.timeline) ? householdYearsOf(result.timeline, now.getFullYear()) : [],
+    left: ok && result.own && result.own.combined ? householdLeftOf(result.own.combined.potFan, now.getFullYear()) : [],
     split: ok ? splitView(result.split, result.fig, names, saved, saved.mode) : null,
     survivor: survivorView(h ? h.survivor : null, names, sids),
     care: careView(h ? h.care : null, names),

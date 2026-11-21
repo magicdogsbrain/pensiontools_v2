@@ -184,3 +184,37 @@ export const stressMarksOf = (rowId) => Object.freeze({
 });
 export const STRESS_FLOOR_FINDS = Object.freeze([[/still have (£[\d,]+)/, FACT.STRESS_FLOOR]]);
 
+// ---- the household check (step F6): both views mark its sentences from these ----------------------------------------
+
+/**
+ * The marks of the household's sentences (lead4.md G1; step F6), for both views: a slot that names this plan is its name
+ * (plan.name), and `figures` maps the other slots to their facts. `keys` are the slots that may hold a name.
+ */
+export function householdMarksOf(slots, ownName, keys = [], figures = {}) {
+  const marks = { ...figures };
+  for (const k of keys) if (slots && ownName && slots[k] === ownName) marks[k] = FACT.PLAN_NAME;
+  return marks;
+}
+/** Each kind of sentence's name slots and figure slots. */
+export const HOUSEHOLD_SLOT_MARKS = Object.freeze({
+  tested: { names: ['a', 'b'], figures: {} },
+  covered: { names: ['short', 'payer'], figures: {} },
+  row: { names: ['name'], figures: {} },
+  column: { names: ['name'], figures: {} },
+  ways: { names: ['a', 'b'], figures: {} },
+  starts: { names: ['a', 'b'], figures: { total: FACT.HOUSEHOLD_START_TOTAL, potA: factId(FACT.HOUSEHOLD_START, 'a'), potB: factId(FACT.HOUSEHOLD_START, 'b') } }
+});
+/** The marks for one sentence of a kind (HOUSEHOLD_SLOT_MARKS), with `extra` figure marks (a row's chance). */
+export const householdSlotMarks = (kind, slots, ownName, extra = {}) => householdMarksOf(slots, ownName, HOUSEHOLD_SLOT_MARKS[kind].names, { ...HOUSEHOLD_SLOT_MARKS[kind].figures, ...extra });
+/** A row of the verdict's table: its chance's fact (a plan alone, both alone), none for the household's own row (household.chance is the headline's). */
+export const householdRowFact = (id) => (id === 'household' ? null : factId(FACT.HOUSEHOLD_ALONE, id));
+
+/**
+ * The survivor and care questions' opening words (src/v7/copy/household.js survivor.lead, care.lead): the share of the joint
+ * spending the one who is left is taken to need (CHECK_DEFAULTS.spendPct, tested equal) and what nursing care often costs a
+ * year, marked where the words already say them, in both views.
+ */
+export const HOUSEHOLD_LEAD_FINDS = Object.freeze({
+  survivor: Object.freeze([[/about (\d+%) of the joint/, FACT.HOUSEHOLD_SURVIVOR_SPEND]]),
+  care: Object.freeze([[/costs (£[\d,]+) to/, factId(FACT.HOUSEHOLD_CARE_COST, 'low')], [/to (£[\d,]+) a year/, factId(FACT.HOUSEHOLD_CARE_COST, 'high')]])
+});

@@ -14,6 +14,7 @@ import { planEndAgeOf, describeTiming, deriveTiming } from '../src/services/Plan
 import { timingWords } from '../src/services/PlanDocument.js';
 import { planDocumentHtml } from '../src/ui/components/PlanDocumentView.js';
 import { householdVerdictHtml } from '../src/ui/householdView.js';
+import { unmarked } from '../src/reading/mark.js';
 
 const NOW = new Date(2026, 10, 16, 12);
 const corpus = (name) => JSON.parse(readFileSync(join(process.cwd(), 'tests', 'fixtures', 'plans', name + '.json'), 'utf8'));
@@ -62,7 +63,8 @@ describe('one helper for a plan\'s settings', () => {
     // by hand: the plan's own start, 63, plus its 30 years: 93 (the stale start would say 68 + 30 = 98)
     expect(ageA).toBe(93);
     expect(ageB).not.toBe(93);
-    expect(html).toContain('Alex is 93');
-    expect(html).not.toContain('98');
+    // read without its marks (step F6 marks this plan's name in the household's sentences)
+    expect(unmarked(html)).toContain('Alex is 93');
+    expect(unmarked(html)).not.toContain('98');
   });
 });

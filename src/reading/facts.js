@@ -151,7 +151,16 @@ export const FACT = Object.freeze({
   MIX_BEST: 'mix.best',
   // the household
   PARTNER_CHANCE: 'partner.chance',
-  HOUSEHOLD_CHANCE: 'household.chance'
+  HOUSEHOLD_CHANCE: 'household.chance',
+  // the household check's table: each plan on its own (a, b) and both, each lasting on its own (both), as a percentage
+  HOUSEHOLD_ALONE: 'household.#.chance',
+  // what the household check starts from: the sum, and each plan's pension and ISA at its own start (a, b)
+  HOUSEHOLD_START_TOTAL: 'household.start.total',
+  HOUSEHOLD_START: 'household.start.#',
+  // the survivor and care questions' opening words (src/v7/copy/household.js, marked by sentenceMarks.js HOUSEHOLD_LEAD_FINDS): the share of the joint spending the
+  // one who is left is taken to need, and what nursing care often costs a year (low, high)
+  HOUSEHOLD_SURVIVOR_SPEND: 'household.survivor.spendPct',
+  HOUSEHOLD_CARE_COST: 'household.care.#'
 });
 
 /** The tables, by name: `data-fact-table` values; their cells carry `data-row` and `data-col`. */
@@ -162,7 +171,11 @@ export const TABLES = Object.freeze({
   // the mix grid ("Which mix lasts best?" / Compare allocations, answers/plan/mixRun.js runMixCompare): a row per mix (own,
   // cautious, balanced, adventurous), a column per tent (flat, tent) for its words and (flat.sub, tent.sub) for the line under
   MIX: 'mix',
-  LADDER: 'ladder'
+  LADDER: 'ladder',
+  // the household check's two tables (answers/plan/household.js householdYearsOf / householdLeftOf): a row per calendar year;
+  // columns draw, a, b, sp, other and p10, p50, p90
+  HOUSEHOLD_YEARS: 'household.years',
+  HOUSEHOLD_LEFT: 'household.left'
 });
 
 /** The keys an indexed fact takes: the mix buckets as the held mix names them (Holdings.proportions), the wrappers by their

@@ -13,14 +13,18 @@
  */
 
 import { isOnCourse, onCourseAlertClass, jointVerdictHtml, ON_COURSE_WORDS } from '../services/OnCourse.js';
-import { markFact } from '../reading/mark.js';
+import { markFact, markWithin, fillHtml, tableAttr, cellAttr } from '../reading/mark.js';
+import { TABLES } from '../reading/facts.js';
+import { WAY } from '../v7/copy/way.js';
 import { futuresOutOfTen, pctBesideWords } from '../services/OneAnswer.js';
 import { headlineWords, about, noSplitWords } from '../services/HouseholdDraw.js';
 import { HOUSEHOLD } from '../v7/copy/household.js';
 import { planEndAgeOf } from '../services/PlanTiming.js';
-import { householdStartsOf, startsWords } from '../services/HouseholdStarts.js';
+import { householdStartsOf, startsSlotsOf } from '../services/HouseholdStarts.js';
 import { todayOf } from '../reading/clock.js';
+import { householdVerdictOf, householdYearsOf, householdLeftOf } from '../answers/plan/household.js';
 import { CHECK_DEFAULTS as D } from '../answers/plan/household.js';   // the survivor and care checks' one set of starting figures (step F6)
+import { householdSlotMarks, householdRowFact, HOUSEHOLD_LEAD_FINDS } from '../reading/sentenceMarks.js';   // the survivor and care checks' one set of starting figures (step F6)
 
 export const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 export const gbp = (n) => '£' + Math.round(+n || 0).toLocaleString('en-GB');
@@ -36,25 +40,27 @@ const endAgeOf = (s, now) => (s ? planEndAgeOf(s, now) : null);
  */
 export function householdVerdictHtml(r, o = {}) {
   const C = HOUSEHOLD.verdict;
-  const share = r.pooled ? r.pooled.success : r.jointSuccess;
-  const head = isOnCourse(share) ? C.head.yes : share >= 0.7 ? C.head.close : C.head.no;
   const names = { a: o.ownName || 'This plan', b: o.pName || 'Partner' };
-  let s = '<strong>' + esc(head) + '.</strong> ' + esc(C.headline.split('{words}')[0]) + markFact('household.chance', esc(futuresOutOfTen(share).words)) + esc(C.headline.split('{words}').slice(1).join(''));
   const now = o.now instanceof Date ? o.now : new Date();
-  const ends = { a: endAgeOf(o.setA, now), b: endAgeOf(o.setB, now) };
-  if (ends.a != null && ends.b != null) s += ' ' + esc(ends.a === ends.b ? fill(C.tested, { age: ends.a }) : fill(C.testedTwo, { a: names.a, b: names.b, ageA: ends.a, ageB: ends.b }));
-  if (r.pooled) {
+  // the one reader of the verdict's words (answers/plan/household.js householdVerdictOf), as the simple view says them (step F6)
+  const v = householdVerdictOf({ combined: r }, names, o.offsets || null, { a: endAgeOf(o.setA, now), b: endAgeOf(o.setB, now) });
+  if (!v) return '';
+  let s = '<strong>' + esc(C.head[v.head]) + '.</strong> ' + fillHtml(C.headline, { words: v.words }, { words: 'household.chance' });
+  if (v.tested) s += ' ' + fillHtml(v.tested.same ? C.tested : C.testedTwo, v.tested, householdSlotMarks('tested', v.tested, names.a));
+  if (v.pooled) {
     s += ' ' + esc(C.pooled);
-    for (const k of ['a', 'b']) {
-      const x = r.pooled[k === 'a' ? 'shortA' : 'shortB'];
-      if (!x || !(x.n > 0) || x.median == null) continue;
-      const slots = { n: x.n, of: Number(r.runs).toLocaleString('en-GB'), short: names[k], payer: names[k === 'a' ? 'b' : 'a'], from: x.median, earliest: x.earliest };
-      s += ' ' + esc(fill(x.earliest != null && x.earliest !== x.median ? C.coveredEarliest : C.covered, slots));
-    }
+    for (const x of v.covered) s += ' ' + fillHtml(x.earliest ? C.coveredEarliest : C.covered, x, householdSlotMarks('covered', x, names.a));
   } else {
-    s += ' ' + jointVerdictHtml(share);
+    s += ' ' + jointVerdictHtml(v.share);
   }
   return s;
+}
+
+/** The line under the verdict's table: each plan's way of drawing, in the simple view's words (step F6). */
+export function waysNoteHtml({ sids, ownName, pName, shifted = false }) {
+  const C = HOUSEHOLD.verdict;
+  const slots = { wayA: WAY.names[sids.a] || sids.a, wayB: WAY.names[sids.b] || sids.b, a: ownName, b: pName };
+  return '<p class="hint" style="margin:6px 0 0;">' + fillHtml(C.ways, slots, householdSlotMarks('ways', slots, ownName)) + (shifted ? ' ' + esc(C.shifted) : '') + '</p>';
 }
 
 /**
@@ -62,18 +68,20 @@ export function householdVerdictHtml(r, o = {}) {
  * @param {{ r: object, ownName: string, pName: string, stratNote?: string, startsNote?: string, setA?: object, setB?: object }} o
  */
 export function verdictSectionHtml({ r, ownName, pName, stratNote = '', startsNote = '', setA = null, setB = null, offsets = null, now = null }) {
-  const cell = (x) => '<strong>' + inTen(x) + '</strong> <span class="hint">(' + pctBesideWords(x) + ')</span>';
-  const share = r.pooled ? r.pooled.success : r.jointSuccess;
+  const C = HOUSEHOLD.verdict;
+  const names = { a: ownName, b: pName };
+  const v = householdVerdictOf({ combined: r }, names, offsets, { a: endAgeOf(setA, now || todayOf()), b: endAgeOf(setB, now || todayOf()) });
+  const share = v ? v.share : (r.pooled ? r.pooled.success : r.jointSuccess);
   let html = '<div class="settings-section"><div class="section-title">The verdict</div>';
-  html += '<div class="alert ' + onCourseAlertClass(share) + '" style="font-size:15px;" id="hhHouseholdVerdict">' + householdVerdictHtml(r, { ownName, pName, setA, setB }) + '</div>';
+  html += '<div class="alert ' + onCourseAlertClass(share) + '" style="font-size:15px;" id="hhHouseholdVerdict">' + householdVerdictHtml(r, { ownName, pName, setA, setB, offsets, now: now || todayOf() }) + '</div>';
+  // each plan on its own and both: the simple view's rows, the chance of each marked (household.#.chance)
+  const cell = (x) => '<strong>' + esc(String(x.words).replace(/^in /, '')) + '</strong>' + (x.id === 'household' ? '' : ' <span class="hint">(' + markFact(householdRowFact(x.id), esc(x.pct + '%')) + ')</span>');
   html += '<table><tbody>'
-    + '<tr><td>The household together</td><td><strong>' + inTen(share) + '</strong></td></tr>'
-    + '<tr><td>' + esc(ownName) + '\'s plan on its own</td><td>' + cell(r.successA) + '</td></tr>'
-    + '<tr><td>' + esc(pName) + '\'s plan on its own</td><td>' + cell(r.successB) + '</td></tr>'
-    + '<tr><td>Both plans, each lasting on its own</td><td>' + cell(r.jointSuccess) + '</td></tr>'
-    + '</tbody></table>' + stratNote + (startsNote ? '<p class="hint" id="hhStartsNote" style="margin:6px 0 0;">' + esc(startsNote) + '</p>' : '')
-    // what the check starts from (7.12.0): the simple view's sentence, from the same settings
-    + (setA && setB ? '<p class="hint" id="hhStarts" style="margin:6px 0 0;">' + esc(startsWords(householdStartsOf(setA, setB, { a: ownName, b: pName }, offsets || {}, now || todayOf()))) + '</p>' : '');
+    + (v ? v.rows : []).map((x) => { const slots = { name: x.name || '' }; return '<tr data-row="' + esc(x.id) + '"><td>' + fillHtml(C.rows[x.id], slots, householdSlotMarks('row', slots, ownName)) + '</td><td>' + cell(x) + '</td></tr>'; }).join('')
+    + '</tbody></table>' + stratNote + (startsNote ? '<p class="hint" id="hhStartsNote" style="margin:6px 0 0;">' + esc(startsNote) + '</p>' : '');
+  // what the check starts from (7.12.0): the simple view's sentence, from the same settings, its figures marked
+  const st = setA && setB ? startsSlotsOf(householdStartsOf(setA, setB, names, offsets || {}, now || todayOf())) : null;
+  if (st) html += '<p class="hint" id="hhStarts" style="margin:6px 0 0;">' + fillHtml(C.starts.line, st, householdSlotMarks('starts', st, ownName)) + '</p>';
   html += '<p style="font-size:12px;color:var(--text-muted);margin-top:6px;">'
     + 'Both plans face the <em>same</em> markets, so a bad decade hits you both at once: this check runs you both through '
     + 'identical futures instead of treating your plans as unrelated. On course ' + esc(ON_COURSE_WORDS) + '.</p></div>';
@@ -82,41 +90,40 @@ export function verdictSectionHtml({ r, ownName, pName, stratNote = '', startsNo
 
 /**
  * Where the money comes from, year by year (householdIncomeTimeline rows), in the simple view's words and column order
- * (7.12.0): the year as a calendar year, what the pots must find second, a plan past its last age said to have ended.
+ * (7.12.0): the year as a calendar year, what the pots must find second, a plan past its last age said to have ended. The rows
+ * and their figures are the one reader's (householdYearsOf; step F6), the cells marked as the table household.years.
  */
 export function timelineSectionHtml(rows, ownName, pName, thisYear) {
-  const yr = (row) => (row.calendarYear != null ? row.calendarYear : thisYear + row.year);
+  const T = HOUSEHOLD.detail.timeline;
+  const years = householdYearsOf(rows, thisYear);
   let html = '<div class="settings-section"><div class="section-title">Where the money comes from, year by year</div>';
-  const lastWaiting = rows.filter((row) => row.beforeStatePension).pop();
+  const lastWaiting = years.filter((row) => row.beforeStatePension).pop();
   if (lastWaiting) {
-    html += '<div class="alert alert-info" id="hhWaitingNote">Until <strong>' + (yr(lastWaiting) + 1) + '</strong> at least one of you is still waiting for a State Pension: those are the years when the pots do the most work.</div>';
+    html += '<div class="alert alert-info" id="hhWaitingNote">Until <strong>' + (Number(lastWaiting.year) + 1) + '</strong> at least one of you is still waiting for a State Pension: those are the years when the pots do the most work.</div>';
   }
-  html += '<div style="overflow-x:auto;"><table id="hhTimeline"><thead><tr><th>Year</th><th>From the pots</th><th>' + esc(ownName) + ' needs</th><th>' + esc(pName) + ' needs</th><th>State Pensions</th><th>Other income that comes anyway</th></tr></thead><tbody>';
-  const marks = new Set([0]);
-  rows.forEach((row, i) => { if (i > 0 && (row.workingA !== rows[i - 1].workingA || row.workingB !== rows[i - 1].workingB || !!row.endedA !== !!rows[i - 1].endedA || !!row.endedB !== !!rows[i - 1].endedB || row.spA !== rows[i - 1].spA || row.spB !== rows[i - 1].spB || row.db !== rows[i - 1].db || row.other !== rows[i - 1].other)) marks.add(i); });
-  for (let y = 0; y < rows.length; y += 5) marks.add(y);
-  const need = (working, ended, v) => (working ? '<span class="hint">still working</span>' : ended ? '<span class="hint">plan ended</span>' : gbp(v));
-  [...marks].sort((a, b) => a - b).forEach((i) => {
-    const row = rows[i];
-    if (!row) return;
-    html += '<tr data-year="' + yr(row) + '"><td>' + yr(row) + '</td><td><strong>' + gbp(row.drawNeed) + '</strong></td><td>' + need(row.workingA, row.endedA, row.needA) + '</td><td>' + need(row.workingB, row.endedB, row.needB)
-      + '</td><td>' + gbp(row.spA + row.spB) + '</td><td>' + gbp(row.db + row.other) + '</td></tr>';
-  });
+  // the simple view's column words, as written (not in capitals: a plan's name is shown as it is spelt, step F6)
+  const th = (k, name) => '<th style="text-transform:none;">' + (name == null ? esc(T.columns[k]) : fillHtml(T.columns[k], { name }, householdSlotMarks('column', { name }, ownName))) + '</th>';
+  html += '<div style="overflow-x:auto;"><table id="hhTimeline"' + tableAttr(TABLES.HOUSEHOLD_YEARS) + '><thead><tr>' + th('year') + th('draw') + th('a', ownName) + th('b', pName) + th('sp') + th('other') + '</tr></thead><tbody>';
+  const need = (working, ended, v) => (working ? '<span class="hint">' + esc(T.working) + '</span>' : ended ? '<span class="hint">' + esc(T.ended) + '</span>' : esc(v));
+  const td = (row, col, inner) => '<td' + cellAttr(row.year, col) + '>' + inner + '</td>';
+  for (const row of years.filter((x) => x.shown)) {
+    html += '<tr data-year="' + esc(row.year) + '"><td>' + esc(row.year) + '</td>' + td(row, 'draw', '<strong>' + esc(row.draw) + '</strong>') + td(row, 'a', need(row.workingA, row.endedA, row.needA)) + td(row, 'b', need(row.workingB, row.endedB, row.needB))
+      + td(row, 'sp', esc(row.sp)) + td(row, 'other', esc(row.other)) + '</tr>';
+  }
   html += '</tbody></table></div>'
     + '<p style="font-size:11px;color:var(--text-muted);margin-top:6px;">At today\'s prices, a year. Rows where something changes, and every fifth year. After a plan reaches its last age, nothing of that person\'s is counted: not their spending, their State Pension or their other income. "If one of you dies first", below, tries that properly.</p></div>';
   return html;
 }
 
-/** What you'd have left, combined (the potFan). */
+/** What you'd have left, combined (the potFan): every fifth year, the one reader's (householdLeftOf; step F6), marked as household.left. */
 export function wealthSectionHtml(potFan, thisYear) {
-  let html = '<div class="settings-section"><div class="section-title">What you\'d have left, combined <span style="font-weight:normal;font-size:12px;color:var(--text-muted);">(everything both plans hold — pensions, ISAs, gilts not yet repaid — today\'s money)</span></div>';
-  html += '<div style="overflow-x:auto;"><table><thead><tr><th>Year</th><th>If markets are poor</th><th>Typical</th><th>If markets are strong</th></tr></thead><tbody>';
-  for (let y = 0; y < potFan.length; y += 5) {
-    const f = potFan[y];
-    html += '<tr><td>' + (thisYear + f.year) + '</td><td>' + gbp(f.p10) + '</td><td>' + gbp(f.p50) + '</td><td>' + gbp(f.p90) + '</td></tr>';
+  const L = HOUSEHOLD.detail.left;   // the simple view's title, words and columns (step F6)
+  let html = '<div class="settings-section"><div class="section-title">' + esc(L.title) + '</div><p class="hint">' + esc(L.lead) + '</p>';
+  html += '<div style="overflow-x:auto;"><table' + tableAttr(TABLES.HOUSEHOLD_LEFT) + '><thead><tr>' + ['year', 'p10', 'p50', 'p90'].map((c) => '<th>' + esc(L.columns[c]) + '</th>').join('') + '</tr></thead><tbody>';
+  for (const f of householdLeftOf(potFan, thisYear)) {
+    html += '<tr><td>' + esc(f.year) + '</td>' + ['p10', 'p50', 'p90'].map((c) => '<td' + cellAttr(f.year, c) + '>' + esc(f[c]) + '</td>').join('') + '</tr>';
   }
-  html += '</tbody></table></div>'
-    + '<p style="font-size:11px;color:var(--text-muted);margin-top:6px;">"Poor" = worse than 9 in 10 simulated futures; "strong" = better than 9 in 10.</p></div>';
+  html += '</tbody></table></div></div>';
   return html;
 }
 
@@ -137,7 +144,8 @@ export function whatToDoHtml(r, ownName, pName) {
 export function survivorCareHtml(ownName, pName) {
   const a = esc(ownName), b = esc(pName);
   return '<div class="settings-section"><div class="section-title">What if one of you dies?</div>'
-    + '<p style="font-size:13px;">The survivor keeps their own pensions, inherits what the other\'s plan has left then (a pension inherited is added to the pension in their name and taxed as it is drawn), loses one State Pension, and typically needs about 70% of the joint spending. Both plans run through their own strategy\'s test.</p>'
+    // the opening words and their figures are the simple view's, marked where they say them (HOUSEHOLD_LEAD_FINDS; step F6)
+    + '<p style="font-size:13px;">' + markWithin(esc(HOUSEHOLD.survivor.lead), HOUSEHOLD_LEAD_FINDS.survivor) + '</p>'
     + '<div class="row-flex" style="font-size:13px;">'
     + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Who dies<select id="hhWhoDies" style="min-width:150px;"><option value="A">' + a + '</option><option value="B">' + b + '</option></select></label>'
     + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Years from now<input type="number" id="hhDeathYear" value="' + D.survivorInYears + '" min="1" max="40" style="width:80px;"></label>'
@@ -146,7 +154,7 @@ export function survivorCareHtml(ownName, pName) {
     + '<button type="button" class="risk-btn" style="padding:8px 14px;align-self:flex-end;" data-on-click="runSurvivorUI()">Run survivor check</button></div>'
     + '<div id="hhSurvivorResult" style="margin-top:8px;"></div></div>'
     + '<div class="settings-section"><div class="section-title">What if one of you needs care?</div>'
-    + '<p style="font-size:13px;">Nursing care runs roughly £80–100k a year. This adds the full cost on top of normal spending (deliberately cautious) as a one-off cost in that person\'s plan and re-runs both plans through their own strategy\'s test. It models the cost only — never local-authority means-testing.</p>'
+    + '<p style="font-size:13px;">' + markWithin(esc(HOUSEHOLD.care.lead), HOUSEHOLD_LEAD_FINDS.care) + '</p>'
     + '<div class="row-flex" style="font-size:13px;">'
     + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Who needs care<select id="hhCareWho" style="min-width:150px;"><option value="A">' + a + '</option><option value="B">' + b + '</option></select></label>'
     + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">From (years from now)<input type="number" id="hhCareStart" value="' + D.careInYears + '" min="0" max="40" style="width:80px;"></label>'

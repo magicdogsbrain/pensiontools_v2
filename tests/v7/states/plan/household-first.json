@@ -1798,6 +1798,7 @@
           "unaffordable": null,
           "verdict": null,
           "starts": null,
+          "startsSlots": null,
           "timeline": [],
           "left": [],
           "split": null,

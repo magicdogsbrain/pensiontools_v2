@@ -72,7 +72,8 @@ describe('a plan document says the age its definition was written under', { time
       const doc = { assumptions: { success: def }, strategy: { p: run.p, r: run.r } };
       expect(successLineHtml(doc)).toContain('tested to ' + age);
       expect(lockedLastsOf(doc, { weighted: true }).words).toContain('If you live to ' + age + ',');
-      expect(verdictBlockView(run.r, run.p, { definition: def })).toContain('If you live to ' + age + ',');
+      // (step F5) the age is marked as the document's own (doc.lasts.toAge): the words read without the marks
+      expect(verdictBlockView(run.r, run.p, { definition: def }).replace(/<[^>]+>/g, '')).toContain('If you live to ' + age + ',');
     }
     expect(JSON.stringify(def78)).toBe(frozen);
     // a document before 7.8.0 has no definition of its own: its count is said to the same age from its plan

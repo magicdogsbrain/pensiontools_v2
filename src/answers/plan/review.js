@@ -51,7 +51,7 @@ import { dayWords } from './dates.js';
 import { pounds } from './income.js';
 import { REVIEW_FIELDS, REVIEW_CHOICES } from './schema.js';
 import { settingsForScreen, whereAmIInputs, historyAscending } from '../../services/PlanReading.js';
-import { moveReadingOf, giltsCountOf } from '../../reading/holdings.js';
+import { moveReadingOf, giltsCountOf, ladderGapsOf } from '../../reading/holdings.js';
 import { whereAmI, guardrailOf, bandMeasure, GUARDRAIL_STRATEGIES } from '../../services/PlanDocument.js';
 import { driftOf } from '../../services/TransitionPlanner.js';
 import { RISK_PRESETS } from '../../services/GlidepathService.js';
@@ -226,10 +226,13 @@ function movingReadingOf(plan, { now, life, log }) {
     out.toMove = BUCKETS.reduce((t, b) => t + Math.max(0, d.drift[b] || 0), 0);
   } else if (d && d.kind === 'ladder') {
     const thisTY = Number(mv.target && mv.target.thisTaxYear);
-    const years = [...new Set((mv.diff.buy || []).filter((b) => b.kind === 'gilt' && Array.isArray(b.taxYears)).flatMap((b) => b.taxYears.map(Number)))].sort((p, q) => p - q);
+    // the one reading of the ladder's gaps (ladderGapsOf), as the move page reads them: a gilt held in part is never "not held yet"
+    const { uncovered: years, parts } = ladderGapsOf(mv.target, mv.diff);
     // the one "n of m" (giltsCountOf): once accepted, a gilt of the plan held in part is held as the person chose
-    const gc = giltsCountOf(mv.target, mv.diff, { agreed: !!(life && life.agreed && life.agreed.at) });
-    out.ladder = { held: gc.counted, needed: gc.total, years: years.map(taxYearLabel), gapSoon: !!d.gapSoon, soon: years.filter((Y) => Y === thisTY || Y === thisTY + 1).map(taxYearLabel) };
+    const agreed = !!(life && life.agreed && life.agreed.at);
+    const gc = giltsCountOf(mv.target, mv.diff, { agreed });
+    out.ladder = { held: gc.counted, needed: gc.total, years: years.map(taxYearLabel), gapSoon: !!d.gapSoon, soon: years.filter((Y) => Y === thisTY || Y === thisTY + 1).map(taxYearLabel),
+      parts: parts.map((b) => (b.taxYears || []).map((y) => taxYearLabel(+y)).join(', ')).filter(Boolean), partAgreed: agreed };
   } else if (mv && mv.diff && mv.diff.kind === 'none') out.noReading = true;
   return out;
 }

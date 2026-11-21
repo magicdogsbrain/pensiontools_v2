@@ -146,6 +146,7 @@ function MoveReview({ V }) {
         <>
           <p data-testid={`${T}.moving.ladder`}>{markIn(fill(W.moving.ladder, { held: String(M.ladder.held), needed: String(M.ladder.needed) }), [[GILTS_HELD_FIND, 'gilts.held']])}</p>
           {M.ladder.years.length > 0 && <p class="note" data-testid={`${T}.moving.ladderYears`}>{fill(W.moving.ladderYears, { years: M.ladder.years.join(', ') })}</p>}
+          {(M.ladder.parts || []).map((years, i) => <p class="note" key={'part' + i} data-testid={`${T}.moving.ladderPart`}>{fill(M.ladder.partAgreed ? W.moving.ladderPartAgreed : W.moving.ladderPart, { years })}</p>)}
         </>
       )}
       {M.ladderLater && <p class="note" data-testid={`${T}.moving.ladderLater`}>{W.moving.ladderLater}</p>}

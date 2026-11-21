@@ -14,6 +14,8 @@
  *                                         person said this is how they want to hold it (`agreed`), a gilt of the plan they hold
  *                                         in part is held as they chose, so what they hold by choice is never read as 0.
  *                                         Never a gilt set against a year by when it matures (R9).
+ *   ladderGapsOf(T, D)                    the ONE reading of a ladder's gaps: { uncovered (tax years with no gilt held), parts
+ *                                         (the plan's gilts held in part) } — a gilt held in part is never "not held yet"
  *   sheetOf(doc, reading)                 the order sheet's rows (GiltLadderPlan.orderSheetRows, the document's figures) with
  *                                         the bought column read from the same diff: 'bought', 'part', 'covered', 'paid',
  *                                         'sold', 'not yet'
@@ -61,13 +63,28 @@ export function moveReadingOf(plan, { now, life = null, fromSettings = false } =
   return { m, asHeld };
 }
 
+/** A ladder's gilts still to buy that are held in part (some of their units held: gaps.js heldOf's 'partRung'). */
+const partRowsOf = (D) => (D && Array.isArray(D.buy) ? D.buy.filter((b) => b.kind === 'gilt' && num(b.heldUnits) > 0) : []);
+
 /** The ONE "n of m gilts held" (see the header). Null for a plan that is not a ladder. */
 export function giltsCountOf(T, D, { agreed = false } = {}) {
   if (!T || T.kind !== 'ladder' || !D) return null;
   const total = D.rungs ? D.rungs.needed : (T.lines || []).length;
   const held = D.rungs ? D.rungs.held : (D.hold || []).filter((h) => Array.isArray(h.taxYears)).length;
-  const part = (D.buy || []).filter((b) => b.kind === 'gilt' && num(b.heldUnits) > 0).length;
+  const part = partRowsOf(D).length;
   return { held, part, total, counted: agreed ? Math.min(total, held + part) : held };
+}
+
+/**
+ * The ONE reading of a ladder's gaps (see the header): { uncovered, parts } — the tax years whose gilt is not held at all
+ * (sorted, as numbers) and the plan's gilts held in part (the diff's buy rows). A gilt held in part is never "not held": its
+ * years are not in `uncovered`. Empty for a plan that is not a ladder.
+ */
+export function ladderGapsOf(T, D) {
+  if (!T || T.kind !== 'ladder' || !D) return { uncovered: [], parts: [] };
+  const parts = partRowsOf(D);
+  const uncovered = [...new Set((D.buy || []).filter((b) => b.kind === 'gilt' && !parts.includes(b) && Array.isArray(b.taxYears)).flatMap((b) => b.taxYears.map(Number)))].sort((a, b) => a - b);
+  return { uncovered, parts };
 }
 
 /** The order sheet's rows with the bought column from the page's one diff (see the header). [] for a plan with no ladder. */

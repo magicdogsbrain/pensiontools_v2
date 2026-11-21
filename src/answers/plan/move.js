@@ -30,7 +30,7 @@ import { planStage, settingsForScreen } from '../../services/PlanReading.js';
 import { sequence, tickMove, untickMove } from '../../services/TransitionPlanner.js';
 import { normaliseHoldings } from '../../services/HoldingsRecord.js';
 import { proportions } from '../../services/Holdings.js';
-import { moveReadingOf, giltsCountOf, sheetOf, planMixOf, heldMixOf, heldMixPartsOf } from '../../reading/holdings.js';
+import { moveReadingOf, giltsCountOf, ladderGapsOf, sheetOf, planMixOf, heldMixOf, heldMixPartsOf } from '../../reading/holdings.js';
 import { rotationWatch } from '../../services/RotationStatus.js';
 import { taxYearLabel, deriveTiming, taxYearStartOf } from '../../services/PlanTiming.js';
 import { CONTRACT_STRATEGIES } from '../../services/PlanDocument.js';
@@ -207,7 +207,8 @@ export function moveOf(entries, id, { today, index = null, M = null, source = 'a
   const rungs = gc ? { total: gc.total, bought: gc.held } : null;
   // a rung part bought (some of its units held: gaps.js heldOf's 'partRung', as Living on it reads it) is never "no gilt
   // bought": its years are left out of the uncovered ones, and it is said with the units held of the units it needs
-  const partRungs = T.kind === 'ladder' ? D.buy.filter((b) => b.kind === 'gilt' && num(b.heldUnits) > 0) : [];
+  const gaps = ladderGapsOf(T, D);
+  const partRungs = gaps.parts;
   // the one wording of progress (7.12.0, moveWords.moveStatusOf): the home tile and the full view say the same
   const mode0 = heldMode(life) ? 'held' : s.waiting ? 'waiting' : 'move';
   // totals only (7.12.0, the moving brief S4): nothing listed under What you hold — the plan's own pension, where it came
@@ -218,7 +219,7 @@ export function moveOf(entries, id, { today, index = null, M = null, source = 'a
   // the pace (7.12.0): Moving, with buys still to make and the stop ahead — the buying a month that finishes by then
   const pace = mode0 === 'move' && !D.complete && !T.running && !totalsOnly ? paceOf(D.totals.buyCost, { today: s.now, stopMonth: s.stage.startMonth }) : null;
   // what skipping it costs (§3.3): for a ladder the tax years whose rung is not bought at all; for a pot plan the one run on the held mix
-  const uncovered = T.kind === 'ladder' ? [...new Set(D.buy.filter((b) => b.kind === 'gilt' && !partRungs.includes(b)).flatMap((b) => (b.taxYears || []).map((y) => +y)))].sort((a, b) => a - b) : [];
+  const uncovered = gaps.uncovered;
   const parts = partRungs.map((b) => ({ label: b.label || b.ticker || '', years: (b.taxYears || []).map((y) => taxYearLabel(+y)).join(', '), held: grouped(b.heldUnits), units: grouped(num(b.units) + num(b.heldUnits)) }));
   const held = heldMixSettings(plan, { today });
   const mine = M && runKey && M.key === runKey ? M : null;

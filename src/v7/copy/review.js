@@ -50,6 +50,8 @@ export const REVIEW = {
     noReading: 'We could not tell what any line of your pension holds, so there is nothing to compare yet. You can say what each holds on What you hold.',
     ladder: 'Your ladder: {held} of {needed} of your plan’s gilts are held.',
     ladderYears: 'Not held yet: the gilts for {years}.',
+    ladderPart: 'Held in part: the gilt for {years}.',
+    ladderPartAgreed: 'Held in part, as you chose to hold it: the gilt for {years}.',
     ladderLater: 'The ladder’s years show once the plan is locked.',
     moveLink: 'Moving to your plan’s mix',
     /** The run, on a press: what is held (whole) against the plan as planned, or the plan as it stands. */

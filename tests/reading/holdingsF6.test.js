@@ -172,12 +172,12 @@ describe('a partner\'s plan made in the full view (lead4.md D2, D20)', () => {
     const src = readFileSync('index.html', 'utf8');
     const at = src.indexOf('window.createPartnerPlanReal = async function');
     const body = src.slice(at, src.indexOf('location.reload()', at));
-    expect(body).toContain('timingSettingsOf(');
+    // the setup wizard's timing (planStartUi.partnerPlanSettingsOf → wizardSettingsOf → PlanFromSeed.timingSettingsOf), with
+    // no `configured`: ages are not figures (PlanFigures.planHasFigures); fix round 1 of step F6 (holdingsF6fix.test.js)
+    expect(body).toContain('partnerPlanSettingsOf(');
     expect(body).toContain('setHouseholdPartnerId(');
     expect(body).not.toMatch(/createNewScenario\([^)]*, \{\}, true\)/);
-    // ages are not figures: the plan is not marked as having figures given (PlanFigures.planHasFigures)
-    expect(body).toContain('const { configured: _given, ...timingOnly } = timing;');
-    expect(body).toContain('{ stressSettings: timingOnly }');
+    expect(body).toContain('{ stressSettings: made.stressSettings }');
   });
   it('a partner still working stops in a month ahead; one already stopped has no stop month to come', async () => {
     const { timingSettingsOf } = await import('../../src/services/PlanFromSeed.js');

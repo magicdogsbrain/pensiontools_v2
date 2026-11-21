@@ -121,6 +121,25 @@ export function wizardSettingsOf(wizardData, now) {
 }
 
 /**
+ * The timing a partner's plan made on the full view's Household tab stores (step F6; lead4.md D2, D20): the setup wizard's own
+ * (wizardSettingsOf, the one rule: a stop age at or below the age today, or "already stopped" ticked, is a plan for someone who
+ * has stopped, starting this tax year; a stop age above it, stopping at that age in a month ahead), without the wizard's
+ * horizon. Nothing nobody gave: no age gives no timing at all; an age with no stop age, not stopped, is refused ('noStop'),
+ * never a stop age assumed — a plan stored with an age alone would read a stop age nobody gave, and one already past.
+ * `ages` is their Budget's ages as the Timing block keeps them (index.html syncBudgetAgeFromTiming), or null. Pure.
+ * @returns {{ ok: true, stressSettings: object, ages: null|{ currentAge, currentAgeAsOf, retired, retirementAge } } | { ok: false, problem: 'noStop' }}
+ */
+export function partnerPlanSettingsOf({ ageToday = null, stopAge = null, stopped = false } = {}, now) {
+  const age = +ageToday > 0 ? Math.round(+ageToday) : null;
+  if (!age) return { ok: true, stressSettings: {}, ages: null };
+  const stop = +stopAge > 0 ? Math.round(+stopAge) : null;
+  if (!stopped && !stop) return { ok: false, problem: 'noStop' };
+  const { duration: _horizon, ...timing } = wizardSettingsOf({ currentAge: age, retirementAge: stop || '', retired: !!stopped }, now).stressSettings;
+  const ages = { currentAge: timing.currentAge, currentAgeAsOf: timing.currentAgeAsOf, retired: timing.retired, retirementAge: timing.retired === false ? timing.retireAge : timing.shapeAgeNow };
+  return { ok: true, stressSettings: timing, ages };
+}
+
+/**
  * Is a saved Decision record before the plan's year 0 as it is now (`anchor`)? Only on a plan stored with its start later
  * than it should be. Read from the record's tax year alone (7.4.2): the mark older records were stamped with is not read,
  * since a plan whose year 0 moved back has months that were stamped as before the start and are plan months now.

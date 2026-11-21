@@ -3835,6 +3835,9 @@
             <div style="display:flex; align-items:center; gap:8px; margin-top:8px; flex-wrap:wrap;">
               <span style="font-size:12px;color:var(--text-muted);">No plan for them yet?</span>
               <input type="text" id="hhNewPlanName" placeholder="e.g. Partner's plan" style="max-width:200px;">
+              <label style="font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:4px;">Their age today <input type="number" id="hhNewPlanAge" min="16" max="110" style="max-width:70px;"></label>
+              <label style="font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:4px;">Stops work at <input type="number" id="hhNewPlanStopAge" min="16" max="110" style="max-width:70px;"></label>
+              <label style="font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="hhNewPlanStopped" style="width:auto;"> Already stopped work</label>
               <button type="button" class="risk-btn" style="padding:5px 12px;font-size:13px;" data-on-click="createPartnerPlan()">Create their plan &amp; switch to it</button>
             </div>
             <button type="button" data-on-click="runHouseholdCheck()" style="margin-top:10px;">Run the household check</button>
@@ -4207,7 +4210,7 @@
     import { repriceLadder } from './src/strategies/GiltLadderPlan.js';
     import { deriveTiming, migrateTiming, describeTiming, taxYearLabel, planYearOf, taxYearStartOf, decisionAnchorYear, staleDraft, staleDraftMessage, startYearChoices, stoppedWorkOf, taxYearOfMonth } from './src/services/PlanTiming.js';
     import { recordMovesOf, RECORD_MOVE_WORDS } from './src/services/PlanRuleWords.js';   // History: what the plan's rule did, as the live month reads it (step F5)
-    import { installStopMonth, stopMonthFromForm, paintStopMonth, wizardSettingsOf, WIZARD_END_AGE, recordBeforeStart, recordYearLabel as recordYearLabelFor, recordSourceWords, yearRowHtml, firstSetUpPlanYear, potsDayOf, planVsActualWords } from './src/ui/planStartUi.js';   // when the plan's income starts (6.51.0)
+    import { installStopMonth, stopMonthFromForm, paintStopMonth, wizardSettingsOf, partnerPlanSettingsOf, WIZARD_END_AGE, recordBeforeStart, recordYearLabel as recordYearLabelFor, recordSourceWords, yearRowHtml, firstSetUpPlanYear, potsDayOf, planVsActualWords } from './src/ui/planStartUi.js';   // when the plan's income starts (6.51.0)
     import { installLockedStart, startLaterOfActive, fillPlanStart, fillPlanBounds, decisionPotsYear, stressLockBannerHtml, plansInListOrder, planListDesc, decisionLockBannerHtml, planDocumentMay, planDocumentEmptyHtml, paintPlanDocumentTools, planNoticeHtml, drawClosedTransition, taxYearTabsFor, closedTimingSummary } from './src/ui/lockedStartUi.js';   // a locked plan's stop month (6.53.0); "Move to a new plan" and a closed plan (6.56.0, src/ui/planCloseUi.js)
     import { planExportFileName, planExportJson } from './src/services/PlanExport.js';
     import { guardrailOf, potRecordOf, recordIsaOf, guaranteeSaid } from './src/services/PlanDocument.js';
@@ -4238,7 +4241,7 @@
     import { guestPlanRefusal, isExamplePlanError, DEMO_PLANS, EXAMPLE_PLAN_KEY, EXAMPLE_PLAN_DESCRIPTION } from './src/services/GuestPlans.js';   // three plans without an account; the read-only example (6.23.0)
     import { refreshDraftLines, paintDraftSettingsLine, openStressSettings, blankUnsetPots, missingWords, bedAndIsaTicked, DRAFT_WORDS } from './src/ui/draftPlanLine.js'; window.openStressSettingsTab = () => openStressSettings(window); import { planHasFigures } from './src/services/DraftDecision.js'; import { testReadyOf } from './src/services/PlanFigures.js'; import { sippTodayOf } from './src/services/PotsAtRetirement.js';   // an unlocked plan's own figures (7.12.0)
     import { installStressSubTabs } from './src/ui/stressSubTabs.js'; import { installStressSettingsAutosave, installAccumulationAutosave, accumulationInputsOf, SAVE_WORDS, SAVE_OUTCOME_WORDS, saveOutcomeToast } from './src/ui/settingsAutosave.js'; import { orderStressSettingsSections } from './src/ui/settingsLayout.js'; import { tryFillKeyOf, tryNeedsFill, watchTryTouched, paintTryPotWords } from './src/ui/tryBoxes.js';   // the Stress tester's sub-tabs (Settings pressed while open is not drawn again); Settings and the Accumulation tab save as they change; Settings' order (7.12.0)
-    import { updateHomeBanner, installHomeBanner, openingTabOf, pressOpeningSub } from './src/ui/homeBannerUi.js'; import { installHouseholdTab } from './src/ui/householdTabUi.js';   // the next-step banner is the plan home's first thing due, else the life stage's sentence (7.10.0; 6.20.2); the opening tab reads the plan's phase (7.11.0)
+    import { updateHomeBanner, installHomeBanner, openingTabOf, pressOpeningSub } from './src/ui/homeBannerUi.js'; import { installHouseholdTab, newPartnerPlanTyped } from './src/ui/householdTabUi.js';   // the next-step banner is the plan home's first thing due, else the life stage's sentence (7.10.0; 6.20.2); the opening tab reads the plan's phase (7.11.0)
     import { moreSheetHtml, MORE_TABS } from './src/ui/mobileMenu.js';
     import { proportions as holdingsProportions } from './src/services/Holdings.js';
     import { tickMove, untickMove } from './src/services/TransitionPlanner.js';   // the move's target, diff and schedule are the one reading's (step F6: keepHoldingsUi.transitionHeld → moveOf)
@@ -4318,7 +4321,7 @@
     // Import auth helpers and data check
     import { isLoggedIn, logOut, getCurrentUser, deleteAccount, onAuthStateChange, viewNotesAtSignIn } from './src/firebase/index.js';
     import { hasCloudData, wipeAllUserData, loadUserProfile, saveUserProfile, guestSnapshot, loadAllScenarios, createScenario as createScenarioDoc, saveScenario as saveScenarioDoc, loadScenario as loadScenarioDoc } from './src/firebase/FirestoreService.js';
-    import { startSeedEntry, planFromAnswer, planTargetGuide, budgetSummaryWords } from './src/ui/components/NewPlanFromSeed.js'; import { householdStartWords } from './src/services/PlanSeed.js'; import { timingSettingsOf } from './src/services/PlanFromSeed.js';   // a partner's plan: the one timing seed (step F6)   // a plan from a V7 answer (V7 design: save-as-plan.md, C.2); the Household tab's line when one plan begins later (couples-different-years.md 7)
+    import { startSeedEntry, planFromAnswer, planTargetGuide, budgetSummaryWords } from './src/ui/components/NewPlanFromSeed.js'; import { householdStartWords } from './src/services/PlanSeed.js';   // a plan from a V7 answer (V7 design: save-as-plan.md, C.2); the Household tab's line when one plan begins later (couples-different-years.md 7)
     import { startSummaryHtml, potsAtRetirementLine } from './src/ui/startingPotsWords.js'; import { potAtStop } from './src/reading/atStop.js'; import { stepBoxValue, stepFromBox, firstStepNoteOfPlan, planBandsOf, documentStepsOf, accessAssumedNoteOf, spLineOfPlan } from './src/ui/incomeStepBox.js'; import { statePensionOf } from './src/reading/statePension.js'; import { spKindOfSettings, spKindForSave, FULL_SP_WEEKLY } from './src/ui/spKindBox.js'; import { stageWordsHtml, whereYouAreHtml } from './src/ui/stageWords.js'; import { stage as readingStage, yearsToGo as readingYearsToGo, ageToday as readingAgeToday, planName as readingPlanName } from './src/reading/timing.js'; import { formatFact, money as fmtMoney } from './src/reading/format.js'; import { budgetLineOf } from './src/reading/budget.js'; import { isaToday as readingIsaToday, pensionBoxOf, isaBoxOf, settingsOf as readingSettingsOf } from './src/reading/money.js'; import { savingInputsOf } from './src/services/PotsAtStop.js'; import { shownPlanName } from './src/services/PlanName.js';
     import { thisYearOfPlan, yearIncomeHtml, yearFromHtml, yearChangedHtml, yearPlanHtml } from './src/ui/thisYearHtml.js'; import { setUpAgainConfig } from './src/reading/thisYear.js'; import { incomeStepsOf as incomeStepsOfPlan } from './src/reading/income.js';
     import { tick as guestTick, readMinutes as guestMinutes, pendingNag as guestPendingNag, markNagShown as guestMarkNag, isBlocked as guestBlocked, bannerText as guestBannerText, savedChipText, stashHandoff as guestStash, readHandoff as guestReadHandoff, clearHandoff as guestClearHandoff, GUEST_ALLOWANCE_MINUTES } from './src/services/GuestMeter.js';
@@ -9151,7 +9154,7 @@
     window.rmWindfall = function (i) { window._ssWindfalls.splice(i, 1); renderExtraIncomes(); };
 
     // ---- Household tab (couples view) -------------------------------------------------------
-    installHouseholdTab(window, document, { listScenariosAsync, getActiveScenarioId, setHouseholdPartnerId, showToast });   // the partner read either way, with which plan holds the link and their phase (src/ui/householdTabUi.js, 7.12.0)
+    installHouseholdTab(window, document, { listScenariosAsync, getActiveScenarioId, setHouseholdPartnerId, showToast, getBudgetAsync });   // the partner read either way, with which plan holds the link and their phase (src/ui/householdTabUi.js, 7.12.0)
 
     window.runHouseholdCheck = async function () {
       await window._marketReady;   // the one market (lead4.md R5): never priced on the copy built in while the day's file loads
@@ -9302,35 +9305,32 @@
 
     window.createPartnerPlan = async function (...a) { if (await guestPlanGate()) return; return createPartnerPlanReal(...a); };
     window.createPartnerPlanReal = async function () {
-      const name = (document.getElementById('hhNewPlanName').value || '').trim();
+      // what was typed: the name, their age today, when they stop work (the boxes start from this plan's Budget)
+      const typed = newPartnerPlanTyped(document), name = typed.name;
       if (!name) { showToast('Give the plan a name first (e.g. their first name)', 'warning'); return; }
+      // their timing through the setup wizard's one rule (src/ui/planStartUi.js partnerPlanSettingsOf; lead4.md D2, D20; step
+      // F6): the age given, dated today; a stop age above it is a stop in a month ahead, one at or below it (or the tick) a plan
+      // for someone who has stopped, starting this tax year — never a stop month already past; an age with no stop is asked for
+      const made = partnerPlanSettingsOf({ ageToday: typed.age, stopAge: typed.stopAge, stopped: typed.stopped }, todayOf());
+      if (!made.ok) { showToast('Say the age ' + name + ' stops work, or tick that they have already stopped, first.', 'warning'); return; }
       try {
         await flushSettings();   // what was typed goes to this plan first: none of it may land in the partner's plan once it is the open one
         showLoading('Creating ' + name + '…');
-        // Their plan starts from what THIS plan already knows about them: ages from the plan wizard,
-        // sharing on, and this person as their partner — not the 45/60 defaults.
         let mine = null; try { mine = await getBudgetAsync(); } catch (e) { mine = null; }
         let myId = null; try { myId = await getActiveScenarioId(); } catch (e) { myId = null; }
-        // their timing through the one timing seed a plan made from an answer gets (PlanFromSeed.timingSettingsOf; lead4.md D2,
-        // D20; step F6): the age given, dated today; stopping at the age given, else already stopped; nothing stored that
-        // nobody gave — so their plan never starts in a month already past
-        const ageGiven = mine && +mine.partnerAge > 0 ? Math.round(+mine.partnerAge) : null, stopGiven = mine && +mine.partnerRetirementAge > 0 ? Math.round(+mine.partnerRetirementAge) : null;
-        const later = !!ageGiven && !(mine && mine.partnerRetired) && stopGiven > ageGiven;
-        const timing = !ageGiven ? {} : later || (mine && mine.partnerRetired) ? timingSettingsOf({}, { ageToday: ageGiven, later, ageAtStop: later ? stopGiven : null }, dayKeyOf(todayOf())) : { currentAge: ageGiven, currentAgeAsOf: dayKeyOf(todayOf()) };
-        // ages are not figures: `configured` (figures given) is left out, so their plan reads no pot or income nobody gave
-        const { configured: _given, ...timingOnly } = timing;
-        await createNewScenario(name, 'Partner plan (household)', ['stress', 'decision'], { stressSettings: timingOnly }, true);
+        // ages are not figures: `configured` (figures given) is never stored, so their plan reads no pot or income nobody gave
+        await createNewScenario(name, 'Partner plan (household)', ['stress', 'decision'], { stressSettings: made.stressSettings }, true);
         // linked to this plan, as the simple view links a couple's two plans (either side's link reads both ways)
         if (myId) { try { await setHouseholdPartnerId(myId); } catch (e) { console.warn('Partner link skipped:', e); } }
         try {
           const theirs = await getBudgetAsync();
-          if (mine && theirs) {
-            theirs.currentAge = mine.partnerAge || theirs.currentAge;
-            if (+mine.partnerAge > 0) markBudgetAgesSet(theirs);   // the partner's age was given on this plan's Budget (6.13.5)
-            theirs.retirementAge = mine.partnerRetirementAge || theirs.retirementAge;
-            theirs.retired = !!mine.partnerRetired;
+          if (theirs) {
+            // their Budget's ages as their Timing block keeps them, only when an age was given; never the blank budget's 45 / 60
+            if (made.ages) { Object.assign(theirs, made.ages); markBudgetAgesSet(theirs); }
             theirs.sharedWithPartner = true;
-            theirs.partnerAge = mine.currentAge || null; theirs.partnerRetirementAge = mine.retirementAge || null; theirs.partnerRetired = !!mine.retired;
+            // this plan's person, as their partner: only ages somebody gave on this plan's Budget
+            const known = !!mine && budgetAgesKnown(mine);
+            theirs.partnerAge = known ? mine.currentAge : null; theirs.partnerRetirementAge = known ? mine.retirementAge || null : null; theirs.partnerRetired = known ? !!mine.retired : false;
             await saveBudget(theirs);
           }
         } catch (e) { console.warn('Partner budget seed skipped:', e); }

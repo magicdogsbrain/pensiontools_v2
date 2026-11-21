@@ -8,8 +8,12 @@
  * whenever the tab is read again, so a plan switch never leaves the last plan's verdict under this plan's picker.
  *
  *   installHouseholdTab(win, doc, deps)   win.loadHouseholdUI and win.savePartnerSelection. `deps`: listScenariosAsync,
- *                                         getActiveScenarioId, setHouseholdPartnerId, showToast; optional now().
+ *                                         getActiveScenarioId, setHouseholdPartnerId, showToast; optional now(), getBudgetAsync().
  *   householdTabLines(entries, plan, now) { partnerId, linkedBy, theirLine } — the words under the picker, pure
+ *   newPartnerPlanTyped(doc)              what was typed for "Create their plan": { name, age, stopAge, stopped } (step F6).
+ *                                         The three boxes start from what this plan's Budget knows about the partner (the setup
+ *                                         wizard's), filled on every load of the tab (deps.getBudgetAsync), so a plan is never
+ *                                         made with a stop age nobody gave: planStartUi.partnerPlanSettingsOf asks for one.
  *
  * Writes keep the repository's rule: the link is written on this plan only (ScenarioRepository.setHouseholdPartnerId).
  */
@@ -38,6 +42,27 @@ export function householdTabLines(entries, plan, now) {
   let line = null; try { line = theirLineOf(partner, now); } catch (e) { line = null; }
   const theirLine = fill(P.with, { name, line: line ? fill(PLAN.theirLines[line.id] || '', line.slots) : '' }).trim();
   return { partnerId: String(partner.id), linkedBy, theirLine };
+}
+
+/** The boxes of "Create their plan" (see the header). */
+export const NEW_PARTNER_BOXES = Object.freeze({ name: 'hhNewPlanName', age: 'hhNewPlanAge', stopAge: 'hhNewPlanStopAge', stopped: 'hhNewPlanStopped' });
+
+/** What was typed for "Create their plan" (see the header): the name trimmed, the ages as whole numbers or null. */
+export function newPartnerPlanTyped(doc) {
+  const box = (k) => doc.getElementById(NEW_PARTNER_BOXES[k]);
+  const whole = (k) => { const el = box(k); const n = el ? parseInt(el.value, 10) : NaN; return n > 0 ? n : null; };
+  const nameBox = box('name'), tick = box('stopped');
+  return { name: String((nameBox && nameBox.value) || '').trim(), age: whole('age'), stopAge: whole('stopAge'), stopped: !!(tick && tick.checked) };
+}
+
+/** The three boxes from what this plan's Budget knows about the partner (empty where it knows nothing). */
+function fillNewPartnerBoxes(doc, budget) {
+  const b = budget || {};
+  const put = (k, v) => { const el = doc.getElementById(NEW_PARTNER_BOXES[k]); if (el) el.value = +v > 0 ? String(Math.round(+v)) : ''; };
+  put('age', b.partnerAge);
+  put('stopAge', b.partnerRetirementAge);
+  const tick = doc.getElementById(NEW_PARTNER_BOXES.stopped);
+  if (tick) tick.checked = !!b.partnerRetired;
 }
 
 export function installHouseholdTab(win, doc, deps) {
@@ -79,6 +104,7 @@ export function installHouseholdTab(win, doc, deps) {
       }
       put('hhLinkedBy', lines.linkedBy);
       put('hhTheirLine', lines.theirLine);
+      if (deps.getBudgetAsync) { let b = null; try { b = await deps.getBudgetAsync(); } catch (e) { b = null; } fillNewPartnerBoxes(doc, b); }
       forgetOtherPair(activeId, lines.partnerId);
     } catch (e) { console.error('Household load error:', e); }
   };

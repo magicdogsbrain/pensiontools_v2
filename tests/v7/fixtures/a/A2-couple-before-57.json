@@ -1423,28 +1423,28 @@
           "count": null
         },
         "runOutAge": 101,
-        "weighted": 1,
+        "weighted": 0.9994606478605419,
         "levels": {
           "careful": {
-            "monthly": 3140,
-            "yearly": 37680,
-            "weighted": 0.9515806171111763,
-            "fixedAge": 0.9
+            "monthly": 3100,
+            "yearly": 37200,
+            "weighted": 0.9502881842199713,
+            "fixedAge": 0.925
           },
           "balanced": {
-            "monthly": 3290,
-            "yearly": 39480,
-            "weighted": 0.9003018589690328,
-            "fixedAge": 0.825
+            "monthly": 3230,
+            "yearly": 38760,
+            "weighted": 0.900906813214533,
+            "fixedAge": 0.85
           },
           "bold": {
-            "monthly": 3550,
-            "yearly": 42600,
-            "weighted": 0.7072441003052518,
+            "monthly": 3530,
+            "yearly": 42360,
+            "weighted": 0.703488222649321,
             "fixedAge": 0.55
           }
         },
-        "spare": 490,
+        "spare": 430,
         "potAtStop": {
           "careful": 440336,
           "middling": 615634,
@@ -1499,25 +1499,25 @@
         "weighted": 1,
         "levels": {
           "careful": {
-            "monthly": 4220,
-            "yearly": 50640,
-            "weighted": 0.9507667443715035,
-            "fixedAge": 0.875
+            "monthly": 4100,
+            "yearly": 49200,
+            "weighted": 0.9504566787742078,
+            "fixedAge": 0.9
           },
           "balanced": {
-            "monthly": 4410,
-            "yearly": 52920,
-            "weighted": 0.9023401641054078,
-            "fixedAge": 0.775
+            "monthly": 4360,
+            "yearly": 52320,
+            "weighted": 0.9032532039331272,
+            "fixedAge": 0.825
           },
           "bold": {
-            "monthly": 5000,
-            "yearly": 60000,
-            "weighted": 0.7030512976460159,
-            "fixedAge": 0.55
+            "monthly": 4960,
+            "yearly": 59520,
+            "weighted": 0.7007594334892928,
+            "fixedAge": 0.575
           }
         },
-        "spare": 1610,
+        "spare": 1560,
         "potAtStop": {
           "careful": 667575,
           "middling": 859992,
@@ -2776,7 +2776,7 @@
         },
         {
           "id": "a.chart.row",
-          "text": "At 60, you could spend about £3,290 a month; £2,800 a month lasted in every future we tried.",
+          "text": "At 60, you could spend about £3,230 a month; £2,800 a month lasted in every future we tried.",
           "parts": [
             "At ",
             {
@@ -2800,7 +2800,7 @@
         },
         {
           "id": "a.chart.row",
-          "text": "At 67, you could spend about £4,410 a month; £2,800 a month lasted in every future we tried.",
+          "text": "At 67, you could spend about £4,360 a month; £2,800 a month lasted in every future we tried.",
           "parts": [
             "At ",
             {

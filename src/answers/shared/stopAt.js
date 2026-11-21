@@ -172,7 +172,7 @@ export function createStopRunner(sp, lives = sp.lives, kernels = sp.kernels, opt
   // test puts them; the saving years (the kernels, the pots at the stop) stay this stop plan's
   const keptCase = sp.kept || null;
   let plan = keptCase ? keptCase.plan : sp.plan;
-  if (!keptCase && (opts.pensionOf || opts.savingsOf)) {
+  if (!keptCase && !sp.couple && (opts.pensionOf || opts.savingsOf)) {
     const maxes = sp.pots.map((q, j) => {
       let pension = 0, isa = 0;
       for (let i = 0; i < n; i++) { pension = Math.max(pension, pensionOf(i, j)); isa = Math.max(isa, savingsOf(i, j)); }
@@ -182,6 +182,12 @@ export function createStopRunner(sp, lives = sp.lives, kernels = sp.kernels, opt
   }
   const potsCache = new Array(n).fill(null);
   const potsOf = (i) => potsCache[i] || (potsCache[i] = sp.pots.map((q, j) => ({ pension: pensionOf(i, j), isa: savingsOf(i, j) })));
+  // a couple on the two kept plans (`sp.couple`: keep/planPath.js coupleCaseOf, the lead's rulings 9 and P): their household
+  // run, each life drawing from its own pots at each one's stop (these, as the searches put them), each plan on its own clock
+  if (sp.couple) {
+    const ref = new Array(n).fill(null);
+    return sp.couple.runnerWith(potsOf, (i) => ref[i] || (ref[i] = sp.pots.map((q) => ({ pension: q.pension[i], isa: q.savings[i] }))));
+  }
   const mix = plan.mix;
   const potsFor = keptCase ? (r, i) => keptCase.potsAt(potsOf(i)[0]) : (r, i) => {
     const run = plan.runs[r];
@@ -413,7 +419,7 @@ export function leftAtStop(sp, runner, spendAYear, months, toMonth) {
   }
   // a couple from now on the two kept plans' runs (sp.couple: keep/planPath.js coupleCaseOf, the lead's ruling 9): their own
   // reading, the two plans' pots added at the plan's price level
-  if (sp.couple) return sp.couple.leftTermsOf(spendAYear, months);
+  if (sp.couple) return sp.couple.leftTermsOf(spendAYear, months, runner.parts ? runner : null);
   const plan = runner.plan;
   if (plan.apart || !plan.runs.length || plan.runs.some((run) => run.offset > 0)) return null;
   // (a run only `simulate` can make cannot stop part-way: then nothing is said, rather than a figure from another engine)

@@ -11,8 +11,10 @@
  * Before this step two such plans gave no household figure ({ reason: 'notSameStart' }).
  *
  * Measured (40 futures, 30 Sep 2026): Sam (66, £200,000, £10,000 savings, £1,500 a month) and Pat (60, £100,000, paying in
- * £500 a month to 64, then £1,200 a month): 38 of 40 last, weighted 0.9835, "yes", middle run-out at Pat's 95, plan to
- * Pat's 99 — read from either plan.
+ * £500 a month to 64, then £1,200 a month): 38 of 40 last, weighted 0.9839, "yes", middle run-out at Pat's 95, plan to
+ * Pat's 99 — read from either plan. (Pass 1 said 0.9835: it weighed the household from the younger's first draw year,
+ * Pat's stop four years on; the household draws from today, Sam's first year, so pass 2 weighs it from there — and two
+ * people of one age then weigh it the same in either order.)
  *
  * The households are made up (Sam, Pat, Jo, Kim; round figures).
  */
@@ -73,7 +75,8 @@ describe('one saving, one retired: one household figure on two clocks', () => {
     expect(h.planToAge).toBe(planReading(pat).planToAge);
     expect(h.planToAge).toBe(99);
     expect({ lasted: h.lasted, verdict: h.verdict, floorAge: h.floorAge }).toEqual({ lasted: 38, verdict: 'yes', floorAge: 95 });
-    expect(h.weighted).toBeCloseTo(0.9835, 4);
+    // (weighed from the household's first draw year: Sam's, today)
+    expect(h.weighted).toBeCloseTo(0.9839, 4);
     const fromSam = householdLastsOf(sam, pat, { today: TODAY, futures: N });
     expect(fromSam).toEqual(householdLastsOf(pat, sam, { today: TODAY, futures: N }));
     expect(fromSam.lasted).toBe(38);
@@ -92,6 +95,20 @@ describe('one saving, one retired: one household figure on two clocks', () => {
     expect(h.worstAge).toBeLessThan(64);
     expect(h.worstAge).toBe(61);
     expect(householdReading(pat, sam)).toEqual(h);
+  });
+});
+
+describe('the household is weighed from its first draw year, in either order', () => {
+  it('Sam and Pat, both 60, Sam drawing now and Pat saving to 62: the same figures whichever plan is read first', () => {
+    // Two people of one age: before pass 2 the household took the drawing start of whichever plan came first as its own
+    // (the younger's, and on a tie the first), so Sam's plan read first weighed from today and Pat's from Pat's stop two
+    // years on, and the weighted chance moved with the order (40 futures: 0.5837 from Sam's plan, 0.5819 from Pat's). The
+    // household draws from today (Sam's first year): S(0) = 1, and both orders say 0.5837.
+    const sam = retiredPlan({ you: { age: 60, pot: 150000, taxFreeTaken: 'no' }, savings: 10000, spend: { kind: 'amount', amount: 1400 } });
+    const pat = saverPlan({ you: { age: 60, pot: 90000, payIn: { kind: 'total', total: 400 } }, stop: { kind: 'age', age: 62 }, spend: { kind: 'amount', amount: 1100 } });
+    const a = householdReading(sam, pat), b = householdReading(pat, sam);
+    expect(a.reason).toBeUndefined();
+    expect(b).toEqual(a);
   });
 });
 

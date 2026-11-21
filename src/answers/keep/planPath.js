@@ -679,8 +679,11 @@ export function coupleCaseOf(source, ins, env, { lives = null, dragPct = 0, phas
   const ls = first.map((x) => lifeOfSettings(x.settings, now, { sex: keptSexOf(x.kept), startAge: x.p.startAge, ...(table ? { table } : {}) }));
   const yi = ls.reduce((b, l, i) => (l.ageNow < ls[b].ageNow ? i : b), 0);
   const people = ls.map((l) => l.people[0]);
+  // (the household draws from the first plan's first draw year: the chance is weighed from there, whichever of the two is
+  // younger and in either order — one plan alone, its own drawing start, as its plan test weighs it)
+  const dH = Math.min(...ls.map((l) => l.d));
   const life0 = first.length === 1 ? ls[0]
-    : { ...ls[yi], people, joint: true, weightToAge: jointWeightToAge({ people, d: ls[yi].d, ...(table ? { table } : {}) }) };
+    : { ...ls[yi], d: dH, people, joint: true, weightToAge: jointWeightToAge({ people, d: dH, ...(table ? { table } : {}) }) };
   const life = isNum(env.weightToAge) ? { ...life0, weightToAge: env.weightToAge } : life0;
   const startAge = first[yi].p.startAge - gOf[yi];
   const planYears = Math.max(...first.map((x, k) => gOf[k] + x.p.durationYears));
@@ -753,7 +756,16 @@ export function coupleCaseOf(source, ins, env, { lives = null, dragPct = 0, phas
    * a plan still saving draws in life i from life i's own pots at its stop (ruling 8: its whole lives, SavingPath
    * stopPotsByLife, scaled into its config as stressTest.js stopLifeOf scales them).
    */
-  const partRunners = parts.map((idx, r) => {
+  const preset = RISK_PRESETS[(ins && ins.risk) || 'balanced'] || RISK_PRESETS.balanced;
+  /**
+   * The part runners, `potsOfLife` null: each plan's own lives (a plan still saving from its own kept lives at the stop).
+   * Given (an answer's stop runner, stopAt.js createStopRunner, as planCaseOf's potsAt takes them for one person): life i's
+   * pots of each person at their stop, plan order ([{ pension, isa }]), with `refOfLife` the stop plan's own (unchanged
+   * pots); each part's config scaled by them as the plan test scales a life's pots (stressTest.js stopLifeOf): a plan still
+   * saving by the life's pension over the kept plan's middle, a plan drawing now by the pots over today's (unchanged: its own
+   * config, to the bit). Exactly linear in each pot, so a pay-in, a pot or savings the searches try is the figure found.
+   */
+  const partsWith = (potsOfLife = null, refOfLife = null) => parts.map((idx, r) => {
     const g = gP[r], yrs = yrsP[r];
     const futs = L.map((l) => ({ id: l.id, seed: l.seed, returns: sliceReturns(l, g, yrs) }));
     const drv = new Array(n).fill(null);
@@ -761,28 +773,33 @@ export function coupleCaseOf(source, ins, env, { lives = null, dragPct = 0, phas
       ? prepareFutureFrom({ returns: futs[i].returns, stream: bondStream({ returns: futs[i].returns, years: yrs, seed: L[i].seed }) }, 0, yrs)
       : prepareFutureFrom(L[i], 0, yrs));
     const sl = g > 0 ? first[idx].p.stopLives : null;
-    const byLife = sl ? stopPotsByLife(sl.core, n, env.futureReturns ? { futureReturns: env.futureReturns } : {}) : null;
     const b = bases[r].config;
-    const startOf = byLife ? (i) => {
-      const k = sl.sipp > 0 ? byLife.pension[i] / sl.sipp : 1;
-      const kIsa = sl.isa > 0 ? byLife.savings[i] / sl.isa : 1;
-      return { equity: b.equityStart * k, bond: b.bondStart * k, cash: b.cashStart * k, equityMin: b.equityMin * k, bondMin: b.bondMin * k, cashTarget: b.cashTarget * k, isa: (b.isaBalance || 0) * kIsa };
-    } : null;
+    const pensionB = (b.equityStart || 0) + (b.bondStart || 0) + (b.cashStart || 0);
+    const scaled = (k, kIsa, q) => (pensionB > 0 || !(q.pension > 0)
+      ? { equity: b.equityStart * k, bond: b.bondStart * k, cash: b.cashStart * k, equityMin: b.equityMin * k, bondMin: b.bondMin * k, cashTarget: b.cashTarget * k, isa: (b.isaBalance || 0) * kIsa }
+      // (a pension where the kept plan holds none: at the plan's risk level's mix, each floor its start, as planCaseOf's potsAt)
+      : { equity: q.pension * preset.equity, bond: q.pension * preset.bond, cash: q.pension * (1 - preset.equity - preset.bond), isa: (b.isaBalance || 0) * kIsa });
+    let startOf = null;
+    if (potsOfLife) {
+      startOf = (i) => {
+        const q = potsOfLife(i)[idx];
+        if (g > 0 && sl) return scaled(sl.sipp > 0 ? q.pension / sl.sipp : 1, sl.isa > 0 ? q.isa / sl.isa : 1, q);
+        const ref = refOfLife(i)[idx];
+        if (q.pension === ref.pension && q.isa === ref.isa) return null;            // its own config, as kept
+        return scaled(ref.pension > 0 ? q.pension / ref.pension : 1, ref.isa > 0 ? q.isa / ref.isa : (b.isaBalance > 0 ? 1 : 0), q);
+      };
+    } else if (sl) {
+      const byLife = stopPotsByLife(sl.core, n, env.futureReturns ? { futureReturns: env.futureReturns } : {});
+      startOf = (i) => scaled(sl.sipp > 0 ? byLife.pension[i] / sl.sipp : 1, sl.isa > 0 ? byLife.savings[i] / sl.isa : 1, { pension: 0 });
+    }
     const runner = createFastRunner({ ...shared, years: yrs, runs: [{ base: b, index: 0, role: 'pension', offset: 0 }] }, futs, { driversFor, ...(startOf ? { potsFor: (rr, i) => startOf(i) } : {}) });
     return { g, yrs, futs, driversFor, startOf, runner };
   });
-  const drawFutures = partRunners.length ? partRunners[0].futs : L.map((l) => ({ id: l.id, seed: l.seed, returns: sliceReturns(l, 0, years) }));
-  const driversFor = partRunners.length ? partRunners[0].driversFor : (i) => prepareFutureFrom(L[i], 0, years);
+  const own = partsWith();
+  const drawFutures = own.length ? own[0].futs : L.map((l) => ({ id: l.id, seed: l.seed, returns: sliceReturns(l, 0, years) }));
+  const driversFor = own.length ? own[0].driversFor : (i) => prepareFutureFrom(L[i], 0, years);
   let evaluations = 0;
   let months = 0;
-  /** Part r's run in life i on its own clock (its run-out month is its own: + 12 g on the household's). */
-  const fastRun = (r, i, config, hook = null, until = null, more = null) => {
-    const res = partRunners[r].runner.run(0, i, config, hook, until, more);
-    months += res.failed ? res.failMonth + 1 : until === null ? 12 * config.years : Math.min(until, 12 * config.years);
-    return res;
-  };
-  /** A run-out month on part r's own clock, on the household's. */
-  const onHousehold = (r, res) => (res.failed && gP[r] > 0 ? { ...res, failMonth: res.failMonth + 12 * gP[r] } : res);
 
   /**
    * THE HOUSEHOLD'S MONEY IS ONE (step P4, fix round 1): each plan pays its own part from its own pots, and once one plan's
@@ -795,51 +812,65 @@ export function coupleCaseOf(source, ins, env, { lives = null, dragPct = 0, phas
    *      j's run-out year on (passOnConfig), and the household runs out when that run does (never before m: until then j
    *      paid its own part).
    * → { failed, failMonth, passOn: { from: j, to: k, month: m, config } | null } (the config k ran with).
+   * One runner per set of part runners (`pr`): the plans' own lives, or an answer's pots at the stop (runnerWith).
    */
-  const jointMemo = new WeakMap();
-  const householdOf = (i, hc) => {
-    let byLife = jointMemo.get(hc);
-    if (!byLife) { byLife = new Array(n).fill(null); jointMemo.set(hc, byLife); }
-    if (byLife[i]) return byLife[i];
-    const res = hc.parts.map((config, r) => fastRun(r, i, config));
-    // each run-out on the household's clock
-    const M = res.map((x, r) => (x.failed ? x.failMonth + 12 * gP[r] : null));
-    let j = -1;
-    M.forEach((x, r) => { if (x !== null && (j < 0 || x < M[j])) j = r; });
-    let out;
-    if (j < 0) out = { failed: false, failMonth: null, passOn: null };
-    else {
-      const k = j === 0 ? 1 : 0;
-      if (M[j] < 12 * gP[k]) {
-        // (two clocks) j's money ran out before k's plan draws: nothing can pay j's part yet, the household is out there
-        out = { failed: true, failMonth: M[j], passOn: null };
-      } else {
-        const config = passOnConfig(hc.parts[k], hc.parts[j], partRunners[j].futs[i].returns, res[j].failMonth, gP[j] - gP[k]);
-        const again = fastRun(k, i, config);
-        const failMonth = again.failed ? Math.max(M[j], again.failMonth + 12 * gP[k]) : null;
-        out = { failed: failMonth !== null, failMonth, passOn: { from: j, to: k, month: M[j], config } };
+  const runnerOver = (pr, potsOf) => {
+    /** Part r's run in life i on its own clock (its run-out month is its own: + 12 g on the household's). */
+    const fastRun = (r, i, config, hook = null, until = null, more = null) => {
+      const res = pr[r].runner.run(0, i, config, hook, until, more);
+      months += res.failed ? res.failMonth + 1 : until === null ? 12 * config.years : Math.min(until, 12 * config.years);
+      return res;
+    };
+    /** A run-out month on part r's own clock, on the household's. */
+    const onHousehold = (r, res) => (res.failed && gP[r] > 0 ? { ...res, failMonth: res.failMonth + 12 * gP[r] } : res);
+    const jointMemo = new WeakMap();
+    const householdOf = (i, hc) => {
+      let byLife = jointMemo.get(hc);
+      if (!byLife) { byLife = new Array(n).fill(null); jointMemo.set(hc, byLife); }
+      if (byLife[i]) return byLife[i];
+      const res = hc.parts.map((config, r) => fastRun(r, i, config));
+      // each run-out on the household's clock
+      const M = res.map((x, r) => (x.failed ? x.failMonth + 12 * gP[r] : null));
+      let j = -1;
+      M.forEach((x, r) => { if (x !== null && (j < 0 || x < M[j])) j = r; });
+      let out;
+      if (j < 0) out = { failed: false, failMonth: null, passOn: null };
+      else {
+        const k = j === 0 ? 1 : 0;
+        if (M[j] < 12 * gP[k]) {
+          // (two clocks) j's money ran out before k's plan draws: nothing can pay j's part yet, the household is out there
+          out = { failed: true, failMonth: M[j], passOn: null };
+        } else {
+          const config = passOnConfig(hc.parts[k], hc.parts[j], pr[j].futs[i].returns, res[j].failMonth, gP[j] - gP[k]);
+          const again = fastRun(k, i, config);
+          const failMonth = again.failed ? Math.max(M[j], again.failMonth + 12 * gP[k]) : null;
+          out = { failed: failMonth !== null, failMonth, passOn: { from: j, to: k, month: M[j], config } };
+        }
       }
-    }
-    byLife[i] = out;
-    return out;
+      byLife[i] = out;
+      return out;
+    };
+    const runOne = (r, i, config) => (config.household ? householdOf(i, config) : onHousehold(r, fastRun(r, i, config)));
+    return {
+      plan,
+      potsFor: () => null,
+      potsOf: potsOf || (() => bases.map((b) => ({ pension: b.config.equityStart + b.config.bondStart + b.config.cashStart, isa: b.config.isaBalance || 0 }))),
+      configsAtH: (H) => configsAtH(H),
+      configsFor: (k) => configsAtH(k * STEP * 12),
+      fastRun,
+      driversOf: (r, i) => pr[r].runner.driversOf(0, i),
+      run(r, i, config) { evaluations++; return runOne(r, i, config); },
+      runUntil(r, i, config, until) {
+        if (config.household || gP[r] > 0 || !pr[r].runner.stoppable(0, config)) return this.run(r, i, config);
+        evaluations++;
+        return fastRun(r, i, config, null, until);
+      },
+      householdOf, parts: pr,
+      get evaluations() { return evaluations; },
+      get months() { return months; }
+    };
   };
-  const runOne = (r, i, config) => (config.household ? householdOf(i, config) : onHousehold(r, fastRun(r, i, config)));
-  const runner = {
-    plan,
-    potsFor: () => null, potsOf: () => bases.map((b) => ({ pension: b.config.equityStart + b.config.bondStart + b.config.cashStart, isa: b.config.isaBalance || 0 })),
-    configsAtH: (H) => configsAtH(H),
-    configsFor: (k) => configsAtH(k * STEP * 12),
-    fastRun,
-    driversOf: (r, i) => partRunners[r].runner.driversOf(0, i),
-    run(r, i, config) { evaluations++; return runOne(r, i, config); },
-    runUntil(r, i, config, until) {
-      if (config.household || gP[r] > 0 || !partRunners[r].runner.stoppable(0, config)) return this.run(r, i, config);
-      evaluations++;
-      return fastRun(r, i, config, null, until);
-    },
-    get evaluations() { return evaluations; },
-    get months() { return months; }
-  };
+  const runner = runnerOver(own, null);
 
   // the weights (OneAnswer.weightedFailsOf), month by month: the chance either is alive at the start of the run year
   const toMonth = 12 * planYears;
@@ -865,18 +896,21 @@ export function coupleCaseOf(source, ins, env, { lives = null, dragPct = 0, phas
   /**
    * What is left at the plan-to age at H in each future (planCaseOf's reading), the two plans' pots added: £0 where the
    * household ran out. Where one plan's pots ran out before the plan-to age and the other's paid on (householdOf's pass-on),
-   * what is left is the other's, from the run it made paying both parts.
+   * what is left is the other's, from the run it made paying both parts. `atStop`: an answer's runner (runnerWith), whose
+   * lives start from the answer's own pots at the stop; else the plans' own.
    */
   let lastLeft = null;
-  const leftTermsOf = (H, ms) => {
-    if (lastLeft && lastLeft.H === H && lastLeft.ms === ms) return lastLeft.terms;
+  const leftTermsOf = (H, ms, atStop = null) => {
+    if (lastLeft && lastLeft.H === H && lastLeft.ms === ms && lastLeft.atStop === atStop) return lastLeft.terms;
+    const via = atStop || runner;
+    const partRunners = via.parts;
     const terms = new Float64Array(n);
     const cs = partsAtH(H);
     const hc = together ? configsAtH(H)[0].config : null;
     for (let i = 0; i < n; i++) {
       const m = ms[i];
       if (m !== null && m !== undefined && m < toMonth) { terms[i] = 0; continue; }
-      const po = hc ? householdOf(i, hc).passOn : null;
+      const po = hc ? via.householdOf(i, hc).passOn : null;
       const handed = po && po.month < toMonth ? po : null;
       let t = 0;
       cs.forEach(({ config }, r) => {
@@ -903,7 +937,7 @@ export function coupleCaseOf(source, ins, env, { lives = null, dragPct = 0, phas
       });
       terms[i] = t;
     }
-    lastLeft = { H, ms, terms };
+    lastLeft = { H, ms, atStop, terms };
     return terms;
   };
   const leftOf = (H, ms) => {
@@ -919,6 +953,9 @@ export function coupleCaseOf(source, ins, env, { lives = null, dragPct = 0, phas
     level: carefulOf(first.map((x) => planLevelOf(x.kept))), levels: first.map((x) => planLevelOf(x.kept)), capped: plan.runCapped, reason,
     keptAt: (H) => at(H).map((x) => x.kept), settingsAt: (H) => at(H).map((x) => x.settings),
     floorAgeOf, worstAgeOf, leftOf, leftTermsOf,
+    // an answer's stop runner (stopAt.js createStopRunner): the same household run, each life from the answer's own pots at
+    // each one's stop (`potsOf(i)`, plan order), `refOf(i)` the stop plan's own (partsWith)
+    runnerWith: (potsOf, refOf) => runnerOver(partsWith(potsOf, refOf), potsOf),
     // what comes in anyway, a month after tax at today's prices, in whole £10 steps, the least over the plan's years (each
     // one's own taxed alone)
     anywayK: Math.floor(Math.min(...anywayNet) / 12 / STEP + 1e-9)

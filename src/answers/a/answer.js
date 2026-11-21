@@ -231,8 +231,8 @@ function stopCase(ctx, age, { partTime = 'asTyped' } = {}) {
   if (hit) return hit;
   const ins = partTime === 'asTyped' ? ctx.inputs : { ...ctx.inputs, partTime };
   const { sp, pc } = stopPlanOf(ins, ctx.env, age, ctx.lives);
-  // (a couple stopping now: the two kept plans' runner on their lives, `runSp`)
-  const runner = sp.couple ? pc.runner : createStopRunner(sp);
+  // (a couple: the two kept plans' household run on their lives, `runSp`, each life from its own pots at each one's stop)
+  const runner = createStopRunner(sp);
   const runSp = sp.couple ? pc.sp : sp;
   // the spend as typed, in this row's first year: a step at or before this stop is in force from it (spending-shape.md 6.3)
   const spendAYear = startAYear(ctx.spendAYear, sp.plan);

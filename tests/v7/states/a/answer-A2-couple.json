@@ -500,32 +500,32 @@
             "stopYear": "2026",
             "status": "final",
             "verdict": "no",
-            "lasted": 0.047,
+            "lasted": 0.179,
             "outOfTen": {
-              "words": "in fewer than 1 future out of 10",
+              "words": "in only 2 futures out of 10",
               "only": true,
-              "count": 1
+              "count": 2
             },
-            "runOutAge": 64,
-            "weighted": 0.10010215387493371,
+            "runOutAge": 67,
+            "weighted": 0.24216819038894033,
             "levels": {
               "careful": {
-                "monthly": 2470,
-                "yearly": 29640,
-                "weighted": 0.9511097421133891,
-                "fixedAge": 0.928
+                "monthly": 2600,
+                "yearly": 31200,
+                "weighted": 0.9531491128420457,
+                "fixedAge": 0.937
               },
               "balanced": {
-                "monthly": 2550,
-                "yearly": 30600,
-                "weighted": 0.9049268909450621,
-                "fixedAge": 0.864
+                "monthly": 2700,
+                "yearly": 32400,
+                "weighted": 0.9044835077030584,
+                "fixedAge": 0.874
               },
               "bold": {
-                "monthly": 2780,
-                "yearly": 33360,
-                "weighted": 0.7088809102447704,
-                "fixedAge": 0.622
+                "monthly": 2950,
+                "yearly": 35400,
+                "weighted": 0.7046962437229232,
+                "fixedAge": 0.639
               }
             },
             "spare": 0,
@@ -564,10 +564,10 @@
             "phases": null,
             "oneMoreYear": {
               "toAge": 56,
-              "extraMonthly": 120,
-              "lastedFrom": 0.047,
+              "extraMonthly": -30,
+              "lastedFrom": 0.179,
               "lastedTo": 0.125,
-              "runOutFrom": 64,
+              "runOutFrom": 67,
               "runOutTo": 66,
               "potExtra": 31017,
               "sameish": false
@@ -2223,7 +2223,7 @@
           "chart": [
             {
               "id": "a.chart.row",
-              "text": "At 55, you could spend about £2,550 a month; £3,592 a month lasted in fewer than 1 future out of 10.",
+              "text": "At 55, you could spend about £2,700 a month; £3,592 a month lasted in only 2 futures out of 10.",
               "parts": [
                 "At ",
                 {
@@ -2241,11 +2241,11 @@
                   "kind": "money"
                 },
                 " a month lasted ",
-                "in fewer than ",
+                "in only ",
                 {
-                  "fixed": "1"
+                  "fixed": "2"
                 },
-                " future out of ",
+                " futures out of ",
                 {
                   "fixed": "10"
                 },
@@ -2685,6 +2685,14 @@
       "extending": false
     },
     "c": {
+      "status": "idle",
+      "inputsKey": null,
+      "result": null,
+      "before": null,
+      "progress": null,
+      "slow": false
+    },
+    "d": {
       "status": "idle",
       "inputsKey": null,
       "result": null,

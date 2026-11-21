@@ -106,7 +106,7 @@ describe('the full view\'s page prices nothing before the one market is in (fix 
   });
   it.each([
     'window.runTryStrategyUI = async function', 'window.runHistoricalUI = async function', 'window.runScenariosUI = async function',
-    'window.runCompareStrategiesUI = async function', 'async function buildPlanDocumentNow(', 'async function ladderPositionForPlan(',
+    'window.runCompareStrategiesUI = async function', 'async function documentRunNow(', 'async function ladderPositionForPlan(',
     'async function genericStrategyPageHtml(', 'async function fullGiltPageHtml(', 'async function floorToAgePageHtml(',
     'async function specStrategyPageHtml(', 'window.runHouseholdCheck = async function', 'window.runSurvivorUI = async function',
     'window.runCareUI = async function', 'async function planYearTables(', 'window.renderDecisionStrategyPanel = async function',

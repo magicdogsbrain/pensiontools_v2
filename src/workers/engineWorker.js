@@ -20,6 +20,7 @@ import { answerA } from '../answers/a/answer.js';
 import { runStressRow } from '../answers/plan/stressPanelRun.js';
 import { runKeepRetest } from '../answers/plan/keepRun.js';
 import { answerB } from '../answers/b/answer.js';
+import { runForDocument } from '../answers/plan/lastsRun.js';
 
 // The page's one clock (src/reading/clock.js), handed in with every job (engineClient.runInWorker): the plan is seen from the
 // same day as every other figure on the page, never from the worker's own clock.
@@ -60,6 +61,8 @@ self.onmessage = async (e) => {
       post({ id, result: cloneSafe(runKeepRetest(payload.plan, { today: payload.today, onProgress: (i, n) => self.postMessage({ id, progress: { i, n, name: '' } }) })) });
     } else if (type === 'saver') {   // "Am I on course?" (lead4.md R6): question B on the plan's figures, as the simple view's worker runs it
       post({ id, result: cloneSafe(answerB(payload.inputs, payload.env)) });
+    } else if (type === 'document') {   // the plan document's run (lead4.md D18; step F5): the simple view's lock run, on the plan and the day
+      post({ id, result: cloneSafe(runForDocument(payload.plan, { today: payload.today, essentials: payload.essentials })) });
     } else if (type === 'whenStop') {   // "When could I retire?" (lead4.md D11): answer A on the plan's figures (src/reading/whenStop.js), as the simple view runs it
       post({ id, result: cloneSafe(answerA(payload.inputs, { ...payload.env, onProgress: (i, n) => self.postMessage({ id, progress: { i, n, name: '' } }) })) });
     } else {

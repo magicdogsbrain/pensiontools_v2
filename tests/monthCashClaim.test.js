@@ -57,12 +57,12 @@ describe('the cash entered is less than the month', () => {
       for (const w of ['already in cash', 'already cash', 'Nothing is sold', 'cash years bucket', 'The plan’s cash years']) expect(t, w).not.toContain(w);
     }
   });
-  it('the full view\'s own reader (the shell hands in its readers) finds the same next money in', async () => {
-    const { decisionOverlayFor } = await import('../src/ui/decisionOverlayUi.js');
-    const d = month(12);
-    const I = monthInputsOf(plan, { now: noon(TODAY) });
-    const ov = await decisionOverlayFor({ ...d, strategyOverlay: undefined }, '2026-11', { strategy: async () => I.strategy, settings: async () => I.stressSettings, ladderPos: async () => ({ phase: 'cash', monthly: MONTHLY }), scenario: async () => plan, name: () => 'Full index-linked gilt ladder', firstRung: () => null });
-    expect(ov.cashShort.next).toEqual(NEXT);
+  // retaken in step F5 (lead4.md D17): the full view works the month out through the one gatherer, overlay included
+  it('the full view\'s month (the one gatherer, src/reading/month.js) finds the same next money in', async () => {
+    const { monthReadingOf } = await import('../src/reading/month.js');
+    const { contextFor } = await import('../src/reading/context.js');
+    const d = monthReadingOf(plan, contextFor(plan, { now: noon(TODAY) }), { month: '2026-11', pots: { equity: 0, bond: 380000, cash: 12 } });
+    expect(d.strategyOverlay.cashShort.next).toEqual(NEXT);
   });
 });
 

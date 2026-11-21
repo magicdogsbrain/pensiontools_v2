@@ -503,7 +503,9 @@ describe('PROT1 — a contract strategy (a bought gilt ladder) is never cut by t
     const ms = readFileSync(join(root, 'src/services/MonthDecision.js'), 'utf8');
     expect(ms).toContain('const engineSettings = CONTRACT_IDS.includes(st.id) ? { ...decision, disableProtection: true } : decision;');
     expect(ms).toContain('settings: setup.engineSettings,');
-    expect(html).toContain('engineDeps(setup, {');
+    // step F5 (lead4.md D17): the page works the month out through the one gatherer, which runs engineSetup/engineDeps
+    expect(html).toContain('monthReadingOf(plan, contextFor(plan, { now })');
+    expect(readFileSync(join(root, 'src/reading/month.js'), 'utf8')).toContain('decideMonth(J, month');
     // step LEFT: one list, the page imports it (the month entry's shape reads the same list)
     expect(html).toContain("import { CONTRACT_IDS } from './src/services/DecisionOverlay.js';");
     expect(html).not.toContain('const CONTRACT_IDS =');

@@ -154,7 +154,9 @@ describe('index.html: the box in Stress tester → Settings', () => {
     // 6.22.0: one patch for everything unlocking writes (the charge and the ISA choice), its bullets from one function
     expect(u).toContain('unlockPatchesOf(');
     expect(u).toContain('li.push(...unlockNotesHtml(unlockPatch))');
-    expect(u.indexOf('saveStressSettings(unlockPatch)')).toBeGreaterThan(u.indexOf('await unlockPlan()'));
+    // step F5 (lead4.md D18): the defaults go in the unlock's one write (answers/plan/lock.js unlockPatch, unlockPatchesOf inside)
+    expect(u).toContain('unlockWrite({');
+    expect(u).not.toContain('saveStressSettings(unlockPatch)');
     expect(u.indexOf('unlockNotesHtml(')).toBeLessThan(u.indexOf('appConfirm('));   // said before the person agrees
     expect(unlockNotesHtml({ chargesPct: 0.5 })).toEqual([chargesUnlockNoteHtml(0.5)]);
     expect(unlockNotesHtml(null)).toEqual([]);

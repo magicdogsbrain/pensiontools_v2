@@ -4,7 +4,9 @@
  */
 
 import { formatCurrency, formatPercent } from '../../utils/FormatUtils.js';
-import { markFact } from '../../reading/mark.js';
+import { markFact, factAttr } from '../../reading/mark.js';
+import { monthAfterTaxOf, monthFromOf, fromLabel } from '../../reading/month.js';
+import { money } from '../../reading/format.js';
 import { moveOfAlert } from '../../services/PlanRuleWords.js';
 import { MONTH } from '../../v7/copy/month.js';
 import { AlertSeverity } from '../../models/Decision.js';
@@ -18,6 +20,16 @@ import { calculateTax } from '../../services/TaxCalculator.js';
  */
 function fallbackAnnualTax(d, annualTaxable) {
   return calculateTax(annualTaxable, d.pa || TAX_DEFAULTS.PERSONAL_ALLOWANCE, d.brl || TAX_DEFAULTS.BASIC_RATE_LIMIT, d.hrl || TAX_DEFAULTS.HIGHER_RATE_LIMIT);
+}
+
+/**
+ * Where the month comes from, as Month by month draws it (src/v7/screens/plan/MonthScreen.jsx): one list, one line per part,
+ * its words from src/v7/copy/month.js, its amount by the one formatter; the list is the fact `month.take.from` (step F5).
+ */
+export function monthFromHtml(d) {
+  const from = monthFromOf(d);
+  if (!from.length) return '';
+  return '<ul class="plan-lines month-from"' + factAttr('month.take.from') + '>' + from.map((x) => '<li class="plan-line" data-from="' + esc(x.id) + '"><span class="plan-label">' + esc(fromLabel(x)) + '</span> ' + money(x.amount) + '</li>').join('') + '</ul>';
 }
 
 /**
@@ -313,19 +325,8 @@ export function buildDecisionHTML(decision) {
   // Divider
   html += '<div class="divider"></div>';
 
-  // Calculate NET total (after tax)
-  // Taxable income = SIPP + Other + State (ISA is tax-free)
-  const monthlyTaxable = d.sippDraw + d.other + d.statePension;
-  const annualTaxable = monthlyTaxable * 12;
-
-  // Fallback tax for a decision with no engine figure: the one tax sum (see fallbackAnnualTax).
-  const annualTax = fallbackAnnualTax(d, annualTaxable);
-
-  // Net = gross taxable - tax + ISA (tax-free). The ENGINE's monthly tax wins when present — it is
-  // partial-year aware; the flat 12× estimate here overstated tax on a mid-year start.
-  const totalMonthlyNet = d.totalMonthlyNet != null ? d.totalMonthlyNet
-    : d.monthlyTax != null ? monthlyTaxable - d.monthlyTax + (d.isaDraw || 0)
-    : monthlyTaxable - (annualTax / 12) + (d.isaDraw || 0);
+  // What reaches the bank after tax: the one builder both views say it with (src/reading/month.js monthAfterTaxOf, step F5)
+  const totalMonthlyNet = monthAfterTaxOf(d, { fallbackTax: fallbackAnnualTax });
 
   html += '<div class="draw-row total">';
   html += `<span class="label">Total Monthly Income, after tax</span>`;
@@ -342,42 +343,20 @@ export function buildDecisionHTML(decision) {
 
   html += '</div>'; // End recommendation-card
 
-  // Withdrawal source
+  // Where the month comes from: the same list, in the same words, as Month by month (src/reading/month.js; step F5, D17)
   const ov = d.strategyOverlay;
   if (ov && (ov.floorMonthly > 0 || ov.hidePots)) {
     // A contract strategy: say where the money actually comes from and skip the P&V pot advice.
     html += '<div class="source-card">';
-    html += `<h4>Where this month comes from — ${ov.name}</h4>`;
-    // 7.12.0: never "already cash" on screen (old records' labels carry it; it is not drawn); the cash entered, when short, said
-    if (ov.floorMonthly > 0) html += `<div class="source-item"><strong>${formatCurrency(ov.floorMonthly)}</strong> from ${String(ov.floorLabel || '').replace(/ \(already cash\)$/, '')}</div>`;
-    if (ov.sleeveMonthly > 0) html += `<div class="source-item"><strong>${formatCurrency(ov.sleeveMonthly)}</strong> from the invested sleeve</div>`;
+    html += `<h4>${esc(MONTH.advice.fromTitle)} — ${esc(ov.name)}</h4>`;
+    html += monthFromHtml(d);
     html += `<p class="hint" style="margin-top:6px;">${ov.note} The tax above is unchanged — it is still a pension withdrawal.</p>`;
     html += '</div>';
     return html + closeAfterSource(d);
   }
   html += '<div class="source-card">';
-  html += '<h4>Withdraw From</h4>';
-  html += `<div class="source-label ${d.source.toLowerCase().replace(/[^a-z]+/g, '-')}">${d.source}</div>`;
-
-  if (d.source === 'Growth' && (d.drawFromEquity > 0 || d.drawFromBond > 0)) {
-    html += '<div class="source-breakdown">';
-    if (d.drawFromEquity > 0) {
-      html += `<div class="source-item">Equity: ${formatCurrency(d.drawFromEquity)}</div>`;
-    }
-    if (d.drawFromBond > 0) {
-      html += `<div class="source-item">Bond: ${formatCurrency(d.drawFromBond)}</div>`;
-    }
-    html += '</div>';
-  }
-
-  // Diversifier reserve draw (downturn): the sleeve is sold before depressed growth is touched.
-  if (d.drawFromDiversifier > 0) {
-    html += '<div class="source-breakdown">';
-    if (d.drawFromCash > 0) html += `<div class="source-item">Cash: ${formatCurrency(d.drawFromCash)}</div>`;
-    html += `<div class="source-item">Diversifier reserve: ${formatCurrency(d.drawFromDiversifier)}</div>`;
-    html += '</div>';
-  }
-
+  html += `<h4>${esc(MONTH.advice.fromTitle)}</h4>`;
+  html += monthFromHtml(d);
   html += '</div>'; // End source-card
 
   // Fund status summary

@@ -160,13 +160,15 @@ describe('index.html: the Decision tool asks before the month that would lock, a
     expect(f.indexOf('await monthEntry.save(')).toBeGreaterThan(0);
     expect(ask).toBeLessThan(f.indexOf('await monthEntry.save('));
   });
-  it('commitPlanLock is the one full lock: Stress settings copied across (never the Decision defaults), the plan locked, the document written', () => {
+  // retaken in step F5 (lead4.md D18): the full lock is the simple view's one write path (src/ui/lockWrite.js over
+  // answers/plan/lock.js lockPatch): the seed, the flags, the plan of record, the document and the journey in ONE write
+  it('commitPlanLock is the one full lock: lockPatch in one write, the document from the plan\'s own run, then the repaint', () => {
     const f = fn('commitPlanLock');
-    expect(f.indexOf('seedDecisionFromStress(')).toBeGreaterThan(0);
-    expect(f.indexOf('seedDecisionFromStress(')).toBeLessThan(f.indexOf('lockPlanIfNeeded(reason)'));
-    expect(f.indexOf('lockPlanIfNeeded(reason)')).toBeLessThan(f.indexOf('buildPlanDocumentNow(reason'));   // retaken in 7.12.0: it may pass the run the lock's fit was read from
-    expect(f).toContain("repaintPlan('lock')");   // step S: every tab, the lock banners and the stage follow the lock (src/ui/repaintPlan.js)
-    expect(f.indexOf('buildPlanDocumentNow(reason')).toBeLessThan(f.indexOf("repaintPlan('lock')"));
+    expect(f.indexOf('lockWrite({')).toBeGreaterThan(0);
+    expect(f.indexOf('documentRunNow(')).toBeLessThan(f.indexOf('lockWrite({'));
+    expect(f).toContain("repaintPlan('lock')");
+    expect(f.indexOf('lockWrite({')).toBeLessThan(f.indexOf("repaintPlan('lock')"));
+    for (const w of ['seedDecisionFromStress(', 'lockPlanIfNeeded(', 'buildPlanDocumentNow(', 'saveDecisionSettings(', 'saveActivePlanDocument(']) expect(f.slice(0, f.indexOf('installLockFromStress')), w).not.toContain(w);
   });
   // retaken in 7.12.0: the button's handler moved to src/ui/lockFromStressUi.js (it reads the lock's fit before it locks)
   it('the Stress settings button saves the form, then takes the same route', () => {

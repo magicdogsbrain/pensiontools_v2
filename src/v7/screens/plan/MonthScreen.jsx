@@ -153,7 +153,7 @@ function Advice({ V }) {
       {a.from.length > 0 && (
         <>
           <h3>{A.fromTitle}</h3>
-          <ul class="plan-lines" data-testid={`${T}.from`}>{a.from.map((x, i) => <li class="plan-line" key={i} data-from={x.id}><span class="plan-label">{fill(A.from[x.id] || x.id, x.slots)}</span> {x.amount}</li>)}</ul>
+          <ul class="plan-lines month-from" data-testid={`${T}.from`} data-fact="month.take.from">{a.from.map((x, i) => <li class="plan-line" key={i} data-from={x.id}><span class="plan-label">{fill(A.from[x.id] || x.id, x.slots)}</span> {x.amount}</li>)}</ul>
           {/* 7.12.0: "already in cash" only when the cash entered covers the month */}
           {a.contract && <p class="note" data-testid={`${T}.bought`}>{a.cashShort ? fill(a.cashShort.label ? A.boughtShort : A.boughtShortNoNext, a.cashShort) : a.cashKnown ? A.bought : A.boughtPlain}</p>}
         </>

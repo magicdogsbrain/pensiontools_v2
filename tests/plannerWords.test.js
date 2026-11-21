@@ -104,7 +104,7 @@ describe('a new version of the plan document', () => {
     const ask = f.indexOf('newDocumentVersionQuestion(');
     expect(ask).toBeGreaterThan(0);
     expect(f.indexOf('appConfirm(')).toBeGreaterThan(ask);
-    expect(f.indexOf('appConfirm(')).toBeLessThan(f.indexOf('await archivePlanDocument()'));
+    expect(f.indexOf('appConfirm(')).toBeLessThan(f.indexOf('documentWrite({'));   // step F5: the archive and the new version in one write, after the question
     expect(f).not.toContain('window.confirm(');
     expect(f).not.toContain(' confirm(');
   });

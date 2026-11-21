@@ -37,7 +37,7 @@ import { firstPaymentMonth, monthToRecord, sentenceText } from '../../services/Y
 import { thisTaxYearOf, thisYearSentences, setUpAgainConfig } from '../../reading/thisYear.js';
 import { pounds } from './income.js';
 import { takenBeforeTax, targetOfTaken } from '../../services/BeforeTax.js';
-import { CASH_SHORT_LABEL } from '../../services/DecisionOverlay.js';
+import { monthFromOf, monthAfterTaxOf } from '../../reading/month.js';
 import { moveOfAlert } from '../../services/PlanRuleWords.js';
 import { shownPlanNameOn } from '../../services/PlanName.js';
 
@@ -243,27 +243,10 @@ function adviceOf(d) {
     const m = moveOfAlert(a);
     if (m) moves.push(m);
   }
-  const from = [];
-  if (ov && (ov.floorMonthly > 0 || ov.hidePots)) {
-    const label = String(ov.floorLabel || '');
-    const rung = /^rung (.+) \(already cash\)$/.exec(label);
-    const where = rung ? { id: 'rung', slots: { year: rung[1] } }
-      : label === 'the cash years bucket' ? { id: 'cashYears', slots: {} }
-        : label === CASH_SHORT_LABEL ? { id: 'cashShort', slots: {} }
-        : /^cash, (before|until)/.test(label) ? { id: 'cashBefore', slots: {} }   // its label until 7.4.2, and since
-          : label === 'the essentials rung' ? { id: 'essentials', slots: {} }
-            : label === 'the engine' ? { id: 'invested', slots: {} }
-              : { id: 'thisYear', slots: {} };
-    if (ov.floorMonthly > 0) from.push({ ...where, amount: pounds(ov.floorMonthly) });
-    if (ov.sleeveMonthly > 0) from.push({ id: 'investedRest', slots: {}, amount: pounds(ov.sleeveMonthly) });
-  } else {
-    if (d.drawFromCash > 0.5) from.push({ id: 'cash', slots: {}, amount: pounds(d.drawFromCash) });
-    if (d.drawFromBond > 0.5) from.push({ id: 'bonds', slots: {}, amount: pounds(d.drawFromBond) });
-    if (d.drawFromEquity > 0.5) from.push({ id: 'shares', slots: {}, amount: pounds(d.drawFromEquity) });
-    if (d.drawFromDiversifier > 0.5) from.push({ id: 'diversifiers', slots: {}, amount: pounds(d.drawFromDiversifier) });
-  }
+  // where it comes from: the one list both views draw (src/reading/month.js; step F5, lead4.md D17)
+  const from = monthFromOf(d).map((x) => ({ ...x, amount: pounds(x.amount) }));
   return {
-    month: monthWords(d.date), taxYear: d.taxYear, pension: pounds(d.sippDraw), tax: pounds(d.monthlyTax), afterTax: pounds(d.totalMonthlyNet),
+    month: monthWords(d.date), taxYear: d.taxYear, pension: pounds(d.sippDraw), tax: pounds(d.monthlyTax), afterTax: pounds(monthAfterTaxOf(d)),
     isa: d.isaDraw > 0.5 ? pounds(d.isaDraw) : null,
     gia: d.giaNet > 0.5 ? { net: pounds(d.giaNet), sold: pounds(d.giaDraw), cgt: d.giaCgt > 0.5 ? pounds(d.giaCgt) : null } : null,
     statePension: d.statePension > 0.5 ? pounds(d.statePension) : null, other: d.other > 0.5 ? pounds(d.other) : null,

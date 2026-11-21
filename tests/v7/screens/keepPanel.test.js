@@ -35,7 +35,7 @@ const WORDS = { a: A, b: B, c: C, d: D };
 const MADE = { id: 'Kq8LwT2mJv5PzYc9BnRd', name: 'Stop at 60 · £1,850 a month', where: 'account' };
 
 // (7.8.0: C's figures at Balanced weighted by how long people live; answer-A1 spends £1,850, its "close" while weighing)
-const ANSWERS = [['c', 'answer-F1', 'From 58 · £1,380 a month'], ['c', 'answer-F2', 'From 62 and 60 · £3,400 a month'], ['a', 'answer-A1', 'Stop at 60 · £1,850 a month'],
+const ANSWERS = [['c', 'answer-F1', 'From 58 · £1,380 a month'], ['c', 'answer-F2', 'From 62 and 60 · £3,460 a month'], ['a', 'answer-A1', 'Stop at 60 · £1,850 a month'],
   ['a', 'answer-A2-couple', 'Stop at 56 and 54 · £3,590 a month'], ['b', 'answer-B1', 'Stop at 60 · £2,000 a month'], ['b', 'answer-B2-on-course', 'Stop at 60 · £2,000 a month'],
   ['d', 'answer-D1', 'From 68 · £2,080 a month'], ['d', 'answer-D2-couple', 'From 72 and 70 · £2,800 a month']];
 

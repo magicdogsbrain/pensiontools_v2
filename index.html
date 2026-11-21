@@ -6692,11 +6692,11 @@
       const contract = CONTRACT_IDS.includes(window._activeStrategyId || '');
       const cols = contract
         ? ['Date', 'Paid from', 'SIPP draw', 'ISA draw', 'Gilt ladder value', 'Cash', 'Total pot', 'Tax (month)', 'Net (month)']
-        : ['Date', 'Draw source', 'SIPP draw', 'ISA draw', 'From equity', 'From bond', 'From cash', 'Protection', 'Equity target', 'Bond target', 'Cash target', 'Total pot', 'Rebalance'];
+        : ['Date', 'Draw source', 'SIPP draw', 'ISA draw', 'From equity', 'From bond', 'From cash', 'Protection', 'Equity target', 'Bond target', 'Cash target', 'Total pot'];   // (step F5) the move words a record kept are never written out
       let csv = cols.map(esc).join(',') + '\n';
       for (const h of rows) csv += (contract
-        ? [h.date, recordSourceWords(h, window._decisionAnchor, 'cash', 'cash bucket / matured rung'), r0(h.sipp), r0(h.isa), r0(h.bond), r0(h.cash), r0(h.total), r0(h.taxPaidMonthly || h.monthlyTax), r0(h.monthlyNet)]
-        : [h.date, h.source, r0(h.sipp), r0(h.isa), r0(h.dEquity), r0(h.dBond), r0(h.dCash), h.inProtection ? 'Yes' : 'No', r0(h.adjEquity), r0(h.adjBond), r0(h.adjCash), r0(h.total), h.rebal || '']).map(esc).join(',') + '\n';
+        ? [h.date, recordSourceWords(h, window._decisionAnchor, 'cash', 'your pension'), r0(h.sipp), r0(h.isa), r0(h.bond), r0(h.cash), r0(h.total), r0(h.taxPaidMonthly || h.monthlyTax), r0(h.monthlyNet)]
+        : [h.date, h.source, r0(h.sipp), r0(h.isa), r0(h.dEquity), r0(h.dBond), r0(h.dCash), h.inProtection ? 'Yes' : 'No', r0(h.adjEquity), r0(h.adjBond), r0(h.adjCash), r0(h.total)]).map(esc).join(',') + '\n';
       if (!rows.length) csv += '(no monthly records saved for this tax year yet)\n';
       downloadFile('decision-plan-' + taxYear.replace('/', '-') + '.csv', csv, 'text/csv;charset=utf-8;');
     };
@@ -11786,7 +11786,7 @@
       // Format withdrawal source details (a month before year 0: from the plan's year 0 as it is now, 6.51.0)
       let sourceDetail = h.source || 'Unknown';
       if (contract) {
-        sourceDetail = recordSourceWords(h, window._decisionAnchor, null, null) ? ('From ' + recordSourceWords(h, window._decisionAnchor, null, null)) : (recordBeforeStart(h, window._decisionAnchor) ? 'Cash — nothing is sold' : 'The cash bucket / this year\'s matured rung — nothing is sold');
+        sourceDetail = recordSourceWords(h, window._decisionAnchor, null, null) ? ('From ' + recordSourceWords(h, window._decisionAnchor, null, null)) : (recordBeforeStart(h, window._decisionAnchor) ? 'Cash — nothing is sold' : 'From your pension');   // (step F5, walk W7) no source kept: never a claim the record cannot back
       } else if (h.source === 'Growth' && (h.dEquity > 0 || h.dBond > 0)) {
         sourceDetail = `Growth (Equity: ${fmt(h.dEquity || 0)}, Bond: ${fmt(h.dBond || 0)})`;
       } else if (h.source === 'Cash') {
@@ -12003,16 +12003,7 @@
           </div>
         </div>
 
-        <!-- Rebalancing (never for a contract strategy — nothing is sold or moved) -->
-        ${h.rebal && !contract ? `
-          <div class="history-detail-card">
-            <h3>Rebalancing Suggestions</h3>
-            <div style="padding:12px;background:rgba(243,156,18,0.1);border-radius:8px;">
-              ${h.rebal}
-            </div>
-          </div>
-        ` : ''}
-
+        <!-- (step F5, lead4.md D17, R4) the move words a record kept when it was saved are never shown: a record shows its own figures -->
         <!-- Actions -->
         <div class="history-actions">
           <button class="btn secondary" data-on-click="deleteHistoryEntry('${h.date}')">${deleteButtonWords(recordsToDelete(allHistoryData, h.date, historyTaxYears, getTaxYearFromDateStr), h.taxYear)}</button>

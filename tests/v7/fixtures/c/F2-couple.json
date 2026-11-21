@@ -137,6 +137,7 @@
             "to": 63
           }
         },
+        "months": 31,
         "takeHome": 3470,
         "fromPension": 3668.88,
         "fromSavings": 0,
@@ -149,7 +150,7 @@
             "who": "you",
             "statePension": 0,
             "finalSalary": 0,
-            "fromPension": 2722.51,
+            "fromPension": 2722.52,
             "fromSavings": 0,
             "tax": 198.88,
             "takeHome": 2523.64,
@@ -189,6 +190,7 @@
             "to": 65
           }
         },
+        "months": 24,
         "takeHome": 3470,
         "fromPension": 2999.09,
         "fromSavings": 0,
@@ -241,6 +243,7 @@
             "to": 67
           }
         },
+        "months": 24,
         "takeHome": 3470,
         "fromPension": 2058.09,
         "fromSavings": 0,
@@ -293,6 +296,7 @@
             "to": 100
           }
         },
+        "months": 396,
         "takeHome": 3470,
         "fromPension": 915.28,
         "fromSavings": 0,
@@ -354,6 +358,7 @@
               "to": 63
             }
           },
+          "months": 31,
           "takeHome": 3590,
           "fromPension": 3804.28,
           "fromSavings": 0,
@@ -406,6 +411,7 @@
               "to": 65
             }
           },
+          "months": 24,
           "takeHome": 3590,
           "fromPension": 3134.49,
           "fromSavings": 0,
@@ -418,7 +424,7 @@
               "who": "you",
               "statePension": 0,
               "finalSalary": 750,
-              "fromPension": 2359.95,
+              "fromPension": 2359.94,
               "fromSavings": 0,
               "tax": 294.49,
               "takeHome": 2815.45,
@@ -458,6 +464,7 @@
               "to": 67
             }
           },
+          "months": 24,
           "takeHome": 3590,
           "fromPension": 2193.49,
           "fromSavings": 0,
@@ -510,6 +517,7 @@
               "to": 100
             }
           },
+          "months": 396,
           "takeHome": 3590,
           "fromPension": 1056.45,
           "fromSavings": 0,
@@ -1154,7 +1162,7 @@
       ],
       "bridge": {
         "id": "c.bridge",
-        "text": "From when you are 62 until you are 65, all of it comes from your pots: 3 years, about £125,000 at today's prices. From then your final-salary pension pays £750 of it.",
+        "text": "From when you are 62 until you are 65, all of it comes from your pots: 2 years and 7 months, about £108,000 at today's prices. From then your final-salary pension pays £750 of it.",
         "parts": [
           "From when you are ",
           {
@@ -1171,12 +1179,17 @@
           "your pots",
           ": ",
           {
-            "fixed": "3"
+            "fixed": "2"
           },
           " years",
+          " and ",
+          {
+            "fixed": "7"
+          },
+          " months",
           ", about ",
           {
-            "fixed": "£125,000"
+            "fixed": "£108,000"
           },
           " at today's prices. ",
           "From then ",
@@ -1550,7 +1563,7 @@
       },
       "takeBridge": {
         "id": "c.take.bridge",
-        "text": "From when you are 62 until you are 65, all of it comes from your pots: 3 years, about £129,000 at today's prices. From then your final-salary pension pays £750 of it.",
+        "text": "From when you are 62 until you are 65, all of it comes from your pots: 2 years and 7 months, about £111,000 at today's prices. From then your final-salary pension pays £750 of it.",
         "parts": [
           "From when you are ",
           {
@@ -1567,12 +1580,17 @@
           "your pots",
           ": ",
           {
-            "fixed": "3"
+            "fixed": "2"
           },
           " years",
+          " and ",
+          {
+            "fixed": "7"
+          },
+          " months",
           ", about ",
           {
-            "fixed": "£129,000"
+            "fixed": "£111,000"
           },
           " at today's prices. ",
           "From then ",

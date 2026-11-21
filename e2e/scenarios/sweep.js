@@ -4,13 +4,13 @@
  * to one value across pages (SAME), and the never-list findings by page.
  */
 import { FACTS } from './facts.js';
-import { fact, neverOnAnyPage } from './read.js';
+import { fact, neverOnAnyPage, placesOf } from './read.js';
 import { planPage, fullPage, settled } from './routes.js';
 
 /** The pages of a view the register names for these facts (all facts by default), in the register's order. */
 export function pagesFor(view, ids = Object.keys(FACTS)) {
   const out = [];
-  for (const id of ids) for (const p of FACTS[id][view] || []) if (!out.includes(p.page)) out.push(p.page);
+  for (const id of ids) for (const p of placesOf(FACTS[id], view)) if (!out.includes(p.page)) out.push(p.page);
   return out;
 }
 
@@ -32,7 +32,7 @@ export async function sweep(page, planId, { views = ['simple', 'full'], ids = Ob
         if (!(await fullPage(page, name))) continue;     // a tab this plan's stage does not show
       }
       for (const id of ids) {
-        if (!(FACTS[id][view] || []).some((p) => p.page === name)) continue;
+        if (!placesOf(FACTS[id], view).some((p) => p.page === name)) continue;
         const got = await fact(page, id, { view, page: name, timeout: view === 'simple' ? simpleWait : fullWait });
         if (got && got.value !== null) readings[id].push({ where, value: got.value, raw: got.raw });
       }

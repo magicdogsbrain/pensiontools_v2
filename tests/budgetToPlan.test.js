@@ -19,7 +19,7 @@ describe('what the button writes', () => {
     expect(patch.baseSalary).toBe(36000);
     expect(patch.incomeShape).toBe('phases');
     expect(patch.incomeSteps).toEqual([{ fromAge: 60, amount: 36000 }, { fromAge: 75, amount: 30000 }]);   // the later steps are the person's
-    expect(patch.shapeAgeNow).toBe(60);
+    expect(patch).not.toHaveProperty('shapeAgeNow');          // an age worked out from the plan is never stored as if typed
     expect(patch.targetSchedule.length).toBe(31);
     expect(patch.targetSchedule[0]).toBe(36000);
     expect(patch.targetSchedule[15]).toBe(30000);
@@ -28,14 +28,33 @@ describe('what the button writes', () => {
     expect(stress.incomeSteps[0].amount).toBe(40000);        // the input is not changed
   });
   it('a plan with no shape yet gets one step at its start; a Budget nobody gave ages to starts at 57, one with ages at retirement', () => {
-    expect(budgetSpendingPatch(defaultBudget(), { duration: 30 }, 30000)).toMatchObject({ shapeAgeNow: 57, incomeSteps: [{ fromAge: 57, amount: 30000 }] });
-    expect(budgetSpendingPatch(markBudgetAgesSet(defaultBudget(50, 62)), { duration: 30 }, 30000).shapeAgeNow).toBe(62);
+    expect(budgetSpendingPatch(defaultBudget(), { duration: 30 }, 30000)).toMatchObject({ incomeSteps: [{ fromAge: 57, amount: 30000 }] });
+    expect(budgetSpendingPatch(markBudgetAgesSet(defaultBudget(50, 62)), { duration: 30 }, 30000).incomeSteps[0].fromAge).toBe(62);
   });
-  it('Undo puts back exactly the keys it changed, as they were — absent keys as null — and the Decision target', () => {
+  it('the steps are the plan\'s AS STORED; the age at the start and the length are the reading\'s', () => {
+    const stored = { incomeShape: 'phases', incomeSteps: [{ fromAge: 66, amount: 40000 }, { fromAge: 80, amount: 30000 }] };
+    const reading = { ...stored, incomeSteps: [{ fromAge: 66, amount: 39000 }, { fromAge: 80, amount: 29000 }], shapeAgeNow: 66, duration: 24, equityMin: 250000 };
+    const patch = budgetSpendingPatch(defaultBudget(), stored, 36000, reading);
+    expect(patch.incomeSteps).toEqual([{ fromAge: 66, amount: 36000 }, { fromAge: 80, amount: 30000 }]);   // not the reading's 29,000
+    expect(patch.targetSchedule.length).toBe(25);
+    expect(patch.targetSchedule[14]).toBe(30000);
+    expect(Object.keys(patch).sort()).toEqual([...SPENDING_KEYS].sort());
+    // a stored plan with no steps: one step at the reading's age, not 57
+    expect(budgetSpendingPatch(defaultBudget(), {}, 30000, { shapeAgeNow: 63, duration: 20 }).incomeSteps).toEqual([{ fromAge: 63, amount: 30000 }]);
+  });
+  it('Undo puts back exactly the keys it changed, as STORED: a key that was not there is taken out again (undefined), never stored as null', () => {
     const before = spendingBefore({ baseSalary: 40000, incomeSteps: [{ fromAge: 60, amount: 40000 }], duration: 30 }, { baseSalary: 40000 });
-    expect(before.stress).toEqual({ baseSalary: 40000, incomeShape: null, incomeSteps: [{ fromAge: 60, amount: 40000 }], shapeAgeNow: null, targetSchedule: null });
+    expect(before.stress).toEqual({ baseSalary: 40000, incomeShape: undefined, incomeSteps: [{ fromAge: 60, amount: 40000 }], targetSchedule: undefined });
+    expect(Object.keys(before.stress).sort()).toEqual([...SPENDING_KEYS].sort());
     expect(before.decision).toEqual({ baseSalary: 40000 });
-    expect(spendingBefore(undefined, undefined).decision.baseSalary).toBeNull();
+    expect(spendingBefore(undefined, undefined).decision).toEqual({ baseSalary: undefined });
+  });
+  it('the full view takes the plan as stored for the patch and the Undo, and the reading only for the age and length', () => {
+    const src = readFileSync('index.html', 'utf8');
+    const body = src.slice(src.indexOf('window.applyBudgetToPlan = async function'), src.indexOf('// ==================== Guided budget wizard'));
+    expect(body).toMatch(/getActiveScenarioAsStored\(\)/);
+    expect(body).toMatch(/spendingBefore\(storedStress, storedDecision\)/);
+    expect(body).toMatch(/budgetSpendingPatch\(window\._budget, storedStress, gross, stressNow\)/);
   });
 });
 

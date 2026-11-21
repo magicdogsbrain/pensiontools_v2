@@ -2724,6 +2724,7 @@
               "statePension": 12000,
               "statePensionYear": 12,
               "taxMode": "inflates",
+              "configured": true,
               "chargesPct": 0.5,
               "isaGrowth": "cash"
             }
@@ -2974,7 +2975,7 @@
               "shares": 420000,
               "bonds": 210000,
               "cash": 70000,
-              "spWeekly": 221,
+              "spWeekly": 221.2,
               "mixShares": 420000,
               "mixBonds": 210000,
               "mixCash": 70000
@@ -3098,9 +3099,10 @@
                           "key": "step0",
                           "kind": "money"
                         },
-                        " a year before tax"
+                        " a year before tax",
+                        " (tax year 2026/27)"
                       ],
-                      "text": "From age 62: £38,000 a year before tax"
+                      "text": "From age 62: £38,000 a year before tax (tax year 2026/27)"
                     },
                     "source": {
                       "kind": "saved",
@@ -3125,9 +3127,10 @@
                           "kind": "money"
                         },
                         " a year before tax",
+                        " (tax year 2039/40)",
                         ", falling 1% a year"
                       ],
-                      "text": "From age 75: £32,000 a year before tax, falling 1% a year"
+                      "text": "From age 75: £32,000 a year before tax (tax year 2039/40), falling 1% a year"
                     },
                     "source": {
                       "kind": "saved",
@@ -3229,11 +3232,11 @@
                       "parts": [
                         {
                           "key": "spWeekly",
-                          "kind": "money"
+                          "kind": "week"
                         },
                         " a week"
                       ],
-                      "text": "£221 a week"
+                      "text": "£221.20 a week"
                     },
                     "source": {
                       "kind": "saved",
@@ -3992,6 +3995,7 @@
         ],
         "current": "plan",
         "answerStale": null,
+        "readFault": null,
         "next": {
           "id": "P.reviewAny",
           "slots": {
@@ -4076,6 +4080,7 @@
           "family": true,
           "endAge": 96,
           "atStop": null,
+          "noFigures": false,
           "runKey": "AlexWay01|2026-08-14T10:05:00.000Z|13z6pso|U",
           "stash": {
             "pots-and-valves": {},
@@ -4157,6 +4162,13 @@
               "tried": null,
               "table": null,
               "compare": null,
+              "costFact": null,
+              "facts": {
+                "name": "way.pots-and-valves.name",
+                "verdict": null,
+                "cost": "way.pots-and-valves.cost",
+                "bought": "way.bought"
+              },
               "asLocked": null
             },
             {
@@ -4233,6 +4245,13 @@
               "tried": null,
               "table": null,
               "compare": null,
+              "costFact": null,
+              "facts": {
+                "name": "way.buckets-in-order.name",
+                "verdict": null,
+                "cost": "way.buckets-in-order.cost",
+                "bought": "way.bought"
+              },
               "asLocked": null
             },
             {
@@ -4309,6 +4328,13 @@
               "tried": null,
               "table": null,
               "compare": null,
+              "costFact": null,
+              "facts": {
+                "name": "way.ladder-and-ratchet.name",
+                "verdict": null,
+                "cost": "way.ladder-and-ratchet.cost",
+                "bought": "way.bought"
+              },
               "asLocked": null
             },
             {
@@ -4358,6 +4384,13 @@
               "tried": null,
               "table": null,
               "compare": null,
+              "costFact": null,
+              "facts": {
+                "name": "way.bridge-and-engine.name",
+                "verdict": null,
+                "cost": "way.bridge-and-engine.cost",
+                "bought": "way.bought"
+              },
               "asLocked": null
             },
             {
@@ -4450,6 +4483,13 @@
               "tried": null,
               "table": null,
               "compare": null,
+              "costFact": null,
+              "facts": {
+                "name": "way.floor-and-flex.name",
+                "verdict": null,
+                "cost": "way.floor-and-flex.cost",
+                "bought": "way.bought"
+              },
               "asLocked": null
             },
             {
@@ -4473,6 +4513,13 @@
               "tried": null,
               "table": null,
               "compare": null,
+              "costFact": null,
+              "facts": {
+                "name": "way.floor-the-schedule.name",
+                "verdict": null,
+                "cost": "way.floor-the-schedule.cost",
+                "bought": "way.bought"
+              },
               "asLocked": null
             },
             {
@@ -4510,6 +4557,13 @@
               "tried": null,
               "table": null,
               "compare": null,
+              "costFact": null,
+              "facts": {
+                "name": "way.floor-to-age.name",
+                "verdict": null,
+                "cost": "way.floor-to-age.cost",
+                "bought": "way.bought"
+              },
               "asLocked": null
             },
             {
@@ -4562,6 +4616,13 @@
               "tried": null,
               "table": null,
               "compare": null,
+              "costFact": null,
+              "facts": {
+                "name": "way.full-il-gilt.name",
+                "verdict": null,
+                "cost": "way.full-il-gilt.cost",
+                "bought": "way.bought"
+              },
               "asLocked": null
             },
             {
@@ -4650,6 +4711,13 @@
               "tried": null,
               "table": null,
               "compare": null,
+              "costFact": null,
+              "facts": {
+                "name": "way.gilt-rotation.name",
+                "verdict": null,
+                "cost": "way.gilt-rotation.cost",
+                "bought": "way.bought"
+              },
               "asLocked": null
             }
           ],
@@ -4657,7 +4725,8 @@
           "open": "pots-and-valves",
           "rankBy": "lasts",
           "ran": null,
-          "has": false
+          "has": false,
+          "market": null
         }
       }
     }

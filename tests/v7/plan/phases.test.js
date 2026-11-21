@@ -44,7 +44,7 @@ describe('the constants, in one place', () => {
     expect(TASKS_MAX).toBe(50);
     expect(LIVING_REVIEW_AFTER).toBe(6);
     expect(SAVING_LEVELS).toEqual(['cautious', 'balanced', 'adventurous']);
-    expect(HISTORY_WHATS).toEqual(['window', 'saving.level', 'review.every', 'review.rule', 'moving.agreed', 'moving.withdrawn']);
+    expect(HISTORY_WHATS).toEqual(['level', 'window', 'saving.level', 'review.every', 'review.rule', 'moving.agreed', 'moving.withdrawn']);
     for (const x of [WINDOW, OFF_COURSE, OFF_COURSE.floors, SAVING_LEVELS, PHASE_PARTS]) expect(Object.isFrozen(x)).toBe(true);
   });
   it('the default line is one twentieth below the plan\'s level: careful .90, balanced .85, bold .65 — each one of the floors', () => {

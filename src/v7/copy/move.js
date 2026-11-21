@@ -56,8 +56,7 @@ export const MOVE = {
     planHas: 'Your plan has {pension} in your pension ({from}).',
     planHasIsa: 'Your plan has {pension} in your pension and {isa} in your ISA ({from}).',
     planEnough: '{toRaise} of it pays for the buys; you choose which to sell. The other {leftOver} is not needed for the ladder.',
-    planShort: 'That is {short} less than the buys cost.',
-    from: { plan: 'from your plan', checkIn: 'from your check-in', record: 'from your last record' }
+    planShort: 'That is {short} less than the buys cost.'
   },
   /** What is held that the plan does not use (7.12.0, a ladder): the lines outside it, and a gilt's units above its place. */
   outside: {

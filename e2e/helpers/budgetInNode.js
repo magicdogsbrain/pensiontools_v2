@@ -39,7 +39,7 @@ if (what === 'budget') {
 } else {
   const s = savingOf(entries, up.id, { today });
   const last = s.rows.length ? s.rows[s.rows.length - 1] : null;
-  out.saving = { fields: Object.fromEntries(s.fields.map((f) => [f.path, f.shown])), ages: s.ages, last, recordsCount: s.recordsCount, locked: s.locked, relief: s.relief, mix: s.mix, rows: s.rows.length };
+  out.saving = { fields: Object.fromEntries(s.fields.map((f) => [f.path, f.shown])), ages: s.ages, last, recordsCount: s.recordsCount, locked: s.locked, relief: s.relief, atStop: s.atStop, rows: s.rows.length };
   out.save = typed ? (({ ok, patch, previous, line }) => ({ ok, patch, previous, line }))(savingPatch(up, typed, { today })) : null;
   out.record = record ? (({ ok, patch, previous, line }) => ({ ok, patch, previous, line }))(recordPatch(up, record, { today, now: now ? new Date(now) : null })) : null;
 }

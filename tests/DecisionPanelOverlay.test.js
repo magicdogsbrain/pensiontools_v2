@@ -6,7 +6,9 @@ const base = { sippDraw: 2333, isaDraw: 0, totalMonthlyNet: 2076, monthlyTax: 25
 describe('Decision panel with a contract-strategy overlay', () => {
   it('full gilt ladder: rung pays everything, no pot advice, no rebalance alert, tax kept', () => {
     const html = buildDecisionHTML({ ...base, strategyOverlay: { id: 'full-il-gilt', name: 'Full index-linked gilt ladder', floorMonthly: 2333, sleeveMonthly: 0, floorLabel: "this year's matured rung", note: 'Nothing is sold.', hidePots: true } });
-    expect(html).toContain("from this year's matured rung");
+    // retaken in step F5 (lead4.md D17): where it comes from, in Month by month's words (src/reading/month.js)
+    expect(html).toContain('This year’s gilt</span> £2,333');
+    expect(html).toContain('data-fact="month.take.from"');
     expect(html).not.toContain('Fund Status');
     expect(html).not.toContain('Cash low!');
     expect(html).toContain('Tax Boost');
@@ -16,7 +18,7 @@ describe('Decision panel with a contract-strategy overlay', () => {
     const html = buildDecisionHTML({ ...base, sippDraw: 3333, strategyOverlay: { id: 'floor-and-flex', name: 'Floor & Flex', floorMonthly: 1500, sleeveMonthly: 1833, floorLabel: 'the essentials rung', note: 'x', hidePots: true } });
     expect(html).toContain('£1,500');
     expect(html).toContain('£1,833');
-    expect(html).toContain('from the invested sleeve');
+    expect(html).toContain('Your invested money, for the rest</span> £1,833');
   });
   it('the total shown is the engine\'s partial-year-aware figure, not a 12× estimate', () => {
     const html = buildDecisionHTML({ ...base, sippDraw: 3333, other: 0, statePension: 0, monthlyTax: 308, totalMonthlyNet: 3025 });
@@ -24,7 +26,8 @@ describe('Decision panel with a contract-strategy overlay', () => {
   });
   it('pots & valves (no overlay) is unchanged', () => {
     const html = buildDecisionHTML(base);
-    expect(html).toContain('Withdraw From');
+    expect(html).toContain('Where it comes from');   // step F5: Month by month's heading and list
+    expect(html).toContain('Cash</span> £2,333');
     // retaken in 7.12.0 round 3 (decision 6): the pots against the plan's levels, and the low-cash alert as what the month does
     expect(html).toContain('Your pots against the plan’s levels');
     expect(html).toContain('This month takes money from pots below the level your plan keeps them at.');

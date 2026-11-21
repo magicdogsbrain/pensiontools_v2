@@ -15,7 +15,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { test, expect, PROD, REPO, FIXED_NOW, SLOWDOWN, record, V7_PATH, WORKER_DATA_MISSING } from './helpers/app.js';
+import { test, expect, PROD, REPO, FIXED_NOW, SLOWDOWN, record, V7_PATH } from './helpers/app.js';
 import { lastsInNode } from './helpers/lastsInNode.js';
 import { LASTS_WRITES } from '../src/answers/plan/schema.js';
 
@@ -81,7 +81,6 @@ test.describe('"Does it last?", without an account', () => {
   test('the one test runs in the preview and equals the Node run to the pound; the dials with their sources; a new cut; Save (one plan, the declared keys only); the test runs again; Undo byte for byte', async ({ page, watch }, testInfo) => {
     test.setTimeout(300_000);
     // as on the live site today: the engine worker asks for the market files from its own address (e2e/full-view-unchanged.spec.js)
-    watch.allow(WORKER_DATA_MISSING);
     const plan = draftPlan();
     const locked = lockedPlan();
     const stored = await plant(page, [plan, locked]);
@@ -108,7 +107,7 @@ test.describe('"Does it last?", without an account', () => {
       await expect(band.locator('[data-testid="plan.lasts.result.sub"]')).toHaveAttribute('data-fixed', 'age');
       await expect(band.locator('[data-testid="plan.lasts.result.sub"]')).toContainText(/^If you live to \d+, /);
     } else await expect(band).toContainText('Your plan lasts in');
-    await expect(band.locator('.verdict-word')).toHaveText(/On course|Close|Not yet/);
+    await expect(band.locator('.verdict-word')).toHaveText(/On course|Close|Not on course/);
     // (7.8.0: weighing, what is left is said at the plan-to age, typically and in the best 1 in 10)
     if (node.a.words && node.a.weighted !== null && node.a.weighted !== undefined) await expect(band).toContainText(/what is typically left then is £[\d,]+ at today's prices/);
     else await expect(band).toContainText('Left at the end, at today’s prices: typically £');
@@ -198,7 +197,6 @@ test.describe('"Does it last?", without an account', () => {
 
   test('a box left wrong is marked in plain words and nothing is written; Cancel clears the typing; the locked plan shows the document\'s figure and today\'s, and has no box', async ({ page, watch }) => {
     test.setTimeout(180_000);
-    watch.allow(WORKER_DATA_MISSING);
     const plan = draftPlan();
     const locked = lockedPlan();
     const stored = await plant(page, [plan, locked]);

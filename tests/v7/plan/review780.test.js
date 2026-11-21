@@ -109,13 +109,23 @@ describe('"How careful?" on a plan\'s "Does it last?"', () => {
     expect(boldConsequenceOf({ weighted: 0.8, failKind: 'cut' })).toBe('About 4 times in 20 your income falls short while you are alive, and you would spend less from then on.');
     expect(boldConsequenceOf({ weighted: 1, failKind: 'ran-out' })).toBe('In none of the futures we tried does the money run out while you are alive.');
   });
-  it('page memory only: ui/level sets the page\'s level and nothing else', () => {
+  it('the plan\'s level (lead4.md R5): a press writes phases.level, every reader takes it; there is no page level', async () => {
+    const { phaseChoicePatch } = await import('../../../src/answers/plan/review.js');
+    const { planLevelOf, planLevelChosen } = await import('../../../src/services/Phases.js');
     const s0 = initialState({ today: TODAY });
-    const s1 = reduce(s0, { type: 'ui/level', level: 'bold' });
-    expect(s1.ui.level).toBe('bold');
-    expect(s1.plans).toBe(s0.plans);
-    expect(s1.draft).toBe(s0.draft);
-    expect(reduce(s1, { type: 'ui/level', level: 'reckless' }).ui.level).toBe('bold');
+    expect(() => reduce({ ...s0, env: { ...s0.env, build: 'test' } }, { type: 'ui/level', level: 'bold' })).toThrow();
+    const plan = { id: 'p1', createdAt: '2026-01-01T00:00:00Z', stressTool: { settings: { currentAge: 66, retired: true } } };
+    expect(planLevelOf(plan)).toBe('balanced');
+    expect(planLevelChosen(plan)).toBe(false);
+    const p = phaseChoicePatch(plan, 'level', 'bold', { at: '2026-11-19T10:00:00.000Z' });
+    expect(p.ok).toBe(true);
+    expect(p.patch.phases.level).toEqual({ level: 'bold', at: '2026-11-19T10:00:00.000Z' });
+    const kept = { ...plan, phases: p.patch.phases };
+    expect(planLevelOf(kept)).toBe('bold');
+    expect(planLevelChosen(kept)).toBe(true);
+    // the plan's own choice comes before the one made with the answer it was kept from
+    expect(planLevelOf({ ...kept, fromAnswer: { answer: { level: 'careful', levelChosen: true } } })).toBe('bold');
+    expect(phaseChoicePatch(plan, 'level', 'reckless', { at: '2026-11-19T10:00:00.000Z' }).ok).toBe(false);
   });
 });
 
@@ -129,13 +139,16 @@ describe('the classic planner', () => {
     const select = block.querySelector('select');
     expect(select.getAttribute('data-on-change')).toBe('setChanceLevel(this.value)');
     window._oneTest = { r, p: P, chance: o };
-    installChanceLevel(window, document);
+    const written = [];
+    installChanceLevel(window, document, { writeLevel: async (level) => { written.push(level); return true; } });
     installInlineHandlers(document);
     select.value = 'bold';
     select.dispatchEvent(new Event('change', { bubbles: true }));
     expect(document.querySelector('.verdict-title').textContent).toMatch(/at Bold$/);
-    expect(window._chanceLevel).toBe('bold');
-    delete window._oneTest; delete window._chanceLevel; delete window.setChanceLevel;
+    // the plan's level is written (lead4.md R5): no page variable
+    expect(written).toEqual(['bold']);
+    expect(window._chanceLevel).toBeUndefined();
+    delete window._oneTest; delete window.setChanceLevel;
   });
 
   it('"Am I on course?" reads the plan\'s kept level when the page has none, as the verdict block does', () => {

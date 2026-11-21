@@ -14,7 +14,6 @@ import { describe, it, expect, vi } from 'vitest';
 vi.mock('../src/firebase/index.js', () => ({ isFirebaseConfigured: () => false, isLoggedIn: () => false }));
 import { projectAccumulation, FCA_RATES } from '../src/services/AccumulationEngine.js';
 import { projectedPotAtRetirement } from '../src/services/PlanTiming.js';
-import { potAtAge, isaAtAge } from '../src/services/RetireSweep.js';
 import { proportions } from '../src/services/Holdings.js';
 import { monthlyChargeFactor, yearlyChargeFactor } from '../src/services/Charges.js';
 
@@ -100,46 +99,5 @@ describe('the Timing block\'s pots at retirement (projectedPotAtRetirement)', ()
   });
 });
 
-describe('the retire-at-what-age sweep\'s ISA (isaAtAge)', () => {
-  const ledger = [
-    { ticker: 'VLS80', value: 300000, wrapper: 'SIPP', ocf: 0.22, contribution: 1500 },
-    { ticker: 'CSH2', value: 20000, wrapper: 'SIPP', ocf: 0.10 }
-  ];
-  const acc = { netMonthly: 800, salary: 60000, schemeType: 'ras', employerMonthly: 400, isaMonthly: 300, escalationPct: 0 };
-
-  it('no choice: today\'s rule exactly — the ISA × 1.02^years × the charge, nothing paid in', () => {
-    for (const pct of [undefined, 0.5]) {
-      const settings = { isaBalance: 60000, ...(pct ? { chargesPct: pct } : {}) };
-      const got = isaAtAge({ settings, accumulation: acc, currentAge: 55, age: 62, holdings: ledger });
-      expect(got.isa).toBe(Math.round(60000 * Math.pow(1.02, 7) * yearlyChargeFactor(pct || 0, 7)));
-      expect(got.basis).toBe(null);
-    }
-    expect(isaAtAge({ settings: { isaBalance: 0 }, accumulation: acc, currentAge: 55, age: 62 }).isa).toBe(0);
-  });
-
-  it('"Mostly cash": 1.5% a year less charges with the ISA box paid in', () => {
-    const settings = { isaBalance: 60000, chargesPct: 0.5, isaGrowth: 'cash' };
-    const got = isaAtAge({ settings, accumulation: acc, currentAge: 55, age: 62, holdings: ledger });
-    const rows = projectAccumulation({ currentAge: 0, retirementAge: 7, potNow: 60000, totalMonthly: 300, chargesPct: 0.5, fixedNominal: 0.015 });
-    expect(got.isa).toBe(Math.round(rows[7].potMid));
-    expect(got.basis).toBe('cash');
-  });
-
-  it('"Invested like my pension": the pension\'s own line — the holdings\' mix line when tagged, else the middle band', () => {
-    const settings = { isaBalance: 60000, chargesPct: 0.5, isaGrowth: 'invested' };
-    const tagged = isaAtAge({ settings, accumulation: acc, currentAge: 55, age: 62, holdings: ledger });
-    const prop = proportions(ledger);
-    const want = projectAccumulation({ currentAge: 0, retirementAge: 7, potNow: 60000, totalMonthly: 300, mixRealReturn: prop.expectedReal, chargesPct: 0.5, mixOcf: prop.weightedOcf });
-    expect(tagged.isa).toBe(Math.round(want[7].potMix));
-    expect(tagged.basis).toBe(potAtAge({ settings, accumulation: acc, currentAge: 55, age: 62, holdings: ledger }).basis);
-    const untagged = isaAtAge({ settings, accumulation: acc, currentAge: 55, age: 62 });
-    const mid = projectAccumulation({ currentAge: 0, retirementAge: 7, potNow: 60000, totalMonthly: 300, chargesPct: 0.5 });
-    expect(untagged.isa).toBe(Math.round(mid[7].potMid));
-    expect(untagged.basis).toBe('FCA middle band');
-  });
-
-  it('with a choice and only what is paid in (no ISA today): the pay-ins alone', () => {
-    const got = isaAtAge({ settings: { isaBalance: 0, isaGrowth: 'cash' }, accumulation: acc, currentAge: 55, age: 60 });
-    expect(got.isa).toBeGreaterThan(5 * 12 * 300 * 0.9);
-  });
-});
+// (step F1, lead4.md D4; step F3, D11) "When could I retire?" is answer A on the plan's figures (src/reading/whenStop.js): it has
+// no projection of its own.

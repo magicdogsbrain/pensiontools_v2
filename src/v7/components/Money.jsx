@@ -8,10 +8,10 @@
  * `data-key` is the dotted path, `data-value` the raw value at it, `data-kind` how it is written; the text is
  * format.js's. Nothing is worked out here: if the key does not hold a number, nothing is drawn.
  */
-import { money, ageText, pot, pctText, get } from '../../answers/shared/format.js';
+import { money, ageText, pot, pctText, weekText, get } from '../../answers/shared/format.js';
 
 /** `count` is a whole number (months, gilts, years); `pct` a percentage, as written (format.js, the sentences' own). */
-const TEXT = { age: ageText, pot, money, count: (v) => String(Math.round(v)), pct: pctText };
+const TEXT = { age: ageText, pot, money, count: (v) => String(Math.round(v)), pct: pctText, week: weekText };
 
 export function Money({ source, k, kind = 'money', class: cls }) {
   const v = get(source, k);

@@ -51,10 +51,12 @@
  * lands a month) and a pause still running (nothing going in now) — checkInPayIn turns it into B's pay-in. The check-in's
  * verdict is this same test on its figures: no second model.
  */
+import { accessOf } from '../../reading/access.js';
 import { SCHEMA_B } from '../b/schema.js';
 import { checkInputs, draftTextOf } from '../shared/validate.js';
 import { fullStatePensionYearly, SAVING, LEVEL_DEFAULT } from '../shared/rules.js';
 import { keptSexOf, planLevelOf } from './life.js';
+import { planLevelChosen } from '../../services/Phases.js';
 import { effectiveStressSettings, planStage } from '../../services/PlanReading.js';
 import { deriveTiming } from '../../services/PlanTiming.js';
 import { proportions } from '../../services/Holdings.js';
@@ -248,13 +250,16 @@ export function saverInputsOf(plan, { today, checkIn = null, plans = [] } = {}) 
   // the plan's own mixes, exact — unless they are the levels named, exactly (a plan kept as an answer's levels): then the
   // levels say them, and B's boxes hold them as they are (saverDraftOf `exactMix`)
   const exactLevels = isPreset(mixes.drawing, inputs.risk) && isPreset(mixes.saving, inputs.savingRisk);
-  const env = { ...(exactLevels ? {} : { mix: mixes.drawing, savingMix: mixes.saving }), ...(scheme ? { scheme } : {}), fromPlan };
+  // how the tax-free part is taken (step F2, lead4.md D6; src/reading/access.js): the plan's one field — the plan's own test
+  // reads it through fromPlan; B opened from the plan carries it as "already had the tax-free part" (saverDraftOf)
+  const taxEnv = accessOf(plan).method === 'drawdown' ? { taxFreeTaken: true } : {};
+  const env = { ...(exactLevels ? {} : { mix: mixes.drawing, savingMix: mixes.saving }), ...(scheme ? { scheme } : {}), ...taxEnv, fromPlan };
 
   // the answer's own level (7.8.0): the person's only when they chose it (the kept answer row's `levelChosen`); a level
   // stored before 7.8.0 ("9 in 10" was everyone's default) is Balanced. No figure of the plan's, so it stays the answer's
   // for as long as the plan keeps the record of it — with a check-in too
   // whatever answer the plan was kept from (A, B, C or D), as "Does it last?" reads it (life.planLevelOf)
-  if (isObj(plan && plan.fromAnswer) && isObj(plan.fromAnswer.answer) && plan.fromAnswer.answer.levelChosen === true) inputs.confidence = planLevelOf(plan);
+  if (planLevelChosen(plan)) inputs.confidence = planLevelOf(plan);
   // which figures for how long people live (7.8.0): the kept answer's, only when it said one (a plan saves none of its own);
   // else the box's default, not said (the figures for women). The saver's plan is read for one person, so `you` alone —
   // that person's own figures, from whatever answer the plan was kept from (life.keptSexOf, as "Does it last?" reads them)
@@ -319,7 +324,11 @@ export function saverDraftOf(plan, { today, plans = [] } = {}) {
   const read = saverInputsOf(plan, { today, plans });
   if (!read.ok) return { ok: false, why: read.why };
   const exactMix = !read.env || !read.env.mix;
-  const mixes = exactMix ? null : { risk: read.inputs.risk, savingRisk: read.inputs.savingRisk, mix: read.env.mix, savingMix: read.env.savingMix || read.env.mix };
+  // (step F2) a plan that takes every pound taxed carries that too, so B opened from it counts the plan's own tax
+  // read as kept (the answer's own levels): the levels alone, with the access method when the plan takes every pound taxed
+  const levels = { risk: read.inputs.risk, savingRisk: read.inputs.savingRisk };
+  const taxed = read.env && read.env.taxFreeTaken ? { taxFreeTaken: true } : null;
+  const mixes = exactMix ? (taxed ? { ...levels, ...taxed } : null) : { ...levels, mix: read.env.mix, savingMix: read.env.savingMix || read.env.mix, ...(taxed || {}) };
   // (a plan's part in pounds is what lands: with no way said, B reads it so — payIn.js — and the line under the boxes says it)
   return { ok: true, values: draftTextOf(SCHEMA_B, read.inputs), exactMix, mixes };
 }

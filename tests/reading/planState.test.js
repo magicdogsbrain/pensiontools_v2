@@ -2,7 +2,7 @@
  * The full view's one object for the open plan (src/ui/planState.js, lead4.md R2): dropped whole on a change of plan.
  */
 import { describe, it, expect } from 'vitest';
-import { createPlanState, planKeyOf, planIdOfKey, PLAN_STATE_FIELDS, PLAN_TABS } from '../../src/ui/planState.js';
+import { createPlanState, planKeyOf, planIdOfKey, PLAN_STATE_FIELDS, PLAN_TABS, emptyPlanField } from '../../src/ui/planState.js';
 
 describe('the open plan\'s state', () => {
   it('is keyed by the plan and its last change', () => {
@@ -16,7 +16,7 @@ describe('the open plan\'s state', () => {
     for (const f of PLAN_STATE_FIELDS) st[f] = { from: 'a' };
     st.reset('b|2');
     expect(st.key).toBe('b|2');
-    for (const f of PLAN_STATE_FIELDS) expect(st[f] === null || st[f] === false || (f === 'shapeRefs' && st[f].essentials === 0)).toBe(true);
+    for (const f of PLAN_STATE_FIELDS) expect([f, st[f]]).toEqual([f, emptyPlanField(f)]);
     expect(st.isFor('b|2')).toBe(true);
     expect(st.isFor('a|1')).toBe(false);
   });
@@ -52,7 +52,66 @@ describe('the page\'s names are the one state', () => {
     expect(st.budget).toEqual({ lines: [] });
     expect(st.oneTest).toEqual({ r: 1 });
     st.reset('b|1');
-    for (const name of Object.keys(PLAN_STATE_GLOBALS)) expect(win[name] === null || win[name] === false || (name === '_shapeRefs' && win[name].essentials === 0)).toBe(true);
+    for (const [name, field] of Object.entries(PLAN_STATE_GLOBALS)) expect([name, win[name]]).toEqual([name, emptyPlanField(field)]);
     expect(win._plan).toBe(st);
+  });
+
+  it('nothing chosen on a page of one plan is read in the next (fix round 1): dials, limits, offers to undo, years chosen, splits', () => {
+    const { bindPlanState } = require('../../src/ui/planState.js');
+    const win = {};
+    const st = bindPlanState(win, createPlanState().reset('a|1'));
+    win._stratDials.cutPct = 7; win._beAge = 70; win._ffHorizon = 88; win._hhLimit = { kind: 'age', age: 70 };
+    win._budImportUndo = { lines: [] }; win._budPlusTen = true; win._customAlloc.ss = { savedSplit: true, glideEndgame: 'x' }; win._allocMode.ss = 'funds';
+    win._decisionAnchor = 2027; st.historyYear = '2027'; st.taxYear = '27/28'; st.budLastRemoved = { kind: 'line', item: { label: 'Rent' }, index: 0 };
+    const dialsBefore = win._stratDials;
+    st.reset('b|1');
+    expect(win._stratDials).toEqual({}); expect(win._stratDials).not.toBe(dialsBefore);
+    expect(win._beAge).toBe(null); expect(win._ffHorizon).toBe(null); expect(win._hhLimit).toBe(null);
+    expect(win._budImportUndo).toBe(null); expect(win._budPlusTen).toBe(false);
+    expect(win._customAlloc).toEqual({}); expect(win._allocMode).toEqual({}); expect(win._decisionAnchor).toBe(null);
+    expect(st.historyYear).toBe('all'); expect(st.taxYear).toBe(null); expect(st.budLastRemoved).toBe(null);
+  });
+
+  it('nothing chosen in one plan is read in the next (fix round 2): the Overview\'s age, the History month, the paid-ahead month, the ladder worked out', () => {
+    const { bindPlanState } = require('../../src/ui/planState.js');
+    const win = {};
+    const st = bindPlanState(win, createPlanState().reset('a|1'));
+    win._cmpAge = 80; win._entryMonthBeforePaid = '2026-10'; st.historyDate = '2026-10-01'; st.ladderPos = { key: 'k', plan: {} };
+    st.reset('b|1');
+    expect(win._cmpAge).toBe(null); expect(win._entryMonthBeforePaid).toBe(null); expect(st.historyDate).toBe(null); expect(st.ladderPos).toBe(null);
+    st.ladderPos = { key: 'k', plan: {} }; st.historyDate = '2026-10-01';
+    st.dropWorked();   // a save or a record: the ladder worked out from the plan as it was goes; the month chosen in History stays
+    expect(st.ladderPos).toBe(null); expect(st.historyDate).toBe('2026-10-01');
+  });
+
+  it('the ranking\'s order and "More columns" chosen on one plan are not carried to the next (step F3)', () => {
+    const { bindPlanState } = require('../../src/ui/planState.js');
+    const win = {};
+    const st = bindPlanState(win, createPlanState().reset('a|1'));
+    win._cmpMore = true; win._cmpRankBy = 'left';
+    st.reset('b|1');
+    expect(win._cmpMore).toBe(false); expect(win._cmpRankBy).toBe(null);
+  });
+
+  it('index.html keeps none of these as a page variable of its own', () => {
+    const src = require('node:fs').readFileSync('index.html', 'utf8');
+    for (const re of [/let selectedHistoryDate\b/, /let _ladderPosCache\b/, /^ {4}window\._entryMonthBeforePaid = null;/m, /let selectedHistoryYear\b/, /let selectedTaxYear\b/, /let _budLastRemoved\b/, /window\._stratDials = \{\}/, /window\._customAlloc = window\._customAlloc \|\| \{\}/, /window\._allocMode = window\._allocMode \|\| \{\}/, /\|\| window\._decisionAnchor/]) expect(src).not.toMatch(re);
+  });
+});
+
+describe('the gilt-rotation watch keeps its block and cut age in the plan\'s state (step S open problem)', () => {
+  it('both are plan state, dropped on a change of plan and after a write', () => {
+    expect(PLAN_STATE_FIELDS).toEqual(expect.arrayContaining(['rotBlock', 'rotCutAge']));
+    const st = createPlanState();
+    st.rotBlock = { orders: [{ tidm: 'X' }], ages: [80, 90] }; st.rotCutAge = 78;
+    st.dropWorked();
+    expect(st.rotBlock).toBeNull(); expect(st.rotCutAge).toBeNull();
+  });
+  it('index.html: no page global for them; a plan with no block clears the one before', async () => {
+    const { readFileSync } = await import('node:fs');
+    const src = readFileSync('index.html', 'utf8');
+    expect(src).not.toMatch(/window\._rot(Block|CutAge)/);
+    const fn = src.slice(src.indexOf('function rotationWatchHtml(planArg)'), src.indexOf('function rotationWatchHtml(planArg)') + 900);
+    expect(fn).toMatch(/planState\.rotBlock = null;/);
   });
 });

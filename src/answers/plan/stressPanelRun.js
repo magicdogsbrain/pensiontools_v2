@@ -27,10 +27,9 @@ import { LEVEL_FAILS20 } from '../shared/rules.js';
 import { planFor, rowPlanOf, weightedOptsOf, closedOf, weighing } from './lastsRun.js';
 import { figuresOf, ladderWalk } from './keepRun.js';
 import { heldSettingsOf, ladderGapsOf, keptAssetsOf } from './keepTest.js';
-import { planLevelOf } from './life.js';
 import { FAMILY } from './lasts.js';
 import { ROW_IDS, MARKET_IDS, HELD_IDS, ROW_CHANGE, stressKeyOf, stressSpendOf, lockedLadderOf } from './stressPanel.js';
-import { dateOf } from './dates.js';
+import { contextFor } from '../../reading/context.js';
 
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 const num = (v) => (Number.isFinite(+v) ? +v : 0);
@@ -56,7 +55,8 @@ function rowFigures(a) {
 export function runStressRow(plan, { today, row, onProgress = null, weighted = undefined, whole = false, settings: given = null } = {}) {
   const id = typeof row === 'string' ? row : row && row.id;
   if (!ROW_IDS.includes(id)) throw new Error('runStressRow: no row called "' + id + '"');
-  const now = dateOf(today);
+  const ctx = contextFor(plan, { today });
+  const now = ctx.now;
   const tell = (done, total) => { if (typeof onProgress === 'function') onProgress(done, total); };
   const settings = isObj(given) ? given : effectiveStressSettings(plan, { now });
   const strategyId = settings.strategyId || 'pots-and-valves';
@@ -99,7 +99,7 @@ export function runStressRow(plan, { today, row, onProgress = null, weighted = u
     const mine = keptAssetsOf(rec).filter((k) => k.as === 'mine');
     if (ladder) {
       if (change.held && !mine.some((k) => k.counted)) return done({ na: 'notCounted' });
-      return done(heldLadder(plan, doc, { today, shock: change.held, level: planLevelOf(plan), count: () => { runs += 1; } }));
+      return done(heldLadder(plan, doc, { today, shock: change.held, level: ctx.level, count: () => { runs += 1; } }));
     }
     if (change.held && !mine.some((k) => k.counted && k.value > 0)) return done({ na: 'notCounted' });
     return done(one(heldSettingsOf(settings, rec, { withExpected: true, shock: change.held || null, now, whole: whole === true }), {}));

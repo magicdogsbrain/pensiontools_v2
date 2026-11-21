@@ -270,5 +270,20 @@ export function createMonthEntry(deps) {
     }
   }
 
-  return { setState, showError, refreshOffer, openChooser, watchForm, calculated, failed, save, state: () => state, offer: () => offerNow };
+  /**
+   * Another plan opened: the tick, the offer it was given against and the "Start from" month chosen all belonged to the plan
+   * open before, so they go (a tick left on would record this plan's missed months without being asked on this plan).
+   * refreshOffer then reads this plan's own offer.
+   */
+  function reset() {
+    reads++;   // an offer still being read for the plan before is dropped when it lands
+    offerNow = null; fromChoice = null;
+    const tick = el(IDS.tick); if (tick) tick.checked = false;
+    const from = el(IDS.from); if (from) { from.innerHTML = ''; from.value = ''; }
+    const row = el(IDS.fromRow); if (row) row.style.display = 'none';
+    const more = el(IDS.more); if (more) more.style.display = 'none';
+    const box = el(IDS.box); if (box) box.style.display = 'none';
+  }
+
+  return { setState, showError, refreshOffer, openChooser, watchForm, calculated, failed, save, reset, state: () => state, offer: () => offerNow };
 }

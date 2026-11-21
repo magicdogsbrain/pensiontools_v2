@@ -14,7 +14,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { test, expect, v7, waitsFor, NEEDS, PROD, REPO, FINAL_ENV, fixtureTyping, saverWording, CLASSIC_PATH, V7_PATH, WORKER_DATA_MISSING } from './helpers/app.js';
+import { test, expect, v7, waitsFor, NEEDS, PROD, REPO, FINAL_ENV, fixtureTyping, saverWording, CLASSIC_PATH, V7_PATH } from './helpers/app.js';
 import { CHECK_IN_KEYS } from '../src/services/LockedPlanGuard.js';
 
 test.use({ outside: 'block' });
@@ -41,7 +41,6 @@ test.describe('a saver\'s check-in, without an account', () => {
   test('kept from "Am I saving enough?": the first check-in, a year on the second, the classic planner\'s pot list; a locked saver checks in too', async ({ page, watch }) => {
     waitsFor(...NEEDS.b);
     test.setTimeout(900_000);   // (7.8.0: the check-ins' B answers weigh)
-    watch.allow(WORKER_DATA_MISSING);
     const app = v7(page, 'prod', 'b');
     let planId = null;
 

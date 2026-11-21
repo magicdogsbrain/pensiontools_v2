@@ -13,7 +13,7 @@
  *
  *   fingerprintOf(root, { include, state })   the form's own values (boxes with an id) and its state, as one string
  *   boxNameOf(el)                             the box's own label, for "Not saved yet: “…” needs a change"
- *   createAutosave(win, doc, o)               → { schedule, flush, loaded, markSaved, checkNow, problems, run }
+ *   createAutosave(win, doc, o)               → { schedule, flush, loaded, markSaved, checkNow, problems, run, pending }
  *     o.root()          the element holding the boxes        o.heading()   where "Saved" is said
  *     o.include(el)     which boxes are the form's           o.state()     what the form holds outside its boxes
  *     o.kindOf(el)      'age' | 'money' | 'spDate' | null    o.extraProblems()   [{ el, words, blocks }] the page's own checks
@@ -41,6 +41,7 @@ export const SAVE_OUTCOME_WORDS = Object.freeze({
   signedOut: 'Nothing was saved: sign in to keep a plan.',
   locked: 'Nothing was saved: this plan is locked, so its figures stay as they were locked. Unlock it to change them.',
   otherPlan: 'Nothing was saved: another plan is open now. What was typed belonged to the plan open before.',
+  opening: 'Nothing was saved: the plan was still opening. The boxes show what it holds now; type the change again.',
   problem: 'Nothing was saved yet: a box needs a change first. It says what, beside it.',
   notSaved: 'Nothing was saved.'
 });
@@ -271,7 +272,19 @@ export function createAutosave(win, doc, o) {
       schedule();
     }, true);
   }
-  return { schedule, flush, loaded, markSaved, checkNow, problems, run };
+  /** Whether the form holds typing not yet saved (since it was filled from the plan or last saved). */
+  const pending = () => base != null && fp() !== base;
+  /**
+   * A save on its way: one scheduled, one being written, or a box being typed in that differs from what is saved. The page
+   * is held (the browser asks before closing or reloading) while this is true, so what was typed is never lost unsaid.
+   */
+  const waiting = () => {
+    if (timer || running) return true;
+    const r = root(), ae = doc.activeElement;
+    const typing = !!(r && ae && r.contains(ae) && /^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName) && (!o.include || o.include(ae)));
+    return typing && pending();
+  };
+  return { schedule, flush, loaded, markSaved, checkNow, problems, run, pending, waiting };
 }
 
 // ---- the two forms ----------------------------------------------------------------------------------------------------
@@ -285,7 +298,8 @@ const STRESS_NOT_FORM = ['shapeStartNumber', 'ssFundSearch'];
 /** The kind of check a Stress settings box gets (an income step's amount and its age included). */
 export function stressKindOf(el) {
   if (!el || !el.id) {
-    if (el && el.closest && el.closest('#incomeStepsEditor') && el.type === 'number') return el.getAttribute('step') === '1000' ? 'money' : 'age';
+    // a step's amount (a month after tax since step F2, marked data-step-amount) is money; its age box an age
+    if (el && el.closest && el.closest('#incomeStepsEditor') && el.type === 'number') return el.hasAttribute('data-step-amount') || el.getAttribute('step') === '1000' ? 'money' : 'age';
     return null;
   }
   if (STRESS_AGES.includes(el.id)) return 'age';
@@ -313,9 +327,14 @@ export function installStressSettingsAutosave(win, doc, deps) {
     }),
     kindOf: stressKindOf,
     extraProblems: () => {
+      const out = [];
       const words = deps.dbStartError ? deps.dbStartError() : null;
       const el = doc.getElementById('ssDbStartAge');
-      return words && el ? [{ el, words, blocks: true }] : [];
+      if (words && el) out.push({ el, words, blocks: true });
+      const endWords = deps.endAgeError ? deps.endAgeError() : null;   // "Plan to age" (src/ui/endAgeBox.js)
+      const endEl = doc.getElementById('ssEndAge');
+      if (endWords && endEl) out.push({ el: endEl, words: endWords, blocks: true });
+      return out;
     },
     notAPress: '#ssSaveBtn, #ssLockBtn, #ssLockBanner, #tmLockedStart',
     canSave: async () => !!deps.isLoggedIn() && !(await deps.planIsLocked()),

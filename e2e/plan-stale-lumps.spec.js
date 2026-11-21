@@ -13,7 +13,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { test, expect, PROD, REPO, FIXED_NOW, V7_PATH, WORKER_DATA_MISSING } from './helpers/app.js';
+import { test, expect, PROD, REPO, FIXED_NOW, V7_PATH } from './helpers/app.js';
 import { rows11bInNode } from './helpers/rows11bInNode.js';
 import { ABOUT_WRITES, INCOME_WRITES, SPEND_WRITES } from '../src/answers/plan/schema.js';
 import { applyPatch } from '../src/answers/plan/about.js';
@@ -53,7 +53,6 @@ const stored = (page) => page.evaluate((k) => sessionStorage.getItem(k), GUEST_K
 test.describe('the out-of-date draft, the State Pension date and the lump sums, without an account', () => {
   test('"Leave it" and "Update it" write the Node patches; the date typed writes the Node patch; the lump sum into the steps writes the Node patch; Undo byte for byte', async ({ page, watch }) => {
     test.setTimeout(300_000);
-    watch.allow(WORKER_DATA_MISSING);
     const { alex, sam, thisTY } = plans();
     const planted = await plant(page, [alex, sam]);
     const stale = rows11bInNode(alex, TODAY, {});

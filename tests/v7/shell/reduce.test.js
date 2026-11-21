@@ -226,7 +226,6 @@ const anyAction = fc.oneof(
   fc.boolean().map((open) => ({ type: A.UI_RAIL, open })),
   fc.boolean().map((online) => ({ type: A.UI_ONLINE, online })),
   // 7.8.0: "How careful?" on a plan's "Does it last?" (page memory only)
-  fc.constantFrom('careful', 'balanced', 'bold').map((level) => ({ type: A.UI_LEVEL, level })),
   fc.constantFrom('2026-09-30', '2028-04-06').map((today) => ({ type: A.ENV_SET, patch: { today } })),
   // a page opened before the site was updated (effects/staleBuild.js): the plain words, and "Reload the page"
   fc.constant({ type: A.ENV_SET, patch: { stale: true } }),
@@ -358,7 +357,7 @@ const anyAction = fc.oneof(
   fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom('accept', 'withdraw')).map(([planId, op]) => ({ type: A.PLAN_AMEND, planId, op })),
   // "What you pay in": the plan's verdict (research/saving-enough-and-check-in.md 4.4), question B on the plan's figures
   fc.constantFrom('saver:p1:a', 'saver:p1:b', 'saver:p2:a').map((key) => ({ type: A.SAVER_WORKING, key })),
-  fc.tuple(fc.constantFrom('saver:p1:a', 'saver:p2:a'), fc.constantFrom(A.SAVER_FIRST, A.SAVER_FINAL)).map(([key, type]) => ({ type, key, result: { status: 'ok', verdict: { band: 'close' }, sentences: {} } })),
+  fc.tuple(fc.constantFrom('saver:p1:a', 'saver:p2:a'), fc.constantFrom(A.SAVER_FINAL)).map(([key, type]) => ({ type, key, result: { status: 'ok', verdict: { band: 'close' }, sentences: {} } })),
   fc.tuple(fc.constantFrom('saver:p1:a', 'saver:p2:a'), fc.constantFrom(null, 'noWorker')).map(([key, reason]) => ({ type: A.SAVER_FAILED, key, reason })),
   fc.constant({ type: A.SAVER_RETRY }),
   fc.constantFrom('saver:p1:a', 'saver:p2:a').map((key) => ({ type: A.SAVER_ENDED, key })),
@@ -370,6 +369,7 @@ const anyAction = fc.oneof(
   // Month by month (7.2.0): Record and Set up
   fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_MONTH_RECORD, planId })),
   fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_TAX_YEAR, planId })),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_TAX_YEAR_AGAIN, planId })),
   fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom('link', 'split', 'dismiss', 'budgetShare')).map(([planId, op]) => ({ type: A.PLAN_SAVED, planId, previous: { 'household.partnerScenarioId': null }, line: { id: 'linked', slots: {} }, op, others: [{ planId: 'p2', previous: { 'stressTool.settings.baseSalary': 1 } }] })),
   fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom('noPartner', 'partial')).map(([planId, problem]) => ({ type: A.PLAN_SAVE_FAILED, planId, problem }))
 );

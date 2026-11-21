@@ -304,7 +304,7 @@ describe('"Save this review" and the choices: ONE write of `phases` each', () =>
     expect(phaseChoicePatch(plan, 'review.rule', 'success:12', { at: AT })).toMatchObject({ ok: false });
     expect(phaseChoicePatch(plan, 'moving.agreed', {}, { at: AT })).toMatchObject({ ok: false });
     expect(ruleOfChoice('guardrails')).toMatchObject({ kind: 'guardrails' });
-    expect(CHOICE_PARTS).toEqual(['window', 'saving.level', 'review.every', 'review.rule']);
+    expect(CHOICE_PARTS).toEqual(['level', 'window', 'saving.level', 'review.every', 'review.rule']);   // 'level': the plan's "How careful?" (lead4.md R5)
   });
 
   it('the plan write: a review saved on a locked plan is ONE write of `phases` and the stamp; settings, document and holdings untouched; Undo puts it back', async () => {

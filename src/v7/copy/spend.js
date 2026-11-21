@@ -107,7 +107,8 @@ export const SPEND = {
     'floor.from': 'From age {age} your State Pension and other pensions pay more than this ({monthly} a month after tax): the plan pays that, and nothing is taken from your pension or savings.',
     'cost.once': '{label}: {net} after tax at age {age} (tax year {year}), once — {gross} before tax on top of that year’s figure, {prices}.',
     'cost.years': '{label}: {net} a year after tax from age {age} (tax year {year}) for {years} years — {gross} a year before tax on top of each year’s figure, {prices}.',
-    'ff.note': 'The essentials your way of drawing (Floor & Flex) buys as a floor are set with the way of drawing, in the full view.'
+    'ff.note': 'The essentials your way of drawing (Floor & Flex) buys as a floor are set with the way of drawing, in the full view.',
+    notSet: 'No income set yet: say what you want to spend a month after tax, and the plan works out what it takes before tax.'
   },
   prices: { rise: 'going up with prices', fixed: 'a fixed sum' },
   chartTitle: 'What the plan pays each year, after tax, at today’s prices',

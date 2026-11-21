@@ -17,7 +17,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { test, expect, PROD, REPO, FIXED_NOW, V7_PATH, CLASSIC_PATH, CLASSIC_TITLE, atClassic, WORKER_DATA_MISSING } from '../helpers/app.js';
+import { test, expect, PROD, REPO, FIXED_NOW, V7_PATH, CLASSIC_PATH, CLASSIC_TITLE, atClassic } from '../helpers/app.js';
 import { clearEmulators, makeAccount, putPlan, putSettings, settingsOf, plansOf, ALEX } from './emulator.js';
 import { VERSION } from '../../src/constants.js';
 import { SCHEMA_VERSION } from '../../src/storage/schema.js';
@@ -77,7 +77,6 @@ async function classicSignedIn(page) {
 
 test.beforeEach(async ({ watch }) => {
   await clearEmulators();
-  watch.allow(WORKER_DATA_MISSING);
 });
 
 test('Month by month\'s "Open them in the classic planner" opens the classic planner signed in, on the plan\'s records by tax year', async ({ page }) => {

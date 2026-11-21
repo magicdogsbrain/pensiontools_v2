@@ -130,7 +130,8 @@ describe('index.html: the box in Stress tester → Settings', () => {
     expect(doc.querySelector('#ssChargesHint')).not.toBeNull();
   });
   it('is filled on load from the plan (with the lock), and saved clamped — never written while locked', () => {
-    expect(fnBody('async function loadStressSettings()')).toContain('refreshStressLock()');   // every load path refreshes the lock, which paints the box
+    expect(fnBody('async function loadStressSettings()')).toContain('fillStressForm(');   // every load path goes through the one filler (check round 2 of step S)…
+    expect(fnBody('async function fillStressForm(s)', 9000)).toContain('refreshStressLock()');   // …which refreshes the lock, which paints the box
     // step S: the Save compares the Settings form (stressFormSettings) and writes only what changed; it is read after the lock refuses
     const save = fnBody('window.saveStressSettingsUI = async function(opts)', 9000);
     expect(fnBody('function stressFormSettings(_curSS)', 9000)).toMatch(/chargesPct: chargesForSave\(/);
@@ -140,13 +141,11 @@ describe('index.html: the box in Stress tester → Settings', () => {
     expect(r).toContain('planIsLocked()');
     expect(fnBody('window.refreshStressLock = async function', 2500)).toContain('renderChargesField(');
   });
-  it('the Accumulation planner takes the plan\'s charge, and the funds\' own charge is not taken twice', () => {
+  it('the Accumulation planner takes the plan\'s charge (step F1: through the one model, which the plan\'s settings feed)', () => {
     const acc = fnBody('window.recalcAccumulation = async function', 6500);
-    expect(acc).toMatch(/projectAccumulation\(\{[^}]*chargesPct/);
-    expect(acc).toContain('mixOcf');
-    // 6.22.0: the table (and its charges note) moved into src/ui/accumulationProjection.js, which is handed the charge
-    expect(acc).toContain('accumulationTableHtml({ rows, mixOn: window._acMixOn, mixRealReturn, chargesPct: acCharges');
-    expect(readFileSync(resolve(process.cwd(), 'src/ui/accumulationProjection.js'), 'utf8')).toContain('accumulationChargesNoteHtml(chargesPct, mixOn)');
+    expect(acc).not.toMatch(/projectAccumulation\(/);
+    expect(acc).toContain('accumulationBandHtml(band, { chargesPct: acCharges');
+    expect(readFileSync(resolve(process.cwd(), 'src/ui/accumulationProjection.js'), 'utf8')).toContain('accumulationChargesNoteHtml(chargesPct, false)');
     expect(plain(accumulationChargesNoteHtml(0.5, true))).toBe('After fund and platform charges of 0.5% a year (your plan\'s setting in Stress tester → Settings); the "your mix" line takes this in place of your funds\' own charges.');
     expect(plain(accumulationChargesNoteHtml(0))).toBe('No fund or platform charges taken off (see Stress tester → Settings).');
   });
@@ -155,7 +154,9 @@ describe('index.html: the box in Stress tester → Settings', () => {
     // 6.22.0: one patch for everything unlocking writes (the charge and the ISA choice), its bullets from one function
     expect(u).toContain('unlockPatchesOf(');
     expect(u).toContain('li.push(...unlockNotesHtml(unlockPatch))');
-    expect(u.indexOf('saveStressSettings(unlockPatch)')).toBeGreaterThan(u.indexOf('await unlockPlan()'));
+    // step F5 (lead4.md D18): the defaults go in the unlock's one write (answers/plan/lock.js unlockPatch, unlockPatchesOf inside)
+    expect(u).toContain('unlockWrite({');
+    expect(u).not.toContain('saveStressSettings(unlockPatch)');
     expect(u.indexOf('unlockNotesHtml(')).toBeLessThan(u.indexOf('appConfirm('));   // said before the person agrees
     expect(unlockNotesHtml({ chargesPct: 0.5 })).toEqual([chargesUnlockNoteHtml(0.5)]);
     expect(unlockNotesHtml(null)).toEqual([]);

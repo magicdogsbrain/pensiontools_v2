@@ -6,6 +6,10 @@
  * src/v7/copy/month.js MONTH.advice.moves. Pure.
  *
  *   moveOfAlert(alert)   { id, slots: { amount } } for a pot move or the low-cash alert, else null
+ *   recordMovesOf(record)  [{ id, slots }]: what the plan's rule did in a recorded month (step F5, lead4.md D17, R4), read
+ *                        from the record the way the live month is read, so History says the rule's words with the
+ *                        record's month (RECORD_MOVE_WORDS), never the order kept at save time.
+ *                        None under a contract strategy (nothing is sold from pots).
  */
 export function moveOfAlert(a) {
   if (!a || typeof a.message !== 'string') return null;
@@ -18,3 +22,15 @@ export function moveOfAlert(a) {
   if (a.type === 'low-cash') return { id: 'lowCash', slots: {} };
   return null;
 }
+
+export function recordMovesOf(record) {
+  if (!record || record.contract === true || typeof record.rebal !== 'string' || !record.rebal.trim()) return [];
+  return record.rebal.split(';').map((m) => moveOfAlert({ type: 'rebalance', message: m.trim() })).filter((m) => m && m.slots.amount);
+}
+
+/** The words History says for a recorded month's move (the full view; the live month's are src/v7/copy/month.js MONTH.advice.moves). */
+export const RECORD_MOVE_WORDS = Object.freeze({
+  title: 'What the plan’s rule did in {month}',
+  sharesToBonds: 'The plan’s rule moved money from shares to bonds, back towards its mix.',
+  bondsToShares: 'The plan’s rule moved money from bonds to shares, back towards its mix.'
+});

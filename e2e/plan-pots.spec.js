@@ -14,7 +14,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { test, expect, PROD, REPO, FIXED_NOW, watchLanding, landingShown, V7_PATH, atClassic, WORKER_DATA_MISSING } from './helpers/app.js';
+import { test, expect, PROD, REPO, FIXED_NOW, watchLanding, landingShown, V7_PATH, atClassic } from './helpers/app.js';
 import { POTS_WRITES } from '../src/answers/plan/schema.js';
 
 test.use({ outside: 'block' });
@@ -57,7 +57,6 @@ test.describe('"Your pots and tax", without an account', () => {
   test('the boxes with their sources; a new pension pot, ISA growth and charge; Save (one plan, the declared keys only); Undo byte for byte; the planner shows the new values', async ({ page, watch }) => {
     test.setTimeout(240_000);
     // as on the live site today: the engine worker asks for the market files from its own address (e2e/full-view-unchanged.spec.js)
-    watch.allow(WORKER_DATA_MISSING);
     const plan = lumpyPlan();
     const locked = lockedPlan();
     const stored = await plant(page, [plan, locked]);
@@ -142,7 +141,8 @@ test.describe('"Your pots and tax", without an account', () => {
     await expect(page.locator('#ssTaxableStart')).toHaveValue('85000');
     // the planner's own loader stamps its upgrade as it always has; this step's keys are as the preview wrote them
     const plansNow = await storedPlans(page);
-    for (const k of POTS_WRITES) { const [tool, , key] = k.split('.'); expect(plansNow[0][tool].settings[key], k).toEqual(after[0][tool].settings[key]); }
+    for (const k of POTS_WRITES.filter((p) => p.split('.').length === 3)) { const [tool, , key] = k.split('.');   // (a saver's pension today, accumulationTool.settings/.history, is whole objects)
+      expect(plansNow[0][tool].settings[key], k).toEqual(after[0][tool].settings[key]); }
 
     // back in the preview: the same change undone by hand, then Undo of that: byte for byte
     await page.goto(v7('#/plan/PotsPlan01/pots'));

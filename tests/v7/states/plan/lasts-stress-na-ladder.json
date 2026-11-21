@@ -2725,10 +2725,12 @@
               "drawn": 8500,
               "cutMonths": 0,
               "net": 7428,
-              "stepNow": 34000,
+              "step0": 34000,
               "pot": 648852,
               "potActual": 648852,
+              "potPension": 613800,
               "potPart0": 613800,
+              "potIsa": 35052,
               "potPart1": 35052
             },
             "lines": [
@@ -2781,7 +2783,7 @@
                   "id": "where.step",
                   "parts": [
                     {
-                      "key": "stepNow",
+                      "key": "step0",
                       "kind": "money"
                     },
                     " a year before tax"
@@ -2804,9 +2806,23 @@
                       "key": "pot",
                       "kind": "money"
                     },
+                    " (",
+                    "",
+                    "pension ",
+                    {
+                      "key": "potPension",
+                      "kind": "money"
+                    },
+                    ", ",
+                    "ISA ",
+                    {
+                      "key": "potIsa",
+                      "kind": "money"
+                    },
+                    ")",
                     "."
                   ],
-                  "text": "£648,852."
+                  "text": "£648,852 (pension £613,800, ISA £35,052)."
                 },
                 "source": {
                   "kind": "record",
@@ -2890,6 +2906,8 @@
               "saysGross2": 24000,
               "saysNet2": 1810,
               "saysAge2": 79,
+              "yearMonthly": 2833,
+              "yearTotal": 25500,
               "saysSp": 11973,
               "saysSpAge": 67,
               "saysBad": 333154,
@@ -2903,13 +2921,13 @@
               "stepAge1": 72,
               "step2": 24000,
               "stepAge2": 79,
-              "sipp": 640000,
-              "isa": 35000,
+              "sipp": 613800,
+              "isa": 35052,
               "gia": 0,
               "shares": 180000,
               "bonds": 400000,
               "cash": 60000,
-              "spWeekly": 230,
+              "spWeekly": 230.25,
               "dial_cashYears": 2,
               "dial_isaTotal": 35000,
               "dial_sippTotal": 640000
@@ -2936,10 +2954,10 @@
                       "key": "saysNet0",
                       "kind": "money"
                     },
-                    " a month after tax",
-                    " (tax year 2027/28)"
+                    " a month after tax in a full year",
+                    " (from tax year 2027/28)"
                   ],
-                  "text": "From age 66: £34,000 a year before tax, £2,476 a month after tax (tax year 2027/28)"
+                  "text": "From age 66: £34,000 a year before tax, £2,476 a month after tax in a full year (from tax year 2027/28)"
                 },
                 "source": {
                   "kind": "locked",
@@ -2968,10 +2986,10 @@
                       "key": "saysNet1",
                       "kind": "money"
                     },
-                    " a month after tax",
-                    " (tax year 2033/34)"
+                    " a month after tax in a full year",
+                    " (from tax year 2033/34)"
                   ],
-                  "text": "From age 72: £29,000 a year before tax, £2,143 a month after tax (tax year 2033/34)"
+                  "text": "From age 72: £29,000 a year before tax, £2,143 a month after tax in a full year (from tax year 2033/34)"
                 },
                 "source": {
                   "kind": "locked",
@@ -3000,14 +3018,42 @@
                       "key": "saysNet2",
                       "kind": "money"
                     },
-                    " a month after tax",
-                    " (tax year 2040/41)"
+                    " a month after tax in a full year",
+                    " (from tax year 2040/41)"
                   ],
-                  "text": "From age 79: £24,000 a year before tax, £1,810 a month after tax (tax year 2040/41)"
+                  "text": "From age 79: £24,000 a year before tax, £1,810 a month after tax in a full year (from tax year 2040/41)"
                 },
                 "source": {
                   "kind": "locked",
                   "at": "1 July 2026",
+                  "stale": false
+                }
+              },
+              {
+                "id": "where.yearPlan",
+                "slots": {
+                  "year": "2026/27"
+                },
+                "sentence": {
+                  "id": "where.yearPlan",
+                  "parts": [
+                    "In 2026/27 your plan takes ",
+                    {
+                      "key": "yearMonthly",
+                      "kind": "money"
+                    },
+                    " a month before tax, from July 2026: 9 payments, ",
+                    {
+                      "key": "yearTotal",
+                      "kind": "money"
+                    },
+                    "."
+                  ],
+                  "text": "In 2026/27 your plan takes £2,833 a month before tax, from July 2026: 9 payments, £25,500."
+                },
+                "source": {
+                  "kind": "record",
+                  "at": null,
                   "stale": false
                 }
               },
@@ -3291,7 +3337,7 @@
                           "kind": "money"
                         }
                       ],
-                      "text": "£640,000"
+                      "text": "£613,800"
                     },
                     "source": {
                       "kind": "locked",
@@ -3340,7 +3386,7 @@
                           "kind": "money"
                         }
                       ],
-                      "text": "£35,000"
+                      "text": "£35,052"
                     },
                     "source": {
                       "kind": "locked",
@@ -3366,11 +3412,11 @@
                       "parts": [
                         {
                           "key": "spWeekly",
-                          "kind": "money"
+                          "kind": "week"
                         },
                         " a week"
                       ],
-                      "text": "£230 a week"
+                      "text": "£230.25 a week"
                     },
                     "source": {
                       "kind": "locked",
@@ -4178,6 +4224,7 @@
         ],
         "current": "month",
         "answerStale": null,
+        "readFault": null,
         "next": {
           "id": "P.idle",
           "slots": {
@@ -6047,7 +6094,7 @@
         "cutPct": 20,
         "months": 3
       },
-      "priced": null,
+      "market": null,
       "a": {
         "strategyId": "full-il-gilt",
         "chancePct": 100,

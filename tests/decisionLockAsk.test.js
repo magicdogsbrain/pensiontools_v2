@@ -9,7 +9,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { deriveStage, decisionLockQuestion } from '../src/services/LifeStage.js';
+import { deriveStage, decisionLockQuestion, decisionEntryAllowed } from '../src/services/LifeStage.js';
 import { askBeforeMonthLocks, decisionLockQuestionHtml, LOCKED_FROM_DECISION } from '../src/ui/decisionLockAsk.js';
 
 const NOW = new Date(2026, 9, 2);   // 2 October 2026
@@ -60,6 +60,23 @@ describe('decisionLockQuestion: who is asked', () => {
     expect(decisionLockQuestion({ ...st, beforeStart: false }).okLabel).toBe('Lock the plan and record this month');
     expect(decisionLockQuestion({ ...st, timingMode: 'legacy' }).okLabel).toBe('Lock the plan and record this month');
     expect(decisionLockQuestion(null)).toBeNull();
+  });
+});
+
+// step F5 (lead4.md D17): a saver whose plan is not locked is not led into Monthly Entry as if drawing
+describe('decisionEntryAllowed: an unlocked saver is not led into a month as if drawing', () => {
+  it('a month before the stop is refused, with where a saver records their pot; nothing is asked or locked', () => {
+    const st = stageOf(unlocked(saver));
+    expect(st.locked).toBe(false);
+    expect(st.beforeStart).toBe(true);
+    const g = decisionEntryAllowed(st, '2026-10');
+    expect(g.ok).toBe(false);
+    expect(g.reason).toMatch(/^This plan says you are still saving until [A-Z][a-z]+ \d{4}\. Monthly entries open from then\./);
+    expect(g.reason).toContain('record your pot on the Accumulation planner; nothing is locked');
+    expect(decisionEntryAllowed(st, st.startMonth).ok).toBe(true);
+  });
+  it('a retired plan not locked is let through (its month is worked out at once, on Calculate)', () => {
+    expect(decisionEntryAllowed(stageOf(unlocked(ladder)), '2026-10').ok).toBe(true);
   });
 });
 
@@ -122,11 +139,18 @@ describe('askBeforeMonthLocks: the question, then the full lock', () => {
 describe('index.html: the Decision tool asks before the month that would lock, and the lock is the full one', () => {
   const html = readFileSync('index.html', 'utf8');
   const fn = (name) => html.slice(html.indexOf('window.' + name + ' = async function'), html.indexOf('window.' + name + ' = async function') + 6000);
-  it('Calculate asks right after the stage gate, before the tax-year set-up', () => {
+  // retaken in step F5 (lead4.md D17): Calculate is a read and never asks about locking before a figure exists. The question
+  // comes before the writes that lock: the tax-year set-up's Confirm (the wizard's beforeSave) and Save.
+  it('Calculate never asks about locking; the tax-year set-up asks on its Confirm, before it writes', () => {
     const f = fn('handleDecisionSubmit');
-    const ask = f.indexOf('askBeforeMonthLocks(stage)');
-    expect(ask).toBeGreaterThan(f.indexOf('decisionEntryAllowed(stage, dateStr)'));
-    expect(ask).toBeLessThan(f.indexOf('checkWizardNeeded(dateStr)'));
+    const body = f.slice(0, f.indexOf('window.saveCurrentDecision'));
+    expect(body.indexOf('decisionEntryAllowed(stage, dateStr)')).toBeGreaterThan(0);
+    expect(body.indexOf('beforeSave: async () => askBeforeMonthLocks(')).toBeGreaterThan(body.indexOf('initTaxYearWizard(wizardContainer'));
+    expect(body.replace(/beforeSave: async \(\) => askBeforeMonthLocks\(/, '')).not.toContain('askBeforeMonthLocks(');
+    const wiz = readFileSync('src/ui/components/TaxYearSetupWizard.js', 'utf8');
+    const fin = wiz.slice(wiz.indexOf('async function finishWizard'));
+    expect(fin.indexOf('beforeSaveHook()')).toBeGreaterThan(0);
+    expect(fin.indexOf('beforeSaveHook()')).toBeLessThan(fin.indexOf('await saveTaxYearConfig('));
   });
   it('Save asks before anything is written', () => {
     const f = fn('saveCurrentDecision');
@@ -136,13 +160,15 @@ describe('index.html: the Decision tool asks before the month that would lock, a
     expect(f.indexOf('await monthEntry.save(')).toBeGreaterThan(0);
     expect(ask).toBeLessThan(f.indexOf('await monthEntry.save('));
   });
-  it('commitPlanLock is the one full lock: Stress settings copied across (never the Decision defaults), the plan locked, the document written', () => {
+  // retaken in step F5 (lead4.md D18): the full lock is the simple view's one write path (src/ui/lockWrite.js over
+  // answers/plan/lock.js lockPatch): the seed, the flags, the plan of record, the document and the journey in ONE write
+  it('commitPlanLock is the one full lock: lockPatch in one write, the document from the plan\'s own run, then the repaint', () => {
     const f = fn('commitPlanLock');
-    expect(f.indexOf('seedDecisionFromStress(')).toBeGreaterThan(0);
-    expect(f.indexOf('seedDecisionFromStress(')).toBeLessThan(f.indexOf('lockPlanIfNeeded(reason)'));
-    expect(f.indexOf('lockPlanIfNeeded(reason)')).toBeLessThan(f.indexOf('buildPlanDocumentNow(reason'));   // retaken in 7.12.0: it may pass the run the lock's fit was read from
-    expect(f).toContain("repaintPlan('lock')");   // step S: every tab, the lock banners and the stage follow the lock (src/ui/repaintPlan.js)
-    expect(f.indexOf('buildPlanDocumentNow(reason')).toBeLessThan(f.indexOf("repaintPlan('lock')"));
+    expect(f.indexOf('lockWrite({')).toBeGreaterThan(0);
+    expect(f.indexOf('documentRunNow(')).toBeLessThan(f.indexOf('lockWrite({'));
+    expect(f).toContain("repaintPlan('lock')");
+    expect(f.indexOf('lockWrite({')).toBeLessThan(f.indexOf("repaintPlan('lock')"));
+    for (const w of ['seedDecisionFromStress(', 'lockPlanIfNeeded(', 'buildPlanDocumentNow(', 'saveDecisionSettings(', 'saveActivePlanDocument(']) expect(f.slice(0, f.indexOf('installLockFromStress')), w).not.toContain(w);
   });
   // retaken in 7.12.0: the button's handler moved to src/ui/lockFromStressUi.js (it reads the lock's fit before it locks)
   it('the Stress settings button saves the form, then takes the same route', () => {

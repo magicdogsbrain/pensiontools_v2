@@ -378,10 +378,13 @@ describe('"Does it last?" — the engine reaches the worker lazily, and nowhere 
       expect(/\b(localStorage|sessionStorage)\b/.test(codeOf(file)), file).toBe(false);
       expect(strip(read(file), { keepStrings: true }), file).not.toMatch(/pt_[a-z_]+/);
     }
-    // the rotation watch's index is fetched by the move's effect alone (holdings-and-move.md §3.7): a fetch belongs in an effect, and the reader takes the figures as data
+    // no V7 file fetches a market file itself (lead4.md R5): the rotation watch's index and the Assumptions page's prices are
+    // the one market's (src/reading/market.js), loaded on this page by pageMarket.js, the reader taking the figures as data
     // (the file's address is the layout's since the 7.0 groundwork, src/appLayout.js: naming it counts as naming the file)
-    const fetchers = [...V7, ...ANSWERS].filter((f) => /\bfetch\s*\(/.test(codeOf(f)) || /equity\.json|\bLAYOUT\.v7\.equity\b/.test(strip(read(f), { keepStrings: true })));
-    expect(fetchers).toEqual(['src/v7/effects/move.js']);
+    const fetchers = [...V7, ...ANSWERS].filter((f) => /\bfetch\s*\(/.test(codeOf(f)) || /equity\.json|gilts\.json|\bLAYOUT\.v7\.(equity|gilts)\b/.test(strip(read(f), { keepStrings: true })));
+    expect(fetchers).toEqual([]);
+    expect(codeOf('src/v7/effects/move.js')).toMatch(/loadPageMarket/);
+    expect(codeOf('src/v7/effects/assumptions.js')).toMatch(/loadPageMarket/);
   });
   it('the engine config moved out of the repository is pure: no repository, no Firebase, no clock, no window', () => {
     const f = 'src/services/SimulationConfig.js';
@@ -406,7 +409,7 @@ describe('"Lock the plan" — the commit\'s pure parts, lifted out of the reposi
     for (const t of targetsOf(f)) expect(under(t, 'src/storage') || under(t, 'src/firebase') || under(t, 'src/ui') || t.startsWith('firebase'), `${f} imports ${t}`).toBe(false);
     const code = codeOf(f);
     for (const re of [...OUTSIDE, ...CLOCK]) expect(re.test(code), `${f} uses ${re}`).toBe(false);
-    for (const never of ['src/services/PlanLock.js', 'src/storage/ScenarioRepository.js', 'src/storage/DecisionRepository.js', 'src/ui/savingPathForLock.js']) expect(REACHED, never).not.toContain(never);
+    for (const never of ['src/services/PlanLock.js', 'src/storage/ScenarioRepository.js', 'src/storage/DecisionRepository.js']) expect(REACHED, never).not.toContain(never);
     // the repositories and PlanLock keep their names as re-exports over the service
     expect(targetsOf('src/storage/ScenarioRepository.js')).toContain(f);
     expect(targetsOf('src/storage/DecisionRepository.js')).toContain(f);

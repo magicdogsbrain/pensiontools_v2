@@ -9,6 +9,7 @@
 import { describe, it, expect } from 'vitest';
 import { planPage } from '../../../src/answers/plan/read.js';
 import { PLAN } from '../../../src/v7/copy/plan.js';
+import { LABELS } from '../../../src/reading/labels.js';
 import { corpus, entryOf } from './_plans.js';
 
 const where = (name, today) => { const e = entryOf(corpus()[name], today); return planPage([e], e.plan.id, 'where', { today }).steps.find((s) => s.id === 'where'); };
@@ -21,11 +22,14 @@ describe('a locked ladder\'s "Where you are"', () => {
     expect(W.lines.find((l) => l.id === 'where.yearPlan').sentence.text).toContain('£2,833 a month before tax');
     expect(ids).toContain('where.pot');
     expect(ids).not.toContain('where.potMid');
-    expect(ids).not.toContain('where.ladderMonthly');
+    expect(ids).not.toContain('where.ladder');
     expect(W.lines.filter((l) => /£2,833 a month/.test(l.sentence.text))).toHaveLength(1);
   });
+  // retaken in step F5 (lead4.md D17): the ladder's line is the one sentence both views say (src/reading/where.js), the plan's
+  // rule's own words, which say the plan pays
   it('a ladder line, when it is said, says the plan pays (a cash year is not paid by the ladder)', () => {
-    expect(PLAN.lines['where.ladderMonthly']).toBe('Your plan pays');
+    expect(PLAN.lines['where.ladder']).toBe('');
+    expect(LABELS['ladder.monthly'].label).toBe('Your plan pays');
   });
 });
 

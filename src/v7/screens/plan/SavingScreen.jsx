@@ -2,9 +2,8 @@
  * "What you pay in" on a saved plan (research/v7/road-to-7.md step 11b): the saving rail step made real — the planner's
  * Accumulation page in V7. The boxes (what you pay in, your employer's part, into ISAs and savings, the yearly rise, how tax
  * relief is given and your salary, the pot today) with Save, Cancel and the Undo toast; "How tax relief works, and your
- * salary" as a closed block with the person's own figures; what the pot could be by the stop at the regulator's three rates and
- * at the mix you hold; the rule warnings; "Record this month's pot" (one write, nothing deleted); the planner's fixed-rate pot
- * check, a quiet link. First of all, "Are you paying in enough?" (release step R2): question B's own answer on the plan's
+ * salary" as a closed block with the person's own figures; what the pot could be by the stop (the one model: a bad case, the
+ * middle and a good case, step F1); the rule warnings; "Record this month's pot" (one write, nothing deleted). First of all, "Are you paying in enough?" (release step R2): question B's own answer on the plan's
  * figures, run in the worker (effects/saver.js). Draws only: everything is the reading's (state/select.js planSavingView:
  * answers/plan/saving.js through the plan source) or the run's. No figure is worked out here.
  */
@@ -84,15 +83,16 @@ function Verdict({ V, planId, dispatch }) {
   const band = result && result.verdict && result.verdict.band;
   const hasVerdict = !!(s.verdictHead && s.verdictLine && VERDICT_BANDS.includes(band));
   const riseText = n.rise ? fill(n.rise.pct === '0' ? t.rise.none : t.rise[n.rise.path], { pct: n.rise.pct }) : null;
-  const status = run.status === 'final' ? 'final' : run.status === 'first' ? 'first' : run.status === 'failed' ? 'failed' : 'working';
+  const status = run.status === 'final' ? 'final' : run.status === 'failed' ? 'failed' : 'working';
   // B refused the plan's figures (a rule between them, such as the end age before the stop): said plainly, nothing drawn
   const refused = !!result && result.status === 'invalid';
   return (
-    <section class="block plan-section saving-verdict" data-section="verdict" data-testid={`${T}.verdict`} data-status={status} data-verdict={band || undefined} aria-labelledby="saving-verdict-title" aria-busy={status === 'working' || status === 'first' ? 'true' : undefined}>
+    <section class="block plan-section saving-verdict" data-section="verdict" data-testid={`${T}.verdict`} data-status={status} data-verdict={band || undefined} aria-labelledby="saving-verdict-title" aria-busy={status === 'working' ? 'true' : undefined}>
       {head}
       {v.ifSaved && <p class="notice" role="status" data-testid={`${T}.verdict.ifSaved`}>{t.ifSaved}</p>}
       <p class="note">{t.lead}</p>
-      <p class="note" data-testid={`${T}.verdict.aim`}>{fill(t.aim, n)}</p>
+      {/* the aim as the income reading says the plan's first step (step F2): one figure in both views, marked */}
+      {n.aimYearly && <p class="note" data-testid={`${T}.verdict.aim`}>{fillMarked(t.aim, n, slotFactsOf('saving.verdict.aim'))}</p>}
       {/* a couple's plan is read on its own until two plans are read together (release step R5): said, so the answer is
           never taken for the household's */}
       {n.couple && <p class="note" data-testid={`${T}.verdict.couple`}>{t.couple}</p>}
@@ -104,9 +104,9 @@ function Verdict({ V, planId, dispatch }) {
           {run.reason !== 'noWorker' && <div class="actions-row"><Button testid={`${T}.verdict.retry`} kind="plain" onClick={() => dispatch({ type: 'saver/retry' })}>{t.retry}</Button></div>}
         </div>
       )}
-      {!result && status !== 'failed' && <p class="working-note" role="status" data-testid={`${T}.verdict.working`}>{t.working}</p>}
+      {status === 'working' && <p class="working-note" role="status" data-testid={`${T}.verdict.working`}>{t.working}</p>}
       {result && hasVerdict && (
-        <div class={`answer-region${status === 'first' ? ' is-first' : ''}`} data-region="answer" data-answer={status}>
+        <div class="answer-region" data-region="answer" data-answer={status}>
           <div class="headline" data-headline="verdict">
             <div class={`band verdict is-${band}`} data-verdict={band}>
               <Fact id="saver.verdict"><Sentence s={s.verdictHead} source={result} class="figure" marks={SAVER_MARKS.head} /></Fact>
@@ -126,7 +126,6 @@ function Verdict({ V, planId, dispatch }) {
               {s.enoughMatch && <Sentence s={s.enoughMatch} source={result} class="note" />}
             </div>
           )}
-          {status === 'first' && <p class="working-note" role="status">{t.first}</p>}
         </div>
       )}
       {refused && <p class="note" data-testid={`${T}.verdict.invalid`}>{t.invalid} <a href={href.plan(planId, 'about')}>{t.aboutLink}</a></p>}
@@ -145,30 +144,31 @@ function Verdict({ V, planId, dispatch }) {
   );
 }
 
-/** What the pot could be by the stop (save.escalation rides in the rows; save.own-mix the "Your mix" column). */
+/** What the pot could be by the stop (step F1: the one model, the saving lives every test uses, src/reading/atStop.js). */
 function Pot({ V }) {
   const P = W.pot;
   if (!V.ages.known) return <p class="notice" role="status" data-testid={`${T}.pot.noAges`}>{W.agesNone}</p>;
   if (!V.ages.stillSaving) return <p class="note" data-testid={`${T}.pot.stopped`}>{W.stopped}</p>;
   return (
-    <section class="plan-section saving-pot" data-section="pot" data-testid={`${T}.pot`} data-mix={V.mix ? '1' : '0'}>
+    <section class="plan-section saving-pot" data-section="pot" data-testid={`${T}.pot`}>
       <h3>{W.sections.pot}</h3>
-      <p class="note">{fill(P.lead, V.rates)}</p>
-      {V.atStop && <p class="note" data-testid={`${T}.pot.atStop`}>{fillMarked(P.atStop, V.atStop, slotFactsOf('saving.atStop'))}</p>}
+      <p class="note">{P.lead}</p>
+      {V.atStop && <p class="note" data-testid={`${T}.pot.atStop`}>{fillMarked(V.atStop.locked ? P.atStopLocked : P.atStop, V.atStop, slotFactsOf('saving.atStop'))}</p>}
       <p class="note" data-testid={`${T}.pot.potNow`} data-from={V.potNow.line.id}>{fillMarked(P.potNow[V.potNow.line.id] || '', V.potNow.line.slots, slotFactsOf('saving.potNow'))}</p>
-      {V.mix && <p class="note" data-testid={`${T}.pot.mix`}>{fill(P.mix, { ...V.mix, mix: V.rates.mix })}{V.rates.charges ? ' ' + fill(P.mixCharge, V.mix) : ''}</p>}
-      <div class="table-wrap">
-        <table class="way-table saving-table" data-testid={`${T}.pot.table`}>
-          <thead><tr><th scope="col">{P.columns.age}</th><th scope="col">{P.columns.low}</th><th scope="col">{P.columns.mid}</th>{V.mix && <th scope="col">{P.columns.mix}</th>}<th scope="col">{P.columns.high}</th><th scope="col">{P.columns.paidIn}</th>{V.isaLine && <th scope="col">{P.columns.isa}</th>}</tr></thead>
-          <tbody>
-            {V.rows.map((r) => (
-              <tr key={r.age} data-age={r.age} class={r.last ? 'is-last' : undefined} data-low={r.raw.low} data-mid={r.raw.mid} data-high={r.raw.high} data-mix={r.raw.mix == null ? undefined : r.raw.mix}>
-                <th scope="row">{r.age}</th><td>{r.low}</td><td>{r.mid}</td>{V.mix && <td>{r.mix}</td>}<td>{r.high}</td><td>{r.paidIn}</td>{V.isaLine && <td>{r.isa}</td>}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {V.rows.length > 0 && (
+        <div class="table-wrap">
+          <table class="way-table saving-table" data-testid={`${T}.pot.table`}>
+            <thead><tr><th scope="col">{P.columns.age}</th><th scope="col">{P.columns.low}</th><th scope="col">{P.columns.mid}</th><th scope="col">{P.columns.high}</th><th scope="col">{P.columns.paidIn}</th>{V.isaLine && <th scope="col">{P.columns.isa}</th>}</tr></thead>
+            <tbody>
+              {V.rows.map((r) => (
+                <tr key={r.age} data-age={r.age} class={r.last ? 'is-last' : undefined} data-low={r.raw.low} data-mid={r.raw.mid} data-high={r.raw.high}>
+                  <th scope="row">{r.age}</th><td>{r.low}</td><td>{r.mid}</td><td>{r.high}</td><td>{r.paidIn}</td>{V.isaLine && <td>{r.isa}</td>}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
       <p class="note" data-testid={`${T}.pot.charges`}>{V.rates.charges ? fill(P.charges, V.rates) : P.chargesNone}</p>
       {V.isaLine && <p class="note" data-testid={`${T}.pot.isa`}>{fill(P.isa[V.isaHow] || P.isa.before, { isaMonthly: V.isaMonthly })}</p>}
       {V.warnings.length > 0 && <ul class="plan-lines" data-testid={`${T}.pot.warnings`}>{V.warnings.map((id) => <li key={id} class="plan-line notice" data-warning={id}>{P.warnings[id]}</li>)}</ul>}

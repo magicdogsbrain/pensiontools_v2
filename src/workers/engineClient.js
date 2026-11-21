@@ -6,6 +6,11 @@
 import { cloneSafe } from '../utils/cloneSafe.js';
 import { trackBusy } from '../reading/busy.js';
 import { todayOf } from '../reading/clock.js';
+import { marketFolderOf } from '../reading/marketPlain.js';
+import { LAYOUT } from '../appLayout.js';
+
+/** The site's one data folder, as this page's address resolves it (src/reading/market.js): handed to the worker with every job. */
+const folder = () => (typeof document !== 'undefined' ? marketFolderOf(document.baseURI, LAYOUT.classic.data) : null);
 
 let worker = null;
 let seq = 0;
@@ -33,6 +38,15 @@ function get() {
   return worker;
 }
 
+/**
+ * What a job carries across to the worker: the payload as given, plus the one clock (src/reading/clock.js) when it names no
+ * day, and the site's one data folder; through cloneSafe (a Date stays a Date). The worker sees the plan from the page's day.
+ */
+export function jobPayload(payload) {
+  const withNow = payload && typeof payload === 'object' ? { ...payload, ...(payload.now == null ? { now: todayOf().toISOString() } : {}), ...(payload.market == null ? { market: folder() } : {}) } : payload;
+  return cloneSafe(withNow);
+}
+
 export function workerAvailable() { return typeof Worker !== 'undefined'; }
 
 export function runInWorker(type, payload, onProgress) {
@@ -42,8 +56,6 @@ export function runInWorker(type, payload, onProgress) {
     try { w = get(); } catch (e) { reject(e); return; }
     const id = ++seq;
     pending.set(id, { resolve, reject, onProgress });
-    // every job carries the one clock (src/reading/clock.js): the worker sees the plan from the page's day
-    const withNow = payload && typeof payload === 'object' && payload.now == null ? { ...payload, now: todayOf().toISOString() } : payload;
-    try { w.postMessage({ id, type, payload: cloneSafe(withNow) }); } catch (e) { pending.delete(id); reject(e); }
+    try { w.postMessage({ id, type, payload: jobPayload(payload) }); } catch (e) { pending.delete(id); reject(e); }
   }), 'worker');
 }

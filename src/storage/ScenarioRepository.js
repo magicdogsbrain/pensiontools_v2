@@ -35,6 +35,7 @@ import { DEFAULT_CHARGES_PCT, isChargesPct, chargesPctOf } from '../services/Cha
 import { DEFAULT_ISA_GROWTH, isIsaGrowth } from '../services/IsaGrowth.js';
 import { getDefaultDecisionSettings, seedDecisionFromStress, chargesPatchOnUnlock, unlockPatchesOf, budgetSharedFromOf, BUDGET_OWN_SIDE, ownSideOf, sharedBudgetView, shareBudgetWrite, stopSharingWrite, sharedBudgetWrites } from '../services/PlanCommit.js';
 import { getDefaultTaxYears, getDefaultBudget, defaultStrategyBlock as pureDefaultStrategyBlock, getDefaultScenario as pureGetDefaultScenario, strategyOf as pureStrategyOf } from '../services/PlanFromSeed.js';
+import { PlanReadError } from '../reading/readFault.js';
 import { PlanLockedError, lockedWriteRefusal, isLockedSettings, isPlanLockedError, lockedPlanWriteRefusal, phaseWriteRefusal } from '../services/LockedPlanGuard.js';
 import { taskPatch } from '../answers/plan/tasks.js';
 import { savingPatch } from '../answers/plan/saving.js';
@@ -49,7 +50,8 @@ import { OPEN_PLAN_KEY } from '../services/OpenPlace.js';
 import { copyOf as planCopyOf } from '../services/PlanCopy.js';
 import { withoutPotsAsOf } from '../services/PlanFromToday.js';
 import { isClosedPlan, monthRefusal, monthRefusalWords, nextPlanIdOf } from '../services/PlanClosed.js';
-import { pensionTodayPatch } from '../services/PensionToday.js';
+import { pensionTodayPatch, isaTodayPatch } from '../services/PensionToday.js';
+import { isaBoxOf } from '../reading/money.js';
 import { partnerOf } from '../services/HouseholdLink.js';
 import { withV7Keys } from '../services/SaverPayIn.js';
 
@@ -234,62 +236,59 @@ const isLockedScenario = (scenario) => !!(scenario && scenario.decisionTool && s
 // ============================================================================
 
 /**
- * List all scenarios (metadata only from cache or Firestore)
+ * List all scenarios (metadata only from cache or Firestore). A read that fails answers [] (the menu's "no plans");
+ * readScenariosAsync is the same read that says a failure (throws).
  * @returns {Promise<object[]>} Array of scenarios
  */
 export async function listScenariosAsync() {
-  if (cachedScenarios) {
-    return cachedScenarios;
-  }
+  try { return await readScenariosAsync(); }
+  catch (error) { console.error('Error listing scenarios:', error); return []; }
+}
 
-  if (!isFirebaseAvailable()) {
-    return [];
-  }
+/** The plans as stored, or a throw when the store cannot hand them back (never [] in their place): the plan menu's read. */
+export async function readScenariosAsync() {
+  if (cachedScenarios) return cachedScenarios;
+  if (!isFirebaseAvailable()) return [];
+  const gen = cacheGen;
+  const scenarios = await loadAllScenarios();
+  if (gen !== cacheGen) return readScenariosAsync();   // the plans changed meanwhile: read them again
+  scenarios.forEach(ensureStrategyBlock);
+  scenarios.forEach(rememberStored);
+  cachedScenarios = scenarios;
+  return scenarios;
+}
 
+/**
+ * The plan open now (full data), or null when there is none (an account with no plans, nobody signed in). A read that
+ * FAILS throws a PlanReadError (src/reading/readFault.js): "could not read" is never answered as "no plan", so a page that
+ * fills boxes can say the fault and empty them instead of filling them with the factory settings (lead4.md R2, D1).
+ * Nothing failed is kept: the next read tries again.
+ * @returns {Promise<object|null>}
+ */
+export async function readActiveScenarioAsync() {
+  if (cachedActiveScenario) return cachedActiveScenario;
+  if (!isFirebaseAvailable()) return null;
   try {
     const gen = cacheGen;
-    const scenarios = await loadAllScenarios();
-    if (gen !== cacheGen) return listScenariosAsync();   // the plans changed meanwhile: read them again
-    scenarios.forEach(ensureStrategyBlock);
-    scenarios.forEach(rememberStored);
-    cachedScenarios = scenarios;
-    return scenarios;
+    const scenarios = await readScenariosAsync();
+    const pin = pinnedPlanId();
+    const active = openingPlanOf(scenarios, { pin, lastPlanId: pin ? null : await lastPlanIdRead() });
+    if (gen !== cacheGen) return readActiveScenarioAsync();   // the open plan changed meanwhile: read it again
+    if (active) cachedActiveScenario = active;
+    return active || null;
   } catch (error) {
-    console.error('Error listing scenarios:', error);
-    return [];
+    throw new PlanReadError(error);
   }
 }
 
 /**
- * Get the active scenario (full data)
+ * The plan open now (full data), or null — also null when the read fails, for the callers that only need "a plan or
+ * none". A page that shows a plan's figures reads through readActiveScenarioAsync, which says a failure.
  * @returns {Promise<object|null>} Active scenario or null
  */
 export async function getActiveScenarioAsync() {
-  if (cachedActiveScenario) {
-    return cachedActiveScenario;
-  }
-
-  if (!isFirebaseAvailable()) {
-    return null;
-  }
-
-  try {
-    const gen = cacheGen;
-    const scenarios = await listScenariosAsync();
-    const pin = pinnedPlanId();
-    const active = openingPlanOf(scenarios, { pin, lastPlanId: pin ? null : await lastPlanIdRead() });
-    if (gen !== cacheGen) return getActiveScenarioAsync();   // the open plan changed meanwhile: read it again
-
-    if (active) {
-      cachedActiveScenario = active;
-      return active;
-    }
-
-    return null;
-  } catch (error) {
-    console.error('Error getting active scenario:', error);
-    return null;
-  }
+  try { return await readActiveScenarioAsync(); }
+  catch (error) { console.error('Error getting active scenario:', error); return null; }
 }
 
 /**
@@ -596,7 +595,7 @@ export async function saveActiveDecisionSettings(settings) {
  * @returns {Promise<object>} Budget object
  */
 export async function getActiveBudget() {
-  const scenario = await getActiveScenarioAsync();
+  const scenario = await readActiveScenarioAsync();   // a failed read throws: never the starter budget in the plan's place
   const own = scenario?.budgetTool?.settings || getDefaultBudget();
   const from = budgetSharedFromOf(scenario);
   if (!from) return own;
@@ -1011,6 +1010,26 @@ export async function saveActivePensionToday(value, { now = new Date() } = {}) {
   const plan = upgradeScenario(JSON.parse(JSON.stringify(stored)), { now }).scenario;
   if (isLockedSettings(plan.decisionTool && plan.decisionTool.settings)) return { written: false };
   const patch = pensionTodayPatch(plan, value, { now });
+  if (!Object.keys(patch).length) return { written: false };
+  await saveScenario(active.id, patch);
+  invalidateScenarioCache();
+  return { written: true };
+}
+
+/**
+ * The ISA typed in the full view's ISA box (field pots.isa) made the ISA today every page reads (step F1, lead4.md D3): on a
+ * saver's plan not locked whose ISA today is read from a record or What you hold, this month's record carries it
+ * (PensionToday.isaTodayPatch), as the simple view's pots page writes it. The plan's own ISA is written by the form's save.
+ */
+export async function saveActiveIsaToday(value, { now = new Date() } = {}) {
+  const active = await getActiveScenarioAsync();
+  if (!active) throw new Error('No active scenario');
+  const stored = (await loadScenario(active.id)) || active;
+  const plan = upgradeScenario(JSON.parse(JSON.stringify(stored)), { now }).scenario;
+  if (isLockedSettings(plan.decisionTool && plan.decisionTool.settings)) return { written: false };
+  const box = isaBoxOf(plan, { now });
+  if (!box || !box.today) return { written: false };
+  const patch = isaTodayPatch(plan, value, { now });
   if (!Object.keys(patch).length) return { written: false };
   await saveScenario(active.id, patch);
   invalidateScenarioCache();

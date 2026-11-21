@@ -66,7 +66,7 @@ function SaverBlock({ V, planId, view, dispatch }) {
   const fillOf = view.askFill && view.askFill.b;
   const onWays = fillOf ? (e) => { e.preventDefault(); dispatch({ type: 'draft/load', q: 'b', values: fillOf.values, ...(fillOf.mixes ? { mixes: fillOf.mixes } : {}), ...(fillOf.flexibleAccess ? { flexibleAccess: fillOf.flexibleAccess } : {}), planId: String(planId) }); } : undefined;
   return (
-    <section class="block home-saver" data-testid={`${T}.saver`} data-status={run.status} data-verdict={B.band || undefined} aria-labelledby="home-saver-title" aria-busy={run.status === 'working' || run.status === 'first' ? 'true' : undefined}>
+    <section class="block home-saver" data-testid={`${T}.saver`} data-status={run.status} data-verdict={B.band || undefined} aria-labelledby="home-saver-title" aria-busy={run.status === 'working' ? 'true' : undefined}>
       <h2 id="home-saver-title">{W.title}</h2>
       {B.lines.map((l) => (l.s
         ? (l.id === 'head'
@@ -75,7 +75,6 @@ function SaverBlock({ V, planId, view, dispatch }) {
         : <p key={l.id} class="line" data-line={l.id}>{saverLineText(l)}</p>))}
       {B.state === 'failed' && <p class="notice" role="alert">{run.reason === 'noWorker' ? W.noWorker : W.failed}</p>}
       {B.state === 'working' && <p class="working-note" role="status" data-testid={`${T}.saver.working`}>{W.working}</p>}
-      {B.state === 'answer' && run.status === 'first' && <p class="working-note" role="status" data-testid={`${T}.saver.first`}>{W.first}</p>}
       {B.state === 'invalid' && <p class="note">{W.invalid}</p>}
       <div class="actions-row">
         <LinkButton testid={`${T}.saver.change`} kind="quiet" href={href.plan(planId, 'saving')}>{W.change}</LinkButton>
@@ -138,10 +137,10 @@ function headlineWords(H) {
 /** The headline with its stage word and stop month marked (lead4.md G1). */
 const headlineOf = (H) => markIn(headlineWords(H), [[/^(Saving|Moving|Living on it)\b/, 'stage'], [/stop work in ([A-Z][a-z]+ \d{4})/, 'stop.month']]);
 
-/** The questions a home offers that really open with this plan's figures (a saver's B): the fold's words promise no more. */
+/** The questions a home offers that really open with this plan's figures (a saver's B and A): the fold's words promise no more. */
 const filledAsk = (H, view) => H.ask.filter((q) => !!(view.askFill && view.askFill[q]));
 
-/** A question with the plan's figures (the rail's links, moved here): B with a saver's own boxes filled, the others plain. */
+/** A question with the plan's figures (the rail's links, moved here): B and A with a saver's own boxes filled, the others plain. */
 function Ask({ H, view, dispatch }) {
   return (
     <ul class="home-links">

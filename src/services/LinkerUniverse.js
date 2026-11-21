@@ -5,15 +5,14 @@
  *
  * Data: `public/data/gilts.json`, rebuilt nightly by scripts/fetch-gilt-data.mjs from the DMO
  * gilts-in-issue report and Tradeweb FTSE closing prices (T+1). `src/data/giltsSnapshot.js` is
- * the bundled copy for offline/tests; `loadLiveGilts()` swaps in the fetched file at runtime; an
- * admin override (Firestore admin/linkers) sits above both. For 3-month-lag linkers the quoted
+ * the bundled copy for offline/tests; the one market loader (src/reading/market.js) swaps in the day's file, the
+ * same in both views' pages and workers. For 3-month-lag linkers the quoted
  * clean price is a real price, so a solved YTM is a real yield — but the curve that PRICES the
  * rungs is the Bank of England's daily real spot curve (realCurve in the file), with the per-gilt
  * YTMs as the fallback. That replaces the old flat 2.3% assumption. Everything shown from it is labelled indicative, never a recommendation.
  */
 
 import snapshot from '../data/giltsSnapshot.js';
-import { LAYOUT } from '../appLayout.js';
 
 export const FLAT_REAL_YIELD_FALLBACK = 0.023;
 
@@ -63,30 +62,20 @@ function normalise(data, now = new Date()) {
 const BUNDLED = normalise(snapshot);
 export const BUNDLED_LINKERS = BUNDLED;
 
-let _override = null;   // admin-published
-let _live = null;       // fetched at runtime
+let _override = null;   // the tests' pin
+let _live = null;       // fetched at runtime (src/reading/market.js)
+let _overrideFile = null, _liveFile = null;   // the same, as the file lists them
 
-/** Admin CSV import applies here (persisted via AdminConfigService admin/linkers). */
-export function setLinkersOverride(data, now = new Date()) { _override = data && data.gilts ? normalise(data, now) : null; }
-export function setLiveGilts(data, now = new Date()) { _live = data && data.gilts ? normalise(data, now) : null; }
+/** For the tests only: pins the gilts this JS context prices on (the site itself prices only through src/reading/market.js). */
+export function setLinkersOverride(data, now = new Date()) { _override = data && data.gilts ? normalise(data, now) : null; _overrideFile = _override ? data : null; }
+export function setLiveGilts(data, now = new Date()) { _live = data && data.gilts ? normalise(data, now) : null; _liveFile = _live ? data : null; }
 export function activeLinkers() { return _override || _live || BUNDLED; }
-
 /**
- * Fetch the nightly file (same origin; by default from the site's data folder as the classic page sees it, src/appLayout.js:
- * './data/' today, '../data/' from /classic/ at 7.0) — silent fallback to the snapshot. The engine worker asks with the same
- * address, which it resolves from its own script in assets/: /assets/data/ today, where there is no file, so it keeps the
- * snapshot (known; e2e/full-view-unchanged.spec.js); /classic/data/ at 7.0, where it reads whatever copy that build made.
+ * The gilts file the active prices come from, as the file lists them (every gilt in issue with its clean price and index
+ * ratio, the gilts matured lately, the Bank of England inflation curve): the day's file when the one loader has it, else the
+ * copy built in. What a held line pays (TransitionPlanner.standInPays) reads this, so it is priced as every run is.
  */
-export async function loadLiveGilts(url = LAYOUT.classic.data + 'gilts.json', fetchImpl = globalThis.fetch) {
-  if (!fetchImpl) return null;
-  try {
-    const r = await fetchImpl(url, { cache: 'no-cache' });
-    if (!r.ok) return null;
-    const data = await r.json();
-    if (Date.parse(data.generated_at || 0) >= Date.parse(BUNDLED.generated_at || 0)) setLiveGilts(data);
-    return activeLinkers();
-  } catch (e) { return null; }
-}
+export function activeGiltsFile() { return (_override && _overrideFile) || (_live && _liveFile) || snapshot; }
 
 export function isStale(nowMs = Date.now(), maxAgeHours = 48) {
   const gen = Date.parse(activeLinkers().generated_at || 0);

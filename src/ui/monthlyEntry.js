@@ -12,6 +12,7 @@
  */
 import { platformBoxes, splitFromPlatform, prefillFromHistory, prefillNote, enteredBlock, isaPrefillOf } from '../services/MonthlyEntry.js';
 import { monthToRecord } from '../services/YearPlan.js';
+import { CONTRACT_IDS } from '../services/DecisionOverlay.js';   // the ways that pay by contract (a gilt ladder): total and cash only
 
 export const ENTRY_MODE_KEY = 'pt.entryMode';
 const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -66,6 +67,21 @@ export function paintEntryMode(mode, opts) {
 
 /** Re-describe the plan (a strategy switch, a sleeve appearing) without losing what is typed. */
 export function configureMonthlyEntry(opts) { return paintEntryMode(currentEntryMode(), opts || {}); }
+
+/** The entry card's shape for a plan: whether its way pays by contract, and whether it has a gold-and-trend sleeve. */
+export function entryOptionsOf(strategyId, decisionSettings) {
+  const d = decisionSettings || {};
+  return { contract: CONTRACT_IDS.includes(strategyId || ''), hasDiversifiers: d.diversifierStart > 0 || !!d.diversifiers };
+}
+
+/**
+ * Another plan opened: the entry card takes that plan's WHOLE shape (never merged onto the plan open before, whose ladder
+ * shape would leave the bonds box empty and Calculate reading every pound as shares).
+ */
+export function resetMonthlyEntry(opts) {
+  lastOpts = { contract: false, hasDiversifiers: false, ...(opts || {}) };
+  return paintEntryMode(currentEntryMode(), lastOpts);
+}
 
 /** The figures the engine runs on, from whichever view is showing; the by-type boxes are written either way. `paidAhead`: the
  * "This month's payment has already been made" tick, which dated the entry a month on (togglePaidThisMonth) — the record says so
@@ -136,9 +152,12 @@ export function prefillMonthlyEntry(history, opts) {
 /**
  * The entry card opened on a plan (7.12.0): the month box set to the one month to record (YearPlan.monthToRecord — the month
  * the simple view's home and Month by month name), then the boxes filled for it. With nothing to record the box is left as
- * it is.
+ * it is. The "already been made" tick starts off (the month it moved belongs to the card as it was before).
  */
 export function openMonthlyEntry(history, opts) {
+  // the card opens afresh on this plan: "This month's payment has already been made" is off, with no note, until it is ticked
+  // here (a tick left from the plan open before would mark this plan's record paid ahead, and its note name that plan's month)
+  { const tick = el('entryPaidThisMonth'); if (tick) tick.checked = false; const note = el('entryPaidNote'); if (note) note.textContent = ''; }
   const t = monthToRecord({ decisionTool: { history: Array.isArray(history) ? history : [] } }, thisMonth());
   // the box moved: tell the form, so the line under Calculate names the same month as the box (7.12.0 round 3, walker 10:
   // "Press Calculate to work out November 2026" beside a box set to October); an input event, so nothing is filled twice

@@ -11,7 +11,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { test, expect, PROD, REPO, FIXED_NOW, V7_PATH, WORKER_DATA_MISSING } from './helpers/app.js';
+import { test, expect, PROD, REPO, FIXED_NOW, V7_PATH } from './helpers/app.js';
 import { tryInNode } from './helpers/tryInNode.js';
 import { TRY_WRITES } from '../src/answers/plan/schema.js';
 import { applyPatch } from '../src/answers/plan/about.js';
@@ -61,7 +61,6 @@ const TYPED = { 'try.way': 'floor-to-age', 'try.years': '30', 'try.isaPolicy': '
 test.describe('Try a change on "Does it last?", without an account', () => {
   test('closed until pressed; the boxes at the saved values; a wrong figure said; the try equals Node; "Use this" writes the Node patch, Undo byte for byte; "Keep as a separate plan" appends one unlocked copy; the locked plan', async ({ page, watch }, testInfo) => {
     test.setTimeout(600_000);
-    watch.allow(WORKER_DATA_MISSING);
     const plan = draftPlan();
     const locked = lockedPlan();
     const planted = await plant(page, [plan, locked]);

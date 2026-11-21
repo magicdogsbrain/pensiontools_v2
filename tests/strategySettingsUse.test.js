@@ -27,12 +27,13 @@ describe('the Stress settings markup', () => {
   const hidden = pnvOnlySections(doc);
   const inHidden = (id) => { const el = doc.getElementById(id); expect(el, id).not.toBeNull(); return hidden.some((sec) => sec.contains(el)); };
   it('the six shared settings sit OUTSIDE every data-pnv-only part', () => {
-    for (const id of ['ssDuration', 'ssChargesPct', 'ssIsaGrowthCash', 'ssIsaGrowthInvested', 'ssTaxableStart', 'ssTaxableMix', 'ssGiaTaxBand', 'ssRelevantEarnings', 'ssBedAndIsa']) {
+    // (step F2, D6) how the tax-free part is taken: every way of drawing reads it (each "a year before tax"), so it shows for all
+    for (const id of ['ssDuration', 'ssChargesPct', 'ssIsaGrowthCash', 'ssIsaGrowthInvested', 'ssTaxableStart', 'ssTaxableMix', 'ssGiaTaxBand', 'ssRelevantEarnings', 'ssBedAndIsa', 'ssAccessMethod', 'ssAccessAssumed']) {
       expect(inHidden(id), id + ' must show for every strategy').toBe(false);
     }
   });
-  it('the Pots & Valves machinery is inside one: the risk/funds switch, the pot boxes, the risk level, diversifiers, the funds list, the bond tent, protection, the reserve, how the pension is accessed', () => {
-    for (const id of ['ssModeRisk', 'ssPot', 'ssIsaBalance', 'ssIsaPolicy', 'ssRisks', 'ssDiversifiers', 'ssFundRows', 'ssEquityGlide', 'ssRecoveryBuffer', 'ssHodlEnabled', 'ssAccessMethod']) {
+  it('the Pots & Valves machinery is inside one: the risk/funds switch, the pot boxes, the risk level, diversifiers, the funds list, the bond tent, protection, the reserve, how long UFPLS runs, the band fill', () => {
+    for (const id of ['ssModeRisk', 'ssPot', 'ssIsaBalance', 'ssIsaPolicy', 'ssRisks', 'ssDiversifiers', 'ssFundRows', 'ssEquityGlide', 'ssRecoveryBuffer', 'ssHodlEnabled', 'ssUfplsYears', 'ssUfplsPcls', 'ssBandFillRecycle']) {
       expect(inHidden(id), id + ' is Pots & Valves machinery').toBe(true);
     }
   });
@@ -88,5 +89,13 @@ describe('index.html: pickStrategy hides only the marked parts and paints the no
   it('uses the module, not the old anchor list', () => {
     expect(src).toContain("for (const sec of pnvOnlySections(document)) sec.style.display = isLadder ? 'none' : ''; paintSettingUseNotes(document, id); if (typeof window.syncIsaHoldUI === 'function') window.syncIsaHoldUI('ss');");
     expect(src).not.toContain("const anchors = ['ssModeRisk', 'ssRecoveryBuffer', 'ssHodlEnabled', 'ssAccessMethod'];");
+  });
+  it('(step F2) the chosen way of taking the tax-free part is shown pressed: the sync finds the buttons by the handler they carry', () => {
+    const buttons = [...doc.querySelectorAll('#stress-stresssettings [data-access]')];
+    expect(buttons.map((b) => b.dataset.access)).toEqual(['drawdown', 'ufpls']);
+    const sel = /document\.querySelectorAll\("(\[data-on-click\^=\\"setAccessMethod\(')" \+ p \+ "('\\"\])"\)/.exec(src);
+    expect(sel, 'syncAccessButtons selects by data-on-click').not.toBeNull();
+    expect(buttons.every((b) => (b.getAttribute('data-on-click') || '').startsWith(sel[1].replace(/\\/g, '').slice('[data-on-click^="'.length) + 'ss'))).toBe(true);
+    expect(src).not.toContain('[onclick^=');
   });
 });

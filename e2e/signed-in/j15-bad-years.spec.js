@@ -12,7 +12,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { test, expect, REPO, FIXED_NOW, atClassic, WORKER_DATA_MISSING } from '../helpers/app.js';
+import { test, expect, REPO, FIXED_NOW, atClassic } from '../helpers/app.js';
 import { clearEmulators, makeAccount, putPlan, putSettings, plansOf, ALEX, SAM } from './emulator.js';
 import { openAt, signIn, answer } from './journeys.js';
 import { VERSION } from '../../src/constants.js';
@@ -69,7 +69,7 @@ async function classicScenarios(page, id) {
   await expect(page.locator('#stressPanel')).toHaveAttribute('data-status', /^(idle|done)$/, { timeout: 45_000 });
 }
 
-test.beforeEach(async ({ watch }) => { await clearEmulators(); watch.allow(WORKER_DATA_MISSING); });
+test.beforeEach(async ({ watch }) => { await clearEmulators(); });
 
 test('a locked plan with a keep agreement: the fall row accepted in one write; the keep agreement withdrawn, the row\'s entry untouched', async ({ page }) => {
   test.setTimeout(420_000);

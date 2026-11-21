@@ -50,6 +50,7 @@ describe('"Move to a new plan…" asks one question at a time', () => {
   it('a double click while the plans are being read: one read, one question, one new plan', async () => {
     const first = window.movePlanToNew();
     const second = window.movePlanToNew();
+    await flush();   // what was typed is sent first (lead4.md R3), then the plans are read
     expect(reads.length).toBe(1);
     reads[0].resolve();
     await flush();
@@ -65,12 +66,14 @@ describe('"Move to a new plan…" asks one question at a time', () => {
 
   it('done (answered "Not now"), the button asks again', async () => {
     const one = window.movePlanToNew();
+    await flush();
     reads[0].resolve();
     await flush();
     asked[0].resolve(false);
     await one;
     expect(store.creates.length).toBe(0);
     const two = window.movePlanToNew();
+    await flush();
     expect(reads.length).toBe(2);
     reads[1].resolve();
     await flush();

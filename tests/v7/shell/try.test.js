@@ -36,7 +36,7 @@ const LOCKED = C['04-buckets-running'];
 const tick = async (n = 6) => { for (let i = 0; i < n; i++) await new Promise((r) => setTimeout(r, 0)); };
 const copy = (v) => JSON.parse(JSON.stringify(v));
 const RESULT = { strategyId: 'pots-and-valves', a: { share: 0.93, chancePct: 93, years: 32, typicalLeft: 100, badCaseLeft: 1, goodCaseLeft: 200, futures: 1000, histories: 700 }, history: { worst: [], named: [] }, stored: null };
-const TRIED = { strategyId: 'floor-to-age', ran: { family: false }, priced: 'bundled', a: { share: 0.9, chancePct: 90, years: 30, typicalLeft: 50, badCaseLeft: 1, goodCaseLeft: 100, futures: 1000, histories: 700 }, reason: null, history: null, stored: null, basis: { today: TODAY, engine: 'one-test', runs: 1 } };
+const TRIED = { strategyId: 'floor-to-age', ran: { family: false }, market: { gilts: { source: 'builtIn', asOf: '2026-11-12' }, equity: { source: 'builtIn', asOf: '2026-11-11' } }, a: { share: 0.9, chancePct: 90, years: 30, typicalLeft: 50, badCaseLeft: 1, goodCaseLeft: 100, futures: 1000, histories: 700 }, reason: null, history: null, stored: null, basis: { today: TODAY, engine: 'one-test', runs: 1 } };
 const at = new Date('2026-10-02T14:03:00.000Z');
 
 function pageOn(raws, planId, { source = 'account', session = 'in', typed = {} } = {}) {

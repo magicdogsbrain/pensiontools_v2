@@ -15,8 +15,8 @@
    "timingMode": "legacy",
    "firstTaxYear": 2026,
    "startAge": 57,
-   "decisionChecksum": "-779e8c27",
-   "stressChecksum": "-1508ba05",
+   "decisionChecksum": "-76193243",
+   "stressChecksum": "-7eaa44e",
    "historyMonths": 0,
    "taxYearsSetUp": [],
    "hasPlanDocument": false,
@@ -52,31 +52,31 @@
      ],
      "wealthP10": [
       500000,
-      314317,
-      216331,
-      81334,
+      322471,
+      229847,
+      107673,
       0
      ],
      "wealthP50": [
       500000,
-      432053,
-      353246,
-      248700,
-      38265
+      440924,
+      368011,
+      274956,
+      92488
      ],
      "wealthP90": [
       500000,
-      570465,
-      571368,
-      623387,
-      827000
+      580984,
+      599411,
+      683506,
+      1013464
      ],
      "incomeP50": [
-      30000,
-      29550,
-      28750,
-      30000,
-      30000
+      28235,
+      28235,
+      28000,
+      28941,
+      28941
      ]
     }
    }
@@ -583,8 +583,8 @@
    "timingMode": "legacy",
    "firstTaxYear": 2026,
    "startAge": 64,
-   "decisionChecksum": "-66889cf4",
-   "stressChecksum": "7ce4f37c",
+   "decisionChecksum": "595e84a8",
+   "stressChecksum": "-801579b",
    "historyMonths": 2,
    "taxYearsSetUp": [
     "26/27"
@@ -622,31 +622,31 @@
      ],
      "wealthP10": [
       518000,
-      361695,
-      313165,
-      206437,
-      99480
+      367291,
+      322718,
+      222924,
+      126697
      ],
      "wealthP50": [
       518000,
-      482138,
-      468369,
-      420362,
-      376394
+      488888,
+      482661,
+      448273,
+      424974
      ],
      "wealthP90": [
       518000,
-      620477,
-      717804,
-      959038,
-      1321860
+      630702,
+      738393,
+      1012002,
+      1416084
      ],
      "incomeP50": [
-      27500,
-      27500,
-      27500,
-      27500,
-      27500
+      25882,
+      26559,
+      26559,
+      26559,
+      26559
      ]
     }
    }
@@ -813,8 +813,8 @@
    "timingMode": "retired",
    "firstTaxYear": 2026,
    "startAge": 56,
-   "decisionChecksum": "-6eb10aee",
-   "stressChecksum": "-de3e1fe",
+   "decisionChecksum": "500badf6",
+   "stressChecksum": "-1e1041d5",
    "historyMonths": 0,
    "taxYearsSetUp": [],
    "hasPlanDocument": false,

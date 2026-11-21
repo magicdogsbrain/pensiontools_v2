@@ -42,7 +42,7 @@ describe('"What you pay in", drawn', () => {
   const saver = C['05-saver-committed'];
   const id = saver.id;
 
-  it('the saver (05): its own screen, the step current, the boxes with the planner\'s figures, the relief block closed, the pot table with "Your mix", the records; every box labelled; no banned word, no countdown', () => {
+  it('the saver (05): its own screen, the step current, the boxes with the planner\'s figures, the relief block closed, the pot at the stop as locked, the records; every box labelled; no banned word, no countdown', () => {
     const { root, text, words } = draw(stateWith(entries, '#/plan/' + id + '/saving'));
     expect(root.querySelector('main').getAttribute('data-screen')).toBe('plan.saving');
     expect(one(root, 'plan.step.saving').textContent).toBe(W.title);
@@ -55,9 +55,11 @@ describe('"What you pay in", drawn', () => {
     expect(one(root, `${T}.ages`).textContent).toBe('You stop work in February 2038, at 60: 11 years of saving from age 48. The ages are on “About you and when”.');
     expect(one(root, `${T}.notFrozen`).textContent).toBe(W.notFrozen);
     expect(one(root, `${T}.relief.box`)).toBe(null);
-    expect(one(root, `${T}.pot`).getAttribute('data-mix')).toBe('1');
-    expect(all(root, `[data-testid="${T}.pot.table"] tbody tr`).length).toBeGreaterThan(2);
-    expect(one(root, `${T}.pot.mix`).textContent).toMatch(/^Your mix: what you hold today — shares \d+%, bonds \d+%/);
+    // (step F1) a locked saver: the pot at the stop it was locked with, marked, and no table worked out today beside it
+    expect(one(root, `${T}.pot.atStop`).textContent).toMatch(/^Your plan was locked with a pension of £[\d,]+,000 at \d+/);
+    expect(one(root, `${T}.pot.atStop`).querySelector('[data-fact="pot.atStop"]')).not.toBe(null);
+    expect(one(root, `${T}.pot.table`)).toBe(null);
+    expect(one(root, `${T}.pot.mix`)).toBe(null);   // the regulator's rates and "Your mix" line are gone (one model)
     expect(one(root, `${T}.pot.charges`)).not.toBe(null);
     expect(one(root, `${T}.records`).getAttribute('data-count')).toBe(String(saver.accumulationTool.history.length));
     expect(all(root, `[data-testid="${T}.records.table"] tbody tr`).length).toBe(saver.accumulationTool.history.length);

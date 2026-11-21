@@ -33,6 +33,7 @@ import { get, applyPatch, safeSettings, safeTiming } from './about.js';
 import { pounds } from './income.js';
 import { isBought } from './pots.js';
 import { FAMILY, runKeyOf } from './lasts.js';
+import { planHasFigures } from '../../services/PlanFigures.js';
 import { MIX_FIELDS, MIX_LISTS, MIX_LEVELS, MIX_SPLIT, MIX_WRAPPERS, MIX_WHATS, MIX_WRITES, isCardId } from './schema.js';
 import { dateOf, dayWords } from './dates.js';
 import { shownPlanNameOn } from '../../services/PlanName.js';
@@ -409,6 +410,14 @@ function tryView(kind, t, base, saved) {
   return { status: 'done', lines, runs: r.basis && r.basis.runs ? r.basis.runs : 1, ms: t.ms == null ? null : t.ms, reason: null };
 }
 
+/**
+ * "Which mix lasts best?" as words, from the eight cells of mixRun.runMixCompare: what BOTH views draw (the full view's
+ * Compare allocations runs the same function on the same plan and day, lead4.md R6, D9).
+ */
+export function mixCompareView(cells, plan, { today }) {
+  return compareView({ status: 'done', result: { cells } }, savedMix(plan, { today }));
+}
+
 /** The comparison (3.2e) in words: each cell as the planner's grid says it, the best marked. */
 function compareView(cmp, saved) {
   const base = { status: cmp ? cmp.status : 'idle', cells: [], best: null, ms: cmp && cmp.ms != null ? cmp.ms : null, runs: 8, progress: cmp ? cmp.progress || null : null, reason: cmp ? cmp.reason || null : null };
@@ -439,7 +448,8 @@ export function mixOf(entries, id, { today, typed = null, M = null, base = null 
   const readonly = !!(entry.newer || entry.failed);
   const saved = savedMix(plan, { today });
   const editable = !saved.locked && !readonly;
-  const runKey = readonly ? null : runKeyOf(plan);
+  // a plan with no figures of its own runs nothing here, as on "Does it last?" (never on a default income: step F3)
+  const runKey = readonly || !planHasFigures(plan) ? null : runKeyOf(plan);
   const boxes = boxesOf(plan, { today });
   const c = checkMix(plan, typed || {}, { today });
   const shown = { ...boxes, ...(typed || {}) };

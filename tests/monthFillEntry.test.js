@@ -598,3 +598,24 @@ describe('index.html: a Calculate refused before the engine runs stays on the pa
     }
   });
 });
+
+describe('another plan opened: the fill-in tick, its offer and its "Start from" month are not carried over', () => {
+  beforeEach(() => mount('2026-09'));
+  it('reset() takes the tick off, forgets the chosen start month and hides the box; the next offer is the new plan\'s own', async () => {
+    const h = harness({ history: ['2026-04', '2026-05', '2026-06'] });
+    await h.entry.refreshOffer();
+    $(IDS.tick).checked = true;
+    h.entry.reset();
+    expect($(IDS.tick).checked).toBe(false);
+    expect(h.entry.offer()).toBeNull();
+    expect($(IDS.box).style.display).toBe('none');
+    expect($(IDS.from).value).toBe('');
+    await h.entry.refreshOffer();
+    expect($(IDS.tick).checked).toBe(false);
+  });
+  it('the full view resets it with the rest of the Decision tab on a change of plan', () => {
+    const src = readFileSync('index.html', 'utf8');
+    const fn = src.slice(src.indexOf('function resetDecisionSubTabs'), src.indexOf('function resetDecisionSubTabs') + 1800);
+    expect(fn).toMatch(/monthEntry\.reset\(\)/);
+  });
+});

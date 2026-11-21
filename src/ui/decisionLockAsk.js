@@ -4,7 +4,8 @@
  *
  * Until now the first monthly entry, or its tax-year set-up, locked an unlocked plan without a word (only a saver was
  * asked, 6.20.2) — and locked it on the Decision tool's own defaults, with no plan document. Now:
- *  - index.html asks on Calculate (setting up the month's tax year locks the plan too) and again on Save, as a safety net;
+ *  - index.html asks before the writes that lock: the tax-year set-up's Confirm (setting up the month's tax year locks the
+ *    plan too) and Save. Never on Calculate, which is a read (step F5, lead4.md D17);
  *  - "Yes" runs the FULL lock, the same as Stress settings → "Lock plan & create the plan document": the Stress settings
  *    copied across to the Decision tool, the plan locked, the plan document written (index.html's commitPlanLock, passed
  *    in as `lock`). Only then does the month go ahead. If the lock fails, the month does not go ahead either;

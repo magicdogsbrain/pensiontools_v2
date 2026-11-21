@@ -7,11 +7,10 @@ export const POTS = {
   lead: 'What you hold today, how it grows and how it is taxed. Each fact once. The split of your pension, the risk level and the funds to test are set with the way of drawing and mix.',
   savedValue: '({value})',
   source: { saved: 'From your plan, saved {date}', savedUndated: 'As saved in the plan', locked: 'Fixed when you locked the plan on {date}.' },
-  sections: { pension: 'Your pension pot', stop: 'At the day you stop', isa: 'ISAs and savings', taxable: 'Your ordinary account', charges: 'Charges', tax: 'Tax' },
+  sections: { pension: 'Your pension pot', isa: 'ISAs and savings', taxable: 'Your ordinary account', charges: 'Charges', tax: 'Tax' },
   /** Under a section's heading. */
   notes: {
     pension: 'One figure for the whole pot. How it is split into shares, bonds and cash is set with the way of drawing and mix.',
-    stop: 'Leave both blank to use the full view’s own figures for the day you stop, worked out from what you pay in.',
     taxable: 'Money held outside a pension or ISA: an ordinary investment or savings account. It is drawn before the ISA and taxed each year.',
     charges: 'What your funds and your platform take each year, as a share of what you hold. It comes off every month, from the money in funds and cash in your pension, ISAs and ordinary account.',
     tax: 'The thresholds the plan taxes with in its first year, and how you take the tax-free part of your pension. What each choice saves in tax over the plan comes from ‘Does it last?’, later.'
@@ -19,8 +18,6 @@ export const POTS = {
   /** The labels, options and help, by field path. */
   fields: {
     pension:      { label: 'Your pension pot today, in pounds', help: 'Everything in your pension pots, at today’s value.' },
-    stopSipp:     { label: 'Your pension at the day you stop, in pounds (or leave blank)' },
-    stopIsa:      { label: 'Your ISAs and savings at the day you stop, in pounds (or leave blank)' },
     isa:          { label: 'ISAs and savings today, in pounds', help: '0 if none.' },
     isaGrowth:    { label: 'How your ISAs and savings grow', options: { cash: 'Mostly cash: like cash, by last year’s rise in prices less 1% a year, never below nothing', invested: 'Invested like my pension: the same mix of shares, bonds and cash, in the same futures' } },
     isaUse:       { label: 'How the ISA is used', options: { minimiseEarlyTax: 'Tax-efficient: top up income from the ISA before paying higher-rate tax', maximiseLongevity: 'Make it last: level the ISA across the years to your State Pension', hold: 'Hold it: never drawn for income; it still rescues the plan if the pension runs out' } },
@@ -42,8 +39,6 @@ export const POTS = {
   /** The problems, in plain words, by field path and message id. */
   errors: {
     pension:      { required: 'Type what is in your pension pots today, for example 250,000.', notANumber: 'Figures only, like 250,000.', tooLow: 'An amount of £0 or more.', tooHigh: 'An amount up to £50,000,000, please.' },
-    stopSipp:     { notANumber: 'Figures only, like 400,000, or leave it blank.', tooLow: 'At least £1, or leave it blank.', tooHigh: 'An amount up to £50,000,000, please.' },
-    stopIsa:      { notANumber: 'Figures only, like 40,000, or leave it blank.', tooLow: 'At least £1, or leave it blank.', tooHigh: 'An amount up to £50,000,000, please.' },
     isa:          { notANumber: 'Figures only, like 40,000, or 0.', tooLow: 'An amount of £0 or more.', tooHigh: 'An amount up to £50,000,000, please.' },
     isaGrowth:    { required: 'Choose how your ISAs grow.', notAnOption: 'Choose one of the two.' },
     isaUse:       { notAnOption: 'Choose one of the three.' },
@@ -82,11 +77,10 @@ export const POTS = {
     'pots.split': 'Split as saved: {shares} shares, {bonds} bonds, {cash} cash{div}. The split, the risk level and the funds to test are set with the way of drawing and mix (in the full view).',
     'pots.fromFunds': 'Your pension pot of {pension} comes from your list of funds to test: change it with the way of drawing and mix (in the full view).',
     'pots.pinned': 'This way of drawing is sized on its own figures: {pension} pension and {isa} ISAs, set with the way of drawing (in the full view).',
-    'stop.typed': 'At the day you stop, as you typed it: {sipp} pension and {isa} ISAs and savings.',
-    'stop.projection': 'Worked out from your pot and what you pay in, in a middling case: {sipp} pension and {isa} in ISAs and savings when you stop. Type your own above to use it instead.',
-    'stop.answer': 'From your answer: {sipp} pension and {isa} ISAs and savings at the day you stop in a middling future; in a bad case (the worst 1 in 10) {sippBad} and {isaBad}.',
-    'stop.none': 'What you will have at the day you stop comes from ‘Does it last?’, later; until then every run uses today’s pots.',
-    'stop.blanked': 'Left blank: every run uses today’s pots, and the full view works out its own figures for the day you stop the next time it draws your plan.',
+    'stop.projection': 'When you stop, worked out from your pot and what you pay in, in a middling case: {sipp} pension and {isa} in ISAs and savings. Every test is run on these; they follow what you pay in.',
+    'stop.band': 'Your pension when you stop, over the same futures: {low} at the low end (one future in ten ends lower), {sipp} in the middle, {high} at the high end (one in ten ends higher).',
+    'stop.locked': 'When you stop, as worked out when the plan was locked: {sipp} pension and {isa} in ISAs and savings. Every test is run on these.',
+    'stop.none': 'What you will have when you stop is worked out once your age and when you stop are known; until then every run uses today’s pots.',
     'isa.cash': 'Your ISAs and savings grow mostly as cash: by last year’s rise in prices, less 1% a year, never below nothing.',
     'isa.invested': 'Your ISAs and savings grow like your pension: its mix of shares, bonds and cash, in the same futures.',
     'isa.fixed': 'Your ISAs and savings grow at a fixed 3% a year: this plan was locked before the choice was added.',
@@ -100,6 +94,7 @@ export const POTS = {
     'charges.locked': 'No charges come off: this plan was locked before charges were added.',
     'tax.bands': 'Tax-free allowance {pa}; basic rate up to {brl}; higher rate up to {hrl}. {mode}',
     'tax.free.drawdown': 'Every draw from your pension is taxed in full: the tax-free part is kept separate, or already taken.',
+    'tax.free.assumed': 'We assumed a quarter of each payment is tax-free: nothing was chosen. Change it in the box above.',   // = access.js accessAssumedWords('ufpls'), the full view's words
     'tax.free.ufpls': 'A quarter of every draw from your pension is tax-free{years}{then}.',
     'tax.bandFill': 'Extra is drawn up to the top of the basic-rate band and what is left after tax moved into your ISA.',
     'tax.saves': 'What each choice saves in tax over the plan comes from ‘Does it last?’, later.'

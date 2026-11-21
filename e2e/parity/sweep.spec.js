@@ -19,7 +19,7 @@ import { collectMarks, waitQuiet } from './collect.js';
 import { readingsFor } from './readings.js';
 import { entryOf, canonOf } from './fields.js';
 import { at, signIn, openSimple, openFull, closeNews } from '../scenarios/routes.js';
-import { wordsOf, SIMPLE_PAGES, SIMPLE_PRESS, FULL_PAGES, fullTab, fullLocked } from './pages.js';
+import { wordsOf, SIMPLE_PAGES, SIMPLE_PRESS, FULL_PAGES, fullTab, fullLocked, pressesOf } from './pages.js';
 
 export { SIMPLE_PAGES, SIMPLE_PRESS, FULL_PAGES };
 
@@ -71,13 +71,14 @@ test.describe('parity sweep', () => {
         // the page is this plan's step when the address held and the screen is a plan's
         const opened = /^plan/.test(screen) && route.startsWith(`#/plan/${fx.subject}`) && (step === '' ? !/#\/plan\/[^/]+\/./.test(route) : route.includes('/' + step));
         // the year table opens on a press, as a person opens it (both views' year tables are compared cell by cell)
-        const press = SIMPLE_PRESS[step];
+        const presses = SIMPLE_PRESS[step] ? [].concat(SIMPLE_PRESS[step]) : [];
         let pressed;
-        if (opened && press) {
+        for (const [i, press] of (opened ? presses : []).entries()) {
           await waitQuiet(page);   // the button is drawn once the run has landed
           const b = page.locator(press).first();
-          pressed = await b.isVisible().catch(() => false);
-          if (pressed && (await b.getAttribute('aria-expanded')) !== 'true') await b.click();
+          const shown = await b.isVisible().catch(() => false);
+          if (i === 0) pressed = shown;   // the page's press, as the floor counts it: the first
+          if (shown && (await b.getAttribute('aria-expanded')) !== 'true') await b.click();
         }
         await readPage(page, out, 'simple', step, opened, { pressed, words });
       }
@@ -89,9 +90,13 @@ test.describe('parity sweep', () => {
         const opened = await fullTab(page, p);
         let pressed;
         if (opened && p.press && (!p.onlyLocked || await fullLocked(page))) {
-          const run = page.locator(p.press).first();
-          pressed = await run.isVisible().catch(() => false);
-          if (pressed) await run.click();
+          for (const [i, press] of pressesOf(p.press).entries()) {
+            await waitQuiet(page);   // a button is drawn once the page's run (or the run before) has landed
+            const run = page.locator(press).first();
+            const shown = await run.isVisible().catch(() => false);
+            if (i === 0) pressed = shown;   // the page's press, as the floor counts it: the first
+            if (shown) await run.click();
+          }
         }
         if (opened && p.openFolds) { await waitQuiet(page); await page.evaluate((sel) => { for (const d of document.querySelectorAll(sel + ' details')) d.open = true; }, p.openFolds); }
         await readPage(page, out, 'full', p.name, opened, { pressed, words });

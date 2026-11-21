@@ -193,9 +193,9 @@ Rules a test enforces by reading `import` lines (`tests/v7/boundaries.test.js`):
 
 One crossing the other way (6.22.0, research/saver-lock-and-savings-growth.md R9): today's app uses V7's saving-years
 engine in one place. `src/services/SavingPath.js` imports `src/answers/shared/{lives,saving,band}.js` to draw the
-saving path of a plan locked while still saving (plan document version 3). It is loaded only through
-`src/ui/savingPathForLock.js` with `await import(...)`, when a plan is locked or its document refreshed, so the main
-bundle carries none of V7's engine. No rule above forbids a service importing an answer module; it is named here so the
+saving path of a plan locked while still saving (plan document version 3). It is drawn when a
+plan is locked or its document refreshed, in both views through the one document run (`src/answers/plan/lastsRun.js`
+`savingPathFor`, in the engine worker). No rule above forbids a service importing an answer module; it is named here so the
 next person to look sees it.
 
 ### 3.2 State

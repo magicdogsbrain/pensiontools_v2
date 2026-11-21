@@ -13,13 +13,18 @@
  * Words with {slots} are filled by the screen from copy/plan.js; the ids here match that file. A sentence's figures
  * are `parts` ({ key, kind }) into the step's `figures`, so the screen draws each through Money (data-key, data-value).
  */
+import { LOCK_WORDS } from '../../reading/labels.js';
 import { READ_FAULT_WORDS } from '../../reading/readFault.js';
 import { planStage, settingsForScreen, whereAmIFor, whereAmIInputs, moveInputs, thisMonth, historyAscending, planMoneyOf } from '../../services/PlanReading.js';
-import { CONTRACT_STRATEGIES, planToAgeOfDefinition, guardrailOf, pricesMonthKeyOf } from '../../services/PlanDocument.js';
-import { taxYearLabel, taxYearStartOf, taxYearKey, ageOnDate } from '../../services/PlanTiming.js';
+import { CONTRACT_STRATEGIES, planToAgeOfDefinition, guardrailOf } from '../../services/PlanDocument.js';
+import { taxYearLabel, taxYearStartOf, taxYearKey } from '../../services/PlanTiming.js';
 import { documentLadder, firstRungOf } from '../../services/LadderPosition.js';
 import { saverPotOf } from '../../services/SaverReading.js';
 import { pensionTodayOf } from '../../services/PensionToday.js';
+import { pensionToday, isaToday, giaToday, pensionFromWords } from '../../reading/money.js';
+import { potAtStop } from '../../reading/atStop.js';
+import { ageToday as readingAgeToday } from '../../reading/timing.js';
+import { money as fmtMoney, moneyK as fmtPot, weekText } from '../../reading/format.js';
 import { payInShareOf } from '../../services/SaverPayIn.js';
 import { holdingsSummary, normaliseHoldings } from '../../services/HoldingsRecord.js';
 import { stepsFor, subStepsFor, ALL_STEPS, NEXT_ORDER, NEXT_INFO, DUE_IDS, RETIRED_STAGES, SAVER_STAGES } from './steps.js';
@@ -29,9 +34,9 @@ import { monthsWanted } from '../../services/DrawCadence.js';
 import { defaultSpYear } from '../../services/IncomeSchedule.js';
 import { taskKeyOf, isPutOff } from './tasks.js';
 import { optionsFor } from './options.js';
-import { answerAge, bandsOf, netOf, safeTiming } from './about.js';
-import { stepLines, guaranteedAtYear } from './spend.js';
-import { takenOfTarget } from '../../services/BeforeTax.js';
+import { answerAge, safeTiming } from './about.js';
+import { incomeStepsOf } from '../../reading/income.js';
+import { spDayOf, spDayWords } from '../../reading/statePension.js';
 import { isBought } from './pots.js';
 import { WAY_DIALS } from './schema.js';
 import { savedLasts } from './lasts.js';
@@ -41,24 +46,7 @@ import { oneAnswer, futuresOutOfTen } from '../../services/OneAnswer.js';
 import { SUCCESS, planToAgeOf, STRESS as STRESS_ON } from '../shared/rules.js';
 import { chanceWords, fixedAgeWords } from '../shared/format.js';
 
-/**
- * What a locked document says about lasting, in its own words (7.8.0, the build spec's section 8). A document tested
- * under the weighted definition (assumptions.success with a weighted figure) says it as it was locked: the chance the money
- * lasted as long as you do, then the fixed-age count with its age. A document without one (every document before 7.8.0) keeps
- * its words, "Your plan lasts in 9 futures out of 10", and — once the figures are weighted (SUCCESS.weighted) — says how it
- * was counted, so it is never read against the weighted figures beside it. Nothing is written.
- */
-export function lockedLastsWords(doc, a, dp, weighted = SUCCESS.weighted) {
-  const def = doc && doc.assumptions && doc.assumptions.success && typeof doc.assumptions.success === 'object' ? doc.assumptions.success : null;
-  const w = def && def.weighted && typeof def.weighted === 'object' ? def.weighted : null;
-  if (w && typeof w.chance === 'number') {
-    const age = planToAgeOfDefinition(def) ?? planToAgeOfDoc(dp);
-    return 'When the plan was locked, counting how long people your age live, the money lasted as long as you do ' + chanceWords(w.chance) + '. ' + fixedAgeWords(typeof w.fixedAge === 'number' ? w.fixedAge : a.share, age).replace(/\.$/, '');
-  }
-  const own = 'Your plan lasts ' + futuresOutOfTen(a.share).words;
-  if (!weighted || def) return own;
-  return own + '; when it was locked, counted to ' + planToAgeOfDoc(dp) + '; not by how long you might live';
-}
+// What a locked document says about lasting: src/reading/document.js lockedLastsOf, the one reader both views say (step F5)
 
 /** The age a document's plan runs to, as every page of both apps says it (rules.js planToAgeOf: "to 97" = to the 97th birthday). */
 const planToAgeOfDoc = (dp) => planToAgeOf(+(dp && dp.startAge) || 0, +(dp && dp.durationYears) || 0);
@@ -68,11 +56,15 @@ import { saverInputsOf } from './saverInputs.js';
 import { MONTHS, dateOf, ym, monthWords, monthName, dayWords, monthsBetween, localDay, timeLeftWords } from './dates.js';
 import { heldLadder } from './held.js';
 import { moveStatusOf, unlistedStatusOf } from './moveWords.js';
-import { isClosedPlan, closedReading, beforeReading, closedAtOf, monthRefusalWords } from '../../services/PlanClosed.js';
+import { isClosedPlan, closedAtOf, monthRefusalWords } from '../../services/PlanClosed.js';
+import { closedReading, beforeReading } from '../../services/PlanClosedReading.js';
 import { closeQuestionOf, successorName } from '../../services/PlanClose.js';
 import { startLaterOf, laterDraftLeftOf } from '../../services/PlanMove.js';
 import { shownPlanName } from '../../services/PlanName.js';
-import { takenSentence, yearPlanOf, firstPaymentMonth, monthToRecord } from '../../services/YearPlan.js';
+import { takenSentence, firstPaymentMonth, monthToRecord } from '../../services/YearPlan.js';
+import { thisTaxYearOf, thisYearSentences } from '../../reading/thisYear.js';
+import { planYearSentence, stepSentence, ladderSentence, potSentence } from '../../reading/where.js';
+import { lockedLastsOf } from '../../reading/document.js';
 // the plans linked to this one, in either direction (6), this plan's own link first; never a closed plan (services/HouseholdLink.js)
 import { partnersOf, partnerIdOf } from '../../services/HouseholdLink.js';
 
@@ -186,15 +178,15 @@ function closeOf(plan, list, now) {
   return {
     // each month with the new plan's default name from it (either reason): the name box follows the month chosen until
     // the person types over it
-    months: q.months.map((m) => ({ month: m.month, words: m.words, year: taxYearLabel(m.taxYear), name: successorName(plan, m.month), workingName: q.working ? successorName(plan, m.month, 'working') : null })),
+    months: q.months.map((m) => ({ month: m.month, words: m.words, year: taxYearLabel(m.taxYear), name: successorName(plan, m.month, 'plan', now), workingName: q.working ? successorName(plan, m.month, 'working', now) : null })),
     suggested: q.suggested,
-    name: successorName(plan, q.suggested),
+    name: successorName(plan, q.suggested, 'plan', now),
     asked: q.asked,
     held: q.held,
     pots: { pension: r0(q.pots.pension), isa: r0(q.pots.isa), gia: r0(q.pots.gia) },
     potsFrom: q.potsFrom,
     partner: q.partner,
-    working: q.working ? { name: successorName(plan, q.suggested, 'working'), ageNow: q.ageNow, flexibleAccess: q.flexibleAccess ? { month: q.flexibleAccess.month } : null } : null
+    working: q.working ? { name: successorName(plan, q.suggested, 'working', now), ageNow: q.ageNow, flexibleAccess: q.flexibleAccess ? { month: q.flexibleAccess.month } : null } : null
   };
 }
 
@@ -266,13 +258,20 @@ export function planRows(entries, { today, source = 'account' } = {}) {
 // ---- figures and sentences -------------------------------------------------------------------------------------------
 
 const money = (key) => ({ key, kind: 'money' });
+/** The pot's band says the 1-in-10 bad line (the full view's strip, PlanDocumentView VERDICT): below it, or between it and the middle. */
+const nearLowLine = (P) => !!P && P.p10 != null && (P.verdict === 'band' || (!P.verdict && P.band)) && (P.band === 'below p10' || P.band === 'p10–p50');
 const count = (key) => ({ key, kind: 'count' });
+/** A pot worked out over many futures: the nearest £1,000 (the one rounding of the pot at the stop, src/reading/format.js). */
+const potK = (key) => ({ key, kind: 'pot' });
 /** How a dial's figure is written, by its type in schema.js WAY_DIALS; the two pots a ladder's document is built on are money. */
 const DIAL_KINDS = Object.freeze({ count: 'count', age: 'age', money: 'money', percent: 'pct' });
 const DOCUMENT_DIALS = Object.freeze({ sippTotal: 'money', isaTotal: 'money' });
 const age = (key) => ({ key, kind: 'age' });
+/** A State Pension a week: pounds and pence, the fact's one rule (src/reading/format.js weekText). */
+const week = (key) => ({ key, kind: 'week' });
 const pounds = (n) => '£' + String(Math.abs(Math.round(Number(n) || 0))).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-const textOf = (p, figures) => (typeof p === 'string' ? p : 'fixed' in p ? String(p.fixed) : p.kind === 'money' ? pounds(figures[p.key]) : String(Math.round(Number(figures[p.key]) || 0)));
+/** A part's text by the one formatter (src/reading/format.js), as the page's Money draws it. */
+const textOf = (p, figures) => (typeof p === 'string' ? p : 'fixed' in p ? String(p.fixed) : p.kind === 'money' ? fmtMoney(figures[p.key]) : p.kind === 'pot' ? fmtPot(figures[p.key]) : p.kind === 'week' ? weekText(figures[p.key]) : String(Math.round(Number(figures[p.key]) || 0)));
 /** A sentence: an id (for the tests), its parts, and the text as drawn. */
 const sentence = (id, parts, figures) => ({ id, parts, text: parts.map((p) => textOf(p, figures)).join('') });
 
@@ -366,15 +365,6 @@ function monthStep(C) {
   return { done: recorded, result, figures, lines, buttons, notes: [], recorded, setUp, gap, toRecord };
 }
 
-/**
- * The month whose prices the plan's band is in (7.12.0): April of its first tax year; or, for a document locked in a later
- * plan year (its pots `asOfPlanYear` > 0), the month it was locked.
- */
-function pricesMonthOf(doc) {
-  // the one rule both views say it by (PlanDocument.pricesMonthKeyOf, whereAmI's pot.prices.since)
-  return monthWords(pricesMonthKeyOf(doc)) || 'the start of the plan';
-}
-
 /** Where you are (2.3 `where`): whereAmI on the plan document, never the countdown. */
 function whereStep(C) {
   const { plan, now, ss } = C;
@@ -398,7 +388,7 @@ function whereStep(C) {
     if (un && un.pension > 0) {
       figures.pension = r0(un.pension); figures.isa = r0(un.isa || 0);
       result = sentence('where.saverUnlisted', ['You have not listed what your pension holds, and you do not need to. Your plan has ', money('pension'), ' in your pension',
-        ...(figures.isa > 0 ? [' and ', money('isa'), ' in your ISA'] : []), ' (' + ({ checkIn: 'from your check-in', record: 'from your last record' }[un.from] || 'from your plan') + ').'], figures);
+        ...(figures.isa > 0 ? [' and ', money('isa'), ' in your ISA'] : []), ' (' + pensionFromWords(un) + ').'], figures);   // the record's month said with it (R4)
     }
     else if (s.actual != null && (s.pathMissing || s.expected == null)) {
       figures.actual = r0(s.actual);
@@ -412,9 +402,18 @@ function whereStep(C) {
         figures.compared = r0(s.compared);
         result = sentence('where.saver', [money('compared'), ' at the prices of ' + monthWords(s.prices.start) + ' (', money('actual'), ' as recorded in ' + monthWords(s.at) + '); the plan’s middle line for then is ', money('expected')], figures);
       } else result = sentence('where.saver', [money('actual'), ' on ' + monthWords(s.at), '; the plan’s middle line for then is ', money('expected')], figures);
-      lines.push(line('where.saverPot', [money('actual')], figures, sourceOf(s.actualSource === 'holdings' ? 'hold' : 'record', s.recordedAt || s.at, now)));
+      // (step F1) a path that counts the ISA: the pot set against it is the pension and ISA together, said with each part —
+      // the pension today and the ISA today every page reads
+      if (s.isaCounted && s.pension != null) {
+        figures.potAgainst = r0(s.actual); figures.potPension = r0(s.pension); figures.potIsa = r0(s.isa || 0);
+        lines.push(line('where.saverPot', [money('potAgainst'), ' (pension ', money('potPension'), ', ISA ', money('potIsa'), ')'], figures, sourceOf(s.actualSource === 'holdings' ? 'hold' : 'record', s.recordedAt || s.at, now)));
+      } else lines.push(line('where.saverPot', [money('actual')], figures, sourceOf(s.actualSource === 'holdings' ? 'hold' : 'record', s.recordedAt || s.at, now)));
       lines.push(line('where.saverLine', [money('expected')], figures, sourceOf('locked', lockedAt, now)));
     }
+    // the income step the plan starts with, the sentence the full view's strip says for a saver too (step F5, R8)
+    let steps = null; try { steps = incomeStepsOf(plan, { now }).steps; } catch { steps = null; }
+    const stepSaid = stepSentence(w, steps);
+    if (stepSaid) { Object.assign(figures, stepSaid.figures); lines.push(line(stepSaid.id, stepSaid.parts, figures, sourceOf('locked', lockedAt, now))); }
   } else {
     // A plan stored the old way (C.startLater) whose year 0 is still later than this tax year: this year's figure is year 0's,
     // a later tax year's, so the months recorded are said with what was taken and nothing is read against a plan figure until
@@ -430,44 +429,41 @@ function whereStep(C) {
     Object.assign(figures, said.figures);
     result = sentence('where.retired', said.parts, figures);
     compare = said.compare;
-    // the year as it was set up (7.12.0, YearPlan.yearPlanOf): what the plan takes a month this tax year, and from when when
-    // it was set up part-way; nothing for a year not set up (the to-do asks for the set-up)
-    let yp = null; try { yp = older ? null : yearPlanOf(plan, taxYearKey(parseInt(w.taxYear, 10))); } catch { yp = null; }
-    if (yp) {
-      figures.yearMonthly = Math.round(yp.perMonth); figures.yearTotal = yp.total;
-      const april = yp.from && yp.from.slice(5) === '04' && yp.payments === 12;
-      lines.push(line('where.yearPlan', april
-        ? ['In ' + w.taxYear + ' your plan takes ', money('yearMonthly'), ' a month before tax.']
-        : ['In ' + w.taxYear + ' your plan takes ', money('yearMonthly'), ' a month before tax, from ' + monthWords(yp.from) + ': ' + yp.payments + ' payment' + (yp.payments === 1 ? '' : 's') + ', ', money('yearTotal'), '.'], figures, sourceOf('record', null, now), { year: w.taxYear }));
+    // this tax year (step F2, lead4.md D7: src/reading/thisYear.js, the one reader both views say): the year as it was set up
+    // — what the plan takes a month, and from when when it was set up part-way — and, when the plan's own figure for the year
+    // differs from the set-up, both figures with the set-up's date; nothing for a year not set up (the to-do asks for it)
+    // the plan year this is and how many it runs (step F5, lead4.md R8: what the full view's strip says, in words both views
+    // may say; src/reading/where.js)
+    const py = older ? null : planYearSentence(w);
+    if (py) { Object.assign(figures, py.figures); lines.push(line(py.id, py.parts, figures, sourceOf('locked', lockedAt, now), { year: w.taxYear })); }
+    let ty = null; try { ty = older ? null : thisTaxYearOf(plan, { now }, { key: taxYearKey(parseInt(w.taxYear, 10)) }); } catch { ty = null; }
+    for (const s of thisYearSentences(ty)) {
+      Object.assign(figures, s.figures);
+      lines.push(line(s.id, s.parts, figures, sourceOf('record', null, now), { year: w.taxYear }));
     }
     // (7.10.0: the start is changed on "About you and when", by unlock and lock again — no longer a to-do)
     if (older) lines.push(line('where.startLater', ['Your plan is set to start in April ' + C.startLater.start + ', so these months are not read against it yet' + (C.readonly ? '' : '. You can change the start on About you and when')], figures, sourceOf('locked', lockedAt, now), { start: 'April ' + C.startLater.start }));
     if (inc.recorded > 0) lines.push(line('where.taken', [money('drawn')], figures, sourceOf('record', null, now), { year: w.taxYear }));
-    if (w.step && w.step.amount != null) { figures.stepNow = r0(w.step.amount); lines.push(line('where.step', [money('stepNow'), ' a year before tax'], figures, sourceOf('locked', lockedAt, now), { n: String(w.step.index), of: String(w.step.of) })); }
+    // the step in force as the reading gives it (step F2, lead4.md D6): a year before tax as it is taken, never the stored
+    // figure — the one sentence both views say (src/reading/where.js; step F5, D17)
+    let steps = null; try { steps = incomeStepsOf(plan, { now }).steps; } catch { steps = null; }
+    const stepSaid = stepSentence(w, steps);
+    if (stepSaid) { Object.assign(figures, stepSaid.figures); lines.push(line(stepSaid.id, stepSaid.parts, figures, sourceOf('locked', lockedAt, now))); }
     // the pot (7.12.0): ONE basis, the one the band is in (whereAmI's `real`, as Review and the full view say it), with the
     // figure as recorded in brackets when prices have moved; its parts and their dates when they are more than a month apart;
     // and, when the band counts the ISA and no figure for it exists anywhere, that — never a pot set against the line
     const P = w.pot;
-    if (P && P.real != null && P.actual != null) {
-      figures.pot = r0(P.real); figures.potActual = r0(P.actual);
-      const moved = P.prices && Number.isFinite(+P.prices.factor) && Math.abs(+P.prices.factor - 1) >= 0.0005;
-      // its parts as typed (7.12.0): the pension and the ISA said in the same line when they come from the same month and
-      // the same place (so the ISA typed with each month is said back on the home); else their own line, each with its date
-      const parts = (Array.isArray(P.parts) ? P.parts : []).filter((x) => x && x.asOf && (x.key === 'pension' || x.key === 'isa'));
-      const whence = (x) => (x.source === 'holdings' ? 'from What you hold, ' + monthWords(x.asOf) : 'recorded ' + monthWords(x.asOf));
-      parts.forEach((x, i) => { figures['potPart' + i] = r0(x.value); });
-      const partName = (x) => (x.key === 'isa' ? 'ISA ' : 'pension ');
-      const together = parts.length > 1 && whence(parts[0]) === whence(parts[1]);
-      const inLine = together ? parts.flatMap((x, i) => [i ? ', ' : '', partName(x), money('potPart' + i)]) : [];
-      lines.push(line('where.pot', moved
-        ? [money('pot'), ' at the prices of ' + pricesMonthOf(plan.planDocument) + ' (', money('potActual'), ' as recorded', ...(together ? [': ', ...inLine] : []), ').']
-        : [money('pot'), ...(together ? [' (', ...inLine, ')'] : []), '.'], figures, sourceOf(P.source === 'holdings' ? 'hold' : 'record', P.asOf, now)));
+    // the pot (7.12.0): ONE basis, the one the band is in, said by the one builder both views draw (src/reading/where.js
+    // potSentence; step F5, D17): the figure as recorded in brackets when prices have moved, its parts named, their dates
+    const potSaid = potSentence(w);
+    if (potSaid) {
+      Object.assign(figures, potSaid.pot.figures);
+      lines.push(line('where.pot', [...potSaid.pot.parts, '.'], figures, sourceOf(potSaid.source.kind, potSaid.source.at, now)));
       if (P.p50 != null && !older && !w.contract) { figures.potMid = r0(P.p50); lines.push(line('where.potMid', [money('potMid'), '.'], figures, sourceOf('locked', lockedAt, now))); }
-      const ms = parts.map((x) => ym(x.asOf)).filter(Boolean);
-      if (parts.length > 1 && !together && ms.length === parts.length && Math.abs(monthsBetween(ms[0], ms[1])) > 1) {
-        const words = parts.map((x, i) => [(x.key === 'isa' ? 'ISA ' : 'Pension '), money('potPart' + i), ', ' + whence(x) + '.']);
-        lines.push(line('where.potParts', words.reduce((a, b, i) => a.concat(i ? [' '] : [], b), []), figures, sourceOf('record', null, now)));
-      }
+      // (lead4.md D24, R8; step F3) the 1-in-10 bad line, where the full view's strip says it: the pot below it, or between it
+      // and the middle — so a pot under the middle line is read against the bad line too
+      if (nearLowLine(P) && !older && !w.contract) { figures.potLow = r0(P.p10); lines.push(line('where.potLow', [money('potLow'), '.'], figures, sourceOf('locked', lockedAt, now))); }
+      if (potSaid.parts) lines.push(line('where.potParts', potSaid.parts.parts, figures, sourceOf('record', null, now)));
     } else if (P && Array.isArray(P.missing) && P.missing.includes('isa') && !P.missing.includes('pension')) {
       lines.push(line('where.potNoIsa', ['Your plan counts your ISA too, and we have no figure for it. You can type it in the ISA box when you next record a month, or add it under What you hold.'], figures, sourceOf('record', null, now)));
     }
@@ -477,54 +473,32 @@ function whereStep(C) {
   let guardrail = null;
   if (STRESS_ON.guardrail && !w.saving) { try { const g = guardrailOf(plan.planDocument, w); guardrail = g ? { state: g.state, slots: g.slots, cuts: g.cutsOn } : null; } catch { guardrail = null; } }
   if (w.contract && !inputs.ladderInDocument) notes.push('where.ladderNotInDocument');
-  if (w.ladder && typeof w.ladder.monthly === 'number' && w.ladder.monthly > 0 && !lines.some((l) => l.id === 'where.yearPlan')) {   // the month's figure once: the year as set up says it (7.12.0)
-    figures.ladderMonthly = r0(w.ladder.monthly); lines.push(line('where.ladderMonthly', [money('ladderMonthly'), ' a month before tax'], figures, sourceOf('locked', lockedAt, now))); }
-  else if (w.ladder && w.ladder.starts && w.ladder.starts.monthly > 0 && !lines.some((l) => l.id === 'where.yearPlan')) {   // not paying yet: when it starts, and the month then
-    figures.ladderStarts = r0(w.ladder.starts.monthly); lines.push(line('where.ladderStarts', [w.ladder.starts.label + ': ', money('ladderStarts'), ' a month before tax'], figures, sourceOf('locked', lockedAt, now))); }
+  // a gilt ladder's month, the one sentence both views say (step F5, src/reading/where.js): the month's figure once — the year
+  // as set up says it (7.12.0)
+  const ladderSaid = ladderSentence(w, { yearSaid: lines.some((l) => l.id === 'where.yearPlan') });
+  if (ladderSaid) { Object.assign(figures, ladderSaid.figures); lines.push(line(ladderSaid.id, ladderSaid.parts, figures, sourceOf('locked', lockedAt, now))); }
   // the records by tax year, a spreadsheet per year and the printed documents stay on the classic page (road-to-7.md step 11b, month.exports)
   const older = !w.saving && !!C.startLater && C.startLater.start > C.ty;
   const startHere = older && !C.readonly ? [link('aboutWhen', '#/plan/' + plan.id + '/about')] : [];
-  return { done: true, result, compare, figures, lines, buttons: [...startHere, button('seeDocument', 'document'), button('exports', 'exports')], notes, ...(guardrail ? { guardrail } : {}) };
+  // the plan's figure for this tax year differs from the set-up (step F2, lead4.md D7): the set-up is opened again on Month by month
+  const again = lines.some((l) => l.id === 'where.yearChanged') && !C.readonly ? [link('setUpAgain', '#/plan/' + plan.id + '/month')] : [];
+  return { done: true, result, compare, figures, lines, buttons: [...again, ...startHere, button('seeDocument', 'document'), button('exports', 'exports')], notes, ...(guardrail ? { guardrail } : {}) };
 }
 
 /** The income steps as the plan has them: the document's (locked), else the effective settings'. */
-function incomeSteps(plan, ss, locked, now) {
-  if (locked && plan.planDocument && Array.isArray(plan.planDocument.steps) && plan.planDocument.steps.length) return plan.planDocument.steps.map((s) => ({ fromAge: +s.fromAge, amount: r0(s.amount), taxYear: s.taxYear || null, decline: +s.decline || 0, glideToNext: !!s.glideToNext }));
-  const ageNow = num(ss.shapeAgeNow) || null;
-  if (ss.incomeShape === 'phases' && Array.isArray(ss.incomeSteps) && ss.incomeSteps.length) {
-    // read as the Spend page reads them (7.12.0, spend.js stepLines): from the plan's own start, so a stop moved later moves
-    // the first step with it; nothing is written
-    const from = num(safeTiming(ss, now).shapeAgeNow) || ageNow;
-    const shown = from ? stepLines(ss.incomeSteps, from, num(ss.duration) || 1, bandsOf(ss)) : [];
-    if (shown.length) return shown.map((st) => ({ fromAge: st.fromAge, amount: r0(st.yearly), taxYear: null, decline: st.then === 'falls' ? +st.fallsPct || 0 : 0, glideToNext: st.then === 'glides' }));
-    return ss.incomeSteps.filter((s) => s && num(s.amount) != null).map((s) => ({ fromAge: +s.fromAge, amount: r0(s.amount), taxYear: null, decline: +s.decline || 0, glideToNext: !!s.glideToNext }));
-  }
-  const first = Array.isArray(ss.targetSchedule) && ss.targetSchedule.length ? r0(ss.targetSchedule[0]) : r0(ss.baseSalary);
-  return ageNow ? [{ fromAge: ageNow, amount: first, taxYear: null, decline: 0, glideToNext: false }] : [{ fromAge: null, amount: first, taxYear: null, decline: 0, glideToNext: false }];
-}
-
 /**
- * "Pots when you stop" (7.12.0): worked out from your pot and what goes in (services/PotsAtStop.js, the middling case,
- * to the nearest £1,000), your own typed figure (which does not follow), or the figure the plan was locked with.
+ * "Pots when you stop" (step F1, lead4.md D4): the one model (src/reading/atStop.js) — worked out from your pot and what goes
+ * in, the middling case — or the figure the plan was locked with; to the nearest £1,000 either way.
  */
-function atStopLine(par, { locked, lockedAt, figures, src }) {
-  const k1 = (v) => Math.round((+v || 0) / 1000) * 1000;
-  if (locked) {
-    figures.parSipp = r0(par.sipp); figures.parIsa = r0(par.isa);
-    return line('pots.atStop', [money('parSipp'), ' pension', figures.parIsa > 0 ? [', ', money('parIsa'), ' in ISAs and savings'] : [], ', as worked out when the plan was locked' + (lockedAt ? ' on ' + dayWords(lockedAt) : '')].flat(), figures, src, { kind: 'locked' });
+function atStopLine(par, { lockedAt, figures, src }) {
+  figures.parSipp = par.middle; figures.parIsa = par.isa;
+  if (par.source === 'locked') {
+    return line('pots.atStop', [potK('parSipp'), ' pension', figures.parIsa > 0 ? [', ', potK('parIsa'), ' in ISAs and savings'] : [], ', as worked out when the plan was locked' + (lockedAt ? ' on ' + dayWords(lockedAt) : '')].flat(), figures, src, { kind: 'locked' });
   }
-  if (par.source === 'worked' && par.from) {
-    figures.parSipp = k1(par.sipp); figures.parIsa = k1(par.isa); figures.parFrom = r0(par.from.pot); figures.parMonthly = r0(par.from.monthly); figures.parTo = par.from.toAge;
-    return line('pots.atStop', [money('parSipp'), ' pension', ...(figures.parIsa > 0 ? [' and ', money('parIsa'), ' in ISAs and savings'] : []),
-      // (7.12.0: "the pension you have now", so this line, whose first figure is the pot at the stop, never reads as the pot today)
-      ' in a middling case. Worked out from the pension you have now, ', money('parFrom'), ', and ', money('parMonthly'), ' a month going in, to age ', age('parTo')], figures, src, { kind: 'worked' });
-  }
-  figures.parSipp = r0(par.sipp); figures.parIsa = r0(par.isa);
-  if (par.source === 'override') {
-    return line('pots.atStop', [money('parSipp'), ' pension', ...(figures.parIsa > 0 ? [', ', money('parIsa'), ' in ISAs and savings'] : []),
-      ', your own figure. It does not follow your pot or what you pay in. You can clear it on “Your pots and tax”'], figures, src, { kind: 'typed' });
-  }
-  return line('pots.atStop', [money('parSipp'), ' pension, ', money('parIsa'), ' ISA'], figures, src);
+  figures.parFrom = r0(par.from ? par.from.pot : 0); figures.parMonthly = r0(par.from ? par.from.monthly : 0); figures.parTo = par.age;
+  return line('pots.atStop', [potK('parSipp'), ' pension', ...(figures.parIsa > 0 ? [' and ', potK('parIsa'), ' in ISAs and savings'] : []),
+    // (7.12.0: "the pension you have now", so this line, whose first figure is the pot at the stop, never reads as the pot today)
+    ' in a middling case. Worked out from the pension you have now, ', money('parFrom'), ', and ', money('parMonthly'), ' a month going in, to age ', age('parTo')], figures, src, { kind: 'worked' });
 }
 
 /**
@@ -549,30 +523,25 @@ function planStep(C) {
   const figures = {};
   const lines = [];
   const notes = [];
-  const steps = incomeSteps(plan, ss, locked, now);
+  // (step F2, lead4.md D6) the income steps through the one reader (src/reading/income.js): for each step what is TAKEN a
+  // year before tax (a quarter of each payment tax-free when the plan takes it so; the income that comes in anyway that year
+  // taken as it is) and what reaches the bank a month, on the plan's own bands (a locked plan's document's)
+  const read = incomeStepsOf(plan, { now, settings: ss });
+  const steps = read.steps.map((st) => ({ ...st, amount: st.stored }));
   const first = steps[0] || null;
   const src = locked ? sourceOf('locked', lockedAt, now) : sourceOf('saved', null, now);
   const timing = doc && doc.timing ? doc.timing : null;
   const startMonth = (timing && timing.startMonth) || stage.startMonth || null;
   const firstTaxYear = (timing && timing.firstTaxYear) || stage.firstTaxYear || null;
   const ladder = isLadderPlan(plan, ss);
-  // (7.12.0) "a year before tax" is what is taken (services/BeforeTax.js): a quarter of each payment tax-free counted, and
-  // the income that comes in anyway at that age taken as it is — the figure the months and the Decision tool take
-  const docSp = locked && doc && doc.layers && doc.layers.sp && num(doc.layers.sp.annual) > 0 ? doc.layers.sp : null;
-  const aNow = timing && num(timing.shapeAgeNow) != null ? timing.shapeAgeNow : num(ss.shapeAgeNow);
-  const takenAt = (amount, fromAge) => {
-    let fixed = 0;
-    try { fixed = docSp ? (fromAge != null && num(docSp.fromAge) != null && fromAge >= docSp.fromAge ? +docSp.annual : 0) : (aNow != null && fromAge != null && timing ? guaranteedAtYear(ss, timing, aNow, Math.max(0, fromAge - aNow), now) : 0); } catch { fixed = 0; }
-    return takenOfTarget(amount, ss, { fixed, bands: bandsOf(ss) });
-  };
+  if (first) figures.yearly = first.beforeTax;
   // the one-line result
   let result;
-  if (first) figures.yearly = takenAt(first.amount, first.fromAge);
   if (locked && first) {
     result = stage.timingMode === 'future'
       // (7.12.0) someone still saving reads what they will spend, a month after tax, as they set it: never a drawing year's
       // figure before tax ahead of the stop
-      ? sentence('plan.lockedSaver', [money('monthlyNet'), ' a month after tax from ' + (monthWords(startMonth) || taxYearLabel(firstTaxYear)) + ' (tax year ' + taxYearLabel(firstTaxYear) + ')'], Object.assign(figures, { monthlyNet: Math.round(netOf(first.amount, bandsOf(ss)) / 12) }))
+      ? sentence('plan.lockedSaver', [money('monthlyNet'), ' a month after tax from ' + (monthWords(startMonth) || taxYearLabel(firstTaxYear)) + ' (tax year ' + taxYearLabel(firstTaxYear) + ')'], Object.assign(figures, { monthlyNet: first.monthAfterTax }))
       // the first month it paid, never April by assumption (7.12.0); a ladder's own first year from the document (6.51.0)
       : sentence(ladder ? 'plan.lockedLadder' : 'plan.lockedPlan', [money('yearly'), paysFromWords(firstPaymentMonth(plan, { now, settings: ss }).month, firstTaxYear, ladder ? lockedLadderOf(plan, ss) : null, ladder)], figures);
   } else if (stage.timingMode === 'future' && num(ss.retireAge)) {
@@ -589,15 +558,18 @@ function planStep(C) {
   // whether it is assumed, the bad case (the worst 1 in 10, from the document's own verdict) and the rules for cutting
   // income (the settings the lock froze, or "no cuts" for a bought strategy). The document only, never a live run.
   if (locked && doc) {
-    const bands = bandsOf(doc.assumptions && num(doc.assumptions.pa) != null ? { pa: doc.assumptions.pa, brl: doc.assumptions.brl, hrl: doc.assumptions.hrl } : ss);
     steps.forEach((st, i) => {
-      figures['saysGross' + i] = takenAt(st.amount, st.fromAge); figures['saysNet' + i] = Math.round(netOf(st.amount, bands) / 12);
+      figures['saysGross' + i] = st.beforeTax; figures['saysNet' + i] = st.monthAfterTax;
       const parts = [];
       if (st.fromAge != null) { figures['saysAge' + i] = st.fromAge; parts.push('From age ', age('saysAge' + i), ': '); }
-      parts.push(money('saysGross' + i), ' a year before tax, ', money('saysNet' + i), ' a month after tax');
-      if (st.taxYear) parts.push(' (tax year ' + st.taxYear + ')');
+      parts.push(money('saysGross' + i), ' a year before tax, ', money('saysNet' + i), ' a month after tax in a full year');
+      if (st.taxYear) parts.push(' (from tax year ' + st.taxYear + ')');
       lines.push(line('says.pays', parts, figures, src));
     });
+    // this tax year, as it was set up (step F2, lead4.md D7; walk finding W6-H4): the one reader "Where you are" says, so a
+    // part year is never read as the full year above
+    let ty = null; try { ty = thisTaxYearOf(plan, { now }); } catch { ty = null; }
+    for (const s of thisYearSentences(ty)) { Object.assign(figures, s.figures); lines.push(line(s.id, s.parts, figures, sourceOf('record', null, now), { year: ty.year })); }
     const sp = doc.layers && doc.layers.sp;
     const dp = doc.strategy && doc.strategy.p;
     if (sp && num(sp.annual) > 0) { figures.saysSp = r0(sp.annual); figures.saysSpAge = r0(sp.fromAge); lines.push(line('says.sp', ['State Pension: ', money('saysSp'), ' a year from age ', age('saysSpAge')], figures, src)); }
@@ -607,8 +579,9 @@ function planStep(C) {
     const a = dr && typeof dr === 'object' ? oneAnswer(dr, dp || {}) : null;
     if (a) {
       figures.saysBad = r0(a.badCaseLeft); figures.saysTypical = r0(a.typicalLeft);
-      if (doc.strategy.contract) lines.push(line('says.badContract', ['Every year is bought by contract, so no future and no start year can run it out. Left at the end, at today’s prices: typically ', money('saysTypical'), '; in a bad case (the worst 1 in 10) ', money('saysBad')], figures, src));
-      else lines.push(line('says.bad', [lockedLastsWords(doc, a, dp) + '. Left at the end, at today’s prices: typically ', money('saysTypical'), '; in a bad case (the worst 1 in 10) ', money('saysBad')], figures, src));
+      // (step F5, R8) a bought way says the document's fixed-age count too, as the full view's document does (lockedLastsOf)
+      if (doc.strategy.contract) { const fx = (lockedLastsOf(doc) || { fixed: '' }).fixed; lines.push(line('says.badContract', ['Every year is bought by contract, so no future and no start year can run it out. ' + (fx ? fx + ' ' : '') + 'Left at the end, at today’s prices: typically ', money('saysTypical'), '; in a bad case (the worst 1 in 10) ', money('saysBad')], figures, src)); }
+      else lines.push(line('says.bad', [(lockedLastsOf(doc) || { words: '' }).words + '. Left at the end, at today’s prices: typically ', money('saysTypical'), '; in a bad case (the worst 1 in 10) ', money('saysBad')], figures, src));
     }
     const sl = savedLasts(plan, { today: now.toISOString().slice(0, 10) });
     const v = sl.values;
@@ -629,8 +602,8 @@ function planStep(C) {
   const ageTyped = locked && timing && num(timing.currentAge) != null ? timing.currentAge : num(ss.currentAge);
   const ageAsOf = locked && timing ? timing.currentAgeAsOf : ss.currentAgeAsOf;
   // (7.12.0) the age today: the age typed, a year older for each birthday since its day (About's box says the same)
-  let ageToday = ageTyped;
-  if (ageTyped != null && ageAsOf) { try { const a = ageOnDate({ currentAge: ageTyped, currentAgeAsOf: ageAsOf, spStartDate: ss.spStartDate }, now, now); if (num(a) != null) ageToday = a; } catch { ageToday = ageTyped; } }
+  // (step F1) the one reader (src/reading/timing.js ageToday): never the age as typed a birthday ago
+  const ageToday = readingAgeToday(plan, { now, settings: ss }) ?? ageTyped;
   // (a rolled-on age is today's: no "as of" the day the younger age was typed)
   if (ageToday != null) { figures.ageToday = ageToday; about.push(line('about.age', [age('ageToday')], figures, locked ? src : sourceOf('saved', ageAsOf || null, now), { asOf: ageAsOf && ageToday === ageTyped ? dayWords(ageAsOf) : '' })); }
   const retired = locked && timing ? timing.mode === 'retired' : ss.retired === true;
@@ -651,7 +624,7 @@ function planStep(C) {
   // What the plan pays
   const pays = [];
   steps.forEach((s, i) => {
-    figures['step' + i] = takenAt(s.amount, s.fromAge);
+    figures['step' + i] = s.beforeTax;
     const parts = [];
     if (s.fromAge != null) { figures['stepAge' + i] = s.fromAge; parts.push('From age ', age('stepAge' + i), ': '); }
     parts.push(money('step' + i), ' a year before tax');
@@ -660,36 +633,40 @@ function planStep(C) {
     else if (s.glideToNext && i < steps.length - 1) parts.push(', sloping to the next step');
     pays.push(line('pays.step', parts, figures, src));
   });
+  if (!steps.length) pays.push(line('pays.notSet', [], figures, src));
   if (locked) notes.push({ id: 'prices', slots: { month: monthWords(lockedAt) || dayWords(lockedAt) } });
   else notes.push({ id: 'pricesToday', slots: {} });
 
   // Pots and other income
   const pots = [];
-  const potStored = num(ss.strategyParams && ss.strategyParams.sippTotal) > 0 ? r0(ss.strategyParams.sippTotal) : r0(ss.equityMin) + r0(ss.bondMin) + r0(ss.cashTarget) + r0(ss.diversifierStart);
-  // (7.12.0) a plan still saving names the pension today every page names (services/PensionToday.js: the newest record, a
-  // check-in, what you hold …), never the figure its settings were saved with a year ago
-  let today = null;
-  if (!locked && ss.retired === false) { try { const t = pensionTodayOf(plan, { now, settings: ss }); today = t && num(t.value) != null ? r0(t.value) : null; } catch { today = null; } }
-  const potSipp = locked && doc && doc.pots ? r0(doc.pots.sipp) : today != null ? today : potStored;
-  const potIsa = locked && doc && doc.pots ? r0(doc.pots.isa) : r0(ss.isaBalance);
-  const potGia = locked && doc && doc.pots ? r0(doc.pots.gia) : r0(ss.taxableStart);
+  // (step F1, lead4.md D3) the pension, ISA and general account today: the one reader each (src/reading/money.js), for every
+  // plan — a locked plan's pots as locked are its document's split below, said as locked, never as today's
+  const rctx = { now, settings: ss };
+  const potSipp = r0(pensionToday(plan, rctx).value);
+  const potIsa = r0(isaToday(plan, rctx).value);
+  const potGia = r0(giaToday(plan, rctx).value);
   figures.sipp = potSipp; figures.isa = potIsa; figures.gia = potGia;
   pots.push(line('pots.pension', [money('sipp')], figures, src));
-  // (the split the plan draws on, scaled to the pension named above when that is today's)
-  const k = today != null && potStored > 0 ? today / potStored : 1;
-  if (!locked) { figures.shares = r0(ss.equityMin * k); figures.bonds = r0(ss.bondMin * k); figures.cash = r0(ss.cashTarget * k); pots.push(line('pots.split', [money('shares'), ' shares, ', money('bonds'), ' bonds, ', money('cash'), ' cash'], figures, src)); }
+  if (!locked) {
+    // the split the plan draws on (its settings' pots are the pension today on a plan still saving: PlanReading.withSaversPensionToday)
+    const potStored = r0(ss.equityMin) + r0(ss.bondMin) + r0(ss.cashTarget) + r0(ss.diversifierStart);
+    const k = potStored > 0 && !ss.potsNotSet ? potSipp / potStored : 1;
+    figures.shares = r0(ss.equityMin * k); figures.bonds = r0(ss.bondMin * k); figures.cash = r0(ss.cashTarget * k);
+    pots.push(line('pots.split', [money('shares'), ' shares, ', money('bonds'), ' bonds, ', money('cash'), ' cash'], figures, src));
+  }
   else if (doc && doc.pots && doc.pots.allocation) { const a = doc.pots.allocation; figures.shares = r0(a.equityMin); figures.bonds = r0(a.bondMin); figures.cash = r0(a.cashTarget); pots.push(line('pots.split', [money('shares'), ' shares, ', money('bonds'), ' bonds, ', money('cash'), ' cash'], figures, src)); }
   pots.push(line('pots.isa', [money('isa')], figures, src));
   if (potGia > 0) pots.push(line('pots.gia', [money('gia')], figures, src));
-  const par = locked && doc && doc.pots ? doc.pots.potAtRetirement : ss.potAtRetirement;
-  if (par && (num(par.sipp) > 0 || num(par.isa) > 0)) pots.push(atStopLine(par, { locked, lockedAt, figures, src }));
+  // (step F1, lead4.md D4) the pot at the stop: the one model (src/reading/atStop.js)
+  const par = potAtStop(plan, rctx);
+  if (par && (par.middle > 0 || par.isa > 0)) pots.push(atStopLine(par, { lockedAt, figures, src }));
 
   // Money that comes in anyway (editing-in-v7.md 7): the State Pension, final-salary pensions, other income, income for some
   // years and lump sums — its own section, edited inside V7
   const income = [];
   const spWeekly = locked && doc && doc.assumptions ? num(doc.assumptions.spWeeklyAmount) : num(ss.spWeeklyAmount);
   const spDate = locked && doc && doc.assumptions ? doc.assumptions.spStartDate : ss.spStartDate;
-  if (spWeekly > 0) { figures.spWeekly = r0(spWeekly); income.push(line('pots.statePension', [money('spWeekly'), ' a week'], figures, src, { from: spDate ? (/^\d{4}-\d{2}-\d{2}$/.test(String(spDate)) ? dayWords(spDate) : String(spDate)) : '' })); }   // (a start date kept from an answer as a date is said in words)
+  if (spWeekly > 0) { figures.spWeekly = Math.round(spWeekly * 100) / 100; income.push(line('pots.statePension', [week('spWeekly'), ' a week'], figures, src, { from: spDate ? (spDayWords(spDayOf(spDate)) || String(spDate)) : '' })); }   // (step F2) the date in the one form of words both views use (src/reading/statePension.js)
   else if (num(ss.statePension) > 0) {
     // (7.12.0) the plan year the runs start it in (IncomeSchedule.defaultSpYear: the stored 12 is the old default, read as age
     // 67), never the first tax year plus the stored 12 — which put it five years late for someone stopping at 60
@@ -908,13 +885,13 @@ function lockStep(C) {
   const figures = {};
   if (locked) {
     const lockedOn = dayWords(lockedAtOf(plan));
-    return { done: true, result: sentence('lock.locked', ['Locked ' + lockedOn], figures), figures, lines: [], buttons: [link('seeLocked', '#/plan/' + plan.id + '/plan')], notes: [], locked: true, lockedOn, saver, strategyId, bought, hasDocument: !!plan.planDocument };
+    return { done: true, result: sentence('lock.locked', [LOCK_WORDS.locked + ' ' + lockedOn], figures), figures, lines: [], buttons: [link('seeLocked', '#/plan/' + plan.id + '/plan')], notes: [], locked: true, lockedOn, saver, strategyId, bought, hasDocument: !!plan.planDocument };
   }
   const notes = ['lock.what'];
   if (saver) notes.push('lock.saver');
   // a saver's lock says when Month by month opens: the month they stop work (saving-enough-and-check-in.md 4.3)
   const stopMonth = saver ? (monthWords(stage.startMonth) || null) : null;
-  return { done: false, result: sentence('lock.notLocked', ['Not locked'], figures), figures, lines: [], buttons: [], notes, locked: false, lockedOn: null, saver, stopMonth, strategyId, bought, hasDocument: false };
+  return { done: false, result: sentence('lock.notLocked', [LOCK_WORDS.notLocked], figures), figures, lines: [], buttons: [], notes, locked: false, lockedOn: null, saver, stopMonth, strategyId, bought, hasDocument: false };
 }
 
 /** What you hold (2.3 `hold`). */
@@ -1069,7 +1046,7 @@ function rulesFor(C, built) {
   // its document's. Said on "Does it last?" and About; no longer a to-do (7.10.0)
   const answerStale = !locked ? answerAge(plan, ss) : null;
   const saverStage = SAVER_STAGES.includes(key);
-  const closed = key === 'closed' ? closedReading(plan, C.entries) : null;
+  const closed = key === 'closed' ? closedReading(plan, C.entries, now) : null;
   // a plan lived on until a close still to come: its reviews carry on with the plan that carries it on
   const closing = stage.closing === true || (plan.closedAt != null && key !== 'closed');
   // the check-in (release step R3): how often, whether it is due, and what the last one said — read from what is stored
@@ -1342,7 +1319,7 @@ export function planPage(entries, id, stepId, { today, source = 'account' } = {}
     closed: stage.key === 'closed' ? { ...closedReading(plan, list, now), hasDocument: !!plan.planDocument } : null,
     // closed at a change-over still to come: lived on until then, but never unlocked (the guard refuses it)
     closing: stage.closing === true,
-    before: beforeReading(plan, list),
+    before: beforeReading(plan, list, now),
     locked,
     lockedOn: locked ? dayWords(lockedAtOf(plan)) : null,
     // 7.12.0: locked when its gilt ladder cost more than its pots (an old document): said at the top of "Your plan as locked"

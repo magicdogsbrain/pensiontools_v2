@@ -13,6 +13,8 @@ import { stressStripView } from '../state/select.js';
 import { money } from '../../answers/shared/format.js';
 import { STRESS } from '../copy/stressPanel.js';
 import { LASTS } from '../copy/lasts.js';
+import { factProps } from '../../reading/mark.js';
+import { stressMarksOf } from '../../reading/sentenceMarks.js';
 
 const VERDICTS = ['yes', 'close', 'no'];
 
@@ -32,11 +34,13 @@ const MORE = ['when', 'howLong', 'howMuch', 'floor'];
  * one named age beside it as [data-fixed="age"], in one line (the render rule: never one without the other in its block);
  * with no weighted figure, the fixed-age sentence alone.
  */
-export function StressChance({ c }) {
+export function StressChance({ c, rowId = null }) {
   if (!c || !c.fixed) return null;
+  // a plan's row (rowId): each sentence marked as the full view marks it (src/reading/sentenceMarks.js stressMarksOf)
+  const m = rowId ? stressMarksOf(rowId) : null;
   return (
     <p class="line stress-line stress-chance" data-line="chance">
-      {c.weighted ? <><span data-weighted="1">{sayStress(c.weighted)}</span>{STRESS.short.join}<span data-fixed="age">{sayStress(c.fixed)}</span></> : sayStress(c.fixed)}
+      {c.weighted ? <><span data-weighted="1" {...(m ? factProps(m.chance) : {})}>{sayStress(c.weighted)}</span>{STRESS.short.join}<span data-fixed="age" {...(m ? factProps(m.fixed) : {})}>{sayStress(c.fixed)}</span></> : m ? <span {...factProps(m.fixed)}>{sayStress(c.fixed)}</span> : sayStress(c.fixed)}
     </p>
   );
 }

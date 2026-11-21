@@ -175,7 +175,11 @@ describe('A — the April slide: a plan\'s start year is written into the plan o
     const fn = INDEX_HTML.slice(INDEX_HTML.indexOf('async function calcDecisionWithDeps('), INDEX_HTML.indexOf('// ---- Cadence: monthly, quarterly or annual batches.'));   // the function moved to services/DrawCadence.js
     // the settings the engine runs on are built by services/MonthDecision.js engineSetup since 7.2.0: a copy, so the cached
     // settings, and their checksum, are never touched
-    expect(fn).toContain('const setup = engineSetup({ decisionSettings: settings, stressSettings: ss, strategy: st });');
+    // step F5 (lead4.md D17): the page hands the plan to the one gatherer (src/reading/month.js), which runs decideMonth →
+    // engineSetup on the plan's own settings; the page builds no engine input itself
+    expect(fn).toContain('monthReadingOf(plan, contextFor(plan, { now })');
+    expect(fn).not.toContain('engineSetup(');
+    expect(readFileSync(join(process.cwd(), 'src/services/MonthDecision.js'), 'utf8')).toContain('const setup = engineSetup({ decisionSettings: I.settings, stressSettings: I.stressSettings, strategy: I.strategy');
     const ms = readFileSync(join(process.cwd(), 'src/services/MonthDecision.js'), 'utf8');
     expect(ms).toContain('const settings = { ...(decisionSettings || {}) };');
     expect(ms).not.toMatch(/decisionSettings\.firstTaxYear\s*=/);   // never written onto the settings handed in

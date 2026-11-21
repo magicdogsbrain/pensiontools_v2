@@ -2,7 +2,7 @@
  * A full-view Save writes only what the person changed (src/ui/settingsChanged.js, lead4.md D1).
  */
 import { describe, it, expect } from 'vitest';
-import { changedSettingsPatch, stressSavePatch, ownPotAtRetirement, touches, TIMING_KEYS } from '../../src/ui/settingsChanged.js';
+import { changedSettingsPatch, stressSavePatch, touches, TIMING_KEYS } from '../../src/ui/settingsChanged.js';
 
 const filled = { baseSalary: 24000, pa: 12570, hodlValue: 25000, recoveryBuffer: 15000, equityMin: 0, bondMin: 0, cashTarget: 0, incomeSteps: [], spStartDate: null };
 
@@ -34,10 +34,14 @@ describe('a Save writes only the boxes changed', () => {
     expect(changedSettingsPatch(null, { a: 1 })).toEqual({ a: 1 });
   });
 
-  it('pots at the stop are kept only when the person typed them', () => {
-    expect(ownPotAtRetirement({ sipp: 1, isa: 2, source: 'worked' })).toBe(null);
-    expect(ownPotAtRetirement({ sipp: 1, isa: 2, source: 'accumulation' })).toBe(null);
-    expect(ownPotAtRetirement({ sipp: 1, isa: 2, source: 'override' })).toEqual({ sipp: 1, isa: 2, source: 'override' });
+  it('with no baseline (the page still opening the plan, or the catch that left none) a Save writes NOTHING, never the whole form (check round 2)', () => {
+    expect(stressSavePatch({ base: null, form: { ...filled, spStartDate: '2040-03-01' } })).toEqual({});
+    expect(stressSavePatch({ base: undefined, form: filled, hadFigures: false })).toEqual({});
+    expect(stressSavePatch({ form: filled })).toEqual({});
+  });
+
+  it('pots at the stop are never a key a Save writes (step F1: worked out from the plan, lead4.md D4)', () => {
+    expect(TIMING_KEYS).not.toContain('potAtRetirement');
     expect(touches({ retireAge: 60 }, TIMING_KEYS)).toBe(true);
     expect(touches({ pa: 1 }, TIMING_KEYS)).toBe(false);
   });

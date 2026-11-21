@@ -11,7 +11,9 @@
  * inside a note stands on its own line, so a phone's tap target never stretches the sentence it follows.
  */
 import { Button } from '../../components/index.js';
-import { changeAction } from '../../components/PlanFigures.jsx';
+import { changeAction, markIn } from '../../components/PlanFigures.jsx';
+import { factProps } from '../../../reading/mark.js';
+import { stressMarksOf, STRESS_FLOOR_FINDS } from '../../../reading/sentenceMarks.js';
 import { sayStress, StressChance, StressMore } from '../../components/StressStrip.jsx';
 import { planStressView } from '../../state/select.js';
 import { href } from '../../router/routes.js';
@@ -86,6 +88,8 @@ function Confirm({ row, v, dispatch, T }) {
 function Row({ row, v, dispatch, planId }) {
   const T = `plan.lasts.stress.${row.id}`;
   const p = row.parts;
+  // the row's marks (lead4.md G1; step F3): the full view's rows carry the same (src/reading/sentenceMarks.js)
+  const m = stressMarksOf(row.id);
   const can = !v.readonly;
   const confirmOpen = v.confirmOpen.includes(row.id);
   const held = !row.kind;
@@ -94,11 +98,11 @@ function Row({ row, v, dispatch, planId }) {
   const accept = can && row.canAccept && !confirmOpen;
   return (
     <li class="block stress-row" data-row={row.id} data-status={row.status} data-same={row.same ? '1' : '0'} data-testid={T}>
-      <h3 class="stress-title">{sayStress(p.title)}{row.a && row.status === 'done' && !row.na && !row.same && <> <span class={`verdict-word is-${row.a.verdict}`} data-verdict={row.a.verdict}>{LASTS.verdict.word[row.a.verdict]}</span></>}</h3>
-      {p.what.map((w, i) => <p key={i} class="note">{sayStress(w)}</p>)}
+      <h3 class="stress-title">{sayStress(p.title)}{row.a && row.status === 'done' && !row.na && !row.same && <> <span class={`verdict-word is-${row.a.verdict}`} data-verdict={row.a.verdict} {...factProps(m.verdict)}>{LASTS.verdict.word[row.a.verdict]}</span></>}</h3>
+      {p.what.map((w, i) => <p key={i} class="note">{markIn(sayStress(w), m.what)}</p>)}
       {p.na && <p class="note" data-testid={`${T}.na`} data-na={row.na || 'same'}>{p.na.id === 'na.notCounted' ? STRESS.na.notCounted : sayStress(p.na)}</p>}
-      <StressChance c={p.chance} />
-      {p.runsOut && <p class="line stress-line" data-line="runsOut">{sayStress(p.runsOut)}</p>}
+      <StressChance c={p.chance} rowId={row.id} />
+      {p.runsOut && <p class="line stress-line" data-line="runsOut"><span {...factProps(m.runsOut)}>{sayStress(p.runsOut)}</span></p>}
       {p.closedYear && <p class="line stress-line" data-line="closedYear">{sayStress(p.closedYear)}</p>}
       {p.heldGap && <p class="note" data-testid={`${T}.gap`}>{sayStress(p.heldGap)}</p>}
       {row.id === 'fall' && can && !row.na && (
@@ -187,7 +191,7 @@ export function StressPanel({ state, dispatch }) {
       </div>
       {run.status === 'working' && <p class="note" role="status" data-testid="plan.lasts.stress.working">{sayStress({ id: 'working', slots: { i: String(Math.min(run.total, run.done + 1)), n: String(run.total) } })}</p>}
       {run.status === 'failed' && <p class="notice" role="alert" data-testid="plan.lasts.stress.failed">{run.reason === 'noWorker' ? STRESS.noWorker : STRESS.failed}</p>}
-      {tried && v.floor && <p class="line stress-floor" data-testid="plan.lasts.stress.floor">{sayStress(v.floor)}</p>}
+      {tried && v.floor && <p class="line stress-floor" data-testid="plan.lasts.stress.floor">{markIn(sayStress(v.floor), STRESS_FLOOR_FINDS)}</p>}
       {tried && v.notTried && <p class="note" data-testid="plan.lasts.stress.notTried" data-na="lockedLadder">{sayStress(v.notTried)}</p>}
       {tried && (
         <ul class="stress-rows" data-testid="plan.lasts.stress.rows">

@@ -16,6 +16,10 @@
  * Every path written is in schema.js WAY_WRITES (tested); only the dials typed on the card go into the switch (as the
  * planner's strategy page sends only the dials turned), so a key the plan lacks stays absent unless it was set.
  */
+import { marketLabel } from '../../reading/marketPlain.js';
+import { FACT, factId } from '../../reading/facts.js';
+import { wayCannotText, wayFactIds, wayFiguresOf, boughtWhenOf, BOUGHT_WORDS } from '../../reading/ways.js';
+import { planHasFigures } from '../../services/PlanFigures.js';
 import { futuresOutOfTen, pctText, CHANCE_BARS, rankWays } from '../../services/OneAnswer.js';
 import { restoredParamsFor, switchPatch } from '../../services/PlanCommit.js';
 import { get, applyPatch, safeSettings, safeTiming } from './about.js';
@@ -115,8 +119,10 @@ export function wayOf(entries, id, { today } = {}) {
     source: locked ? { kind: 'locked', at: dayWords(lockedAtOf(plan)) } : { kind: 'saved', at: plan.lastModified ? dayWords(plan.lastModified) : null },
     strategyId, docStrategyId, bought: isBought(strategyId), family: FAMILY.includes(strategyId),
     endAge: (num(timing.shapeAgeNow) || 57) + (num(ss.duration) || 35),   // "to 97" = to the 97th birthday (rules.js planToAgeOf)
-    atStop: timing.mode === 'future' && ss.retired === false && num(timing.shapeAgeNow) ? { age: num(timing.shapeAgeNow) } : null,   // still saving: the runs start at the stop
-    runKey: readonly ? null : runKeyOf(plan),
+    atStop: boughtWhenOf(ss, timing) === 'atStop' ? { age: num(timing.shapeAgeNow) } : null,   // still saving: the runs start at the stop (the one rule, src/reading/ways.js)
+    // a plan with no figures of its own is never ranked on a default income (src/reading/ways.js; the full view says the same)
+    noFigures: !planHasFigures(plan),
+    runKey: readonly || !planHasFigures(plan) ? null : runKeyOf(plan),
     stash, cuts: cutsOfSettings(ss),
     document: docShare == null ? null : { share: docShare, words: futuresOutOfTen(docShare).words, chance: pctText(docShare * 100, 1, CHANCE_BARS).replace(/%$/, ''), lockedOn: dayWords(doc.lockedAt || lockedAtOf(plan)) }
   };
@@ -162,9 +168,9 @@ export function cardLines(w, { endAge = null, current = false, atStop = null } =
   const lines = [];
   if (!w) return lines;
   if (!w.affordable) {
-    const rs = w.reason || {};
-    if (rs.why === 'cost' && rs.cost != null) lines.push({ id: 'cannot', slots: { cost: pounds(rs.cost), short: pounds(rs.short) } });
-    else lines.push({ id: 'cannotGilt', slots: {} });
+    // the one sentence both views say for it (src/reading/ways.js wayCannotText)
+    const c = wayCannotText(w.reason);
+    lines.push({ id: c.id, slots: c.cost == null ? {} : { cost: c.cost, short: c.short } });
     return lines;
   }
   const a = w.a;
@@ -172,23 +178,27 @@ export function cardLines(w, { endAge = null, current = false, atStop = null } =
   lines.push({ id: current ? 'lastsYours' : 'lasts', slots: { words: futuresOutOfTen(a.share).words } });
   if (CONTRACT.includes(w.id)) lines.push({ id: 'subContract', slots: { years: String(years), toAge: endAge == null ? '' : String(endAge) } });
   else lines.push({ id: 'sub', slots: { pct: chanceOf(a), futures: n0(a.futures), histories: n0(a.histories) } });
-  lines.push({ id: 'left', slots: { typical: pounds(a.typicalLeft), bad: pounds(a.badCaseLeft) } });
+  const fig = wayFiguresOf(w);   // the one reading of a way's left and bad case (src/reading/ways.js), the full view's too
+  lines.push({ id: 'left', slots: { typical: fig.left, bad: fig.badLeft } });
   // (7.12.0) a plan still saving buys from the pension when work stops (cost + left), never "your pot today"
+  // when it is bought, in the words both views say (src/reading/ways.js BOUGHT_WORDS): today, or when a saver stops
   const all = !(w.left != null && w.left > 0);
-  if (w.bought && atStop && atStop.age) lines.push({ id: all ? 'costAllAtStop' : 'costAtStop', slots: { cost: pounds(w.cost), pot: pounds((+w.cost || 0) + (+w.left || 0)), age: String(atStop.age), left: pounds(w.left || 0) } });
-  else if (w.bought) lines.push({ id: all ? 'costAll' : 'cost', slots: { cost: pounds(w.cost), left: pounds(w.left || 0) } });
+  if (w.bought && atStop && atStop.age) lines.push({ id: all ? 'costAllAtStop' : 'costAtStop', slots: { cost: pounds(w.cost), bought: BOUGHT_WORDS.atStop, pot: pounds((+w.cost || 0) + (+w.left || 0)), age: String(atStop.age), left: pounds(w.left || 0) } });
+  else if (w.bought) lines.push({ id: all ? 'costAll' : 'cost', slots: { cost: pounds(w.cost), bought: BOUGHT_WORDS.today, left: pounds(w.left || 0) } });
   return lines;
 }
 
 /** The "More columns" row of one way: the planner's extra columns in V7's names. */
 function tableRow(w) {
   if (!w || !w.affordable) return null;
+  const fig = wayFiguresOf(w, w);   // the one reading (src/reading/ways.js), the full view's ranking and table too
   return {
-    worst12: w.worst12 == null ? null : pounds(w.worst12),
-    covered: w.coverage == null ? null : pctText(w.coverage),
+    worst12: fig.worst12,
+    left: fig.left,
+    covered: fig.covered,
     coverage: w.coverageRatio == null ? null : w.coverageRatio.toFixed(2),
-    spent: w.spentMedian == null ? null : pounds(w.spentMedian),
-    bumpiness: w.vol == null ? null : String(Math.round(w.vol * 100)),
+    spent: fig.spent,
+    bumpiness: fig.bumpiness,
     score: w.vac == null ? null : w.vac.toFixed(1)
   };
 }
@@ -251,11 +261,21 @@ export function cardsOf(reading, W) {
       dials, values: c.ok ? c.values : null, ok: c.ok, errors: c.errors, typed: Object.keys(typed).length > 0,
       needsRun, tried: t ? { status: t.status, reason: t.reason || null, runs: t.result && t.result.basis ? t.result.basis.runs : 1, ms: t.ms == null ? null : t.ms } : null,
       table: tableRow(shownResult), compare,
+      // the cost line's figure is the fact way.<id>.cost when it is the plan's own run (the full view's overview draws the
+      // same one, compareRunner.wayCostOf); a try on other dials is a what-if, never marked as the plan's
+      costFact: shownResult && shownResult === ran && (ran.affordable ? ran.bought : !!(ran.reason && ran.reason.why === 'cost')) ? factId(FACT.WAY_COST, id) : null,
+      // the way's name, always its own mark; how many futures out of 10 it lasts, marked only on the plan's own run (a try is a
+      // what-if); when a bought way is bought (one fact for the plan)
+      // what is typically left, the bad case and the worst 12 months: the plan's own run only, as the verdict
+      facts: (() => { const own = !!(shownResult && shownResult === ran && ran.affordable), f = wayFactIds(id); return { ...f, verdict: own ? f.verdict : null, left: own ? f.left : null, badLeft: own ? f.badLeft : null, worst12: own ? f.worst12 : null, covered: own ? f.covered : null, spent: own ? f.spent : null, bumpiness: own ? f.bumpiness : null, bought: FACT.WAY_BOUGHT }; })(),
       // a locked ladder's own way, read from its plan document (waysRun.lockedOwnOf): the day it was locked, said once
       asLocked: shownResult && shownResult === ran && ran.asLocked ? ran.asLocked : null
     };
   });
-  return { found: true, cards, current, open, rankBy, ran: mine && w.ran ? w.ran : null, has: !!result };
+  // what the bought ways were priced on (the one market, src/reading/market.js): once under the list, in the one label both
+  // views draw (the full view's under its table of the ways), when a bought way is there to be priced
+  const market = result && result.market && cards.some((c) => c.bought && c.affordable && !c.asLocked) ? marketLabel(result.market) : null;
+  return { found: true, cards, current, open, rankBy, ran: mine && w.ran ? w.ran : null, has: !!result, market };
 }
 
 // ---- the write (2.4) -----------------------------------------------------------------------------------------------------------

@@ -71,6 +71,18 @@ describe('a form that saves as it changes', () => {
     expect(line()).toBe('Saved');
   });
 
+  it('says whether the form holds typing not saved yet: none as filled, some while it waits, none once saved, some when it cannot save', async () => {
+    expect(auto.pending()).toBe(false);
+    type('pot', '310000');
+    expect(auto.pending()).toBe(true);
+    await tick(30);
+    expect(auto.pending()).toBe(false);
+    locked = true;
+    type('pot', '320000');
+    await tick(30);
+    expect(auto.pending()).toBe(true);
+  });
+
   it('opening writes nothing, and nor does a press that changes nothing', async () => {
     await auto.flush();
     document.getElementById('nothing').click();
@@ -159,9 +171,10 @@ describe('the form\'s own pieces', () => {
     expect(boxNameOf(document.getElementById('age'))).toBe('Age today');
   });
   it('the Stress settings checks: an age, an amount, the State Pension date, an income step\'s amount', () => {
-    document.body.innerHTML = '<input id="tmAge"><input id="ssPot"><input id="ssSpStartDate"><div id="incomeStepsEditor"><input type="number" step="1000"><input type="number" min="40"></div>';
-    const [age, pot, date, amount, from] = document.querySelectorAll('input');
-    expect([age, pot, date, amount, from].map(stressKindOf)).toEqual(['age', 'money', 'spDate', 'money', 'age']);
+    document.body.innerHTML = '<input id="tmAge"><input id="ssPot"><input id="ssSpStartDate"><div id="incomeStepsEditor"><input type="number" step="1000"><input type="number" min="40"><input type="number" step="50" data-step-amount></div>';
+    const [age, pot, date, amount, from, monthly] = document.querySelectorAll('input');
+    // (step F2) a step's amount as a month after tax is money too
+    expect([age, pot, date, amount, from, monthly].map(stressKindOf)).toEqual(['age', 'money', 'spDate', 'money', 'age', 'money']);
   });
 });
 

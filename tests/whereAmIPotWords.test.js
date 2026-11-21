@@ -37,7 +37,9 @@ describe('the full view says the pot the simple view\'s way', () => {
 
   it('the figure the band is in first, at the prices of April 2026, the recorded one in brackets with its month', () => {
     const t = strip(w);
-    expect(t).toContain('Your pot: £670,000 at the prices of April 2026 (£753,659, recorded April 2029)');
+    expect(t).toContain('Your pot: £670,000 at the prices of April 2026 (£753,659 as recorded)');
+    // (step F5) the simple view's words (where.js potSentence); the record's month after the band, as its source line says it (R4)
+    expect(t).toContain('From your record, April 2029.');
     expect(t).not.toContain('which is £670,000 in prices at the start of the plan');
   });
 

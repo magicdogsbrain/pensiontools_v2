@@ -39,7 +39,22 @@
         "newer": false,
         "failed": false
       }
-    ]
+    ],
+    "view": {
+      "today": "2026-09-30",
+      "rows": [
+        {
+          "id": "window",
+          "rows": [
+            {
+              "id": "guest-wayin001",
+              "name": "Kept from a first answer"
+            }
+          ]
+        }
+      ],
+      "page": null
+    }
   },
   "draft": {
     "a": {

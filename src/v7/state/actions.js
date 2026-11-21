@@ -28,9 +28,6 @@ export const A = Object.freeze({
   UI_TOGGLE:       'ui/toggle',        // { id }                             adds or removes id in ui.open
   UI_RAIL:         'ui/rail',          // { open }                           the phone rail sheet
   UI_ONLINE:       'ui/online',        // { online }
-  UI_LEVEL:        'ui/level',         // { level }                          "How careful?" on a plan's "Does it last?" (7.8.0): page
-                                       //                                     memory only (ui.level), never saved — a plan's level is
-                                       //                                     its kept answer's until 7.9.0 saves one
   ENV_SET:         'env/set',          // { patch }                          start-up and the test hook only (today, historyEnd, appVersion,
                                        //                                     signedInHint: the browser's note that someone is signed in;
                                        //                                     stressStrip: false, the strip switched off, 7.9.0;
@@ -216,8 +213,7 @@ export const A = Object.freeze({
   // ---- "What you pay in": the plan's own verdict (research/saving-enough-and-check-in.md 4.1, 4.4; release step R2) ----
   // question B on the plan's figures (answers/plan/saverInputs.js), in the worker's 'saver' lane, page memory only
   SAVER_WORKING:   'saver/working',       // { key }                          the run for this key (saverInputs.js saverRunKey) is under way; an old result stays
-  SAVER_FIRST:     'saver/first',         // { key, result }                  the first figure (100 futures); ignored if the key is stale
-  SAVER_FINAL:     'saver/final',         // { key, result }                  the final figure (1,000 futures); ignored if the key is stale
+  SAVER_FINAL:     'saver/final',         // { key, result }                  the figure (1,000 futures: no first figure is ever shown, lead4.md R6); ignored if the key is stale
   SAVER_FAILED:    'saver/failed',        // { key, reason? }                 the run failed ('noWorker': no worker)
   SAVER_RETRY:     'saver/retry',         // {}                               after a failure: idle again, so the runner starts over
   SAVER_ENDED:     'saver/ended',         // { key }                          (7.12.0) the run for key ended as its page was left: idle, its last figures kept
@@ -238,6 +234,7 @@ export const A = Object.freeze({
   // Month by month (research/v7/months-in-v7.md §3, 7.2.0): ONE write each through effects/planWrite.js
   PLAN_MONTH_RECORD: 'plan/monthRecord',  // { planId }                       "Record": saving { kind: 'month' }; this month and the months filled in before it, the tax years
   PLAN_TAX_YEAR:   'plan/taxYear',        // { planId }                       "Set up 2026/27": saving { kind: 'taxYear' }; the year's set-up
+  PLAN_TAX_YEAR_AGAIN: 'plan/taxYearAgain', // { planId }                    "Set this year up again" (step F2, D7): saving { kind: 'taxYearAgain' }
   PLAN_CALENDAR:   'plan/calendar',       // { planId }                       "Add to my calendar": ui.download { planId, n, what: 'calendar' }; the download effect saves the file
 
   // "Your plans": the plan menu (research/v7/road-to-7.md step 11) — each write through effects/planWrite.js; the download through effects/download.js

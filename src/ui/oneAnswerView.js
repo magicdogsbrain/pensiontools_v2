@@ -3,19 +3,23 @@
  * Scenarios tabs as explanations of the one test, the Strategies ranking by futures out of 10, the allocation grid,
  * and the locked document's "earlier test" line. HTML strings only; no DOM, no storage, no engine.
  */
+import { moneyK, money } from '../reading/format.js';
 import { inflationDecadesSvg } from './giltLadderGraphic.js';
-import { futuresOutOfTen, pctText, tenthsOutOfTen, CHANCE_BARS, rankWays, oneAnswer, boldConsequenceOf } from '../services/OneAnswer.js';
+import { futuresOutOfTen, pctText, tenthsOutOfTen, CHANCE_BARS, rankWays, oneAnswer, boldConsequenceOf, leftText } from '../services/OneAnswer.js';
 import { decadeFigures } from '../services/NamedStarts.js';
 import { LEGACY_DEFINITION, planToAgeOfDefinition } from '../services/PlanDocument.js';
 import { LIFE_TABLE, HORIZON } from '../services/LongevityModel.js';
-import { chanceWords, fixedAgeWords } from '../answers/shared/format.js';
+import { chanceWords, fixedAgeWords, twentiethsOfFutures } from '../answers/shared/format.js';
 import { LEVEL_IDS } from '../answers/shared/shown.js';
 import { SUCCESS, planToAgeOf } from '../answers/shared/rules.js';
 import { withSavingChance } from '../answers/shared/savingChance.js';
-import { markFact, markWithin } from '../reading/mark.js';
-import { LASTS_FINDS } from '../reading/sentenceMarks.js';
+import { markFact, markWithin, tableAttr, cellAttr } from '../reading/mark.js';
+import { TABLES, FACT } from '../reading/facts.js';
+import { wayFactIds, wayVerdictOf, wayFiguresOf } from '../reading/ways.js';
+import { LASTS_FINDS, DOC_LASTS_FINDS } from '../reading/sentenceMarks.js';
+import { lockedLastsOf } from '../reading/document.js';
+import { MIX } from '../v7/copy/mix.js';
 
-const futuresWords = (share) => futuresOutOfTen(share).words;
 
 const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
@@ -23,10 +27,10 @@ const n0 = (v) => Math.round(+v || 0).toLocaleString('en-GB');
 const pc = (v) => Math.round(+v || 0) + '%';
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
-/** "Left at the end" — typical, bad case (the worst 1 in 10), good case. */
+/** "Left at the end" — typical, bad case (the worst 1 in 10), good case: to the nearest £1,000, as every place says it (OneAnswer.leftText). */
 export function leftRowHtml(a) {
   if (!a) return '';
-  return '<tr><td>Left at the end (today\'s money)</td><td>typically <strong>' + markFact('left.typically', gbp(a.typicalLeft)) + '</strong>; in a bad case (the worst 1 in 10) <strong>' + markFact('left.badCase', gbp(a.badCaseLeft)) + '</strong>; in a good case (the best 1 in 10) ' + markFact('left.goodCase', gbp(a.goodCaseLeft)) + '</td></tr>';
+  return '<tr><td>Left at the end (today\'s money)</td><td>typically <strong>' + markFact('left.typically', leftText(a.typicalLeft)) + '</strong>; in a bad case (the worst 1 in 10) <strong>' + markFact('left.badCase', leftText(a.badCaseLeft)) + '</strong>; in a good case (the best 1 in 10) ' + markFact('left.goodCase', leftText(a.goodCaseLeft)) + '</td></tr>';
 }
 
 /** The income cuts: how many futures, by how much, for how long. '' for a strategy that does not cut. */
@@ -106,6 +110,8 @@ export function scenariosTabHtml({ strategyId, name, a, r, p, rows = [], scenari
   let h = '<div class="card"><h2>Scenarios — the named stresses</h2>';
   if (!a) return h + '<div class="alert alert-warning">The strategy is not affordable on this plan, so there is nothing to run the scenarios through. Fix the plan in Settings first.</div></div>';
   if (strategyId === 'full-il-gilt' && r && r.plan && r.plan.years && r.plan.years.length) {
+    // under "Try the bad years" (its rows above), the decades' table is a fold to open, as for every other way (step F3)
+    if (rowsShown) return h + '<details class="named-stresses"><summary>The named decades: what each would do to the cash the rungs pay</summary>' + scenariosTabHtml({ strategyId, name, a, r, p, rows, scenarios, startYears, worst, rowsShown: false }).replace(/^<div class="card"><h2>[^<]*<\/h2>/, '').replace(/<\/div>$/, '') + '</details></div>';
     const plan = r.plan, n = plan.years.length;
     const cpiPath = (sc) => { const out = [1]; let c = 1; for (let i = 1; i < n; i++) { c *= 1 + (sc.inflation[i - 1] ?? 0.025); out.push(c); } return out; };
     h += '<div class="alert alert-info"><strong>Every year of this plan is bought today, index-linked.</strong> Equity crashes, lost decades and 2008 do nothing to its income — the only thing a scenario changes is the number of <em>pounds</em> that arrive, and they always buy the same.' + (r.signature && r.signature.spareGrowth ? ' The money left over is in shares (your setting): a crash does cut what you would have left, never the income.' : '') + ' So the honest scenario test is inflation: here is what each famous decade would do to the cash arriving, against the plan in today\'s money.</div>';
@@ -127,9 +133,11 @@ export function scenariosTabHtml({ strategyId, name, a, r, p, rows = [], scenari
   // with "Try the bad years" above (7.9.0), the plan's own figure is the As planned line there: no second figure here. The
   // lines above are futures only, so the real starts are named as a set of their own (the words of "Does it last?")
   h += rowsShown
-    ? '<p data-stress-hint="1">The lines above make one thing worse on purpose. Each named stress below is a real decade: the real history from its first year is one of the ' + n0(a.histories) + ' real starts since 1871 that the one test counts beside its futures. Here is what the decade did, and what retiring into it would have done to <strong>' + esc(name) + '</strong> on your plan — its own cuts setting, its full length, today\'s money.</p>'
+    ? '<p data-stress-hint="1">The lines above make one thing worse on purpose. Each named stress below is a real decade: the real history from its first year is one of the ' + n0(a.histories) + ' real starts since 1871 that the one test counts beside its futures. Here is what the decade did, and what retiring into it would have done to <strong>' + markFact('way.name', esc(name)) + '</strong> on your plan — its own cuts setting, its full length, today\'s money.</p>'
     : '<p>Each named stress is a real decade. The one test already contains it: the real history that starts at that decade\'s first year is one of the ' + n0(a.histories) + ' starts behind your figure of <strong>' + pctText(a.chancePct, 0, CHANCE_BARS) + '</strong> (lasts ' + esc(a.outOfTen.words) + '). Here is what the decade did, and what retiring into it would have done to <strong>' + esc(name) + '</strong> on your plan — its own cuts setting, its full length, today\'s money.</p>';
-  h += '<div class="table-scroll-container"><table><thead><tr><th>Named stress</th><th>What the decade did</th><th>Retiring into it: what happened to this plan</th><th>Lowest 12 months</th><th>Left at the end</th></tr></thead><tbody>';
+  // under "Try the bad years" (its rows above), the decades one by one are a fold to open: the simple view says them under its
+  // history (step F3)
+  h += (rowsShown ? '<details class="named-stresses"><summary>The named decades, one at a time</summary>' : '') + '<div class="table-scroll-container"><table><thead><tr><th>Named stress</th><th>What the decade did</th><th>Retiring into it: what happened to this plan</th><th>Lowest 12 months</th><th>Left at the end</th></tr></thead><tbody>';
   for (const [k, sc] of Object.entries(scenarios)) {
     const y = startYears[k];
     const sw = '<span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:' + esc(sc.color) + ';margin-right:6px;"></span>';
@@ -142,7 +150,7 @@ export function scenariosTabHtml({ strategyId, name, a, r, p, rows = [], scenari
     const cells = x ? startRowHtml(x).replace(/^<tr>/, '').replace(/<\/tr>$/, '').replace(/^<td>.*?<\/td>/, '') : '<td colspan="3" class="hint">not run</td>';
     h += '<tr><td>' + sw + esc(sc.name) + '<br><span class="hint">from January ' + y + '</span></td><td>' + esc(decadeWords(sc)) + '</td>' + cells + '</tr>';
   }
-  h += '</tbody></table></div>';
+  h += '</tbody></table></div>' + (rowsShown ? '</details>' : '');
   h += rowsShown
     ? '</div>'
     : '<p class="hint" style="margin-top:8px;">Until 6.24 this tab ran each decade over and over for the whole plan and marked the plan as failed — a test nothing real has ever set. The one test counts every real start once; the named decades are explained here, not re-run.</p></div>';
@@ -160,7 +168,7 @@ export function rankingCardHtml({ scored, names, colors, rankBy = 'lasts', more 
   const ranked = rankWays(scored, rankBy);   // the share and the order (OneAnswer.rankWays, 6.40.0): one ranking for the planner and V7
   const rows = own && ranked.some((x) => x.id === own) ? [...ranked.filter((x) => x.id === own), ...ranked.filter((x) => x.id !== own)] : ranked;
   const mine = own && rows.length && rows[0].id === own;
-  for (const x of rows) { x.lasts = futuresWords(x.share); }
+  for (const x of rows) { x.lasts = wayVerdictOf(x.share); }   // the one reading of a way's verdict (src/reading/ways.js), the simple view's cards' too
   const btn = (k, label) => '<button type="button" class="risk-btn' + (rankBy === k ? ' active' : '') + '" style="padding:3px 10px;font-size:12px;" data-on-click="setCmpRank(\'' + k + '\')">' + label + '</button>';
   let h = (mine ? '<div class="card"><h2>Your plan: ' + esc(names[own] || own) + '</h2><p class="hint" style="margin:0 0 8px;" id="rankOwnPlan">This is the strategy your plan is locked on. The others ran the same test on your figures, for comparison only; they are not ranked against your plan.</p>' : '<div class="card"><h2>Which strategy? — ranked on your plan</h2>')
     + '<p class="hint" style="margin:0 0 8px;">All ' + (scored.length + unaffordable.length) + ' ran <strong>your</strong> plan (pot, ISA policy, income shape, State Pension, full length) through the <strong>same one test</strong> — every real stretch of markets since 1871 and 1,000 possible futures' + (cutsWords ? ', ' + esc(cutsWords) : '') + '. The first column is the one figure every screen shows for your own strategy. What each one costs you to live with — a cut, a cliff, a bumpy pot — is yours to weigh; the columns beside it are the trade-offs.</p>'
@@ -171,16 +179,17 @@ export function rankingCardHtml({ scored, names, colors, rankBy = 'lasts', more 
     + '</tr></thead><tbody>';
   rows.forEach((x, i) => {
     const r = x.r;
-    h += '<tr' + (i === 0 ? ' style="font-weight:600;"' : '') + '><td>' + (mine ? (i === 0 ? '' : '—') : (i + 1)) + '</td><td><span style="display:inline-block;width:10px;height:10px;background:' + esc(colors[x.id] || '#888') + ';border-radius:2px;margin-right:6px;"></span>' + esc(names[x.id] || x.id) + (mine && i === 0 ? ' <span class="hint">(your plan)</span>' : '') + ' <button type="button" class="risk-btn" style="padding:1px 7px;font-size:11px;" data-on-click="showStrategyPage(\'' + esc(x.id) + '\')">read →</button></td>'
-      + '<td>lasts ' + esc(x.lasts) + ' <span class="hint">(' + pctText(x.share * 100, 0, CHANCE_BARS) + (r.strategyId === 'floor-and-flex' ? ', no lean year' : r.ruinLabel ? ', else cut' : '') + ')</span></td>'
-      + '<td>' + gbp(r.worst12 && r.worst12.min) + '</td><td>' + gbp(r.terminal.p50) + '</td><td>' + gbp(r.terminal.p10) + '</td>'
-      + (more ? '<td>' + (r.coverage != null ? pctText(r.coverage) : '—') + '</td><td>' + (x.sc ? x.sc.coverageRatio.toFixed(2) : '—') + '</td><td>' + (r.spentMedian != null ? gbp(r.spentMedian) : '—') + '</td><td>' + (x.sc ? (x.sc.vol * 100).toFixed(0) + '%/yr' : '—') + '</td><td><strong>' + (x.sc ? x.sc.vac.toFixed(1) : '—') + '</strong></td>' : '')
+    h += '<tr' + (i === 0 ? ' style="font-weight:600;"' : '') + '><td>' + (mine ? (i === 0 ? '' : '—') : (i + 1)) + '</td><td><span style="display:inline-block;width:10px;height:10px;background:' + esc(colors[x.id] || '#888') + ';border-radius:2px;margin-right:6px;"></span>' + markFact(wayFactIds(x.id).name, esc(names[x.id] || x.id)) + (mine && i === 0 ? ' <span class="hint">(your plan)</span>' : '') + ' <button type="button" class="risk-btn" style="padding:1px 7px;font-size:11px;" data-on-click="showStrategyPage(\'' + esc(x.id) + '\')">read →</button></td>'
+      + '<td>lasts ' + markFact(wayFactIds(x.id).verdict, esc(x.lasts)) + ' <span class="hint">(' + pctText(x.share * 100, 0, CHANCE_BARS) + (r.strategyId === 'floor-and-flex' ? ', no lean year' : r.ruinLabel ? ', else cut' : '') + ')</span></td>'
+      + (() => { const f = wayFiguresOf(r), m = wayFactIds(x.id); return '<td>' + (f.worst12 == null ? '—' : markFact(m.worst12, f.worst12)) + '</td><td>' + markFact(m.left, f.left) + '</td><td>' + markFact(m.badLeft, f.badLeft) + '</td>'; })()   // the one reading of a way's figures (src/reading/ways.js), the simple view's cards' too
+      + (more ? (() => { const f = wayFiguresOf(r), m = wayFactIds(x.id); return '<td>' + (f.covered != null ? markFact(m.covered, f.covered) : '—') + '</td><td>' + (x.sc ? x.sc.coverageRatio.toFixed(2) : '—') + '</td><td>' + (f.spent != null ? markFact(m.spent, f.spent) : '—') + '</td>'; })() + '<td>' + (wayFiguresOf(r, x.sc).bumpiness != null ? markFact(wayFactIds(x.id).bumpiness, wayFiguresOf(r, x.sc).bumpiness) + '/yr' : '—') + '</td><td><strong>' + (x.sc ? x.sc.vac.toFixed(1) : '—') + '</strong></td>' : '')
       + '</tr>';
   });
   h += '</tbody></table></div>';
   if (unaffordable.length) h += '<p class="hint" style="margin-top:6px;">Not affordable on this plan, so not ranked: ' + unaffordable.map((u) => esc(u.name) + ' (' + esc(u.reason || '') + ')').join('; ') + '.</p>';
   const best = rows[0];
-  if (best && !mine) h += '<div class="alert alert-info" style="margin-top:10px;"><strong>' + esc(names[best.id] || best.id) + ' comes first on your plan</strong> — it lasts ' + esc(best.lasts) + ' (' + pctText(best.share * 100, 0, CHANCE_BARS) + '), typically leaving ' + gbp(best.r.terminal.p50) + '; in a bad case (the worst 1 in 10) ' + gbp(best.r.terminal.p10) + '. Read its page, then the runner-up\'s: the right choice depends on what you would rather live with — a cut, a cliff, or a bumpy pot — and that is yours to weigh. <button type="button" class="risk-btn" style="padding:2px 8px;" data-on-click="showStrategyPage(\'' + esc(best.id) + '\')">Read ' + esc(names[best.id] || best.id) + ' →</button></div>';
+  const bf = best ? wayFiguresOf(best.r) : null, bm = best ? wayFactIds(best.id) : null;
+  if (best && !mine) h += '<div class="alert alert-info" style="margin-top:10px;"><strong>' + markFact(bm.name, esc(names[best.id] || best.id)) + ' comes first on your plan</strong> — it lasts ' + markFact(bm.verdict, esc(best.lasts)) + ' (' + pctText(best.share * 100, 0, CHANCE_BARS) + '), typically leaving ' + markFact(bm.left, bf.left) + '; in a bad case (the worst 1 in 10) ' + markFact(bm.badLeft, bf.badLeft) + '. Read its page, then the runner-up\'s: the right choice depends on what you would rather live with — a cut, a cliff, or a bumpy pot — and that is yours to weigh. <button type="button" class="risk-btn" style="padding:2px 8px;" data-on-click="showStrategyPage(\'' + esc(best.id) + '\')">Read ' + esc(names[best.id] || best.id) + ' →</button></div>';
   h += '<p class="hint" style="margin-top:8px;">Lasts = the share of the 1,000 futures in which the plan was paid in full to the end (for Floor &amp; Flex: no lean year; for Floor to an age and the rotation: never cut). Worst 12 months = the lowest income lived in any real history. Typically left and the bad case = what is left at the end in the middle future and in the worst 1 in 10 — never the single worst of 1,000.'
     + (more ? ' Years covered = share of the plan\'s years the money paid for, averaged over futures. Coverage ratio = years sustained plus the years the money left over would have funded, over the plan length (Estrada &amp; Kritzman, <em>Toward Determining the Optimal Investment Strategy for Retirement</em>, J. Retirement 2019). Bumpiness = year-on-year volatility of total wealth along the way, floored at ' + Math.round(volFloorPct) + '% so a fully bought plan scores finite. Score = the volatility-adjusted coverage ratio (Estrada, <em>Retirement Planning: The Volatility-Adjusted Coverage Ratio</em>, J. Retirement 2024): coverage divided by bumpiness — it rewards lasting longer and leaving more and penalises a bumpy ride; one honest yardstick, not the only one.' : '')
     + ' A what-if with the cuts switched off is one click away in Try a strategy.</p></div>';
@@ -191,26 +200,34 @@ export function rankingCardHtml({ scored, names, colors, rankBy = 'lasts', more 
  * Compare allocations (Pots & Valves): the three risk levels with and without the bond tent, each run through the one
  * test. grid[key].flat / .tent = a stressTestStrategy result (or { affordable: false }).
  */
-export function allocationGridHtml(grid, presets, order) {
-  let best = { share: -1, key: null, tent: null };
-  for (const key of order) for (const t of ['flat', 'tent']) { const g = grid[key] && grid[key][t]; if (g && g.affordable) { const sh = (100 - (+g.ruin.mc || 0)) / 100; if (sh > best.share) best = { share: sh, key, tent: t }; } }
-  const cell = (g, isBest) => {
-    if (!g || !g.affordable) return '<td style="text-align:center;padding:10px;border:1px solid var(--border);" class="hint">not run</td>';
-    const sh = (100 - (+g.ruin.mc || 0)) / 100;
-    return '<td style="text-align:center;padding:10px;border:1px solid var(--border);' + (isBest ? 'background:rgba(16,185,129,0.12);' : '') + '"><div style="font-size:20px;font-weight:700;color:var(--' + (isBest ? 'success' : 'text') + ');">' + tenthsOutOfTen(sh) + ' futures out of 10</div><div style="font-size:11px;color:var(--text-muted);">' + pctText(sh * 100, 0, CHANCE_BARS) + ' · typically ' + gbp(g.terminal.p50) + ' left · bad case ' + gbp(g.terminal.p10) + '</div></td>';
+/**
+ * "Compare allocations" (the simple view's "Which mix lasts best?"): the eight cells of answers/plan/mixRun.js runMixCompare —
+ * the plan's own mix and the three levels, tent off and on — in the words answers/plan/mix.js mixCompareView gives them, the
+ * simple view's words for each cell (lead4.md R6, R7). `view` is mixCompareView's.
+ */
+/** What the page says while the eight cells run (the simple view's words). */
+export const MIX_COMPARE_WORKING = MIX.compare.working;
+
+export function mixGridHtml(view) {
+  const C = MIX.compare;
+  const fill = (t, slots) => String(t).replace(/\{(\w+)\}/g, (m, k) => (slots[k] != null ? String(slots[k]) : m));
+  const cellOf = (key, tent) => (view.cells || []).find((c) => c.key === key && c.tent === tent) || null;
+  // each cell marked as the simple view's grid marks it (lead4.md G1; step F3): its words and the line under them
+  const td = (c, key, tent) => {
+    if (!c || !c.affordable) return '<td style="text-align:center;padding:10px;border:1px solid var(--border);" class="hint">' + esc(C.cannot) + '</td>';
+    const col = tent ? 'tent' : 'flat';
+    return '<td style="text-align:center;padding:10px;border:1px solid var(--border);' + (c.best ? 'background:rgba(16,185,129,0.12);' : '') + '"><div style="font-size:20px;font-weight:700;color:var(--' + (c.best ? 'success' : 'text') + ');"' + cellAttr(key, col) + '>' + esc(fill(C.cell, { words: c.words })) + '</div><div style="font-size:11px;color:var(--text-muted);"' + cellAttr(key, col + '.sub') + '>' + esc(fill(C.cellSub, c)) + '</div>' + (c.current ? '<div class="hint" style="font-size:11px;">' + esc(C.thisIs) + '</div>' : '') + '</td>';
   };
   let h = '<h3 style="margin-bottom:6px;">Compare allocations</h3>';
-  h += '<p style="color:var(--text-muted);font-size:13px;margin-bottom:12px;">Each cell is the one test (every real stretch since 1871 and 1,000 futures, your own cuts setting, your full length) with the pot split that way. More shares usually lasts in a few more futures but gives a rougher ride; the bond tent mainly lifts the bad case. Pick the risk level you are comfortable holding — the tool will not change it for you.</p>';
-  h += '<table style="border-collapse:collapse;width:100%;max-width:640px;"><thead><tr><th style="text-align:left;padding:8px;"></th><th style="padding:8px;">Flat</th><th style="padding:8px;">+ Bond tent</th></tr></thead><tbody>';
-  for (const key of order) {
-    const p = presets[key];
-    h += '<tr><td style="padding:8px;border:1px solid var(--border);"><strong>' + esc(p.label) + '</strong><br><span style="font-size:11px;color:var(--text-muted);">' + Math.round(p.equity * 100) + '/' + Math.round(p.bond * 100) + '/' + Math.round(p.cash * 100) + '</span></td>';
-    h += cell(grid[key] && grid[key].flat, best.key === key && best.tent === 'flat');
-    h += cell(grid[key] && grid[key].tent, best.key === key && best.tent === 'tent');
-    h += '</tr>';
+  h += '<p style="color:var(--text-muted);font-size:13px;margin-bottom:12px;">' + esc(MIX.notes.compare) + '</p>';
+  h += '<table' + tableAttr(TABLES.MIX) + ' style="border-collapse:collapse;width:100%;max-width:640px;"><thead><tr><th style="text-align:left;padding:8px;">' + esc(C.columns.mix) + '</th><th style="padding:8px;">' + esc(C.columns.flat) + '</th><th style="padding:8px;">' + esc(C.columns.tent) + '</th></tr></thead><tbody>';
+  for (const key of ['own', 'cautious', 'balanced', 'adventurous']) {
+    const any = cellOf(key, false) || cellOf(key, true);
+    if (!any) continue;
+    h += '<tr><td style="padding:8px;border:1px solid var(--border);"><strong>' + esc(C.rows[key]) + '</strong><br><span style="font-size:11px;color:var(--text-muted);"' + cellAttr(key, 'amounts') + '>' + esc(fill(C.cellAmounts, any.amounts)) + '</span></td>' + td(cellOf(key, false), key, false) + td(cellOf(key, true), key, true) + '</tr>';
   }
   h += '</tbody></table>';
-  if (best.key) h += '<p style="margin-top:12px;font-size:13px;"><strong>' + esc(presets[best.key].label) + (best.tent === 'tent' ? ' + bond tent' : '') + '</strong> lasts best: ' + futuresWords(best.share) + ' (' + pctText(best.share * 100, 0, CHANCE_BARS) + '). Set it in Settings if you would like it.</p>';
+  if (view.best) h += '<p style="margin-top:12px;font-size:13px;"><strong>' + esc(fill(C.best, { row: C.rows[view.best.key], tent: view.best.tent ? MIX.tentOnOff.on : MIX.tentOnOff.off, words: view.best.words, pct: '\u0000' })).replace('\u0000', markFact('mix.best', esc(view.best.pct))) + '</strong> Set it in Settings if you would like it.</p>';
   return h;
 }
 
@@ -304,6 +321,9 @@ export function countAgeHtml(r, p) {
 const levelSelectHtml = (level) => '<label class="verdict-level">How careful? <select data-on-change="setChanceLevel(this.value)" data-testid="verdict.level" aria-label="How careful?">'
   + LEVEL_IDS.map((k) => '<option value="' + k + '"' + (k === level ? ' selected' : '') + '>' + esc(LEVEL_OPTIONS[k]) + '</option>').join('') + '</select></label>';
 const VERDICT_TITLE = { yes: 'On course', close: 'Close', no: 'Not on course' };
+/** The words after the years covered and the worst 12 months (both views: the simple view's band rows say them after the figure). */
+export const COVER_WORDS = 'of the plan\'s years covered — the share of your planned income the money actually paid, averaged over every future';
+export const WORST12_WORDS = 'the worst year of income lived, at today\'s prices';
 
 /**
  * The verdict block (7.8.0), both apps' words (services/OneAnswer.js weightedWordsOf):
@@ -328,7 +348,7 @@ export function verdictBlockView(r, p, o = {}) {
   const bold = a.level === 'bold' ? ' ' + boldConsequenceOf(a) : '';
   const hero = a.weighted !== null
     ? '<div data-weighted="' + a.weighted + '"' + (saving ? ' data-chance-from="saving"' : '') + '><span class="hero" style="font-size:30px;">' + markFact('lasts.chance', esc(chanceWords(a.weighted, typeof a.sumW === 'number' ? { sumW: a.sumW, n: a.n } : {}))) + '</span><span class="hero-sub">' + esc(w.headline) + esc(bold) + '</span></div>'
-    : '<div><span class="hero" style="font-size:30px;">' + markFact('lasts.fixedChance', esc(fixedShort(a.fixedAge))) + '</span><span class="hero-sub">' + markWithin(esc(w.fixed), LASTS_FINDS.fixed) + esc(bold) + '</span></div>';
+    : '<div><span class="hero" style="font-size:30px;">' + markFact('lasts.fixedChance', esc(twentiethsOfFutures(a.fixedAge))) + '</span><span class="hero-sub">' + markWithin(esc(w.fixed), LASTS_FINDS.fixed) + esc(bold) + '</span></div>';
   const cov = r.coverage != null ? r.coverage : (r.failAges && r.failAges.length === 0 ? 100 : 100 - (r.ruin.mc || 0));
   // ("How careful?" straight under the title, beside the figure it changes)
   return '<div class="verdict verdict-' + tone + '" data-chance-block="1" data-level="' + a.level + '"><div class="verdict-title">' + (r.ruinLabel ? 'Will you get what you planned? — ' : 'Will your money last? — ') + markFact('lasts.verdict', VERDICT_TITLE[a.verdict]) + ' at ' + markFact('lasts.level', name) + '</div>'
@@ -336,9 +356,10 @@ export function verdictBlockView(r, p, o = {}) {
     // (7.12.0) a plan still saving: the one chance (What you pay in's, the home's, Accumulation's) leads alone; every figure
     // under it is this run's, from the middling pot when work stops, and is said to be
     + '<div class="verdict-heroes">' + hero
-    + (saving ? '' : '<div><span class="hero" style="font-size:30px;">' + pctText(cov) + '</span><span class="hero-sub">of the plan\'s years covered — the share of your planned income the money actually paid, averaged over every future</span></div>'
-    + '<div><span class="hero" style="font-size:30px;">' + markFact('lasts.worst12', gbpC(Math.round(r.worst12.min))) + '</span><span class="hero-sub">worst 12 months lived, today\'s money</span></div>') + '</div>'
-    + (saving ? '<p class="hint" data-from-stop="1">' + esc(fromStopWords(p)) + '</p>' : '')
+    // (the years covered and the worst 12 months: the simple view's band says both, in the same words: lead4.md R8, step F3)
+    + (saving ? '' : '<div><span class="hero" style="font-size:30px;">' + markFact('lasts.coverage', pctText(cov)) + '</span><span class="hero-sub">' + COVER_WORDS + '</span></div>'
+    + '<div><span class="hero" style="font-size:30px;">' + markFact('lasts.worst12', money(r.worst12.min)) + '</span><span class="hero-sub">' + WORST12_WORDS + '</span></div>') + '</div>'
+    + (saving ? '<p class="hint" data-from-stop="1">' + markWithin(esc(fromStopWords(p)), [[/starts from (£[\d,]+) in your pension/, 'pot.atStop']]) + '</p>' : '')
     + '<p class="verdict-fixed" data-fixed="1">' + (a.weighted !== null ? markWithin(esc(w.fixed), LASTS_FINDS.fixed) : esc(w.why || '')) + '</p>'
     + (w.floor ? '<p class="hint">' + markWithin(esc(w.floor), LASTS_FINDS.floor) + '</p>' : '') + '<p class="hint">' + markWithin(esc(w.left), LASTS_FINDS.left) + '</p>'
     + '<div class="verdict-basis">' + w.assumed.map((x) => markWithin(esc(x), LASTS_FINDS.assumed)).join(' ') + '</div></div>';
@@ -346,43 +367,63 @@ export function verdictBlockView(r, p, o = {}) {
 
 /** (7.12.0) The line that says a saving plan's run starts from the middling pot when work stops (the run's own `p.pot`). */
 export function fromStopWords(p) {
-  const pot = p && Number.isFinite(+p.pot) && +p.pot > 0 ? gbpC(+p.pot) : null;
+  const pot = p && Number.isFinite(+p.pot) && +p.pot > 0 ? moneyK(+p.pot) : null;   // the one rounding of the pot at the stop (step F1)
   return 'The chance above counts the saving years: each future saves its own pot, then draws from it, as on the Accumulation tab and the simple view. '
     + 'Everything below starts from ' + (pot ? pot + ' in your pension' : 'the middling pot') + ' on the day work stops (the middling case) and leaves out the saving years, so it can differ.';
 }
 
-/** A fixed-age share as a hero figure: "16 in 20". */
-const fixedShort = (s) => { const k = Math.round(Math.max(0, Math.min(1, +s || 0)) * 20); return (s < 1 && k >= 20 ? 'over 19' : s > 0 && k <= 0 ? 'under 1' : String(k)) + ' in 20'; };
 
 /** A document locked with the weighted definition: its own words, at its own lines, never today's. */
 function documentBlockHtml(r, p, def) {
   const w = def.weighted;
   const v = chanceVerdictOf(r, p, { definition: def }) || 'no';
   const tone = v === 'yes' ? 'success' : v === 'close' ? 'warning' : 'danger';
-  const kind = kindOf(r);
-  const age = planToAgeOfDefinition(def) ?? planToAgeOf(+p.startAge || 0, +p.durationYears || 0);
   const name = LEVEL_NAMES[def.level] || 'Balanced';
-  const head = typeof w.chance === 'number'
-    ? '<div data-weighted="' + w.chance + '"><span class="hero" style="font-size:30px;">' + esc(chanceWords(w.chance)) + '</span><span class="hero-sub">When the plan was locked, counting how long people your age live, ' + esc(LASTS_AS_LONG[kind]) + ' ' + esc(chanceWords(w.chance)) + '.</span></div>'
-    : '<div><span class="hero" style="font-size:30px;">' + esc(fixedShort(w.fixedAge)) + '</span><span class="hero-sub">When the plan was locked.</span></div>';
+  // the document's own words, the one reader both views say (src/reading/document.js; step F5, D18): its figures marked as
+  // the record they are (doc.lasts.chance, doc.lasts.fixedChance), never as today's
+  const L = lockedLastsOf({ assumptions: { success: def }, strategy: { r, p } });
+  const head = L.tested === 'weighted'
+    ? '<div data-weighted="' + w.chance + '"><span class="hero" style="font-size:30px;">' + markFact(FACT.DOC_CHANCE, esc(L.chanceWords)) + '</span><span class="hero-sub">' + markWithin(esc(L.headline), DOC_LASTS_FINDS) + '</span></div>'
+    : '<div><span class="hero" style="font-size:30px;">' + esc(twentiethsOfFutures(w.fixedAge)) + '</span><span class="hero-sub">' + esc(L.headline) + '</span></div>';
   return '<div class="verdict verdict-' + tone + '" data-level="' + esc(def.level) + '"><div class="verdict-title">' + (r.ruinLabel ? 'Will you get what you planned? — ' : 'Will your money last? — ') + VERDICT_TITLE[v] + ' at ' + name + ', when it was locked</div>'
     + '<div class="verdict-heroes">' + head + '</div>'
-    + '<p class="verdict-fixed" data-fixed="1">' + esc(fixedAgeWords(typeof w.fixedAge === 'number' ? w.fixedAge : 1 - (r.ruin.mc || 0) / 100, age, { kind })) + '</p>'
+    // the count marked: the simple view's "Your plan as locked" says it too (says.bad, and says.badContract for a bought way)
+    + '<p class="verdict-fixed" data-fixed="1">' + markWithin(esc(L.fixed), DOC_LASTS_FINDS) + '</p>'
     + '<div class="verdict-basis">The figures this plan was locked with; the document keeps them.</div></div>';
 }
 
 /**
- * The classic page's session-only level (window.setChanceLevel, called by the block's control): kept for this visit only
- * (never saved: saving a level is 7.9.0's amendment), and every block on the page drawn again at it from the one test held.
+ * The classic page's "How careful?" (window.setChanceLevel, called by the block's control): the plan's level, saved
+ * (lead4.md R5: phases.level, the same one write as the simple view's strip, through deps.writeLevel), then every block on
+ * the page drawn again at it from the one test held (a level changes only what counts as on course, never the run). A
+ * write that is refused draws the blocks back at the plan's level. Never a page variable.
  */
-export function installChanceLevel(win, doc) {
-  win.setChanceLevel = (level) => {
-    if (!LEVEL_IDS.includes(level)) return;
-    win._chanceLevel = level;
+/** Why the plan's level was not saved (review.js phaseChoicePatch's problems), in the simple view's words. */
+export const LEVEL_REFUSED = Object.freeze({
+  example: 'This is an example plan, so nothing was changed.',
+  closed: 'This plan is closed, so nothing was changed.',
+  notNow: 'This plan has nothing to judge yet, so nothing was changed.',
+  notHere: 'That plan is not in this account. Nothing was changed.',
+  locked: 'This plan would not take the change. Nothing was changed.',
+  problems: 'The level could not be saved. Nothing was changed.'
+});
+
+export function installChanceLevel(win, doc, { writeLevel = null } = {}) {
+  const redraw = (level) => {
     const t = win._oneTest;
     if (!t || !t.chance) return;
     t.chance = { ...t.chance, level };
     for (const el of doc.querySelectorAll('[data-chance-block]')) el.outerHTML = verdictBlockView(t.r, t.p, t.chance);
+  };
+  win.setChanceLevel = async (level) => {
+    if (!LEVEL_IDS.includes(level) || typeof writeLevel !== 'function') return false;
+    const t = win._oneTest;
+    const was = t && t.chance ? t.chance.level : null;
+    redraw(level);
+    let ok = false;
+    try { ok = (await writeLevel(level)) === true; } catch { ok = false; }
+    if (!ok && was) redraw(was);
+    return ok;
   };
 }
 

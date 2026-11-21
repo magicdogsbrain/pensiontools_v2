@@ -47,7 +47,8 @@ import { effectiveStressSettings } from './PlanReading.js';
 import { normaliseHoldings, holdingsLines } from './HoldingsRecord.js';
 import { ledgerView } from './TransitionPlanner.js';
 import { deriveStage } from './LifeStage.js';
-import { isClosedPlan, monthAfter, monthBefore, monthWordsOf, lastRecordedMonth, planNameOf } from './PlanClosed.js';
+import { isClosedPlan, monthAfter, monthBefore, monthWordsOf, lastRecordedMonth } from './PlanClosed.js';
+import { shownPlanName } from './PlanName.js';
 import { carriedFlexibleAccess } from './FlexibleAccess.js';
 import { potRecordOf } from './SaverReading.js';
 import { phasesForSuccessor, lockedMonthOf } from './Phases.js';
@@ -384,8 +385,9 @@ export function successorOf(plan, { month, name, now, pots = null, keepPartner =
   data.previousPlanId = String(plan.id);
   data.before = w ? { kind: 'working', from: month } : { kind: 'plan', planId: String(plan.id), from: month };
   const stage = deriveStage(data, now);
-  const note = w ? 'Back to work from ' + monthWordsOf(month) + ': made from ‘' + planNameOf(plan) + '’, which closed at the end of ' + monthWordsOf(monthBefore(month)) + '.'
-    : 'Made from ‘' + planNameOf(plan) + '’, which closed at the end of ' + monthWordsOf(monthBefore(month)) + '.';
+  const shown = shownPlanName(plan, { now });   // the name it was shown by (step F1)
+  const note = w ? 'Back to work from ' + monthWordsOf(month) + ': made from ‘' + shown + '’, which closed at the end of ' + monthWordsOf(monthBefore(month)) + '.'
+    : 'Made from ‘' + shown + '’, which closed at the end of ' + monthWordsOf(monthBefore(month)) + '.';
   data.journey = [{ stage: stage.key, label: stage.label, at: now.toISOString(), note }];
   return data;
 }
@@ -424,8 +426,9 @@ export function partnerWrites(partner, { oldId, newId }) {
   return { ...(linked ? { 'household.partnerScenarioId': String(newId) } : {}), ...(shared ? { 'budgetTool.sharedFrom': String(newId) } : {}) };
 }
 
-/** The new plan's default name: "{old name} from {month}"; going back to work, "{old name}, back to work from {month}". */
-export const successorName = (plan, month, reason = 'plan') => (planNameOf(plan) || 'My plan') + (reason === 'working' ? ', back to work from ' : ' from ') + monthWordsOf(month);
+/** The new plan's default name: "{old name} from {month}"; going back to work, "{old name}, back to work from {month}" — the old
+ * plan's name as it is shown (PlanName.shownPlanName on `now`, step F1). */
+export const successorName = (plan, month, reason = 'plan', now = new Date()) => (shownPlanName(plan, { now }) || 'My plan') + (reason === 'working' ? ', back to work from ' : ' from ') + monthWordsOf(month);
 
 /**
  * The partner's plan linked with this one, either way (V7's household.partnerOf reads it so): this plan's own link, else a
@@ -467,14 +470,14 @@ export function closeQuestionOf(plan, { now, plans = [] }) {
     ...offer,
     // back to work: the money taken flexibly the new plan will carry (said in the question), and the age today the stop is asked from
     flexibleAccess: fa ? { since: fa.since, month: monthWordsOf(fa.since) } : null,
-    name: planNameOf(plan),
+    name: shownPlanName(plan, { now }),   // the name it is shown by (step F1)
     months: offer.choices.map((m) => ({ month: m, words: monthWordsOf(m), taxYear: taxYearOfMonth(m) })),
     // always asked, in boxes filled in as closePotsOf has them: the person says what they hold today
     pots,
     potsFrom: potsFromWords(pots),
     asked: true,
     held: !!heldPotsOf(plan),
-    partner: partner ? { id: String(partner.id), name: planNameOf(partner) } : null,
+    partner: partner ? { id: String(partner.id), name: shownPlanName(partner, { now }) } : null,
     records: hist.length
   };
 }

@@ -18,7 +18,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { test, expect, PROD, REPO, FIXED_NOW, V7_PATH, WORKER_DATA_MISSING, REVIEW_BUDGET, SLOWDOWN, record } from './helpers/app.js';
+import { test, expect, PROD, REPO, FIXED_NOW, V7_PATH, REVIEW_BUDGET, SLOWDOWN, record } from './helpers/app.js';
 
 test.use({ outside: 'block' });
 
@@ -51,7 +51,6 @@ async function words(page) {
 test.describe('"Your review", without an account', () => {
   test('Moving: the buckets and the months left; the test within budget; "I accept this as my plan" one write; the home says it; Withdraw one write', async ({ page, watch }, info) => {
     test.setTimeout(240_000);
-    watch.allow(WORKER_DATA_MISSING);
     const ID = 'ReviewMoving19';
     const before = await plant(page, [planted('19-back-to-work-saving.json', ID, 'Alex’s plan')]);
     const was = JSON.parse(before)[0];
@@ -137,7 +136,6 @@ test.describe('"Your review", without an account', () => {
 
   test('Living on it, locked: the boxes from September\'s record; what is held tested from today within budget; "Save this review" one write of the phases; accepting what is held one write', async ({ page, watch }, info) => {
     test.setTimeout(240_000);
-    watch.allow(WORKER_DATA_MISSING);
     const ID = 'ReviewLiving04';
     const before = await plant(page, [planted('04-buckets-running.json', ID, 'Sam’s plan')]);
     const was = JSON.parse(before)[0];

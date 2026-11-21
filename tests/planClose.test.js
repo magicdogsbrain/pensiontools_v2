@@ -14,7 +14,9 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { upgradeScenario } from '../src/firebase/scenarioMigration.js';
 import { closeOfferOf, closeQuestionOf, successorOf, closeWrite, partnerWrites, heldPotsOf, successorSettings, successorName } from '../src/services/PlanClose.js';
-import { closureRefusal, closedPlanRefusal, isClosedPlan, closedReading, beforeReading, closedWords, beforeWords, monthRefusal, monthRefusalWords, readDayOf, monthBefore, planNameOf } from '../src/services/PlanClosed.js';
+import { closureRefusal, closedPlanRefusal, isClosedPlan, closedWords, beforeWords, monthRefusal, monthRefusalWords, readDayOf, monthBefore } from '../src/services/PlanClosed.js';
+import { closedReading, beforeReading } from '../src/services/PlanClosedReading.js';
+import { shownPlanName } from '../src/services/PlanName.js';
 import { lockedPlanWriteRefusal, writeNeedsGuard, PlanLockedError, PLAN_CLOSED_MESSAGE } from '../src/services/LockedPlanGuard.js';
 import { deriveStage, decisionEntryAllowed, STAGES } from '../src/services/LifeStage.js';
 import { nextStepFor } from '../src/services/NextStep.js';
@@ -361,7 +363,7 @@ describe('the planner\'s line, question and plan menu (src/ui/planCloseUi.js)', 
   it('the plan menu: previous plans last, each saying so', () => {
     expect(plansInListOrder([CLOSED, NEXT, LADDER]).map((p) => p.id)).toEqual([NEXT.id, LADDER.id, CLOSED.id]);
     expect(planListDesc(CLOSED)).toBe('Previous plan — closed March 2025');
-    expect(planListDesc(NEXT)).toBe('Stopped work in July 2023');
+    expect(planListDesc(NEXT)).toBe('');   // a stored description is never printed (step F1, lead4.md R4)
     expect(monthBefore('2025-01')).toBe('2024-12');
   });
 });
@@ -547,7 +549,7 @@ describe('review: a closed plan in the other tools', () => {
   it('a partner linked only from their own plan (or reading its budget) is asked about too', () => {
     const p = { ...copy(DRAFT), id: 'P1', household: { partnerScenarioId: LADDER.id } };
     expect(linkedPartnerOf(LADDER, [LADDER, p]).id).toBe('P1');
-    expect(closeQuestionOf(LADDER, { now: NOW, plans: [LADDER, p] }).partner).toEqual({ id: 'P1', name: planNameOf(p) });
+    expect(closeQuestionOf(LADDER, { now: NOW, plans: [LADDER, p] }).partner).toEqual({ id: 'P1', name: shownPlanName(p, { now: NOW }) });
     const b = { ...copy(DRAFT), id: 'P2', budgetTool: { sharedFrom: LADDER.id } };
     expect(linkedPartnerOf(LADDER, [LADDER, b]).id).toBe('P2');
     expect(linkedPartnerOf(LADDER, [LADDER, { ...p, closedAt: '2025-01' }])).toBe(null);

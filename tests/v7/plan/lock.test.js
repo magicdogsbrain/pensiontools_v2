@@ -423,7 +423,7 @@ describe('the lock step, the address and the plan page (read.js)', () => {
     const L = planPage(entries, ladder.id, 'plan', { today: TODAY }).steps.find((s) => s.id === 'plan');
     expect(L.lines.filter((l) => l.id === 'says.pays').length).toBe(ladder.planDocument.steps.length);
     expect(L.lines[0].id).toBe('says.pays');
-    expect(L.lines[0].sentence.text).toMatch(/^From age \d+: £[\d,]+ a year before tax, £[\d,]+ a month after tax \(tax year \d{4}\/\d{2}\)$/);
+    expect(L.lines[0].sentence.text).toMatch(/^From age \d+: £[\d,]+ a year before tax, £[\d,]+ a month after tax in a full year \(from tax year \d{4}\/\d{2}\)$/);
     expect(ids(ladder).filter((id) => id.startsWith('says.'))).toEqual([...Array(ladder.planDocument.steps.length).fill('says.pays'), 'says.sp', 'says.badContract', 'says.cutsBought']);
     expect(L.lines.find((l) => l.id === 'says.badContract').sentence.text).toMatch(/^Every year is bought by contract, so no future and no start year can run it out\. Left at the end, at today’s prices: typically £[\d,]+; in a bad case \(the worst 1 in 10\) £[\d,]+$/);
     expect(L.lines.find((l) => l.id === 'says.cutsBought').sentence.text).toBe('Income cuts: none. This way of drawing pays the plan in full until it cannot');

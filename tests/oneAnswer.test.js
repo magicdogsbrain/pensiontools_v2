@@ -15,7 +15,7 @@ import { resolve } from 'node:path';
 import { JSDOM } from 'jsdom';
 
 import { futuresOutOfTen, summariseCuts, oneAnswer, worstStarts, startOfWindow, earlierTestNote, rankByLasting, NAMED_STARTS } from '../src/services/OneAnswer.js';
-import { historyTabHtml, scenariosTabHtml, rankingCardHtml, cutsRowHtml, leftRowHtml, allocationGridHtml, earlierTestNoteHtml, withoutCutsLineHtml } from '../src/ui/oneAnswerView.js';
+import { historyTabHtml, scenariosTabHtml, rankingCardHtml, cutsRowHtml, leftRowHtml, mixGridHtml, earlierTestNoteHtml, withoutCutsLineHtml } from '../src/ui/oneAnswerView.js';
 import { trimResult } from '../src/services/PlanDocument.js';
 
 const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
@@ -173,8 +173,8 @@ describe('the Strategies ranking lists strategies by how many futures out of 10 
 describe('the Monte Carlo tab\'s card rows: money left, and the income cuts', () => {
   it('money left: typical, bad case (the worst 1 in 10), good case', () => {
     const t = plain(leftRowHtml(oneAnswer(R, P)));
-    expect(t).toContain('typically £1,806,699');
-    expect(t).toContain('bad case (the worst 1 in 10) £135,978');
+    expect(t).toContain('typically £1,807,000');   // to the nearest £1,000, as the sentences say it
+    expect(t).toContain('bad case (the worst 1 in 10) £136,000');
     expect(t).not.toMatch(/worst of 1,000|unluckiest/);
   });
   it('the cuts: how many futures, by how much, for how long — and nothing for a strategy without cuts', () => {
@@ -242,24 +242,31 @@ describe('History and Scenarios explain the one test; neither shows a rival perc
   });
 });
 
-describe('Compare allocations reads the one test too', () => {
-  it('the grid shows futures out of 10 and the bad-case money left, never a rival coverage figure', () => {
-    const cell = (mc, p10) => ({ affordable: true, ruin: { mc }, terminal: { p10, p50: p10 * 3 }, n: { mc: 1000 } });
-    const grid = { cautious: { flat: cell(8, 100000), tent: cell(6, 120000) }, balanced: { flat: cell(4, 130000), tent: cell(5, 110000) }, adventurous: { flat: cell(7, 90000), tent: cell(9, 80000) } };
-    const presets = { cautious: { label: 'Cautious', equity: 0.3, bond: 0.5, cash: 0.2 }, balanced: { label: 'Balanced', equity: 0.6, bond: 0.3, cash: 0.1 }, adventurous: { label: 'Adventurous', equity: 0.8, bond: 0.15, cash: 0.05 } };
-    const t = plain(allocationGridHtml(grid, presets, ['cautious', 'balanced', 'adventurous']));
+describe('Compare allocations reads the one test too: the simple view\'s eight cells in its words', () => {
+  it('the grid shows futures out of 10 and the bad-case money left, the plan\'s own mix first, never a rival coverage figure', () => {
+    const amounts = { shares: '£300,000', bonds: '£150,000', cash: '£50,000', div: null };
+    const c = (key, tent, words, pct, bad, best = false) => ({ key, tent, affordable: true, words, pct, typical: '£400,000', bad, amounts, best, own: key === 'own', current: key === 'own' && !tent });
+    const view = { cells: [c('own', false, '9.1', '91', '£100,000'), c('own', true, '9.2', '92', '£110,000'), c('cautious', false, '8.4', '84', '£90,000'), c('cautious', true, '8.6', '86', '£95,000'),
+      c('balanced', false, '9.6', '96', '£130,000', true), c('balanced', true, '9.5', '95', '£120,000'), c('adventurous', false, '9.3', '93', '£80,000'), { key: 'adventurous', tent: true, affordable: false, amounts }],
+      best: { key: 'balanced', tent: false, words: '9.6 futures out of 10', pct: '96' } };
+    const t = plain(mixGridHtml(view));
     expect(t).toContain('9.6 futures out of 10');
     expect(t).toContain('bad case £130,000');
-    expect(t).toMatch(/Balanced.*lasts best/);
+    expect(t.indexOf('Your mix')).toBeLessThan(t.indexOf('Cautious'));
+    expect(t).toMatch(/Balanced, tent off, lasts best/);
+    expect(t).toContain('cannot be bought');
     expect(t).not.toMatch(/coverage/i);
   });
 });
 
 describe('the retired paths are gone from index.html; the plan\'s own settings run everywhere', () => {
   it('no second Monte Carlo, Historical or looped-scenario run; no level-footing toggle; no couples Monte Carlo of its own', () => {
-    for (const gone of ['runMonteCarloSimulation', 'runHistoricalSimulation', 'runAllScenarios', 'renderStressResults', 'renderScenarioResults', 'buildWorstPeriodsTable', '_cmpCutsOff', 'setCmpCuts', 'monteCarloReturns', 'runOptimisationUI', 'latestMCResults', "runInWorker('household'", 'requiredPotForSuccess(']) {
+    for (const gone of ['runMonteCarloSimulation', 'runHistoricalSimulation', 'runAllScenarios', 'renderStressResults', 'renderScenarioResults', 'buildWorstPeriodsTable', '_cmpCutsOff', 'setCmpCuts', 'monteCarloReturns', 'runOptimisationUI', 'latestMCResults', 'requiredPotForSuccess(']) {
       expect(script.includes(gone), gone).toBe(false);
     }
+    // the couple's run is the simple view's household run (answers/plan/householdRun.js), the one test each way: never a couples Monte Carlo of its own
+    expect(script).toMatch(/runInWorker\('household', \{ plan: own, partner, today, limit \}\)/);
+    expect(script).not.toMatch(/runCouplesMonteCarlo|couplesMonteCarlo/);
     expect(script).not.toMatch(/FAILED/);
     expect(script).not.toMatch(/level footing/i);
     expect(script).not.toMatch(/worst simulated future/i);
@@ -282,10 +289,11 @@ describe('the retired paths are gone from index.html; the plan\'s own settings r
     expect(body).not.toMatch(/disableProtection/);
     // 7.12.0: "Am I on course?" is the simple view's answer block (src/ui/saverAnswerUi.js), question B on the plan's figures
     expect(script).toMatch(/window\.runOnTrackCheck = async \(\) => \{ if \(window\._acAutosave\) await window\._acAutosave\.flush\(\); return paintSaverAnswer\(document, /);
-    expect(script).toMatch(/runInWorker\('household-ways'/);   // 6.25.0: both ways (as they are / drawing together) through the one test
+    expect(script).toMatch(/runInWorker\('household', \{ plan: own, partner, today, limit \}\)/);   // 6.25.0: both ways (as they are / drawing together) through the one test — the simple view's runHousehold since lead4.md D20
     // 6.41.0: the what-if copy is lifted (src/answers/plan/lastsRun.js trySettingsOf): the planner hands it the boxes, and the
     // years clamp to the engines' 45 lives there
-    expect(script).toMatch(/function tryStrategySettings\(s\) \{\s*return trySettingsOf\(s, readTryBoxes\(\)\);/);
+    // (step F3) with the flat income turned back to a year before tax by the one function both views use
+    expect(script).toMatch(/function tryStrategySettings\(s, sc\) \{[^}]*const b = readTryBoxes\(\);\s*return trySettingsOf\(s, \{ \.\.\.b, income: sc \? tryIncomeYearOf\(b\.income, sc,/);
     const lifted = readFileSync(process.cwd() + '/src/answers/plan/lastsRun.js', 'utf8');
     expect(lifted).toContain('export const TRY_YEARS = Object.freeze({ min: 5, max: 45 });');
     expect(lifted).toContain('c.duration = Math.max(TRY_YEARS.min, Math.min(TRY_YEARS.max, +b.years || s.duration || 35));');

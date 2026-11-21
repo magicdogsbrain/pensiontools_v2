@@ -29,7 +29,8 @@ function alex({ isaPolicy = 'draw', holdings = null, history = [] } = {}) {
     ...(holdings ? { holdings } : {})
   };
 }
-const words = (p) => p.ids.map((id) => fillMove(MOVE.paying[id], { ...p.slots, from: MOVE.paying.from[p.slots.from] || p.slots.from })).join(' ');
+// (step F5, R4) slots.from is the one dated wording (src/reading/money.js pensionFromWords)
+const words = (p) => p.ids.map((id) => fillMove(MOVE.paying[id], p.slots)).join(' ');
 
 describe('a plan with totals only pays for the move from its own pension', () => {
   it('nothing listed, the ISA counted: the plan\'s £400,000 and £40,000 pay for £142,400 of buys', () => {
@@ -46,7 +47,7 @@ describe('a plan with totals only pays for the move from its own pension', () =>
     // by hand: the record's pension £410,000 + its ISA £40,000 = £450,000 available
     const m = moveInputs(alex({ history: [{ date: '2026-10', sipp: 410000, isa: 40000, gia: 0, total: 450000 }] }), { now: TODAY });
     expect(m.diff.funding).toMatchObject({ available: 450000, fromPlan: true });
-    expect(words(payingOf(m.diff))).toContain('Your plan has £410,000 in your pension and £40,000 in your ISA (from your last record).');
+    expect(words(payingOf(m.diff))).toContain('Your plan has £410,000 in your pension and £40,000 in your ISA (from your last record, October 2026).');   // a record says its month (R4)
   });
   it('a line listed in the pension: the listed money, as before', () => {
     const m = moveInputs(alex({ holdings: { lines: [{ wrapper: 'SIPP', ticker: 'WSHR', name: 'World share fund', value: 300000, subClass: 'globalEquity' }] } }), { now: TODAY });

@@ -94,7 +94,7 @@ describe('"How careful?" on a plan says what it changes', () => {
     const { h, render } = await import('preact');
     const { PlanLevelStrip } = await import('../../../src/v7/screens/plan/LastsScreen.jsx');
     const { LEVELS_WORDS } = await import('../../../src/v7/copy/common.js');
-    const draw = (v) => { const root = document.createElement('div'); render(h(PlanLevelStrip, { v, dispatch: () => {} }), root); return root; };
+    const draw = (v) => { const root = document.createElement('div'); render(h(PlanLevelStrip, { v, dispatch: () => {}, planId: 'p1' }), root); return root; };
     const single = draw({ level: 'balanced', weighted: { level: 'balanced', chance: 0.83, fixedAge: 0.55, planToAge: 98, reason: null } });
     expect(single.querySelector('[data-testid="plan.lasts.level.help"]').textContent).toBe(LEVELS_WORDS.planHelp);
     expect(single.textContent).not.toMatch(/changes every figure/);

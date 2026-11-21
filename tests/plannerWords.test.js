@@ -9,7 +9,8 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { JSDOM } from 'jsdom';
-import { strategyCount, strategyCountWord, paintStrategyCounts, assumedStatePensionWords, assumedStatePensionAlertHtml, assumedStatePensionTag, assumedStatePensionSettingsNote, NEW_DOCUMENT_VERSION_LABEL, newDocumentVersionQuestion, lockFromStressQuestion } from '../src/ui/plannerWords.js';
+import { unmarked } from '../src/reading/mark.js';
+import { strategyCount, strategyCountWord, paintStrategyCounts, assumedStatePensionWords, assumedStatePensionAlertHtml, assumedStatePensionTag, NEW_DOCUMENT_VERSION_LABEL, newDocumentVersionQuestion, lockFromStressQuestion } from '../src/ui/plannerWords.js';
 import { listStrategies } from '../src/strategies/registry.js';
 import { planFromSettings } from '../src/strategies/stressTest.js';
 import { createSimulationConfigFromSettings } from '../src/storage/StressRepository.js';
@@ -50,9 +51,13 @@ describe('the State Pension the plan assumes when none was entered', () => {
   it('the plan carries the flag; the words say the figure and the age', () => {
     expect(none.spAssumed).toBe(true);
     expect(none.spAnnual).toBe(12000);
-    expect(assumedStatePensionWords(none)).toBe('assumed £12,000 a year from 67 — no State Pension was entered in Settings');
+    // step LEFT: ONE writer of the assumed State Pension words (src/reading/statePension.js spAssumedHtml, the simple income
+    // page's own sentence), its amount and age marked as both views mark them
+    expect(assumedStatePensionWords(none)).toBe('State Pension: we assumed £12,000 a year before tax from age 67, as none was entered.');
     expect(assumedStatePensionTag(none)).toBe(' (assumed)');
-    expect(assumedStatePensionAlertHtml(none)).toContain('State Pension assumed £12,000 a year from 67');
+    expect(assumedStatePensionAlertHtml(none)).toContain('data-fact="statePension.amount">£12,000</span>');
+    expect(assumedStatePensionAlertHtml(none)).toContain('data-fact="statePension.age">67</span>');
+    expect(unmarked(assumedStatePensionAlertHtml(none))).toContain('State Pension: we assumed £12,000 a year before tax from age 67, as none was entered.');
     expect(assumedStatePensionAlertHtml(none)).toContain('The rungs below are sized on it');
   });
   it('a State Pension that was entered: nothing is said', () => {
@@ -63,10 +68,10 @@ describe('the State Pension the plan assumes when none was entered', () => {
     expect(assumedStatePensionWords(null)).toBe('');
   });
   it('the Settings page says it under the boxes when nothing is entered', () => {
-    expect(assumedStatePensionSettingsNote(false)).toContain('every run assumes £12,000 a year from age 67');
-    expect(assumedStatePensionSettingsNote(true)).toBe('');
+    // (step F2) the words are the reading's (src/reading/statePension.js spLineHtml: the simple income page's line, marked,
+    // with "Change it" when assumed), painted from the plan
     expect(html).toContain('id="ssSpAssumedNote"');
-    expect(html).toContain('assumedStatePensionSettingsNote(');
+    expect(html).toContain('spLineOfPlan(sc, todayOf())');
   });
   it('the order sheet is told the plan, on both pages that draw it, and marks the "+ SP" cells', () => {
     expect(html).toContain("let h = assumedStatePensionAlertHtml(opts.p) + '<div class=\"alert alert-warning\"");
@@ -80,7 +85,8 @@ describe('the State Pension the plan assumes when none was entered', () => {
 describe('"Try a strategy" runs the plan\'s full length', () => {
   it('no 35-year cap: the plan\'s own duration, up to the engines\' 45 years', () => {
     // 6.41.0: the copy is made by the lifted trySettingsOf (src/answers/plan/lastsRun.js), the planner handing it the boxes
-    expect(html).toContain('return trySettingsOf(s, readTryBoxes());');
+    // (step F3) the flat income goes back to a year before tax by the one function both views use (src/reading/tryIncome.js)
+    expect(html).toContain('return trySettingsOf(s, { ...b, income: sc ? tryIncomeYearOf(b.income, sc, contextFor(sc, { now: todayOf() })) : 0 });');
     expect(html).not.toContain("Math.min(35, +document.getElementById('tryYears').value");
     const lifted = readFileSync(process.cwd() + '/src/answers/plan/lastsRun.js', 'utf8');
     expect(lifted).toContain('c.duration = Math.max(TRY_YEARS.min, Math.min(TRY_YEARS.max, +b.years || s.duration || 35));');
@@ -98,7 +104,7 @@ describe('a new version of the plan document', () => {
     const ask = f.indexOf('newDocumentVersionQuestion(');
     expect(ask).toBeGreaterThan(0);
     expect(f.indexOf('appConfirm(')).toBeGreaterThan(ask);
-    expect(f.indexOf('appConfirm(')).toBeLessThan(f.indexOf('await archivePlanDocument()'));
+    expect(f.indexOf('appConfirm(')).toBeLessThan(f.indexOf('documentWrite({'));   // step F5: the archive and the new version in one write, after the question
     expect(f).not.toContain('window.confirm(');
     expect(f).not.toContain(' confirm(');
   });

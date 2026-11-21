@@ -132,9 +132,12 @@ export function cleanPlanMix(x) {
     }
     return out;
   };
+  if (!RISK_LEVELS.includes(x.risk) || !RISK_LEVELS.includes(x.savingRisk)) return null;
+  // (step F2) a plan read as kept (its levels exactly) that takes every pound taxed: the levels and that fact, no mixes
+  if (x.mix === undefined && x.savingMix === undefined) return x.taxFreeTaken === true ? { risk: x.risk, savingRisk: x.savingRisk, taxFreeTaken: true } : null;
   const mix = mixOf(x.mix), savingMix = mixOf(x.savingMix);
-  if (!RISK_LEVELS.includes(x.risk) || !RISK_LEVELS.includes(x.savingRisk) || !mix || !savingMix) return null;
-  return { risk: x.risk, savingRisk: x.savingRisk, mix, savingMix };
+  if (!mix || !savingMix) return null;
+  return { risk: x.risk, savingRisk: x.savingRisk, mix, savingMix, ...(x.taxFreeTaken === true ? { taxFreeTaken: true } : {}) };   // (step F2) the plan's access method
 }
 
 const MONTH = /^\d{4}-(0[1-9]|1[0-2])$/;
@@ -308,11 +311,12 @@ export function cleanStressStrip(x) {
 
 /**
  * Nothing of the plan's verdict held (research/saving-enough-and-check-in.md 4.1, 4.4): `key` is saverInputs.js saverRunKey of
- * the plan's figures the run is for; `status` 'idle' | 'working' | 'first' | 'final' | 'failed'; `result` question B's answer
- * on those figures (100 futures at 'first', 1,000 at 'final'). An older result stays while a new one is worked out.
+ * the plan's figures the run is for; `status` 'idle' | 'working' | 'final' | 'failed'; `result` question B's answer
+ * on those figures (1,000 futures, src/reading/runs.js SAVER_RUN: no first figure, lead4.md R6). An older result stays
+ * (greyed) while a new one is worked out.
  */
 export const emptySaver = () => ({ key: null, status: 'idle', result: null, reason: null });
-const SAVER_STATUS = ['idle', 'working', 'first', 'final', 'failed'];
+const SAVER_STATUS = ['idle', 'working', 'final', 'failed'];
 
 /**
  * Nothing of a check-in's answer held (research/saving-enough-and-check-in.md 5.5): `planId` and `date` name the check-in

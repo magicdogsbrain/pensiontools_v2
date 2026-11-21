@@ -155,7 +155,9 @@ export function ladderPosition(plan, o = {}) {
       ? `The plan starts paying in ${upcoming.startsLabel}: ${fmt(upcoming.monthly)} a month, ${firstPayments} payment${firstPayments === 1 ? '' : 's'} to March ${first + 1}, ${fmt(upcoming.yearPays)}.`
       : cur
       // what the plan's rule does this month, never an order to give (7.12.0 round 3, decision 6)
-      ? (partYear ? `The plan pays ${fmt(monthly)} a month: in ${Y}/${String(Y + 1).slice(2)} that is ${paymentsOf(paidFrom)} payment${paymentsOf(paidFrom) === 1 ? '' : 's'}, ${paymentsOf(paidFrom) === 1 ? toMarch : MONTHS[paidFrom.getMonth()] + ' ' + paidFrom.getFullYear() + ' to ' + toMarch}, ${fmt(monthly * paymentsOf(paidFrom))}.`
+      // a first year paid for part of it (year 0 pays for the months it has; step F2, lead4.md D7, walk finding W7-M1): one
+      // sentence, the year's payments counted to March as every other page counts them — never "over the twelve months from"
+      ? (partYear ? `The plan pays ${fmt(monthly)} a month (${fmt(perYear(cur, need))} a year before tax). In ${Y}/${String(Y + 1).slice(2)} that is ${paymentsOf(paidFrom)} payment${paymentsOf(paidFrom) === 1 ? '' : 's'}, ${paymentsOf(paidFrom) === 1 ? toMarch : MONTHS[paidFrom.getMonth()] + ' ' + paidFrom.getFullYear() + ' to ' + toMarch}: ${fmt(monthly * paymentsOf(paidFrom))}.`
         : `The plan pays ${fmt(monthly)} a month for the ${monthsLeft} month${monthsLeft === 1 ? '' : 's'} to 5 April ${Y + 1}.`)
       : (phase === 'before' ? `The ladder starts in ${first}/${String(first + 1).slice(2)}.` : 'The ladder has paid its last year.')
   };

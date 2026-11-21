@@ -18,7 +18,6 @@ import {
 } from '../src/services/OnCourse.js';
 import { BAND, LEGACY_VERDICT as VERDICT } from '../src/answers/shared/rules.js';
 import { requiredPotForStrategy } from '../src/strategies/stressTest.js';
-import { earliestAt, sweepHeadline } from '../src/services/RetireSweep.js';
 import { answerLastedWords } from '../src/services/PlanSeed.js';
 import { STAGES } from '../src/services/LifeStage.js';
 import { NEXT_STEP_WORDS } from '../src/services/NextStep.js';
@@ -70,12 +69,15 @@ describe('"Am I on course?" on the Accumulation planner', () => {
     expect(SRC).not.toMatch(/85% Monte-Carlo success/);
   });
   it('the check is the simple view\'s answer block, from the same reader and the same run (7.12.0): no second model of "on course"', () => {
-    const at = script.indexOf('window.runOnTrackCheck');
+    const at = script.indexOf('window.runOnTrackCheck = ');
     expect(at).toBeGreaterThan(-1);
     const body = script.slice(at, script.indexOf('\n', at));
     // (7.12.0: what you want is changed on the tab too, through the same one write as What you pay in)
     // (7.12.0: the tab's boxes saved first, so the answer reads what they show)
-    expect(body).toBe("window.runOnTrackCheck = async () => { if (window._acAutosave) await window._acAutosave.flush(); return paintSaverAnswer(document, { listScenariosAsync, getActiveScenarioId, saveWant: saveActiveWant, afterSave: () => window.loadAccumulationUI && window.loadAccumulationUI() }); };");
+    // (lead4.md R6: the one clock, and the run in the engine worker, as the simple view's; it runs when the tab opens)
+    expect(body).toBe("window.runOnTrackCheck = async () => { if (window._acAutosave) await window._acAutosave.flush(); return paintSaverAnswer(document, { listScenariosAsync, getActiveScenarioId, now: todayOf, run: saverRun, saveWant: saveActiveWant, afterSave: () => window.loadAccumulationUI && window.loadAccumulationUI() }); };");
+    expect(script).toMatch(/window\.runOnTrackCheck\(\);   \/\/ "Am I on course\?" runs when the tab opens/);
+    expect(script).not.toMatch(/>Work it out<\/button>/);
     expect(script).not.toMatch(/onCourseCheckHtml|requiredPotForSuccess/);
     expect(read('src/ui/saverAnswerUi.js')).toMatch(/import \{ saverBlockOf \} from '\.\.\/v7\/state\/saverBlock\.js';/);
   });
@@ -92,44 +94,8 @@ describe('"Am I on course?" on the Accumulation planner', () => {
   });
 });
 
-describe('the age spin', () => {
-  // (7.8.0: the spin is a plain count to the plan's own age, never "on course", which is the level's test below it)
-  it('its title asks which age lasts in the share picked, a count, not the on-course test; its picker offers 9 in 10 first and by default, and keeps the other choices (parity)', () => {
-    const title = doc.querySelector('#acSweepSection .section-title').textContent.replace(/\s+/g, ' ');
-    expect(title).toMatch(/not the "Am I on course\?" test/);
-    expect(title).toMatch(/9 in 10 to start/);
-    expect(title).not.toMatch(/clears 90%/);
-    const opts = [...doc.querySelectorAll('#acSweepTarget option')];
-    expect(opts[0].value).toBe(String(ON_COURSE_PCT));
-    expect(opts[0].selected).toBe(true);
-    expect(opts[0].textContent).toBe('9 in 10');
-    expect(opts.map((o) => o.value).sort()).toEqual(['75', '85', '90', '95']);
-  });
-  it('the defaults are the one bar', () => {
-    const rows = [{ age: 60, success: 89 }, { age: 61, success: 90 }];
-    expect(earliestAt(rows)).toMatchObject({ age: 61, met: true });
-    expect(script).toMatch(/acSweepTarget'\)\?\.value \|\| ON_COURSE_PCT/);
-  });
-  it('the headline counts in futures; "on course" only in the rollback, where on course was 9 in 10', () => {
-    const result = { income: 40000, basis: 'your mix', rows: [{ age: 58, success: 77 }, { age: 60, success: 86 }, { age: 61, success: 92 }] };
-    const old = { weighted: false };
-    const h = sweepHeadline(result, ON_COURSE_PCT, old);
-    expect(h).toMatch(/^At £40,000 a year you could retire at 61 and be on course: the money lasted in 92% of futures/);
-    expect(h).toMatch(/or at 58 if lasting in 3 futures out of 4 is enough \(77%\)/);
-    expect(h).not.toMatch(/confidence/);
-    const none = sweepHeadline({ ...result, rows: [{ age: 58, success: 60 }, { age: 61, success: 84 }] }, ON_COURSE_PCT, old);
-    expect(none).toMatch(/no age in the range is on course \(the money lasting in 9 futures out of 10\) — the best is 61 at 84%/);
-    expect(sweepHeadline(result, 85)).toMatch(/you could retire at 60: the money lasted in 86% of futures \(you asked for 85%\)/);
-    // weighing (7.8.0, the shipped state): the count, never "on course"
-    const w = sweepHeadline(result, ON_COURSE_PCT, { weighted: true });
-    expect(w).toMatch(/^At £40,000 a year you could retire at 61: the money lasted in 92% of futures/);
-    expect(w).not.toMatch(/on course|you asked for/);
-    expect(sweepHeadline({ ...result, rows: [{ age: 58, success: 60 }, { age: 61, success: 84 }] }, ON_COURSE_PCT, { weighted: true })).toMatch(/no age in the range lasts in 9 futures out of 10 — the best is 61 at 84%/);
-    expect(confidenceWords(90)).toBe('in 9 futures out of 10');
-    expect(confidenceWords(75)).toBe('in 3 futures out of 4');
-    expect(confidenceWords(85)).toBe('in 85% of futures');
-  });
-});
+// ("the age spin" went in step F3, lead4.md D11: "When could I retire?" is answer A on the plan's figures, whose bar is the
+// plan's level, as the simple view's; tests/reading/whenStopF3.test.js)
 
 describe('the couples, survivor and care checks', () => {
   it('green from 9 in 10 (it was 85%), amber from 70%', () => {

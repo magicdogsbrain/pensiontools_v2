@@ -74,6 +74,7 @@ import { reviewOf } from '../../answers/plan/review.js';
 import { agreementViewOf } from '../../answers/plan/agree.js';
 import { monthOf } from '../../answers/plan/month.js';
 import { startPlanWrite } from './planWrite.js';
+import { loadPageMarket } from './pageMarket.js';
 import { startAccount } from './account.js';
 
 export const GUEST_PLANS_KEY = 'pt_guest_scenarios';
@@ -219,13 +220,13 @@ export function viewFor(state) {
       // "Does it last?": the words of the one test's result held in page memory (state.lasts), read here with the plan (10.2)
       if (r.step === 'lasts' && page.lasts.found) {
         const pl = page.lasts;
-        // (the page's own level when one was picked here — ui.level, never saved — else the plan's: the run's)
+        // (the plan's own level: Phases.planLevelOf, the run's — both views judge a plan at the level it holds)
         // (7.12.0) a plan still saving: one chance per plan, the saver run's (What you pay in and the home say it too)
         const Sv = state.saver;
         const sv = page.saver && page.saver.ok && Sv && Sv.key === page.saver.key && Sv.result && Sv.result.verdict ? Sv.result.verdict : null;
         // (the saver run draws from pots: a plan whose own way buys its income, a ladder, is read on its own test — lead decision 3)
         const chance = sv && FAMILY.includes(pl.strategyId) && typeof sv.weighted === 'number' && Number.isFinite(sv.weighted) ? sv.weighted : null;
-        pl.verdict = L && L.result ? verdictOf(L.result, pl, { level: state.ui && state.ui.level, chance }) : null;
+        pl.verdict = L && L.result ? verdictOf(L.result, pl, { chance }) : null;
         // a locked plan: the document's own figure (10.5), and the one line of 6.24.0 when today's run differs
         pl.documentVerdict = pl.document ? verdictOf({ a: pl.document.a, strategyId: pl.strategyId, ran: pl.document.ran, history: null, document: true, success: pl.document.success }, pl) : null;
         pl.note = L && L.result && L.key === pl.runKey && L.result.stored && typeof L.result.stored.note === 'string' && L.result.stored.note ? L.result.stored.note : null;
@@ -240,7 +241,7 @@ export function viewFor(state) {
         const Sp = state.stressPanel || null;
         try {
           const held = Sp && Sp.planId === String(r.planId) ? Sp.rows : null;
-          const sv = STRESS_ON.panel && entry && !entry.newer && !entry.failed ? stressPanelView(entry.plan, held, { level: state.ui && state.ui.level, today }) : null;
+          const sv = STRESS_ON.panel && entry && !entry.newer && !entry.failed ? stressPanelView(entry.plan, held, { today }) : null;
           const mine = sv && Sp && Sp.key === sv.key ? Sp : null;
           pl.stressPanel = sv ? { ...sv, planId: String(r.planId), run: { status: mine ? mine.status : 'idle', reason: mine ? mine.reason : null, done: mine ? mine.order.filter((id) => mine.rows[id]).length : 0, total: mine ? mine.order.length : 0 } } : null;
         } catch { pl.stressPanel = null; }
@@ -259,8 +260,11 @@ export function viewFor(state) {
  * @param {() => Date} [o.now]
  * @param {object} [o.fb]             the Firebase functions (the tests hand in fakes); the real ones otherwise
  * @param {object} [o.client]         the worker client (effects/workerClient.js): the lock runs the plan's own test in it before its one write
+ * @param {() => Promise} [o.market]  the page's one market (pageMarket.loadPageMarket; lead4.md R5): loaded at once, and no page
+ *                                    is read until it has landed (or failed: the built-in copy then stands), so what a held or
+ *                                    stand-in gilt pays, the gilt list and the inflation curve are the day's, as in the full view
  */
-export function startPlanSource(store, { win, local = null, session = null, now = () => new Date(), fb = null, fbWrite = null, fbAccount = null, client = null }) {
+export function startPlanSource(store, { win, local = null, session = null, now = () => new Date(), fb = null, fbWrite = null, fbAccount = null, client = null, market = loadPageMarket }) {
   const F = fb || { initializeApp, initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence, onAuthStateChanged, signOut, getFirestore, collection, getDocs, isFirebaseConfigured, connectAuthEmulator, connectFirestoreEmulator, updateCurrentUser };
   const stops = [];
   let user = undefined;          // undefined: not known yet; null: nobody
@@ -368,10 +372,16 @@ export function startPlanSource(store, { win, local = null, session = null, now 
     else listen();
   }
 
+  // The one market on this page (lead4.md R5): asked at once; the plans are read only once it is in, so no page is ever read on
+  // the built-in gilt list and then again on the day's file. A market that cannot load leaves the built-in copy, said by the stamp.
+  let marketIn = false;
+  Promise.resolve().then(() => market()).catch(() => null).then(() => { if (stopped) return; marketIn = true; lastRead = null; refresh(store.getState()); });
+
   // The reading for the screen: after every change of the plans, the address, the date or the plan draft (never of the view itself).
   let lastRead = null;
   const refresh = (state) => {
-    const key = state.plans && state.plans.status === 'read' ? [state.plans.list, state.route, state.env.today, state.draft && state.draft.plan, state.lasts && state.lasts.result, state.lasts && state.lasts.levers, state.lasts && state.lasts.workDraft, state.ways, state.mix, state.lasts && state.lasts.tried, state.lasts && state.lasts.kept, state.household, state.move, state.keepTest, state.stressPanel, state.review, state.ui.level] : null;
+    if (!marketIn) return;
+    const key = state.plans && state.plans.status === 'read' ? [state.plans.list, state.route, state.env.today, state.draft && state.draft.plan, state.lasts && state.lasts.result, state.lasts && state.lasts.levers, state.lasts && state.lasts.workDraft, state.ways, state.mix, state.lasts && state.lasts.tried, state.lasts && state.lasts.kept, state.household, state.move, state.keepTest, state.stressPanel, state.review] : null;
     if (!key) { lastRead = null; return; }
     if (lastRead && key.every((v, i) => v === lastRead[i])) return;
     lastRead = key;

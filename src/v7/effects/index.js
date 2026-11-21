@@ -86,7 +86,7 @@ export function startEffects(store, { win = window, client: made = createWorkerC
   stops.push(startHouseholdRunner({ store, client, now: () => Date.now() }));
   // "Moving to your plan's mix" (research/v7/holdings-and-move.md §3.3, §3.7): the one run on the held mix in the worker only, and the
   // equity index fetched once for the rotation watch (the bundled snapshot when the file cannot be read), on that step only
-  stops.push(startMoveRunner({ store, client, now: () => Date.now(), fetchImpl: typeof win.fetch === 'function' ? win.fetch.bind(win) : null }));
+  stops.push(startMoveRunner({ store, client, now: () => Date.now() }));   // the share index: the one market (pageMarket.js)
   // "What you pay in" (research/saving-enough-and-check-in.md 4.4): the plan's verdict — question B on the plan's own figures —
   // in the worker's own lane, on that step only; no page fallback, as for the plan's other runs
   stops.push(startSaverRunner({ store, client }));

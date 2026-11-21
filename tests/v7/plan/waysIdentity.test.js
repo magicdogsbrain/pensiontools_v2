@@ -81,6 +81,8 @@ describe('gate 8a — the nine ways in the preview equal the planner\'s ranking,
       const reading = wayOf([{ plan }], plan.id, { today: TODAY });
       const page = cardsOf(reading, { key: reading.runKey, status: 'done', result: out, open: null, dials: {}, tried: {}, rankBy: 'lasts' });
       const lasts = [...rankWays(ref.scored, 'lasts').map((x) => x.id), ...ref.unaffordable];
+      // a plan with no figures of its own is never run on the page (step F3): no key, so no result is its own
+      if (!reading.runKey) { expect(reading.noFigures).toBe(true); expect(page.cards.every((c) => !c.has)).toBe(true); return; }
       expect(page.cards.map((c) => c.id)).toEqual([reading.strategyId, ...lasts.filter((id) => id !== reading.strategyId)]);
       expect(page.cards.map((c) => c.rank)).toEqual(page.cards.map((c) => lasts.indexOf(c.id)));
       // the plan's own card needs no run: its dials are the values the comparison ran it with

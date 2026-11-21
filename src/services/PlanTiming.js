@@ -24,6 +24,7 @@
  * Pure: `now` is injectable everywhere so results are date-stable in tests.
  */
 import { parseStatePensionDate } from '../utils/StatePensionUtils.js';
+import { spanText } from '../reading/format.js';
 import { projectAccumulation, contributionBreakdown } from './AccumulationEngine.js';
 import { chargesPctOf } from './Charges.js';
 import { isaGrowthOf, cashProjectionRate } from './IsaGrowth.js';
@@ -480,8 +481,7 @@ export function describeTiming(t, settings, now = new Date()) {
   // with a later year 0, is ever ahead of it.
   const ahead = t.mode === 'future' ? (+t.monthsToStop || 0) : monthsUntilStart(t.firstTaxYear, now);
   const when = t.yearsToStart <= 0 && start.getTime() <= now.getTime() ? 'already running'
-    : ahead < 24 ? 'in ' + ahead + ' month' + (ahead === 1 ? '' : 's')
-    : 'in ' + Math.round(ahead / 12) + ' years';
+    : 'in ' + spanText(ahead);   // the one formatter's words (src/reading/format.js, step F1)
   const parts = [];
   const stop = t.stoppedWork || null;
   const yearNow = Number.isFinite(t.planYearNow) ? t.planYearNow : taxYearStartOf(now) - t.firstTaxYear;
@@ -492,7 +492,7 @@ export function describeTiming(t, settings, now = new Date()) {
     const [y, m] = t.startMonth.split('-').map(Number);
     const mon = MONTH_NAMES[m - 1];
     // "You stop work" when the plan says the month (6.51.0), as the Timing block asks it; every plan before reads as it did
-    parts.push((stop ? 'You stop work in ' : 'You retire in ') + mon + ' ' + y + ' at ' + t.retireAge + ', ' + (ahead >= 24 ? Math.round(ahead / 12) + ' years' : ahead + ' month' + (ahead === 1 ? '' : 's')) + ' away; the plan\'s year 0 is tax year ' + taxYearLabel(t.firstTaxYear) + ' (from 6 April ' + t.firstTaxYear + ').');
+    parts.push((stop ? 'You stop work in ' : 'You retire in ') + mon + ' ' + y + ' at ' + t.retireAge + ', ' + spanText(ahead) + ' away; the plan\'s year 0 is tax year ' + taxYearLabel(t.firstTaxYear) + ' (from 6 April ' + t.firstTaxYear + ').');
   } else if (started) {
     // Started: where today stands in it, "plan year N of M" (the plan's own count of years, from its length).
     if (stop) parts.push('You stopped work in ' + monthName(stop) + '.');
@@ -508,7 +508,8 @@ export function describeTiming(t, settings, now = new Date()) {
   if (access) parts.push(access);
   if (s.spStartDate) {
     const sp = parseStatePensionDate(s.spStartDate);
-    if (sp) { const y = taxYearStartOf(sp) - t.firstTaxYear; parts.push('State Pension from ' + taxYearLabel(taxYearStartOf(sp)) + (y >= 0 ? ' (plan year ' + y + ')' : started ? ' (already paid when the plan started)' : t.mode === 'future' ? ' (before you stop work)' : ' (already being paid when the plan starts)') + '.'); }
+    // (step F2) the person's own date, in the words every place says it (src/reading/statePension.js spDayWords), then its tax year
+    if (sp) { const y = taxYearStartOf(sp) - t.firstTaxYear; parts.push('State Pension from ' + sp.getDate() + ' ' + MONTH_NAMES[sp.getMonth()] + ' ' + sp.getFullYear() + ' (tax year ' + taxYearLabel(taxYearStartOf(sp)) + (y >= 0 ? ', plan year ' + y + ')' : started ? '; already paid when the plan started)' : t.mode === 'future' ? '; before you stop work)' : '; already being paid when the plan starts)') + '.'); }
   }
   if (+s.duration > 0) parts.push('Plan runs to age ' + planToAgeOf(t.shapeAgeNow, +s.duration) + '.');   // the one end age (AgeConvention.planToAgeOf)
   return parts.join(' ');

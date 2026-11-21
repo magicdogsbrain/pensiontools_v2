@@ -27,7 +27,7 @@ const VERSION = JSON.parse(readFileSync(new URL('../../package.json', import.met
 const corpus = (file) => JSON.parse(readFileSync(new URL(`../../tests/fixtures/plans/${file}`, import.meta.url), 'utf8'));
 const ROUTE = { path: 'sign in > every page of the plan in the register, simple view, then the full view', who: 'signed in', view: 'simple and full' };
 const SEEDED = { seeded: true };
-const ONE_VALUE = ['stage', 'stop.month', 'yearsToGo', 'plan.endAge', 'pot.today', 'pot.atStop', 'statePension.amount', 'statePension.age', 'lasts.chance', 'left.typically', 'income.thisYear.beforeTax'];
+const ONE_VALUE = ['stage', 'stop.month', 'yearsToGo', 'plan.endAge', 'pot.today', 'pot.againstPlan', 'pot.atStop', 'statePension.amount', 'statePension.age', 'lasts.chance', 'left.typically', 'income.thisYear.beforeTax'];
 
 /** One account holding one corpus plan (the household link dropped: the checker reads one plan at a time). */
 async function seeded(page, key) {
@@ -149,7 +149,8 @@ test.describe('s06 · the checker', () => {
       await q.step('the full view, Stress settings', () => fullPage(page, 'stress settings'));
       const settings = await page.locator('body').innerText();
       const said = /locked with £([\d,]+) in your pension/.exec(settings);
-      q.exact('the pension when work stops that every run uses, on Stress settings', said ? Number(said[1].replace(/,/g, '')) : null, Math.round(lockedWith.sipp), { byHand: 'the plan document\'s pots when work stops, as locked: £603,941', owner: 'SAVER' });
+      // a pot when work stops is said to the nearest £1,000 on every page (src/reading/format.js, step F1)
+      q.exact('the pension when work stops that every run uses, on Stress settings', said ? Number(said[1].replace(/,/g, '')) : null, Math.round(lockedWith.sipp / 1000) * 1000, { byHand: 'the plan document\'s pots when work stops, as locked: £603,941, said to the nearest £1,000: £604,000', owner: 'SAVER' });
       q.never('full view Stress settings', /Every strategy is priced on these; type your own/.test(settings) ? ['a figure worked out today called "priced on"'] : [], { must: 'only the pots the plan was locked with are "priced on"', owner: 'SAVER' });
       // the saver's Month by month says in one sentence that it is for another stage: never a drawing year worked out
       await q.step('Month by month', async () => { await planPage(page, id, 'month'); await settled(page).catch(() => {}); });

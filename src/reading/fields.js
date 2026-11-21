@@ -26,8 +26,8 @@ export const FIELDS = Object.freeze([
   F('about.stopAge', S + 'retireAge', ['about', 'stopAge'], ['tmRetireAge', 'acRetireAge']),
   F('about.stopMonth', S + 'stoppedWork', ['about', 'stopMonth'], ['tmStopMonth']),
   F('about.startWhen', S + 'firstTaxYear', ['about', 'startWhen'], ['tmStartYear']),
-  // the simple view asks the age the plan ends, the full view the years it runs (the same stored figure, two quantities)
-  F('about.endAge', S + 'duration', ['about', 'endAge'], ['ssDuration']),
+  // both views ask the age the plan runs to (the stored length follows it: the full view's hidden #ssDuration)
+  F('about.endAge', S + 'duration', ['about', 'endAge'], ['ssEndAge']),
   // Pots and tax (1b)
   F('pots.pension', S + 'equityMin…', ['pots', 'pension'], ['ssPot']),
   F('pots.isa', S + 'isaBalance', ['pots', 'isa'], ['ssIsaBalance']),
@@ -48,13 +48,12 @@ export const FIELDS = Object.freeze([
   F('pots.ufplsYears', S + 'ufplsYears', ['pots', 'ufplsYears'], ['ssUfplsYears']),
   F('pots.ufplsThenIsa', S + 'ufplsThenPcls', ['pots', 'ufplsThenIsa'], ['ssUfplsPcls']),
   F('pots.bandFill', S + 'bandFillRecycle', ['pots', 'bandFill'], ['ssBandFillRecycle']),
-  F('pots.stopSipp', S + 'potAtRetirement', ['pots', 'stopSipp'], ['tmPotSipp']),
-  F('pots.stopIsa', S + 'potAtRetirement', ['pots', 'stopIsa'], ['tmPotIsa']),
+  // (step F1, lead4.md D4: the pots at the stop are worked out from the plan, never typed — their boxes are gone in both views)
   // the pots a bought way is priced on: the full view only (map-edits #11)
   F('pots.boughtSipp', S + 'strategyParams.sippTotal', null, ['miniSipp', 'stratSipp', 'stratSippFf']),
   F('pots.boughtIsa', S + 'strategyParams.isaTotal', null, ['miniIsa', 'stratIsa', 'stratIsaFf']),
   // Money that comes in anyway (1c)
-  F('income.spKind', S + 'spWeeklyAmount…', ['income', 'spKind'], null),
+  F('income.spKind', S + 'spWeeklyAmount…', ['income', 'spKind'], ['ssSpKind']),   // (step F2) both views ask it
   F('income.spWeekly', S + 'spWeeklyAmount', ['income', 'spWeekly'], ['ssSpWeeklyAmount']),
   F('income.spDate', S + 'spStartDate', ['income', 'spDate'], ['ssSpStartDate']),
   F('income.other', S + 'other', ['income', 'other'], ['ssOther']),

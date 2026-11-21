@@ -7,8 +7,7 @@ import { describe, it, expect, vi } from 'vitest';
 vi.mock('../src/firebase/index.js', () => ({ isFirebaseConfigured: () => false, isLoggedIn: () => false }));
 
 import { pensionTodayOf, pathPensionOf } from '../src/services/PensionToday.js';
-import { savingPathForLock } from '../src/ui/savingPathForLock.js';
-import { runForDocument } from '../src/answers/plan/lastsRun.js';
+import { runForDocument, savingPathFor } from '../src/answers/plan/lastsRun.js';
 import { saverInputsOf } from '../src/answers/plan/saverInputs.js';
 
 const NOW = new Date(2026, 10, 16, 12);
@@ -31,9 +30,9 @@ describe('the pension today a lock draws from', () => {
     expect(read.ok).toBe(true);
   });
 
-  it('the full view\'s lock starts Alex\'s saving path at £410,000 (before: no pot on record)', async () => {
+  it('the lock starts Alex\'s saving path at £410,000 (before: no pot on record); both views lock through the one run (step F5)', () => {
     const plan = alex();
-    const p = await savingPathForLock({ settings: plan.stressTool.settings, accumulation: plan.accumulationTool.settings, now: NOW, plan });
+    const p = savingPathFor({ settings: plan.stressTool.settings, accumulation: plan.accumulationTool.settings, now: NOW, plan });
     expect(p.potNow).toBe(410000);
     expect(p.potSource).toBe('plan');
     expect(p.path.length).toBeGreaterThan(0);
@@ -46,22 +45,22 @@ describe('the pension today a lock draws from', () => {
     expect(run.savingPath.potSource).toBe('plan');
   });
 
-  it('Pat: the pension lines under What you hold win over a pot saved earlier', async () => {
+  it('Pat: the pension lines under What you hold win over a pot saved earlier', () => {
     const plan = alex();
     plan.stressTool.settings.configured = false;
     plan.accumulationTool.settings.potNow = 40000;
     plan.holdings = { lines: [{ ticker: 'VWRL', value: 30000, wrapper: 'SIPP' }, { ticker: 'VAGP', value: 15000, wrapper: 'SIPP' }], updatedAt: '2026-11-01' };
     expect(pensionTodayOf(plan, { now: NOW })).toMatchObject({ value: 30000 + 15000, from: 'holdings' });
-    const p = await savingPathForLock({ settings: plan.stressTool.settings, accumulation: plan.accumulationTool.settings, holdings: plan.holdings, now: NOW, plan });
+    const p = savingPathFor({ settings: plan.stressTool.settings, accumulation: plan.accumulationTool.settings, holdings: plan.holdings, now: NOW, plan });
     expect(p.potNow).toBe(45000);
     expect(p.potSource).toBe('holdings');
   });
 
-  it('nothing known: the path records the gap, as before', async () => {
+  it('nothing known: the path records the gap, as before', () => {
     const plan = alex();
     plan.stressTool.settings.configured = false;
     expect(pathPensionOf(plan, { now: NOW })).toBeNull();
-    const p = await savingPathForLock({ settings: plan.stressTool.settings, accumulation: plan.accumulationTool.settings, now: NOW, plan });
+    const p = savingPathFor({ settings: plan.stressTool.settings, accumulation: plan.accumulationTool.settings, now: NOW, plan });
     expect(p.potNow).toBeNull();
   });
 });

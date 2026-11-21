@@ -136,7 +136,9 @@ export function generateDrawdownSchedule(settings, duration, assumedInflation = 
       });
     if (lsaRemaining > 0) lsaRemaining = Math.max(0, lsaRemaining - (plan.taxFree || 0));
 
-    const netFromTaxable = plan.taxable - plan.tax; // SIPP + fixed income, net of tax
+    // What the year pays after tax, before the ISA and other savings: the SIPP (its tax-free part included) and the fixed
+    // income, net of tax. With the ISA and other savings it adds up to what there is to spend.
+    const netFromTaxable = plan.taxable - plan.tax + (plan.taxFree || 0);
     const isaStart = isaBalance;
     isaBalance = plan.remainingIsa * (1 + isaReturn);
     if (isaKeep !== 1) isaBalance *= isaKeep;
@@ -146,6 +148,9 @@ export function generateDrawdownSchedule(settings, duration, assumedInflation = 
       year,
       brl,
       other,
+      // every income that comes anyway but the State Pension: another pension, a final-salary pension, rent or work. With the
+      // SIPP draw and the State Pension, less the tax, it is what the year pays after tax, before the ISA (netIncome).
+      otherIncome: other + dbPension + extraIncome,
       statePension,
       sippDraw: plan.sippGross,
       totalTaxable: plan.taxable,

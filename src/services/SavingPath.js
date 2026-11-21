@@ -19,9 +19,8 @@
  *    price guess is needed) and in the prices of the day it was drawn (`real`, what the document's table shows); the
  *    pension's and the ISA's own middle lines; and what had gone in.
  *
- * Loaded only when a plan is locked or its document refreshed (index.html imports src/ui/savingPathForLock.js, which
- * imports this with `await import`): it is the first part of today's app to use V7's engine (src/answers), and the main
- * bundle stays as it was. Pure: no DOM, no storage, no clock (the caller passes `now`). Plain JSON out — no typed arrays,
+ * Drawn when a plan is locked or its document refreshed, in both views through the one document run
+ * (answers/plan/lastsRun.js savingPathFor, in the engine worker; step F5). Pure: no DOM, no storage, no clock (the caller passes `now`). Plain JSON out — no typed arrays,
  * functions or lives (CLAUDE.md: never store functions or samples in the plan document).
  */
 import { livesList } from '../answers/shared/lives.js';
@@ -34,7 +33,7 @@ import { chargesPctOf, monthlyChargeFactor } from './Charges.js';
 import { isaGrowthOf } from './IsaGrowth.js';
 import { isaFundsSavingMix } from './IsaFunds.js';
 import { RISK_PRESETS } from './GlidepathService.js';
-import { savingMixOf } from './SaverPayIn.js';
+import { savingMixOf, PRICE_RISE_PCT } from './SaverPayIn.js';
 import { ISA_DEFAULTS } from '../constants.js';
 
 export const SAVING_PATH_VERSION = 3;
@@ -108,7 +107,7 @@ const given = (v) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v 
  * data (no typed arrays, no functions), so the plan test can carry it in a plan's settings and draw the same lives again
  * (stopPotsByLife). `head0`: the path head's fields read from the same figures (rounded as the path stores them).
  */
-export function savingCoreFrom({ settings = {}, timing, accumulation = null, holdings = null, explicit = null, phases = null, risePrices = false } = {}) {
+export function savingCoreFrom({ settings = {}, timing, accumulation = null, holdings = null, explicit = null, phases = null } = {}) {
   const s = settings || {};
   const a = accumulation || {};
   const x = explicit && typeof explicit === 'object' ? explicit : {};
@@ -141,8 +140,12 @@ export function savingCoreFrom({ settings = {}, timing, accumulation = null, hol
     isaGrowth, ...(fundsMix ? { isaFromFunds: true, isaMix: fundsMix } : isaGrowth ? {} : { isaReturn }),
     mixes: { saving: mixes.saving, drawing: mixes.drawing, fromHoldings: mixes.fromHoldings }
   };
-  // risePrices (7.12.0, services/PotsAtStop.js): what goes in rises with each future's own prices, as the answer has it
-  const core = { years, potNow, isaNow, totalMonthly, isaMonthly, escalation: risePrices ? null : escalationPct / 100, isaEscalation: escalationPct / 100, chargesPct, isaGrowth: isaGrowth || null,
+  // what goes in is raised each year as the plan says (lead4.md D16, step F1): the price rise every saving figure assumes
+  // (PRICE_RISE_PCT, what a plan kept from an answer stores) is each future's own prices, as the answer has it (escalation
+  // null); any other rise is that share a year in pounds of the day; none, the same pounds each year. One rule for the pot
+  // at the stop on every page, for the path a lock keeps and for the lives the plan test draws (ruling 8).
+  const withPrices = Math.abs((+escalationPct || 0) - PRICE_RISE_PCT) < 1e-9;
+  const core = { years, potNow, isaNow, totalMonthly, isaMonthly, escalation: withPrices ? null : escalationPct / 100, isaEscalation: escalationPct / 100, chargesPct, isaGrowth: isaGrowth || null,
     isaReturn, fundsMix: fundsMix || null, mixes: { saving: mixes.saving, drawing: mixes.drawing } };
   return { core, head0, prop };
 }
@@ -240,7 +243,7 @@ export function stopPotsByLife(core, count, env = {}) {
  * Draw the path.
  * @param {object} a  { settings (Stress), timing (deriveTiming), accumulation (the planner's saved inputs), holdings (the
  *                    record or its lines), now, lives?, env? ({ futureReturns } for tests: V7's lives.js), explicit?, phases? }
- *   risePrices  true: what goes in rises with each future's own prices (the answer's rule), not the plan's yearly rise
+ *   pensionBand true: each year also carries the pension's bad and good cases in today's money (realCareful, realGood)
  *   phases    the plan's `phases` root (7.10.0): a saving level the person chose decides the saving mix (savingPathMixes)
  *   explicit  { potNow, isaNow, totalMonthly, isaMonthly } (research/saving-enough-and-check-in.md 5.3): each one given is
  *             used in place of what the path would read — a saver's first check-in draws the path from its own pension,
@@ -250,9 +253,9 @@ export function stopPotsByLife(core, count, env = {}) {
  *             'record' or 'plan'.
  * @returns {null | object}  null unless retiring later; the block stored as `planDocument.accumulation`
  */
-export function buildSavingPath({ settings = {}, timing, accumulation = null, holdings = null, now = new Date(), lives: count = SAVING_PATH_LIVES, env = {}, explicit = null, phases = null, risePrices = false } = {}) {
+export function buildSavingPath({ settings = {}, timing, accumulation = null, holdings = null, now = new Date(), lives: count = SAVING_PATH_LIVES, env = {}, explicit = null, phases = null, pensionBand = false } = {}) {
   if (!timing || timing.mode !== 'future' || !(timing.currentAge > 0)) return null;
-  const { core, head0, prop } = savingCoreFrom({ settings, timing, accumulation, holdings, explicit, phases, risePrices });
+  const { core, head0, prop } = savingCoreFrom({ settings, timing, accumulation, holdings, explicit, phases });
   const head = {
     version: SAVING_PATH_VERSION, asOf: monthKey(now), drawnAt: now.toISOString(), lives: count, seed: SAVING_PATH_SEED,
     startAge: timing.currentAge, retireAge: timing.shapeAgeNow, years: core.years,
@@ -274,7 +277,9 @@ export function buildSavingPath({ settings = {}, timing, accumulation = null, ho
     path.push({
       year: y, age: timing.currentAge + y,
       nominal: spread(tot), real: spread(real),
-      pension: { middling: spread(pen).middling, real: spread(penReal).middling },
+      // `pensionBand` (step F1): the pension's own bad and good cases in today's money, from the same lives — the pot at the
+      // stop's middle with its band (services/PotsAtStop.js, src/reading/atStop.js); a lock's stored path keeps its shape
+      pension: (() => { const pr = spread(penReal); return pensionBand ? { middling: spread(pen).middling, real: pr.middling, realCareful: pr.careful, realGood: pr.good } : { middling: spread(pen).middling, real: pr.middling }; })(),
       isa: { middling: spread(isa).middling, real: spread(isaReal).middling },
       paidIn: r0(out.paidIn[y])
     });

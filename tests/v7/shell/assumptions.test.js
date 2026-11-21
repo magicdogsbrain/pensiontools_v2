@@ -142,3 +142,19 @@ describe('the effect, the reducer, the view and the page', () => {
     expect(failed.root.querySelector('[data-testid="assumptions.failed"]').textContent).toBe(ASSUMPTIONS.failed);
   });
 });
+
+describe('the page reads the one market (lead4.md R5): the day\'s file, as the full view\'s page and both workers read it', () => {
+  it('loadFacts loads the one market on this page first, so the gilts\' date and curve are the day\'s file\'s', async () => {
+    const { loadFacts } = await import('../../../src/v7/effects/assumptions.js');
+    const { loadPageMarket } = await import('../../../src/v7/effects/pageMarket.js');
+    const { forgetMarket } = await import('../../../src/reading/market.js');
+    const { activeGiltsFile } = await import('../../../src/services/LinkerUniverse.js');
+    forgetMarket();
+    const built = JSON.parse(JSON.stringify(activeGiltsFile()));
+    const day = { ...built, generated_at: new Date(Date.parse(built.generated_at) + 1000).toISOString(), as_of: '2099-01-02' };
+    const fetchImpl = async (u) => (u.endsWith('gilts.json') ? { ok: true, json: async () => day } : { ok: false });
+    const fn = await loadFacts({ market: () => loadPageMarket({ folder: 'https://site/data/', fetchImpl }) });
+    expect(fn(Date.now()).gilts.asOf).toBe('2099-01-02');
+    forgetMarket();
+  });
+});

@@ -103,11 +103,9 @@ export const SAVING = {
   },
   /** What the pot could be by the stop: the regulator's three rates, at today's prices. */
   pot: {
-    lead: 'At today’s prices, with what you pay in rising as set. The three cases are the regulator’s own rates before charges: cautious {low}%, middle {mid}%, strong {high}% a year.',
+    lead: 'At today’s prices, over the same futures every test of your plan uses, with what you pay in raised each year as your plan says: the low end (one future in ten ends lower), the middle and the high end (one in ten ends higher) at each age.',
     charges: 'After fund and platform charges of {charges}% a year, your plan’s own setting.',
     chargesNone: 'No fund or platform charges taken off: your plan has none set.',
-    mix: 'Your mix: what you hold today — shares {shares}%, bonds {bonds}%, gold and trend {diversifiers}%, cash {cash}% — at its long-run return less its costs ({mix}% a year before prices). It never promises a fund’s own return.',
-    mixCharge: 'The plan’s charge replaces the funds’ own ({charge}% a year).',
     /** Where the pot the table starts from comes from (services/PensionToday.js), said once. */
     potNow: {
       record: 'From your pension of {value}, recorded {month}.',
@@ -119,9 +117,10 @@ export const SAVING = {
       typed: 'From your pension of {value}, as typed above. Save to keep it.',
       none: 'No pension pot is in your plan yet, so this starts from nothing. You can add it in the box for your pension pot today.'
     },
-    /** The pot at the stop the plan uses (services/PotsAtStop.js), said above the regulator's table (7.12.0). */
-    atStop: 'In a middling case your pension could be {value} at {age}. That is the figure your plan uses. The table below shows the regulator’s fixed rates, for comparing with your provider’s statement; they are lower.',
-    columns: { age: 'Age', low: 'Cautious', mid: 'Middle', mix: 'Your mix', high: 'Strong', paidIn: 'Paid in (in the pounds of each year)', isa: 'ISA and savings' },
+    /** The pot at the stop the plan uses (src/reading/atStop.js, step F1): the middle with its bad and good cases. */
+    atStop: 'In a middling case your pension could be {value} at {age}: {low} at the low end, {high} at the high end. Every test of your plan is run on the middle.',
+    atStopLocked: 'Your plan was locked with a pension of {value} at {age}, in a middling case then. Every test of your plan is run on it.',
+    columns: { age: 'Age', low: 'Low end', mid: 'Middle', high: 'High end', paidIn: 'Paid in (in the pounds of each year)', isa: 'ISA and savings (middle)' },
     isa: {
       cash: 'ISA and savings: mostly cash, at the cash rule and 2.5% price rises, with {isaMonthly} a month going in.',
       invested: 'ISA and savings: invested like your pension, at the middle rate, with {isaMonthly} a month going in.',
@@ -145,7 +144,7 @@ export const SAVING = {
     more: '{n} record{s} in all; the last 36 shown.'
   },
   onCourse: {
-    lead: 'The full view says this same answer, under “Am I on course?”, with the fixed-rate table beside it.',
+    lead: 'The full view says this same answer, under “Am I on course?”, with the same table of what your pot could be.',
     button: 'The same answer in the full view'
   },
   /**
@@ -160,7 +159,6 @@ export const SAVING = {
     lead: 'The same test as “Am I saving enough?”, on your plan’s own figures: your pot, what you pay in now, your State Pension and what your plan says you would want to spend from when you stop.',
     aim: 'Your plan’s {aimYearly} a year before tax is {aimMonthly} a month after tax, at today’s prices: the figure tested here.',
     working: 'Working out whether what you pay in is enough…',
-    first: 'A first figure, from 100 futures. The final one, from 1,000, follows in a moment.',
     failed: 'Sorry, this could not be worked out. Nothing was changed.',
     noWorker: 'This browser cannot work this out here.',
     retry: 'Try again',

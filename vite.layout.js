@@ -5,7 +5,7 @@
  *
  *                       switch (7.0, the default)                     preview (before 7.0, and the rollback)
  *   V7                  <site>/          with the public folder        <site>/v7/
- *   the classic page    <site>/classic/  with a copy of data/          <site>/           with the public folder
+ *   the classic page    <site>/classic/                                <site>/           with the public folder
  *   /v7/                a forward to the front page, for old links      V7 itself
  *   the manifest        V7's page links public/manifest.json           the classic page links manifest.json (hashed)
  *   "do not index"      the classic page                               V7's page
@@ -15,11 +15,10 @@
  * vite.v7.config.js` give the same site in either order, and a build of one app never deletes the other: in the switch
  * layout V7's folder is the site's root, so emptying it whole would take the classic page with it.
  *
- * The classic page's copy of data/ is for its engine worker, which asks for the market files beside its own script
- * (`../data/` from /classic/assets/, src/appLayout.js); the page itself reads the root's data/, which the nightly job
- * keeps fresh. The copy is as fresh as the release, as the worker's bundled figures are.
+ * Both pages and both workers read the market files from the site's one data folder (/data/, which the nightly job keeps
+ * fresh): the page hands its worker the folder (src/reading/market.js), so no copy sits beside the classic page.
  */
-import { cpSync, existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve, dirname, relative, isAbsolute, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { LAYOUTS } from './src/appLayout.js';
@@ -184,16 +183,6 @@ export function classicHead(layout) {
       }
     }
   ];
-}
-
-/** The market files beside the classic page at 7.0 (<site>/classic/data/), for its engine worker; see the top of this file. */
-export function classicDataCopy(layout, outDir) {
-  if (layout !== 'switch') return [];
-  return {
-    name: 'pt:classic-data',
-    apply: 'build',
-    closeBundle() { cpSync(resolve(here, 'public', 'data'), join(outDir, 'data'), { recursive: true }); }
-  };
 }
 
 /** The old /v7/ address at 7.0: a page that forwards to the same place at the site's root, the #/… part kept. */

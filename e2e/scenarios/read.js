@@ -112,6 +112,9 @@ export async function readPlaceOnce(page, id, place) {
   return { value: want, raw: m[0], how: place.region || 'the page' };
 }
 
+/** A fact's places in a view: its list, or none when the register says the view does not state it (`{ none: 'why' }`). */
+export const placesOf = (f, view) => (f && Array.isArray(f[view]) ? f[view] : []);
+
 /**
  * A fact read on the page that is open, by the register's place for `pageName` in `view`. Pages work their figures out
  * after they are drawn, so this waits (up to `timeout`) for the fact to be stated; null when it never is.
@@ -119,7 +122,7 @@ export async function readPlaceOnce(page, id, place) {
 export async function fact(page, id, { view = 'simple', page: pageName, timeout = 20_000 } = {}) {
   const f = FACTS[id];
   if (!f) throw new Error(`read.fact: no fact "${id}" in the register`);
-  const places = (f[view] || []).filter((p) => p.page === pageName);
+  const places = placesOf(f, view).filter((p) => p.page === pageName);
   if (!places.length) throw new Error(`read.fact: the register has no place for "${id}" on ${view} ${pageName}`);
   let got = null;
   try {

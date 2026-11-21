@@ -51,7 +51,8 @@ import { getDecisionSettingsAsync, getHistoryAsync, getAllTaxYearsAsync, getStat
 import { saveDecision } from '../../../src/services/DecisionService.js';
 import { lockPlanIfNeeded } from '../../../src/services/PlanLock.js';
 import { calcDecisionPWA, getTaxYearFromDate } from '../../../src/services/legacyDecision.js';
-import { engineSetup, engineDeps } from '../../../src/services/MonthDecision.js';
+import { monthReadingOf } from '../../../src/reading/month.js';
+import { contextFor } from '../../../src/reading/context.js';
 import { strategyOverlayOf, CONTRACT_IDS } from '../../../src/services/DecisionOverlay.js';
 import { documentLadder, ladderPosition, firstRungOf } from '../../../src/services/LadderPosition.js';
 import { potsDayOf } from '../../../src/services/PlanFromToday.js';
@@ -86,28 +87,20 @@ async function open(plan, today) {
   return stored();
 }
 
-/** index.html calcDecisionWithDeps + decisionStrategyOverlay (the locked plan's ladder: its document's), through the repositories. */
+/**
+ * index.html calcDecisionWithDeps, as the page calls it since step F5 (lead4.md D17): the one gatherer (src/reading/month.js
+ * monthReadingOf) on the plan the repository holds, on the page's clock, with the repository's own copy of the records and
+ * tax years (newer between a fill's writes). The identity below holds the plan as the full view loads it against the plan as
+ * the simple view reads it.
+ */
 async function classicCalc(dateStr, pots) {
-  const settings = await getDecisionSettingsAsync(), ss = await getStressSettingsAsync().catch(() => ({})), allTaxYears = await getAllTaxYearsAsync();
-  let st = null; try { st = await getActiveStrategy(); } catch { st = null; }
-  const setup = engineSetup({ decisionSettings: settings, stressSettings: ss, strategy: st });
-  const decision = await calcDecisionPWA(dateStr, pots.equity, pots.bond, pots.cash, engineDeps(setup, {
+  const plan = await getActiveScenarioAsync();
+  return monthReadingOf(plan, contextFor(plan, { now: new Date() }), {
+    month: dateStr,
     // 7.12.0: index.html passes the ISA box as typed too (the record keeps it): blank (null) or the figure in it
-    history: await getHistoryAsync(), taxYears: allTaxYears, spInfo: await getStatePensionForTaxYear(getTaxYearFromDate(dateStr)), potsYear: await decisionPotsYear(), pots: { ...pots, isaTyped: 'isaTyped' in pots ? pots.isaTyped : pots.isa || 0 }
-  }));
-  try {
-    const sst = await getActiveStrategy();
-    let ladder = null;
-    if (CONTRACT_IDS.includes(sst.id)) {
-      const doc = await getActivePlanDocument();
-      const plan = documentLadder(doc, ss.strategyId);
-      const lp = plan ? ladderPosition(plan, { today: new Date(dateStr + '-15'), potsDay: potsDayOf(ss, { lockedAt: doc.lockedAt, now: new Date() }), cashBalance: null, drawnThisYear: null, records: await getHistoryAsync({ sortDesc: false, limit: 500 }).catch(() => []) }) : null;   // 7.12.0: the months recorded this tax year, as the page reads them
-      ladder = { lp, firstRung: lp ? firstRungOf(plan) : null };
-    }
-    decision.strategyOverlay = sst.id && sst.id !== 'pots-and-valves' ? strategyOverlayOf(decision, dateStr, { strategy: sst, stressSettings: ss, name: getStrategy(sst.id).describe().name, ladder }) : null;
-  } catch { /* as the page: the overlay is words */ }
-  decision.cadenceMonths = 1;
-  return decision;
+    pots: { ...pots, isaTyped: 'isaTyped' in pots ? pots.isaTyped : pots.isa || 0 },
+    history: await getHistoryAsync(), taxYears: await getAllTaxYearsAsync()
+  });
 }
 
 /** The classic Calculate, then Save (src/ui/monthFillEntry.js save, one month at a time): the fill first, then the month. */

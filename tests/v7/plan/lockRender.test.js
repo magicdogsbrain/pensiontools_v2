@@ -93,7 +93,7 @@ describe('the draft (02): what the screen says and what pressing does', () => {
     const { root, text, actions } = draw(lockState(entries, id));
     expect(text).toContain('Locking fixes the plan and writes the plan document, so you can follow it month by month.');
     expect(text).toContain('What the lock fixes');
-    expect(text).toContain('the way of drawing (Pots and valves) and its dials;');
+    expect(text).toContain('the way of drawing (Pots & Valves) and its dials;');
     expect(text).toContain('What stays changeable');
     expect(text).toContain('your monthly records and each tax year’s set-up;');
     expect(text).toContain('What you get');
@@ -204,7 +204,7 @@ describe('a locked plan by its address, and "Your plan as locked"', () => {
     expect(lines).toContain('says.sp');
     expect(lines).toContain('says.bad');
     expect(lines).toContain('says.cuts');
-    expect(text).toMatch(/From age \d+: £[\d,]+ a year before tax, £[\d,]+ a month after tax \(tax year \d{4}\/\d{2}\)/);
+    expect(text).toMatch(/From age \d+: £[\d,]+ a year before tax, £[\d,]+ a month after tax in a full year \(from tax year \d{4}\/\d{2}\)/);
     // (7.8.0: the document's own count, and how it was counted when it was locked)
     expect(text).toMatch(/Your plan lasts in .+ out of 10; when it was locked, counted to \d+; not by how long you might live\. Left at the end, at today’s prices: typically £[\d,]+; in a bad case \(the worst 1 in 10\) £[\d,]+/);
     expect(text).toMatch(/Income cuts: in a slump, after \d+ months? in a row below the plan’s line/);

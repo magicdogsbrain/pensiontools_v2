@@ -113,6 +113,39 @@ export const GUARDRAIL_FACTS = Object.freeze({ pct: FACT.WITHDRAWAL_RATE });
 /** What was taken this tax year (services/YearPlan.js takenSentence, both views): its figure's key. */
 export const TAKEN_FACTS = Object.freeze({ drawn: FACT.TAKEN_YEAR });
 
+/** This tax year's lines (src/reading/thisYear.js thisYearSentences, both views): the plan's figure and the year as set up. */
+export const THIS_YEAR_FACTS = Object.freeze({ planYear: FACT.YEAR_PLAN_SAYS, setUpYear: FACT.YEAR_SET_UP, yearMonthly: FACT.YEAR_PER_MONTH, yearTotal: FACT.YEAR_TOTAL });
+/** The month a part year was set up from, in the same sentence ("… a month before tax, from September 2026: 7 payments"). */
+export const THIS_YEAR_FROM_FIND = /, from ((?:January|February|March|April|May|June|July|August|September|October|November|December) \d{4}): /;
+/** This tax year's sentence marks, keys and finds together (both views). */
+/** The day the year was set up, in either sentence ("This tax year was set up on 3 November 2026"): a dated record (R4). */
+export const THIS_YEAR_ON_FIND = / set up on (\d{1,2} (?:January|February|March|April|May|June|July|August|September|October|November|December) \d{4})\b/;
+export const THIS_YEAR_MARKS = Object.freeze({ keys: THIS_YEAR_FACTS, finds: [[THIS_YEAR_FROM_FIND, FACT.YEAR_FROM], [THIS_YEAR_ON_FIND, FACT.YEAR_SET_UP_ON]] });
+
+/**
+ * Where a pension today is from, dated (src/reading/money.js pensionFromWords, both views; lead4.md R4): the record's month.
+ * The move's money sentences (MOVE.status.unlisted*, MOVE.paying.planHas*) also name the pension today and the ISA today.
+ */
+export const POT_FROM_FIND = /from (?:your last record|your check-in|What you hold), ((?:January|February|March|April|May|June|July|August|September|October|November|December) \d{4})\b/;
+export const MOVE_MONEY_FINDS = Object.freeze([
+  [/Your plan has (£[\d,]+) in your pension/, FACT.POT_TODAY],
+  [/in your pension and (£[\d,]+) in your ISA/, FACT.ISA_TODAY],
+  [POT_FROM_FIND, FACT.POT_TODAY_AS_OF]
+]);
+
+/** The month an income step's figures are priced in ("… a year before tax at April 2026 prices"; src/reading/where.js), both views. */
+export const PRICES_FIND = / at ((?:January|February|March|April|May|June|July|August|September|October|November|December) \d{4}) prices\b/;
+export const STEP_FINDS = Object.freeze([[PRICES_FIND, FACT.PRICES_FROM]]);
+
+/**
+ * The plan document's own chance and fixed-age count, as it was locked (src/reading/document.js lockedLastsOf, both views):
+ * a record beside the live run's lasts.chance and lasts.fixedChance, so marked as its own facts.
+ */
+export const DOC_LASTS_FINDS = Object.freeze([
+  [/counting how long people your age live, [a-z ]+? ((?:more than |less than |about )?(?:\d+ times|once) in 20|in every future we tried|in none of the futures we tried)\./, FACT.DOC_CHANCE],
+  [FIXED_CHANCE_WORDS, FACT.DOC_FIXED_CHANCE]
+]);
+
 /** The household's headline (HOUSEHOLD.verdict.headline, both views): its chance in words. */
 export const HOUSEHOLD_CHANCE = Object.freeze({ words: FACT.HOUSEHOLD_CHANCE });
 
@@ -138,3 +171,14 @@ export const LASTS_FINDS = Object.freeze({
   assumed: Object.freeze([[/About (\d+ in \d+)[^.]*live longer/, FACT.LIVE_LONGER], [/follow each future on to (\d+)/, FACT.FOLLOW_TO]]),
   fixed: Object.freeze([[FIXED_CHANCE_WORDS, FACT.LASTS_FIXED], [/live to (\d+)/, FACT.END_AGE]])
 });
+
+/** "Try the bad years" (step F3): the ids of a row's marks, and the figure in its "what it changes" lines and in the floor line. */
+export const stressMarksOf = (rowId) => Object.freeze({
+  chance: 'stress.' + rowId + '.chance',
+  fixed: 'stress.' + rowId + '.fixedChance',
+  runsOut: 'stress.' + rowId + '.runsOut',
+  verdict: 'stress.' + rowId + '.verdict',
+  what: Object.freeze([[/(\d+(?:\.\d+)?%)/, 'stress.' + rowId + '.change']])
+});
+export const STRESS_FLOOR_FINDS = Object.freeze([[/still have (£[\d,]+)/, FACT.STRESS_FLOOR]]);
+

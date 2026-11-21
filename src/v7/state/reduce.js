@@ -576,13 +576,13 @@ function reduceAction(state, action) {
       // figures, answers/plan/saverInputs.js saverDraftOf): the values replace the draft's — each a field of the question,
       // as text or yes/no, the later steps cleaned to their boxes — and every box is marked left, so a problem shows where
       // it is; the old answer goes, as with a draft started again; the page opens the question's numbers step. `mixes`
-      // (B only): the plan's own mixes, which B's risk boxes can name only by the nearest level — B runs on them while those
+      // (B, and A opened from a saving plan: src/reading/whenStop.js): the plan's own mixes, which B's risk boxes can name only by the nearest level — B runs on them while those
       // boxes say what they were loaded with (select.js planMixOf), so it gives the plan's own answer.
       if (!draft) return refuse(`draft/load: no question "${q}"`);
       const given = action.values;
       if (!given || typeof given !== 'object' || Array.isArray(given)) return refuse('draft/load: needs the values');
       const planMix = action.mixes == null ? null : cleanPlanMix(action.mixes);
-      if (action.mixes != null && (q !== 'b' || !planMix)) return refuse(`draft/load: "${q}" cannot take these mixes`);
+      if (action.mixes != null && ((q !== 'b' && q !== 'a') || !planMix)) return refuse(`draft/load: "${q}" cannot take these mixes`);
       // B opened from a plan that carries the person's fact of money taken flexibly (research/plan-start.md §2 J): kept with
       // the draft, so "Keep this as a plan" puts it on the plan made (effects/planWrite.js keep)
       const fa = action.flexibleAccess == null ? null : cleanFlexibleAccess(action.flexibleAccess);
@@ -694,10 +694,6 @@ function reduceAction(state, action) {
       return state.ui.railOpen === !!action.open ? state : { ...state, ui: { ...state.ui, railOpen: !!action.open } };
     case A.UI_ONLINE:
       return state.ui.online === !!action.online ? state : { ...state, ui: { ...state.ui, online: !!action.online } };
-    case A.UI_LEVEL: {
-      if (!['careful', 'balanced', 'bold'].includes(action.level)) return refuse(`ui/level: no level called "${action.level}"`);
-      return state.ui.level === action.level ? state : { ...state, ui: { ...state.ui, level: action.level } };
-    }
 
     // ---- the saved plans, read-only (research/v7/your-plan.md 3.8, 4.3): page memory only, never the draft ----------
     case A.SESSION_SET: {
@@ -772,14 +768,28 @@ function reduceAction(state, action) {
     case A.PLAN_SAVE: {
       const { planId } = action;
       if (typeof planId !== 'string' || !planId) return refuse('plan/save: needs a plan id');
+      // (step F2) `only`: a choice that saves at once writes its own boxes alone (the State Pension on "Money that comes in"),
+      // never the rest of the page as typed (lead4.md R3: a save writes only what the person changed)
+      const only = Array.isArray(action.only) && action.only.length && action.only.every((x) => isPlanEditPath(x)) ? [...action.only] : null;
       // (7.12.0) a box left with a change while a write is under way: saved straight after it (planWrite reads saveAgain)
-      if (state.ui.saving) return action.auto === true && state.ui.saveAgain !== planId ? { ...state, ui: { ...state.ui, saveAgain: planId } } : state;
+      if (state.ui.saving) {
+        if (action.auto !== true) return state;
+        if (state.ui.saveAgain !== planId) return { ...state, ui: { ...state.ui, saveAgain: planId, ...(only ? { saveAgainOnly: only } : {}) } };
+        // already queued: a whole-page save queued stays whole; two of the same boxes stay as they are
+        const queued = state.ui.saveAgainOnly || null;
+        const merged = !queued || !only ? null : [...new Set([...queued, ...only])];
+        return JSON.stringify(merged) === JSON.stringify(queued) ? state : { ...state, ui: { ...state.ui, saveAgainOnly: merged } };
+      }
       const pd = planDraftOf(state);
       const base = pd.id === planId ? pd : { ...emptyPlanDraft(), id: planId };
+      const unqueued = { ...(state.ui.saveAgain ? { saveAgain: null } : {}), ...(state.ui.saveAgainOnly ? { saveAgainOnly: null } : {}) };
       // a box left (auto, 7.12.0): the same one write, remembering what it sends — what is typed meanwhile stays; the other
       // boxes are not "asked" (their problems show once each is left, as before)
-      if (action.auto === true) return withPlanDraft({ ...state, ui: { ...state.ui, saving: { planId, kind: 'save', auto: true, sent: { ...base.values } }, ...(state.ui.saveAgain ? { saveAgain: null } : {}) } }, base);
-      return withPlanDraft({ ...state, ui: { ...state.ui, saving: { planId, kind: 'save' }, ...(state.ui.saveAgain ? { saveAgain: null } : {}), saveProblem: null, toast: null } }, { ...base, asked: true });
+      if (action.auto === true) {
+        const sent = only ? Object.fromEntries(Object.entries(base.values).filter(([k]) => only.includes(k))) : { ...base.values };
+        return withPlanDraft({ ...state, ui: { ...state.ui, saving: { planId, kind: 'save', auto: true, sent, ...(only ? { only } : {}) }, ...unqueued } }, base);
+      }
+      return withPlanDraft({ ...state, ui: { ...state.ui, saving: { planId, kind: 'save' }, ...unqueued, saveProblem: null, toast: null } }, { ...base, asked: true });
     }
     case A.PLAN_SAVE_NONE: {
       // (7.12.0) a box left with nothing ready to save (no change, or a box with a problem, said beside it): the write ends
@@ -1428,22 +1438,21 @@ function reduceAction(state, action) {
       const keepOld = V.result && V.key && V.key.split(':')[1] === action.key.split(':')[1];
       return { ...state, saver: { key: action.key, status: 'working', result: keepOld ? V.result : null, reason: null } };
     }
-    case A.SAVER_FIRST:
     case A.SAVER_FINAL: {
       const V = state.saver || emptySaver();
-      if (action.key !== V.key || !(V.status === 'working' || (action.type === A.SAVER_FINAL && V.status === 'first'))) return state;   // stale
+      if (action.key !== V.key || V.status !== 'working') return state;   // stale
       if (!action.result || typeof action.result !== 'object') return refuse(action.type + ': needs a result');
-      return { ...state, saver: { ...V, status: action.type === A.SAVER_FINAL ? 'final' : 'first', result: action.result, reason: null } };
+      return { ...state, saver: { ...V, status: 'final', result: action.result, reason: null } };
     }
     case A.SAVER_FAILED: {
       const V = state.saver || emptySaver();
-      if (action.key !== V.key || !(V.status === 'working' || V.status === 'first')) return state;   // stale
+      if (action.key !== V.key || V.status !== 'working') return state;   // stale
       return { ...state, saver: { ...V, status: 'failed', reason: action.reason === 'noWorker' ? 'noWorker' : null } };
     }
     case A.SAVER_ENDED: {
       // (7.12.0) ended as its page was left: no longer under way (nothing else waits on it), asked again when it is wanted
       const V = state.saver || emptySaver();
-      if (V.key !== action.key || !(V.status === 'working' || V.status === 'first')) return state;
+      if (V.key !== action.key || V.status !== 'working') return state;
       return { ...state, saver: { ...V, status: 'idle' } };
     }
     case A.SAVER_RETRY: {
@@ -1882,6 +1891,13 @@ function reduceAction(state, action) {
       return withPlanDraft({ ...state, checkIn: emptyCheckIn(), ui: { ...state.ui, saving: { planId, kind: 'checkIn' }, saveProblem: null, toast: null } }, { ...base, asked: true });
     }
     // ---- Month by month (research/v7/months-in-v7.md §3, 7.2.0): "Record" and "Set up 2026/27" ------------------------------
+    // "Set this year up again" (step F2, lead4.md D7): one write, nothing typed
+    case A.PLAN_TAX_YEAR_AGAIN: {
+      const { planId } = action;
+      if (typeof planId !== 'string' || !planId) return refuse(action.type + ': needs a plan id');
+      if (state.ui.saving) return state;
+      return { ...state, ui: { ...state.ui, saving: { planId, kind: 'taxYearAgain' }, saveProblem: null, toast: null } };
+    }
     case A.PLAN_MONTH_RECORD:
     case A.PLAN_TAX_YEAR: {
       const { planId } = action;

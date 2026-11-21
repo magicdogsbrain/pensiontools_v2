@@ -9,7 +9,7 @@
  * Until 7.12.0 a mark sat on the whole line (LINE_FACTS); it now sits on the figure.
  */
 
-import { GILTS_HELD_FIND, LASTS_FINDS } from '../../reading/sentenceMarks.js';
+import { GILTS_HELD_FIND, LASTS_FINDS, THIS_YEAR_FROM_FIND, THIS_YEAR_ON_FIND, STEP_FINDS, DOC_LASTS_FINDS, POT_FROM_FIND } from '../../reading/sentenceMarks.js';
 
 /** The words under "Does it last?" (OneAnswer's weighted words), marked as the full view marks them: a row id → its finds. */
 const LASTS_ROW_FINDS = Object.freeze({ floorW: LASTS_FINDS.floor, leftW: LASTS_FINDS.left, assumedW: LASTS_FINDS.assumed, fixedW: LASTS_FINDS.fixed });
@@ -21,10 +21,29 @@ export const lastsRowFindsOf = (id) => LASTS_ROW_FINDS[id] || null;
 const FIGURES = Object.freeze({
   'about.age:ageToday': 'age.today',
   'about.runs:ageEnd': 'plan.endAge',
-  'where.pot:pot': 'pot.today',
+  'where.pot:pot': 'pot.againstPlan',
+  'where.pot:potPension': 'pot.today',
+  'where.pot:potIsa': 'isa.today',
+  'where.potParts:potPension': 'pot.today',
+  'where.potParts:potIsa': 'isa.today',
   'where.saverPot:actual': 'pot.today',
+  'where.saverUnlisted:pension': 'pot.today',
+  'where.saverUnlisted:isa': 'isa.today',
+  'where.saverPot:potAgainst': 'pot.againstPlan',
+  'where.potMid:potMid': 'pot.planMiddle',
+  'where.potLow:potLow': 'pot.planLow',
+  'where.saverPot:potPension': 'pot.today',
+  'where.saverPot:potIsa': 'isa.today',
   'where.taken:drawn': 'taken.againstPlan',
+  'where.planYear:planYear': 'plan.year',
+  'where.planYear:planYears': 'plan.years',
+  'where.ladder:ladderMonthly': 'ladder.monthly',
   'where.retired:drawn': 'taken.againstPlan',
+  'where.yearChanged:planYear': 'income.thisYear.planSays',
+  'where.yearChanged:yearMonthly': 'income.thisYear.perMonth',
+  'where.yearPlan:yearMonthly': 'income.thisYear.perMonth',
+  'where.yearPlan:yearTotal': 'income.thisYear.total',
+  'where.yearChanged:setUpYear': 'income.thisYear.beforeTax',
   'hold.summary:pension': 'holdings.sipp',
   'hold.summary:isa': 'holdings.isa',
   'hold.summary:gia': 'holdings.gia',
@@ -51,7 +70,9 @@ const FIGURES = Object.freeze({
 /** Figures numbered by their place in a list: `${lineId}:${prefix}` → the fact pattern with `#` for the number. */
 const NUMBERED = Object.freeze({
   'income.lump:lump': 'lump.#.amount',
-  'pays.step:step': 'income.step.#.beforeTax'
+  'pays.step:step': 'income.step.#.beforeTax',
+  'where.step:step': 'income.step.#.beforeTax',
+  'where.step:from': 'income.step.#.fromAge'
 });
 
 export function figureFactOf(lineId, key) {
@@ -72,7 +93,13 @@ const FINDS = Object.freeze({
   'move.gilts': [[GILTS_HELD_FIND, 'gilts.held']],
   'move.giltsPart': [[GILTS_HELD_FIND, 'gilts.held']],
   'lock.locked': [[/^(Locked)\b/, 'lock.state'], [/^Locked (.+)$/, 'lock.date']],
-  'lock.notLocked': [[/^(Not locked)/, 'lock.state']]
+  'lock.notLocked': [[/^(Not locked)/, 'lock.state']],
+  'where.yearPlan': [[THIS_YEAR_FROM_FIND, 'income.thisYear.from'], [THIS_YEAR_ON_FIND, 'income.thisYear.setUpOn']],
+  'where.yearChanged': [[THIS_YEAR_ON_FIND, 'income.thisYear.setUpOn']],
+  'where.step': STEP_FINDS,
+  'where.saverUnlisted': [[POT_FROM_FIND, 'pot.today.asOf']],
+  'says.bad': DOC_LASTS_FINDS,
+  'says.badContract': DOC_LASTS_FINDS
 });
 export const sentenceFindsOf = (id) => FINDS[id] || [];
 
@@ -84,23 +111,28 @@ const SLOTS = Object.freeze({
   'about.monthAs': { month: 'stop.month' },
   'about.runs': { endAge: 'plan.endAge' },
   'lasts.left': { pounds: 'left.typically', typical: 'left.typically', bad: 'left.badCase', good: 'left.goodCase' },
+  'lasts.coverW': { pct: 'lasts.coverage' },
+  'lasts.worst12W': { worst: 'lasts.worst12' },
+  'lasts.leftBadW': { bad: 'left.badCase' },
+  'lasts.ran.market': { label: 'market.gilts' },
   'pots.pots.today': { pension: 'pot.today', isa: 'isa.today' },
   'pots.pots.todayTaxable': { pension: 'pot.today', isa: 'isa.today', taxable: 'gia.today' },
-  'pots.stop.typed': { sipp: 'pot.atStop' },
   'pots.stop.projection': { sipp: 'pot.atStop' },
-  'pots.stop.answer': { sipp: 'pot.atStop' },
+  'pots.stop.band': { low: 'pot.atStop.low', sipp: 'pot.atStop', high: 'pot.atStop.high' },
+  'pots.stop.locked': { sipp: 'pot.atStop' },
   'income.sp.assumed': { yearly: 'statePension.amount', age: 'statePension.age' },
   'income.sp.assumedNoAge': { yearly: 'statePension.amount' },
   'income.sp.paid': { yearly: 'statePension.amount', age: 'statePension.age' },
   'income.sp.noDate': { yearly: 'statePension.amount', age: 'statePension.age' },
   'income.sp.noDateNoAge': { yearly: 'statePension.amount' },
-  'income.sp.before': { yearly: 'statePension.amount' },
+  'income.sp.before': { yearly: 'statePension.amount', date: 'statePension.start' },
   'home.headline.savingStop': { month: 'stop.month' },
   'home.moveWindow': { stop: 'stop.month' },
   'saving.ages': { month: 'stop.month', span: 'yearsToGo', from: 'age.today' },
   'saving.agesNoMonth': { span: 'yearsToGo', from: 'age.today' },
   'saving.potNow': { value: 'pot.today' },
-  'saving.atStop': { value: 'pot.atStop' }
+  'saving.atStop': { value: 'pot.atStop', low: 'pot.atStop.low', high: 'pot.atStop.high' },
+  'saving.verdict.aim': { aimYearly: 'income.step.0.beforeTax', aimMonthly: 'income.step.0.monthAfterTax' }
 });
 
 /** Numbered lines: the slot `n` (1-based) names the pension the line is about. */

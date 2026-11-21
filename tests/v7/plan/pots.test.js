@@ -29,12 +29,18 @@ import { createSimulationConfigFromSettings } from '../../../src/storage/StressR
 import { runPositionOf } from '../../../src/services/PlanFromToday.js';
 import { deriveTiming } from '../../../src/services/PlanTiming.js';
 import { POTS } from '../../../src/v7/copy/pots.js';
+import { pensionToday, isaToday, giaToday, pensionBoxOf } from '../../../src/reading/money.js';
+import { potAtStop } from '../../../src/reading/atStop.js';
+import { money, moneyK } from '../../../src/reading/format.js';
 import { PLAN } from '../../../src/v7/copy/plan.js';
 import { corpus, entriesAt, entryOf, household, DATES, TODAY, noon } from './_plans.js';
 
 const C = corpus();
 const text = (v) => JSON.stringify(v);
 const strip = (plan) => { const out = JSON.parse(JSON.stringify(plan)); for (const p of ALL_WRITES) { const parts = p.split('.'); let o = out; for (let i = 0; i < parts.length - 1 && o; i++) o = o[parts[i]]; if (o) delete o[parts[parts.length - 1]]; } return out; };
+// the first pension typed on a plan with none is written as its pension today (accumulationTool.settings/.history, as the full
+// view's pot box writes it): a plan that had no accumulationTool keeps the empty holder the write made, which reads as nothing
+const noEmptyHolder = (plan) => { const out = JSON.parse(JSON.stringify(plan)); if (out.accumulationTool && typeof out.accumulationTool === 'object' && !Object.keys(out.accumulationTool).length) delete out.accumulationTool; return out; };
 const isLocked = (p) => !!(p.decisionTool && p.decisionTool.settings && p.decisionTool.settings.locked);
 // a draft saved with a later start (7.4.0) is written with its reading by every save (moveStart.withLaterDraft, tested in
 // tests/laterStart.test.js): the pure step writer alone is not its whole save, so it is left out here
@@ -64,7 +70,12 @@ describe('T1 — the reading, on every corpus plan at three dates', () => {
         const s = savedPots(e.plan, { today });
         const ss = effectiveStressSettings(e.plan, { now: noon(today) });
         if (!a.locked) {
-          expect(s.values.pension).toBe(sippTodayOf(ss));
+          // the pension box is the one reading's (step F1, lead4.md D3): the pension today on a saver's plan, the plan's own
+          // pots (what its runs start from) on a plan drawing, nothing (an empty box) when no pension is known
+          const box = pensionBoxOf(e.plan, { now: noon(today), settings: ss });
+          if (!s.fundsMode) expect(s.values.pension).toBe(box.value == null ? 0 : box.value);
+          if (!s.fundsMode && box.today) expect(s.values.pension).toBe(Math.round(pensionToday(e.plan, { now: noon(today), settings: ss }).value));
+          else if (box && box.value != null) expect(s.values.pension).toBe(sippTodayOf(ss));
           expect(s.values.charges).toBe(chargesPctOf(ss));
           expect(s.values.isaGrowth).toBe(isaGrowthOf(ss));
           expect({ pa: s.values.pa, brl: s.values.brl, hrl: s.values.hrl }).toEqual(bandsOf(ss));
@@ -81,9 +92,11 @@ describe('T1 — the reading, on every corpus plan at three dates', () => {
     expect(boxesOf(entryOf(LUMPY).plan, { today: TODAY })).toEqual({ pension: '440000', isa: '60000', isaGrowth: 'cash', isaUse: 'minimiseEarlyTax', taxable: '85000', taxableMix: 'balanced', giaBand: 'higher', earnings: '12000', bedAndIsa: 'yes', charges: '0.5', pa: '12570', brl: '50270', hrl: '125140', taxMode: 'inflates', taxFree: 'drawdown', ufplsThenIsa: 'no', bandFill: 'no' });
     const v = potsOf(entriesAt(TODAY), LUMPY.id, { today: TODAY });
     expect(v.derived.map((d) => d.id)).toEqual(['pots.todayTaxable', 'pots.split', 'isa.cash', 'isa.use.minimiseEarlyTax', 'charges.some', 'tax.bands', 'tax.free.drawdown', 'tax.saves']);
-    expect(v.derived[0].slots).toEqual({ pension: '£440,000', isa: '£60,000', taxable: '£85,000' });
+    // (step F1, lead4.md D3) the money today every page says (src/reading/money.js: What you hold here), not the boxes' figures
+    const rd = { now: noon(TODAY) };
+    expect(v.derived[0].slots).toEqual({ pension: money(pensionToday(entryOf(LUMPY).plan, rd).value), isa: money(isaToday(entryOf(LUMPY).plan, rd).value), taxable: money(giaToday(entryOf(LUMPY).plan, rd).value) });
     expect(v.derived[1].slots).toEqual({ shares: '£280,000', bonds: '£120,000', cash: '£40,000', div: '' });
-    expect(v.fields.find((f) => f.path === 'stopSipp').applies).toBe(false);
+    expect(v.fields.find((f) => f.path === 'stopSipp')).toBeUndefined();   // no box for the pots at the stop (step F1)
     expect(v.fields.find((f) => f.path === 'taxableMix').applies).toBe(true);
     expect(v.fields.find((f) => f.path === 'ufplsYears').applies).toBe(false);
     expect(v.savedLine).toEqual({ id: 'pots', slots: { pension: '£440,000', isa: '£60,000', charges: '0.5' } });
@@ -93,15 +106,14 @@ describe('T1 — the reading, on every corpus plan at three dates', () => {
   it('the saver (10): stopping later, the planner\'s own projection at the stop is shown and the boxes are blank; a fresh plan (01): no ordinary account, so its mix and band are not asked', () => {
     const s = savedPots(entryOf(SAVER).plan, { today: TODAY });
     expect(s.later).toBe(true);
-    expect(s.values.stopSipp).toBe(null);
-    // 7.12.0: the pots at the stop are worked out from the saver's facts, as every reader reads them (PlanReading)
-    const worked = effectiveStressSettings(entryOf(SAVER).plan, { now: noon(TODAY) }).potAtRetirement;
+    // (step F1, lead4.md D4) the pots at the stop: the one model (src/reading/atStop.js), never a box
+    const worked = potAtStop(entryOf(SAVER).plan, { now: noon(TODAY) });
     expect(worked.source).toBe('worked');
-    expect(s.par).toEqual(worked);
+    expect(s.atStop).toEqual(worked);
     const v = potsOf(entriesAt(TODAY), SAVER.id, { today: TODAY });
-    expect(v.fields.find((f) => f.path === 'stopSipp').applies).toBe(true);
-    const k1 = (n) => '£' + (Math.round(n / 1000) * 1000).toLocaleString('en-GB');
-    expect(v.derived.find((d) => d.id === 'stop.projection').slots).toEqual({ sipp: k1(worked.sipp), isa: k1(worked.isa) });
+    expect(v.fields.find((f) => f.path === 'stopSipp')).toBeUndefined();
+    expect(v.derived.find((d) => d.id === 'stop.projection').slots).toEqual({ sipp: moneyK(worked.middle), isa: moneyK(worked.isa) });
+    expect(v.derived.find((d) => d.id === 'stop.band').slots).toEqual({ low: moneyK(worked.low), sipp: moneyK(worked.middle), high: moneyK(worked.high) });
     const f = potsOf(entriesAt(TODAY), FRESH.id, { today: TODAY });
     expect(f.fields.find((f) => f.path === 'taxableMix').applies).toBe(false);
     expect(f.derived.map((d) => d.id)).toContain('pots.today');
@@ -114,7 +126,8 @@ describe('T1 — the reading, on every corpus plan at three dates', () => {
     expect(l.pinned).toEqual({ sipp: 640000, isa: 35000 });
     expect(l.values).toMatchObject({ pension: 640000, isa: 35000, isaUse: 'minimiseEarlyTax', charges: 0, pa: 12570 });
     const v = potsOf(entriesAt(TODAY), C['20-locked-start-after-stop'].id, { today: TODAY });
-    expect(v.notUsed).toEqual(['taxFree', 'ufplsYears', 'ufplsThenIsa', 'bandFill', 'earnings', 'bedAndIsa']);
+    // (step F2, D6) how the tax-free part is taken is read for every way of drawing (each "a year before tax"): never "not used"
+    expect(v.notUsed).toEqual(['ufplsYears', 'ufplsThenIsa', 'bandFill', 'earnings', 'bedAndIsa']);
     expect(v.useNotes).toMatchObject({ pension: 'pinned', isa: 'pinned', isaGrowth: 'isaGrowthLocked' });   // locked before the choice: that note wins over the bought one
     expect(v.derived.map((d) => d.id)).toContain('pots.pinned');
     expect(v.derived.map((d) => d.id)).toContain('isa.use.minimiseEarlyTax');
@@ -206,11 +219,19 @@ describe('T1 — the write: the planner\'s keys, as its Save writes them', () =>
     expect(fresh.stressTool.settings.taxableStart).toBeUndefined();
     expect(fresh.stressTool.settings.accessMethod).toBeUndefined();
     expect(fresh.stressTool.settings.bedAndIsa).toBeUndefined();
-    const same = potsPatch(fresh, { taxable: '0', bedAndIsa: 'yes', taxFree: 'drawdown', bandFill: 'no', earnings: '0' }, { today: TODAY });
+    // (step F2, lead4.md D6) nothing chosen reads as the one default rule: a quarter of each payment tax-free
+    const same = potsPatch(fresh, { taxable: '0', bedAndIsa: 'yes', taxFree: 'ufpls', bandFill: 'no', earnings: '0' }, { today: TODAY });
     expect(same.patch).toEqual({});
-    const chosen = potsPatch(fresh, { bedAndIsa: 'no', taxFree: 'ufpls', earnings: '20,000' }, { today: TODAY });
-    expect(chosen.patch).toEqual({ [S + 'bedAndIsa']: false, [S + 'accessMethod']: 'ufpls', [S + 'relevantEarnings']: 20000 });
+    const chosen = potsPatch(fresh, { bedAndIsa: 'no', taxFree: 'drawdown', earnings: '20,000' }, { today: TODAY });
+    expect(chosen.patch).toEqual({ [S + 'bedAndIsa']: false, [S + 'accessMethod']: 'drawdown', [S + 'relevantEarnings']: 20000 });
     expect(chosen.previous).toEqual({ [S + 'bedAndIsa']: undefined, [S + 'accessMethod']: undefined, [S + 'relevantEarnings']: undefined });
+    // (step F2, D2) the rule's value is an assumption, said as one ("We assumed …"): the tax-free boxes are not "from your plan,
+    // saved"; once chosen, they are
+    const shownOf = (plan) => potsOf([{ plan }], plan.id, { today: TODAY }).fields.filter((f) => ['taxFree', 'ufplsYears', 'ufplsThenIsa'].includes(f.path));
+    expect(shownOf(fresh).map((f) => [f.path, f.assumed])).toEqual([['taxFree', true], ['ufplsYears', true], ['ufplsThenIsa', true]]);
+    expect(potsOf([{ plan: fresh }], fresh.id, { today: TODAY }).fields.filter((f) => f.assumed).map((f) => f.path)).toEqual(['taxFree', 'ufplsYears', 'ufplsThenIsa']);
+    const madeChoice = applyPatch(fresh, potsPatch(fresh, { taxFree: 'drawdown' }, { today: TODAY }).patch);
+    expect(shownOf(madeChoice).map((f) => f.assumed)).toEqual([false, false, false]);
     // the migration gave the unlocked plan its charge and its ISA choice: the box shows them, and the same value writes nothing
     expect(fresh.stressTool.settings.chargesPct).toBe(0.5);
     expect(fresh.stressTool.settings.isaGrowth).toBe('cash');
@@ -219,34 +240,22 @@ describe('T1 — the write: the planner\'s keys, as its Save writes them', () =>
     const after = applyPatch(fresh, chosen.patch);
     expect(text(applyPatch(after, chosen.previous))).toBe(text(fresh));
   });
-  it('pots at the stop, typed: the planner\'s own object; blanked, a typed override goes back to null and the page says so; a projection is left alone', () => {
+  it('the pots at the stop are never typed or written here (step F1, lead4.md D4): a stored figure is not read, and none is written', () => {
     const saver = entryOf(SAVER).plan;
-    const p = potsPatch(saver, { stopSipp: '300,000' }, { today: TODAY });
-    expect(p.patch).toEqual({ [S + 'potAtRetirement']: { sipp: 300000, isa: null, source: 'override' } });
-    const after = applyPatch(saver, p.patch);
-    expect(savedPots(after, { today: TODAY }).values).toMatchObject({ stopSipp: 300000, stopIsa: null });
-    expect(boxesOf(after, { today: TODAY })).toMatchObject({ stopSipp: '300000' });
-    expect(boxesOf(after, { today: TODAY }).stopIsa).toBeUndefined();
-    // the engines scale today's pots to it, as the planner's Timing block does
-    const ss = effectiveStressSettings(after, { now: noon(TODAY) });
-    expect(potScaleOf(ss).sipp).toBeCloseTo(300000 / sippTodayOf(ss), 9);
-    expect(potsOf([{ plan: after }], after.id, { today: TODAY }).derived.find((d) => d.id === 'stop.typed').slots).toEqual({ sipp: '£300,000', isa: 'none typed' });
-    // both blank again: null (the planner's own fallback without a projection), and the line says what that means
-    const back = potsPatch(after, { stopSipp: '' }, { today: TODAY });
-    expect(back.patch).toEqual({ [S + 'potAtRetirement']: null });
-    expect(potsOf([{ plan: after }], after.id, { today: TODAY, typed: { stopSipp: '' } }).derived.map((d) => d.id)).toContain('stop.blanked');
-    // a stored projection with blank boxes is left exactly as it is
-    expect(potsPatch(saver, { isa: '9000' }, { today: TODAY }).patch).toEqual({});
-    expect(potsPatch(saver, { stopIsa: '12,000' }, { today: TODAY }).patch).toEqual({ [S + 'potAtRetirement']: { sipp: null, isa: 12000, source: 'override' } });
-    // a plan that has stopped: the boxes are not drawn and nothing is written for them
-    expect(potsPatch(plan, { stopSipp: '1' }, { today: TODAY }).patch).toEqual({});
-  });
-  it('a plan made from a preview answer shows the answer\'s own middling and bad-case pots at the stop, never computed here', () => {
-    const seeded = JSON.parse(JSON.stringify(entryOf(SAVER).plan));
+    expect(potsPatch(saver, { stopSipp: '300,000' }, { today: TODAY }).patch).toEqual({});
+    const stored = { ...saver, stressTool: { ...saver.stressTool, settings: { ...saver.stressTool.settings, potAtRetirement: { sipp: 300000, isa: null, source: 'override' } } } };
+    expect(potsOf([{ plan: stored }], stored.id, { today: TODAY }).derived).toEqual(potsOf([{ plan: saver }], saver.id, { today: TODAY }).derived);
+    // a plan made from an answer: the answer's own figures are not said as the pot at the stop either
+    const seeded = JSON.parse(JSON.stringify(saver));
     seeded.fromAnswer = { savedOn: '2026-09-20T10:00:00.000Z', answer: { lasted: 9 }, who: 'you', people: [{ who: 'you', ageToday: 58, ageAtStop: 62, years: 32, stop: { kind: 'later', yearsFromNow: 4 }, pension: { today: 221000, atStop: { careful: 260000, middling: 300000 } }, savings: { today: 9000, atStop: { careful: 11000, middling: 14000 } } }] };
-    const v = potsOf([{ plan: seeded }], seeded.id, { today: TODAY });
-    expect(v.derived.find((d) => d.id === 'stop.answer').slots).toEqual({ sipp: '£300,000', sippBad: '£260,000', isa: '£14,000', isaBad: '£11,000' });
-    expect(v.derived.map((d) => d.id)).not.toContain('stop.none');
+    expect(potsOf([{ plan: seeded }], seeded.id, { today: TODAY }).derived.map((d) => d.id)).not.toContain('stop.answer');
+  });
+  it('a saver\'s pension typed here is the pension today everywhere: the saved pot and this month\'s record, as the full view writes it', () => {
+    const saver = entryOf(SAVER).plan;
+    const p = potsPatch(saver, { pension: '333,000' }, { today: TODAY });
+    expect(p.ok).toBe(true);
+    const after = applyPatch(saver, p.patch);
+    expect(pensionToday(after, { now: noon(TODAY) }).value).toBe(333000);
   });
   it('a locked plan: no patch, whatever is typed', () => {
     expect(potsPatch(entryOf(C['20-locked-start-after-stop']).plan, { pension: '1' }, { today: TODAY })).toEqual({ ok: false, errors: { plan: 'locked' }, patch: {}, previous: {} });
@@ -275,8 +284,6 @@ describe('T1 — the write: the planner\'s keys, as its Save writes them', () =>
     expect(errs({ taxFree: 'ufpls', ufplsYears: '' })).toEqual({});
     expect(errs({ taxFree: 'drawdown', ufplsYears: 'x' })).toEqual({});
     expect(errs({ bandFill: 'maybe' })).toEqual({ bandFill: 'notAnOption' });
-    expect(errs({ stopSipp: '1' })).toEqual({});   // not drawn on a plan that has stopped
-    expect(checkPots(entryOf(SAVER).plan, { stopSipp: '0' }, { today: TODAY }).errors).toEqual({ stopSipp: 'tooLow' });
     for (const [k, e] of Object.entries(errs({ pension: '', isaGrowth: '', charges: '3.5', brl: '12,000', hrl: '1', taxFree: 'ufpls', ufplsYears: '61' }))) expect(POTS.errors[k][e], k).toBeTypeOf('string');
     expect(potsPatch(plan, { pension: '' }, { today: TODAY }).patch).toEqual({});
   });
@@ -343,7 +350,7 @@ describe('T1 — properties: read∘write∘read is identity; only declared keys
       for (const k of Object.keys(p.patch)) { expect(POTS_WRITES).toContain(k); expect(ABOUT_WRITES).not.toContain(k); expect(INCOME_WRITES).not.toContain(k); expect(SPEND_WRITES).not.toContain(k); }
       expect(Object.keys(p.previous).sort()).toEqual(Object.keys(p.patch).sort());
       const after = applyPatch(plan, p.patch);
-      expect(text(strip(after))).toBe(text(strip(plan)));
+      expect(text(noEmptyHolder(strip(after)))).toBe(text(noEmptyHolder(strip(plan))));
       // read again: every box holds what was typed (the saved value where nothing was typed)
       const read = savedPots(after, { today: TODAY });
       const bx = boxesOf(after, { today: TODAY });
@@ -357,7 +364,11 @@ describe('T1 — properties: read∘write∘read is identity; only declared keys
       }
       // the planner's own readers see the same
       const ss = effectiveStressSettings(after, { now: noon(TODAY) });
-      expect(sippTodayOf(ss)).toBe(read.values.pension);
+      // the pension box as both views fill it (src/reading/money.js pensionBoxOf): a saver's runs grow the pension today
+      const box = pensionBoxOf(after, { now: noon(TODAY), settings: ss });
+      if (read.pensionNotSet) expect(ss.potsNotSet).toBe(true);
+      else if (box.today) expect(Math.round(pensionToday(after, { now: noon(TODAY), settings: ss }).value)).toBe(read.values.pension);
+      else expect(sippTodayOf(ss)).toBe(read.values.pension);
       expect(chargesPctOf(ss)).toBe(read.values.charges);
       expect(isaGrowthOf(ss)).toBe(read.values.isaGrowth);
       expect(bandsOf(ss)).toEqual({ pa: read.values.pa, brl: read.values.brl, hrl: read.values.hrl });
@@ -376,7 +387,7 @@ describe('T1 — properties: read∘write∘read is identity; only declared keys
       // writing the read boxes again changes nothing; Undo: the previous values back, byte for byte
       expect(potsPatch(after, {}, { today: TODAY }).patch).toEqual({});
       expect(potsPatch(after, boxesOf(after, { today: TODAY }), { today: TODAY }).patch).toEqual({});
-      expect(text(applyPatch(after, p.previous))).toBe(text(plan));
+      expect(text(noEmptyHolder(applyPatch(after, p.previous)))).toBe(text(plan));
     }), { numRuns: 120 });
   });
 });
@@ -433,7 +444,8 @@ describe('T1 — the sub-step, the address and the plan page\'s section', () => 
     for (const p of ['pots', 'pension.x', 'equityMin', 'chargesPct', 'first.amount', 'steps.ids']) expect(isPotsPath(p), p).toBe(false);
     expect(isPlanEditPath('charges')).toBe(true);
     expect(isPlanEditPath('first.amount')).toBe(true);
-    for (const p of POTS_WRITES) expect(p).toMatch(/^stressTool\.settings\.[a-zA-Z]+$/);
+    // the planner's Stress keys, and (step F1) a saver's pension today, written as "What you pay in" writes it
+    for (const p of POTS_WRITES) expect(p).toMatch(/^stressTool\.settings\.[a-zA-Z]+$|^accumulationTool\.(settings|history)$/);
     expect(ALL_WRITES).toEqual([...new Set([...ABOUT_WRITES, ...INCOME_WRITES, ...SPEND_WRITES, ...POTS_WRITES, ...LASTS_WRITES, ...LOCK_WRITES, ...UNLOCK_WRITES, ...DOCUMENT_WRITES, ...WAY_WRITES, ...MIX_WRITES, ...HOUSEHOLD_WRITES, 'holdings', 'transition', 'planAmendments', 'budgetTool.settings', 'accumulationTool.settings', 'accumulationTool.history', 'accumulationTool.checkIns', 'accumulationTool.checkInEvery', 'accumulationTool.path', 'accumulationTool.pathArchive', 'decisionTool.history', 'decisionTool.taxYears', 'journey', ...PLANS_WRITES, ...LATER_DRAFT_WRITES, ...CLOSE_WRITES, 'phases', 'tasks', 'decisionTool.recordMonths', 'lastModified'])]);   // the record and the tick-offs, each one field (road-to-7.md step 10); the plan menu's name and main flag (step 11); the whole budget, the Accumulation settings and the pot record list (step 11b)
     expect(new Set(ALL_WRITES).size).toBe(ALL_WRITES.length);
   });

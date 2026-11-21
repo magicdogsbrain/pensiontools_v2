@@ -9,7 +9,7 @@
  * new tab's is, and the app opened afresh; the sign-in is the browser's and stays) asks B again. Run with the signed-in journeys (the emulator build),
  * at desktop-1440 and phone-390.
  */
-import { test, expect, PROD, WORKER_DATA_MISSING } from '../helpers/app.js';
+import { test, expect, PROD } from '../helpers/app.js';
 import { clearEmulators, makeAccount, putSettings, plansOf, SAM } from './emulator.js';
 import { answer, keep, signIn, openAt } from './journeys.js';
 import { VERSION } from '../../src/constants.js';
@@ -17,7 +17,6 @@ import { VERSION } from '../../src/constants.js';
 test('B asked again in a new tab: "Use these in ‘…’" leads, updates the plan kept, and the plans stay one', async ({ page, watch }) => {
   test.setTimeout(420_000);
   await clearEmulators();
-  watch.allow(WORKER_DATA_MISSING);
   const { uid } = await makeAccount(SAM);
   await putSettings(uid, { lastSeenVersion: VERSION });
   await openAt(page, '#/account');

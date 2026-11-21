@@ -26,9 +26,17 @@ describe('the line above the runs', () => {
     const S = plan.stressTool.settings;
     expect(startsScaled(S)).toBe(true);
     const cfg = createSimulationConfigFromSettings({}, S);
-    const text = plain(startSummaryHtml(S, { fromAnswer: plan.fromAnswer }));
-    expect(text).toContain(`Starting balances at retirement (age 60), as every run uses them: Equity ${fmt(cfg.equityStart)} · Bond ${fmt(cfg.bondStart)} · Cash ${fmt(cfg.cashStart)} (pension £341,000) · ISA ${fmt(cfg.isaBalance)}.`);
-    expect(text).toContain('These are your Settings pots today (pension £250,000, ISA £20,000) scaled to the pots at retirement in the Timing block.');
+    // (step F1, lead4.md D4) the reading's pot at the stop, to £1,000 and marked, and its pension today — never a sum of the
+    // pots to the pound beside it; nothing said until the reading is in
+    const at = { middle: cfg.equityStart + cfg.bondStart + cfg.cashStart, low: null, high: null, isa: cfg.isaBalance, age: 60, source: 'worked', from: { pot: 250000, monthly: 900 } };
+    const html = startSummaryHtml(S, { fromAnswer: plan.fromAnswer, atStop: at });
+    const text = plain(html);
+    expect(text).toContain(`Starting balances at retirement (age 60), as every run uses them: your Settings split of shares, bonds and cash, grown to the middling case (pension £341,000) · ISA £${(Math.round(cfg.isaBalance / 1000) * 1000).toLocaleString('en-GB')}.`);
+    expect(text).toContain('Worked out from your pension today (£250,000) and £900 a month going in. Change what goes in on the Accumulation tab.');
+    expect(html).toContain('data-fact="pot.atStop">£341,000<');
+    expect(html).toContain('data-fact="pot.today">£250,000<');
+    expect(text).not.toContain(fmt(cfg.equityStart));
+    expect(plain(startSummaryHtml(S, { fromAnswer: plan.fromAnswer }))).toContain('as every run uses them: your pots when you stop, from the Timing block.');
     // (7.12.0) a plan still saving: "Will it last?" leads with the saving chance worked out now, so the kept answer's is not said
     expect(text).not.toContain('This plan was made from a quick answer');
     expect(text).not.toMatch(/Fund Minimums/);
@@ -42,21 +50,21 @@ describe('the line above the runs', () => {
     expect(plain(startSummaryHtml({ equityMin: 1, bondMin: 2, cashTarget: 3 }))).toBe('Starting balances come from your Settings (Fund Minimums): Equity £1 · Bond £2 · Cash £3. Edit them in the Settings tab.');
     expect(plain(startSummaryHtml({ ...S, spWeeklyAmount: 241.3, spStartDate: '2031-10-01' }, { fromAnswer: plan.fromAnswer }))).toContain('These runs are the planner\'s own test, so they can differ.');
   });
-  it('the State Pension note is kept as it was', () => {
-    expect(plain(startSummaryHtml({ equityMin: 1, bondMin: 2, cashTarget: 3, statePension: 12000, spStartDate: null, shapeAgeNow: 60 }))).toMatch(/State Pension not entered — assuming £12,000\/yr from age 67 \(plan year 7\)/);
+  it('an assumed State Pension is said in the words both views use, from the reading (step F2)', () => {
+    const sp = { assumed: true, year: 12000, startAge: 67 };
+    expect(plain(startSummaryHtml({ equityMin: 1, bondMin: 2, cashTarget: 3 }, { sp }))).toContain('State Pension: we assumed £12,000 a year before tax from age 67, as none was entered. Change it: choose the full amount, your forecast, or none.');
+    expect(plain(startSummaryHtml({ equityMin: 1, bondMin: 2, cashTarget: 3, statePension: 12000 }))).not.toContain('assum');
   });
 });
 
-describe('the Timing block\'s line', () => {
-  const p = { sipp: 473935, isa: 36702, low: 378650, high: 594021, hasContributions: true };
-  it('pots at retirement in the boxes: THOSE price every strategy; the projection is for comparison', () => {
-    const t = plain(potsAtRetirementLine(p, { sipp: 493164, isa: 37694 }));
-    expect(t).toBe('Every strategy is priced on the pots at retirement in the boxes below: SIPP £493,164 · ISA £37,694 (today\'s money). For comparison, the planner\'s own projection, middle band with your Accumulation planner contributions: SIPP £473,935 (cautious £378,650, strong £594,021) · ISA £36,702. The pots below are what the strategy is tested on — record what you hold on the Transition tab.');
-    expect(plain(potsAtRetirementLine(p, { sipp: 493164, isa: 0 }))).toMatch(/^Every strategy is priced on the pots at retirement in the boxes below: SIPP £493,164 \(today's money\)\./);
+describe('the Timing block\'s line (step F1: the reading\'s pot at the stop, never the boxes)', () => {
+  const worked = { middle: 473935, low: 378650, high: 594021, isa: 36702, age: 62, source: 'worked', from: { pot: 250000, monthly: 900 } };
+  it('worked out: the middle to £1,000 with its bad and good cases, from the pension today and what goes in', () => {
+    expect(plain(potsAtRetirementLine(worked))).toBe('Pots when you stop, in today\'s money: pension £474,000 in a middling case (£379,000 at the low end, £594,000 at the high end) · ISAs and savings £37,000. Worked out from your pension today (£250,000) and £900 a month going in, to age 62, over the same futures as every test. Every strategy is priced on these; they follow what you pay in, on the Accumulation tab.');
   });
-  it('no boxes filled: today\'s words, unchanged', () => {
-    expect(unmarked(potsAtRetirementLine(p, {}))).toBe('Pots at retirement in today\'s money, middle band with your Accumulation planner contributions: SIPP <strong>£473,935</strong> (cautious £378,650, strong £594,021) · ISA <strong>£36,702</strong>. Every strategy is priced on these; the pots below are what the strategy is tested on — record what you hold on the Transition tab.');
-    expect(potsAtRetirementLine({ ...p, hasContributions: false })).toMatch(/middle band \(growth only — no contributions saved on the Accumulation tab\):/);
+  it('locked: the pots it was locked with, with the day, and nothing worked out today beside them', () => {
+    expect(plain(potsAtRetirementLine({ middle: 603941, isa: 54126, source: 'locked', lockedAt: '2026-10-01T09:00:00.000Z' }))).toBe('Your plan was locked with £604,000 in your pension and £54,000 in ISAs and savings when you stop work (the middling case then, on 1 October 2026). Every strategy is priced on these.');
+    expect(potsAtRetirementLine(null)).toBe('');
   });
 });
 

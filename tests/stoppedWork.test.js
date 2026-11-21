@@ -306,8 +306,9 @@ describe('the ladder\'s month for someone who stopped this tax year or earlier: 
     expect(need).toBeCloseTo(38000 * 5 / 12, 2);
     expect(lp.monthly).toBeCloseTo(need / 5, 6);
     expect(lp.monthly).toBeCloseTo(38000 / 12, 2);
-    // 7.12.0 (walks3 W7-M1): the payments this tax year are said as they are, never "over the twelve months from"
-    expect(lp.instruction).toContain('in 2026/27 that is 5 payments, November 2026 to March 2027');
+    // one sentence (step F2, walk finding W7-M1): the year's payments counted from November to March, as every page counts them
+    expect(lp.instruction).toContain('In 2026/27 that is 5 payments, November 2026 to March 2027: ');
+    expect(lp.instruction).not.toContain('twelve months from');
     expect(lp.remaining).toBeCloseTo(need, 6);                 // the year's money not yet drawn is all still held
   });
   it('stopped in an earlier tax year: the ladder bought from this tax year is paid the same way', () => {
@@ -319,7 +320,7 @@ describe('the ladder\'s month for someone who stopped this tax year or earlier: 
     expect(need).toBeCloseTo(38000 * 5 / 12, 2);
     expect(lp.monthly).toBeCloseTo(need / 5, 6);
     expect(lp.monthly).toBeCloseTo(38000 / 12, 2);
-    expect(lp.instruction).toContain('in 2026/27 that is 5 payments, November 2026 to March 2027');
+    expect(lp.instruction).toContain('In 2026/27 that is 5 payments, November 2026 to March 2027: ');
   });
   it('no stop month (year 0 this tax year, 7.4.0) and any later tax year: over the months left to 5 April, as always', () => {
     // 7.4.0: a retiree with no saved year and no stop month starts this tax year (it was next April, with nothing to draw
@@ -342,7 +343,7 @@ describe('the Timing block\'s words for a plan that has started say what is past
     const t = words(sam);
     expect(t).toContain('Plan started 6 April 2023 (tax year 2023/24); today is plan year 3 of 30.');
     expect(t).toContain('Income steps started at age 67.');
-    expect(t).toContain('State Pension from 2022/23 (already paid when the plan started).');
+    expect(t).toMatch(/State Pension from \d{1,2} [A-Z][a-z]+ \d{4} \(tax year 2022\/23; already paid when the plan started\)\./);
     expect(t).not.toContain('before the plan starts');
   });
   it('a stop to come said by its month reads "You stop work"; one said by an age alone reads as it always has', () => {
@@ -354,7 +355,7 @@ describe('the Timing block\'s words for a plan that has started say what is past
     const later = { currentAge: 70, currentAgeAsOf: '2026-09-30', retired: true, firstTaxYear: 2027, spStartDate: '2022-05-10', duration: 25 };
     const t = words(later);
     expect(t).toContain('Income steps start at age 71.');
-    expect(t).toContain('State Pension from 2022/23 (already being paid when the plan starts).');   // 7.3.3
+    expect(t).toMatch(/State Pension from \d{1,2} [A-Z][a-z]+ \d{4} \(tax year 2022\/23; already being paid when the plan starts\)\./);   // 7.3.3
   });
   it('stopped before the pension can be drawn: the age it can be, and the tax year to choose (55 before 6 April 2028, else 57)', () => {
     // research/plan-start.md §8, "stopping before 55 (57 from April 2028) and bridging on savings"

@@ -11,8 +11,11 @@
  */
 import { A } from '../state/actions.js';
 import { planExportJson, planExportFileName } from '../../services/PlanExport.js';
+import { shownNames } from '../state/select.js';
 
-const nameOf = (plan) => (plan && plan.planDetails && typeof plan.planDetails.name === 'string' && plan.planDetails.name) || (plan && typeof plan.name === 'string' && plan.name) || '';
+// the file is named by the plan's name as it is shown (its row on "Your plans": PlanName.shownPlanName), as the full view's
+// exportActivePlan and exportBudgetCsv name it (step F1): one plan, one file name in both views. Not read yet: "plan".
+const nameOf = (state, id) => { const m = shownNames(state); return (m && m.get(String(id))) || ''; };
 
 /** A Blob and an anchor; the object URL is let go once the browser has it. `type`: the file's media type (a plan's JSON by default). */
 export function saveFile(win, name, text, type = 'application/json') {
@@ -57,11 +60,11 @@ export function startDownloads(store, { win, now = () => new Date() }) {
       // the budget as the plan reads it, as the page's reading holds it (budget.js csvText: BudgetModel.budgetToCsv, the planner's own file)
       const page = plans.view && plans.view.page && plans.view.page.forId === String(d.planId) ? plans.view.page.budget : null;
       if (!page || !page.found || typeof page.csvText !== 'string') { store.dispatch({ type: A.PLAN_SAVE_FAILED, planId: d.planId, problem: 'failed' }); return; }
-      const okCsv = saveFile(win, budgetCsvFileName(nameOf(entry.plan), now()), page.csvText, 'text/csv;charset=utf-8;');
+      const okCsv = saveFile(win, budgetCsvFileName(nameOf(state, d.planId), now()), page.csvText, 'text/csv;charset=utf-8;');
       if (!okCsv) store.dispatch({ type: A.PLAN_SAVE_FAILED, planId: d.planId, problem: 'storage' });
       return;
     }
-    const ok = saveFile(win, planExportFileName(nameOf(entry.plan), now()), planExportJson(entry.plan));
+    const ok = saveFile(win, planExportFileName(nameOf(state, d.planId), now()), planExportJson(entry.plan));
     if (!ok) store.dispatch({ type: A.PLAN_SAVE_FAILED, planId: d.planId, problem: 'storage' });
   });
 }

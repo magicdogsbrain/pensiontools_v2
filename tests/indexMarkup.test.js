@@ -56,9 +56,9 @@ describe('the Household tab: a line when one plan begins later than the other (H
     expect(raw).toMatch(/import \{ householdStartWords \} from '\.\/src\/services\/PlanSeed\.js';/);
     // no line added to the inline script (tests/v7/shellRatchet.test.js): the import and the call share existing lines
     const check = raw.slice(raw.indexOf('window.runHouseholdCheck = async function'), raw.indexOf('window.rerunHouseholdSplit = function'));
-    expect(check).toMatch(/householdStartWords\(\{ offset: offsets\.a, firstTaxYear: deriveTiming\(ownSettings\)\.firstTaxYear \}, \{ offset: offsets\.b, firstTaxYear: deriveTiming\(partnerSettings\)\.firstTaxYear \}\)/);
+    expect(check).toMatch(/householdStartWords\(\{ offset: offsets\.a, firstTaxYear: deriveTiming\(ownSettings, now\)\.firstTaxYear \}, \{ offset: offsets\.b, firstTaxYear: deriveTiming\(partnerSettings, now\)\.firstTaxYear \}\)/);
     // 6.25.0: the verdict's HTML is built by src/ui/householdView.js (verdictSectionHtml), which shows the line beside the result
-    expect(check).toMatch(/verdictSectionHtml\(\{ r, ownName, pName, stratNote, startsNote, setA: ownSettings, setB: partnerSettings, offsets \}\)/);
+    expect(check).toMatch(/verdictSectionHtml\(\{ r, ownName, pName, stratNote, startsNote, setA: ownSettings, setB: partnerSettings, offsets, now \}\)/);   // the one clock for the starts line (lead4.md R5)
     const view = readFileSync(resolve(process.cwd(), 'src/ui/householdView.js'), 'utf8');
     expect(view).toMatch(/startsNote \? '<p class="hint" id="hhStartsNote"[^']*>' \+ esc\(startsNote\) \+ '<\/p>' : ''/);
   });
@@ -77,5 +77,13 @@ describe('the page\'s own words', () => {
     const t = d.body.textContent.replace(/\s+/g, ' ');
     const doubled = [...t.matchAll(/\b([a-z]+(?: [a-z]+){0,2}) \1\b/g)].map((m) => t.slice(Math.max(0, m.index - 30), m.index + 30));
     expect(doubled).toEqual([]);
+  });
+});
+
+describe('the full view\'s imports', () => {
+  it('no import sits behind a line comment on the same line (it would never load)', () => {
+    const page = readFileSync('index.html', 'utf8');
+    const bad = page.split('\n').map((l, i) => [i + 1, l]).filter(([, l]) => /\/\/.*\bimport \{[^}]*\} from '/.test(l) && /^\s*import /.test(l));
+    expect(bad.map(([n, l]) => n + ': ' + l.slice(0, 120))).toEqual([]);
   });
 });

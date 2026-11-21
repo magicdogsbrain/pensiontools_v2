@@ -13,11 +13,12 @@ import { deriveIsaMix } from '../services/IsaFunds.js';
 import { scheduleFromSteps, defaultSpYear } from '../services/IncomeSchedule.js';
 import { getDefaultStressDB as defaultStressDB, effectiveStressSettings } from '../services/PlanReading.js';
 import { timingPinPatch } from '../services/PlanTiming.js';
+import { settingsWithPatch } from '../services/DraftDecision.js';
 import { DEFAULT_CHARGES_PCT } from '../services/Charges.js';
 import { simulationConfigFromSettings } from '../services/SimulationConfig.js';
 import { DEFAULT_ISA_GROWTH } from '../services/IsaGrowth.js';
 export { scheduleFromSteps, defaultSpYear };
-import { saveActiveStressSettings, activePlanLocked, storedActiveSettings, getDefaultStressSettings, getActiveScenarioAsync } from './ScenarioRepository.js';
+import { saveActiveStressSettings, activePlanLocked, storedActiveSettings, getDefaultStressSettings, readActiveScenarioAsync } from './ScenarioRepository.js';
 import { todayOf, dayKeyOf } from '../reading/clock.js';
 import { PlanReadError } from '../reading/readFault.js';
 import { onPlanCopyStale } from './planCopies.js';
@@ -93,10 +94,9 @@ export function loadStressDB() {
 export async function loadStressDBAsync() {
   if (!isFirebaseAvailable()) return getDefaultStressDB();
   const now = todayOf();
-  let plan = null;
-  try { plan = await getActiveScenarioAsync(); } catch (e) { plan = null; }
-  let key, settings;
+  let plan = null, key, settings;
   try {
+    plan = await readActiveScenarioAsync();   // a read that fails throws: never effectiveStressSettings(null), the factory settings
     key = stressReadingKeyOf(plan, now);
     if (cachedStressDB && sameStressReadingKey(cachedStressDB.key, key)) return cachedStressDB.db;
     settings = effectiveStressSettings(plan, { now });
@@ -171,7 +171,7 @@ export async function saveStressSettings(settings) {
   try {
     // a locked plan with none saved is measured against the defaults (the guard's yardstick); a draft with none adds only its own
     const asStored = (await storedActiveSettings('stress')) || (locked ? getDefaultStressSettings() : {});
-    await saveActiveStressSettings({ ...asStored, ...(timingPinPatch(asStored, db.settings) || {}), ...settings });
+    await saveActiveStressSettings(settingsWithPatch(asStored, { ...(timingPinPatch(asStored, db.settings) || {}), ...settings }));   // a key given as undefined is taken out (an Undo of a key that was not there)
   } catch (error) {
     if (error && (error.code === 'plan-newer-than-app' || isPlanLockedError(error))) throw error;
     console.error('Error saving stress data:', error);

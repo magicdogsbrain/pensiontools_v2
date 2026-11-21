@@ -389,7 +389,9 @@ function ladderTest(p, configs) {
       securedMedianMc: mc.stats.securedMedian, sellEventsMedian: h.stats.sellEventsMedian,
       sleeveMedian: h.stats.sleeveMedian, sleeveWorst: h.stats.sleeveWorst, baseLadderCost: configs.baseLadderCost, ladderYears: lr.ladderYears,
       sleeveCone, securedByYear, glide: { E0: lr.E0, gp: lr.glideRate ?? 0.05, b: lr.trigger.b ?? 1.2, mode: lr.trigger.mode },
-      failAgeP10: failAgesMc.length ? pct(failAgesMc, 0.5) : null, drawNet: Array.from({ length: planYears }, (_, k) => drawForYear(k + 1))
+      failAgeP10: failAgesMc.length ? pct(failAgesMc, 0.5) : null, drawNet: Array.from({ length: planYears }, (_, k) => drawForYear(k + 1)),
+      // what each rung costs bought at the plan's start, on the run's own prices (the trigger check reads its next rung here)
+      rungCost: Array.from({ length: planYears }, (_, k) => pricer(k + 1, 0))
     },
     n: { hist: hist.length, mc: mc.windows.length },
     wealthLabel: 'Growth sleeve + unpaid ladder rungs, today\'s money'

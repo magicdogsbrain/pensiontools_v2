@@ -17,7 +17,9 @@ const line = (start) => { const at = script.indexOf(start); expect(at, start).to
 
 describe('the full view follows a saved change', () => {
   it('Stress tester\'s load draws the starting balances from the settings it read', () => {
-    expect(body('async function loadStressSettings() {')).toMatch(/renderStressStartSummary\(s\)/);
+    // check round 2 of step S: one filler (fillStressForm) for both the repaint and the tab's own load
+    expect(body('async function loadStressSettings() {')).toMatch(/fillStressForm\(await getStressSettingsAsync\(\)\)/);
+    expect(body('async function fillStressForm(s) {')).toMatch(/renderStressStartSummary\(s\)/);
   });
   // since step S (lead4.md R2) a save goes through repaintAfterWrite, which draws the plan menu again among the rest
   it('a save as Settings changes draws the plan menu again', () => {

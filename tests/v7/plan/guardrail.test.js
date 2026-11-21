@@ -49,19 +49,19 @@ describe('the reading', () => {
     expect(g.startRate).toBeCloseTo(40000 / 700000, 12);
     expect(g.upper).toBeCloseTo(1.2 * g.startRate, 12);
     expect(g.lower).toBeCloseTo(0.8 * g.startRate, 12);
-    expect(fill(STRESS.guardrail.within, g.slots)).toBe('This year your plan takes £40,000 from your pots: 5.7% of what they hold now. In 2026 to 2027, when the plan as locked began, it took 5.7% of what they held. If it reaches 6.9% of what they hold (a fifth above that), taking a tenth less would bring it back under that line.');
+    expect(fill(STRESS.guardrail.within, g.slots)).toBe('Your plan takes £40,000 a year from your pots: 5.7% of what they hold now. In 2026 to 2027, when the plan as locked began, it took 5.7% of what they held. If it reaches 6.9% of what they hold (a fifth above that), taking a tenth less would bring it back under that line.');
   });
   it('above: more than a fifth above the start\'s share — a tenth less said with its share', () => {
     const doc = makeDoc();
     const g = guardrailOf(doc, whereWith(doc, 500000));
     expect(g.state).toBe('above');
-    expect(fill(STRESS.guardrail.above, g.slots)).toBe('This year your plan takes £40,000 from your pots: 8.0% of what they hold now, more than a fifth above the 5.7% it took in 2026 to 2027, when the plan as locked began. Taking a tenth less, £36,000, would make it 7.2% of what they hold.');
+    expect(fill(STRESS.guardrail.above, g.slots)).toBe('Your plan takes £40,000 a year from your pots: 8.0% of what they hold now, more than a fifth above the 5.7% it took in 2026 to 2027, when the plan as locked began. Taking a tenth less, £36,000, would make it 7.2% of what they hold.');
   });
   it('below: more than a fifth below — a tenth more said with its share', () => {
     const doc = makeDoc();
     const g = guardrailOf(doc, whereWith(doc, 1000000));
     expect(g.state).toBe('below');
-    expect(fill(STRESS.guardrail.below, g.slots)).toBe('This year your plan takes £40,000 from your pots: 4.0% of what they hold now, more than a fifth below the 5.7% it took in 2026 to 2027, when the plan as locked began. You could take a tenth more, £44,000, and it would be 4.4% of what they hold.');
+    expect(fill(STRESS.guardrail.below, g.slots)).toBe('Your plan takes £40,000 a year from your pots: 4.0% of what they hold now, more than a fifth below the 5.7% it took in 2026 to 2027, when the plan as locked began. You could take a tenth more, £44,000, and it would be 4.4% of what they hold.');
   });
   it('every sentence of the reading passes the banned words, gives every % of a named thing and leaves no slot unfilled', () => {
     const doc = makeDoc();

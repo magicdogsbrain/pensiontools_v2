@@ -19,6 +19,7 @@ import { headlineWords, about, noSplitWords } from '../services/HouseholdDraw.js
 import { HOUSEHOLD } from '../v7/copy/household.js';
 import { planEndAgeOf } from '../services/PlanTiming.js';
 import { householdStartsOf, startsWords } from '../services/HouseholdStarts.js';
+import { todayOf } from '../reading/clock.js';
 
 export const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 export const gbp = (n) => '£' + Math.round(+n || 0).toLocaleString('en-GB');
@@ -59,7 +60,7 @@ export function householdVerdictHtml(r, o = {}) {
  * The verdict section: the household first, then each plan on its own and the two as separate plans.
  * @param {{ r: object, ownName: string, pName: string, stratNote?: string, startsNote?: string, setA?: object, setB?: object }} o
  */
-export function verdictSectionHtml({ r, ownName, pName, stratNote = '', startsNote = '', setA = null, setB = null, offsets = null }) {
+export function verdictSectionHtml({ r, ownName, pName, stratNote = '', startsNote = '', setA = null, setB = null, offsets = null, now = null }) {
   const cell = (x) => '<strong>' + inTen(x) + '</strong> <span class="hint">(' + pctBesideWords(x) + ')</span>';
   const share = r.pooled ? r.pooled.success : r.jointSuccess;
   let html = '<div class="settings-section"><div class="section-title">The verdict</div>';
@@ -71,7 +72,7 @@ export function verdictSectionHtml({ r, ownName, pName, stratNote = '', startsNo
     + '<tr><td>Both plans, each lasting on its own</td><td>' + cell(r.jointSuccess) + '</td></tr>'
     + '</tbody></table>' + stratNote + (startsNote ? '<p class="hint" id="hhStartsNote" style="margin:6px 0 0;">' + esc(startsNote) + '</p>' : '')
     // what the check starts from (7.12.0): the simple view's sentence, from the same settings
-    + (setA && setB ? '<p class="hint" id="hhStarts" style="margin:6px 0 0;">' + esc(startsWords(householdStartsOf(setA, setB, { a: ownName, b: pName }, offsets || {}, new Date()))) + '</p>' : '');
+    + (setA && setB ? '<p class="hint" id="hhStarts" style="margin:6px 0 0;">' + esc(startsWords(householdStartsOf(setA, setB, { a: ownName, b: pName }, offsets || {}, now || todayOf()))) + '</p>' : '');
   html += '<p style="font-size:12px;color:var(--text-muted);margin-top:6px;">'
     + 'Both plans face the <em>same</em> markets, so a bad decade hits you both at once: this check runs you both through '
     + 'identical futures instead of treating your plans as unrelated. On course ' + esc(ON_COURSE_WORDS) + '.</p></div>';

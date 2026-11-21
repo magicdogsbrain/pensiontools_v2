@@ -309,7 +309,8 @@ describe('Step 5: the pot on one basis, the ISA remembered', () => {
     const recorded = 587700 + 25040;
     const compared = Math.round(recorded / Math.pow(1.04, 5 / 12));
     const L = (n) => '£' + n.toLocaleString('en-GB');
-    expect(lineText(W, 'where.pot')).toBe('Your pot: ' + L(compared) + ' at the prices of April 2026 (' + L(recorded) + ' as recorded).');
+    // (step F1) its parts named in the line as the full view names them: the pension today and the ISA today, marked
+    expect(lineText(W, 'where.pot')).toBe('Your pot: ' + L(compared) + ' at the prices of April 2026 (' + L(recorded) + ' as recorded: pension £587,700, ISA £25,040).');
     expect(lineText(W, 'where.potParts')).toBe('Pension £587,700, recorded September 2026. ISA £25,040, from What you hold, March 2026.');
     // the figure Review and the full view compare is the same number
     expect(whereAmIFor(e.plan, { now: noonOf('2026-10-02') }).pot.real).toBe(compared);

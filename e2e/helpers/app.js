@@ -27,7 +27,7 @@ import { parse, screenName } from '../../src/v7/router/routes.js';
 import { frontDoor } from '../../src/v7/rail/index.js';
 import { CARRY } from '../../src/v7/state/carry.js';
 import { answerFromDraft, get, near, TODAY, FINAL_ENV, FIRST_ENV } from './answerInNode.js';
-import { V7_PATH, CLASSIC_PATH, OLD_V7_PATH, OLD_CLASSIC_PATH, CLASSIC_TITLE, atClassic, LAYOUT_UNDER_TEST, WORKER_DATA_MISSING } from './paths.js';
+import { V7_PATH, CLASSIC_PATH, OLD_V7_PATH, OLD_CLASSIC_PATH, CLASSIC_TITLE, atClassic, LAYOUT_UNDER_TEST } from './paths.js';
 
 export { expect, TODAY, FINAL_ENV, FIRST_ENV };
 /**
@@ -35,7 +35,7 @@ export { expect, TODAY, FINAL_ENV, FIRST_ENV };
  * where old links point; atClassic(url) for a hand-over's landing; the layout's links; and the classic engine worker's
  * known missing market files.
  */
-export { V7_PATH, CLASSIC_PATH, OLD_V7_PATH, OLD_CLASSIC_PATH, CLASSIC_TITLE, atClassic, LAYOUT_UNDER_TEST, WORKER_DATA_MISSING };
+export { V7_PATH, CLASSIC_PATH, OLD_V7_PATH, OLD_CLASSIC_PATH, CLASSIC_TITLE, atClassic, LAYOUT_UNDER_TEST };
 
 export const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 export const DIST = resolve(REPO, process.env.E2E_DIST || 'dist');
@@ -682,8 +682,10 @@ export const FIRST_ANSWER_BUDGET = Object.freeze({
   // (7.8.0: the final figure counts the weighted run — each future followed on to the weighting age, up to 60 years, and
   // the levels solved on the weighted test: the budget for it, with the processor slowed four times, 15 s → 20 s; the
   // optional step, every age, 30 s → 40 s)
-  a: { mustFill: 4, screens: 4, clicks: 8, firstMs: 3_000, finalMs: 20_000, optionalMs: 40_000, journeyMs: 45_000 },
-  b: { mustFill: 5, screens: 4, clicks: 8, firstMs: 3_000, finalMs: 20_000, optionalMs: 40_000, journeyMs: 45_000 }
+  // (lead4.md R6, Nov 2026: no first figure on 100 futures is shown any more — the page says it is working the answer out
+  // until the 1,000-future run lands — so the first figure IS the final one, and its budget is the final figure's)
+  a: { mustFill: 4, screens: 4, clicks: 8, firstMs: 20_000, finalMs: 20_000, optionalMs: 40_000, journeyMs: 45_000 },
+  b: { mustFill: 5, screens: 4, clicks: 8, firstMs: 20_000, finalMs: 20_000, optionalMs: 40_000, journeyMs: 45_000 }
 });
 // Chromium cannot slow a worker: waits are measured at full speed × SLOWDOWN, which stands for a phone four times
 // slower than the reference machine — 4 there, less on a machine already slower than it (e2e/global-setup.js).
@@ -782,7 +784,7 @@ export async function expectHeadlinesB(page, answer) {
 }
 
 /**
- * Press the question's "show" button and time the answer: the first figure (100 futures) and the final one.
+ * Press the question's "show" button and time the answer: the first figure shown (the full run's: lead4.md R6) and the page ready.
  * The page's own marks are watched (waitForSelector follows the DOM), not polled.
  */
 export async function askAndTime(app, button) {

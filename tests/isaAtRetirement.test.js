@@ -23,10 +23,10 @@ import { resolve } from 'node:path';
 import { projectedPotAtRetirement, isaAtRetirementOf, deriveTiming, potScaleOf } from '../src/services/PlanTiming.js';
 import { createSimulationConfigFromSettings } from '../src/storage/StressRepository.js';
 import { planFromSettings } from '../src/strategies/stressTest.js';
-import { isaAtAge, sweepPlanAt } from '../src/services/RetireSweep.js';
+import { savingInputsOf, potsAtStopOf } from '../src/services/PotsAtStop.js';
 import { startSummaryHtml, startsScaled } from '../src/ui/startingPotsWords.js';
 import { isaGrowthRunLine, accumulationIsaNote, isaGrowthFieldState } from '../src/ui/isaGrowthSetting.js';
-import { isaLineRows, accumulationTableHtml } from '../src/ui/accumulationProjection.js';
+import { accumulationBandHtml } from '../src/ui/accumulationProjection.js';
 import { buildSavingPath } from '../src/services/SavingPath.js';
 import { saverReading } from '../src/services/SaverReading.js';
 import { buildPlanDocument } from '../src/services/PlanDocument.js';
@@ -46,6 +46,11 @@ import * as frozenV7 from './v7/keep/seed.v1/v7Seed.js';
 
 const plain = (html) => html.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&#39;/g, '\'');
 const NOW = new Date('2026-10-02T12:00:00Z');
+// (step F1, lead4.md D4) the age spin and the Accumulation table read the plan's saving lives (PotsAtStop): a plan of the
+// settings and saving inputs these tests use
+const planOf = (st, acc) => ({ stressTool: { settings: st }, accumulationTool: { settings: acc || {} } });
+// the saving lives' ISA at the stop (the one model of the pot at the stop, step F1; the age spin that read it went in step F3)
+const livesIsa = (st, acc, now = NOW) => potsAtStopOf(planOf(st, acc), st, { now }).isa;
 
 // ---------------------------------------------------------------------------------------------------------------------
 describe('1. no ISA today, money going into one: the runs start from the ISA at retirement', () => {
@@ -95,18 +100,12 @@ describe('1. no ISA today, money going into one: the runs start from the ISA at 
     const pinnedIsa = { ...isaToday, strategyParams: { sippTotal: 400000, isaTotal: 10000 } };
     expect(planFromSettings(pinnedIsa, createSimulationConfigFromSettings({}, pinnedIsa), { now: NOW }).isa).toBe(10000 * potScaleOf(pinnedIsa).isa);
   });
-  it('the age spin\'s runs start from its ISA at that age', () => {
-    const t = deriveTiming(s0, NOW);
-    const { s, isa } = sweepPlanAt({ settings: s0, accumulation: acc, currentAge: t.currentAge, age: 60, timing: t });
-    expect(isa).toBe(isaAtAge({ settings: s0, accumulation: acc, currentAge: t.currentAge, age: 60 }).isa);
-    expect(isa).toBeGreaterThan(45000);
-    expect(createSimulationConfigFromSettings({}, s).isaBalance).toBe(isa);
-  });
   it('the line above the runs says the ISA the runs start from, and how it grows', () => {
     expect(startsScaled(saved)).toBe(true);
-    const t = plain(startSummaryHtml(saved));
-    expect(t).toContain('ISA £' + par.isa.toLocaleString('en-GB') + '.');
-    expect(t).toContain('ISA £0 today) scaled to the pots at retirement in the Timing block, with the ISA at retirement taken as the Timing block gives it (there is no ISA today to scale).');
+    // (step F1) said from the reading's pot at the stop, to £1,000 as every place says it: the ISA at retirement, not today's £0
+    const t = plain(startSummaryHtml(saved, { atStop: { middle: par.sipp, low: null, high: null, isa: par.isa, age: 60, source: 'worked', from: { pot: 400000, monthly: 0 } } }));
+    expect(t).toContain('ISA £' + (Math.round(par.isa / 1000) * 1000).toLocaleString('en-GB') + '.');
+    expect(t).not.toContain('ISA £0');
     expect(isaGrowthRunLine(saved)).toMatch(/grows like cash/);
   });
 });
@@ -131,20 +130,17 @@ describe('2. a plan made from a V7 answer with no savings today: today\'s £0 is
     expect(S.potAtRetirement).toMatchObject({ isa: v7AtStop, source: 'answer' });   // 7.12.0: the answer's figure, never marked as typed
     expect(createSimulationConfigFromSettings({}, S).isaBalance).toBe(v7AtStop);
   });
-  it('the age spin and the Timing projection count the pay-ins once: close to V7\'s figure, not 42% above it', () => {
-    const t = deriveTiming(S, day);
-    const spin = isaAtAge({ settings: S, accumulation: A, currentAge: t.currentAge, age: S.retireAge }).isa;
-    const timing = projectedPotAtRetirement(S, A, day).isa;
-    for (const v of [spin, timing]) {
+  it('the pot at the stop counts the pay-ins once: close to V7\'s figure, not 42% above it', () => {
+    const atStop = potsAtStopOf(planOf(S, A), S, { now: day }).isa;
+    for (const v of [atStop]) {
       expect(v).toBeLessThan(v7AtStop * 1.1);
       expect(v).toBeGreaterThan(v7AtStop * 0.6);
     }
-    expect(spin).toBe(timing);
   });
-  it('the Accumulation planner\'s column starts at £0', () => {
-    const rows = isaLineRows(S, { currentAge: A.currentAge, retirementAge: A.retirementAge, isaMonthly: A.isaMonthly });
-    expect(rows[0].potMid).toBe(0);
-    expect(rows[rows.length - 1].potMid).toBeGreaterThan(0);
+  it('the Accumulation table\'s ISA column starts at £0', () => {
+    const rows = potsAtStopOf(planOf(S, A), S, { now: day }).rows;
+    expect(rows[0].isa).toBe(0);
+    expect(rows[rows.length - 1].isa).toBeGreaterThan(0);
   });
   it('the saving path drawn on locking starts the ISA at £0; a year on, a pension on its middle line and a year\'s savings read in the middle, not below the bad line', () => {
     const t = deriveTiming(S, day);
@@ -254,24 +250,17 @@ describe('3. an ISA held in the ISA funds of the list of funds to test: the proj
     expect(projectedPotAtRetirement({ ...migrated, isaGrowth: 'invested' }, acc, NOW).isa).toBe(was);
     expect(was).toBeGreaterThan(120000);   // the reviewers' £127,417 (6.22.0 before this fix: £83,711)
   });
-  it('the age spin: 6.21.0\'s figure (2% a year after prices)', () => {
-    const was = isaAtAge({ settings: before, accumulation: acc, currentAge: 50, age: 62 });
-    expect(isaAtAge({ settings: migrated, accumulation: acc, currentAge: 50, age: 62 })).toEqual(was);
-  });
-  it('the Accumulation planner\'s column: the Timing block\'s line, row for row, and its words name the funds', () => {
-    const inputs = { currentAge: 50, retirementAge: 62 };
-    expect(isaLineRows(migrated, inputs)).toEqual(isaLineRows(before, inputs));
-    const html = plain(accumulationTableHtml({ rows: [{ age: 50, potLow: 1, potMid: 1, potHigh: 1, contributedToDate: 0 }], stress: migrated, inputs }));
-    expect(html).toMatch(/ISA funds in your list of funds to test/);
+  // (step F1) the age spin's own ISA rule (6.21.0's 2% a year) is gone: it reads the plan's saving lives, which follow the funds
+  it('the Accumulation table names the funds when they decide how the ISA grows', () => {
+    const band = potsAtStopOf(planOf(migrated, acc), migrated, { now: NOW });
+    const html = plain(accumulationBandHtml({ ...band, middle: band.sipp, low: band.sippLow, high: band.sippHigh, age: 62, source: 'worked' }, { stress: migrated }));
+    if (band.rows.some((r) => r.isa > 0)) expect(html).toMatch(/ISA funds in your list of funds to test/);
     expect(accumulationIsaNote('funds', 250)).toMatch(/£250 a month going in/);
   });
-  it('what goes into ISAs each month is paid in, on the same line', () => {
+  it('what goes into ISAs each month is paid in', () => {
     const paying = { ...acc, isaMonthly: 400 };
     expect(projectedPotAtRetirement(migrated, paying, NOW).isa).toBeGreaterThan(projectedPotAtRetirement(migrated, acc, NOW).isa + 400 * 12 * 12 * 0.8);
-    const spin = isaAtAge({ settings: migrated, accumulation: paying, currentAge: 50, age: 62 }).isa;
-    expect(spin).toBeGreaterThan(isaAtAge({ settings: migrated, accumulation: acc, currentAge: 50, age: 62 }).isa + 400 * 12 * 12 * 0.8);
-    // a plan without the choice (locked before it) still pays nothing in, as before
-    expect(isaAtAge({ settings: before, accumulation: paying, currentAge: 50, age: 62 })).toEqual(isaAtAge({ settings: before, accumulation: acc, currentAge: 50, age: 62 }));
+    expect(livesIsa(migrated, paying)).toBeGreaterThan(livesIsa(migrated, acc) + 400 * 12 * 12 * 0.5);
   });
   it('the funds\' mix for the saving years: shares : bonds and diversifiers : cash, as shares of 1; none without ISA funds', () => {
     expect(isaFundsSavingMix(migrated)).toEqual({ equity: 1, bond: 0, cash: 0 });

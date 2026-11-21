@@ -18,7 +18,7 @@ import { tagPortfolio } from './PortfolioTagger.js';
 import { normaliseKeep } from './HoldingsRecord.js';
 import { giltOfName, couponOfName, maturityOfName, ilWords } from './GiltName.js';
 import { taxYearLabel, taxYearStartOf } from './PlanTiming.js';
-import giltsSnapshot from '../data/giltsSnapshot.js';
+import { activeGiltsFile } from './LinkerUniverse.js';
 
 const num = (v) => (Number.isFinite(+v) ? +v : 0);
 const up = (s) => String(s || '').toUpperCase().trim();
@@ -36,15 +36,29 @@ export const RUNG_TOLERANCE = 0.02;   // a rung within 2% of its target counts a
 /** The four buckets a pension line is read into (PortfolioTagger's). */
 export const BUCKET_KEYS = Object.freeze(['shares', 'bonds', 'diversifiers', 'cash']);
 const MONEY_MARKET = new Set(['CSH2', 'CASH', 'MMF', 'XSTR', 'ERNS', 'ERNX']);
-// Every TIDM in the bundled gilt universe (6.13.0): codes like TRTQ, T2IL or TR8F fit no ticker pattern.
-const GILT_LIST = (Array.isArray(giltsSnapshot?.gilts) ? giltsSnapshot.gilts : []).filter(Boolean);
-const GILT_TIDMS = new Set(GILT_LIST.map((g) => up(g && g.tidm)).filter(Boolean));
-// Gilts that have matured since they were last in issue (7.11.1, scripts/fetch-gilt-data.mjs keeps them a few years): known
-// by their SEDOL or exact name, so a line still on a record is never "cannot tell when it matures" once it has paid.
-const GILT_MATURED = (Array.isArray(giltsSnapshot?.matured) ? giltsSnapshot.matured : []).filter((g) => g && g.maturity);
+// The gilts file every figure here is read from: the one market's (LinkerUniverse.activeGiltsFile — the day's file when the
+// loader has it, else the copy built in), read afresh whenever the market changes, so a held gilt is priced as the runs price it.
+let lists = { file: null };
+function giltLists() {
+  const file = activeGiltsFile();
+  if (lists.file === file) return lists;
+  const gilts = (Array.isArray(file && file.gilts) ? file.gilts : []).filter(Boolean);
+  lists = {
+    file,
+    gilts,
+    // every TIDM in the gilt universe (6.13.0): codes like TRTQ, T2IL or TR8F fit no ticker pattern
+    tidms: new Set(gilts.map((g) => up(g && g.tidm)).filter(Boolean)),
+    // gilts that have matured since they were last in issue (7.11.1, scripts/fetch-gilt-data.mjs keeps them a few years): known
+    // by their SEDOL or exact name, so a line still on a record is never "cannot tell when it matures" once it has paid
+    matured: (Array.isArray(file && file.matured) ? file.matured : []).filter((g) => g && g.maturity),
+    // the Bank of England implied inflation curve (spot, by years ahead): what a fixed pound later is worth today
+    inflation: (Array.isArray(file && file.boeInflationCurve) ? file.boeInflationCurve : []).filter((p) => p && +p.years > 0 && Number.isFinite(+p.yield)).sort((a, b) => a.years - b.years)
+  };
+  return lists;
+}
 
-/** Is this ledger line a gilt? A TIDM in the bundled universe, a ticker shape (TRxx / TGxx / Txx) or a GB00B… ISIN. */
-export function isGiltTicker(t) { const u = up(t); return GILT_TIDMS.has(u) || /^T[RGNS]?\d{2}[A-Z]?$/.test(u) || /^GB00B/.test(u); }
+/** Is this ledger line a gilt? A TIDM in the one market's gilt list, a ticker shape (TRxx / TGxx / Txx) or a GB00B… ISIN. */
+export function isGiltTicker(t) { const u = up(t); return giltLists().tidms.has(u) || /^T[RGNS]?\d{2}[A-Z]?$/.test(u) || /^GB00B/.test(u); }
 
 /** A ledger row → the raw line's subClass and kind (7.6.0): ledgerView's rows keep their shape, so this rides beside them. */
 const RAW = new WeakMap();
@@ -59,12 +73,14 @@ const rawOf = (h) => (h && RAW.get(h)) || h || {};
  */
 function giltEvidence(h) {
   const t = up(h && h.ticker), s = up(h && h.sedol), n = String((h && h.name) || '').trim();
+  const GILT_LIST = giltLists().gilts;
   const bySedol = s && GILT_LIST.find((g) => g.isin && up(g.isin).slice(4, 11) === s);
   if (bySedol) return { g: bySedol, by: 'sedol' };
   const byName = n && GILT_LIST.find((g) => String(g.name || '').trim().toLowerCase() === n.toLowerCase());
   if (byName) return { g: byName, by: 'name' };
   const byWords = giltOfName(n);
-  if (byWords) return { g: byWords, by: 'words' };
+  // the gilt the words name, as the one market lists it today (its price and index ratio), when it is still listed there
+  if (byWords) return { g: (byWords.isin && GILT_LIST.find((g) => g.isin && up(g.isin) === up(byWords.isin))) || byWords, by: 'words' };
   const byCode = t && GILT_LIST.find((g) => up(g.tidm) === t);
   if (byCode && !codeContradicted(byCode, n)) return { g: byCode, by: 'code' };
   return null;
@@ -76,7 +92,7 @@ function codeContradicted(g, name) {
   if (c != null && Number.isFinite(+g.coupon) && Math.abs(+g.coupon - c) >= 0.0005) return true;
   return ilWords(name) && g.type === 'conventional';
 }
-/** The bundled gilt a line names (7.6.0): by its SEDOL, its exact name, its name's coupon and date, then its code; null when none. */
+/** The gilt a line names, as the one market lists it (7.6.0): by its SEDOL, its exact name, its name's coupon and date, then its code; null when none. */
 export function giltOfLine(h) { const e = giltEvidence(h); return e ? e.g : null; }
 
 /**
@@ -91,6 +107,7 @@ export function giltMaturityOf(h) {
   if (byName) return byName;
   // a gilt no longer in issue (it has matured): by its SEDOL or its exact name in the list of those matured lately
   const s = up(h && h.sedol), n = String((h && h.name) || '').trim().toLowerCase();
+  const GILT_MATURED = giltLists().matured;
   const m = (s && GILT_MATURED.find((x) => x.isin && up(x.isin).slice(4, 11) === s)) || (n && GILT_MATURED.find((x) => String(x.name || '').trim().toLowerCase() === n));
   return m ? String(m.maturity).slice(0, 10) : null;
 }
@@ -170,11 +187,10 @@ export function monthsLeftInTaxYear(today) {
   return m >= 4 ? 16 - m : 4 - m;
 }
 
-// The bundled Bank of England implied inflation curve (spot, by years ahead): what a fixed pound later is worth today.
-const INFLATION = (Array.isArray(giltsSnapshot?.boeInflationCurve) ? giltsSnapshot.boeInflationCurve : []).filter((p) => p && +p.years > 0 && Number.isFinite(+p.yield)).sort((a, b) => a.years - b.years);
 const INFLATION_FALLBACK = 0.03;
-/** The yearly inflation the curve implies to `years` ahead (the nearest point before its start or after its end; in between, read along it). */
+/** The yearly inflation the one market's curve implies to `years` ahead (the nearest point before its start or after its end; in between, read along it). */
 export function inflationTo(years) {
+  const INFLATION = giltLists().inflation;
   if (!INFLATION.length) return INFLATION_FALLBACK;
   if (years <= INFLATION[0].years) return +INFLATION[0].yield;
   const last = INFLATION[INFLATION.length - 1];
@@ -194,8 +210,8 @@ export function inTodaysMoney(amount, when, today) {
 /**
  * What a line kept to stand in for the plan's money pays (7.6.0), never priced as something it is not:
  *   a conventional gilt — its nominal (the units) at maturity plus the coupons still to come: a fixed amount that does not
- *     rise with prices (`fixed`); the nominal is read from the value at the bundled price when no units are recorded.
- *     `real` is that amount in today's money (the plan's needs are in today's money): less the inflation the bundled curve
+ *     rise with prices (`fixed`); the nominal is read from the value at the one market's price when no units are recorded.
+ *     `real` is that amount in today's money (the plan's needs are in today's money): less the inflation the one market's curve
  *     implies to its maturity date — or, with none known, to the April of the first tax year it stands in for (`from`);
  *   an index-linked gilt — its nominal times today's index ratio (it rises with prices);
  *   anything else — its value today (it can change).
@@ -688,7 +704,7 @@ export function diffHoldings(holdings, target, { band = MOVE_BAND, needs: needsG
         leftOver: Math.round(Math.max(0, available - toRaise)), short: Math.round(Math.max(0, toRaise - available)),
         leftOverHeld: target.spareGrowth ? 'shares' : 'value', fromPlan, listed: L.some(inPlan),
         // the plan's own money as given, so every view says the same figure and where it came from (7.12.0)
-        ...(fromPlan ? { planMoney: { pension: Math.round(num(planMoney.pension)), isa: target.isaIn ? Math.round(num(planMoney.isa)) : 0, from: planMoney.from || 'plan' } } : {}) };
+        ...(fromPlan ? { planMoney: { pension: Math.round(num(planMoney.pension)), isa: target.isaIn ? Math.round(num(planMoney.isa)) : 0, from: planMoney.from || 'plan', asOf: planMoney.asOf || null } } : {}) };
     }
     if (wantRoles) {
       const statusOf = new Map();

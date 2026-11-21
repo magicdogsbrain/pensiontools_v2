@@ -74,6 +74,22 @@ describe('the form', () => {
     paintDbStart(doc, timing);
     expect(doc.getElementById('ssDbStartAge').value).toBe('76');
   });
+  it('filled while the page still holds the plan before\'s start age (a switch, or the page\'s first 57): the age waits for this plan\'s timing (check round 2)', () => {
+    const doc = form();
+    doc.getElementById('shapeAgeNow').value = '60';            // the plan open before started at 60
+    setDbStartFields(doc, { dbStartYear: 2 }, null);           // this plan: start 65, the pension from 67 (year 2)
+    expect(doc.getElementById('ssDbStartYear').value).toBe('2');
+    expect(doc.getElementById('ssDbStartAge').value).toBe('');
+    expect(doc.getElementById('ssDbStartHint').textContent).toBe('');
+    paintDbStart(doc, { shapeAgeNow: 65, firstTaxYear: 2029 });   // renderTiming, with this plan's timing
+    expect(doc.getElementById('ssDbStartAge').value).toBe('67');
+    expect(doc.getElementById('ssDbStartYear').value).toBe('2');
+    const first = form();
+    first.getElementById('shapeAgeNow').value = '57';          // the page's own first value
+    setDbStartFields(first, { dbStartYear: 3 }, null);
+    expect(first.getElementById('ssDbStartYear').value).toBe('3');
+    expect(first.getElementById('ssDbStartAge').value).toBe('');
+  });
   it('typing an age writes the year the engines read; a start past the end is red and refused on Save', () => {
     const doc = form();
     setDbStartFields(doc, { dbStartYear: 0 }, timing);

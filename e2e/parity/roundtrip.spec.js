@@ -14,6 +14,10 @@
  *     second check cannot see a tab the switch left showing the first plan: the first one is there for that).
  *  4. A new plan made after another (the full view's wizard): no figure or box of the first plan appears on its pages, in
  *     either view.
+ *  5. The actions (step F5, lead4.md D17, D18), in each direction: a month recorded, a tax year set up, the plan locked and
+ *     unlocked in view A as a person does it; the stored plan waited for; then view B opened at the matching page: it shows
+ *     the result (the month, the year as set up, the lock's word), and the two pages read agree on every fact the baseline
+ *     does not list.
  *
  * A simple page is typed into only once it is settled (#app data-ready="1", its plan's page drawn): leaving a box there saves
  * the plan and reads the plans again, and meanwhile the page says "Opening your plan" with no boxes, so each box is waited
@@ -34,8 +38,10 @@ import { resetTo, subjectOf, waitChange } from './account.js';
 import { REGISTRY, DIRECTIONS, valueIn, canonOf, entryOf } from './fields.js';
 import { switchDifferences } from './gate.js';
 import { collectMarks, waitQuiet } from './collect.js';
-import { FULL_PAGES, fullTab, fullLocked } from './pages.js';
+import { FULL_PAGES, fullTab, fullLocked, pressesOf } from './pages.js';
 import { signIn, openSimple, openFull, closeNews, fullWizard } from '../scenarios/routes.js';
+import { monthlyEntry, saveMonth, lockFromStressSettings } from '../scenarios/made.js';
+import { LOCK_WORDS } from '../../src/reading/labels.js';
 
 const OUT = join(process.cwd(), 'test-results', 'parity', 'roundtrips');
 const VERSION = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8')).version;
@@ -132,6 +138,24 @@ const boxesOf = (page, id) => page.evaluate((field) => {
   return { values: out, hidden: !shown.length && use.length > 0 };
 }, id);
 
+/**
+ * A list chosen from as a person chooses: in the full view the list is focused and the option's words typed, so the change
+ * is the browser's own (a trusted event, as a person's pick is). Playwright's selectOption sends a synthetic change, which
+ * the full view's Settings rightly does not take for a person's (settingsAutosave.js byPerson): that read as "needs a
+ * press" for every list there. Falls back to selectOption when the words did not land.
+ */
+async function chooseIn(page, list, value, view) {
+  if (view === 'full') {
+    const label = await list.evaluate((el, v) => [...el.options].find((o) => o.value === v)?.text.trim() || '', value);
+    if (label) {
+      await list.focus();
+      await page.keyboard.type(label);
+      if ((await list.inputValue()) === value) return;
+    }
+  }
+  await list.selectOption(value);
+}
+
 /** Sets a field's box as a person does: a press where the view keeps it behind buttons, a radio, a tick, a list, or typing. */
 async function setBox(page, view, e, value) {
   const press = view === 'full' && e.full && e.full.set && e.full.set[value];
@@ -143,7 +167,7 @@ async function setBox(page, view, e, value) {
   });
   if (kind === 'radio') await page.locator(`input[type="radio"]${sel}[value="${value}"]`).first().click();
   else if (kind === 'checkbox') await page.locator(`input[type="checkbox"]${sel}`).locator('visible=true').first().setChecked(value === 'yes');
-  else if (kind === 'select') await page.locator(`select${sel}`).locator('visible=true').first().selectOption(value);
+  else if (kind === 'select') await chooseIn(page, page.locator(`select${sel}`).locator('visible=true').first(), value, view);
   else {
     const b = page.locator(`input${sel}, textarea${sel}`).locator('visible=true').first();
     await b.click();
@@ -308,7 +332,8 @@ async function readFullView(page) {
     const opened = await fullTab(page, p);
     if (!opened) { out[p.name] = null; continue; }
     if (p.press && (!p.onlyLocked || await fullLocked(page))) {
-      const run = page.locator(p.press).first();
+      await waitQuiet(page);   // a button is drawn once the page's run has landed (the ranking's "More columns")
+      const run = page.locator(pressesOf(p.press)[0]).first();
       if (await run.isVisible().catch(() => false)) await run.click();
     }
     await waitQuiet(page);
@@ -344,7 +369,8 @@ test.describe('parity round trips: a plan chosen inside the full view, the page 
           return;
         }
         if (p.press && (!p.onlyLocked || await fullLocked(page))) {
-          const run = page.locator(p.press).first();
+          await waitQuiet(page);   // a button is drawn once the page's run has landed (the ranking's "More columns")
+          const run = page.locator(pressesOf(p.press)[0]).first();
           if (await run.isVisible().catch(() => false)) await run.click();
         }
         await waitQuiet(page);
@@ -450,7 +476,10 @@ test.describe('parity round trips: a new plan after another', () => {
     const hits = new Map();
     const scan = async (where) => {
       const got = await page.evaluate((nums) => {
-        const text = document.body.innerText;
+        // fixed page text (a rule of the tax system, data-fixed="rule") and example hints (data-example) are nobody's
+        // figures: they are left out of the look (the lead's ruling on step S), and nothing else is
+        let text = document.body.innerText;
+        for (const el of document.querySelectorAll('[data-fixed="rule"], [data-example]')) { const t = el.innerText; if (t) text = text.replace(t, ' '); }
         const boxes = [...document.querySelectorAll('input, select, textarea')].filter((el) => el.type !== 'hidden' && !!(el.offsetWidth || el.offsetHeight)).map((el) => String(el.value));
         const found = [];
         for (const n of nums) {
@@ -460,7 +489,7 @@ test.describe('parity round trips: a new plan after another', () => {
         }
         return found;
       }, look);
-      for (const f of got) if (!hits.has(f)) hits.set(f, where);
+      for (const f of got) { if (!hits.has(f)) hits.set(f, []); if (!hits.get(f).includes(where)) hits.get(f).push(where); }   // every place a figure is seen (check round 2 of step S: the first place alone hid a carry-over on a later page)
     };
     for (const p of FULL_PAGES) {
       if (!(await fullTab(page, p))) continue;
@@ -471,10 +500,122 @@ test.describe('parity round trips: a new plan after another', () => {
       await openSimplePage(page, stored.id, step);
       await scan(`simple ${step || 'home'}`);
     }
-    const entries = [...hits].map(([f, where]) => ({ key: `newPlan|${f}`, kind: 'carried over', press: false, detail: `seen on ${where}` }));
+    const entries = [...hits].map(([f, where]) => ({ key: `newPlan|${f}`, kind: 'carried over', press: false, detail: `seen on ${where.join('; ')}` }));
     if (!entries.length) entries.push({ key: 'newPlan|all', kind: 'ok', press: false });
     write('new-plan', fx.key, entries);
     await page.close();
   });
 });
 
+
+// ---- 5. the actions: a month recorded, a tax year set up, the plan locked and unlocked ----------------------------------
+
+/** Polls the stored plan until `done(plan)` holds; false after `ms`. */
+const storedUntil = (uid, id, done, ms = 30_000) => expect.poll(async () => {
+  const p = await subjectOf(uid, id).catch(() => null);
+  return !!(p && done(p));
+}, { timeout: ms, intervals: [400] }).toBe(true).then(() => true, () => false);
+const factsOn = (places, id) => places.filter((p) => p.fact === id).map((p) => p.text);
+const monthBox = (page, path) => page.getByTestId(`plan.month.${path}`);
+async function typeIfShown(loc, v) {
+  if (!(await loc.isVisible().catch(() => false))) return false;
+  await loc.fill(String(v));
+  await loc.blur();
+  return true;
+}
+/** The full view's page by its sweep name (pages.js FULL_PAGES). */
+const fullNamed = (name) => FULL_PAGES.find((p) => p.name === name);
+/** A plan with this tax year not set up yet, and no month recorded in it (the set-up's own trip). */
+const notSetUp = (plans, id) => plans.map((p) => {
+  if (p.id !== id) return p;
+  const q = JSON.parse(JSON.stringify(p));
+  delete q.decisionTool.taxYears['26/27'];
+  q.decisionTool.history = (q.decisionTool.history || []).filter((h) => h.taxYear !== '26/27');
+  return q;
+});
+
+const ACTIONS = [
+  {
+    key: 'month', fixture: 'retired-locked-pots', pages: { simple: 'month', full: 'history' },
+    done: (p) => (p.decisionTool.history || []).some((h) => String(h.date).slice(0, 7) === '2026-11'),
+    simple: async (page) => {
+      const m = monthBox(page, 'mo.month');
+      if (await m.isVisible().catch(() => false)) await m.selectOption('2026-11').catch(() => {});
+      await typeIfShown(monthBox(page, 'mo.total'), 600000);
+      await typeIfShown(monthBox(page, 'mo.cash'), 40000);
+      await typeIfShown(monthBox(page, 'mo.bonds'), 150000);
+      await monthBox(page, 'submit').click();
+    },
+    full: async (page) => { await monthlyEntry(page, { month: '2026-11', pension: 600000, isa: 0, cash: 40000 }); await saveMonth(page); },
+    shows: (B, text) => (B === 'simple' ? /November 2026/.test(text) : /Nov(ember)? 2026/.test(text))
+  },
+  {
+    key: 'taxYear', fixture: 'retired-locked-pots', prep: notSetUp, pages: { simple: 'month', full: 'tax years' },
+    done: (p) => !!(p.decisionTool.taxYears && p.decisionTool.taxYears['26/27'] && p.decisionTool.taxYears['26/27'].yearSetupComplete === true),
+    simple: async (page) => {
+      await typeIfShown(monthBox(page, 'ty.toDate'), 12000);
+      await typeIfShown(monthBox(page, 'ty.taxToDate'), 900);
+      await monthBox(page, 'setUp.submit').click();
+    },
+    full: async (page) => { await monthlyEntry(page, { month: '2026-11', pension: 600000, isa: 0, cash: 40000 }); },
+    shows: (B, text, places) => places.some((p) => /^income\.thisYear\./.test(p.fact))
+  },
+  {
+    key: 'lock', fixture: 'retired-draft', pages: { simple: 'lock', full: 'stress settings' },
+    done: (p) => !!(p.decisionTool && p.decisionTool.settings && p.decisionTool.settings.locked === true && p.planDocument),
+    simple: async (page) => { await page.getByTestId('plan.lock.lock').click(); await page.getByTestId('plan.lock.confirm').click(); },
+    full: async (page) => { await lockFromStressSettings(page); },
+    shows: (B, text, places) => factsOn(places, 'lock.state').includes(LOCK_WORDS.locked)
+  },
+  {
+    key: 'unlock', fixture: 'retired-locked-pots', pages: { simple: 'plan', full: 'stress settings' },
+    done: (p) => !!(p.decisionTool && p.decisionTool.settings && p.decisionTool.settings.locked !== true && !p.planDocument),
+    simple: async (page) => { await page.getByTestId('plan.plan.unlock').click(); await page.getByTestId('plan.plan.unlockConfirm.yes').click(); },
+    full: async (page) => {
+      await page.getByRole('button', { name: /^Unlock to edit/ }).first().click();
+      await page.getByRole('button', { name: /^Unlock — I understand/ }).click();
+    },
+    shows: (B, text, places) => factsOn(places, 'lock.state').includes(LOCK_WORDS.notLocked)
+  }
+];
+
+const openActionPage = async (page, view, act, planId) => (view === 'simple'
+  ? openSimplePage(page, planId, act.pages.simple).then(() => true)
+  : openFullPage(page, fullNamed(act.pages.full)));
+
+test.describe('parity round trips: the actions', () => {
+  for (const act of ACTIONS) {
+    const fx = fixtureNamed(act.fixture);
+    if (!runs(fx.key)) continue;
+    for (const dir of DIRECTIONS) {
+      const A = dir === 's2f' ? 'simple' : 'full';
+      const B = dir === 's2f' ? 'full' : 'simple';
+      test(`action ${act.key} ${dir}`, async ({ acct }) => {
+        test.setTimeout(6 * 60_000);
+        const plans = act.prep ? act.prep(fx.plans(), fx.subject) : fx.plans();
+        const page = await freshPage(acct, plans);
+        const key = `action:${act.key}|${dir}`;
+        let entry = { key, kind: 'ok', press: false };
+        const fail = (kind, detail) => { if (entry.kind === 'ok') entry = { ...entry, kind, detail }; };
+        expect(await openActionPage(page, A, act, fx.subject), `${A} view opens the page of ${act.key}`).toBe(true);
+        let pressed = true;
+        try { await act[A](page); } catch (e) { pressed = false; fail('not reachable', `the ${A} view's ${act.key}: ${String(e && e.message || e).split('\n')[0].slice(0, 160)}`); }
+        const saved = pressed && await storedUntil(acct.uid, fx.subject, act.done, 60_000);
+        if (pressed && !saved) fail('not saved', `the ${A} view's ${act.key}: nothing stored as done`);
+        await (A === 'simple' ? settledSimple(page) : waitQuiet(page));
+        const placesA = (await marksOf(page)).map((p) => ({ ...p, view: A }));
+        const pageB = await acct.ctx.newPage();
+        expect(await openActionPage(pageB, B, act, fx.subject), `${B} view opens the page of ${act.key}`).toBe(true);
+        const placesB = (await marksOf(pageB)).map((p) => ({ ...p, view: B }));
+        const textB = await pageB.locator('body').innerText().catch(() => '');
+        if (saved && !act.shows(B, textB, placesB)) fail('not in the other view', `the ${B} view's ${act.pages[B]} page does not show the ${act.key} done in the ${A} view`);
+        const broken = newDisagreements(fx.key, [...placesA, ...placesB]);
+        const whereSaid = (fact) => [...new Set([...placesA, ...placesB].filter((p) => p.fact === fact).map((p) => `${p.view} ${p.page || ''}: "${p.text}"`))].join(', ');
+        if (saved && broken.length) fail('sweep breaks', broken.slice(0, 6).map((b) => b + ' (' + whereSaid(b.split(':')[0]) + ')').join('; '));
+        write(`action-${act.key}-${dir}`, fx.key, [entry]);
+        await pageB.close();
+        await page.close();
+      });
+    }
+  }
+});

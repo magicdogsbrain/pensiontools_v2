@@ -13,6 +13,9 @@
  *
  *   planHasFigures(plan)                     true once the plan holds figures someone gave it
  *   decisionSettingsAsRead(plan, { now, stress })   the Decision settings every reader uses
+ *   settingsWithPatch(stored, patch)         what a write stores: the settings AS STORED with the keys given on top (a key
+ *                                            given as undefined is taken out) — never the reading, its defaults or its
+ *                                            worked figures (lead4.md R3, D2)
  *
  * Pure: no storage, no clock (`now` is handed in).
  */
@@ -39,4 +42,18 @@ export function decisionSettingsAsRead(plan, { now = new Date(), stress = null }
   const ss = isObj(stress) ? stress : effectiveStressSettings(plan, { now });
   const seeded = seedDecisionFromStress(ss, stored ? copy(stored) : getDefaultDecisionSettings());
   return { ...seeded, locked: false, configured: planHasFigures(plan) };
+}
+
+/**
+ * What a settings write stores (both repositories): the settings as stored (a copy; none = {}), with each key of `patch` put
+ * on top, and a key given as undefined taken out. The reading (defaults merged under it, figures worked out from the Stress
+ * settings) is never the base: only what the person changed reaches the plan.
+ */
+export function settingsWithPatch(stored, patch) {
+  const out = isObj(stored) ? copy(stored) : {};
+  for (const [k, v] of Object.entries(patch || {})) {
+    if (v === undefined) delete out[k];
+    else out[k] = v;
+  }
+  return out;
 }

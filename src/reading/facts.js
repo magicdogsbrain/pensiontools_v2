@@ -5,7 +5,7 @@
  * the parity sweep (e2e/parity/) can hold each fact to one value across every place.
  *
  * Ids are the reading's keys. A fact with an index (an income step, a final-salary pension, a lump sum, a mix bucket, a
- * wrapper) is written with `#` in its pattern and made by `factId(pattern, n)`: `income.step.#.beforeTax` → the first step
+ * wrapper, a way of drawing) is written with `#` in its pattern and made by `factId(pattern, n)`: `income.step.#.beforeTax` → the first step
  * is `income.step.0.beforeTax`.
  *
  * Tables carry `data-fact-table="<id>"` with `data-row`/`data-col` keys on their cells (TABLES).
@@ -22,12 +22,23 @@ export const FACT = Object.freeze({
   END_AGE: 'plan.endAge',
   LOCKED: 'lock.state',
   LOCK_DATE: 'lock.date',
+  // the plan year this tax year is (0 in its first) and how many tax years the plan runs (src/reading/where.js; step F5, R8)
+  PLAN_YEAR: 'plan.year',
+  PLAN_YEARS: 'plan.years',
   DUE_NEXT: 'due.next',
   // money today, by pot
   POT_TODAY: 'pot.today',
   ISA_TODAY: 'isa.today',
+  // the month of the record the pension today is read from ("from your last record, September 2026"): a dated record (R4)
+  POT_TODAY_AS_OF: 'pot.today.asOf',
   GIA_TODAY: 'gia.today',
   CASH_TODAY: 'cash.today',
+  // the pot Where you are sets against the plan's band: its accounts, in the prices the plan's figures are in
+  POT_AGAINST_PLAN: 'pot.againstPlan',
+  // the plan's middle line for the pot by now (the band's median at this month, in the same prices)
+  POT_PLAN_MIDDLE: 'pot.planMiddle',
+  // the plan's 1-in-10 bad line by now, where the pot is near it (below it, or between it and the middle): both views say it
+  POT_PLAN_LOW: 'pot.planLow',
   // the pot at the stop, with its low and high where shown
   POT_AT_STOP: 'pot.atStop',
   POT_AT_STOP_LOW: 'pot.atStop.low',
@@ -55,14 +66,24 @@ export const FACT = Object.freeze({
   LEFT_BAD: 'left.badCase',
   LEFT_GOOD: 'left.goodCase',
   WORST_12: 'lasts.worst12',
+  // the share of the plan's years the money paid, averaged over every future (OneAnswer coverage)
+  COVERAGE: 'lasts.coverage',
   LEVEL: 'lasts.level',
   LASTS_VERDICT: 'lasts.verdict',
   FLOOR_INCOME: 'lasts.floorIncome',
   LIVE_LONGER: 'lasts.liveLonger',
+  // the plan document's own chance and fixed-age count, as locked (src/reading/document.js; step F5): a dated record
+  DOC_CHANCE: 'doc.lasts.chance',
+  DOC_FIXED_CHANCE: 'doc.lasts.fixedChance',
+  // the prices a year the year tables assume (src/reading/yearTable.js: the plan's own, 2.5 for 2.5%), said over both views' tables
+  YEAR_PRICES: 'years.prices',
   FOLLOW_TO: 'lasts.followTo',
   // income
   STEP_BEFORE_TAX: 'income.step.#.beforeTax',
   STEP_MONTH_AFTER_TAX: 'income.step.#.monthAfterTax',
+  // the age a step starts at (Where you are's next step; src/reading/where.js) and the month the plan's figures are priced in
+  STEP_FROM_AGE: 'income.step.#.fromAge',
+  PRICES_FROM: 'plan.pricesFrom',
   MONTH_AFTER_TAX: 'income.perMonth.afterTax',
   SP_WEEK: 'statePension.week',
   SP_YEAR: 'statePension.amount',
@@ -78,13 +99,36 @@ export const FACT = Object.freeze({
   // this tax year and this month
   YEAR_SET_UP: 'income.thisYear.beforeTax',
   YEAR_PLAN_SAYS: 'income.thisYear.planSays',
+  YEAR_PER_MONTH: 'income.thisYear.perMonth',
+  YEAR_TOTAL: 'income.thisYear.total',
+  YEAR_FROM: 'income.thisYear.from',
+  // the day the year was set up: the set-up is a dated record (lead4.md R4; step F5)
+  YEAR_SET_UP_ON: 'income.thisYear.setUpOn',
   MONTH_TAKE: 'month.take.afterTax',
   MONTH_TAKE_PENSION: 'month.take.pension',
   MONTH_FROM: 'month.take.from',
+  // what a gilt ladder's rule pays this month (Where you are; src/reading/where.js ladderSentence)
+  LADDER_MONTHLY: 'ladder.monthly',
   TAKEN_YEAR: 'taken.againstPlan',
   // the way of drawing
   WAY_NAME: 'way.name',
-  WAY_COST: 'way.cost',
+  // what a bought way costs (compareRunner.wayCostOf), one fact per way: the way's id is the key (way.full-il-gilt.cost)
+  WAY_COST: 'way.#.cost',
+  // the ways list (src/reading/ways.js; step F3): each way's name and how many futures out of 10 it lasts, keyed by its id;
+  // and when a bought way is bought (today, or when a plan still saving stops, at today's prices)
+  WAY_EACH_NAME: 'way.#.name',
+  WAY_VERDICT: 'way.#.verdict',
+  // and, per way, what is typically left, the bad case (the worst 1 in 10) and the worst 12 months lived (wayFiguresOf)
+  WAY_LEFT: 'way.#.left',
+  WAY_BAD_LEFT: 'way.#.badLeft',
+  WAY_WORST_12: 'way.#.worst12',
+  // and, under "More columns", the share of the plan's years it paid for and what it paid out over the plan
+  WAY_COVERED: 'way.#.covered',
+  WAY_SPENT: 'way.#.spent',
+  WAY_BUMPINESS: 'way.#.bumpiness',
+  WAY_BOUGHT: 'way.bought',
+  // what a bought way was priced on (src/reading/market.js marketLabel): the prices' date and source
+  MARKET_GILTS: 'market.gilts',
   WITHDRAWAL_RATE: 'withdrawal.rate',
   // what is held
   GILTS_HELD: 'gilts.held',
@@ -92,6 +136,17 @@ export const FACT = Object.freeze({
   MIX_HELD: 'mix.held.#',
   HOLDINGS_TOTAL: 'holdings.total',
   HOLDINGS_WRAPPER: 'holdings.#',
+  // "Try the bad years" (lead4.md R6; step F3): each row's figures, keyed by the row's id (stressPanel.js ROW_IDS) — its weighted
+  // chance and its count to one age (each sentence as said, with the reference beside it), where it runs out, its verdict word,
+  // the size of the change it makes; and what still comes in, said once above the rows
+  STRESS_CHANCE: 'stress.#.chance',
+  STRESS_FIXED: 'stress.#.fixedChance',
+  STRESS_RUNS_OUT: 'stress.#.runsOut',
+  STRESS_VERDICT: 'stress.#.verdict',
+  STRESS_CHANGE: 'stress.#.change',
+  STRESS_FLOOR: 'stress.floorIncome',
+  // the mix grid's best cell, said under it: its chance in hundredths (the grid's own cells are the table 'mix')
+  MIX_BEST: 'mix.best',
   // the household
   PARTNER_CHANCE: 'partner.chance',
   HOUSEHOLD_CHANCE: 'household.chance'
@@ -100,6 +155,11 @@ export const FACT = Object.freeze({
 /** The tables, by name: `data-fact-table` values; their cells carry `data-row` and `data-col`. */
 export const TABLES = Object.freeze({
   YEARS: 'years',
+  // the pots' floors year by year (src/reading/yearTable.js): the simple view's second table, the full view's Glidepath page
+  FLOORS: 'floors',
+  // the mix grid ("Which mix lasts best?" / Compare allocations, answers/plan/mixRun.js runMixCompare): a row per mix (own,
+  // cautious, balanced, adventurous), a column per tent (flat, tent) for its words and (flat.sub, tent.sub) for the line under
+  MIX: 'mix',
   LADDER: 'ladder'
 });
 
@@ -126,7 +186,7 @@ export function patternOf(id) {
     const [a, b] = p.split('#');
     if (s.startsWith(a) && s.endsWith(b)) {
       const key = s.slice(a.length, s.length - b.length);
-      if (/^[a-z0-9]+$/i.test(key)) return p;
+      if (/^[a-z0-9]+(-[a-z0-9]+)*$/i.test(key)) return p;   // a number, a bucket, a wrapper, or a way's id (full-il-gilt)
     }
   }
   return null;

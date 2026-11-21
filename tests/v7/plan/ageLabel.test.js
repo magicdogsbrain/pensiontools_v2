@@ -13,7 +13,8 @@ import { describe, it, expect } from 'vitest';
 import { planToAgeOf, toAgeAsWritten, TO_AGE_RULE } from '../../../src/answers/shared/rules.js';
 import { planToAgeOfDefinition, LEGACY_DEFINITION, guaranteeSaid } from '../../../src/services/PlanDocument.js';
 import { planDocumentHtml } from '../../../src/ui/components/PlanDocumentView.js';
-import { lockedLastsWords, planPage } from '../../../src/answers/plan/read.js';
+import { planPage } from '../../../src/answers/plan/read.js';
+import { lockedLastsOf } from '../../../src/reading/document.js';   // step F5: the one reader, both views
 import { savedAbout } from '../../../src/answers/plan/about.js';
 import { describeTiming, deriveTiming } from '../../../src/services/PlanTiming.js';
 import { verdictBlockView, successLineHtml, countAgeHtml } from '../../../src/ui/oneAnswerView.js';
@@ -70,13 +71,13 @@ describe('a plan document says the age its definition was written under', { time
       expect(planToAgeOfDefinition(def)).toBe(age);
       const doc = { assumptions: { success: def }, strategy: { p: run.p, r: run.r } };
       expect(successLineHtml(doc)).toContain('tested to ' + age);
-      expect(lockedLastsWords(doc, oneAnswer(run.r, run.p), run.p, true)).toContain('If you live to ' + age + ',');
+      expect(lockedLastsOf(doc, { weighted: true }).words).toContain('If you live to ' + age + ',');
       expect(verdictBlockView(run.r, run.p, { definition: def })).toContain('If you live to ' + age + ',');
     }
     expect(JSON.stringify(def78)).toBe(frozen);
     // a document before 7.8.0 has no definition of its own: its count is said to the same age from its plan
     expect(planToAgeOfDefinition(LEGACY_DEFINITION)).toBe(null);
-    expect(lockedLastsWords({ assumptions: {} }, oneAnswer(run.r, run.p), run.p, true)).toContain('counted to ' + age + ';');
+    expect(lockedLastsOf({ assumptions: {}, strategy: { r: run.r, p: run.p } }, { weighted: true }).words).toContain('counted to ' + age + ';');
   });
 });
 

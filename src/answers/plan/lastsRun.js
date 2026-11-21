@@ -9,7 +9,7 @@
  * shell and the worker's own chunk never carry them (tests/v7/boundaries.test.js).
  *
  *   runLasts(plan, { today, onProgress }) → {
- *     strategyId, ran: { family, cutsOn, cutPct, months }, priced: 'bundled' | null,
+ *     strategyId, ran: { family, cutsOn, cutPct, months }, market: marketStamp() | null (a bought way: what it was priced on),
  *     a: OneAnswer.oneAnswer(r, p) or null (not affordable), reason,
  *     history: { worst: OneAnswer.worstStarts(…), named: NamedStarts.namedStartRows(…) },
  *     stored: { a, note } | null      a locked plan: the document's figure and the one line of 6.24.0 when today's differs
@@ -20,7 +20,7 @@
  *     the plan built WITH the budget's essentials (strategyPlanFor's second argument, index.html _shapeRefs), the strategy run
  *     live (never the document's own: a new version re-prices a ladder at today's bundled curve, as the planner's does at
  *     the day's prices), `p` and `r` trimmed as PlanDocument.buildPlanDocument trims them (trimPlan, trimResult: no samples,
- *     no per-future lists, no functions), and a saver's path drawn on the saving-years engine (src/ui/savingPathForLock.js:
+ *     no per-future lists, no functions), and a saver's path drawn on the saving-years engine (savingPathFor:
  *     absent unless the plan stops later). The document itself is built on the page (answers/plan/lock.js) with these.
  *
  *   trySettingsOf(s, boxes) → the what-if copy of the Stress settings "Try a strategy" runs (index.html tryStrategySettings,
@@ -49,18 +49,18 @@
  *                                              account held in shares, and of a saver's projected pot — one run; the mix is kept
  *     Every figure comes from stressTestStrategy through OneAnswer.oneAnswer, as the one test's do.
  *
- * Plain data in, plain data out (the plan after the in-memory upgrade; the result through cloneSafe in the worker). No
- * live gilt or share prices are loaded: a ladder is priced on the bundled curve (10.1). Pure but for the engine's own
- * deterministic futures; the date arrives as `today`.
+ * Plain data in, plain data out (the plan after the in-memory upgrade; the result through cloneSafe in the worker). A ladder
+ * is priced on the one market (src/reading/market.js: the day's file the worker loaded, else the copy built in), as the
+ * full view prices it; the result says which. Pure but for the engine's own deterministic futures; the date arrives as `today`.
  */
 import { effectiveStressSettings } from '../../services/PlanReading.js';
-import { simulationConfigFromSettings } from '../../services/SimulationConfig.js';
-import { planFromSettings, stressTestStrategy, requiredPotForStrategy } from '../../strategies/stressTest.js';
-import { realYieldForYear } from '../../services/LinkerUniverse.js';
+import { stressTestStrategy, requiredPotForStrategy } from '../../strategies/stressTest.js';
+import { marketStamp } from '../../reading/market.js';
+import { contextFor } from '../../reading/context.js';
+import { lastsInputOf, enginePlanOf } from '../../reading/gather.js';
 import { oneAnswer, worstStarts, earlierTestNote } from '../../services/OneAnswer.js';
 import { namedStartRows, SCENARIO_STARTS, decadeFigures, CONTRACT } from '../../services/NamedStarts.js';
-import { generateDrawdownSchedule } from '../../services/DrawdownService.js';
-import { generateGlidepathSchedule } from '../../services/GlidepathService.js';
+import { yearTablesOf, ASSUMED_PRICES } from '../../reading/yearTable.js';
 import { SCENARIOS } from '../../constants.js';
 import { documentLadder } from '../../services/LadderPosition.js';
 import { normaliseHoldings, emptyHoldings } from '../../services/HoldingsRecord.js';
@@ -70,7 +70,6 @@ import { buildSavingPath } from '../../services/SavingPath.js';
 import { pathPensionOf } from '../../services/PensionToday.js';
 import { ON_COURSE_SHARE } from '../../services/OnCourse.js';
 import { restoredParamsFor } from '../../services/PlanCommit.js';
-import { dateOf } from './dates.js';
 import { closedYearsShort, shortYearsWords } from '../../services/PensionLock.js';
 import { FAMILY } from './lasts.js';
 import { monthsOf } from '../../services/PaidYear.js';
@@ -87,7 +86,8 @@ const plain = (v) => JSON.parse(JSON.stringify(v, (k, x) => (typeof x === 'funct
  * passes no essentials (oneTestFor: essentialsAnnual undefined); the plan document's run passes the budget's (buildPlanDocumentNow).
  */
 export function planFor(settings, now, essentialsAnnual = undefined, { maxYears } = {}) {
-  return planFromSettings(settings, simulationConfigFromSettings({}, settings, now), { yieldForYear: realYieldForYear, essentialsAnnual, startAge: +settings.shapeAgeNow || 57, now, ...(maxYears > 0 ? { maxYears } : {}) });
+  // the one builder of the engine's plan (src/reading/gather.js enginePlanOf), the full view's worker's too
+  return enginePlanOf({ settings, essentialsAnnual, now: now instanceof Date ? now.toISOString() : now }, { maxYears });
 }
 
 // ---- 7.8.0: the chance the money lasts as long as you do (research/v7/replan-nov-2026.md 5; answers/plan/life.js) -----------
@@ -153,7 +153,7 @@ export function documentSuccessOf(plan, { settings, strategyId, p, r, now, essen
 
 /**
  * The classic planner's one test, weighed (index.html oneTestFor, 7.8.0): the options its verdict block reads
- * (ui/oneAnswerView.js verdictBlockView) — the person, the level (the page's own for this visit, else the plan's), the run to
+ * (ui/oneAnswerView.js verdictBlockView) — the person, the level (the context's: the plan's own, as runLasts reads it), the run to
  * the weighting age. A locked ladder's stored result reads its document's own weighted figure (`locked`: { doc }). Null while
  * not weighing: the block is the one before 7.8.0.
  */
@@ -162,8 +162,8 @@ export function chanceRunOf(plan, { settings, strategyId, p, r, now, level = nul
   const doc = locked && isObj(locked.doc) ? locked.doc : null;
   const def = doc && isObj(doc.assumptions) && isObj(doc.assumptions.success) ? doc.assumptions.success : null;
   const stored = doc ? { chance: def && isObj(def.weighted) && typeof def.weighted.chance === 'number' ? def.weighted.chance : null } : null;
-  const w = weightedOptsOf(plan || {}, { settings, strategyId, p, r, now, stored });
-  return { ...w.opts, ...(level ? { level } : {}) };
+  const w = weightedOptsOf(plan || {}, { settings, strategyId, p, r, now, stored, level });
+  return w.opts;
 }
 
 /**
@@ -223,9 +223,10 @@ export function successOf(a, life) {
  * years" — the run followed on to the weighting age carries its shock and lower returns too (rowPlanOf). → { opts, runs, pW }
  * for oneAnswer (`pW`: the plan the futures were followed on with, the plan itself when there was no more run).
  */
-export function weightedOptsOf(plan, { settings, strategyId, p, r, now, essentials = undefined, stored = null, row = null }) {
+export function weightedOptsOf(plan, { settings, strategyId, p, r, now, essentials = undefined, stored = null, row = null, level: given = null }) {
   const life = lifeOf(plan, now, { settings, startAge: p.startAge });
-  const level = planLevelOf(plan);
+  // the plan's level (src/reading/context.js contextFor: Phases.planLevelOf), as every run of both views reads it
+  const level = given || planLevelOf(plan);
   const reason = stored ? life.reason : weightedReasonOf(life, strategyId, p);
   const w = weightedYearsOf(life, p);
   let rW = r, wYears = p.durationYears, runs = 0, pRun = p;
@@ -249,7 +250,7 @@ export const documentAccumulationOf = (plan) => (plan && plan.accumulationTool &
 export const documentHoldingsOf = (plan) => (plan && plan.holdings && typeof plan.holdings === 'object' ? normaliseHoldings(plan.holdings) : emptyHoldings());
 
 /**
- * src/ui/savingPathForLock.js, without its lazy import: a saver's path on the saving-years engine, undefined for a plan that
+ * A saver's path on the saving-years engine, undefined for a plan that
  * is not stopping later (buildPlanDocument then draws the FCA path, as before 6.22.0).
  */
 export function savingPathFor({ settings, accumulation = null, holdings = null, now, phases = null, plan = null }) {
@@ -266,7 +267,7 @@ export function savingPathFor({ settings, accumulation = null, holdings = null, 
  *   before tax (lock.js shapeRefsOf), 0 or absent for none — the plan is then built as the one test builds it
  */
 export function runForDocument(plan, { today, essentials = 0, onProgress = null, weighted = undefined } = {}) {
-  const now = dateOf(today);
+  const now = contextFor(plan, { today }).now;
   const tell = (done, total) => { if (typeof onProgress === 'function') onProgress(done, total); };
   const settings = effectiveStressSettings(plan, { now });
   const strategyId = settings.strategyId || 'pots-and-valves';
@@ -293,13 +294,17 @@ export function runForDocument(plan, { today, essentials = 0, onProgress = null,
  *              followed on to the weighting age runs the same futures
  *   histories  false: the real histories are left at one window (no figure of the chance, the run-out age or what is left
  *              reads them); the plan's own stride when not given
- * → { settings, strategyId, p, r, a, level, ladder, doc, storedR, docSuccess, weigh }
+ * → { ctx, settings, strategyId, p, r, a, level, ladder, doc, storedR, docSuccess, weigh }
  */
 export function lastsOf(plan, { today, onProgress = null, weighted = undefined, futures = null, histories = true } = {}) {
-  const now = dateOf(today);
+  // the one context (src/reading/context.js): the day, the market, the plan's level — as the full view's run is handed it
+  const ctx = contextFor(plan, { today });
+  const now = ctx.now;
   const tell = (done, total) => { if (typeof onProgress === 'function') onProgress(done, total); };
-  const settings = effectiveStressSettings(plan, { now });
-  const strategyId = settings.strategyId || 'pots-and-valves';
+  // the one gatherer (src/reading/gather.js): the input the full view's worker is handed for the same plan
+  const input = lastsInputOf(plan, ctx);
+  const settings = input.settings;
+  const strategyId = input.strategyId;
   const locked = isLocked(plan);
   const doc = locked && isObj(plan.planDocument) ? plan.planDocument : null;
   const storedR = doc && doc.strategy && isObj(doc.strategy.r) ? doc.strategy.r : null;
@@ -314,7 +319,7 @@ export function lastsOf(plan, { today, onProgress = null, weighted = undefined, 
   if (ladder && doc.strategy.p) {
     p = doc.strategy.p; r = storedR;
   } else {
-    p = planFor(settings, now);
+    p = enginePlanOf(input);
     if (Number.isInteger(futures) && futures > 0) p.mcRuns = futures;
     if (histories === false) p.stride = WEIGHTED_HIST_STRIDE;
     r = stressTestStrategy(strategyId, p);
@@ -325,12 +330,12 @@ export function lastsOf(plan, { today, onProgress = null, weighted = undefined, 
   let level = null;
   if (weigh && a) {
     const storedFigure = ladder && doc.strategy.p ? { chance: docSuccess && isObj(docSuccess.weighted) && typeof docSuccess.weighted.chance === 'number' ? docSuccess.weighted.chance : null } : null;
-    const w = weightedOptsOf(plan, { settings, strategyId, p, r, now, stored: storedFigure });
+    const w = weightedOptsOf(plan, { settings, strategyId, p, r, now, stored: storedFigure, level: ctx.level });
     a = oneAnswer(r, p, w.opts);
     level = a.level;
   }
   if (weigh) tell(2, total);
-  return { settings, strategyId, p, r, a, level, ladder, doc, storedR, docSuccess, weigh };
+  return { ctx, settings, strategyId, p, r, a, level, ladder, doc, storedR, docSuccess, weigh };
 }
 
 /**
@@ -338,8 +343,8 @@ export function lastsOf(plan, { today, onProgress = null, weighted = undefined, 
  * @param {{ today: string, onProgress?: (done: number, total: number) => void }} o
  */
 export function runLasts(plan, { today, onProgress = null, weighted = undefined } = {}) {
-  const now = dateOf(today);
-  const { settings, strategyId, p, r, a, level, ladder, doc, storedR, docSuccess, weigh } = lastsOf(plan, { today, onProgress, weighted });
+  const { ctx, settings, strategyId, p, r, a, level, ladder, doc, storedR, docSuccess, weigh } = lastsOf(plan, { today, onProgress, weighted });
+  const now = ctx.now;
   const family = FAMILY.includes(strategyId);
   const history = a
     ? { worst: worstStarts(r.histWindows, 5), named: namedStartRows(strategyId, p) }
@@ -352,7 +357,8 @@ export function runLasts(plan, { today, onProgress = null, weighted = undefined 
     ...(level ? { level } : {}),
     strategyId,
     ran: { family, cutsOn: family && !cfg.disableProtection, cutPct: Math.round((1 - (cfg.protectionMult ?? 0.8)) * 100), months: cfg.consecutiveLimit ?? 3 },
-    priced: !family && !(ladder && doc.strategy.p) ? 'bundled' : null,
+    // what a bought way was priced on (the one market, src/reading/market.js): its date and source, said under the answer
+    market: !family && !(ladder && doc.strategy.p) ? ctx.market : null,
     a, reason: a ? null : (r && r.reason) || null,
     history,
     stored,
@@ -373,20 +379,15 @@ export function closedOf(p) {
   return { age: lock.accessAge, short: short ? { perYear: short.perYear, years: shortYearsWords(short) } : null };
 }
 
-/** The prices the planner's Drawdown and Glidepath pages assume by default (their boxes' 2.5%): the preview uses the same, with no box. */
-export const ASSUMED_PRICES = 0.025;
+/** The prices the year tables assume (src/reading/yearTable.js): the plan's own assumption, in both views. */
+export { ASSUMED_PRICES };
 const r0 = (v) => Math.round(+v || 0);
 
 /**
  * What the planner's Drawdown, Glidepath and Scenarios pages show, read off the one test and the plan's own settings
  * (road-to-7.md step 11b: test.schedule, test.glidepath, test.scenarios) — plain data, deterministic, no second run:
- *   schedule    Pots & Valves only (index.html showDrawdownUI): year by year, what is drawn from the pension, the State
- *               Pension, tax, what the ISA tops up, what is left to spend, the ISA left — DrawdownService.generateDrawdownSchedule
- *               on the plan's own length at ASSUMED_PRICES (the planner's page has boxes for both; the preview takes the plan's)
- *   glidepath   Pots & Valves only (showGlidepathUI): the pots' floors year by year — GlidepathService.generateGlidepathSchedule,
- *               with the ISA's balance from the same schedule
- *   own         any other way of drawing (strategyScheduleNotice): its own year-by-year table from the run's cones — the income
- *               in the middle future and the 1-in-10 bad one, what is left in the middle
+ *   schedule, glidepath, own   the year tables: src/reading/yearTable.js yearTablesOf, the ONE function both views draw
+ *               (lead4.md D9): the plan's own length at ASSUMED_PRICES; a bought way's own table from this run's cones
  *   scenarios   the named stresses as starts (the Scenarios tab, post-6.24.0): namedStartRows from each decade's January, with
  *               what the decade did to shares and prices (decadeFigures); the made-up worst decade said apart, with the hardest
  *               real start the test counted. A contract plan (every year bought: the full index-linked gilt ladder, the floored
@@ -396,35 +397,14 @@ const r0 = (v) => Math.round(+v || 0);
  */
 export function extrasOf(settings, strategyId, p, r, a, now) {
   if (!a) return null;
-  const duration = Math.max(1, r0(settings.duration) || 35);
-  const startAge = r0(settings.shapeAgeNow) || r0(p && p.startAge) || 57;
-  const pnv = strategyId === 'pots-and-valves';
-  let schedule = null, glidepath = null, own = null;
-  if (pnv) {
-    const s = { ...settings, duration };
-    try {
-      schedule = generateDrawdownSchedule(s, duration, ASSUMED_PRICES, now).map((x) => ({ year: x.year, age: startAge + x.year, pension: r0(x.sippDraw), state: r0(x.statePension), tax: r0(x.tax), net: r0(x.netIncome), isa: r0(x.isaDraw), ...(x.giaDraw > 0 ? { gia: r0(x.giaDraw) } : {}), spendable: r0(x.spendable), isaLeft: r0(x.isaBalance) }));
-    } catch { schedule = null; }
-    try {
-      const isaByYear = {};
-      for (const x of schedule || []) isaByYear[x.year] = x.isaLeft;
-      glidepath = { tent: !!s.equityGlideEnabled, diversifiers: (+s.diversifierStart || 0) > 0, reserve: !!s.hodlEnabled && (+s.hodlValue || 0) > 0,
-        rows: generateGlidepathSchedule(s, ASSUMED_PRICES).map((x) => ({ year: x.year, age: startAge + x.year, shares: r0(x.equityMin), bonds: r0(x.bondMin), cash: r0(x.cashTarget), diversifiers: r0(x.diversifier), reserve: r0(x.hodl), sharesPct: Math.round((x.equityShareOfPot || 0) * 100), isa: isaByYear[x.year] != null ? isaByYear[x.year] : null, total: r0(x.totalMin) })) };
-    } catch { glidepath = null; }
-  } else if (r && r.affordable && r.cones && r.cones.income && r.cones.wealth) {
-    const inc = r.cones.income, w = r.cones.wealth;
-    const years = Math.max(0, r0(p && p.durationYears) || duration);
-    const sa = r0(p && p.startAge) || startAge;
-    own = [];
-    for (let y = 0; y < years; y++) own.push({ year: y + 1, age: sa + y, incomeMid: r0(inc.p50 && inc.p50[y]), incomeBad: r0(inc.p10 && inc.p10[y]), leftMid: r0(w.p50 && w.p50[y]) });
-  }
+  const { prices, startAge, duration, schedule, glidepath, own } = yearTablesOf({ settings, strategyId, p, r, now });
   // a contract plan: the planner's Scenarios tab is an inflation table (src/ui/oneAnswerView.js scenariosTabHtml) — each row, the made-up decade too
   const cash = CONTRACT.includes(strategyId) && r && r.plan && Array.isArray(r.plan.years) && r.plan.years.length ? (sc) => contractCash(r.plan.years, sc) : null;
   let scenarios = [];
   try { scenarios = namedStartRows(strategyId, p, SCENARIO_STARTS).map((row, i) => { const sc = SCENARIOS[SCENARIO_STARTS[i].key]; return { ...row, key: SCENARIO_STARTS[i].key, decade: decadeFigures(sc), ...(cash ? { cash: cash(sc) } : {}) }; }); } catch { scenarios = []; }
   const hardest = r && Array.isArray(r.histWindows) ? (worstStarts(r.histWindows, 1)[0] || null) : null;
   const synthetic = { name: SCENARIOS.SYNTHETIC_WORST.name, decade: decadeFigures(SCENARIOS.SYNTHETIC_WORST), hardest: hardest ? { year: hardest.year, month: hardest.month || null } : null, ...(cash ? { cash: cash(SCENARIOS.SYNTHETIC_WORST) } : {}) };
-  return { prices: ASSUMED_PRICES, startAge, duration, schedule, glidepath, own, scenarios, synthetic };
+  return { prices, startAge, duration, schedule, glidepath, own, scenarios, synthetic };
 }
 
 /**
@@ -463,9 +443,13 @@ export function trySettingsOf(s, boxes) {
   const id = b.way || 'pots-and-valves';
   const pot = +b.pot || 0;
   const isa = +b.isa || 0;
-  const oldPot = (s.equityMin || 0) + (s.bondMin || 0) + (s.cashTarget || 0);
+  // the box holds the whole pension (lasts.js tryStartOf): every pot scales with it, a diversifiers sleeve included (step F1)
+  const oldPot = (s.equityMin || 0) + (s.bondMin || 0) + (s.cashTarget || 0) + (s.diversifierStart || 0);
   const scale = oldPot > 0 ? pot / oldPot : 0;
-  if (oldPot > 0) { c.equityMin = Math.round((s.equityMin || 0) * scale); c.bondMin = Math.round((s.bondMin || 0) * scale); c.cashTarget = Math.round((s.cashTarget || 0) * scale); }
+  if (oldPot > 0) {
+    c.equityMin = Math.round((s.equityMin || 0) * scale); c.bondMin = Math.round((s.bondMin || 0) * scale); c.cashTarget = Math.round((s.cashTarget || 0) * scale);
+    if ((s.diversifierStart || 0) > 0) c.diversifierStart = Math.round(s.diversifierStart * scale);
+  }
   else { c.equityMin = Math.round(pot * 0.6); c.bondMin = Math.round(pot * 0.3); c.cashTarget = pot - c.equityMin - c.bondMin; }
   c.isaBalance = isa;
   c.strategyId = id;
@@ -481,7 +465,7 @@ export function trySettingsOf(s, boxes) {
 
 /** The what-if copy on a saved plan: its effective settings through trySettingsOf. */
 export function trySettings(plan, boxes, today) {
-  return trySettingsOf(effectiveStressSettings(plan, { now: dateOf(today) }), boxes);
+  return trySettingsOf(effectiveStressSettings(plan, { now: contextFor(plan, { today }).now }), boxes);
 }
 
 /**
@@ -492,7 +476,7 @@ export function trySettings(plan, boxes, today) {
  * @param {{ today: string, boxes: object, onProgress?: Function }} o
  */
 export function runTry(plan, { today, boxes, onProgress = null } = {}) {
-  const now = dateOf(today);
+  const now = contextFor(plan, { today }).now;
   const tell = (done, total) => { if (typeof onProgress === 'function') onProgress(done, total); };
   const settings = effectiveStressSettings(plan, { now });
   const c = trySettingsOf(settings, boxes || {});
@@ -509,7 +493,7 @@ export function runTry(plan, { today, boxes, onProgress = null } = {}) {
     ...(closed ? { closed } : {}),
     strategyId,
     ran: { family, cutsOn: family && !cfg.disableProtection, cutPct: Math.round((1 - (cfg.protectionMult ?? 0.8)) * 100), months: cfg.consecutiveLimit ?? 3 },
-    priced: !family ? 'bundled' : null,
+    market: !family ? marketStamp() : null,
     a, reason: a ? null : (r && r.reason) || null,
     history: null, stored: null,
     boxes: boxes || {},
@@ -587,7 +571,7 @@ export function afterFall(settings, share = FALL_SHARE) {
  *   ('unaffordable': this way of drawing cannot be bought with the pots; 'lever': the lever itself will not do)
  */
 export function runLever(plan, { today, lever, onProgress = null, weighted = undefined } = {}) {
-  const now = dateOf(today);
+  const now = contextFor(plan, { today }).now;
   const tell = (done, total) => { if (typeof onProgress === 'function') onProgress(done, total); };
   const settings = effectiveStressSettings(plan, { now });
   const strategyId = settings.strategyId || 'pots-and-valves';

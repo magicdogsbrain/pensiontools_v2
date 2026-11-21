@@ -297,6 +297,25 @@ export function cannedDecade(p, year, month) {
 }
 
 /**
+ * What a bought way costs (lead4.md R6, D9): its own priced figure from the run's signature — the gilts of a full ladder or
+ * a rotation, the bridge, the floor, the base ladder — and 0 for the ways that buy nothing. The ONE reader: the simple
+ * view's ways list (answers/plan/waysRun.js wayResult) and the full view's Strategies overview both draw it.
+ * @param {object|null} r  one way's stressTestStrategy result
+ * @returns {number}
+ */
+export function wayCostOf(r) {
+  const sg = (r && r.signature) || {};
+  const n = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
+  switch (r && r.strategyId) {
+    case 'full-il-gilt': case 'gilt-rotation': return n(sg.total);
+    case 'bridge-and-engine': return n(sg.bridgeCost);
+    case 'floor-the-schedule': case 'floor-to-age': case 'floor-and-flex': return n(sg.floorCost);
+    case 'ladder-and-ratchet': return n(sg.baseLadderCost);
+    default: return 0;
+  }
+}
+
+/**
  * The ways ranked on a plan (index.html strategyOverviewHtml, 7.12.0), a locked contract plan's own way as its plan document
  * holds it: { id, r, p, sc } for each way the one test could pay, `r`/`p` the document's for the own way when `own` is given
  * ({ id, r, p }: LadderPosition.documentLadder's plan's document, `strategy.r` and `strategy.p`), else the live run's. The own

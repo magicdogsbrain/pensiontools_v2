@@ -29,7 +29,7 @@ describe('someone who retires on a birthday, not on 6 April', () => {
     expect(t.firstTaxYear).toBe(2027);             // the ladder still buys whole tax years
     expect(t.startMonth).toBe('2027-10');
     expect(t.monthsToStop).toBe(13);
-    expect(describeTiming(t, p3, today)).toMatch(/You retire in October 2027 at 61, 13 months away/);
+    expect(describeTiming(t, p3, today)).toMatch(/You retire in October 2027 at 61, 1 year 1 month away/);   // the one formatter's words (step F1)
   });
 
   it('P3 — a locked plan stays "committed, still saving" and the Decision tool stays shut until that month', () => {

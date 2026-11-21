@@ -64,7 +64,7 @@ export async function saveLaterDraftFirst() {
 
 /** The open plan, read as PlanMove.startLaterOf reads it (as stored): null for every plan with nothing to move or ask. */
 export async function startLaterOfActive() {
-  try { return startLaterOf(await getActiveScenarioAsStored(), new Date()); } catch (e) { return null; }
+  try { return startLaterOf(await getActiveScenarioAsStored(), todayOf()); } catch (e) { return null; }
 }
 
 /**
@@ -72,7 +72,7 @@ export async function startLaterOfActive() {
  * settings as the form holds them: the next-step banner's one thing to do, its start chosen under Timing. Null otherwise.
  */
 export async function startDraftOfActive() {
-  try { const sc = await getActiveScenarioAsStored(); const now = new Date(); return sc ? laterDraftLeftOf(sc, effectiveStressSettings(sc, { now }), now) : null; } catch (e) { return null; }
+  try { const sc = await getActiveScenarioAsStored(); const now = todayOf(); return sc ? laterDraftLeftOf(sc, effectiveStressSettings(sc, { now }), now) : null; } catch (e) { return null; }
 }
 
 /**
@@ -109,7 +109,7 @@ export function installLockedStart(win, doc, deps) {
     const el = doc.getElementById('tmLockedStart'); if (!el) return;
     let html = '', asking = false;
     try {
-      const sc = await getActiveScenarioAsStored(), now = new Date();
+      const sc = await getActiveScenarioAsStored(), now = todayOf();
       // a closed plan's start is never asked about (its lock banner says it is closed): nothing here
       if (sc && !isClosedPlan(sc) && await activePlanLocked()) {
         const sl = startLaterOf(sc, now);
@@ -132,7 +132,7 @@ export function installLockedStart(win, doc, deps) {
   win.saveLockedStopMonth = async function () {
     // the rules of V7's own box (about.js lockedStopAnswer): a month this one or earlier, after the age of 16
     let age = null; try { age = deriveTiming(await getStressSettingsAsync()).currentAge; } catch (e) { age = null; }
-    const a = lockedStopAnswer(doc.getElementById('tmLockedStopMonth')?.value || '', new Date(), age);
+    const a = lockedStopAnswer(doc.getElementById('tmLockedStopMonth')?.value || '', todayOf(), age);
     if (a.error) { toast(LOCKED_STOP_REFUSED[a.error] || LOCKED_STOP_REFUSED.notAMonth, 'warning', 5000); return; }
     const v = a.value;
     try { await saveStressSettings({ stoppedWork: v }); }

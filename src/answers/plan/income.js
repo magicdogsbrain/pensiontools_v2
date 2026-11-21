@@ -400,15 +400,22 @@ export function incomePatch(plan, typed, { today }) {
 const yearOf = (timing, ageNow, age) => taxYearLabel(timing.firstTaxYear + (age - ageNow));
 const yearsWords = (n) => (n === 1 ? '1 year' : String(n) + ' years');
 
+/**
+ * The State Pension line (7.1): its id and slots, from the State Pension as it would be saved, or as saved. The one line
+ * both views say (the full view through src/reading/statePension.js spLineHtml).
+ */
+export function spLineOf(sp) {
+  if (sp.kind === 'none') return { id: 'sp.none', slots: {} };
+  if (sp.kind === 'assumed') return { id: sp.fromAge != null ? 'sp.assumed' : 'sp.assumedNoAge', slots: { yearly: pounds(sp.yearly), age: sp.fromAge } };
+  if (sp.beforeStart) return { id: 'sp.before', slots: { yearly: pounds(sp.yearly), date: sp.dateWords } };
+  if (sp.fromAge != null) return { id: sp.dated ? 'sp.paid' : 'sp.noDate', slots: { yearly: pounds(sp.yearly), age: sp.fromAge, year: taxYearLabel(sp.taxYear) } };
+  return { id: 'sp.noDateNoAge', slots: { yearly: pounds(sp.yearly) } };
+}
+
 /** The derived figures (7.1), as line ids with their slots: from the facts as they would be saved, or as saved. */
 export function derivedLines(f) {
   const { sp, fs, other, streams, lumps, ageNow, timing } = f;
-  const lines = [];
-  if (sp.kind === 'none') lines.push({ id: 'sp.none', slots: {} });
-  else if (sp.kind === 'assumed') lines.push({ id: sp.fromAge != null ? 'sp.assumed' : 'sp.assumedNoAge', slots: { yearly: pounds(sp.yearly), age: sp.fromAge } });
-  else if (sp.beforeStart) lines.push({ id: 'sp.before', slots: { yearly: pounds(sp.yearly), date: sp.dateWords } });
-  else if (sp.fromAge != null) lines.push({ id: sp.dated ? 'sp.paid' : 'sp.noDate', slots: { yearly: pounds(sp.yearly), age: sp.fromAge, year: taxYearLabel(sp.taxYear) } });
-  else lines.push({ id: 'sp.noDateNoAge', slots: { yearly: pounds(sp.yearly) } });
+  const lines = [spLineOf(sp)];
   fs.forEach((p, i) => {
     if (p.fromAge < ageNow) lines.push({ id: 'fs.before', slots: { n: i + 1, amount: pounds(p.amount), age: p.fromAge, ageNow, rises: p.rises } });
     else lines.push({ id: 'fs.line', slots: { n: i + 1, amount: pounds(p.amount), age: p.fromAge, year: yearOf(timing, ageNow, p.fromAge), rises: p.rises } });

@@ -18,7 +18,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { test, expect, PROD, REPO, FIXED_NOW, SLOWDOWN, record, watchLanding, landingShown, V7_PATH, atClassic, WORKER_DATA_MISSING } from './helpers/app.js';
+import { test, expect, PROD, REPO, FIXED_NOW, SLOWDOWN, record, watchLanding, landingShown, V7_PATH, atClassic } from './helpers/app.js';
 import { lockInNode } from './helpers/lockInNode.js';
 import { LOCK_WRITES, UNLOCK_WRITES } from '../src/answers/plan/schema.js';
 
@@ -68,7 +68,6 @@ test.describe('"Lock the plan", without an account', () => {
   test('the lock step, the lock (one write, the declared keys, equal to the Node lock), "Your plan as locked", the planner reads it as locked, the unlock', async ({ page, watch }, testInfo) => {
     test.setTimeout(300_000);
     // as on the live site today: the engine worker asks for the market files from its own address (e2e/full-view-unchanged.spec.js)
-    watch.allow(WORKER_DATA_MISSING);
     const plan = draftPlan();
     const locked = lockedPlan();
     const stored = await plant(page, [plan, locked]);
@@ -80,7 +79,7 @@ test.describe('"Lock the plan", without an account', () => {
     await expect(page.getByTestId('plan.step.lock')).toContainText('Lock the plan');
     const panel = page.locator('[data-region="plan-step"]');
     await expect(panel).toContainText('What the lock fixes');
-    await expect(panel).toContainText('the way of drawing (Pots and valves) and its dials;');
+    await expect(panel).toContainText('the way of drawing (Pots & Valves) and its dials;');   // the way's one name in both views (step F3)
     await expect(panel).toContainText('What stays changeable');
     await expect(panel).toContainText('What you get');
     await expect(panel).toContainText('the plan document: the plan as committed');
@@ -147,7 +146,7 @@ test.describe('"Lock the plan", without an account', () => {
     await expect(step.locator('[data-line="says.sp"], [data-line="says.spAssumed"], [data-line="says.noSp"]')).toHaveCount(1);
     // (7.8.0: a plan locked now records the definition it was tested under: the chance it lasted as long as you do when it
     // was locked, beside its count to the plan's age)
-    await expect(step.locator('[data-line="says.bad"]')).toContainText(/(Your plan lasts in .+ out of 10|When the plan was locked, counting how long people your age live, the money lasted as long as you do .+ If you live to \d+, the money lasts that long in .+ futures we tried)\. Left at the end, at today’s prices: typically £[\d,]+; in a bad case \(the worst 1 in 10\) £[\d,]+/);
+    await expect(step.locator('[data-line="says.bad"]')).toContainText(/(Your plan lasts in .+ out of 10|When the plan was locked, counting how long people your age live, (?:the money lasts as long as you do|your income is paid in full as long as you live|you have no lean year while you are alive) .+ If you live to \d+, the money lasts that long in .+ futures we tried)\. Left at the end, at today’s prices: typically £[\d,]+; in a bad case \(the worst 1 in 10\) £[\d,]+/);
     await expect(step.locator('[data-line="says.cuts"]')).toContainText(/Income cuts: in a slump, after \d+ months? in a row below the plan’s line/);
     await expect(page.getByTestId('plan.unlock')).toHaveCount(1);
     await expect(page.getByTestId('plan.plan.unlock')).toHaveText('Unlock this plan');
@@ -172,7 +171,7 @@ test.describe('"Lock the plan", without an account', () => {
     await expect(page.locator('#landingTryGuest')).toBeHidden();
     await expect(page.locator('#openPlaceNote')).toContainText('Opened from the simple view.');
     await expect(page.locator('#scenarioActiveName')).toHaveText('Alex’s plan');
-    await expect(page.locator('#planLockChip')).toContainText('locked', { timeout: 45_000 });
+    await expect(page.locator('#planLockChip [data-fact="lock.state"]')).toHaveText('Locked', { timeout: 45_000 });   // the simple view's word (step F3)
     await expect(page.locator('.sub-tab[data-decisiontab="plandoc"]')).toHaveClass(/active/);
     await expect(page.locator('#planDocumentPage')).toContainText('Alex’s plan', { timeout: 45_000 });
     await expect(page.locator('#planDocumentPage')).not.toContainText('has no plan document yet');
@@ -241,7 +240,6 @@ test.describe('"Lock the plan", without an account', () => {
 
   test('"Not now" locks nothing; Undo within the toast\'s time puts the text back byte for byte', async ({ page, watch }) => {
     test.setTimeout(180_000);
-    watch.allow(WORKER_DATA_MISSING);
     const plan = draftPlan();
     const locked = lockedPlan();
     const stored = await plant(page, [plan, locked]);

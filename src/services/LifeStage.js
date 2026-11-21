@@ -19,6 +19,7 @@
  * Pure: no DOM, no storage.
  */
 import { deriveTiming, taxYearLabel, monthsUntilStart, monthsUntilMonth } from './PlanTiming.js';
+import { spanText } from '../reading/format.js';
 import { saverReading, saverPrices, savingPathVersion, pathStart, pathCountsIsa, v3PensionLineAt, figureOrNull, monthOf, monthWords, OLD_PATH_CPI } from './SaverReading.js';
 import { closedAtOf, nextPlanIdOf, beforeOf, monthRefusal, monthRefusalWords, monthWordsOf, closesAhead } from './PlanClosed.js';
 import { WINDOW, windowOf, windowYearsOf, agreementOf } from './Phases.js';
@@ -268,7 +269,7 @@ export function openingTab(stage, phase = null, { held = false, figures = true }
 function chipText(def, monthsToStart, beforeStart) {
   if (def.key === 'committed-saving') {
     if (!beforeStart || monthsToStart <= 0) return def.chip;
-    return monthsToStart >= 24 ? Math.round(monthsToStart / 12) + ' years to go' : monthsToStart + ' month' + (monthsToStart === 1 ? '' : 's') + ' to go';
+    return spanText(monthsToStart) + ' to go';   // the one formatter's words for time to go (src/reading/format.js, step F1)
   }
   return def.chip;
 }
@@ -289,6 +290,15 @@ export function decisionEntryAllowed(stage, entryMonth) {
       const [y, m] = gate.split('-').map(Number);
       const mon = MONTHS[m - 1];
       return { ok: false, reason: 'This plan is locked and you retire in ' + mon + ' ' + y + ' (plan year 0 is ' + stage.startLabel + '). Monthly entries open then — until then you are still saving, so record your pot on the Accumulation planner instead.' };
+    }
+  }
+  // (step F5, lead4.md D17) a plan not locked whose person is still saving is not led into a month as if drawing: a month
+  // before the one they stop work is refused, as a locked saver's is, and nothing is asked or locked
+  if (!stage.locked && stage.timingMode === 'future' && stage.startMonth) {
+    const key = String(entryMonth || '').slice(0, 7);
+    if (!/^\d{4}-\d{2}$/.test(key) || key < stage.startMonth) {
+      const [y, m] = stage.startMonth.split('-').map(Number);
+      return { ok: false, reason: 'This plan says you are still saving until ' + MONTHS[m - 1] + ' ' + y + '. Monthly entries open from then. Until then you can record your pot on the Accumulation planner; nothing is locked.' };
     }
   }
   return { ok: true };

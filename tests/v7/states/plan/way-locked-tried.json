@@ -2724,6 +2724,7 @@
               "statePension": 12000,
               "statePensionYear": 12,
               "taxMode": "inflates",
+              "configured": true,
               "chargesPct": 0.5,
               "isaGrowth": "cash"
             }
@@ -3132,10 +3133,12 @@
               "drawn": 8500,
               "cutMonths": 0,
               "net": 7428,
-              "stepNow": 34000,
+              "step0": 34000,
               "pot": 648852,
               "potActual": 648852,
+              "potPension": 613800,
               "potPart0": 613800,
+              "potIsa": 35052,
               "potPart1": 35052
             },
             "lines": [
@@ -3188,7 +3191,7 @@
                   "id": "where.step",
                   "parts": [
                     {
-                      "key": "stepNow",
+                      "key": "step0",
                       "kind": "money"
                     },
                     " a year before tax"
@@ -3211,9 +3214,23 @@
                       "key": "pot",
                       "kind": "money"
                     },
+                    " (",
+                    "",
+                    "pension ",
+                    {
+                      "key": "potPension",
+                      "kind": "money"
+                    },
+                    ", ",
+                    "ISA ",
+                    {
+                      "key": "potIsa",
+                      "kind": "money"
+                    },
+                    ")",
                     "."
                   ],
-                  "text": "£648,852."
+                  "text": "£648,852 (pension £613,800, ISA £35,052)."
                 },
                 "source": {
                   "kind": "record",
@@ -3297,6 +3314,8 @@
               "saysGross2": 24000,
               "saysNet2": 1810,
               "saysAge2": 79,
+              "yearMonthly": 2833,
+              "yearTotal": 25500,
               "saysSp": 11973,
               "saysSpAge": 67,
               "saysBad": 333154,
@@ -3310,13 +3329,13 @@
               "stepAge1": 72,
               "step2": 24000,
               "stepAge2": 79,
-              "sipp": 640000,
-              "isa": 35000,
+              "sipp": 613800,
+              "isa": 35052,
               "gia": 0,
               "shares": 180000,
               "bonds": 400000,
               "cash": 60000,
-              "spWeekly": 230,
+              "spWeekly": 230.25,
               "dial_cashYears": 2,
               "dial_isaTotal": 35000,
               "dial_sippTotal": 640000
@@ -3343,10 +3362,10 @@
                       "key": "saysNet0",
                       "kind": "money"
                     },
-                    " a month after tax",
-                    " (tax year 2027/28)"
+                    " a month after tax in a full year",
+                    " (from tax year 2027/28)"
                   ],
-                  "text": "From age 66: £34,000 a year before tax, £2,476 a month after tax (tax year 2027/28)"
+                  "text": "From age 66: £34,000 a year before tax, £2,476 a month after tax in a full year (from tax year 2027/28)"
                 },
                 "source": {
                   "kind": "locked",
@@ -3375,10 +3394,10 @@
                       "key": "saysNet1",
                       "kind": "money"
                     },
-                    " a month after tax",
-                    " (tax year 2033/34)"
+                    " a month after tax in a full year",
+                    " (from tax year 2033/34)"
                   ],
-                  "text": "From age 72: £29,000 a year before tax, £2,143 a month after tax (tax year 2033/34)"
+                  "text": "From age 72: £29,000 a year before tax, £2,143 a month after tax in a full year (from tax year 2033/34)"
                 },
                 "source": {
                   "kind": "locked",
@@ -3407,14 +3426,42 @@
                       "key": "saysNet2",
                       "kind": "money"
                     },
-                    " a month after tax",
-                    " (tax year 2040/41)"
+                    " a month after tax in a full year",
+                    " (from tax year 2040/41)"
                   ],
-                  "text": "From age 79: £24,000 a year before tax, £1,810 a month after tax (tax year 2040/41)"
+                  "text": "From age 79: £24,000 a year before tax, £1,810 a month after tax in a full year (from tax year 2040/41)"
                 },
                 "source": {
                   "kind": "locked",
                   "at": "1 July 2026",
+                  "stale": false
+                }
+              },
+              {
+                "id": "where.yearPlan",
+                "slots": {
+                  "year": "2026/27"
+                },
+                "sentence": {
+                  "id": "where.yearPlan",
+                  "parts": [
+                    "In 2026/27 your plan takes ",
+                    {
+                      "key": "yearMonthly",
+                      "kind": "money"
+                    },
+                    " a month before tax, from July 2026: 9 payments, ",
+                    {
+                      "key": "yearTotal",
+                      "kind": "money"
+                    },
+                    "."
+                  ],
+                  "text": "In 2026/27 your plan takes £2,833 a month before tax, from July 2026: 9 payments, £25,500."
+                },
+                "source": {
+                  "kind": "record",
+                  "at": null,
                   "stale": false
                 }
               },
@@ -3698,7 +3745,7 @@
                           "kind": "money"
                         }
                       ],
-                      "text": "£640,000"
+                      "text": "£613,800"
                     },
                     "source": {
                       "kind": "locked",
@@ -3747,7 +3794,7 @@
                           "kind": "money"
                         }
                       ],
-                      "text": "£35,000"
+                      "text": "£35,052"
                     },
                     "source": {
                       "kind": "locked",
@@ -3773,11 +3820,11 @@
                       "parts": [
                         {
                           "key": "spWeekly",
-                          "kind": "money"
+                          "kind": "week"
                         },
                         " a week"
                       ],
-                      "text": "£230 a week"
+                      "text": "£230.25 a week"
                     },
                     "source": {
                       "kind": "locked",
@@ -4610,6 +4657,7 @@
         ],
         "current": "month",
         "answerStale": null,
+        "readFault": null,
         "next": {
           "id": "P.idle",
           "slots": {
@@ -4683,6 +4731,7 @@
           "family": false,
           "endAge": 86,
           "atStop": null,
+          "noFigures": false,
           "runKey": "SamLocked02|2026-09-02T18:30:00.000Z|wudskr|L",
           "stash": {
             "pots-and-valves": {},
@@ -4743,6 +4792,7 @@
                   "id": "cost",
                   "slots": {
                     "cost": "£341,846",
+                    "bought": "bought today",
                     "left": "£333,154"
                   }
                 }
@@ -4801,6 +4851,13 @@
                 "score": "49.7"
               },
               "compare": null,
+              "costFact": "way.full-il-gilt.cost",
+              "facts": {
+                "name": "way.full-il-gilt.name",
+                "verdict": "way.full-il-gilt.verdict",
+                "cost": "way.full-il-gilt.cost",
+                "bought": "way.bought"
+              },
               "asLocked": "1 July 2026"
             },
             {
@@ -4908,6 +4965,13 @@
                   "way": "pots-and-valves",
                   "words": "in every future it tried"
                 }
+              },
+              "costFact": null,
+              "facts": {
+                "name": "way.pots-and-valves.name",
+                "verdict": "way.pots-and-valves.verdict",
+                "cost": "way.pots-and-valves.cost",
+                "bought": "way.bought"
               },
               "asLocked": null
             },
@@ -5029,6 +5093,13 @@
                   "words": "in every future it tried"
                 }
               },
+              "costFact": null,
+              "facts": {
+                "name": "way.buckets-in-order.name",
+                "verdict": "way.buckets-in-order.verdict",
+                "cost": "way.buckets-in-order.cost",
+                "bought": "way.bought"
+              },
               "asLocked": null
             },
             {
@@ -5065,6 +5136,7 @@
                   "id": "cost",
                   "slots": {
                     "cost": "£288,707",
+                    "bought": "bought today",
                     "left": "£386,293"
                   }
                 }
@@ -5101,6 +5173,13 @@
                   "way": "floor-the-schedule",
                   "words": "in every future it tried"
                 }
+              },
+              "costFact": "way.floor-the-schedule.cost",
+              "facts": {
+                "name": "way.floor-the-schedule.name",
+                "verdict": "way.floor-the-schedule.verdict",
+                "cost": "way.floor-the-schedule.cost",
+                "bought": "way.bought"
               },
               "asLocked": null
             },
@@ -5139,6 +5218,7 @@
                   "id": "cost",
                   "slots": {
                     "cost": "£319,146",
+                    "bought": "bought today",
                     "left": "£355,854"
                   }
                 }
@@ -5241,6 +5321,13 @@
                   "words": "in every future it tried"
                 }
               },
+              "costFact": "way.gilt-rotation.cost",
+              "facts": {
+                "name": "way.gilt-rotation.name",
+                "verdict": "way.gilt-rotation.verdict",
+                "cost": "way.gilt-rotation.cost",
+                "bought": "way.bought"
+              },
               "asLocked": null
             },
             {
@@ -5278,6 +5365,7 @@
                   "id": "cost",
                   "slots": {
                     "cost": "£260,608",
+                    "bought": "bought today",
                     "left": "£414,392"
                   }
                 }
@@ -5334,6 +5422,13 @@
                   "words": "in every future it tried"
                 }
               },
+              "costFact": null,
+              "facts": {
+                "name": "way.floor-to-age.name",
+                "verdict": null,
+                "cost": "way.floor-to-age.cost",
+                "bought": "way.bought"
+              },
               "asLocked": null
             },
             {
@@ -5371,6 +5466,7 @@
                   "id": "cost",
                   "slots": {
                     "cost": "£34,000",
+                    "bought": "bought today",
                     "left": "£641,000"
                   }
                 }
@@ -5434,6 +5530,13 @@
                   "words": "in more than 9 futures out of 10"
                 }
               },
+              "costFact": "way.bridge-and-engine.cost",
+              "facts": {
+                "name": "way.bridge-and-engine.name",
+                "verdict": "way.bridge-and-engine.verdict",
+                "cost": "way.bridge-and-engine.cost",
+                "bought": "way.bought"
+              },
               "asLocked": null
             },
             {
@@ -5471,6 +5574,7 @@
                   "id": "cost",
                   "slots": {
                     "cost": "£196,157",
+                    "bought": "bought today",
                     "left": "£478,843"
                   }
                 }
@@ -5561,6 +5665,13 @@
                   "words": "in more than 9 futures out of 10"
                 }
               },
+              "costFact": "way.ladder-and-ratchet.cost",
+              "facts": {
+                "name": "way.ladder-and-ratchet.name",
+                "verdict": "way.ladder-and-ratchet.verdict",
+                "cost": "way.ladder-and-ratchet.cost",
+                "bought": "way.bought"
+              },
               "asLocked": null
             },
             {
@@ -5598,6 +5709,7 @@
                   "id": "cost",
                   "slots": {
                     "cost": "£120,433",
+                    "bought": "bought today",
                     "left": "£554,567"
                   }
                 }
@@ -5704,6 +5816,13 @@
                   "words": "in 9 futures out of 10"
                 }
               },
+              "costFact": "way.floor-and-flex.cost",
+              "facts": {
+                "name": "way.floor-and-flex.name",
+                "verdict": "way.floor-and-flex.verdict",
+                "cost": "way.floor-and-flex.cost",
+                "bought": "way.bought"
+              },
               "asLocked": null
             }
           ],
@@ -5714,7 +5833,8 @@
             "runs": 9,
             "ms": 4600
           },
-          "has": true
+          "has": true,
+          "market": "Gilts priced at the prices of 12 November 2026 (the copy built into the site: the day’s file could not be read)."
         }
       }
     }
@@ -5855,7 +5975,16 @@
     "reason": null,
     "result": {
       "strategyId": "full-il-gilt",
-      "priced": "bundled",
+      "market": {
+        "gilts": {
+          "source": "builtIn",
+          "asOf": "2026-11-12"
+        },
+        "equity": {
+          "source": "builtIn",
+          "asOf": "2026-11-11"
+        }
+      },
       "ways": [
         {
           "id": "pots-and-valves",

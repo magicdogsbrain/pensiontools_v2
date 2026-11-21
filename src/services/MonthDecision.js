@@ -34,7 +34,8 @@ import { strategyOf } from './PlanFromSeed.js';
 import { spendingSmileFactor } from './SpendingModel.js';
 import { effectiveStressSettings } from './PlanReading.js';
 import { decisionSettingsAsRead } from './DraftDecision.js';
-import { strategyOverlayOf, ladderFromDocument, CONTRACT_IDS, monthDayOf } from './DecisionOverlay.js';
+import { strategyOverlayOf, ladderFromDocument, ladderFromPlan, CONTRACT_IDS, monthDayOf } from './DecisionOverlay.js';
+import { cadenceMonths, cadenceOf } from './DrawCadence.js';
 import { nextMoneyIn } from '../answers/plan/held.js';
 import { beforeOf, closedAtOf, BEFORE_KINDS } from './PlanClosed.js';
 import { pensionLockOf } from './PensionLock.js';
@@ -181,18 +182,23 @@ export function monthInputsOf(plan, { now = new Date() } = {}) {
  * @param {string} ym  'YYYY-MM'
  * @param {{ equity, bond, cash, isa?, diversifier?, gia?, giaBasis? }} pots
  */
-export function decideMonth(I, ym, pots, { history = I.history, taxYears = I.taxYears, entered = null, paidAhead = false } = {}) {
+export function decideMonth(I, ym, pots, { history = I.history, taxYears = I.taxYears, entered = null, paidAhead = false, draftLadder = null } = {}) {
   const setup = engineSetup({ decisionSettings: I.settings, stressSettings: I.stressSettings, strategy: I.strategy, ...(I.now ? { now: I.now } : {}) });
   const spInfo = statePensionInfoFor(I.settings, taxYears, getTaxYearFromDate(ym), I.now);
   const deps = engineDeps(setup, { history, taxYears, spInfo, potsYear: I.potsYear, pots });
   const d = calcDecision(ym, +pots.equity || 0, +pots.bond || 0, +pots.cash || 0, deps);
+  if (+setup.settings.firstTaxYear > 0) d.planFirstTaxYear = +setup.settings.firstTaxYear;   // the plan's year 0, for the records' labels
   try {
-    const ladder = I.contract ? ladderFromDocument(I.plan.planDocument, I.stressSettings, ym, I.now, history) : null;
+    // the one ladder overlay (step F5, lead4.md D17): the plan document's ladder; a ladder plan with no document yet, the
+    // ladder its own run would buy (draftLadder, when the caller has that run: the full view's)
+    let ladder = I.contract ? ladderFromDocument(I.plan.planDocument, I.stressSettings, ym, I.now, history) : null;
+    if (I.contract && !ladder && typeof draftLadder === 'function') ladder = ladderFromPlan(draftLadder(), I.stressSettings, ym, I.now, history, I.settings && I.settings.lockedAt);
     // the next money into the pension (7.12.0 round 3): from "Your plan's mix"'s one dated reading, as the full view reads it
     let nextIn = null; if (ladder && I.plan) { try { nextIn = nextMoneyIn(I.plan, { today: monthDayOf(ym, I.now) }); } catch { nextIn = null; } }
     d.strategyOverlay = strategyOverlayOf(d, ym, { strategy: I.strategy, stressSettings: I.stressSettings, name: STRATEGY_NAME[I.strategy.id] || I.strategy.id, ladder, nextIn });
   } catch { /* the overlay is words; the month stands without it, as on the classic page */ }
-  d.cadenceMonths = 1;
+  // how often the plan draws (decisionTool.cadence), in both views (step F5, lead4.md D17): a preference, not a setting
+  d.cadenceMonths = cadenceMonths(cadenceOf(I.plan && I.plan.decisionTool));
   if (entered) d.entered = entered;
   d.paidAhead = !!paidAhead;
   return d;

@@ -100,10 +100,12 @@ describe('on a LOCKED plan (the retired ladder in its run-up, with recorded mont
 
 describe('index.html: the picker writes the preference, never the Decision settings', () => {
   const html = readFileSync('index.html', 'utf8');
-  it('setCadence saves through saveActiveDrawCadence; the month\'s batch size comes from getActiveDrawCadence', () => {
+  // retaken in step F5 (lead4.md D17): the month's batch size is the plan's own (decisionTool.cadence), read by the one
+  // month gatherer both views use (MonthDecision.decideMonth), never a page read
+  it('setCadence saves through saveActiveDrawCadence; the month\'s batch size comes from the plan\'s own preference', () => {
     expect(html).toContain('await saveActiveDrawCadence(v)');
     expect(html).not.toContain('saveDecisionSettings({ cadence');
-    expect(html).toContain('cadenceMonths(await getActiveDrawCadence())');
+    expect(readFileSync('src/services/MonthDecision.js', 'utf8')).toContain('d.cadenceMonths = cadenceMonths(cadenceOf(I.plan && I.plan.decisionTool));');
     expect(html).not.toContain('cadenceMonths(settings.cadence)');
   });
 });

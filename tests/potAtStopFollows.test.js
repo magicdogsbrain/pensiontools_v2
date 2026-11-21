@@ -52,11 +52,13 @@ describe('the pot at the stop follows the stop', () => {
     expect(p63 - p62).toBeGreaterThanOrEqual(6900);
     expect(p63 - p62).toBeLessThanOrEqual(23900);
   });
-  it('a locked plan keeps the figure it was locked with; a typed figure stays as typed', () => {
+  it('a locked plan keeps the figure it was locked with; a typed figure is not read on a plan not locked (step F1, lead4.md D4)', () => {
     const locked = samStoppingAt(62, { lock: true }).sam;
     expect(effectiveStressSettings(locked, { now: NOW }).potAtRetirement.sipp).toBe(169898);
     const typed = samStoppingAt(62, { typed: true }).sam;
-    expect(effectiveStressSettings(typed, { now: NOW }).potAtRetirement.sipp).toBe(169898);
+    const plain = samStoppingAt(62).sam;
+    expect(effectiveStressSettings(typed, { now: NOW }).potAtRetirement).toEqual(effectiveStressSettings(plain, { now: NOW }).potAtRetirement);
+    expect(effectiveStressSettings(typed, { now: NOW }).potAtRetirement.source).toBe('worked');
   });
   it('reading writes nothing', () => {
     const { sam } = samStoppingAt(62);
@@ -91,7 +93,7 @@ describe('the household starts from the pot at the new stop', () => {
   }, 60000);
   it('the full view\'s Household tab reads both plans the same way, so it starts from the same figure', () => {
     const html = readFileSync('index.html', 'utf8');
-    expect(html).toMatch(/ownSettings = own \? effectiveStressSettings\(own\)/);
-    expect(html).toMatch(/partnerSettings = partner \? effectiveStressSettings\(partner\) : null/);   // read before the one rule asks whether it can be tested (7.12.0)
+    expect(html).toMatch(/const ownSettings = effectiveStressSettings\(own, \{ now \}\)/);   // from the one day (contextFor), as the simple view's household run (which the tab now runs: householdRun.js)
+    expect(html).toMatch(/partnerSettings = partner \? effectiveStressSettings\(partner, \{ now \}\) : null/);   // read before the one rule asks whether it can be tested (7.12.0)
   });
 });

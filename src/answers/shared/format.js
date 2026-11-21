@@ -3,12 +3,10 @@
  * Pure, and the same on every device: no toLocaleString.
  */
 import { LEVEL_LINES, passes } from './rules.js';
+import { money, ageText, moneyK as pot, pctText, weekText } from '../../reading/format.js';
 
-/** 1380 → '£1,380'. Whole pounds; never a minus, never pence; 0 → '£0'. */
-export function money(n) {
-  const v = Math.abs(Math.round(Number(n) || 0));
-  return '£' + String(v).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-}
+/** 1380 → '£1,380'. Whole pounds; never a minus, never pence; 0 → '£0' (the one formatter: src/reading/format.js). */
+export { money } from '../../reading/format.js';
 
 /** A derived monthly figure → the number to show: nearest £10 from £1,000, nearest £5 below. */
 export function shownMonthly(n) {
@@ -16,15 +14,8 @@ export function shownMonthly(n) {
   return v >= 1000 ? Math.round(v / 10) * 10 : Math.round(v / 5) * 5;
 }
 
-/** 95 → '95'. Whole years, rounded down. */
-export function ageText(n) {
-  return String(Math.floor(Number(n) || 0));
-}
-
-/** A pot → the nearest £1,000 with the £ sign: 468,250 → '£468,000'; 500 → '£1,000'; 0 → '£0' (step 4 brief, conflict 39). */
-export function pot(n) {
-  return money(Math.round(Math.abs(Number(n) || 0) / 1000) * 1000);
-}
+/** 95 → '95'. Whole years, rounded down; a pot → the nearest £1,000 (the one formatter: src/reading/format.js). */
+export { ageText, moneyK as pot } from '../../reading/format.js';
 
 /**
  * The share of futures that lasted (0–1) → the words (language guide 3.4, "Counting out of 10").
@@ -144,10 +135,8 @@ export function get(obj, key) {
   return String(key).split('.').reduce((o, k) => (o == null ? undefined : o[k]), obj);
 }
 
-/** A share of pay as written: 31 → '31%', 26.5 → '26.5%' (to two places at most, never a trailing nought). */
-export function pctText(n) {
-  return String(Math.round((Number(n) || 0) * 100) / 100) + '%';
-}
+/** A share of pay as written: 31 → '31%', 26.5 → '26.5%' (the one formatter: src/reading/format.js). */
+export { pctText, weekText } from '../../reading/format.js';
 
 /** One part of a sentence as text: a string, { key, kind: 'money' | 'age' | 'pot' | 'pct' } or { fixed }. */
 export function partText(part, result) {
@@ -155,7 +144,7 @@ export function partText(part, result) {
   if (part && 'fixed' in part) return String(part.fixed);
   const value = get(result, part.key);
   if (part.kind === 'count') return String(Math.round(value));   // a whole number (months, gilts), as Money draws it
-  return part.kind === 'age' ? ageText(value) : part.kind === 'pot' ? pot(value) : part.kind === 'pct' ? pctText(value) : money(value);
+  return part.kind === 'age' ? ageText(value) : part.kind === 'pot' ? pot(value) : part.kind === 'pct' ? pctText(value) : part.kind === 'week' ? weekText(value) : money(value);
 }
 
 /** The rule of the contract: a sentence's text === its parts joined, each key formatted here. */

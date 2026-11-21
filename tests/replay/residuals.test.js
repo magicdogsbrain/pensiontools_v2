@@ -23,7 +23,7 @@ vi.mock('../../src/storage/ScenarioRepository.js', () => ({
   storedActiveSettings: async (kind) => (kind === 'stress' && store.stress ? JSON.parse(JSON.stringify(store.stress)) : undefined),
   activePlanLocked: async () => false,
   // step S: the loader reads the plan itself (PlanReading.effectiveStressSettings), the same reading as the simple view
-  getActiveScenarioAsync: async () => ({ id: 'p', lastModified: null, ...(store.stress ? { stressTool: { settings: JSON.parse(JSON.stringify(store.stress)) } } : {}), ...(store.budget ? { budgetTool: { settings: JSON.parse(JSON.stringify(store.budget)) } } : {}) }),
+  readActiveScenarioAsync: async () => ({ id: 'p', lastModified: null, ...(store.stress ? { stressTool: { settings: JSON.parse(JSON.stringify(store.stress)) } } : {}), ...(store.budget ? { budgetTool: { settings: JSON.parse(JSON.stringify(store.budget)) } } : {}) }),
   getDefaultStressSettings: () => ({})
 }));
 
@@ -173,10 +173,12 @@ describe('G2-residual — the app page reads the Budget\'s age only through "did
     // "Send the budget to the plan" moved to src/services/BudgetToPlan.js in 6.20.2 (the inline script may only shrink):
     // the same rule there, and the page hands it the Budget it edits.
     expect(readFileSync(join(process.cwd(), 'src', 'services', 'BudgetToPlan.js'), 'utf8')).toContain('Math.max(budgetRetirementAge(budget) || 0, budgetAgeToday(budget) || 0) || 57');
-    expect(html).toContain('budgetSpendingPatch(window._budget, stressNow, gross)');
-    // …and it does what it says: a Budget nobody gave ages to starts the shape at 57, not at its 60 placeholder.
-    expect(budgetSpendingPatch(defaultBudget(), { duration: 30 }, 30000).shapeAgeNow).toBe(57);
-    expect(budgetSpendingPatch(markBudgetAgesSet(defaultBudget(50, 62)), { duration: 30 }, 30000).shapeAgeNow).toBe(62);
+    // (step S, fix round 1: the steps from the plan as stored, the age at the start and the length from the reading)
+    expect(html).toContain('budgetSpendingPatch(window._budget, storedStress, gross, stressNow)');
+    // …and it does what it says: a Budget nobody gave ages to starts the shape at 57, not at its 60 placeholder (the age is
+    // the first step's, never stored as an age of its own)
+    expect(budgetSpendingPatch(defaultBudget(), { duration: 30 }, 30000).incomeSteps[0].fromAge).toBe(57);
+    expect(budgetSpendingPatch(markBudgetAgesSet(defaultBudget(50, 62)), { duration: 30 }, 30000).incomeSteps[0].fromAge).toBe(62);
   });
   it('G2-residual — an age typed on the Budget page, in the setup wizard or for a partner is marked as given', () => {
     expect(html).toContain('if (window._budget.currentAge !== a0 || window._budget.retirementAge !== r0) markBudgetAgesSet(window._budget);');

@@ -15,7 +15,7 @@ test.use({ outside: 'block' });
 const ROWS = ['asPlanned', 'fall', 'lower', 'spend', 'prices'];
 /** D's worked example (answer-D.md 1): 68, £300,000 left, the tax-free part not had, £40,000 of savings, £2,100 a month. */
 const D_TYPED = { 'you.age': '68', 'you.pot': '300000', 'you.taxFreeTaken': 'no', savings: '40000', 'spend.amount': '2100' };
-const FIRST_MS = 3_000;   // the first figure's budget (e2e/helpers/app.js FIRST_ANSWER_BUDGET.firstMs), measured as the journeys measure it
+const FIRST_MS = 20_000;   // the first figure's budget (e2e/helpers/app.js FIRST_ANSWER_BUDGET.firstMs: the full run's since lead4.md R6), measured as the journeys measure it
 const shots = (name, info) => { const dir = process.env.SHOTS_DIR; if (!dir) return null; mkdirSync(dir, { recursive: true }); return join(dir, name + '-' + info.project.name + '.png'); };
 const noSideways = async (page) => { const w = await page.evaluate(() => ({ doc: document.documentElement.scrollWidth, win: window.innerWidth })); expect(w.doc, 'no sideways scroll').toBeLessThanOrEqual(w.win); };
 

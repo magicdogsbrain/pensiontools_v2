@@ -93,6 +93,19 @@ export function cashShortWords(c) {
  * @param {Date} now
  * @param {Array} [records]  the Decision history: what this tax year's months before this one took (7.12.0)
  */
+/**
+ * A ladder plan with no plan document yet (step F5): the ladder its own run would buy (`plan`, the run's r.plan), placed by
+ * the month as a document's is; the pots' day from the lock (when there is one) or the settings.
+ */
+export function ladderFromPlan(plan, stressSettings, dateStr, now, records = [], lockedAt = null) {
+  try {
+    if (!plan) return null;
+    const today = new Date(dateStr + (dateStr.length === 7 ? '-15' : ''));
+    const lp = ladderPosition(plan, { today, potsDay: potsDayOf(stressSettings, { lockedAt: lockedAt || null, now }), cashBalance: null, records });
+    return { lp, firstRung: lp ? firstRungOf(plan) : null };
+  } catch { return null; }
+}
+
 export function ladderFromDocument(planDocument, stressSettings, dateStr, now, records = []) {
   try {
     const plan = documentLadder(planDocument, stressSettings && stressSettings.strategyId);

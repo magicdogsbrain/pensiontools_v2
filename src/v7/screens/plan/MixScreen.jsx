@@ -13,6 +13,7 @@
 import { PlanRail, changeAction, EditField, UndoToast, fill, Button, LinkButton, RunRing, Held } from '../../components/index.js';
 import { LOCK_DATE } from '../../components/facts.js';
 import { fillMarked } from '../../components/PlanFigures.jsx';
+import { TABLES } from '../../../reading/facts.js';
 import { planView, planMixView } from '../../state/select.js';
 import { href } from '../../router/routes.js';
 import { PLAN } from '../../copy/plan.js';
@@ -294,7 +295,7 @@ function Compare({ V, planId, dispatch, editable }) {
       {status === 'done' && (
         <>
           <div class="table-wrap">
-            <table class="way-table mix-grid" data-testid="plan.mix.compare.table">
+            <table class="way-table mix-grid" data-testid="plan.mix.compare.table" data-fact-table={TABLES.MIX}>
               <thead><tr><th>{C.columns.mix}</th><th>{C.columns.flat}</th><th>{C.columns.tent}</th></tr></thead>
               <tbody>
                 {['own', ...MIX_LEVELS].map((k) => (
@@ -308,9 +309,9 @@ function Compare({ V, planId, dispatch, editable }) {
                         <td key={String(tent)} class={`mix-cell${x.best ? ' is-best' : ''}${x.current ? ' is-current' : ''}`} data-testid={id} data-best={x.best ? '1' : '0'} data-affordable={x.affordable ? '1' : '0'} data-chance={x.affordable ? x.pct : undefined} data-typical={x.affordable ? x.typical.replace(/[£,]/g, '') : undefined} data-bad={x.affordable ? x.bad.replace(/[£,]/g, '') : undefined}>
                           {x.affordable ? (
                             <>
-                              <p class="figure mix-cell-words">{fill(C.cell, { words: x.words })}</p>
-                              <p class="note">{fill(C.cellSub, { pct: x.pct, typical: x.typical, bad: x.bad })}</p>
-                              <p class="note">{fill(C.cellAmounts, x.amounts)}</p>
+                              <p class="figure mix-cell-words" data-row={k} data-col={tent ? 'tent' : 'flat'}>{fill(C.cell, { words: x.words })}</p>
+                              <p class="note" data-row={k} data-col={tent ? 'tent.sub' : 'flat.sub'}>{fill(C.cellSub, { pct: x.pct, typical: x.typical, bad: x.bad })}</p>
+                              <p class="note" data-row={k} data-col="amounts">{fill(C.cellAmounts, x.amounts)}</p>
                               {x.current ? <p class="note">{C.thisIs}</p> : editable && V.runKey ? <Button testid={`plan.mix.use.${k}.${tent ? 'tent' : 'flat'}`} kind="quiet" onClick={() => dispatch({ type: 'mix/pick', cell: { key: k, tent } })} {...keepFocus}>{C.use}</Button> : null}
                             </>
                           ) : <p class="note">{C.cannot}</p>}
@@ -322,7 +323,7 @@ function Compare({ V, planId, dispatch, editable }) {
               </tbody>
             </table>
           </div>
-          {c.best && <p class="note" data-testid="plan.mix.compare.best">{fill(C.best, { row: C.rows[c.best.key], tent: tentWord(c.best.tent), words: c.best.words, pct: c.best.pct })}</p>}
+          {c.best && <p class="note" data-testid="plan.mix.compare.best">{fillMarked(C.best, { row: C.rows[c.best.key], tent: tentWord(c.best.tent), words: c.best.words, pct: c.best.pct }, { pct: 'mix.best' })}</p>}
           <p class="plan-source" data-testid="plan.mix.compare.ran">{c.ms != null ? fill(C.ran, { ms: seconds(c.ms) }) : C.ranUntimed}</p>
           {V.pick && editable && (
             <div class="notice lock-confirm" role="region" aria-label={C.confirm.title} data-testid="plan.mix.useConfirm">

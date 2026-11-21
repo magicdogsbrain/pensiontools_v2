@@ -357,7 +357,7 @@
               "shares": 420000,
               "bonds": 210000,
               "cash": 70000,
-              "spWeekly": 221,
+              "spWeekly": 221.2,
               "mixShares": 420000,
               "mixBonds": 210000,
               "mixCash": 70000
@@ -481,9 +481,10 @@
                           "key": "step0",
                           "kind": "money"
                         },
-                        " a year before tax"
+                        " a year before tax",
+                        " (tax year 2026/27)"
                       ],
-                      "text": "From age 62: £38,000 a year before tax"
+                      "text": "From age 62: £38,000 a year before tax (tax year 2026/27)"
                     },
                     "source": {
                       "kind": "saved",
@@ -508,9 +509,10 @@
                           "kind": "money"
                         },
                         " a year before tax",
+                        " (tax year 2039/40)",
                         ", falling 1% a year"
                       ],
-                      "text": "From age 75: £32,000 a year before tax, falling 1% a year"
+                      "text": "From age 75: £32,000 a year before tax (tax year 2039/40), falling 1% a year"
                     },
                     "source": {
                       "kind": "saved",
@@ -612,11 +614,11 @@
                       "parts": [
                         {
                           "key": "spWeekly",
-                          "kind": "money"
+                          "kind": "week"
                         },
                         " a week"
                       ],
-                      "text": "£221 a week"
+                      "text": "£221.20 a week"
                     },
                     "source": {
                       "kind": "saved",
@@ -1351,6 +1353,7 @@
         ],
         "current": "plan",
         "answerStale": null,
+        "readFault": null,
         "next": {
           "id": "P.reviewAny",
           "slots": {
@@ -3209,8 +3212,10 @@
                     "slots": {}
                   },
                   {
-                    "id": "ran.bundled",
-                    "slots": {}
+                    "id": "ran.market",
+                    "slots": {
+                      "label": "Gilts priced at the prices of 12 November 2026 (the copy built into the site: the day’s file could not be read)."
+                    }
                   }
                 ],
                 "strategyId": "floor-to-age",
@@ -3633,7 +3638,7 @@
         "cutPct": 20,
         "months": 3
       },
-      "priced": null,
+      "market": null,
       "a": {
         "strategyId": "pots-and-valves",
         "chancePct": 97.6,
@@ -4775,7 +4780,16 @@
           "cutPct": 20,
           "months": 3
         },
-        "priced": "bundled",
+        "market": {
+          "gilts": {
+            "source": "builtIn",
+            "asOf": "2026-11-12"
+          },
+          "equity": {
+            "source": "builtIn",
+            "asOf": "2026-11-11"
+          }
+        },
         "a": {
           "strategyId": "floor-to-age",
           "chancePct": 95.6,

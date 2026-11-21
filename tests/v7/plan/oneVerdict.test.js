@@ -79,9 +79,9 @@ describe('the full view leads a saving plan with the saving chance', () => {
     expect(html).toContain('verdict-warning');
     expect(chanceVerdictOf(run, PS, o)).toBe('close');
   });
-  it('says everything under it starts from the middling pension when work stops (£743,920), and puts no second figure beside the chance', () => {
+  it('says everything under it starts from the middling pension when work stops (£744,000, to the nearest £1,000: step F1), and puts no second figure beside the chance', () => {
     const html = verdictBlockView(run, PS, o).replace(/<[^>]+>/g, ' ');
-    expect(html).toContain('Everything below starts from £743,920 in your pension on the day work stops');
+    expect(html).toMatch(/Everything below starts from\s+£744,000\s+in your pension on the day work stops/);   // the figure marked pot.atStop
     expect(html).not.toContain('worst 12 months lived');
   });
   it('without a saving chance the block is the run\'s own, as before', () => {
@@ -103,7 +103,7 @@ describe('the simple view\'s "Does it last?" labels what is not the saving chanc
     expect(v.verdict).toBe('close');
     expect(v.slots.words).toContain('17 times in 20');
     expect(v.sub.id).toBe('lasts.subFromStop');
-    expect(v.sub.slots.pot).toBe('£743,920');
+    expect(v.sub.slots.pot).toBe('£744,000');   // the one rounding of the pot at the stop (step F1)
     expect(LASTS.verdict['lasts.subFromStop']).toContain('{pot}');
   });
   it('the lead no longer claims to be what every screen of the full view shows', () => {
@@ -148,22 +148,21 @@ describe('the State Pension with no date: from the age the runs use, never the s
 });
 
 // ---- the pots when you stop on a locked saver (walker 10 high 5: £784,574 "priced on these" against £604,000 tested) ------
-import { timingPotsAtStop } from '../../../src/services/PotsAtStop.js';
+import { potAtStop } from '../../../src/reading/atStop.js';
 import { potsAtRetirementLine } from '../../../src/ui/startingPotsWords.js';
 
 describe('a locked saver\'s Stress settings name the pots the plan was locked with', () => {
   it('fixture 05 was locked with £603,941 in the pension and £54,126 in ISAs when work stops: those, never a figure worked out today, are "priced on"', () => {
     const plan = entryOf(corpus()['05-saver-committed'], '2026-11-17').plan;
     const lockedWith = plan.planDocument.pots.potAtRetirement;   // what the lock stored: 603,941 and 54,126
-    const t = timingPotsAtStop(plan, plan.stressTool.settings, new Date(2026, 10, 17, 12));
+    const t = potAtStop(plan, { now: new Date(2026, 10, 17, 12) });   // the one reader (step F1)
     expect(t.source).toBe('locked');
-    expect(t.sipp).toBe(603941);
+    expect(t.middle).toBe(603941);
     expect(t.isa).toBe(54126);
     const words = potsAtRetirementLine(t).replace(/<[^>]+>/g, '');
-    expect(words).toContain('locked with £603,941 in your pension and £54,126 in ISAs');
-    // today's middling case is said as that, a second figure labelled, never "priced on"
-    if (t.today) expect(words).toMatch(/Today’s middling case/);
-    expect(words).not.toMatch(/Every strategy is priced on these; type your own/);
+    expect(words).toContain('locked with £604,000 in your pension and £54,000 in ISAs');   // the one rounding of the pot at the stop
+    // nothing worked out today is said beside it as a second pot at the stop (step F1: one value per fact)
+    expect(words).not.toMatch(/Today’s middling case|type your own/);
     expect(lockedWith.sipp).toBe(603941);
   });
 });

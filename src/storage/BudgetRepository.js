@@ -11,16 +11,13 @@ import { budgetToSave, defaultBudget } from '../services/BudgetModel.js';
 
 /**
  * Loads the active plan's budget, merged over the defaults so older/partial records are safe to use.
+ * A budget that cannot be read THROWS: it is never handed back as the starter budget, which a page could then save over
+ * the plan's own (lead4.md R2, D1).
  * @returns {Promise<object>} Budget object
  */
 export async function getBudgetAsync() {
-  try {
-    const b = await getActiveBudget();
-    return { ...defaultBudget(), ...(b || {}) };
-  } catch (error) {
-    console.error('Error loading budget:', error);
-    return defaultBudget();
-  }
+  const b = await getActiveBudget();
+  return { ...defaultBudget(), ...(b || {}) };
 }
 
 /**

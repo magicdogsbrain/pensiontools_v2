@@ -58,6 +58,7 @@ describe('DrawdownService', () => {
       const schedule = generateDrawdownSchedule(settings, 5, 0);
 
       for (const entry of schedule) {
+        // no tax-free part here (not a UFPLS plan); tests/reading/yearTableNetF3.test.js covers one that has it
         expect(entry.netIncome).toBe(entry.totalTaxable - entry.tax);
       }
     });

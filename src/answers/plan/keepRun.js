@@ -33,7 +33,7 @@ import { normaliseHoldings, expectedOf } from '../../services/HoldingsRecord.js'
 import { keepFingerprint, holdingsKeyOf } from '../../services/PlanAmendments.js';
 import { planFor } from './lastsRun.js';
 import { heldSettingsOf, ladderGapsOf, keptAssetsOf } from './keepTest.js';
-import { dateOf } from './dates.js';
+import { contextFor } from '../../reading/context.js';
 
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 const num = (v) => (Number.isFinite(+v) ? +v : 0);
@@ -125,7 +125,7 @@ function ladderFigures(W, locked, { startAge, firstTY, endAge }) {
  * @param {{ today: string, onProgress?: Function }} o
  */
 export function runKeepRetest(plan, { today, onProgress = null } = {}) {
-  const now = dateOf(today);
+  const now = contextFor(plan, { today }).now;
   const tell = (done, total) => { if (typeof onProgress === 'function') onProgress(done, total); };
   const rec = normaliseHoldings(plan && plan.holdings);
   const fingerprint = keepFingerprint(rec);

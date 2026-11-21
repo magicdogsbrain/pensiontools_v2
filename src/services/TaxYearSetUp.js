@@ -315,6 +315,8 @@ export function wizardDataFrom(selectedMonth, { settings, stressSettings = null,
     selectedMonth,
     isApril,
     remainingMonths,
+    // the day the year is set up on (step F2, lead4.md D7): kept with the set-up, so it is read as the dated record it is
+    setUpOn: now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0'),
     // Where this tax year sits in the plan (6.4.0): year 0 is the plan's first tax year.
     planStartYear,
     planYear: planYearSigned,
@@ -644,7 +646,9 @@ export function buildTaxYearConfig(wizardData) {
     confirmedSalary,
     remainingMonths,
     statePension,
-    monthlyBreakdown
+    monthlyBreakdown,
+    setUpOn,
+    planSaid
   } = wizardData;
 
   return {
@@ -683,6 +687,11 @@ export function buildTaxYearConfig(wizardData) {
 
     // State pension (for reference)
     statePension: statePension || 0,
+
+    // The day it was set up and the plan's own figure for the year that day (step F2, lead4.md D7): the year as set up is a
+    // dated record, and a later change to the plan is read against what the plan said when it was set up
+    ...(setUpOn ? { setUpOn } : {}),
+    ...(Number.isFinite(+planSaid) && +planSaid > 0 ? { planSaid: Math.round(+planSaid) } : {}),
 
     // Monthly breakdown (expected values from wizard)
     expectedMonthly: monthlyBreakdown ? {
@@ -799,7 +808,10 @@ export function setUpConfigOf(ctx, inputs) {
     confirmedSalary: inputs.confirmedSalary,
     remainingMonths: ctx.remainingMonths,
     statePension: ctx.statePension.amount,
-    monthlyBreakdown: breakdownFor(ctx, inputs)
+    monthlyBreakdown: breakdownFor(ctx, inputs),
+    setUpOn: ctx.setUpOn || null,
+    // the plan's figure for the year, by the very call the reading makes later (src/reading/thisYear.js)
+    planSaid: suggestedIncomeFor(ctx, Number.isFinite(+inputs.cpi) ? +inputs.cpi : null)
   });
 }
 

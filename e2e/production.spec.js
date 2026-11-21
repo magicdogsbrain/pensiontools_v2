@@ -16,7 +16,7 @@
  */
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { test, expect, v7, waitsFor, fixtureTyping, mustFill, ADDRESSES, NEEDS, BUILT, DIST, PROD, TEST, REPO, FIXED_NOW, V7_PATH, CLASSIC_PATH, OLD_V7_PATH, OLD_CLASSIC_PATH, LAYOUT_UNDER_TEST, WORKER_DATA_MISSING } from './helpers/app.js';
+import { test, expect, v7, waitsFor, fixtureTyping, mustFill, ADDRESSES, NEEDS, BUILT, DIST, PROD, TEST, REPO, FIXED_NOW, V7_PATH, CLASSIC_PATH, OLD_V7_PATH, OLD_CLASSIC_PATH, LAYOUT_UNDER_TEST } from './helpers/app.js';
 import { parseHeaders, headersFor } from './helpers/serve.mjs';
 
 const PUBLISHED_V7 = join(DIST, 'prod', V7_PATH);
@@ -66,8 +66,8 @@ test.describe(`the published build of ${V7_PATH}`, () => {
   });
 
   test('the files asked for by name are served as files, never the front page in their place', async ({ page }) => {
-    const worker = new URL(LAYOUT_UNDER_TEST.classic.data, PROD + CLASSIC_PATH + 'assets/').pathname;
-    const files = ['/privacy.html', '/data/gilts.json', '/data/equity.json', '/sw.js', ...(SWITCHED ? ['/manifest.json', worker + 'gilts.json', worker + 'equity.json'] : [])];
+    // (the market files are the site's one data folder: both pages hand it to their workers, so nothing sits beside the full view)
+    const files = ['/privacy.html', '/data/gilts.json', '/data/equity.json', '/sw.js', ...(SWITCHED ? ['/manifest.json'] : [])];
     for (const f of files) {
       const r = await page.request.get(PROD + f);
       expect(r.status(), f).toBe(200);
@@ -204,7 +204,6 @@ test.describe('an old link to the site\'s root with the classic page\'s options'
   };
 
   test('?demo=1m opens the example plan in the classic planner, without an account', async ({ page, watch }) => {
-    watch.allow(WORKER_DATA_MISSING);
     await page.goto(PROD + OLD_CLASSIC_PATH + '?demo=1m');
     await landsOnClassic(page, '?demo=1m');
     await expect(page.locator('#guestBanner')).toBeVisible({ timeout: 20_000 });

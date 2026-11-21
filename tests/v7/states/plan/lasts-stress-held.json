@@ -2737,10 +2737,12 @@
               "net": 13737,
               "yearMonthly": 2600,
               "yearTotal": 31200,
-              "stepNow": 30000,
+              "step0": 30000,
               "pot": 602808,
               "potActual": 612740,
+              "potPension": 587700,
               "potPart0": 587700,
+              "potIsa": 25040,
               "potPart1": 25040,
               "potMid": 614544
             },
@@ -2799,7 +2801,7 @@
                   "id": "where.step",
                   "parts": [
                     {
-                      "key": "stepNow",
+                      "key": "step0",
                       "kind": "money"
                     },
                     " a year before tax"
@@ -2828,9 +2830,22 @@
                       "kind": "money"
                     },
                     " as recorded",
+                    ": ",
+                    "",
+                    "pension ",
+                    {
+                      "key": "potPension",
+                      "kind": "money"
+                    },
+                    ", ",
+                    "ISA ",
+                    {
+                      "key": "potIsa",
+                      "kind": "money"
+                    },
                     ")."
                   ],
-                  "text": "£602,808 at the prices of April 2026 (£612,740 as recorded)."
+                  "text": "£602,808 at the prices of April 2026 (£612,740 as recorded: pension £587,700, ISA £25,040)."
                 },
                 "source": {
                   "kind": "record",
@@ -2939,6 +2954,8 @@
               "saysGross0": 30000,
               "saysNet0": 2210,
               "saysAge0": 63,
+              "yearMonthly": 2600,
+              "yearTotal": 31200,
               "saysSp": 11211,
               "saysSpAge": 67,
               "saysBad": 157539,
@@ -2953,13 +2970,13 @@
               "ageEnd": 93,
               "step0": 30000,
               "stepAge0": 63,
-              "sipp": 590000,
-              "isa": 25000,
+              "sipp": 587700,
+              "isa": 25040,
               "gia": 0,
               "shares": 380000,
               "bonds": 150000,
               "cash": 60000,
-              "spWeekly": 216,
+              "spWeekly": 215.6,
               "dial_bucketBand": 10,
               "mixShares": 380000,
               "mixBonds": 150000,
@@ -2987,14 +3004,37 @@
                       "key": "saysNet0",
                       "kind": "money"
                     },
-                    " a month after tax",
-                    " (tax year 2026/27)"
+                    " a month after tax in a full year",
+                    " (from tax year 2026/27)"
                   ],
-                  "text": "From age 63: £30,000 a year before tax, £2,210 a month after tax (tax year 2026/27)"
+                  "text": "From age 63: £30,000 a year before tax, £2,210 a month after tax in a full year (from tax year 2026/27)"
                 },
                 "source": {
                   "kind": "locked",
                   "at": "20 March 2026",
+                  "stale": false
+                }
+              },
+              {
+                "id": "where.yearPlan",
+                "slots": {
+                  "year": "2026/27"
+                },
+                "sentence": {
+                  "id": "where.yearPlan",
+                  "parts": [
+                    "In 2026/27 your plan takes ",
+                    {
+                      "key": "yearMonthly",
+                      "kind": "money"
+                    },
+                    " a month before tax."
+                  ],
+                  "text": "In 2026/27 your plan takes £2,600 a month before tax."
+                },
+                "source": {
+                  "kind": "record",
+                  "at": null,
                   "stale": false
                 }
               },
@@ -3249,7 +3289,7 @@
                           "kind": "money"
                         }
                       ],
-                      "text": "£590,000"
+                      "text": "£587,700"
                     },
                     "source": {
                       "kind": "locked",
@@ -3298,7 +3338,7 @@
                           "kind": "money"
                         }
                       ],
-                      "text": "£25,000"
+                      "text": "£25,040"
                     },
                     "source": {
                       "kind": "locked",
@@ -3324,11 +3364,11 @@
                       "parts": [
                         {
                           "key": "spWeekly",
-                          "kind": "money"
+                          "kind": "week"
                         },
                         " a week"
                       ],
-                      "text": "£216 a week"
+                      "text": "£215.60 a week"
                     },
                     "source": {
                       "kind": "locked",
@@ -4140,6 +4180,7 @@
         ],
         "current": "month",
         "answerStale": null,
+        "readFault": null,
         "next": {
           "id": "P.idle",
           "slots": {
@@ -8246,7 +8287,7 @@
         "cutPct": 20,
         "months": 3
       },
-      "priced": null,
+      "market": null,
       "a": {
         "strategyId": "buckets-in-order",
         "chancePct": 98.3,

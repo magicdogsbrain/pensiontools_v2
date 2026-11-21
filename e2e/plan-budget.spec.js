@@ -11,7 +11,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { test, expect, PROD, REPO, FIXED_NOW, V7_PATH, WORKER_DATA_MISSING } from './helpers/app.js';
+import { test, expect, PROD, REPO, FIXED_NOW, V7_PATH } from './helpers/app.js';
 import { budgetInNode } from './helpers/budgetInNode.js';
 import { BUDGET_WRITES } from '../src/answers/plan/schema.js';
 import { applyPatch } from '../src/answers/plan/about.js';
@@ -65,7 +65,6 @@ const totalsLine = (t) => `${t.monthly} a month after tax (${t.yearly} a year), 
 test.describe('the budget on a saved plan, without an account', () => {
   test('the totals as Node reads them; a sum typed, a line named and added, each the Node patch, Undo byte for byte; the file is the planner\'s; the locked plan\'s budget still writes; no figure in the address', async ({ page, watch }) => {
     test.setTimeout(300_000);
-    watch.allow(WORKER_DATA_MISSING);
     const { alex, sam } = plans();
     const planted = await plant(page, [alex, sam]);
     const low = alex.budgetTool.settings.lines.find((l) => l.annual === 20);

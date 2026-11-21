@@ -3,9 +3,9 @@
  * save.pot-record): the planner's Accumulation page as a step of the plan — `#/plan/<id>/saving`. Pure: the plans already
  * brought up to date in memory, today's date and what was typed in; out come the boxes with their saved values, what each
  * month's payment becomes once the tax the government adds back is counted (AccumulationEngine.contributionBreakdown, the
- * planner's own sum), what the pot could be by the stop at the regulator's three rates and at the mix you hold (projectAccumulation,
- * Holdings.proportions — the planner's "Your mix" line), the ISA and savings line (PlanTiming.projectedIsaRows), the rule
- * warnings, the monthly pot records, and the exact writes. Nothing here writes, runs a future, or reads a clock.
+ * planner's own sum), what the pot could be by the stop — the one model, src/reading/atStop.js: the saving lives every test
+ * uses, the middle with its bad and good cases, year by year, the ISA and savings beside it (step F1) — the rule warnings,
+ * the monthly pot records, and the exact writes. Nothing here writes or reads a clock.
  *
  *   savedSaving(plan, { today })             the saved facts: the planner's settings object (index.html readAccumulationInputs),
  *                                            the ages (the planner's: its own, else the budget's), the pot today (its own, else
@@ -29,11 +29,14 @@
  * the warnings list leaves the planner's own two lines of it out (the allowance line says it); a plan without it is read by
  * its own records, as before (`warn.mpaa`).
  */
-import { takenOfTarget } from '../../services/BeforeTax.js';
-import { contributionBreakdown, contributionWarnings, projectAccumulation, FCA_RATES } from '../../services/AccumulationEngine.js';
-import { proportions, pensionPotFromHoldings } from '../../services/Holdings.js';
+import { incomeStepsOf } from '../../reading/income.js';
+import { contextFor } from '../../reading/context.js';
+import { contributionBreakdown, contributionWarnings } from '../../services/AccumulationEngine.js';
+import { potAtStop } from '../../reading/atStop.js';
+import { moneyK, spanText } from '../../reading/format.js';
+import { pensionPotFromHoldings } from '../../services/Holdings.js';
 import { potRecordOf, recordIsaOf } from '../../services/SaverReading.js';
-import { projectedIsaRows, isaProjectionOf } from '../../services/PlanTiming.js';
+import { isaProjectionOf } from '../../services/PlanTiming.js';
 import { chargesPctOf } from '../../services/Charges.js';
 import { budgetAgeToday, budgetRetirementAge } from '../../services/BudgetModel.js';
 import { planStage } from '../../services/PlanReading.js';
@@ -43,6 +46,7 @@ import { pounds } from './income.js';
 import { SAVING_FIELDS, SAVING_WRITES, SCHEME_TYPES, SAVING_WANT_FIELDS, SAVING_WANT_WRITES } from './schema.js';
 import { ACCUMULATION_V7_KEYS, payInSaid, payInShareOf } from '../../services/SaverPayIn.js';
 import { saverInputsOf, saverRunKey, saverDraftOf } from './saverInputs.js';
+import { whenStopOf } from '../../reading/whenStop.js';
 import { SAVER_STAGES } from './steps.js';
 import { dateOf, dayWords, monthWords } from './dates.js';
 import { mpaaOf, flexibleAccessAlong, FLEXIBLE_ACCESS_LIMIT } from '../../services/FlexibleAccess.js';
@@ -328,7 +332,6 @@ export function recordPatch(plan, typed, { today, now = null }) {
 
 // ---- the words ------------------------------------------------------------------------------------------------------------
 
-const pct1 = (v) => (Math.round((+v || 0) * 1000) / 10).toFixed(1);
 
 /** What each month's payment becomes (AccumulationEngine.contributionBreakdown), as line ids with slots. */
 export function reliefLines(b, inputs) {
@@ -367,7 +370,8 @@ export function allowanceOf(plan, yearlyIn, plans = []) {
 /**
  * What the rail's "Ask a question" links open filled from the plan (research/saving-enough-and-check-in.md 4.1): B with a
  * saver's own figures, as B's boxes hold them, and the plan's own mixes when its boxes can name them only by the nearest
- * level (saverInputs.js saverDraftOf), so B gives the answer the plan gives — `{ b: { values, mixes } }`, `mixes` null when
+ * level (saverInputs.js saverDraftOf), so B gives the answer the plan gives — `{ b: { values, mixes }, a: { values, mixes } }`
+ * (A: the plan's figures with "show me ages", src/reading/whenStop.js), `mixes` null when
  * the levels are the plan's; `{}` for a plan that is not saving, or one B cannot read (no aim, no saving years), and then
  * B opens as it always has. The plan source puts it on the page reading (planSource.js viewFor), beside read.js planPage.
  * A plan that carries the person's fact of money taken flexibly (services/FlexibleAccess.js flexibleAccessAlong: a saving
@@ -380,7 +384,10 @@ export function askFillOf(entries, id, { today } = {}) {
     if (!SAVER_STAGES.includes(planStage(entry.plan, { now: dateOf(today) }).key)) return {};
     const d = saverDraftOf(entry.plan, { today, plans: entries });
     const fa = d.ok ? flexibleAccessAlong(entry.plan, entries) : null;
-    return d.ok ? { b: { values: d.values, mixes: d.mixes, ...(fa ? { flexibleAccess: fa } : {}) } } : {};
+    // A ("When can I afford to stop work?") with the same figures, "show me ages": the one gatherer the full view's "When
+    // could I retire?" runs answer A on (src/reading/whenStop.js, lead4.md D11)
+    const w = whenStopOf(entry.plan, { today, plans: entries });
+    return d.ok ? { b: { values: d.values, mixes: d.mixes, ...(fa ? { flexibleAccess: fa } : {}) }, ...(w.ok ? { a: { values: w.values, mixes: w.mixes } } : {}) } : {};
   } catch { return {}; }
 }
 
@@ -390,9 +397,7 @@ export function askFillOf(entries, id, { today } = {}) {
  */
 export function agesLineOf(facts, inputs) {
   const months = facts && facts.monthsToStop != null ? facts.monthsToStop : Math.max(0, Math.round((inputs.retirementAge - inputs.currentAge) * 12));
-  const y = Math.floor(months / 12), m = months % 12;
-  const yw = y + ' year' + (y === 1 ? '' : 's'), mw = m + ' month' + (m === 1 ? '' : 's');
-  const span = y === 0 ? mw : y < 2 && m > 0 ? yw + ' ' + mw : yw;
+  const span = spanText(months);   // the one formatter's words for time to go (src/reading/format.js, step F1)
   const slots = { span, from: String(inputs.currentAge), to: String(inputs.retirementAge) };
   return facts && facts.stopMonth ? { id: 'ages', slots: { ...slots, month: monthWords(facts.stopMonth) } } : { id: 'agesNoMonth', slots };
 }
@@ -428,6 +433,20 @@ export function payInNowOf(settings) {
   return { id: (before ? 'before' : 'pounds') + (employer > 0 ? 'Employer' : ''), slots };
 }
 
+/**
+ * The aim the verdict tests, said as the income reading says the plan's first step (src/reading/income.js incomeStepsOf, step
+ * F2 fix: lead4.md D6): a year before tax as it is TAKEN (the plan's access rule, the income that comes anyway, the plan's own
+ * bands) and a month after tax. The step the run tests is the one in force at the stop, the reading's first step; a plan
+ * the reading has no step for keeps the run's own month (B's input) and says no yearly figure of its own.
+ */
+function aimOf(plan, list, today, notes) {
+  let st = null;
+  try { st = incomeStepsOf(plan, contextFor(plan, { today, plans: list.map((e) => e.plan) })).steps[0] || null; } catch { st = null; }
+  return st
+    ? { aimYearly: pounds(st.beforeTax), aimMonthly: pounds(st.monthAfterTax) }
+    : { aimYearly: null, aimMonthly: pounds(notes.aimMonthly) };
+}
+
 /** "Are you paying in enough?" on the plan's figures as saved: the run's key, inputs and the words beside it. */
 function verdictOf(plan, list, today) {
   const read = saverInputsOf(plan, { today, plans: list });
@@ -438,7 +457,7 @@ function verdictOf(plan, list, today) {
   try { total = contributionBreakdown({ netMonthly: +acc.netMonthly || 0, salary: +acc.salary || 0, schemeType: acc.schemeType || 'ras', employerMonthly: +acc.employerMonthly || 0 }).totalMonthly; } catch { total = 0; }
   const now = { line, salary: +acc.salary || 0, total: Math.round(total * 100) / 100 };
   return read.ok
-    ? { ok: true, key: saverRunKey(plan.id, read), inputs: read.inputs, env: read.env, now, notes: { ...read.notes, aimYearly: pounds(takenOfTarget(read.notes.aimYearly, plan && plan.stressTool && plan.stressTool.settings)), aimMonthly: pounds(read.notes.aimMonthly), stopAge: String(read.notes.stopAge), rise: read.notes.rise ? { pct: String(read.notes.rise.pct), path: read.notes.rise.path } : null } }
+    ? { ok: true, key: saverRunKey(plan.id, read), inputs: read.inputs, env: read.env, now, notes: { ...read.notes, ...aimOf(plan, list, today, read.notes), stopAge: String(read.notes.stopAge), rise: read.notes.rise ? { pct: String(read.notes.rise.pct), path: read.notes.rise.path } : null } }
     : { ok: false, why: read.why || 'notSaving', key: null };
 }
 
@@ -484,28 +503,13 @@ export function savingOf(entries, id, { today, typed = null, source = 'account' 
   const potLine = typedPot ? { id: 'typed', slots: { value: pounds(potNow) } } : potLineOf(f.pot);
   const agesLine = stillSaving ? agesLineOf(f, inputs) : null;
   const b = contributionBreakdown({ netMonthly: inputs.netMonthly, salary: inputs.salary, schemeType: inputs.schemeType, employerMonthly: inputs.employerMonthly });
-  // "Your mix" (6.7.0): the expected real return of what you hold, net of its costs; the plan's charge replaces the funds' own
-  let hp = null;
-  try { const p = proportions(plan.holdings); if (p.total > 0) hp = p; } catch { hp = null; }
   const chargesPct = chargesPctOf(s.ss);
-  const rows = stillSaving ? projectAccumulation({ currentAge: inputs.currentAge, retirementAge: inputs.retirementAge, potNow, totalMonthly: b.totalMonthly, escalationPct: inputs.escalationPct, mixRealReturn: hp ? hp.expectedReal : null, chargesPct, mixOcf: hp ? hp.weightedOcf : null }) : [];
-  const last = rows.length ? rows[rows.length - 1] : null;
-  const isaToday = Math.max(0, +(s.ss && s.ss.isaBalance) || 0);
   const how = isaProjectionOf(s.ss);
-  const isaRows = stillSaving && (isaToday > 0 || (how.payIns && inputs.isaMonthly > 0)) ? projectedIsaRows(s.ss, inputs, years, isaToday) : null;
   const mpaa = mpaaOf(plan, null, list);
-  const warnings = stillSaving && last ? warningIds(contributionWarnings({ annualGrossTotal: b.totalMonthly * 12, salary: inputs.salary, mpaaTriggered: mpaa.triggered, flexibleAccess: mpaa.flexibleAccess, currentAge: inputs.currentAge, retirementAge: inputs.retirementAge, projectedPotHigh: last.potHigh, now: s.now })) : [];
-  const allowance = allowanceOf(plan, b.totalMonthly * 12, list);
   // a saving plan made on going back to work, its change-over still to come: it says when it begins, and its pot record
   // takes no month before then (recordPatch)
   const notYet = readonly ? null : notBegunOf(plan, String(today || '').slice(0, 7));
-  const step = rows.length > 12 ? 5 : 1;
-  const shownRows = [];
-  for (let i = 0; i < rows.length; i += (i === 0 || i >= rows.length - step ? 1 : step)) {
-    const r = rows[i];
-    const ir = isaRows ? isaRows[Math.min(isaRows.length - 1, i)] : null;
-    shownRows.push({ age: r.age, low: pounds(r.potLow), mid: pounds(r.potMid), high: pounds(r.potHigh), mix: hp ? pounds(r.potMix || 0) : null, paidIn: pounds(r.contributedToDate), isa: ir ? pounds(ir.potMid) : null, last: i === rows.length - 1, raw: { low: r0(r.potLow), mid: r0(r.potMid), high: r0(r.potHigh), mix: hp ? r0(r.potMix || 0) : null } });
-  }
+  const allowance = allowanceOf(plan, b.totalMonthly * 12, list);
   const records = s.hist.slice().sort((a, b2) => String(a.date).localeCompare(String(b2.date))).reverse().slice(0, 36).map((r) => ({ month: monthWords(r.date), date: r.date, pension: pounds(r.sipp || 0), isa: recordIsaOf(r) == null ? null : pounds(r.isa), gia: pounds(r.gia || 0), total: pounds(r.total || 0) }));
   // "Are you paying in enough?" (research/saving-enough-and-check-in.md 4.1, 4.4; release step R2): the plan's own figures as
   // question B's inputs, worked out by B in the worker (effects/saver.js) under this key — never for a plan shown as saved
@@ -516,6 +520,19 @@ export function savingOf(entries, id, { today, typed = null, source = 'account' 
   // the answer follows what is typed: with a change ready to save, it is worked out on the plan as Save would leave it, and
   // said as "if you save this"; nothing typed, or a box with a problem, and it is the plan's as saved
   const typedPlan = !readonly && p.ok && Object.keys(p.patch).length ? applyPatch(plan, p.patch) : null;
+  // (step F1, lead4.md D4) what the pot could be by the stop: the one model (src/reading/atStop.js) — the saving lives every
+  // test uses, the middle with its bad and good cases, year by year — on the plan as saved, or as Save would leave it while a
+  // change is typed. The regulator's fixed 2/5/8% table is gone from both views.
+  const band = stillSaving ? potAtStop(typedPlan || plan, { now: s.now }) : null;
+  const bandRows = band && Array.isArray(band.rows) ? band.rows : [];
+  const step = bandRows.length > 12 ? 5 : 1;
+  const shownRows = [];
+  for (let i = 0; i < bandRows.length; i += (i === 0 || i >= bandRows.length - step ? 1 : step)) {
+    const r = bandRows[i];
+    shownRows.push({ age: r.age, low: moneyK(r.low), mid: moneyK(r.middle), high: moneyK(r.high), paidIn: pounds(r.paidIn), isa: moneyK(r.isa), last: i === bandRows.length - 1, raw: { low: r.low, mid: r.middle, high: r.high } });
+  }
+  const isaLine = bandRows.some((r) => r.isa > 0);
+  const warnings = stillSaving && band ? warningIds(contributionWarnings({ annualGrossTotal: b.totalMonthly * 12, salary: inputs.salary, mpaaTriggered: mpaa.triggered, flexibleAccess: mpaa.flexibleAccess, currentAge: inputs.currentAge, retirementAge: inputs.retirementAge, projectedPotHigh: band.high, now: s.now })) : [];
   const verdict = readonly ? { ok: false, why: 'readonly', key: null }
     : typedPlan ? { ...verdictOf(typedPlan, list.map((e) => (e === entry ? { ...e, plan: typedPlan } : e)), today), ifSaved: true }
       : verdictOf(plan, list, today);
@@ -537,11 +554,12 @@ export function savingOf(entries, id, { today, typed = null, source = 'account' 
     ages: { currentAge: inputs.currentAge, retirementAge: inputs.retirementAge, years, stillSaving, known: ages, line: agesLine },
     relief: reliefLines(b, inputs), scheme: inputs.schemeType,
     potNow: { value: pounds(potNow), line: potLine },
-    // the pot at the stop the plan uses (services/PotsAtStop.js, through the plan's settings as read), the middling case
-    atStop: stillSaving && s.ss && s.ss.potAtRetirement && s.ss.potAtRetirement.source === 'worked' ? { value: pounds(Math.round(s.ss.potAtRetirement.sipp / 1000) * 1000), age: String(s.ss.potAtRetirement.from ? s.ss.potAtRetirement.from.toAge : inputs.retirementAge) } : null,
-    rates: { low: pct1(FCA_RATES.low), mid: pct1(FCA_RATES.mid), high: pct1(FCA_RATES.high), mix: hp ? pct1(hp.expectedReal + 0.025) : null, charges: chargesPct > 0 ? String(Math.round(chargesPct * 100) / 100) : null },
-    mix: hp ? { shares: String(Math.round(hp.buckets.shares * 100)), bonds: String(Math.round(hp.buckets.bonds * 100)), diversifiers: String(Math.round(hp.buckets.diversifiers * 100)), cash: String(Math.round(hp.buckets.cash * 100)), charge: (hp.weightedOcf * 100).toFixed(2) } : null,
-    rows: shownRows, isaLine: !!isaRows, isaHow: isaRows ? (how.fromFunds && how.payIns ? 'funds' : how.kind || 'before') : null, isaMonthly: pounds(inputs.isaMonthly),
+    // the pot at the stop: the one model's middle with its bad and good cases (a locked plan: the figure it was locked with)
+    atStop: band ? (band.source === 'locked'
+      ? { value: moneyK(band.middle), age: String(band.age != null ? band.age : inputs.retirementAge), locked: true }
+      : { value: moneyK(band.middle), low: moneyK(band.low), high: moneyK(band.high), age: String(band.age != null ? band.age : inputs.retirementAge) }) : null,
+    rates: { charges: chargesPct > 0 ? String(Math.round(chargesPct * 100) / 100) : null },
+    rows: shownRows, isaLine, isaHow: isaLine ? (how.fromFunds && how.payIns ? 'funds' : how.kind || 'before') : null, isaMonthly: pounds(inputs.isaMonthly),
     warnings,
     allowance,
     notYet: notYet ? { month: notYet.month } : null,

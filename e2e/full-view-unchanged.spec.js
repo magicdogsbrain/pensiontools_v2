@@ -8,7 +8,7 @@
  */
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { test, expect, DIST, PROD, REPO, CLASSIC_PATH, CLASSIC_TITLE, V7_PATH, LAYOUT_UNDER_TEST, WORKER_DATA_MISSING, atClassic } from './helpers/app.js';
+import { test, expect, DIST, PROD, REPO, CLASSIC_PATH, CLASSIC_TITLE, V7_PATH, LAYOUT_UNDER_TEST, atClassic } from './helpers/app.js';
 
 test.use({ outside: 'block' });
 
@@ -32,11 +32,8 @@ const BACK = 'Back to the simple view.';
 
 test.describe('the full view, beside the simple view', () => {
   test('opens, starts guest mode, shows its tabs, and a demo plan produces a result', async ({ page, watch }) => {
-    // The engine worker asks for the market files from ITS OWN address (helpers/paths.js CLASSIC_WORKER_DATA): at 7.0
-    // /classic/data/, the copy the build makes, so nothing is let pass and a missing copy fails this test; in the rollback
-    // layout /assets/data/, where they are not, so the host answers with the home page and the worker falls back to the
-    // bundled figures, as before 7.0, and only those two files are let pass: any OTHER missing file fails this test.
-    watch.allow(WORKER_DATA_MISSING);
+    // (both workers price on the one data folder their page hands them, src/reading/market.js: a missing market file is a
+    // fault in every layout, so nothing is let pass)
 
     await page.goto(PROD + CLASSIC_PATH);
     await expect(page).toHaveTitle(CLASSIC_TITLE);
@@ -150,7 +147,6 @@ test.describe('the full view, beside the simple view', () => {
   // Parity by presence (7.11.0): every page the full view has is still there. Counted, not looked at: a plan's stage can
   // hide a tab, and a phone puts the tab row behind the bottom bar.
   test('every page is there: the seven tabs, the bottom bar and its More sheet, every sub-page and every strategy page', async ({ page, watch }) => {
-    watch.allow(WORKER_DATA_MISSING);
     await page.goto(PROD + CLASSIC_PATH);
     await page.locator('#landingLookAround').click();
     await expect(page.locator('#guestBanner')).toBeVisible();
@@ -187,7 +183,6 @@ test.describe('the full view, beside the simple view', () => {
       test(id, async ({ page, watch }, testInfo) => {
         test.skip(testInfo.project.name !== 'desktop-1440', 'the dials are the same at every width: drawn once, at 1440');
         test.slow();
-        watch.allow(WORKER_DATA_MISSING);
         await page.goto(PROD + CLASSIC_PATH);
         await page.locator('#landingLookAround').click();
         await expect(page.locator('#guestBanner')).toBeVisible();

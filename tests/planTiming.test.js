@@ -173,7 +173,7 @@ describe('deriveTiming', () => {
     expect(t.firstTaxYear).toBe(2027);          // 61 is reached in 2027/28 (20 Oct 2027)
     expect(t.startMonth).toBe('2027-10');       // but they retire in October, 13 months away
     expect(t.monthsToStop).toBe(13);   // a saver's months to their stop (7.4.2: it was `bridgeMonths`)
-    expect(describeTiming(t, s, new Date(2026, 8, 11))).toContain('You retire in October 2027 at 61, 13 months away; the plan\'s year 0 is tax year 2027/28');
+    expect(describeTiming(t, s, new Date(2026, 8, 11))).toContain('You retire in October 2027 at 61, 1 year 1 month away; the plan\'s year 0 is tax year 2027/28');
     expect(deriveTiming({ ...alex, retired: true, firstTaxYear: 2027 }, NOW).startMonth).toBe('2027-04');
   });
   it('"retire at 60" when already 63 starts now', () => {
@@ -240,10 +240,10 @@ describe('describeTiming', () => {
     const text = describeTiming(deriveTiming(s, NOW), s, NOW);
     expect(text).toContain('Plan starts 6 April 2027 (tax year 2027/28), in 7 months.');
     expect(text).toContain('Income steps start at age 64.');
-    expect(text).toContain('State Pension from 2030/31 (plan year 3).');
+    expect(text).toMatch(/State Pension from \d{1,2} [A-Z][a-z]+ \d{4} \(tax year 2030\/31, plan year 3\)\./);
     expect(text).toContain('Plan runs to age 94.');
     // with nothing saved (7.4.0): this tax year
     const n = migrateTiming(alex, null, NOW);
-    expect(describeTiming(deriveTiming(n, NOW), n, NOW)).toContain('State Pension from 2030/31 (plan year 4).');
+    expect(describeTiming(deriveTiming(n, NOW), n, NOW)).toMatch(/State Pension from \d{1,2} [A-Z][a-z]+ \d{4} \(tax year 2030\/31, plan year 4\)\./);
   });
 });

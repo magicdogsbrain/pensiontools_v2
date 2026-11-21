@@ -15,6 +15,9 @@ import { href } from '../../router/routes.js';
 import { PLAN } from '../../copy/plan.js';
 import { MONTH as W } from '../../copy/month.js';
 import { Fact } from '../../../reading/Mark.jsx';
+import { Sentence } from '../../components/Sentence.jsx';
+import { FACT } from '../../../reading/facts.js';
+import { THIS_YEAR_FACTS } from '../../../reading/sentenceMarks.js';
 
 const w = PLAN.page;
 const keepFocus = { onMouseDown: (e) => e.preventDefault() };
@@ -150,7 +153,7 @@ function Advice({ V }) {
       {a.from.length > 0 && (
         <>
           <h3>{A.fromTitle}</h3>
-          <ul class="plan-lines" data-testid={`${T}.from`}>{a.from.map((x, i) => <li class="plan-line" key={i} data-from={x.id}><span class="plan-label">{fill(A.from[x.id] || x.id, x.slots)}</span> {x.amount}</li>)}</ul>
+          <ul class="plan-lines month-from" data-testid={`${T}.from`} data-fact="month.take.from">{a.from.map((x, i) => <li class="plan-line" key={i} data-from={x.id}><span class="plan-label">{fill(A.from[x.id] || x.id, x.slots)}</span> {x.amount}</li>)}</ul>
           {/* 7.12.0: "already in cash" only when the cash entered covers the month */}
           {a.contract && <p class="note" data-testid={`${T}.bought`}>{a.cashShort ? fill(a.cashShort.label ? A.boughtShort : A.boughtShortNoNext, a.cashShort) : a.cashKnown ? A.bought : A.boughtPlain}</p>}
         </>
@@ -273,7 +276,12 @@ export function MonthScreen(state, dispatch) {
                 {V.paidOffered && <Choice V={V} path="mo.paid" value={typed['mo.paid'] === 'yes' ? 'yes' : 'no'} dispatch={dispatch} words={W.fields['mo.paid']} options={['no', 'yes']} error={shownErrors['mo.paid'] || (V.errors['mo.paid'] ? V.errors['mo.paid'] : null)} />}
                 {V.cadence !== 'monthly' && W.cadence[V.cadence] && <p class="note" data-testid={`${T}.cadence`}>{W.cadence[V.cadence]}</p>}
                 {V.planMonth && <p class="line" data-testid={`${T}.planMonth`}>{fill(W.planMonth, V.planMonth)}</p>}
-                {V.yearLine && <p class="note" data-testid={`${T}.yearDone`}>{V.yearLine.income ? fill(W.yearDoneIncome, V.yearLine) : fill(W.yearDone, V.yearLine)} {W.yearEdit}</p>}
+                {/* this tax year first (step F2, D7), then the year of the month chosen when it is another */}
+                {V.thisYearLine && <p class="note" data-testid={`${T}.thisYear`}>{fillMarked(W.yearDoneIncome, V.thisYearLine, { income: FACT.YEAR_SET_UP, from: FACT.YEAR_FROM })}</p>}
+                {V.yearLine && <p class="note" data-testid={`${T}.yearDone`}>{V.yearLine.income ? fillMarked(W.yearDoneIncome, V.yearLine, V.yearLine.current ? { income: FACT.YEAR_SET_UP, from: FACT.YEAR_FROM } : {}) : fill(W.yearDone, V.yearLine)}</p>}
+                {/* step F2 (lead4.md D7): the plan's own figure for the year differs from the set-up: both, and the set-up opened again on a press */}
+                {V.yearLine && V.yearLine.changed && <Sentence s={V.yearLine.changed} source={V.yearLine.changed.figures} marks={{ keys: THIS_YEAR_FACTS }} class="notice" data-testid={`${T}.yearChanged`} />}
+                {V.yearLine && V.yearLine.current && V.editable && <p class="line"><Button testid={`${T}.setUpAgain`} kind={V.yearLine.changed ? 'plain' : 'quiet'} disabled={!!V.saving} aria-busy={V.saving && V.saving.kind === 'taxYearAgain' ? 'true' : undefined} onClick={() => dispatch({ type: 'plan/taxYearAgain', planId })} {...keepFocus}>{V.saving && V.saving.kind === 'taxYearAgain' ? W.setUpAgainWorking : W.setUpAgain}</Button></p>}
               </section>
               {V.setUp && <SetUp V={V} dispatch={dispatch} open={bandsOpen} />}
               {P && (

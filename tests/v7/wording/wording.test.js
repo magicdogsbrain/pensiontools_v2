@@ -228,7 +228,9 @@ describe('the words in src/v7/copy/', () => {
       // the named stresses and the years one by one (road-to-7.md step 11b): the prices assumed, what a decade did, the hardest start
       .replace(/\{prices\}/g, '2.5').replace(/\{(firstDir|decadeDir|pricesDir)\}/g, 'down').replace(/\{(firstPct|decadePct|pricesPct)\}/g, '45').replace(/\{decade\}/g, 'shares down 45% in the first three years').replace(/\{when\}/g, 'September 1929')
       // a contract plan's inflation figures (the gilt ladder's table): the cash at two ages, what it still buys
-      .replace(/\{(firstAge|tenthAge)\}/g, '67').replace(/\{(tenth|worth)\}/g, '£44,000');
+      .replace(/\{(firstAge|tenthAge)\}/g, '67').replace(/\{(tenth|worth)\}/g, '£44,000')
+      // what a bought way was priced on (src/reading/marketPlain.js marketLabel)
+      .replace(/\{label\}/g, 'Gilts priced at the prices of 12 November 2026 (the day’s file).');
     const hits = [];
     const all = strings(LASTS).map(([, s]) => slot(s)).join('\n');
     for (const [where, s] of strings(LASTS)) for (const h of bannedHits(slot(s), scopes, { context: all })) hits.push(`lasts.js ${where} — ${h}`);
@@ -292,7 +294,8 @@ describe('the words in src/v7/copy/', () => {
     // the way step is a plan page (way-and-mix.md 2): a retired person's and a saver's plan alike; its cards state the answer
     const scopes = ['all', 'record', 'retired', 'saver', 'planner', 'result'];
     const slot = (s) => s.replace(/\{date\}/g, '1 July 2026').replace(/\{(words|docWords)\}/g, 'in 9 futures out of 10').replace(/\{(name|old|docWay|way)\}/g, 'Floor to an age, then decide')
-      .replace(/\{(typical|bad|cost|left|short|pot)\}/g, '£25,000').replace(/\{pct\}/g, '92.7').replace(/\{(futures|histories)\}/g, '1,000').replace(/\{(years|toAge|min|max|age)\}/g, '12').replace(/\{s\}/g, '4.6');
+      .replace(/\{(typical|bad|cost|left|short|pot)\}/g, '£25,000').replace(/\{pct\}/g, '92.7').replace(/\{(futures|histories)\}/g, '1,000').replace(/\{(years|toAge|min|max|age)\}/g, '12').replace(/\{s\}/g, '4.6')
+      .replace(/\{bought\}/g, 'bought when you stop, at today’s prices');   // src/reading/ways.js BOUGHT_WORDS (step F3)
     const hits = [];
     const all = strings(WAY).map(([, s]) => slot(s)).join('\n');
     // the names are shown one at a time beside a label; the one with an ampersand is spelt as the planner spells it
@@ -448,7 +451,7 @@ describe('the words in src/v7/copy/', () => {
   it('"Your pots and tax" (pots.js): every string passes in every scope a plan page is shown in; no slot left unfilled', () => {
     // the fourth editing step is a plan page too (editing-in-v7.md 9): a retired person's and a saver's plan are both edited from it
     const scopes = ['all', 'record', 'retired', 'saver', 'planner'];
-    const slot = (s) => s.replace(/\{date\}/g, '1 July 2026').replace(/\{(pension|isa|taxable|shares|bonds|cash|sipp|sippBad|isaBad|pa|brl|hrl)\}/g, '£250,000')
+    const slot = (s) => s.replace(/\{date\}/g, '1 July 2026').replace(/\{(pension|isa|taxable|shares|bonds|cash|sipp|sippBad|isaBad|low|high|pa|brl|hrl)\}/g, '£250,000')
       .replace(/\{(pct|charges)\}/g, '0.5').replace(/\{years\}/g, ' for 10 years').replace(/\{(then|div)\}/g, '').replace(/\{mode\}/g, 'the thresholds rise with prices')
       .replace(/\{name\}/g, 'Sam').replace(/\{value\}/g, '67');
     const hits = [];

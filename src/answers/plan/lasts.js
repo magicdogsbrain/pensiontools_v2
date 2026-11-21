@@ -33,7 +33,7 @@ import { cleanParams } from '../../services/StrategyState.js';
 import { get, applyPatch, safeSettings, safeTiming, bandsOf } from './about.js';
 import { pounds } from './income.js';
 import { isBought } from './pots.js';
-import { monthlyNet, yearlyGross, guaranteedAtYear } from './spend.js';
+import { guaranteedAtYear } from './spend.js';
 import { takenOfTarget } from '../../services/BeforeTax.js';
 import { LASTS_FIELDS, LASTS_WRITES, TRY_FIELDS, TRY_WRITES, WAY_IDS } from './schema.js';
 import { dateOf, dayWords, MONTHS } from './dates.js';
@@ -42,6 +42,14 @@ import { whereAmIFor } from '../../services/PlanReading.js';
 import { earlyPensionDrawOf } from '../../services/PlanTiming.js';
 import { partnersOf } from '../../services/HouseholdLink.js';
 import { shownPlanNameOn } from '../../services/PlanName.js';
+import { marketLabel } from '../../reading/marketPlain.js';
+import { potAtStop } from '../../reading/atStop.js';
+import { pensionToday, isaToday } from '../../reading/money.js';
+import { sippTodayOf } from '../../services/PotsAtRetirement.js';
+import { moneyK, money } from '../../reading/format.js';
+import { yearTablesText } from '../../reading/yearTable.js';
+import { tryIncomeStartOf, tryIncomeYearOf } from '../../reading/tryIncome.js';
+import { YEAR_COLUMNS, FLOOR_COLUMNS } from '../../reading/labels.js';
 
 export { applyPatch };
 
@@ -92,6 +100,23 @@ export function runKeyOf(plan) {
 export const cutPctOf = (mult) => Math.round((1 - (num(mult) ?? SIMULATION_DEFAULTS.PROTECTION_MULTIPLIER)) * 100);
 export const multOf = (pct) => Math.round((100 - pct)) / 100;
 
+/**
+ * The cuts and the reserve as the plan's settings hold them (the settings as read), the one reading both views' boxes show
+ * (lead4.md R1): a value the plan holds, 0 included, is shown as held; one it lacks reads as the engines read it.
+ */
+export function cutsValuesOf(ss) {
+  const s = isObj(ss) ? ss : {};
+  return {
+    cutsOn: s.disableProtection ? 'no' : 'yes',
+    cutAfterMonths: num(s.consecutiveLimit) ?? DRAWDOWN_DEFAULTS.CONSECUTIVE_LIMIT,
+    cutPct: cutPctOf(s.protectionMult),
+    deeperAfterMonths: num(s.protectionEscalateMonths) ?? PROTECTION_ESCALATE_MONTHS,
+    buffer: num(s.recoveryBuffer) ?? DRAWDOWN_DEFAULTS.RECOVERY_BUFFER,
+    reserveOn: s.hodlEnabled ? 'yes' : 'no',
+    reserveAmount: num(s.hodlValue) > 0 ? r0(s.hodlValue) : null
+  };
+}
+
 /** The saved facts (10.1): from the effective settings (the lock freezes them, so a locked plan reads the same way). */
 export function savedLasts(plan, { today }) {
   const now = dateOf(today);
@@ -102,15 +127,7 @@ export function savedLasts(plan, { today }) {
   const timing = safeTiming(ss, now);
   const strategyId = (doc && doc.strategy && doc.strategy.id) || ss.strategyId || 'pots-and-valves';
   const bought = isBought(strategyId);
-  const values = {
-    cutsOn: ss.disableProtection ? 'no' : 'yes',
-    cutAfterMonths: num(ss.consecutiveLimit) ?? DRAWDOWN_DEFAULTS.CONSECUTIVE_LIMIT,
-    cutPct: cutPctOf(ss.protectionMult),
-    deeperAfterMonths: num(ss.protectionEscalateMonths) ?? PROTECTION_ESCALATE_MONTHS,
-    buffer: num(ss.recoveryBuffer) ?? DRAWDOWN_DEFAULTS.RECOVERY_BUFFER,
-    reserveOn: ss.hodlEnabled ? 'yes' : 'no',
-    reserveAmount: num(ss.hodlValue) > 0 ? r0(ss.hodlValue) : null
-  };
+  const values = cutsValuesOf(ss);
   // a locked plan's document keeps the figure it was locked with (6.24.0): read here, never run
   const docR = doc && doc.strategy && isObj(doc.strategy.r) ? doc.strategy.r : null;
   const docA = docR ? oneAnswer(docR, (doc.strategy && doc.strategy.p) || {}) : null;
@@ -272,9 +289,9 @@ export function lastsOf(entries, id, { today, typed = null } = {}) {
     // no run on a plan shown as saved (newer than this code, or one whose upgrade failed): its figure would not be its own
     // (7.12.0) a plan with no figures of its own is never tested on the stored defaults: it says what to add instead
     runKey: readonly || noFigures ? null : runKeyOf(plan), noFigures, document: saved.document,
-    // (7.12.0) the pension when work stops, in the middling case, that the plan's own test starts from (PlanReading.withDerivedPots):
-    // said under a saving plan's headline, whose chance counts the saving years too
-    atStop: saved.ss && saved.ss.retired === false && saved.ss.potAtRetirement && num(saved.ss.potAtRetirement.sipp) > 0 ? r0(saved.ss.potAtRetirement.sipp) : null,
+    // (7.12.0) the pension when work stops, in the middling case, that the plan's own test starts from: said under a saving
+    // plan's headline, whose chance counts the saving years too; the pot at the stop: the one model (src/reading/atStop.js, step F1), said to the nearest £1,000 where it is shown
+    atStop: (() => { if (!(saved.ss && saved.ss.retired === false)) return null; let a = null; try { a = potAtStop(plan, { now: dateOf(today), settings: saved.ss }); } catch { a = null; } return a && a.middle > 0 ? a.middle : null; })(),
     fields, errors: c.errors, ok: c.ok, derived, notUsed: notUsedBy(saved.strategyId), partners,
     // the plan draws from a pension before it can usually be taken (7.4.0, PlanTiming.earlyPensionDrawOf): said beside the answer
     pensionAccess: (() => { try { const now = dateOf(today); const e = earlyPensionDrawOf(safeSettings(plan, now), now); return e ? { age: String(e.age), date: 'April ' + e.opensTaxYear } : null; } catch { return null; } })(),
@@ -373,8 +390,17 @@ export function verdictOf(result, saved, { level = null, chance = null } = {}) {
   // 7.8.0: a run that weighed (it carries its level) reads the weighted band; one that did not reads as before, word for word
   const wb = typeof a.level === 'string' && a.words ? weightedBand(a, years, toAge) : null;
   const rows = [];
-  // (weighing, what is left is the weighted band's own line, at the plan's age and to the nearest £1,000: said once)
-  if (!wb) rows.push({ id: 'left', slots: { typical: pounds(a.typicalLeft), bad: pounds(a.badCaseLeft), good: pounds(a.goodCaseLeft) } });
+  // what is left, to the nearest £1,000 (OneAnswer.leftText: one precision in both views, lead4.md D8). Weighing, the weighted
+  // band's own line says the typical and the best 1 in 10 once; the worst 1 in 10, which the full view's card says too, is
+  // one line beside it (lead4.md R8, step F3). Not weighing, the one row with all three.
+  if (!wb) rows.push({ id: 'left', slots: { typical: moneyK(a.typicalLeft), bad: moneyK(a.badCaseLeft), good: moneyK(a.goodCaseLeft) } });
+  else if (!result.document && !/^In more than half/.test(String(a.words.left || ''))) rows.push({ id: 'leftBadW', slots: { bad: moneyK(a.badCaseLeft) } });
+  // the years covered and the worst 12 months, as the full view's block shows them (lead4.md R8, step F3): not on a plan still
+  // saving (its figures start from the pot at the stop), nor on a document's record
+  const live = !result.document && a.chanceFrom !== 'saving';
+  if (live && Number.isFinite(+a.coverage) && a.coverage !== null) rows.push({ id: 'coverW', slots: { pct: pctText(a.coverage) } });
+  // (the worst 12 months also on a plan still saving: the full view's card says it there too, from the pot at the stop)
+  if (!result.document && Number.isFinite(+a.worst12)) rows.push({ id: 'worst12W', slots: { worst: money(a.worst12) } });
   const c = a.cuts;
   // a cut is income that went unpaid: a future that only ran out, with nothing cut before it, is not one (with the cuts
   // switched off every "cut" is a run-out with £0 cut, which the headline already counts)
@@ -388,7 +414,7 @@ export function verdictOf(result, saved, { level = null, chance = null } = {}) {
   const ran = result.ran && typeof result.ran === 'object' ? result.ran : {};
   if (ran.cutsOn) rows.push({ id: 'ran.cuts', slots: { pct: String(ran.cutPct), months: String(ran.months), s: ran.months === 1 ? '' : 's' } });
   else if (ran.family) rows.push({ id: 'ran.cutsOff', slots: {} });
-  if (result.priced === 'bundled') rows.push({ id: 'ran.bundled', slots: {} });
+  if (result.market && result.market.gilts) rows.push({ id: 'ran.market', slots: { label: marketLabel(result.market) } });
   // the other savings cannot pay the years before the pension opens (7.4.1, lastsRun closedOf): said beside the answer
   const closedShort = result.closed && result.closed.short ? { age: String(result.closed.age), amount: pounds(result.closed.short.perYear), years: result.closed.short.years } : null;
   const worst = Array.isArray(result.history && result.history.worst) ? result.history.worst.map(startRow) : [];
@@ -413,7 +439,7 @@ export function verdictOf(result, saved, { level = null, chance = null } = {}) {
     // a contract strategy runs no futures: every year is bought (the test counts one window), so its line says that
     // (7.12.0) a plan still saving: the headline is the saving chance; the line under it says every figure below starts from
     // the middling pot when work stops (`saved.atStop`), so the two measures are never read as one
-    sub: contract ? { id: 'lasts.subContract', slots: { years: String(years), toAge } } : wb && a.chanceFrom === 'saving' ? { id: saved && saved.atStop ? 'lasts.subFromStop' : 'lasts.subFromStopNoPot', slots: { words: wb.sub.slots.words, pot: saved && saved.atStop ? pounds(saved.atStop) : '' } } : wb ? wb.sub
+    sub: contract ? { id: 'lasts.subContract', slots: { years: String(years), toAge } } : wb && a.chanceFrom === 'saving' ? { id: saved && saved.atStop ? 'lasts.subFromStop' : 'lasts.subFromStopNoPot', slots: { words: wb.sub.slots.words, pot: saved && saved.atStop ? moneyK(saved.atStop) : '' } } : wb ? wb.sub
       : { id: 'lasts.sub', slots: { pct: pctText(a.chancePct, 1, CHANCE_BARS).replace(/%$/, ''), futures: n0(a.futures), histories: n0(a.histories), years: String(years), toAge } },
     rows, strategyId: result.strategyId || null,
     ...(closedShort ? { closedShort } : {}),
@@ -443,12 +469,11 @@ const move = (v) => ({ dir: v < 0 ? 'down' : 'up', pct: String(Math.round(Math.a
  */
 export function extrasView(x) {
   if (!x || typeof x !== 'object') return null;
-  // a closed pension's years paid from the taxable account (7.4.1): its column on every row, only when one has it
-  const anyGia = Array.isArray(x.schedule) && x.schedule.some((r) => r.gia > 0);
-  const schedule = Array.isArray(x.schedule) ? x.schedule.map((r) => ({ year: r.year, age: r.age, pension: pounds(r.pension), state: pounds(r.state), tax: pounds(r.tax), isa: pounds(r.isa), ...(anyGia ? { gia: pounds(r.gia || 0) } : {}), spendable: pounds(r.spendable), isaLeft: pounds(r.isaLeft), raw: { pension: r.pension, spendable: r.spendable, isaLeft: r.isaLeft } })) : null;
-  const glidepath = x.glidepath && Array.isArray(x.glidepath.rows) ? { tent: !!x.glidepath.tent, diversifiers: !!x.glidepath.diversifiers, reserve: !!x.glidepath.reserve,
-    rows: x.glidepath.rows.map((r) => ({ year: r.year, age: r.age, shares: pounds(r.shares), bonds: pounds(r.bonds), cash: pounds(r.cash), diversifiers: pounds(r.diversifiers), reserve: pounds(r.reserve), sharesPct: String(r.sharesPct), isa: r.isa == null ? '' : pounds(r.isa), total: pounds(r.total), raw: { total: r.total, sharesPct: r.sharesPct } })) } : null;
-  const own = Array.isArray(x.own) ? x.own.map((r) => ({ year: r.year, age: r.age, incomeMid: pounds(r.incomeMid), incomeBad: pounds(r.incomeBad), leftMid: pounds(r.leftMid), raw: { incomeMid: r.incomeMid, leftMid: r.leftMid } })) : null;
+  // the year tables as both views write them, cell by cell (src/reading/yearTable.js yearTablesText: the one formatter), each
+  // column with its one label (src/reading/labels.js)
+  const T = yearTablesText(x);
+  const table = T.kind ? { kind: T.kind, cols: T.cols.map((id) => ({ id, label: YEAR_COLUMNS[id] || id })), rows: T.rows } : null;
+  const floors = T.floorRows.length ? { ...T.flags, cols: T.floorCols.map((id) => ({ id, label: FLOOR_COLUMNS[id] || id })), rows: T.floorRows } : null;
   // a contract plan's row carries the planner's inflation figures too (lastsRun.js contractCash): one more line, as slots
   const cashOf = (c) => { const p = move(c.prices10); return { id: 'cash.line', slots: { pricesDir: p.dir, pricesPct: p.pct, first: pounds(c.cashFirst), firstAge: String(c.ageFirst), tenth: pounds(c.cashTenth), tenthAge: String(c.ageTenth), worth: pounds(c.realTenth) } }; };
   const scenarios = Array.isArray(x.scenarios) ? x.scenarios.map((row) => {
@@ -458,7 +483,7 @@ export function extrasView(x) {
   }) : [];
   const sy = x.synthetic || null;
   const synthetic = sy ? (() => { const f = move(sy.decade.first), e = move(sy.decade.decade), c = move(sy.decade.prices); const when = sy.hardest ? (sy.hardest.month ? MONTHS[sy.hardest.month - 1] + ' ' : '') + sy.hardest.year : null; return { name: sy.name, decade: { id: 'decade.line', slots: { firstDir: f.dir, firstPct: f.pct, decadeDir: e.dir, decadePct: e.pct, pricesDir: c.dir, pricesPct: c.pct } }, hardest: when, ...(sy.cash ? { cash: cashOf(sy.cash) } : {}) }; })() : null;
-  return { prices: String(Math.round((+x.prices || 0) * 1000) / 10), schedule, glidepath, own, scenarios, synthetic, years: Array.isArray(x.schedule) ? x.schedule.length : Array.isArray(x.own) ? x.own.length : 0 };
+  return { prices: T.prices, table, floors, scenarios, synthetic, years: table ? table.rows.length : 0 };
 }
 
 // ---- "What's different" (research/v7/way-and-mix.md 4, 9.4; index.html runTryStrategyUI's list, lifted) -------------------
@@ -474,16 +499,18 @@ export function extrasView(x) {
  * (a correction). The planner's `income` line was said only when the plan has steps; a flat try of a flat plan at another
  * figure is a difference too, so it is said then as well (a correction).
  */
-export function tryDifferencesOf(s, c) {
+export function tryDifferencesOf(s, c, base = null) {
   const diff = [];
   const sid = s.strategyId || 'pots-and-valves';
   if (c.strategyId !== sid) diff.push({ id: 'way', slots: { way: c.strategyId, old: sid } });
-  const oldPot = (s.strategyParams && s.strategyParams.sippTotal) || ((s.equityMin || 0) + (s.bondMin || 0) + (s.cashTarget || 0));
+  // set against where the boxes start (tryStartOf's base) when the caller has it; else the pension the plan's runs start from
+  const B = isObj(base) ? base : null;
+  const oldPot = B && B.pot != null ? B.pot : planTryPotOf(s);
   const newPot = (c.strategyParams && c.strategyParams.sippTotal) || 0;
   // a plan with no pension known anywhere (PlanReading.withPensionToday's `potsNotSet`) has no pot to set beside it (7.12.0)
   if (s.potsNotSet) diff.push({ id: 'pot', slots: { pot: r0(newPot), old: null } });
   else if (Math.abs(newPot - oldPot) > 1) diff.push({ id: 'pot', slots: { pot: r0(newPot), old: r0(oldPot) } });
-  const oldIsa = (s.strategyParams && s.strategyParams.isaTotal != null) ? s.strategyParams.isaTotal : (s.isaBalance != null ? s.isaBalance : 0);
+  const oldIsa = B && B.isa != null ? B.isa : planTryIsaOf(s);
   if (Math.abs((c.isaBalance || 0) - oldIsa) > 1) diff.push({ id: 'isa', slots: { isa: r0(c.isaBalance || 0), old: r0(oldIsa) } });
   const policy = (x) => (x.isaDrawdownStrategy == null ? null : String(x.isaDrawdownStrategy));
   if (policy(c) !== policy(s)) diff.push({ id: 'isaPolicy', slots: { policy: policy(c), old: policy(s) } });
@@ -515,9 +542,13 @@ function trySettingsOf(s, boxes) {
   const id = b.way || 'pots-and-valves';
   const pot = +b.pot || 0;
   const isa = +b.isa || 0;
-  const oldPot = (s.equityMin || 0) + (s.bondMin || 0) + (s.cashTarget || 0);
+  // the box holds the whole pension (lasts.js tryStartOf): every pot scales with it, a diversifiers sleeve included (step F1)
+  const oldPot = (s.equityMin || 0) + (s.bondMin || 0) + (s.cashTarget || 0) + (s.diversifierStart || 0);
   const scale = oldPot > 0 ? pot / oldPot : 0;
-  if (oldPot > 0) { c.equityMin = Math.round((s.equityMin || 0) * scale); c.bondMin = Math.round((s.bondMin || 0) * scale); c.cashTarget = Math.round((s.cashTarget || 0) * scale); }
+  if (oldPot > 0) {
+    c.equityMin = Math.round((s.equityMin || 0) * scale); c.bondMin = Math.round((s.bondMin || 0) * scale); c.cashTarget = Math.round((s.cashTarget || 0) * scale);
+    if ((s.diversifierStart || 0) > 0) c.diversifierStart = Math.round(s.diversifierStart * scale);
+  }
   else { c.equityMin = Math.round(pot * 0.6); c.bondMin = Math.round(pot * 0.3); c.cashTarget = pot - c.equityMin - c.bondMin; }
   c.isaBalance = isa;
   c.strategyId = id;
@@ -536,9 +567,34 @@ function restoredParamsOf(s, id) {
   return (s.strategyState && s.strategyState[id] && s.strategyState[id].strategyParams) ? { ...s.strategyState[id].strategyParams } : {};
 }
 
-/** The pot a try starts from, the figure the what-if rescales by and "What's different" reads: the pinned pension total, else the pension's shares, bonds and cash. */
-export const tryPotOf = (ss) => r0((ss.strategyParams && ss.strategyParams.sippTotal) || ((ss.equityMin || 0) + (ss.bondMin || 0) + (ss.cashTarget || 0)));
-export const tryIsaOf = (ss) => r0(ss.strategyParams && ss.strategyParams.isaTotal != null ? ss.strategyParams.isaTotal : (ss.isaBalance || 0));
+/** The pension the plan's runs start from (a try's base): the pinned pension total, else the pension's four pots, a diversifiers sleeve included. */
+const planTryPotOf = (ss) => r0((ss.strategyParams && ss.strategyParams.sippTotal) || sippTodayOf(ss));
+const planTryIsaOf = (ss) => r0(ss.strategyParams && ss.strategyParams.isaTotal != null ? ss.strategyParams.isaTotal : (ss.isaBalance || 0));
+
+/**
+ * Where "Try a strategy"'s pension and ISA boxes start, in BOTH views (lead4.md D3, D10; step F1): ONE function.
+ *   - a locked plan with a record since the lock: the pension and ISA as last recorded (tryPotFromRecord);
+ *   - no pension known anywhere: no pension (the box empty);
+ *   - a plan still saving: the pension and ISA today (src/reading/money.js, as every other place says them; the runs grow
+ *     them to the stop, so the box is labelled the pension today);
+ *   - any other plan: the pension its runs start from (a diversifiers sleeve included) and its ISA.
+ * → { pot: number|null, isa: number, rec: tryPotFromRecord's | null, base: { pot, isa } } — `base` is what "What's
+ * different" sets a try against: the plan's own figures on a locked plan (so a try from the last record says what moved),
+ * the boxes' start on every other plan (an untouched try differs in nothing).
+ */
+export function tryStartOf(plan, { today }) {
+  const now = dateOf(today);
+  const ss = safeSettings(plan, now);
+  const rec = tryPotFromRecord(plan, { today });
+  const own = { pot: ss.potsNotSet ? null : planTryPotOf(ss), isa: planTryIsaOf(ss) };
+  let start = own;
+  if (rec) start = { pot: rec.pension.value, isa: rec.isa ? rec.isa.value : own.isa };
+  else if (ss.retired === false && !ss.potsNotSet) {
+    const ctx = { now, settings: ss };
+    start = { pot: r0(pensionToday(plan, ctx).value), isa: r0(isaToday(plan, ctx).value) };
+  }
+  return { pot: start.pot, isa: start.isa, rec, base: isLocked(plan) ? own : { ...start } };
+}
 
 /** The boxes' starting text (4): the plan as saved — the income box a month after tax, as the spend step shows the first step. */
 /**
@@ -566,15 +622,15 @@ function monthWordsOf(at) {
 export function tryBoxesOf(plan, { today }) {
   const saved = savedLasts(plan, { today });
   const ss = saved.ss;
-  const bands = bandsOf(ss);
-  const first = Array.isArray(ss.targetSchedule) && ss.targetSchedule.length ? r0(ss.targetSchedule[0]) : r0(ss.baseSalary);
-  const rec = tryPotFromRecord(plan, { today });
+  const start = tryStartOf(plan, { today });
+  // the flat-income box: the plan's current step, a month after tax, from the one reading both views fill it from (step F3)
+  const income = tryIncomeStartOf(plan, { now: dateOf(today) });
   return {
     'try.way': WAY_IDS.includes(ss.strategyId) ? ss.strategyId : 'pots-and-valves',
-    // no pension known anywhere (7.12.0): the box starts empty, never the stored default; a locked plan's from its last record
-    'try.pot': rec ? String(rec.pension.value) : ss.potsNotSet ? '' : String(tryPotOf(ss)),
-    'try.isa': rec && rec.isa ? String(rec.isa.value) : String(tryIsaOf(ss)), 'try.isaPolicy': 'saved',
-    'try.incomeMode': 'shape', 'try.income': String(monthlyNet(first, bands)),
+    // the one start (tryStartOf): no pension known anywhere, the box empty (7.12.0); a locked plan's from its last record
+    'try.pot': start.pot == null ? '' : String(start.pot),
+    'try.isa': String(start.isa), 'try.isaPolicy': 'saved',
+    'try.incomeMode': 'shape', 'try.income': income == null ? '' : String(income),
     'try.years': String(num(ss.duration) || 35), 'try.cuts': 'saved', 'try.cutPct': '', 'try.cutEsc': ''
   };
 }
@@ -602,10 +658,9 @@ export function checkTry(plan, typed, { today }) {
   if (applies['try.income']) take('try.income');
   take('try.years'); take('try.cuts'); take('try.cutPct'); take('try.cutEsc');
   const ok = Object.keys(errors).length === 0;
-  const bands = bandsOf(saved.ss);
   const run = ok ? {
     way: values['try.way'], pot: values['try.pot'], isa: values['try.isa'] || 0, isaPolicy: values['try.isaPolicy'],
-    incomeMode: values['try.incomeMode'], income: applies['try.income'] ? yearlyGross(values['try.income'], bands) : 0,
+    incomeMode: values['try.incomeMode'], income: applies['try.income'] ? tryIncomeYearOf(values['try.income'], plan, { now: dateOf(today) }) : 0,   // the one way back (src/reading/tryIncome.js)
     years: values['try.years'], cuts: values['try.cuts'], cutPct: values['try.cutPct'] == null ? '' : values['try.cutPct'], cutEsc: values['try.cutEsc'] == null ? '' : values['try.cutEsc']
   } : null;
   return { ok, values, errors, applies, run, saved };
@@ -614,7 +669,7 @@ export function checkTry(plan, typed, { today }) {
 /** "What's different" (4) on a plan: the lines, from the plan's settings and the copy the boxes make. */
 export function tryDifferences(plan, boxes, today) {
   const ss = safeSettings(plan, dateOf(today));
-  return tryDifferencesOf(ss, trySettingsOf(ss, boxes));
+  return tryDifferencesOf(ss, trySettingsOf(ss, boxes), tryStartOf(plan, { today }).base);
 }
 
 /**
@@ -627,7 +682,7 @@ export function tryPatch(plan, boxes, { today, at = null } = {}) {
   if (isLocked(plan)) return { ok: false, errors: { plan: 'locked' }, patch: {}, previous: {}, diffs: [] };
   const ss = safeSettings(plan, dateOf(today));
   const c = trySettingsOf(ss, boxes);
-  const diffs = tryDifferencesOf(ss, c);
+  const diffs = tryDifferencesOf(ss, c, tryStartOf(plan, { today }).base);
   const ids = new Set(diffs.map((d) => d.id));
   const S = 'stressTool.settings.';
   const want = {};
@@ -640,6 +695,7 @@ export function tryPatch(plan, boxes, { today, at = null } = {}) {
   const potsMoved = ids.has('pot') || ids.has('isa');
   if (potsMoved) {
     want[S + 'equityMin'] = c.equityMin; want[S + 'bondMin'] = c.bondMin; want[S + 'cashTarget'] = c.cashTarget; want[S + 'isaBalance'] = c.isaBalance;
+    if ((ss.diversifierStart || 0) > 0) want[S + 'diversifierStart'] = c.diversifierStart;
     // a bought way is priced on its pinned totals (StrategyState.SHARED_KEYS): they travel with the way's params
     if (isBought(c.strategyId)) {
       const params = cleanParams(c.strategyId, { ...(want[S + 'strategyParams'] || (c.strategyId === ss.strategyId ? ss.strategyParams : {}) || {}), sippTotal: c.strategyParams.sippTotal, isaTotal: c.strategyParams.isaTotal });

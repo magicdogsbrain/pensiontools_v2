@@ -8,6 +8,7 @@
  * dials typed go into the switch; the root strategy block is setActiveStrategy's shape.
  */
 import { describe, it, expect } from 'vitest';
+import { planHasFigures } from '../../../src/services/PlanFigures.js';
 import fc from 'fast-check';
 import { wayOf, checkDials, cardsOf, wayPatch, applyPatch, dialUnitsOf, stratDialsOf, stashOf, rankedIds, cardLines, runKeyOf } from '../../../src/answers/plan/way.js';
 import { switchPatch, restoredParamsFor, dialParams } from '../../../src/services/PlanCommit.js';
@@ -26,7 +27,7 @@ const strip = (plan) => { const out = JSON.parse(JSON.stringify(plan)); for (con
 
 /** A fake nine-way result: every way affordable but the last, with figures that rank them in a known order. */
 function fakeResult(ids = WAY_IDS, { current = 'pots-and-valves' } = {}) {
-  return { strategyId: current, priced: 'bundled', ways: ids.map((id, i) => (id === 'gilt-rotation'
+  return { strategyId: current, market: { gilts: { source: 'builtIn', asOf: '2026-11-12' }, equity: { source: 'builtIn', asOf: '2026-11-11' } }, ways: ids.map((id, i) => (id === 'gilt-rotation'
     ? { id, affordable: false, reason: { why: 'cost', cost: 900000, short: 100000 }, a: null, bought: true, dials: { defaults: { cashYears: 2, bridgeCash: 0, spareGrowth: 'kept', rotateCutAge: 75, rotateTrigger: 30, rotateDisarmYears: 8 }, ranWith: { cashYears: 2, bridgeCash: 0, spareGrowth: 'kept', rotateCutAge: 75, rotateTrigger: 30, rotateDisarmYears: 8 } } }
     : { id, affordable: true, reason: null, bought: id !== 'pots-and-valves' && id !== 'buckets-in-order',
       a: { strategyId: id, chancePct: 99 - i * 3, share: (99 - i * 3) / 100, typicalLeft: 500000 - i * 10000, badCaseLeft: 50000, goodCaseLeft: 900000, years: 33, futures: 1000, histories: 700 },
@@ -48,7 +49,9 @@ describe('the reading (wayOf) on every corpus plan at three dates', () => {
         expect(w.cuts.protectionOn === 'yes' || w.cuts.protectionOn === 'no').toBe(true);
         expect(w.locked).toBe(isLocked(e.plan));
         expect(w.editable).toBe(!w.locked);
-        expect(w.runKey).toBe(runKeyOf(e.plan));
+        // a plan with no figures of its own is never run (step F3): no key, and the page says what is missing
+        expect(w.runKey).toBe(planHasFigures(e.plan) ? runKeyOf(e.plan) : null);
+        expect(w.noFigures).toBe(!planHasFigures(e.plan));
         if (w.locked) { expect(w.lockedOn).toBeTypeOf('string'); expect(w.source.kind).toBe('locked'); }
         expect(w.endAge).toBeGreaterThan(60);
       }

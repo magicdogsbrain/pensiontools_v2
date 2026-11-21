@@ -6,6 +6,7 @@
 import { expect } from '@playwright/test';
 import { STRATEGY_NAMES } from '../../src/strategies/stressTest.js';
 import { shownPlanName } from '../../src/services/PlanName.js';
+import { LOCK_WORDS } from '../../src/reading/labels.js';
 import { closeNews } from '../scenarios/routes.js';
 
 /** The facts a page shows as words (collect.js counts them outside a mark): the stage, the lock, the way, the plan's name. */
@@ -17,32 +18,46 @@ export const wordsOf = (plan, now) => ({
 /** Every step of a plan in the simple view ('' is its home). */
 export const SIMPLE_PAGES = Object.freeze(['', 'plan', 'about', 'income', 'spend', 'pots', 'lasts', 'way', 'mix', 'saving', 'checkin', 'review', 'month', 'where', 'lock', 'hold', 'move', 'budget', 'household']);
 
-/** A press on a simple page that opens a figure drawn closed (the year table on "Does it last?"). */
-export const SIMPLE_PRESS = Object.freeze({ lasts: '[data-testid="plan.lasts.schedule"]' });
+/** The presses on a simple page that open figures drawn closed, in order (the year table and the pots' floors on "Does it last?"). */
+// "Try the bad years" too, as a person reading the rows presses it in each view (the full view's on its Scenarios page)
+export const SIMPLE_PRESS = Object.freeze({
+  lasts: Object.freeze(['[data-testid="plan.lasts.schedule"]', '[data-testid="plan.lasts.glidepath"]', '[data-testid="plan.lasts.stress.run"]']),
+  // "Which mix lasts best?", as the full view's Compare allocations is pressed
+  mix: Object.freeze(['[data-testid="plan.mix.compare.run"]']),
+  // "More columns" under the ways' cards: the worst 12 months and what is left per way, as the full view's ranking shows them
+  way: Object.freeze(['[data-testid="plan.way.more"]'])
+});
+
+/** A page's presses as a list (a page may name one press or several, in order). */
+export const pressesOf = (press) => (press ? [].concat(press) : []);
 
 /** Every tab and sub-tab of the full view. */
 export const FULL_PAGES = Object.freeze([
   { name: 'budget', tab: 'budget' },
   // the full view works the one test out on a press ("Run the test"); the simple view without one — the sweep presses it, as a
   // person reading the figure does, so the figures can be compared (that a press is needed is said in the handover, lead4.md D24)
-  { name: 'will it last', tab: 'stress', sub: 'montecarlo', press: 'button[data-on-click="runMonteCarloUI()"]' },
+  // then "Compare allocations", the mix grid the simple view's mix page draws on a press (step F3): presses in order, the first the page's own
+  { name: 'will it last', tab: 'stress', sub: 'montecarlo', press: ['button[data-on-click="runMonteCarloUI()"]', '#optimiseBtnMC'] },
   { name: 'stress history', tab: 'stress', sub: 'historical' },
-  { name: 'scenarios', tab: 'stress', sub: 'scenarios' },
+  // "Try the bad years" runs on a press in both views; the sweep presses it in both (step F3)
+  { name: 'scenarios', tab: 'stress', sub: 'scenarios', press: '#stressPanelRun' },
   // the year table is drawn on a press in the full view ("Show Schedule") and opened on a press in the simple view
   { name: 'drawdown', tab: 'stress', sub: 'drawdown', press: 'button[data-on-click="showDrawdownScheduleUI()"]' },
-  { name: 'glidepath', tab: 'stress', sub: 'glidepath' },
+  // the pots' floors are drawn on a press ("Show Glidepath"), as the simple view opens its table of floors on a press
+  { name: 'glidepath', tab: 'stress', sub: 'glidepath', press: 'button[data-on-click="showGlidepathUI()"]' },
   { name: 'stress settings', tab: 'stress', sub: 'stresssettings' },
-  { name: 'strategies', tab: 'strategies' },
-  // this month's figures are worked out on a press ("Calculate"); on a plan not locked that press asks to lock it first, so
-  // the sweep presses it only on a locked plan (the simple view shows the month only once locked)
+  // the ranking's "More columns", as the sweep opens the simple view's under the ways' cards (step F3)
+  { name: 'strategies', tab: 'strategies', press: 'button[data-on-click="setCmpMore(true)"]' },
+  // this month's figures are worked out on a press ("Calculate"; it never asks about locking, step F5). The simple view
+  // shows the month only once the plan is locked, so the sweep presses it only on a locked plan, to compare like with like
   { name: 'monthly entry', tab: 'decision', sub: 'entry', press: '#decisionForm button[type="submit"]', onlyLocked: true },
   { name: 'history', tab: 'decision', sub: 'history' },
   // the plan document draws its sections folded; a person reading it opens them (the sweep opens every fold of the document)
   { name: 'plan document', tab: 'decision', sub: 'plandoc', openFolds: '#planDocumentPage' },
   { name: 'tax years', tab: 'decision', sub: 'taxyears' },
   { name: 'decision settings', tab: 'decision', sub: 'decisionsettings' },
-  // "Am I on course?" is worked out on a press in the full view ("Work it out"), on open in the simple view (lead4.md D24)
-  { name: 'accumulation', tab: 'accumulation', press: 'button[data-on-click="runOnTrackCheck()"]' },
+  // "Am I on course?" is worked out when the tab opens, in the worker, as in the simple view (lead4.md R6; step M): no press
+  { name: 'accumulation', tab: 'accumulation' },
   { name: 'transition', tab: 'transition' },
   { name: 'household', tab: 'household' }
 ]);
@@ -62,5 +77,6 @@ export async function fullTab(page, { tab, sub }) {
 }
 
 /** The full view's chip says the open plan is locked. */
-export const fullLocked = async (page) => /locked/.test(String(await page.locator('[data-fact="lock.state"]').first().innerText().catch(() => '')));
+// (step F3) the chip says the simple view's two words (src/reading/labels.js LOCK_WORDS)
+export const fullLocked = async (page) => String(await page.locator('[data-fact="lock.state"]').first().innerText().catch(() => '')).trim() === LOCK_WORDS.locked;
 

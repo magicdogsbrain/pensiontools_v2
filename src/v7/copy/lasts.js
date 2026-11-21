@@ -28,7 +28,7 @@ export const LASTS = {
     /** (7.12.0) a plan still saving: the headline counts the saving years; everything under it starts from the pot at the stop */
     'lasts.subFromStop': 'Everything below starts from {pot} in your pension on the day work stops (the middling case) and leaves out the saving years, so it can differ from the chance above. {words}',
     'lasts.subFromStopNoPot': 'Everything below starts from the middling pot on the day work stops and leaves out the saving years, so it can differ from the chance above. {words}',
-    word: { yes: 'On course', close: 'Close', no: 'Not yet' },
+    word: { yes: 'On course', close: 'Close', no: 'Not on course' },
     /** 7.8.0: the level the band is judged at, before its word ("At Balanced: On course"). */
     atLevel: 'At {level}:'
   },
@@ -43,14 +43,18 @@ export const LASTS = {
     'cuts.notCounted': 'Income cuts: not counted in this figure; today’s test below counts them.',
     'ran.cuts': 'Run with the spending cuts you set: up to {pct}% after {months} month{s} in a row below the plan’s line.',
     'ran.cutsOff': 'Run with the spending cuts switched off in this plan’s settings: the plan is paid in full until the money runs out.',
-    'ran.bundled': 'Gilts priced on the bundled yield curve here; the full view prices them on the day’s live figures when it has them, so a ladder’s cost can differ there.',
+    'ran.market': '{label} The full view uses the same prices.',
     /** 7.8.0: the floor, what is left at the plan's age, and what we assumed (OneAnswer.js weightedWordsOf) */
     floorW: '{words}',
     leftW: '{words}',
     assumedW: '{words}',
     /** 7.9.0: a contract strategy's fixed-age line (or why there is no weighted figure), as its band's first row */
     fixedW: '{words}',
-    whyW: '{words}'
+    whyW: '{words}',
+    /** the years covered and the worst 12 months, as the full view's block says them after its figures (step F3) */
+    coverW: '{pct} of the plan’s years covered — the share of your planned income the money actually paid, averaged over every future.',
+    worst12W: '{worst}: the worst year of income lived, at today’s prices.',
+    leftBadW: 'In a bad case (the worst tenth of the futures), {bad} is left then.'
   },
   /** Where the figures came from. */
   ran: { now: 'Worked out just now, on the plan as saved {date}.', nowUndated: 'Worked out just now, on the plan as saved.', document: 'Worked out when the plan was locked on {date}.', today: 'Today’s test on the same plan:' },
@@ -115,9 +119,9 @@ export const LASTS = {
     title: 'The years, one by one',
     show: 'Show the years',
     hide: 'Hide the years',
-    lead: 'Year by year at {prices}% a year prices, with no ups and downs: what is drawn from the pension to fill the basic-rate band, the State Pension once it starts, the tax, what the ISA tops up to reach the plan’s figure, what is left to spend, and the ISA left. A steady path for reading, not a second test: the figure above counts every real start and 1,000 futures.',
+    lead: 'Year by year at {prices}% a year prices, with no ups and downs: what is drawn from the pension to fill the basic-rate band, the State Pension once it starts, any other income (another pension, rent or work), the tax, what the ISA tops up to reach the plan’s figure, what is left to spend, and the ISA left. A steady path for reading, not a second test: the figure above counts every real start and 1,000 futures.',
     leadOwn: 'Year by year as this way of drawing pays: the income in the middle future, the income in a 1-in-10 bad one, and what is left in the middle — read off the same test as the figure above.',
-    columns: { year: 'Year', age: 'Age', pension: 'From the pension', state: 'State Pension', tax: 'Tax', isa: 'From the ISA', gia: 'From other savings', spendable: 'To spend', isaLeft: 'ISA left', incomeMid: 'Income (middle)', incomeBad: 'Income (1 in 10 bad)', leftMid: 'Left (middle)' },
+    // (the columns' labels are the reading's, one per column for both views: src/reading/labels.js YEAR_COLUMNS, FLOOR_COLUMNS)
     floorsTitle: 'The pots’ floors over the plan',
     floorsShow: 'Show the pots’ floors',
     floorsHide: 'Hide the pots’ floors',
@@ -125,7 +129,6 @@ export const LASTS = {
     floorsLeadTent: 'The least each pot is meant to hold, year by year at {prices}% a year prices. The bond tent is on: the shares part of the pots rises over the early years, then holds; the floors rise with prices and run down to nothing by the end; cash holds its value; the ISA runs down as it tops up income.',
     floorsDiversifiers: ' Your gold and trend pot runs down the same way.',
     floorsReserve: ' The emergency reserve is shown apart and never touched.',
-    floorsColumns: { year: 'Year', age: 'Age', shares: 'Shares floor', bonds: 'Bonds floor', cash: 'Cash', diversifiers: 'Gold and trend', reserve: 'Reserve', sharesPct: 'Shares % of the pot', isa: 'ISA', total: 'All floors' },
     notThisWay: 'This way of drawing keeps no floors: every year is bought or paid by its own rule, so there is no table of floors to show.'
   },
   sections: { cuts: 'Cuts in a slump', reserve: 'Emergency reserve' },
@@ -159,8 +162,8 @@ export const LASTS = {
     'cuts.off': 'No cuts: the plan is paid in full until the money runs out.',
     'reserve.on': 'An emergency reserve of {amount}, touched only when the plan would otherwise run out.',
     'reserve.off': 'No emergency reserve.',
-    'notUsed.bought': 'Not used by this way of drawing: it pays the plan in full until it cannot. The dials are kept for the day you switch to Pots and valves or Buckets in order.',
-    'notUsed.flex': 'Not used by this way of drawing: the treats flex instead. The dials are kept for the day you switch to Pots and valves or Buckets in order.'
+    'notUsed.bought': 'Not used by this way of drawing: it pays the plan in full until it cannot. The dials are kept for the day you switch to Pots & Valves or Buckets in order.',
+    'notUsed.flex': 'Not used by this way of drawing: the treats flex instead. The dials are kept for the day you switch to Pots & Valves or Buckets in order.'
   },
   partner: '{name}’s plan is tested on {name}’s plan.',
   partnerLink: 'Open ‘{name}’: does it last?',
@@ -170,7 +173,8 @@ export const LASTS = {
   toast: {
     lasts: 'Saved. Cuts of up to {pct}% after {months} months; {reserve}. The test is running again on the saved plan.',
     lastsOff: 'Saved. No cuts; {reserve}. The test is running again on the saved plan.',
-    savedShort: 'Saved.', undone: 'Put back as it was.', unchanged: 'Nothing has changed.'
+    savedShort: 'Saved.', undone: 'Put back as it was.', unchanged: 'Nothing has changed.',
+    level: 'Saved: your plan is judged at {level}, here and in the full view.'
   },
   problems: {
     locked: 'This plan is locked, so nothing was changed. To change it, unlock it from “Your plan as locked”.',

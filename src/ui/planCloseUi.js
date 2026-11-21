@@ -44,16 +44,19 @@ import { getActiveScenarioAsStored, getActiveScenarioAsync, switchScenario, inva
 import { loadAllScenarios, createScenario, saveScenario } from '../firebase/FirestoreService.js';
 import { closeQuestionOf, successorOf, closeWrite, partnerWrites, successorName, workingStopOf } from '../services/PlanClose.js';
 import { flexibleAccessWords } from '../services/FlexibleAccess.js';
-import { closedReading, beforeReading, closedWords, beforeWords, readDayOf, planNameOf, monthWordsOf, monthBefore, isClosedPlan, closedAtOf, closesAhead } from '../services/PlanClosed.js';
+import { closedWords, beforeWords, readDayOf, monthWordsOf, monthBefore, isClosedPlan, closedAtOf, closesAhead } from '../services/PlanClosed.js';
+import { closedReading, beforeReading } from '../services/PlanClosedReading.js';
 import { normaliseHoldings } from '../services/HoldingsRecord.js';
 import { uniqueName } from '../services/PlanFromSeed.js';
 import { taxYearLabel, deriveTiming, taxYearOfMonth } from '../services/PlanTiming.js';
 import { laterDraftSentence } from '../services/PlanMove.js';
 import { laterDraftReading } from '../services/PlanReading.js';
+import { storedPlanName, shownPlanName } from '../services/PlanName.js';
 import { isGuest, isLoggedIn } from '../firebase/AuthService.js';
 import { guestPlanRefusal } from '../services/GuestPlans.js';
 import { OPEN_PLACE_KEY, makeRequest } from '../services/OpenPlace.js';
 import { parseMonth } from '../answers/plan/about.js';
+import { todayOf } from '../reading/clock.js';
 
 const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
@@ -85,7 +88,7 @@ export const PLAN_CLOSE_WORDS = Object.freeze({
 
 /** The day the open plan is read on (PlanClosed.readDayOf): today, or the end of a closed plan's last month. */
 export async function planReadDay() {
-  const now = new Date();
+  const now = todayOf();
   try { return readDayOf(await getActiveScenarioAsync(), now); } catch (e) { return now; }
 }
 
@@ -93,14 +96,14 @@ export async function planReadDay() {
 export async function successorNameOf() {
   try {
     const sc = await getActiveScenarioAsync();
-    const r = sc ? closedReading(sc, await loadAllScenarios()) : null;
+    const r = sc ? closedReading(sc, await loadAllScenarios(), todayOf()) : null;
     return r && r.next ? r.next.name : null;
   } catch (e) { return null; }
 }
 
 /** The open plan's close (PlanClosed.closedReading, the plan that carries it on looked up), or null: not closed, or unread. */
 async function openClosedReading() {
-  try { const sc = await getActiveScenarioAsync(); return sc && isClosedPlan(sc) ? closedReading(sc, await loadAllScenarios()) : null; } catch (e) { return null; }
+  try { const sc = await getActiveScenarioAsync(); return sc && isClosedPlan(sc) ? closedReading(sc, await loadAllScenarios(), todayOf()) : null; } catch (e) { return null; }
 }
 /** The button that opens the plan that carries a closed one on (none when that plan is not here). */
 const openNextBtn = (reading, cls = '') => (reading && reading.next ? '<button type="button"' + (cls ? ' class="' + cls + '"' : '') + ' data-on-click="openPlanById(\'' + esc(reading.next.id) + '\')">Open ‘' + esc(reading.next.name) + '’</button>' : '');
@@ -173,8 +176,8 @@ export async function planNoticeHtml() {
     const sc = await getActiveScenarioAsync();
     if (!sc) return '';
     const all = await loadAllScenarios();
-    const closed = isClosedPlan(sc) ? closedReading(sc, all) : null;
-    const before = closed ? null : beforeReading(sc, all);
+    const closed = isClosedPlan(sc) ? closedReading(sc, all, todayOf()) : null;
+    const before = closed ? null : beforeReading(sc, all, todayOf());
     const text = closed ? closedWords(closed) : before ? beforeWords(before) : '';
     return text ? '<p class="pd-notice" data-testid="planNotice"><strong>' + esc(text) + '</strong></p>' : '';
   } catch (e) { return ''; }
@@ -227,7 +230,7 @@ export async function closedTimingSummary(summary) {
   // a draft read from an earlier start than it saved (7.4.0, PlanReading.laterDraftReading: the settings as the form reads
   // them, the Budget's age folded in — V7's "About you and when" reads the same): said once, first
   let later = null;
-  try { const st = await getActiveScenarioAsStored(); later = st ? laterDraftReading(st, { now: new Date() }) : null; } catch (e) { later = null; }
+  try { const st = await getActiveScenarioAsStored(); later = st ? laterDraftReading(st, { now: todayOf() }) : null; } catch (e) { later = null; }
   const words = closedTimingWords(summary, sc);
   return later ? laterDraftSentence(later) + ' ' + words : words;
 }
@@ -248,13 +251,15 @@ export function plansInListOrder(list) {
 }
 /**
  * The plan menu's second line: "Previous plan — closed March 2029" for a closed plan ("Closes at the end of March 2029" while
- * that month is still to come, and it is still listed with the plans in use), else the plan's description.
+ * that month is still to come, and it is still listed with the plans in use), else nothing. A stored description is never
+ * printed (step F1, lead4.md R4): written when the plan was kept, it named the answer's chance and pot then, beside figures
+ * for the plan as it is now (walks3 W1-M3, W3-M3).
  */
 export function planListDesc(plan) {
   const r = closedReading(plan);
   if (r && r.ahead) return 'Closes at the end of ' + r.month;
   if (r) return 'Previous plan — closed ' + r.month;
-  return (plan && plan.planDetails && plan.planDetails.description) || (plan && plan.description) || '';
+  return '';
 }
 
 /** The line's HTML for a plan (pure): closed, carrying one on, offered the move (and going back to work), or nothing. */
@@ -362,6 +367,8 @@ export function nameAfterMonth(current, { from, to, nameFor }) {
  */
 export function installPlanClose(win, doc, deps = {}) {
   const toast = (m, t, ms) => win.showToast(m, t, ms);
+  /** Any save still waiting (Settings, Accumulation, Budget: index.html flushSettings), sent now. */
+  const flushOpen = async () => { try { if (typeof win.flushSettings === 'function') await win.flushSettings(); } catch (e) { /* each save says why it was not made */ } };
 
   /**
    * Open another plan, as the plan menu does (switch, then the page loaded again). Without an account the page would open
@@ -370,6 +377,7 @@ export function installPlanClose(win, doc, deps = {}) {
    * saving plan made on going back to work, at its Accumulation page (`place` 'saving'), where what goes in is asked.
    */
   async function reopenOn(id, place = 'about') {
+    await flushOpen();   // what was typed goes to the plan it was typed in, before another opens (lead4.md R3)
     await switchScenario(String(id));
     invalidateScenarioCache();
     if (isGuest()) { try { win.sessionStorage.setItem(OPEN_PLACE_KEY, makeRequest({ planId: String(id), place, back: '#/plan/' + String(id), at: new Date().toISOString() })); } catch (e) { /* the landing page then: the plan is still the open one */ } }
@@ -383,8 +391,8 @@ export function installPlanClose(win, doc, deps = {}) {
       const sc = await getActiveScenarioAsStored();
       if (sc) {
         const all = await loadAllScenarios();
-        const closed = closedReading(sc, all), before = closed ? null : beforeReading(sc, all);
-        const q = closed ? null : closeQuestionOf(sc, { now: new Date(), plans: all });
+        const closed = closedReading(sc, all, todayOf()), before = closed ? null : beforeReading(sc, all, todayOf());
+        const q = closed ? null : closeQuestionOf(sc, { now: todayOf(), plans: all });
         // a closed plan's lock banner says it is closed (stressLockBannerHtml); a plan that carries one on says so here, and is
         // offered the move too once it has been lived on
         html = closed ? '' : (before ? planCloseLineHtml({ before }) : '') + (q ? planCloseLineHtml({ offered: true, working: q.working }) : '');
@@ -412,7 +420,8 @@ export function installPlanClose(win, doc, deps = {}) {
   };
 
   async function moveOnce(why) {
-    const now = new Date();
+    await flushOpen();   // the plan closed and carried on from is the plan with what was typed in it
+    const now = todayOf();   // the one clock (lead4.md R5)
     const reason = why === 'working' ? 'working' : 'plan';
     let sc = null, all = [];
     try { sc = await getActiveScenarioAsStored(); all = await loadAllScenarios(); } catch (e) { sc = null; }
@@ -421,7 +430,7 @@ export function installPlanClose(win, doc, deps = {}) {
     const full = closeCapRefusal(all, isGuest());
     if (full) { toast(full, 'info', 8000); return; }
     const answers = { month: q.suggested, name: '', pension: null, isa: null, gia: null, partner: !!q.partner, stopMonth: '', stopAge: '' };
-    const nameFor = (m) => uniqueName(successorName(sc, m, reason), all.map(planNameOf));
+    const nameFor = (m) => uniqueName(successorName(sc, m, reason, now), all.map(storedPlanName));
     const asked = win.appConfirm({ html: planCloseQuestionHtml(q, { name: nameFor(q.suggested), reason }) }, { okLabel: reason === 'working' ? PLAN_CLOSE_WORDS.okWorking : PLAN_CLOSE_WORDS.ok, cancelLabel: PLAN_CLOSE_WORDS.cancel, danger: false });
     // the question is on the page now (appConfirm draws it at once): its boxes are read as they change, since it is gone after
     const g = (id) => doc.getElementById(id);
@@ -439,7 +448,7 @@ export function installPlanClose(win, doc, deps = {}) {
     read();
     for (const id of ['pcMonth', 'pcName', 'pcPension', 'pcIsa', 'pcGia', 'pcPartner', 'pcStopMonth', 'pcStopAge']) { const x = g(id); if (x) { x.addEventListener('input', read); x.addEventListener('change', read); } }
     if (!(await asked)) return;
-    const name = uniqueName((answers.name || '').trim() || successorName(sc, answers.month, reason), all.map(planNameOf));
+    const name = uniqueName((answers.name || '').trim() || successorName(sc, answers.month, reason, now), all.map(storedPlanName));
     const pots = potsFromAnswers(answers);
     if (!pots) { toast('Put in the pension pot you hold today (0 if none). Nothing was changed.', 'warning', 6000); return; }
     const stop = reason === 'working' ? stopFromAnswers(answers) : null;
@@ -458,7 +467,7 @@ export function installPlanClose(win, doc, deps = {}) {
         const w = partner ? partnerWrites(partner, { oldId: sc.id, newId }) : null;
         if (w) { try { await saveScenario(partner.id, w); } catch (e) { toast('The new plan was made, but ‘' + q.partner.name + '’ could not be linked to it: link it on the Household page.', 'warning', 8000); } }
       }
-      toast('‘' + planNameOf(sc) + '’ is closed; ‘' + name + '’ carries on from ' + monthWordsOf(answers.month) + (reason === 'working' ? ', saving until you stop again.' : '.'), 'success', 6000);
+      toast('‘' + shownPlanName(sc, { now }) + '’ is closed; ‘' + name + '’ carries on from ' + monthWordsOf(answers.month) + (reason === 'working' ? ', saving until you stop again.' : '.'), 'success', 6000);
       await reopenOn(newId, reason === 'working' ? 'saving' : 'about');
     } catch (e) {
       console.error('Move to a new plan:', e);

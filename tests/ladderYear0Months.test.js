@@ -43,7 +43,7 @@ describe('a first tax year that starts in the month work stops', () => {
     expect(lp.phase).toBe('running');
     expect(lp.monthly).toBeCloseTo(25000 / 12, 6);                 // was 25,000 ÷ 5 = £5,000
     expect(lp.cashCheck).toBeNull();
-    expect(lp.instruction).toBe('The plan pays £2,083 a month: in 2027/28 that is 6 payments, October 2027 to March 2028, £12,500.');
+    expect(lp.instruction).toBe('The plan pays £2,083 a month (£25,000 a year before tax). In 2027/28 that is 6 payments, October 2027 to March 2028: £12,500.');
   });
 
   it('a ladder built for a part year (its first year holds the months it pays) pays its need over those months', () => {
@@ -72,7 +72,7 @@ describe('pots entered part-way through the first tax year: the payments this ta
   it('£2,833 a month: 9 payments, July 2026 to March 2027, £25,500', () => {
     const lp = ladderPosition(alex, { today: day(2026, 8), potsDay: '2026-07-10' });
     expect(lp.monthly).toBeCloseTo(34000 / 12, 6);
-    expect(lp.instruction).toBe('The plan pays £2,833 a month: in 2026/27 that is 9 payments, July 2026 to March 2027, £25,500.');
+    expect(lp.instruction).toBe('The plan pays £2,833 a month (£34,000 a year before tax). In 2026/27 that is 9 payments, July 2026 to March 2027: £25,500.');
     expect(lp.instruction).not.toMatch(/twelve months/);
   });
 });

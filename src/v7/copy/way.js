@@ -57,11 +57,12 @@ export const WAY = {
     sub: '{pct}% of {futures} futures; {histories} real starts since 1871.',
     subContract: 'Every year is bought by contract, so no future and no start year can run it out; {years} years, to {toAge}.',
     left: 'Left at the end, at today’s prices: typically {typical}; in a bad case (the worst 1 in 10) {bad}.',
-    cost: 'Costs {cost} of your pot today; {left} left to grow.',
-    costAll: 'Costs {cost} of your pot today; nothing left to grow.',
+    /** {bought}: when it is bought, the same words in both views (src/reading/ways.js BOUGHT_WORDS) */
+    cost: 'Costs {cost} of your pot, {bought}; {left} left to grow.',
+    costAll: 'Costs {cost} of your pot, {bought}; nothing left to grow.',
     /** (7.12.0) a plan still saving: bought from the pension when work stops (the middling figure the runs start from) */
-    costAtStop: 'Costs {cost} of the {pot} your pots could hold when you stop at {age}; {left} left to grow.',
-    costAllAtStop: 'Costs {cost} of the {pot} your pots could hold when you stop at {age}; nothing left to grow.',
+    costAtStop: 'Costs {cost} of the {pot} your pots could hold when you stop at {age}; {left} left to grow. It is {bought}.',
+    costAllAtStop: 'Costs {cost} of the {pot} your pots could hold when you stop at {age}; nothing left to grow. It is {bought}.',
     cannot: 'Your pot cannot buy this: it would cost {cost}, {short} more than the pot. So there is no figure.',
     cannotGilt: 'Your pot cannot buy this on this plan: no index-linked gilt reaches far enough for its last years. So there is no figure.',
     /** On a locked plan, once another way is open (2.4): the document's figure beside the tried one; never a word of unlocking. */
@@ -72,9 +73,8 @@ export const WAY = {
     mix: 'Its mix, the split between shares, bonds, gold and trend funds, and cash, is on ‘The mix’.',
     mixLink: 'Open ‘The mix’',
     noTent: 'The bond tent is not used by this way of drawing.',
-    bundled: 'Gilts priced on the bundled yield curve here; the full view prices them on the day’s live figures when it has them.',
     wrongTitle: 'What can go wrong',
-    verdictWord: { yes: 'On course', close: 'Close', no: 'Not yet' }
+    verdictWord: { yes: 'On course', close: 'Close', no: 'Not on course' }
   },
   /** The dials (2.3): every one the planner shows for the way, in plain words. */
   dials: {
@@ -157,12 +157,14 @@ export const WAY = {
     one: 'Sorry, that could not be tried. Nothing has changed.'
   },
   notRun: 'This plan is shown as it was saved, so it is not run here. Nothing has been lost.',
+  /** A plan with no figures of its own: never ranked on an income nobody gave it (the full view says the same). */
+  noFigures: 'This plan has no figures of its own yet, so no way of drawing can be run on it. Add your pension pot and what you want to spend first:',
   /** "More columns" (1): the planner's other columns and its other orders, never the default. */
   table: {
     lead: 'The full view’s other columns, on the same runs.',
     rankBy: 'Rank by',
     orders: { lasts: 'How many futures it lasts', left: 'What is typically left', score: 'Score', coverage: 'Coverage' },
-    columns: { way: 'Way of drawing', lasts: 'Lasts', worst12: 'Worst 12 months', left: 'Typically left', covered: 'Years covered', coverage: 'Coverage', spent: 'Spent over the plan', bumpiness: 'Bumpiness (% a year)', score: 'Score' },
+    columns: { way: 'Way of drawing', lasts: 'Lasts', worst12: 'Worst 12 months', left: 'Typically left', covered: 'Years covered', coverage: 'Coverage', spent: 'Spent over the plan', bumpiness: 'Bumpiness (a year)', score: 'Score' },
     score: 'The score weighs what is paid, how much is left and how bumpy the ride was; higher is better. It never decides the order of the cards.',
     none: '—',
     cannot: 'cannot be bought'

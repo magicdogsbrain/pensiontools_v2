@@ -29,6 +29,7 @@ import { takenBeforeTax, targetOfTaken } from '../../services/BeforeTax.js';
 // Wizard state
 let wizardElement = null;
 let onCompleteCallback = null;
+let beforeSaveHook = null;   // (step F5, lead4.md D17) asked before the set-up writes: a set-up locks a plan not yet locked
 let currentStep = 1;
 let wizardContext = null;  // Data from getWizardData()
 let wizardInputs = {};     // User inputs collected during wizard
@@ -53,10 +54,13 @@ const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').
  * @param {HTMLElement} container - Container element for wizard
  * @param {string} selectedMonth - Selected month in YYYY-MM format
  * @param {Function} onComplete - Callback when wizard completes
+ * @param {{ beforeSave?: () => Promise<boolean> }} [o] - asked on Confirm before anything is written; false writes nothing
+ *   (the full view passes the lock question: a set-up locks a plan not yet locked, so it is asked there, never on Calculate)
  */
-export async function initTaxYearWizard(container, selectedMonth, onComplete) {
+export async function initTaxYearWizard(container, selectedMonth, onComplete, { beforeSave = null } = {}) {
   wizardElement = container;
   onCompleteCallback = onComplete;
+  beforeSaveHook = typeof beforeSave === 'function' ? beforeSave : null;
   currentStep = 1;
   wizardInputs = {};
 
@@ -575,6 +579,9 @@ async function finishWizard() {
   const config = setUpConfigOf(wizardContext, wizardInputs);
 
   console.log(`Tax Year Wizard: Saving config for ${wizardContext.taxYear}`, config);
+
+  // a set-up on a plan not locked locks it: the person is asked first, and "Not now" writes nothing (step F5, D17)
+  if (beforeSaveHook) { let go = false; try { go = await beforeSaveHook(); } catch (e) { go = false; } if (!go) return; }
 
   try {
     // Save to repository, then VERIFY the write round-trips — a silently-lost tax year leaves

@@ -78,8 +78,11 @@ describe('every corpus plan at three dates: the boxes, the sources, the notes, t
             const drawn = f.type === 'choice' ? root.querySelector(`[data-field="${f.path}"] legend`) : root.querySelector(`label[for="plan.pots.${f.path}"]`);
             if (vf.applies && !drawn) problems.push(`${e.plan.id}: no label for ${f.path}`);
             if (!vf.applies && drawn) problems.push(`${e.plan.id}: ${f.path} drawn though it does not apply`);
-            if (vf.applies && vf.saved !== null && !root.querySelector(`[data-saved-for="${f.path}"]`)) problems.push(`${e.plan.id}: no saved value beside ${f.path}`);
+            if (vf.applies && vf.saved !== null && !vf.assumed && !root.querySelector(`[data-saved-for="${f.path}"]`)) problems.push(`${e.plan.id}: no saved value beside ${f.path}`);
             const src = root.querySelector(`[data-saved-for="${f.path}"]`);
+            // (step F2, D2) a value the rule gave (no tax-free choice stored) is said as assumed, never "from your plan, saved"
+            if (vf.assumed && src) problems.push(`${e.plan.id}: the assumed ${f.path} said as saved`);
+            if (vf.assumed && f.path === 'taxFree' && !root.querySelector('[data-line="pots.tax.free.assumed"]')) problems.push(`${e.plan.id}: no "We assumed" for the tax-free choice`);
             if (src && !/From your plan|As saved in the plan/.test(src.textContent)) problems.push(`${e.plan.id}: no source beside ${f.path}`);
           }
           for (const path of v.notUsed) if (v.fields.find((x) => x.path === path).applies && !root.querySelector(`[data-not-used="${path}"]`)) problems.push(`${e.plan.id}: no "not used" under ${path}`);
@@ -89,7 +92,7 @@ describe('every corpus plan at three dates: the boxes, the sources, the notes, t
           if (!root.querySelector('[data-testid="plan.pots.saves"]')) problems.push(`${e.plan.id}: no "saves … later" line`);
           // the pots at the stop are asked only of someone stopping later
           const s = savedPots(e.plan, { today });
-          if (!!root.querySelector('label[for="plan.pots.stopSipp"]') !== s.later) problems.push(`${e.plan.id}: the stop boxes do not follow the plan`);
+          if (root.querySelector('label[for="plan.pots.stopSipp"]')) problems.push(`${e.plan.id}: a box for the pots at the stop (step F1: worked out, never typed)`);
         }
         for (const d of v.derived) if (!root.querySelector(`[data-line="pots.${d.id}"]`)) problems.push(`${e.plan.id}: derived line ${d.id} not drawn`);
         if (!text.includes(ADVICE_SHORT)) problems.push(`${e.plan.id}: no ADVICE_SHORT`);
@@ -166,13 +169,12 @@ describe('the lumpy plan (12): what the page says, and what typing does', () => 
     expect(asked.root.querySelector('[data-error-for="plan.pots.pension"]').textContent).toBe('Type what is in your pension pots today, for example 250,000.');
     expect(asked.root.querySelector('[data-error-for="plan.pots.charges"]').textContent).toBe('A charge from 0 to 3% a year, please.');
   });
-  it('the saver (10): the pots at the stop are asked, blank, with the planner\'s projection beside them; the typed figure is said back', () => {
+  it('the saver (10): the pots at the stop are worked out, never asked: the middle and its bad and good cases, marked (step F1)', () => {
     const { root, text } = draw(potsState(entries, SAVER.id));
-    expect(root.querySelector('[data-testid="plan.pots.stopSipp"]').value).toBe('');
-    // 7.12.0: worked out from the saver's facts, to the nearest £1,000
-    expect(text).toMatch(/Worked out from your pot and what you pay in, in a middling case: £[\d,]+,000 pension and £[\d,]+,000 in ISAs and savings when you stop\. Type your own above to use it instead\./);
-    const typed = draw(potsState(entries, SAVER.id, { typed: { stopSipp: '300,000' } }));
-    expect(typed.text).toContain('At the day you stop, as you typed it: £300,000 pension and none typed ISAs and savings.');
+    expect(root.querySelector('[data-testid="plan.pots.stopSipp"]')).toBe(null);
+    expect(text).toMatch(/When you stop, worked out from your pot and what you pay in, in a middling case: £[\d,]+,000 pension and £[\d,]+,000 in ISAs and savings\./);
+    expect(text).toMatch(/£[\d,]+,000 at the low end \(one future in ten ends lower\), £[\d,]+,000 in the middle, £[\d,]+,000 at the high end/);
+    for (const f of ['pot.atStop', 'pot.atStop.low', 'pot.atStop.high']) expect(root.querySelector(`[data-fact="${f}"]`), f).not.toBe(null);
   });
   it('the toast after a save, with Undo; "Saving…" while a write is under way; a problem from the write in plain words', () => {
     const line = { id: 'pots', slots: { pension: '£500,000', isa: '£60,000', charges: '0.5' } };

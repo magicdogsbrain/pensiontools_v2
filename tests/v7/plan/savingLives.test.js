@@ -32,7 +32,7 @@ const samPlan = () => keptPlansOf('b', answerB({ ...SAM, spend: { kind: 'amount'
 describe('the saving lives (hand-worked)', () => {
   it('£10,000 with £100 a month for 5 years, flat shares and prices, no charge: £16,000 at the stop in every life', () => {
     const core = savingCoreFrom({ settings: { chargesPct: 0, isaGrowth: 'invested', equityMin: 1, bondMin: 0, cashTarget: 0 }, timing: { mode: 'future', currentAge: 50, shapeAgeNow: 55 },
-      explicit: { potNow: 10000, isaNow: 0, totalMonthly: 100, isaMonthly: 0 }, risePrices: true }).core;
+      explicit: { potNow: 10000, isaNow: 0, totalMonthly: 100, isaMonthly: 0 }, accumulation: { escalationPct: 2.5 } }).core;   // (the price rise: each future's own prices, flat here)
     expect(core.years).toBe(5);
     const flat = () => ({ equity: Array(10).fill(0), inflation: Array(10).fill(0) });
     const at = stopPotsByLife(core, 3, { futureReturns: flat });
@@ -111,10 +111,14 @@ describe('the plan test of a plan still saving runs whole lives (ruling 8)', () 
     }
   });
 
-  it('a pot the person typed at the stop is one pot: every future starts from it', () => {
+  it('a pot stored at the stop is never read: the plan runs its own lives (lead4.md D4, one model)', () => {
+    // a stored 'override' (a figure once typed, or one the full view saved) used to be one pot every future started from;
+    // with one model of the pot at the stop it is not read, so the run is the same run as the plan without it
     const typed = JSON.parse(JSON.stringify(plan));
     typed.stressTool.settings.potAtRetirement = { sipp: 300000, isa: 20000, source: 'override' };
-    const { r } = lastsOf(typed, { today: TODAY, futures: N, histories: false, weighted: false });
-    expect(r.cones.wealth.p90[0]).toBeCloseTo(r.cones.wealth.p10[0], 6);
+    const o = { today: TODAY, futures: N, histories: false, weighted: false };
+    const { r } = lastsOf(typed, o), { r: own } = lastsOf(plan, o);
+    expect(r.cones.wealth).toEqual(own.cones.wealth);
+    expect(r.cones.wealth.p90[0]).toBeGreaterThan(r.cones.wealth.p10[0]);
   });
 });

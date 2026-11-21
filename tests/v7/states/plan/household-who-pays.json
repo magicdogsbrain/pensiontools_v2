@@ -483,7 +483,7 @@
               "shares": 210000,
               "bonds": 110000,
               "cash": 30000,
-              "spWeekly": 198,
+              "spWeekly": 198.4,
               "mixShares": 210000,
               "mixBonds": 110000,
               "mixCash": 30000
@@ -607,9 +607,10 @@
                           "key": "step0",
                           "kind": "money"
                         },
-                        " a year before tax"
+                        " a year before tax",
+                        " (tax year 2026/27)"
                       ],
-                      "text": "From age 65: £24,000 a year before tax"
+                      "text": "From age 65: £24,000 a year before tax (tax year 2026/27)"
                     },
                     "source": {
                       "kind": "saved",
@@ -711,11 +712,11 @@
                       "parts": [
                         {
                           "key": "spWeekly",
-                          "kind": "money"
+                          "kind": "week"
                         },
                         " a week"
                       ],
-                      "text": "£198 a week"
+                      "text": "£198.40 a week"
                     },
                     "source": {
                       "kind": "saved",
@@ -1507,6 +1508,7 @@
         ],
         "current": "household",
         "answerStale": null,
+        "readFault": null,
         "next": {
           "id": "P.reviewAny",
           "slots": {

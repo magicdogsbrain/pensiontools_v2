@@ -3,7 +3,8 @@
  * index.html (the strategy card, the staircase SVG) are injected so this module stays testable.
  */
 import { esc } from './ReleaseNotesView.js';
-import { monthWords as monthYearWords } from '../../answers/plan/dates.js';
+import { spanText, money } from '../../reading/format.js';
+import { monthWords as monthYearWords, dayWords } from '../../answers/plan/dates.js';
 import { isaGrowthAssumptionText } from '../isaGrowthSetting.js';
 import { decisionRunWords, mixWords } from '../../services/StrategyWords.js';
 import { assumedStatePensionWords } from '../plannerWords.js';
@@ -17,8 +18,12 @@ import { STRESS } from '../../v7/copy/stressPanel.js';
 import { PLAN } from '../../v7/copy/plan.js';
 import { lockedShortOf } from '../../services/PlanCommit.js';
 import { STRESS as STRESS_ON } from '../../answers/shared/rules.js';
-import { markFact } from '../../reading/mark.js';
-import { GUARDRAIL_FACTS, TAKEN_FACTS, PLAN_MIX_SLOTS, sentenceHtml } from '../../reading/sentenceMarks.js';
+import { markFact, markWithin } from '../../reading/mark.js';
+import { pensionFromWords } from '../../reading/money.js';
+import { LABELS } from '../../reading/labels.js';
+import { FACT, factId } from '../../reading/facts.js';
+import { GUARDRAIL_FACTS, TAKEN_FACTS, PLAN_MIX_SLOTS, POT_FROM_FIND, sentenceHtml } from '../../reading/sentenceMarks.js';
+import { planYearSentence, stepSentence, ladderSentence, potSentence, WHERE_KEYS, stepKeysOf, STEP_FINDS } from '../../reading/where.js';
 
 const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 const dateGB = (iso) => { const d = new Date(iso); return Number.isFinite(d.getTime()) ? d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : ''; };
@@ -71,7 +76,7 @@ export function planDocumentHeaderHtml(doc) {
   const d = doc || {};
   const asOf = potsAsOfWords(d);
   return '<div class="rpt-header"><h1>Plan document — ' + esc(d.planName || 'My plan') + '</h1>'
-    + '<div class="rpt-sub">Locked ' + markFact('lock.date', esc(dateGB(d.lockedAt))) + (d.createdAt && d.createdAt !== d.lockedAt ? ' · document created ' + esc(dateGB(d.createdAt)) : '') + ' · PensionTools v' + esc(d.appVersion || '') + ', engine ' + esc(d.engineVersion || '') + '</div>'
+    + '<div class="rpt-sub">Locked ' + markFact('lock.date', esc(dayWords(d.lockedAt) || dateGB(d.lockedAt))) + (d.createdAt && d.createdAt !== d.lockedAt ? ' · document created ' + esc(dateGB(d.createdAt)) : '') + ' · PensionTools v' + esc(d.appVersion || '') + ', engine ' + esc(d.engineVersion || '') + '</div>'
     + '<table class="rpt-meta"><tr><td>Strategy</td><td>' + (strategyNameOf(d.strategy) ? markFact('way.name', esc(strategyNameOf(d.strategy))) : '—') + '</td><td>' + (startedAtLock(d) ? 'Plan started' : 'Plan starts') + '</td><td>' + esc(d.decisionRun?.year0 || '—') + (asOf ? ' (locked in plan year ' + asOf.planYear + ')' : '') + '</td></tr>'
     + '<tr><td>Priced on</td><td>' + gbp(d.pots?.sipp) + (d.pots?.isa ? (d.pots.isaPolicy === 'hold' ? ', ISA ' + gbp(d.pots.isa) + ' held aside' : ' + ISA ' + gbp(d.pots.isa)) : '') + (d.pots?.gia ? ' + GIA ' + gbp(d.pots.gia) : '') + '</td><td>First step</td><td>' + (d.steps?.[0] ? gbp(d.steps[0].amount) + '/yr from age ' + esc(String(d.steps[0].fromAge)) : '—') + '</td></tr></table></div>';
 }
@@ -148,8 +153,15 @@ export function planDocumentHtml(doc, r = {}) {
     } catch (e) { /* picture optional */ }
   }
   if (d.steps?.length) {
-    tl += '<div class="section-title" style="font-size:13px;margin-top:10px;">Income steps (today\'s money, gross)</div>'
-      + table(['From age', 'Tax year', 'Take', 'Then'], d.steps.map((s) => [esc(String(s.fromAge)), esc(s.taxYear || ''), gbp(s.amount) + '/yr', esc(s.slope || '')]));
+    // (step F2, lead4.md D6) each step as the one reader of the steps gives it (src/reading/income.js, handed in as `r.steps`):
+    // what is taken a year before tax and what reaches the bank a month, each with its one label; an archived version (no
+    // reading) says the step as it was locked, labelled so
+    const read = Array.isArray(r.steps) && r.steps.length === d.steps.length ? r.steps : null;
+    const B = LABELS[FACT.STEP_BEFORE_TAX], M = LABELS[FACT.STEP_MONTH_AFTER_TAX];
+    tl += '<div class="section-title" style="font-size:13px;margin-top:10px;">Income steps (today\'s money)</div>'
+      + (read
+        ? table(['From age', 'Tax year', B.label + ', ' + B.basis, M.label + ', ' + M.basis, 'Then'], d.steps.map((s, i) => [esc(String(s.fromAge)), esc(s.taxYear || ''), markFact('income.step.' + i + '.beforeTax', money(read[i].beforeTax)), markFact('income.step.' + i + '.monthAfterTax', money(read[i].monthAfterTax)), esc(s.slope || '')]))
+        : table(['From age', 'Tax year', 'As locked, counted as if every pound were taxed', 'Then'], d.steps.map((s) => [esc(String(s.fromAge)), esc(s.taxYear || ''), money(s.amount) + ' a year', esc(s.slope || '')])));
   }
   if (d.timeline?.length) {
     const anyContract = d.timeline.some((x) => x.contract > 0), anyLump = d.timeline.some((x) => x.lumpIn?.length || x.lumpOut?.length), anyLumpUse = d.timeline.some((x) => x.lump > 0);
@@ -213,7 +225,7 @@ export function planDocumentHtml(doc, r = {}) {
   let as = table(['Assumption', 'Value'], [
     [startedAtLock(d) ? 'Plan started' : 'Plan starts', startText],
     ['Duration', esc(String(A.duration || '')) + ' years'],
-    ['State Pension', A.spStartDate ? esc(ukDate(A.spStartDate)) + ', ' + gbp(A.spWeeklyAmount) + '/week (' + gbp(A.spWeeklyAmount * 52) + '/yr)' : 'not entered' + (assumedStatePensionWords(d.strategy?.p) ? ' — ' + esc(assumedStatePensionWords(d.strategy?.p)) : '')],
+    ['State Pension', A.spStartDate ? esc(ukDate(A.spStartDate)) + ', ' + gbp(A.spWeeklyAmount) + '/week (' + gbp(A.spWeeklyAmount * 52) + '/yr)' : (assumedStatePensionWords(d.strategy?.p) ? esc(assumedStatePensionWords(d.strategy?.p)) : 'not entered')],
     ['Tax bands (year 0)', 'PA ' + gbp(A.pa) + ' · basic-rate limit ' + gbp(A.brl) + ' · higher ' + gbp(A.hrl) + '. ' + POTS.modes[A.taxMode === 'frozen' ? 'frozen' : 'inflates']],   // the one sentence both views say (7.12.0)
     ['Decision tool CPI assumption', ((A.cpiDecision || 0) * 100).toFixed(0) + '% a year until each year\'s CPI is entered'],
     // An older document's extra ladder cash beside the cash years is not printed (7.4.2): no run counts it any more, so the
@@ -327,9 +339,9 @@ function staleText(stale) {
   return ' ' + items.join(' and ') + ': ' + todo + ' for a closer reading.';
 }
 const VERDICT = {
-  'below p10': (P) => '<strong>below the plan\'s 1-in-10 bad line</strong> (' + gbp(P.p10) + ')',
-  'p10–p50': (P) => 'between the 1-in-10 bad line (' + gbp(P.p10) + ') and the median (' + gbp(P.p50) + ')',
-  'p50–p90': (P) => 'between the median (' + gbp(P.p50) + ') and the 1-in-10 good line (' + gbp(P.p90) + ')',
+  'below p10': (P) => '<strong>below the plan\'s 1-in-10 bad line</strong> (' + markFact('pot.planLow', money(P.p10)) + ')',
+  'p10–p50': (P) => 'between the 1-in-10 bad line (' + markFact('pot.planLow', money(P.p10)) + ') and the median (' + markFact('pot.planMiddle', money(P.p50)) + ')',
+  'p50–p90': (P) => 'between the median (' + markFact('pot.planMiddle', money(P.p50)) + ') and the 1-in-10 good line (' + gbp(P.p90) + ')',
   'above p90': (P) => 'above the plan\'s 1-in-10 good line (' + gbp(P.p90) + ')'
 };
 /**
@@ -346,7 +358,7 @@ export function whereAmIPotText(pot) {
   const leftOut = P.isaLeftOut ? ' Your ISA is held aside, outside this plan, so neither the pot nor the plan\'s band counts it.' : '';
   if (missing.includes('pension')) return 'No pension pot on record yet to set against the plan\'s band. Enter this month\'s values in the Decision tool, or record it under What you hold, to compare.';
   if (missing.length) {
-    const head = pension ? 'Pension pot ' + markFact('pot.today', gbp(pension.value)) + ' (' + esc(sourceText(pension)) + '). ' : '';
+    const head = pension ? 'Pension pot ' + markFact('pot.today', money(pension.value)) + ' (' + esc(sourceText(pension)) + '). ' : '';
     if (missing.includes('diversifiers')) return head + 'The plan\'s band counts your diversifiers as well, and the monthly record does not keep their value, so the pot is not set against the band. You can list what you hold, diversifiers included, under What you hold, to compare.';
     const names = missing.filter((k) => ADD_NAME[k]);
     // the ISA alone (7.12.0): the simple view's words, the box it can be typed in and the page it can be added on
@@ -354,34 +366,44 @@ export function whereAmIPotText(pot) {
     return head + 'The plan\'s band counts ' + names.map((k) => (k === 'isa' ? 'your ISA' : 'your taxable account')).join(' and ') + ' as well, and there is no figure on record for ' + (names.length > 1 ? 'either' : 'it') + ', so the pot is not set against the band. Add ' + names.map((k) => ADD_NAME[k]).join(' and ') + ' under What you hold, to compare.';
   }
   if (P.actual == null || P.p50 == null) return '';
-  // 7.12.0, as the simple view says it (read.js where.pot): the figure the band is in first, at the prices of the month the
-  // plan's figures are in, and the figure as recorded in brackets with where it came from —
-  // "Your pot: £670,000 at the prices of April 2026 (£753,659, recorded April 2029)"; prices not moved: "Your pot: £695,000
-  // (recorded April 2026)"; more than one account: "(…; pension £A recorded September 2026; ISA £B from What you hold as of
-  // 5 January 2027)". How far prices moved, and on what, follows as a sentence of its own.
-  const moved = movedPrices(P);
-  const from = parts.length > 1 ? parts.map((x) => PART_NAME[x.key] + ' ' + gbp(x.value) + (sourceText(x) ? ' ' + esc(sourceText(x)) : '')).join('; ')
-    : parts[0] && parts[0].source !== 'today' && sourceText(parts[0]) ? esc(sourceText(parts[0])) : '';
-  const month = moved && P.prices.since ? whenText(P.prices.since) : '';
-  let pt = 'Your pot: ' + (moved ? gbp(P.real) + (month ? ' at the prices of ' + month : ' in the prices the plan’s figures are in') + ' (' + gbp(P.actual) + (from ? ', ' + from : ' as recorded') + ')'
-    : gbp(P.actual) + (from ? ' (' + from + ')' : ''));
-  const expects = ' against ' + gbp(P.p50) + ' the plan expects by then';
+  // the pot sentence both views say (src/reading/where.js potSentence; step F5, D17): the figure the band is in first, at the
+  // prices of the month the plan's figures are in, the figure as recorded in brackets with its parts — "Your pot: £670,000 at
+  // the prices of April 2026 (£753,659 as recorded)" — and where and when it was recorded after the band, as the simple
+  // view's source line says it (R4); how far prices moved, and on what, follows as a sentence of its own.
+  const said = potSentence({ pot: P });
+  if (!said) return '';
+  const pt = 'Your pot: ' + sentenceHtml(said.pot, said.pot.figures, { keys: WHERE_KEYS['where.pot'] }, esc);
+  const dated = said.parts ? ' ' + sentenceHtml(said.parts, said.parts.figures, { keys: WHERE_KEYS['where.potParts'] }, esc) : potSourceText(said.source);
+  // the full view says more (R8): any other part the band counts (diversifiers, a taxable account), with where and when
+  const others = parts.filter((x) => x && x.key !== 'pension' && x.key !== 'isa' && x.value != null)
+    .map((x) => ' ' + esc((PART_NAME[x.key] || 'other').replace(/^./, (c) => c.toUpperCase())) + ' ' + gbp(x.value) + (sourceText(x) ? ', ' + esc(sourceText(x)) : '') + '.').join('');
+  const mid = markFact('pot.planMiddle', money(P.p50));   // (step F2) the plan's middle by now, marked as the simple view marks it (read.js where.potMid)
+  const expects = ' against ' + mid + ' the plan expects by then';
   const verdict = P.verdict || (P.band ? 'band' : null);
   let s;
   if (verdict === 'gilts-held-to-pay') {
     // The band holds the gilts as held to repay (at cost in a document locked before 6.34.0), the record at their market
     // value: no verdict (RUNGS_HELD_TO_PAY).
-    s = pt + expects + (P.flat ? '; the plan\'s path is bought by contract' : '') + '. The plan counts its gilts ' + (P.atCost ? 'at what they cost' : 'as held until they repay') + ', and your figure is at today\'s market prices, which move with interest rates, so the gap between the two is not read as ahead or behind: the rungs still pay what they were bought to pay.';
+    // (step F2) a path bought by contract: the simple view says no middle line for it (read.js where.potMid), so the figure
+    // here is not the marked fact — joining the two is the ladder's step (F6)
+    s = pt + ' against ' + gbp(P.p50) + ' the plan expects by then' + (P.flat ? '; the plan\'s path is bought by contract' : '') + '. The plan counts its gilts ' + (P.atCost ? 'at what they cost' : 'as held until they repay') + ', and your figure is at today\'s market prices, which move with interest rates, so the gap between the two is not read as ahead or behind: the rungs still pay what they were bought to pay.';
   } else if (verdict === 'start') {
     s = P.planYear < 0
-      ? pt + ' against ' + gbp(P.p50) + ' the plan starts from; the band opens once the plan has started.'
-      : pt + ' at the start of the plan, priced on ' + gbp(P.p50) + '; the band opens as the year goes on.';
+      ? pt + ' against ' + mid + ' the plan starts from; the band opens once the plan has started.'
+      : pt + ' at the start of the plan, priced on ' + mid + '; the band opens as the year goes on.';
   } else if (verdict === 'not-open') {
     s = pt + expects + '; the plan\'s band has not opened yet.';
   } else if (verdict === 'band' && VERDICT[P.band]) {
     s = pt + ' — ' + VERDICT[P.band](P) + '.';
   } else return '';
-  return s + pricesText(P) + leftOut + staleText(P.stale);
+  return s + dated + others + pricesText(P) + leftOut + staleText(P.stale);
+}
+/** Where and when the pot was recorded, in the simple view's source words (PLAN.page.source; lead4.md R4). */
+function potSourceText(src) {
+  const W = PLAN.page.source;
+  const at = src && src.at ? (String(src.at).length > 7 ? dayWords(src.at) : monthYearWords(src.at)) : '';
+  const t = src && src.kind === 'hold' ? (at ? fillSlots(W.hold, { date: at }) : W.holdUndated) : (at ? fillSlots(W.record, { date: at }) : W.recordUndated);
+  return ' ' + esc(t) + '.';
 }
 
 const SAVER_V3_BAND = {
@@ -401,18 +423,18 @@ const monthText = (k) => whenText(String(k || '').slice(0, 7));
  */
 const PATH_MISSING = 'This plan was locked before it had a pension figure to draw a saving path from.';
 const PATH_NEW = 'A new version of the plan document adds the path.';
-const PATH_FROM = { holdings: 'from what you hold', record: 'from your last record', checkIn: 'from your check-in', accumulation: 'from your last record', plan: 'from your plan' };
 export function saverReadingText(s) {
   if (!s) return '';
   const src = s.recordedAt ? (s.actualSource === 'holdings' ? 'holdings as of ' : 'recorded ') + esc(ukDate(s.recordedAt)) : s.actualSource === 'holdings' ? 'from what you hold' : '';
   const from = src ? ' (' + src + ')' : '';
   // 7.12.0: what happened, the pension today with where it is from, and how the path comes — never "record what you hold"
-  if (s.pathMissing) return PATH_MISSING + (s.actual != null ? ' Your pension today is ' + gbp(s.actual) + ' (' + (PATH_FROM[s.actualSource] || PATH_FROM.plan) + ').' : '') + ' ' + PATH_NEW;
+  // where the pension is from, dated, in the one wording (src/reading/money.js pensionFromWords; lead4.md R4), the month marked
+  if (s.pathMissing) return PATH_MISSING + (s.actual != null ? ' Your pension today is ' + markFact('pot.today', money(s.actual)) + ' (' + markWithin(esc(pensionFromWords({ from: s.actualSource, asOf: s.recordedAt })), [[POT_FROM_FIND, 'pot.today.asOf']]) + ').' : '') + ' ' + PATH_NEW;
   const missing = Array.isArray(s.missing) ? s.missing : [];
   if (missing.includes('pension') || (s.actual == null && !missing.length)) return s.expected != null ? 'The locked path expects about ' + gbp(s.expected) + (s.version === 3 ? (s.isaCounted ? ' in your pension and ISA now, in pounds of the day' : ' in the pension pot now, in pounds of the day') : ' in the pension pot now') + '. Record this month\'s pot on the Accumulation planner to compare.' : '';
   if (missing.includes('isa')) return 'Pension pot ' + gbp(s.pension) + from + '. The locked path counts your ISA as well, and there is no ISA figure with it, so the pot is not set against the path. Add your ISA to the monthly record on the Accumulation tab to compare.';
   if (s.version === 3) {
-    const what = s.isaCounted ? 'Pension and ISA ' + gbp(s.actual) + ' (' + (src ? src + ': ' : '') + 'pension ' + gbp(s.pension) + ', ISA ' + gbp(s.isa) + ')' : 'Pension pot ' + markFact('pot.today', gbp(s.actual)) + from;
+    const what = s.isaCounted ? 'Pension and ISA ' + markFact('pot.againstPlan', money(s.actual)) + ' (' + (src ? src + ': ' : '') + 'pension ' + markFact('pot.today', money(s.pension)) + ', ISA ' + markFact('isa.today', money(s.isa)) + ')' : 'Pension pot ' + markFact('pot.today', money(s.actual)) + from;
     if (s.band === 'start') return what + ', in pounds of the day, against ' + gbp(s.expected) + ' the locked path starts from; its lines open as the months go on.';
     const band = SAVER_V3_BAND[s.band];
     return what + ', in pounds of the day, against ' + gbp(s.expected) + ', the middle of the locked path for then' + (band ? ' — ' + band(s) : '') + '.';
@@ -421,7 +443,7 @@ export function saverReadingText(s) {
   const prices = pr && pr.factor && Math.abs(pr.factor - 1) >= 0.0005 && s.compared != null
     ? ', which is ' + gbp(s.compared) + ' in the prices of ' + esc(monthText(pr.start)) + ', when this path was drawn (prices assumed to rise ' + ((pr.cpi || 0.025) * 100).toFixed(1) + '% a year, as the path does)'
     : '';
-  return 'Pension pot ' + markFact('pot.today', gbp(s.actual)) + from + prices + ', against ' + gbp(s.expected) + ' on the locked path for then — <strong>' + esc(s.band || '') + '</strong>' + (s.low != null && s.high != null ? ' (cautious ' + gbp(s.low) + ', strong ' + gbp(s.high) + ')' : '') + '. This path was drawn before ISAs were counted: it follows your pension only.';
+  return 'Pension pot ' + markFact('pot.today', money(s.actual)) + from + prices + ', against ' + gbp(s.expected) + ' on the locked path for then — <strong>' + esc(s.band || '') + '</strong>' + (s.low != null && s.high != null ? ' (cautious ' + gbp(s.low) + ', strong ' + gbp(s.high) + ')' : '') + '. This path was drawn before ISAs were counted: it follows your pension only.';
 }
 
 /**
@@ -449,15 +471,19 @@ export function strategyNameOf(st) {
   return st.id === 'bridge-and-engine' ? 'Gilts to State Pension, then shares' : (st.name || st.id || '');
 }
 
-/** The "where you are" strip. */
-export function whereAmIHtml(w, g = null) {
+/**
+ * The "where you are" strip. `opts` (step F2, lead4.md D6, D7): `steps`, the reading's income steps (src/reading/income.js
+ * incomeStepsOf: each step a year before tax as it is taken), and `year`, this tax year's lines already drawn
+ * (src/ui/thisYearHtml.js: `plan` the year as set up, `changed` the line when the plan's figure differs).
+ */
+export function whereAmIHtml(w, g = null, { steps = null, year = null } = {}) {
   if (!w) return '';
   const parts = [];
   if (w.saving && w.beforeStart) {
     // Still saving for a plan locked in advance (6.7.0; read like with like from 6.22.0 — saverReadingText)
     const s = w.saving;
     // (7.12.0) the header chip's count, to the month work stops, and both facts: the stop and the plan's first tax year
-    const toGo = '<strong>' + markFact('yearsToGo', s.monthsToGo >= 24 ? Math.round(s.monthsToGo / 12) + ' years' : s.monthsToGo + ' month' + (s.monthsToGo === 1 ? '' : 's')) + ' to go</strong>';
+    const toGo = '<strong>' + markFact('yearsToGo', spanText(s.monthsToGo)) + ' to go</strong>';
     const stop = s.stopMonth ? monthYearWords(s.stopMonth) : '';
     parts.push(stop ? toGo + ': you stop work in ' + markFact('stop.month', esc(stop)) + '; the plan’s first tax year is ' + esc(w.planStart) + '.' : toGo + ' — the plan starts in ' + esc(w.planStart) + '.');
     const text = saverReadingText(s);
@@ -478,19 +504,25 @@ export function whereAmIHtml(w, g = null) {
     if (income) parts.push(income);
     return '<div class="alert alert-info pd-where"><div class="section-title" style="font-size:13px;">Where you are — ' + esc(dateGB(w.today)) + '</div><p style="margin:4px 0 0;">' + parts.join(' ') + '</p></div>';
   }
-  else parts.push('<strong>Plan year ' + w.planYear + ' of ' + w.planYears + '</strong> — tax year ' + esc(w.taxYear) + ', age ' + w.age + '.');
-  // (7.12.0) the step is in the plan's own prices, named, so it is not read as this tax year's figure (the set-up's, in this
-  // year's prices, on Month by month and Tax Years)
-  const stepPrices = w.pot && w.pot.prices && w.pot.prices.since ? ' at ' + whenText(w.pot.prices.since) + ' prices' : '';
-  if (w.step) parts.push('Income step ' + w.step.index + ' of ' + w.step.of + ': ' + gbp(w.step.amount) + '/yr gross' + stepPrices + (w.step.next ? '; next step ' + gbp(w.step.next.amount) + ' from age ' + w.step.next.fromAge + ' (' + esc(w.step.next.taxYear || '') + ', ' + w.step.next.yearsAway + ' year' + (w.step.next.yearsAway === 1 ? '' : 's') + ' away)' : '; no further steps') + '.');
+  else {
+    // the plan year and the income step: the one sentence builder both views draw (src/reading/where.js; step F5, D17, R8),
+    // the step a year before tax as it is taken (step F2, D6), in the plan's own prices
+    const py = planYearSentence(w);
+    if (py) parts.push('<strong>' + sentenceHtml(py, py.figures, { keys: WHERE_KEYS[py.id] }, esc) + '</strong>');
+  }
+  const st = stepSentence(w, steps);
+  if (st) parts.push(sentenceHtml(st, st.figures, { keys: stepKeysOf(st), finds: STEP_FINDS }, esc));
+  if (year && year.plan) parts.push(year.plan);
   const income = incomeThisYearText(w.incomeThisYear);
   if (income) parts.push(income);
   const potText = whereAmIPotText(w.pot);
   if (potText) parts.push(potText);
-  if (w.ladder && w.ladder.instruction) parts.push(esc(w.ladder.instruction));
+  // a gilt ladder's month: the one sentence both views say, the month's figure once (step F5, src/reading/where.js)
+  const lad = ladderSentence(w, { yearSaid: !!(year && year.plan) });
+  if (lad) parts.push(sentenceHtml(lad, lad.figures, { keys: WHERE_KEYS[lad.id] }, esc));
   // the guardrail reading (7.9.0; services/PlanDocument.js guardrailOf, passed in by the page): the words V7 says
   const guard = g && STRESS_ON.guardrail && STRESS.guardrail[g.state] ? '<p class="hint" id="planDocGuardrail" data-guardrail="' + esc(g.state) + '" style="margin:6px 0 0;">' + fillSlotsMarked(STRESS.guardrail[g.state], g.slots, GUARDRAIL_FACTS) + esc(g.cutsOn ? ' ' + STRESS.guardrail.cuts : '') + '</p>' : '';
-  return '<div class="alert alert-info pd-where"><div class="section-title" style="font-size:13px;">Where you are — ' + esc(dateGB(w.today)) + '</div><p style="margin:4px 0 0;">' + parts.join(' ') + '</p>' + guard + '</div>';
+  return '<div class="alert alert-info pd-where"><div class="section-title" style="font-size:13px;">Where you are — ' + esc(dateGB(w.today)) + '</div><p style="margin:4px 0 0;">' + parts.join(' ') + '</p>' + guard + (year && year.changed ? year.changed : '') + '</div>';
 }
 /** The same, escaped, with the slots that hold a figure of the fact register marked (lead4.md G1). */
 const fillSlotsMarked = (t, slots, marks) => String(t).split(/(\{\w+\})/).map((piece) => {

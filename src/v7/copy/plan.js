@@ -310,16 +310,21 @@ export const PLAN = {
     'where.taken': 'Taken before tax in {year}',
     /** The year's set-up, once it is set up (7.12.0, YearPlan.yearPlanOf): the sentence carries its own words. */
     'where.yearPlan': '',
-    'where.step': 'Step {n} of {of} of your plan',
+    /** The plan's own figure for the year differs from the year as set up (step F2, lead4.md D7): both, with the set-up's date. */
+    'where.yearChanged': '',
+    /** The plan year and the income step (step F5, src/reading/where.js, both views): the sentences carry their own words. */
+    'where.planYear': '',
+    'where.step': '',
     'where.pot': 'Your pot',
     'where.potMid': 'The plan’s middle line for now',
+    /** The plan's 1-in-10 bad line for now, said where the full view says it: the pot below it or between it and the middle. */
+    'where.potLow': 'The plan’s 1-in-10 bad line for now',
     /** The pot's parts with their dates, when they come from different months (7.12.0): the sentence carries its own words. */
     'where.potParts': '',
     /** The band counts the ISA and no figure for it exists anywhere (7.12.0). */
     'where.potNoIsa': '',
-    'where.ladderMonthly': 'Your plan pays',
-    /** A ladder not paying yet (year 0 starts in the month work stops): the month it starts, and the month's figure then. */
-    'where.ladderStarts': 'Your ladder pays from',
+    /** A gilt ladder's month (step F5, src/reading/where.js ladderSentence, both views): the sentence carries its own words. */
+    'where.ladder': '',
     'says.pays': '',
     'says.sp': '',
     'says.spAssumed': '',
@@ -336,6 +341,7 @@ export const PLAN = {
     'about.firstYear': 'First tax year: {year}.',
     'about.runs': 'The plan runs',
     'pays.step': '',
+    'pays.notSet': 'No income set yet: say what you want to spend.',
     'pots.pension': 'Pension pot',
     'pots.split': 'Split',
     'pots.isa': 'ISA',
@@ -391,17 +397,17 @@ export const PLAN = {
   },
   /** What a lump sum is (the planner's wrapper), in words. */
   wrappers: { cash: 'a cash lump sum', pension: 'an inherited pension', isa: 'an inherited ISA' },
-  /** The strategies in plain names. The one with an ampersand is spelt as the planner spells it. */
+  /** The strategies, by the one name each has in both views (the planner's, stressTest.js STRATEGY_NAMES; WAY.names). */
   strategies: {
-    'pots-and-valves': 'Pots and valves',
+    'pots-and-valves': 'Pots & Valves',
     'buckets-in-order': 'Buckets in order',
     'bridge-and-engine': 'Gilts to State Pension, then shares',
-    'ladder-and-ratchet': 'Ladder and ratchet',
-    'floor-and-flex': 'Floor and flex',
+    'ladder-and-ratchet': 'Ladder & Ratchet',
+    'floor-and-flex': 'Floor & Flex',
     'floor-the-schedule': 'Floor the schedule',
-    'floor-to-age': 'Floor to an age',
-    'full-il-gilt': 'Full gilt ladder',
-    'gilt-rotation': 'Gilt ladder with a rotation'
+    'floor-to-age': 'Floor to an age, then decide',
+    'full-il-gilt': 'Full index-linked gilt ladder',
+    'gilt-rotation': 'Gilt ladder + rotation'
   },
   /** The strategies' dials, by key. A key not here is shown as it is named. */
   dials: {
@@ -525,6 +531,7 @@ export const PLAN = {
     startReview: 'Start the review',
     seeChange: 'See what you can change',
     reviewNow: 'Review now',
+    setUpAgain: 'Set this year up again',
     aboutWhen: 'About you and when'
   },
 

@@ -24,8 +24,7 @@ import { deriveTiming } from './PlanTiming.js';
 import { accumulationAgesOf } from './LifeStage.js';
 import { contributionBreakdown } from './AccumulationEngine.js';
 import { payInShareOf } from './SaverPayIn.js';
-import { pensionTodayOf } from './PensionToday.js';
-import { holdingsLines, normaliseWrapper, numOrNull } from './HoldingsRecord.js';
+import { pensionTodayOf, isaTodayOf } from './PensionToday.js';
 
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 const num = (v) => (v == null || v === '' || !Number.isFinite(+v) ? null : +v);
@@ -36,12 +35,6 @@ const PAY_IN_CEILING = 100_000;
 
 const lockedOf = (plan) => !!(plan && plan.decisionTool && isObj(plan.decisionTool.settings) && plan.decisionTool.settings.locked);
 const accOf = (plan) => (plan && plan.accumulationTool && isObj(plan.accumulationTool.settings) ? plan.accumulationTool.settings : {});
-
-/** The ISA lines under What you hold, summed; null when there are none. */
-export function isaFromHoldings(lines) {
-  const isa = (lines || []).filter((l) => l && normaliseWrapper(l.wrapper) === 'ISA' && numOrNull(l.value) != null);
-  return isa.length ? isa.reduce((t, l) => t + numOrNull(l.value), 0) : null;
-}
 
 /**
  * What goes in, from the saving settings: B's pay-in (a share while it agrees with the pounds, else a split or one figure,
@@ -85,9 +78,7 @@ export function saverFacts(plan, settings, { now = new Date(), checkIn = null } 
   const saving = age != null && stopAge > age && !(t && t.mode === 'retired');
 
   const today = pensionTodayOf(plan, { now, checkIn, settings: ss });
-  const lines = holdingsLines(plan && plan.holdings);
-  let isa = today.isa;
-  if (isa == null) isa = isaFromHoldings(lines) != null ? isaFromHoldings(lines) : Math.max(0, num(ss.isaBalance) || 0);
+  const isa = isaTodayOf(plan, { now, checkIn, settings: ss, today }).value;   // the one ISA-today rule (lead4.md D3)
 
   const payIn = payInOf(acc);
   return {

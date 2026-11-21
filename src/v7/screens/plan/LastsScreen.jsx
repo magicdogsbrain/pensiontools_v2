@@ -24,6 +24,7 @@ import { LEVELS_WORDS } from '../../copy/common.js';
 import { StressPanel, STRESS_PROBLEMS } from './StressPanel.jsx';
 import { slotFactsOf, lastsRowFindsOf, FIXED_FINDS } from '../../components/facts.js';
 import { factProps } from '../../../reading/mark.js';
+import { TABLES } from '../../../reading/facts.js';
 import { fillMarked, markIn, CHANCE_RE } from '../../components/PlanFigures.jsx';
 
 const LEVEL_IDS = ['careful', 'balanced', 'bold'];
@@ -45,19 +46,19 @@ function Head({ view }) {
 }
 
 /**
- * "How careful?" on a plan (7.8.0): the three levels, each label leading with what it asks for; a press judges this page at
- * that level (ui.level, page memory only — never saved: a plan's level is its kept answer's until 7.9.0 saves one). Inside
- * the band, beside its fixed-age line (the render rule).
+ * "How careful?" on a plan (7.8.0): the three levels, each label leading with what it asks for; a press saves the plan's
+ * level (lead4.md R5: one write, phases.level through plan/phaseSet, the same write as the full view's "How careful?"), and
+ * every page of both views judges the plan at it. Inside the band, beside its fixed-age line (the render rule).
  */
-export function PlanLevelStrip({ v, dispatch }) {
-  if (!dispatch || !v || !v.level || !v.weighted) return null;
+export function PlanLevelStrip({ v, dispatch, planId }) {
+  if (!dispatch || !planId || !v || !v.level || !v.weighted) return null;
   return (
     <div class="level-strip" role="group" aria-labelledby="plan-level-title" data-testid="plan.lasts.level" data-level={v.level} data-weighted="1">
       <span class="level-label" id="plan-level-title">{LEVELS_WORDS.label}</span>
       <div class="level-choices">
         {LEVEL_IDS.map((k) => (
           <Button key={k} testid={`plan.lasts.level.${k}`} kind="choice" aria-pressed={v.level === k ? 'true' : 'false'}
-            onClick={() => dispatch({ type: 'ui/level', level: k })} {...keepFocus}>{LEVELS_WORDS.options[k]}</Button>
+            onClick={() => (v.level === k ? null : dispatch({ type: 'plan/phaseSet', planId, part: 'level', value: k }))} {...keepFocus}>{LEVELS_WORDS.options[k]}</Button>
         ))}
       </div>
       {/* (the plan's figures stay as they are: a level changes only what counts as on course; with no weighted figure, on the count) */}
@@ -67,7 +68,7 @@ export function PlanLevelStrip({ v, dispatch }) {
 }
 
 /** The band of one result (verdictOf): the word, the bar, the headline, the rows. `stale`: an older run's, greyed. */
-function Band({ v, stale = false, testid, dispatch = null }) {
+function Band({ v, stale = false, testid, dispatch = null, planId = null }) {
   if (!v) return null;
   if (!v.ok) return <p class="notice" role="status" data-testid={testid} data-ok="0">{fill(LASTS.verdict[v.id] || '', v.slots)}</p>;
   const f = v.figures || {};
@@ -77,11 +78,11 @@ function Band({ v, stale = false, testid, dispatch = null }) {
       data-cut-n={f.cutN == null ? undefined : f.cutN} data-cut-per-year={f.cutPerYear == null ? undefined : f.cutPerYear} data-cut-years={f.cutYears == null ? undefined : f.cutYears}>
       <p class={v.record ? 'figure-sub lasts-record' : 'figure'} data-testid={testid + '.headline'} {...(v.id === 'lasts.headlineW' ? { 'data-weighted': '1' } : v.id === 'lasts.headlineFixed' ? { 'data-fixed': 'age' } : {})}>{v.record ? fill(LASTS.verdict[v.id], v.slots) : markIn(fill(LASTS.verdict[v.id], v.slots), v.id === 'lasts.headlineFixed' ? FIXED_FINDS : [[CHANCE_RE, 'lasts.chance']])}</p>
       {!v.record && <p class="lasts-bar">{v.level && v.weighted && <span class="lasts-level" data-testid={testid + '.level'}>{fillMarked(LASTS.verdict.atLevel, { level: LEVELS_WORDS.names[v.level] }, { level: 'lasts.level' })} </span>}<span class={`verdict-word is-${v.verdict}`} data-verdict={v.verdict} {...factProps('lasts.verdict')}>{LASTS.verdict.word[v.verdict]}</span> <OutOfTenBar source={v} k="share" of={v.weighted ? 20 : 10} /></p>}
-      <p class="figure-sub" data-testid={testid + '.sub'} {...(v.sub.id === 'lasts.subFixed' || v.sub.id.startsWith('lasts.subFromStop') ? { 'data-fixed': 'age' } : {})}{...(v.chanceFrom === 'saving' ? { 'data-from-stop': '1' } : {})}>{v.record ? fill(LASTS.verdict[v.sub.id], v.sub.slots) : markIn(fill(LASTS.verdict[v.sub.id], v.sub.slots), [[/\bto (?:age )?(\d+)\b/, 'plan.endAge'], ...(v.sub.id === 'lasts.subFixed' ? FIXED_FINDS.slice(0, 1) : [])])}</p>
+      <p class="figure-sub" data-testid={testid + '.sub'} {...(v.sub.id === 'lasts.subFixed' || v.sub.id.startsWith('lasts.subFromStop') ? { 'data-fixed': 'age' } : {})}{...(v.chanceFrom === 'saving' ? { 'data-from-stop': '1' } : {})}>{v.record ? fill(LASTS.verdict[v.sub.id], v.sub.slots) : markIn(fill(LASTS.verdict[v.sub.id], v.sub.slots), [[/\bto (?:age )?(\d+)\b/, 'plan.endAge'], [/starts from (£[\d,]+) in your pension/, 'pot.atStop'], ...(v.sub.id === 'lasts.subFixed' ? FIXED_FINDS.slice(0, 1) : [])])}</p>
       <ul class="plan-lines">
         {v.rows.map((r, i) => <li key={i} class="plan-line" data-line={'lasts.' + r.id} {...(r.id === 'fixedW' ? { 'data-fixed': 'age' } : {})}>{v.record ? fill(LASTS.rows[r.id] || '', r.slots) : lastsRowFindsOf(r.id) ? markIn(fill(LASTS.rows[r.id], r.slots), lastsRowFindsOf(r.id)) : fillMarked(LASTS.rows[r.id] || '', r.slots, slotFactsOf('lasts.' + r.id, r.slots))}</li>)}
       </ul>
-      {!stale && !v.record && <PlanLevelStrip v={v} dispatch={dispatch} />}
+      {!stale && !v.record && <PlanLevelStrip v={v} dispatch={dispatch} planId={planId} />}
     </div>
   );
 }
@@ -132,41 +133,43 @@ function History({ v }) {
   );
 }
 
-/** The years one by one and the pots' floors (test.schedule, test.glidepath): the planner's Drawdown and Glidepath pages, closed until opened. */
+/**
+ * The years one by one and the pots' floors (test.schedule, test.glidepath): the planner's Drawdown and Glidepath pages, closed
+ * until opened. The rows, the columns, their labels and every cell are the reading's (src/reading/yearTable.js, through
+ * lasts.js extrasView), marked cell by cell (lead4.md G1) as the full view's pages mark them.
+ */
+const PRICES = Object.freeze({ prices: 'years.prices' });
 function Years({ v, L, dispatch }) {
   const Y = LASTS.years;
   const x = v && v.ok ? v.extras : null;
-  if (!x || (!x.schedule && !x.own)) return null;
+  if (!x || !x.table) return null;
   const toggle = (id) => dispatch({ type: 'ui/toggle', id });
-  const rows = x.schedule || x.own;
-  // the taxable account's column only when it pays a year the pension is closed (7.4.1, DrawdownService closedYear)
-  const gia = x.schedule && x.schedule.some((r) => r.gia) ? ['gia'] : [];
-  const cols = x.schedule ? ['year', 'age', 'pension', 'state', 'tax', 'isa', ...gia, 'spendable', 'isaLeft'] : ['year', 'age', 'incomeMid', 'incomeBad', 'leftMid'];
-  const g = x.glidepath;
-  const gcols = g ? ['year', 'age', 'shares', 'bonds', 'cash', ...(g.diversifiers ? ['diversifiers'] : []), ...(g.reserve ? ['reserve'] : []), 'sharesPct', 'isa', 'total'] : [];
+  const t = x.table;
+  const g = x.floors;
+  const cells = (rows, cols) => rows.map((r) => <tr key={r.key} data-year={r.key} data-age={r.age} data-total={r.raw.total} data-shares-pct={r.raw.sharesPct}>{cols.map((c, i) => (i === 0 ? <th key={c.id} scope="row" data-row={r.key} data-col={c.id}>{r.cells[c.id]}</th> : <td key={c.id} data-row={r.key} data-col={c.id}>{r.cells[c.id]}</td>))}</tr>);
   return (
-    <section class="plan-section lasts-years" data-section="years" data-testid="plan.lasts.years" data-kind={x.schedule ? 'schedule' : 'own'} data-years={rows.length}>
+    <section class="plan-section lasts-years" data-section="years" data-testid="plan.lasts.years" data-kind={t.kind} data-years={t.rows.length}>
       <h3>{Y.title}</h3>
-      <p class="note">{x.schedule ? fill(Y.lead, { prices: x.prices }) : Y.leadOwn}</p>
+      <p class="note">{t.kind === 'schedule' ? fillMarked(Y.lead, { prices: x.prices }, PRICES) : Y.leadOwn}</p>
       <div class="actions-row"><Button testid="plan.lasts.schedule" kind="quiet" aria-expanded={L.scheduleOpen ? 'true' : 'false'} aria-controls={L.scheduleOpen ? 'plan.lasts.schedule.table' : undefined} onClick={() => toggle('lastsSchedule')} {...keepFocus}>{L.scheduleOpen ? Y.hide : Y.show}</Button></div>
       {L.scheduleOpen && (
         <div class="table-wrap">
-          <table class="way-table lasts-table" id="plan.lasts.schedule.table" data-testid="plan.lasts.schedule.table" data-fact-table="years">
-            <thead><tr>{cols.map((c) => <th key={c} scope="col">{Y.columns[c]}</th>)}</tr></thead>
-            <tbody>{rows.map((r) => <tr key={r.year} data-year={r.year} data-age={r.age}>{cols.map((c, i) => (i === 0 ? <th key={c} scope="row" data-row={r.year} data-col={c}>{r[c]}</th> : <td key={c} data-row={r.year} data-col={c}>{r[c]}</td>))}</tr>)}</tbody>
+          <table class="way-table lasts-table" id="plan.lasts.schedule.table" data-testid="plan.lasts.schedule.table" data-fact-table={TABLES.YEARS}>
+            <thead><tr>{t.cols.map((c) => <th key={c.id} scope="col">{c.label}</th>)}</tr></thead>
+            <tbody>{cells(t.rows, t.cols)}</tbody>
           </table>
         </div>
       )}
       {g && (
         <>
           <h4>{Y.floorsTitle}</h4>
-          <p class="note">{fill(g.tent ? Y.floorsLeadTent : Y.floorsLead, { prices: x.prices })}{g.diversifiers ? Y.floorsDiversifiers : ''}{g.reserve ? Y.floorsReserve : ''}</p>
+          <p class="note">{fillMarked(g.tent ? Y.floorsLeadTent : Y.floorsLead, { prices: x.prices }, PRICES)}{g.diversifiers ? Y.floorsDiversifiers : ''}{g.reserve ? Y.floorsReserve : ''}</p>
           <div class="actions-row"><Button testid="plan.lasts.glidepath" kind="quiet" aria-expanded={L.glidepathOpen ? 'true' : 'false'} aria-controls={L.glidepathOpen ? 'plan.lasts.glidepath.table' : undefined} onClick={() => toggle('lastsGlidepath')} {...keepFocus}>{L.glidepathOpen ? Y.floorsHide : Y.floorsShow}</Button></div>
           {L.glidepathOpen && (
             <div class="table-wrap">
-              <table class="way-table lasts-table" id="plan.lasts.glidepath.table" data-testid="plan.lasts.glidepath.table" data-tent={g.tent ? '1' : '0'}>
-                <thead><tr>{gcols.map((c) => <th key={c} scope="col">{Y.floorsColumns[c]}</th>)}</tr></thead>
-                <tbody>{g.rows.map((r) => <tr key={r.year} data-year={r.year} data-total={r.raw.total} data-shares-pct={r.raw.sharesPct}>{gcols.map((c, i) => (i === 0 ? <th key={c} scope="row">{r[c]}</th> : <td key={c}>{c === 'sharesPct' ? r[c] + '%' : r[c]}</td>))}</tr>)}</tbody>
+              <table class="way-table lasts-table" id="plan.lasts.glidepath.table" data-testid="plan.lasts.glidepath.table" data-tent={g.tent ? '1' : '0'} data-fact-table={TABLES.FLOORS}>
+                <thead><tr>{g.cols.map((c) => <th key={c.id} scope="col">{c.label}</th>)}</tr></thead>
+                <tbody>{cells(g.rows, g.cols)}</tbody>
               </table>
             </div>
           )}
@@ -219,7 +222,7 @@ function Answer({ L, onChange, dispatch, view }) {
       )}
       {v && !run.fresh && <Band v={v} stale testid="plan.lasts.result" />}
       <AtLeast busy={working} working={null}>
-        {v && run.fresh && <Band v={v} stale={false} testid="plan.lasts.result" dispatch={dispatch} />}
+        {v && run.fresh && <Band v={v} stale={false} testid="plan.lasts.result" dispatch={dispatch} planId={L.id} />}
         {v && run.fresh && v.ok && <p class="plan-source" data-testid="plan.lasts.ran">{sourceLine}</p>}
         {v && run.fresh && v.ok && v.chanceFrom === 'saving' && <p class="note" data-testid="plan.lasts.chanceFrom">{LASTS.chanceFromSaving}</p>}
         {v && run.fresh && L.note && <p class="notice" role="status" data-testid="plan.lasts.earlierTest">{L.note}</p>}
@@ -435,6 +438,7 @@ const toastText = (toast) => {
   if (toast.kind === 'undone') return LASTS.toast.undone;
   if (toast.kind === 'unchanged') return LASTS.toast.unchanged;
   if (!toast.line) return LASTS.toast.savedShort;
+  if (toast.line.id === 'phase.level') return fill(LASTS.toast.level, { level: LEVELS_WORDS.names[toast.line.slots.value] || toast.line.slots.value });
   if (toast.line.id === 'try') return fill(LASTS.try.toast.try, { n: toast.line.slots.n, s: toast.line.slots.n === '1' ? '' : 's' });
   return fill(LASTS.toast[toast.line.id] || LASTS.toast.savedShort, toast.line.slots);
 };

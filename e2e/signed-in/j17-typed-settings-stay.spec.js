@@ -78,7 +78,8 @@ async function typeIn(page, locator, text) {
   await locator.fill(text);
   await page.keyboard.press('Tab');
 }
-const firstStepAmount = (page) => page.locator('#incomeStepsEditor input[type=number][step="1000"]').first();
+// (step F2) the step's box is a month after tax, as the simple view asks it; the plan stores the year before tax that pays it
+const firstStepAmount = (page) => page.locator('#incomeStepsEditor input[data-step-amount]').first();
 const saved = (page) => expect(page.getByTestId('settings.saveState')).toHaveText('Saved', { timeout: 30_000 });
 
 test('figures typed on Settings stay after Tab and a reload, after another sub-tab, and after another plan', async ({ page }) => {
@@ -93,16 +94,16 @@ test('figures typed on Settings stay after Tab and a reload, after another sub-t
 
   // type, press Tab, reload: the figures are there (the walker read the boxes; we read them and the store)
   await typeIn(page, page.locator('#ssPot'), '300000');
-  await typeIn(page, firstStepAmount(page), '28000');
+  await typeIn(page, firstStepAmount(page), '2100');
   await saved(page);
   await page.reload();
   await expect(page.locator('#mainApp:not(.hidden)')).toBeVisible({ timeout: 30_000 });
   await openSettings(page);
   await expect(page.locator('#ssPot')).toHaveValue('300000');
-  await expect(firstStepAmount(page)).toHaveValue('28000');
+  await expect(firstStepAmount(page)).toHaveValue('2100');
   let s = (await plansOf(uid))[0].stressTool.settings;
   expect(s.equityMin + s.bondMin + s.cashTarget).toBe(300000);
-  expect(s.incomeSteps.map((x) => x.amount)).toEqual([28000]);
+  expect(s.incomeSteps.map((x) => x.amount)).toEqual([28358]);   // £2,100 a month after tax on the plan's own bands
 
   // type, switch sub-tab and back: there, and "Will it last?" starts from it
   await typeIn(page, page.locator('#ssIsaBalance'), '40000');

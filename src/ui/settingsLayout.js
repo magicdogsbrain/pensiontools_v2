@@ -3,7 +3,7 @@
  *
  * The page opens on what everyone has: the plan's start and your age today, the way of drawing and what you want a year
  * (the income strategy block), then your pot (the allocation), then the State Pension and other income. Everything else —
- * how the tax-free part is taken (UFPLS, the Money Purchase Annual Allowance, filling the basic-rate band), a taxable
+ * (step F2: how the tax-free part is taken now sits in the open, after the State Pension) a taxable
  * account and bed-and-ISA, the tax thresholds, the cuts in a slump and the emergency reserve — sits under "More detail",
  * closed, after them. Nothing is created or copied: the same boxes, with the same ids, are moved.
  *
@@ -12,7 +12,7 @@
  */
 export const MORE_DETAIL = Object.freeze({
   summary: 'More detail',
-  hint: 'How the tax-free part is taken, a taxable account, the tax thresholds, cuts in a slump and an emergency reserve. Each starts as most people have it; change any you need.'
+  hint: 'A taxable account, the tax thresholds, cuts in a slump and an emergency reserve. Each starts as most people have it; change any you need.'
 });
 
 const sectionOf = (doc, id) => { const el = doc.getElementById(id); return el ? el.closest('.settings-section') : null; };
@@ -25,9 +25,12 @@ export function orderStressSettingsSections(doc) {
     const alloc = doc.getElementById('ssAllocation');
     const sp = sectionOf(doc, 'ssSpStartDate');
     const oth = sectionOf(doc, 'ssOther');
+    // how the tax-free part is taken is asked in the open, beside the State Pension (step F2, lead4.md D6): it moves every
+    // "a year before tax" figure, and the simple view asks it on its own page
+    const access = sectionOf(doc, 'ssAccessMethod');
     // what everyone has first: age and income (the strategy block), the pot (the allocation), then the income that comes anyway
     let at = strat;
-    for (const s of [alloc, sp, oth]) { if (s && s !== at && s.parentElement === parent) { at.after(s); at = s; } }
+    for (const s of [alloc, sp, access, oth]) { if (s && s !== at && s.parentElement === parent) { at.after(s); at = s; } }
     // the rest, closed, after them
     let more = doc.getElementById('ssMoreDetail');
     if (!more) {
@@ -47,7 +50,7 @@ export function orderStressSettingsSections(doc) {
     }
     at.after(more);
     // this form's own sections only (the Decision tool's settings have the same buttons)
-    const inside = [sectionOf(doc, 'ssAccessMethod'), doc.getElementById('ssTaxableBlock'), sectionOf(doc, 'ssPA'), sectionOf(doc, 'ssConsecutiveLimit'), sectionOf(doc, 'ssHodlEnabled')];
+    const inside = [doc.getElementById('ssTaxableBlock'), sectionOf(doc, 'ssPA'), sectionOf(doc, 'ssConsecutiveLimit'), sectionOf(doc, 'ssHodlEnabled')];
     for (const s of inside) if (s && s !== more && !more.contains(s)) more.appendChild(s);
   } catch (e) { /* layout only */ }
 }

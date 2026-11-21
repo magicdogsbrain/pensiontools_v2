@@ -122,7 +122,7 @@ export function planMixOf(state, q) {
   if (!pm) return null;
   const parsed = parsedDraft(state, q);
   if (!parsed.ok || parsed.inputs.risk !== pm.risk || parsed.inputs.savingRisk !== pm.savingRisk) return null;
-  return { mix: pm.mix, savingMix: pm.savingMix };
+  return { ...(pm.mix ? { mix: pm.mix, savingMix: pm.savingMix } : {}), ...(pm.taxFreeTaken ? { taxFreeTaken: true } : {}) };   // (step F2) a plan read as kept: the access method alone
 }
 
 export function currentKey(state, q) {
@@ -447,7 +447,7 @@ export function readyMark(state) {
   }
   // "What you pay in" (saving-enough-and-check-in.md 4.4): the plan's verdict under way, or due for the plan on the step, is not ready
   const SV = state.saver;
-  if (SV && (SV.status === 'working' || SV.status === 'first')) busy = true;
+  if (SV && SV.status === 'working') busy = true;
   if (r && r.screen === 'plan' && r.step === 'saving') {
     const page = state.plans && state.plans.view && state.plans.view.page;
     const key = page && page.forId === r.planId && page.saving && page.saving.verdict && page.saving.verdict.key ? page.saving.verdict.key : null;
@@ -696,16 +696,32 @@ export function lockedPlanInAccount(state) {
 }
 
 /**
+ * The plans' names as their rows on "Your plans" show them (read.js planRows: PlanName.shownPlanName, the name every place in
+ * both views prints; step F1): a Map of id → name once the plan source has read the plans for today's screen, else null. The
+ * shell reads names here, never from the stored planDetails.name.
+ */
+export function shownNames(state) {
+  const plans = state.plans;
+  const view = plans && plans.status === 'read' && plans.view && state.env && plans.view.today === state.env.today ? plans.view : null;
+  if (!view) return null;
+  const shown = new Map();
+  for (const g of Array.isArray(view.rows) ? view.rows : []) for (const r of (g && Array.isArray(g.rows) ? g.rows : [])) if (r && r.id != null) shown.set(String(r.id), typeof r.name === 'string' ? r.name : '');
+  return shown;
+}
+
+/**
  * D's way in (answer-D.md 3.10): the plans in page memory, each a candidate for its own test at "Does it last?" — { id,
- * name, locked } — once the plans are read (the plan source loads on D's pages); `known` false until then, or away from an
- * account. The screen links to each (href.plan(id, 'lasts')); it never redirects.
+ * name, locked } — once the plans are read and the plan source has read them for the screen (the plan source loads on D's
+ * pages); `known` false until then, or away from an account. Each plan's name is the one its row on "Your plans" shows
+ * (read.js planRows: PlanName.shownPlanName, as every place in both views names a plan; step F1), never the stored one.
+ * The screen links to each (href.plan(id, 'lasts')); it never redirects.
  */
 export function dWayIn(state) {
+  const shown = shownNames(state);
+  if (!shown) return { known: false, plans: [] };
   const plans = state.plans;
-  if (!plans || plans.status !== 'read') return { known: false, plans: [] };
-  const nameOf = (plan) => (plan.planDetails && typeof plan.planDetails.name === 'string' && plan.planDetails.name) || (typeof plan.name === 'string' && plan.name) || '';
-  const list = plans.list.filter((e) => e && e.plan && e.plan.id != null && !e.failed)
-    .map((e) => ({ id: String(e.plan.id), name: nameOf(e.plan), locked: !!(e.plan.decisionTool && e.plan.decisionTool.settings && e.plan.decisionTool.settings.locked === true) }));
+  const list = plans.list.filter((e) => e && e.plan && e.plan.id != null && !e.failed && shown.has(String(e.plan.id)))
+    .map((e) => ({ id: String(e.plan.id), name: shown.get(String(e.plan.id)) || '', locked: !!(e.plan.decisionTool && e.plan.decisionTool.settings && e.plan.decisionTool.settings.locked === true) }));
   return { known: true, plans: list };
 }
 

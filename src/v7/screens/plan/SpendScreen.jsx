@@ -239,7 +239,7 @@ export function SpendScreen(state, dispatch) {
             <fieldset class="income-card spend-card spend-first" data-card="first">
               <legend data-testid="plan.spend.first.legend">{fill(sp.flat && !steps.cards.length ? SPEND.first.legendFlat : SPEND.first.legend, { age: sp.startAge })}</legend>
               <EditField step="spend" f={first} words={{ label: SPEND.first.amount }} errors={SPEND.errors['first.amount']} source={sourceText} savedWords={SPEND.savedValue} planId={planId} dispatch={dispatch} slots={slots}
-                help={fill(SPEND.first.gross, { gross: sp.firstGross })} />
+                help={sp.firstGross == null ? null : fill(SPEND.first.gross, { gross: sp.firstGross })} />
               <Then base="first" shownThen={fThen.shown || 'level'} shownFalls={fFalls.shown} errThen={fThen.error} errFalls={fFalls.error} isLast={!steps.cards.length}
                 label={SHAPE.then.labelFirst} planId={planId} dispatch={dispatch} hasSteps={steps.cards.length > 0} />
               {sp.floorAndFlex && <p class="note" data-testid="plan.spend.floorAndFlex">{SPEND.first.floorAndFlex}</p>}

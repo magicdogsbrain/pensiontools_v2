@@ -10,7 +10,7 @@
 import { Money } from './Money.jsx';
 import { Button, LinkButton } from './Button.jsx';
 import { PLAN } from '../copy/plan.js';
-import { figureFactOf, sentenceFindsOf, slotFactsOf, afterFactsOf } from './facts.js';
+import { figureFactOf, sentenceFindsOf, slotFactsOf, afterFactsOf, LOCK_DATE } from './facts.js';
 import { groupParts } from '../../reading/sentenceMarks.js';
 import { Fact } from '../../reading/Mark.jsx';
 
@@ -84,7 +84,7 @@ function sourceWords(source) {
   let text;
   if (source.kind === 'record') text = at ? fill(w.record, { date: at }) : w.recordUndated;
   else if (source.kind === 'hold') text = at ? fill(w.hold, { date: at }) : w.holdUndated;
-  else if (source.kind === 'locked') text = at ? fill(w.locked, { date: at }) : w.lockedUndated;
+  else if (source.kind === 'locked') text = at ? fillMarked(w.locked, { date: at }, LOCK_DATE) : w.lockedUndated;   // the day it was locked, the one lock.date (step F3)
   else if (source.kind === 'budget') text = w.budget;
   else text = at ? fill(w.savedOn, { date: at }) : w.saved;
   return <span class="plan-source">{text}{source.stale && at && <> <span class="plan-stale">{fill(PLAN.page.stale, { date: at })}</span></>}</span>;

@@ -71,8 +71,8 @@ export const REGISTRY = Object.freeze([
   box(4, 'about.stopMonth', 'retired-everything', '2026-06', 'about', STRESS, { canon: { simple: monthOf, full: monthOf } }),
   // the start year between a stop two years ago and this one (the stop moved first, in the same view)
   box(5, 'about.startWhen', 'retired-everything', { simple: 'y2025', full: '2025' }, 'about', STRESS, { group: 'about-start', prep: { simple: [['about.stopMonth', '2024-06']], full: [['about.stopMonth', '2024-06']] }, canon: { simple: startYearOf } }),
-  // the simple view asks an age, the full view the years from the plan's start (two quantities for one stored figure)
-  box(6, 'about.endAge', 'saver-draft', { simple: '97', full: '36' }, 'about', STRESS, { group: 'about-end' }),
+  // both views ask the age the plan runs to (step F1: the full view's box was the years from the plan's start)
+  box(6, 'about.endAge', 'saver-draft', '97', 'about', STRESS, { group: 'about-end' }),
   action(7, 'about.suggestEnd', 'about', STRESS, { why: 'fills the end age box; nothing of its own is saved in either view' }),
   action(8, 'about.staleDraft', 'about', STRESS, { why: '"Leave it" / "Update the plan": a press on an out-of-date draft' }),
   // 1b Pots and tax
@@ -96,11 +96,10 @@ export const REGISTRY = Object.freeze([
   box(24, 'pots.ufplsYears', 'saver-draft', '8', 'pots', STRESS, { group: 'pots-ufpls' }),
   box(25, 'pots.ufplsThenIsa', 'saver-draft', 'yes', 'pots', STRESS, { group: 'pots-ufpls' }),
   box(26, 'pots.bandFill', 'saver-draft', 'yes', 'pots', STRESS, { group: 'pots-taxfree' }),
-  box(27, 'pots.stopSipp', 'saver-draft', '300000', 'pots', STRESS, { group: 'pots-stop' }),
-  box(27, 'pots.stopIsa', 'saver-draft', '40000', 'pots', STRESS, { group: 'pots-stop' }),
   // 1c Money that comes in anyway
   box(28, 'income.spWeekly', 'saver-draft', '230', 'income', STRESS, { prep: { simple: [['income.spKind', 'forecast']] } }),
-  box(28, 'income.spKind', 'saver-draft', 'none', 'income', null, { why: 'the full view has no "full", "forecast" or "none" choice for the State Pension, only the weekly box (map-edits #28)' }),
+  // (step F2) both views ask it: full, forecast, none, assumed — its own group: "none" takes away the weekly and date boxes
+  box(28, 'income.spKind', 'saver-draft', 'none', 'income', STRESS, { group: 'income-spkind' }),
   box(29, 'income.spDate', 'saver-draft', '1 May 2054', 'income', STRESS, { canon: { simple: dateOf, full: dateOf } }),
   box(30, 'income.other', 'saver-draft', '1500', 'income', STRESS),
   box(31, 'income.fs.0.amount', 'retired-everything', '9800', 'income', STRESS, { group: 'income-fs' }),
@@ -108,8 +107,8 @@ export const REGISTRY = Object.freeze([
   box(31, 'income.fs.0.rises', 'retired-everything', 'cpi', 'income', STRESS, { group: 'income-fs' }),
   list(32, 'income.streams', 'retired-everything', 'income', STRESS, { why: 'more final-salary pensions and incomes for some years: cards in the simple view, an editor of rows in the full view' }),
   list(33, 'income.lumps', 'retired-everything', 'income', STRESS, { why: 'lump sums: cards in the simple view, rows in the full view' }),
-  // 1d What you spend: the simple view's first figure a month after tax, the full view's first step a year before tax
-  box(34, 'spend.first', 'saver-draft', { simple: '1900', full: '30000' }, 'spend', STRESS),
+  // 1d What you spend: both views ask the first figure a month after tax (step F2, lead4.md D6)
+  box(34, 'spend.first', 'saver-draft', '1900', 'spend', STRESS),
   list(35, 'spend.steps', 'retired-everything', 'spend', STRESS, { why: 'later steps: cards in the simple view, rows in the full view' }),
   list(36, 'spend.costs', 'retired-everything', 'spend', STRESS, { why: 'one-off costs: cards in the simple view, rows in the full view' }),
   action(37, 'spend.shape', null, STRESS, { why: 'level income or steps: a hidden pair of buttons in the full view, none in the simple view (it follows the steps)' }),

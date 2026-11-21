@@ -1,7 +1,8 @@
 /**
- * The runner (V7 build brief 4.10), with a fake worker: two passes in order; a change mid-run ends the old run and
- * its result never reaches the state; failure → answer/failed; the 5-second "slow"; no worker → the same two
- * passes on the page. And the ready mark, which the shell owns.
+ * The runner (V7 build brief 4.10), with a fake worker: ONE pass at the futures every figure takes in both views (lead4.md
+ * R6: no first figure on fewer futures is ever shown); a change mid-run ends the old run and its result never reaches the
+ * state; failure → answer/failed; the 5-second "slow"; no worker → the same pass on the page. And the ready mark, which the
+ * shell owns.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createStore } from '../../../src/v7/effects/store.js';
@@ -92,37 +93,29 @@ describe('when a run starts', () => {
   });
 });
 
-describe('two passes, in order', () => {
-  it('100 futures → answer/first, then 1,000 → answer/final', async () => {
+describe('one pass, at the futures of every figure', () => {
+  it('1,000 futures → answer/final: no first figure on fewer futures', async () => {
     const { client, types, answer, store } = setUp();
-    expect(PASSES).toEqual([100, 1000]);
-    expect(client.calls[0].env).toEqual({ today: '2026-09-30', futures: 100, seed: 0, trace: false });
+    expect(PASSES).toEqual([1000]);
+    expect(client.calls[0].env).toEqual({ today: '2026-09-30', futures: 1000, seed: 0, trace: false });
     expect(client.calls[0].q).toBe('c');
     expect(client.calls[0].inputs).toMatchObject({ household: 'single', you: { pot: 250000, age: 58 } });
-    await settle(client.calls[0], result(1370));
-    expect(answer().status).toBe('first');
-    expect(answer().result.levels.balanced.monthly).toBe(1370);
-    expect(client.calls.length).toBe(2);
-    expect(client.calls[1].env).toEqual({ today: '2026-09-30', futures: 1000, seed: 0, trace: false });
-    expect(client.calls[1].inputs).toEqual(client.calls[0].inputs);
-    await settle(client.calls[1], result(1380));
+    expect(answer().status).toBe('working');
+    await settle(client.calls[0], result(1380));
     expect(answer().status).toBe('final');
     expect(answer().result.levels.balanced.monthly).toBe(1380);
-    expect(types()).toEqual([A.ANSWER_WORKING, A.ANSWER_FIRST, A.ANSWER_FINAL]);
+    expect(types()).toEqual([A.ANSWER_WORKING, A.ANSWER_FINAL]);
     expect(answer().inputsKey).toBe(currentKey(store.getState(), 'c'));
     vi.advanceTimersByTime(60000);
-    expect(client.calls.length).toBe(2);                 // and nothing more
+    expect(client.calls.length).toBe(1);                 // and nothing more
     expect(answer().slow).toBe(false);
   });
   it('progress reaches the state', async () => {
     const { client, answer } = setUp();
-    client.calls[0].onProgress(40, 100);
-    expect(answer().progress).toEqual({ done: 40, total: 100 });
-    await settle(client.calls[0], result());
-    client.calls[1].onProgress(500, 1000);
+    client.calls[0].onProgress(500, 1000);
     expect(answer().progress).toEqual({ done: 500, total: 1000 });
   });
-  it('the month the market history ends is kept from the first result', async () => {
+  it('the month the market history ends is kept from the result', async () => {
     const { client, store } = setUp();
     expect(store.getState().env.historyEnd).toBe(null);
     await settle(client.calls[0], result());
@@ -131,13 +124,12 @@ describe('two passes, in order', () => {
   it('the same answer is not worked out twice', async () => {
     const { client, store } = setUp();
     await settle(client.calls[0], result());
-    await settle(client.calls[1], result());
     store.dispatch({ type: A.UI_TOGGLE, id: 'assumed' });
     store.dispatch({ type: A.ROUTE_SET, route: route('step', 'c', 'numbers') });
     store.dispatch({ type: A.ROUTE_SET, route: route('step', 'c', 'answer') });
     store.dispatch(set('you.pot', '£250,000'));          // the same figure typed another way
     vi.advanceTimersByTime(10000);
-    expect(client.calls.length).toBe(2);
+    expect(client.calls.length).toBe(1);
   });
 });
 
@@ -166,21 +158,17 @@ describe('a change mid-run', () => {
     // The old run answers before the wait is over: it is for figures nobody is looking at now.
     await settle(client.calls[0], result(1111));
     expect(answer().inputsKey).toBe(oldKey);
-    expect(store.getState().answers.c.status).toBe('first');     // filed under its own key…
+    expect(store.getState().answers.c.status).toBe('final');     // filed under its own key…
     vi.advanceTimersByTime(WAIT_MS);
     await flush();
-    const newCall = client.calls.find((c) => c.inputs.you.pot === 300000 && c.env.futures === 100);
+    const newCall = client.calls.find((c) => c.inputs.you.pot === 300000);
     expect(newCall).toBeTruthy();
     expect(answer().status).toBe('working');
     // …and whatever the old run still sends is dropped.
-    for (const c of client.calls) if (c !== newCall && c.inputs.you.pot === 250000) { c.settled = true; c.resolve(result(2222)); }
+    for (const c of client.calls) if (c !== newCall && c.inputs.you.pot === 250000 && !c.settled) { c.settled = true; c.resolve(result(2222)); }
     await flush();
     expect(answer().status).toBe('working');
-    await settle(newCall, result(1650));
-    expect(answer().status).toBe('first');
-    expect(answer().result.levels.balanced.monthly).toBe(1650);
-    const last = client.calls[client.calls.length - 1];
-    await settle(last, result(1660));
+    await settle(newCall, result(1660));
     expect(answer().status).toBe('final');
     expect(answer().result.levels.balanced.monthly).toBe(1660);
     expect(answer().inputsKey).toBe(currentKey(store.getState(), 'c'));
@@ -198,8 +186,7 @@ describe('a change mid-run', () => {
   });
   it('"before" holds the last final amount while the new one is worked out', async () => {
     const { client, store, answer } = setUp();
-    await settle(client.calls[0], result(1370));
-    await settle(client.calls[1], result(1380));
+    await settle(client.calls[0], result(1380));
     store.dispatch(set('you.pot', '300000'));
     expect(answer().status).toBe('final');               // still the old answer, no longer current
     vi.advanceTimersByTime(WAIT_MS);
@@ -210,11 +197,10 @@ describe('a change mid-run', () => {
   it('typing back to the figures already answered cancels the wait', async () => {
     const { client, store } = setUp();
     await settle(client.calls[0], result());
-    await settle(client.calls[1], result());
     store.dispatch(set('you.pot', '2500000'));
     store.dispatch(set('you.pot', '250000'));
     vi.advanceTimersByTime(10000);
-    expect(client.calls.length).toBe(2);
+    expect(client.calls.length).toBe(1);
   });
   it('leaving the answer step cancels the wait', () => {
     const { client, store } = setUp();
@@ -226,7 +212,7 @@ describe('a change mid-run', () => {
 });
 
 describe('failure', () => {
-  it('an error in the first pass → answer/failed, and no second pass', async () => {
+  it('an error in the pass → answer/failed, and it is not tried again by itself', async () => {
     const { client, answer, store } = setUp();
     const draft = store.getState().draft;
     await fail(client.calls[0]);
@@ -237,25 +223,18 @@ describe('failure', () => {
     expect(client.calls.length).toBe(1);                 // not tried again by itself
     expect(answer().slow).toBe(false);
   });
-  it('an error in the final pass → answer/failed', async () => {
-    const { client, answer } = setUp();
-    await settle(client.calls[0], result());
-    await fail(client.calls[1]);
-    expect(answer().status).toBe('failed');
-  });
   it('an answer that says the inputs are invalid counts as a failure (the form had passed them)', async () => {
     const { client, answer } = setUp();
     await settle(client.calls[0], { status: 'invalid', problems: [] });
     expect(answer().status).toBe('failed');
   });
-  it('"try again" runs both passes again, at once', async () => {
+  it('"try again" runs the pass again, at once', async () => {
     const { client, answer, store } = setUp();
     await fail(client.calls[0]);
     store.dispatch({ type: A.ANSWER_RETRY, q: 'c' });
     expect(client.calls.length).toBe(2);
     expect(answer().status).toBe('working');
     await settle(client.calls[1], result());
-    await settle(client.calls[2], result());
     expect(answer().status).toBe('final');
   });
   it('the failure of a run that was replaced is not shown', async () => {
@@ -273,17 +252,15 @@ describe('slow', () => {
     const { client, answer, types } = setUp();
     vi.advanceTimersByTime(SLOW_MS - 1);
     expect(answer().slow).toBe(false);
-    await settle(client.calls[0], result());             // a first figure does not stop the clock
     vi.advanceTimersByTime(1);
     expect(answer().slow).toBe(true);
-    expect(types()).toEqual([A.ANSWER_WORKING, A.ANSWER_FIRST, A.ANSWER_SLOW]);
-    await settle(client.calls[1], result());
+    expect(types()).toEqual([A.ANSWER_WORKING, A.ANSWER_SLOW]);
+    await settle(client.calls[0], result());
     expect(answer().slow).toBe(false);
   });
   it('not when the final result came in time', async () => {
     const { client, types } = setUp();
     await settle(client.calls[0], result());
-    await settle(client.calls[1], result());
     vi.advanceTimersByTime(SLOW_MS * 3);
     expect(types()).not.toContain(A.ANSWER_SLOW);
   });
@@ -300,8 +277,8 @@ describe('slow', () => {
 });
 
 describe('no worker', () => {
-  it('the same two passes run on the page', async () => {
-    const local = vi.fn((q, inputs, env) => result(env.futures === 100 ? 1370 : 1380));
+  it('the same pass runs on the page', async () => {
+    const local = vi.fn((q, inputs, env) => result(env.futures === 1000 ? 1380 : 1370));
     const { answer, types } = setUp({ client: fakeClient({ broken: true }), local });
     expect(answer().status).toBe('working');             // "Working" is drawn before the page is busy
     await flush();
@@ -309,8 +286,8 @@ describe('no worker', () => {
     await flush();
     await vi.advanceTimersByTimeAsync(1);
     await flush();
-    expect(local.mock.calls.map((c) => [c[0], c[2].futures, c[2].today, c[2].seed])).toEqual([['c', 100, '2026-09-30', 0], ['c', 1000, '2026-09-30', 0]]);
-    expect(types()).toEqual([A.ANSWER_WORKING, A.ANSWER_FIRST, A.ANSWER_FINAL]);
+    expect(local.mock.calls.map((c) => [c[0], c[2].futures, c[2].today, c[2].seed])).toEqual([['c', 1000, '2026-09-30', 0]]);
+    expect(types()).toEqual([A.ANSWER_WORKING, A.ANSWER_FINAL]);
     expect(answer().result.levels.balanced.monthly).toBe(1380);
   });
   it('an error on the page → answer/failed', async () => {
@@ -366,11 +343,8 @@ describe('the ready mark', () => {
     store.dispatch({ type: A.DRAFT_ASK, q: 'c' });
     expect(el.getAttribute('data-ready')).toBe('0');
     expect(el.getAttribute('data-answer')).toBe('none');
-    await settle(client.calls[0], result());
-    expect(el.getAttribute('data-ready')).toBe('0');
-    expect(el.getAttribute('data-answer')).toBe('first');
     expect(done).toBe(1);
-    await settle(client.calls[1], result());
+    await settle(client.calls[0], result());
     expect(el.getAttribute('data-ready')).toBe('1');
     expect(el.getAttribute('data-answer')).toBe('final');
     expect(done).toBe(2);

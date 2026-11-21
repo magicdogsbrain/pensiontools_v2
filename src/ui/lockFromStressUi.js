@@ -13,7 +13,8 @@ import { esc } from './components/ReleaseNotesView.js';
 /**
  * @param {object} w   the window
  * @param {{ isLoggedIn, planIsLocked, appConfirm, saveStressSettingsUI, runPlan, commitPlanLock, showToast, openPlanDocument, showIncome? }} d
- *   runPlan() → { p, r }: the plan's one run on the settings as saved (the run the document is built from)
+ *   runPlan() → { p, r, savingPath, success }: the plan document's run (lastsRun.js runForDocument; step F5), the one the
+ *   document is built from
  */
 export function installLockFromStress(w, d) {
   w.lockPlanFromStress = async function () {
@@ -31,7 +32,7 @@ export function installLockFromStress(w, d) {
         if (go && d.showIncome) d.showIncome();
         return;
       }
-      const fresh = await d.commitPlanLock('locked from Stress settings', run && run.r);
+      const fresh = await d.commitPlanLock('locked from Stress settings', run);   // the run the fit was read from: the document is built from it (step F5)
       d.showToast('Plan locked' + (fresh ? '' : ' (it was already locked)') + ' — plan document written.', 'success', 5000);
       d.openPlanDocument();
     } catch (e) { console.error('Lock from Stress:', e); d.showToast('Could not lock: ' + e.message, 'error'); }

@@ -12,7 +12,7 @@
  *     answers' part that could not be loaded; src/utils/staleBuild.js) is not a failed answer: onStale() loads the page
  *     again ('reloading': nothing is dispatched), or, when it has done that once already, the failure is dispatched and
  *     the page says so in plain words (components/Problem.jsx).
- *  4. A and B: both passes ask for the answer step's detail (env.detail: A 'chart', B 'answer'). On an optional step
+ *  4. A and B: the pass asks for the answer step's detail (env.detail: A 'chart', B 'answer'). On an optional step
  *     (A's ages, B's choices), once a final answer for these inputs is held at a lower detail, one more pass at 1,000
  *     with the step's detail (A 'all', B 'grid'): answer/extend at once (nothing is being typed), then answer/final.
  *     C's env carries no detail, as before. B opened from a saver's plan, its risk boxes as loaded, also carries the plan's
@@ -29,12 +29,15 @@ import { parsedDraft, currentKey, needsRun, wantedDetail, STEP_DETAIL, planMixOf
 import { BUILT } from '../rail/questions.js';
 import { NO_WORKER } from './workerClient.js';
 import { isStaleBuildError } from '../../utils/staleBuild.js';
+import { RUN_FUTURES, RUN_SEED } from '../../reading/runs.js';
 
-export const PASSES = [100, 1000];     // futures: the first figure, then the final figure
-export const EXTEND_FUTURES = 1000;    // an optional step's extra pass (conflict 43)
+// One pass at the futures every figure takes in both views (src/reading/runs.js, lead4.md R6): a first pass on fewer futures is
+// never shown as the figure — the page says it is working the answer out until the full run lands.
+export const PASSES = [RUN_FUTURES];
+export const EXTEND_FUTURES = RUN_FUTURES;    // an optional step's extra pass (conflict 43)
 export const WAIT_MS = 250;
 export const SLOW_MS = 5000;
-const SEED = 0;                         // the published seed (brief 2.3, conflict 48)
+const SEED = RUN_SEED;                         // the published seed (brief 2.3, conflict 48)
 
 /**
  * @param {object} o
@@ -129,11 +132,11 @@ export function startRunner({ store, client, local, q = null, onStale = null }) 
       }
     }
 
-    /** The answer step's two passes, at the answer step's detail. */
+    /** The answer step's one pass, at the answer step's detail. */
     function start(key) {
       const detail = wantedDetail(store.getState(), question);
       return passes(key, { type: A.ANSWER_WORKING, q: question, inputsKey: key }, PASSES.map((futures, i) => ({
-        futures, detail, then: i < PASSES.length - 1 ? A.ANSWER_FIRST : A.ANSWER_FINAL
+        futures, detail, then: A.ANSWER_FINAL
       })));
     }
 

@@ -19,7 +19,7 @@
  */
 import { copyFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { test, expect, DIST, REPO, V7_PATH, CLASSIC_PATH, CLASSIC_TITLE, WORKER_DATA_MISSING } from './helpers/app.js';
+import { test, expect, DIST, REPO, V7_PATH, CLASSIC_PATH, CLASSIC_TITLE } from './helpers/app.js';
 import { startServer } from './helpers/serve.mjs';
 
 test.use({ outside: 'block', serviceWorkers: 'allow' });
@@ -73,7 +73,6 @@ const lookForUpdate = (page) => page.evaluate(() => { navigator.serviceWorker.ge
 test.describe('an old service worker, after the kill switch is published', () => {
   test('the older cache-first worker with the site\'s root page cached: the window reloads from the network, the cache is gone, no worker is left', async ({ page, watch }, testInfo) => {
     // as on the live site today: the classic page's engine worker asks for the market files from its own address (full-view-unchanged.spec.js)
-    watch.allow(WORKER_DATA_MISSING);
     const folder = oldSite(testInfo.outputPath('old-site'), 'sw-cache-first.js');
     await serveOldThenNew(folder, async (base, deploy) => {
       // the old site: its worker installs and takes the page
@@ -130,7 +129,6 @@ test.describe('an old service worker, after the kill switch is published', () =>
   });
 
   test('today\'s worker in two tabs, and a plain visit to the classic page after the deploy: its start-up updates the old worker, so the kill switch clears it in both tabs, each reloaded once', async ({ page, context, watch }, testInfo) => {
-    watch.allow(WORKER_DATA_MISSING);
     const folder = oldSite(testInfo.outputPath('old-site'), 'sw-network-first.js');
     await serveOldThenNew(folder, async (base, deploy) => {
       // two tabs on the old site, both served by the old worker: the classic page's address and V7's

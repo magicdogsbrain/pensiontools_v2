@@ -33,12 +33,12 @@ import { MONTH_FIELDS } from './schema.js';
 import { SAVER_STAGES } from './steps.js';
 import { dateOf, monthWords, monthName, localMonth, dayWords } from './dates.js';
 import { partnerOf } from './household.js';
-import { firstPaymentMonth, monthToRecord } from '../../services/YearPlan.js';
+import { firstPaymentMonth, monthToRecord, sentenceText } from '../../services/YearPlan.js';
+import { thisTaxYearOf, thisYearSentences, setUpAgainConfig } from '../../reading/thisYear.js';
 import { pounds } from './income.js';
 import { takenBeforeTax, targetOfTaken } from '../../services/BeforeTax.js';
-import { CASH_SHORT_LABEL } from '../../services/DecisionOverlay.js';
+import { monthFromOf, monthAfterTaxOf } from '../../reading/month.js';
 import { moveOfAlert } from '../../services/PlanRuleWords.js';
-import { taxFreeFractionOf } from '../../services/FlexibleAccess.js';
 import { shownPlanNameOn } from '../../services/PlanName.js';
 
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
@@ -243,27 +243,10 @@ function adviceOf(d) {
     const m = moveOfAlert(a);
     if (m) moves.push(m);
   }
-  const from = [];
-  if (ov && (ov.floorMonthly > 0 || ov.hidePots)) {
-    const label = String(ov.floorLabel || '');
-    const rung = /^rung (.+) \(already cash\)$/.exec(label);
-    const where = rung ? { id: 'rung', slots: { year: rung[1] } }
-      : label === 'the cash years bucket' ? { id: 'cashYears', slots: {} }
-        : label === CASH_SHORT_LABEL ? { id: 'cashShort', slots: {} }
-        : /^cash, (before|until)/.test(label) ? { id: 'cashBefore', slots: {} }   // its label until 7.4.2, and since
-          : label === 'the essentials rung' ? { id: 'essentials', slots: {} }
-            : label === 'the engine' ? { id: 'invested', slots: {} }
-              : { id: 'thisYear', slots: {} };
-    if (ov.floorMonthly > 0) from.push({ ...where, amount: pounds(ov.floorMonthly) });
-    if (ov.sleeveMonthly > 0) from.push({ id: 'investedRest', slots: {}, amount: pounds(ov.sleeveMonthly) });
-  } else {
-    if (d.drawFromCash > 0.5) from.push({ id: 'cash', slots: {}, amount: pounds(d.drawFromCash) });
-    if (d.drawFromBond > 0.5) from.push({ id: 'bonds', slots: {}, amount: pounds(d.drawFromBond) });
-    if (d.drawFromEquity > 0.5) from.push({ id: 'shares', slots: {}, amount: pounds(d.drawFromEquity) });
-    if (d.drawFromDiversifier > 0.5) from.push({ id: 'diversifiers', slots: {}, amount: pounds(d.drawFromDiversifier) });
-  }
+  // where it comes from: the one list both views draw (src/reading/month.js; step F5, lead4.md D17)
+  const from = monthFromOf(d).map((x) => ({ ...x, amount: pounds(x.amount) }));
   return {
-    month: monthWords(d.date), taxYear: d.taxYear, pension: pounds(d.sippDraw), tax: pounds(d.monthlyTax), afterTax: pounds(d.totalMonthlyNet),
+    month: monthWords(d.date), taxYear: d.taxYear, pension: pounds(d.sippDraw), tax: pounds(d.monthlyTax), afterTax: pounds(monthAfterTaxOf(d)),
     isa: d.isaDraw > 0.5 ? pounds(d.isaDraw) : null,
     gia: d.giaNet > 0.5 ? { net: pounds(d.giaNet), sold: pounds(d.giaDraw), cgt: d.giaCgt > 0.5 ? pounds(d.giaCgt) : null } : null,
     statePension: d.statePension > 0.5 ? pounds(d.statePension) : null, other: d.other > 0.5 ? pounds(d.other) : null,
@@ -363,10 +346,17 @@ export function readMonth(plan, typed0, { today, nowIso = null, entries = null }
   const cfg = I.taxYears[key];
   const setUpDone = !!(cfg && cfg.yearSetupComplete === true);
   const setUp = setUpDone ? null : setUpOf(I, plan, key, month, typed, now);
-  const yearTaken = setUpDone && cfg.confirmedSalary > 0
-    ? takenBeforeTax(cfg.confirmedSalary, { taxFreeFraction: taxFreeFractionOf(I.settings, I.history, 0), fixed: (+cfg.other || 0) + (+cfg.statePension || 0), pa: cfg.pa, brl: cfg.brl, hrl: cfg.hrl })
-    : null;
-  const yearLine = setUpDone ? { year: yearWords(key), from: monthWords(addMonth(aprilOf(key), (((Number(cfg.startMonth) || 4) + 8) % 12))), income: yearTaken > 0 ? pounds(yearTaken) : null } : null;
+  // the year as set up and, when the plan's own figure differs, both (step F2, lead4.md D7: src/reading/thisYear.js, the one
+  // reader both views say); "Set this year up again" opens the set-up (setUpAgainPatch)
+  let ty = null; try { ty = setUpDone ? thisTaxYearOf(plan, { now }, { key }) : null; } catch { ty = null; }
+  const changed = ty && key === getTaxYearFromDate(localMonth(now)) ? thisYearSentences(ty).find((x) => x.id === 'where.yearChanged') || null : null;
+  const yearLine = setUpDone ? {
+    year: yearWords(key), from: monthWords(addMonth(aprilOf(key), (((Number(cfg.startMonth) || 4) + 8) % 12))),
+    income: ty && ty.setUp && ty.setUp.perYear > 0 ? pounds(ty.setUp.perYear) : null,
+    changed: changed ? { ...changed, text: sentenceText(changed) } : null,
+    // the fact is THIS tax year's (src/reading/thisYear.js): a month of another year says its own year, unmarked
+    current: key === getTaxYearFromDate(localMonth(now))
+  } : null;
   // before the year is set up, what the locked plan takes this month (7.12.0): its document's row for the year, a twelfth a
   // month, from the pension (what it draws from investments, and what a ladder pays) — so the month's amount and where it
   // comes from are on the page before anything is typed
@@ -407,7 +397,7 @@ export function readMonth(plan, typed0, { today, nowIso = null, entries = null }
   const partner = entries ? partnerOf(entries, plan) : null;
   const ok = setUpDone && !!result && !problem;
   return {
-    ...base, key, year: yearWords(key), setUpDone, yearLine, planMonth, setUp, pots: P, errors, problem, refused, arrival,
+    ...base, key, year: yearWords(key), setUpDone, yearLine, thisYearLine: thisYearLineOf(plan, key, now), planMonth, setUp, pots: P, errors, problem, refused, arrival,
     gap: gap.length ? { count: gap.length, words: monthsWords(gap), from: gap[0] } : null,
     offer: offer ? {
       months: offer.months, words: offer.months.length ? fillWords(offer.months, offer.setUp.length > 0) : '', count: offer.months.length,
@@ -486,6 +476,34 @@ export function monthRecordPatch(plan, typed, { today, nowIso, stageKey = null }
     : filled.length ? { id: 'recordedFilled', slots: { month: R.monthWords, n: String(filled.length), months: monthsWords(filled), s: filled.length === 1 ? '' : 's' } }
       : { id: 'recorded', slots: { month: R.monthWords } };
   return { ok: true, patch, previous, line, filled, stopped: R.write.stopped };
+}
+
+/**
+ * This tax year as set up, said when the month chosen is in another tax year (step F2, lead4.md D7): the month's own year
+ * is said by its own line, and this one keeps this tax year in view. Null when the month is in this tax year, or this
+ * tax year is not set up.
+ */
+function thisYearLineOf(plan, key, now) {
+  const cur = getTaxYearFromDate(localMonth(now));
+  if (key === cur) return null;
+  let t = null; try { t = thisTaxYearOf(plan, { now }); } catch { t = null; }
+  if (!t || !t.setUp || !(t.setUp.perYear > 0)) return null;
+  return { year: yearWords(cur), from: monthWords(t.setUp.from), income: pounds(t.setUp.perYear), current: true };
+}
+
+/**
+ * "Set this year up again" (step F2, lead4.md D7): the year's set-up opened again by the one rule both views write
+ * (src/reading/thisYear.js setUpAgainConfig) — nothing else changes, and the month's page then asks for the set-up from the
+ * month to record. ONE write of the tax years. Refused on a plan not locked, or a year not set up.
+ */
+export function setUpAgainPatch(plan, { today } = {}) {
+  if (!isLocked(plan) && !isClosedPlan(plan)) return { ok: false, problem: 'notLocked', patch: {}, previous: {} };
+  const now = dateOf(today);
+  const key = getTaxYearFromDate(localMonth(now));
+  const taxYears = (plan.decisionTool && isObj(plan.decisionTool.taxYears)) ? plan.decisionTool.taxYears : {};
+  if (!(taxYears[key] && taxYears[key].yearSetupComplete === true)) return { ok: false, problem: 'notSetUp', patch: {}, previous: {} };
+  const next = { ...taxYears, [key]: setUpAgainConfig(taxYears[key]) };
+  return { ok: true, patch: { 'decisionTool.taxYears': next }, previous: { 'decisionTool.taxYears': prevOf(plan, 'decisionTool.taxYears') }, line: { id: 'setUpAgain', slots: { year: yearWords(key) } } };
 }
 
 /**

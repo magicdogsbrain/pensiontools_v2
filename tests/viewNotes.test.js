@@ -68,7 +68,7 @@ describe('the full view\'s sign-out (AuthService.logOut: the header\'s button, t
   });
   it('every one of the full view\'s sign-outs goes through logOut, and the page\'s own script names none of the keys', () => {
     const html = readFileSync(join(process.cwd(), 'index.html'), 'utf8');
-    expect((html.match(/await logOut\(\);/g) || []).length).toBe(2);   // the header's Sign Out and the hour-idle sign-out
+    expect((html.match(/await signOutSafely\(flushSettings, logOut\);/g) || []).length).toBe(2);   // the header's Sign Out and the hour-idle sign-out (step LEFT: what is typed is saved first)
     for (const key of SIMPLE_VIEW_NOTES) expect(html).not.toContain(key);
     for (const f of ['src/ui/components/AuthScreen.js', 'src/ui/components/AuthPanel.js']) expect(readFileSync(join(process.cwd(), f), 'utf8'), f).toMatch(/await logOut\(\)/);
   });

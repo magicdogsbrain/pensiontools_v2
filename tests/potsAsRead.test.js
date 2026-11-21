@@ -109,11 +109,12 @@ describe('a new stop age says what it does to the pension then', () => {
     expect(words).toBe(`Saved. Your plan now runs ${v.savedLine.slots.years} years, to age 95. Stopping at 59, your pension then could be ${k(at59.sipp)} (${k(at60.sipp)} stopping at 60).`);
   });
 
-  it('a figure the person typed for the day they stop stays theirs: nothing more is said', () => {
+  it('a figure once typed for the day they stop is not read (step F1, lead4.md D4): the new stop\'s pension is said all the same', () => {
     const plan = kept();
     plan.stressTool.settings.potAtRetirement = { sipp: 400000, isa: 30000, source: 'override' };
     const v = aboutOf([{ plan }], 'alex', { today: TODAY, typed: { stopAge: '59' } });
-    expect(v.savedLine.id).toBe('runsTo');
+    expect(v.savedLine.id).toBe('runsToPot');
+    expect(v.savedLine).toEqual(aboutOf([{ plan: kept() }], 'alex', { today: TODAY, typed: { stopAge: '59' } }).savedLine);
   });
 
   it('no change of stop age: the line is as before', () => {

@@ -3,6 +3,18 @@
  * plan's id and leaves the person signed in on the page it ends on.
  */
 import { expect } from '@playwright/test';
+
+/**
+ * A year before tax as a month after tax, by hand on the default bands (no app code: scenarios stay independent). The
+ * allowance falls by £1 for every £2 over £100,000; 20% to the basic-rate limit, 40% to the higher-rate limit, 45% above.
+ */
+function monthAfterTax(gross) {
+  const g = Math.max(0, +gross || 0);
+  const pa = Math.max(0, 12570 - Math.max(0, g - 100000) / 2);
+  const slice = (lo, hi) => Math.max(0, Math.min(g, hi) - lo);
+  const tax = 0.2 * slice(pa, 50270) + 0.4 * slice(Math.max(pa, 50270), 125140) + 0.45 * Math.max(0, g - 125140);
+  return Math.round((g - tax) / 12);
+}
 import { confirmEmail } from './account.js';
 import { at, openSimple, answer, keep, signUp, editAndSave, planAddress, settled, fullPage, closeNews, openFull, planPage } from './routes.js';
 import { SAM_B, KIM_D } from './typed.js';
@@ -158,7 +170,7 @@ export async function fullViewDrawing(page, { name, age }) {
  * Stress Tester > Settings: "Full index-linked gilt ladder", the pension it is bought from, the years paid from cash
  * first, then Save Settings.
  */
-export async function stressLadder(page, { pension, cashYears, steps = null }) {
+export async function stressLadder(page, { pension, cashYears, steps = null, access = null }) {
   await fullPage(page, 'stress settings');
   await closeNews(page);
   // the way's boxes are drawn and filled from the plan a moment after the press ("Buys with …" under them); a new plan's
@@ -174,12 +186,14 @@ export async function stressLadder(page, { pension, cashYears, steps = null }) {
     if (!(await page.locator('button[data-strat="full-il-gilt"].active').isVisible())) { await page.locator('button[data-strat="full-il-gilt"]').click(); held = 0; return false; }
     if (steps) {
       // "Your income shape": the first step's amount by "or a number", then each later step added and typed
-      const want = steps.map((x, i) => [i ? String(x.from) : null, String(x.amount)]);
+      // (step F2) the step boxes are a month after tax (worked out by hand on the default bands); "or a
+      // number" still takes the year before tax for the first step
+      const want = steps.map((x, i) => [i ? String(x.from) : null, String(monthAfterTax(x.amount))]);
       let got = await typedSteps();
       if (got.length !== want.length || got[0][1] !== want[0][1]) {
         same = false;
         // (each press tried briefly: if the form is drawn again under it, the next look types it again)
-        await page.locator('#shapeStartNumber').fill(want[0][1], { timeout: 3_000 }).catch(() => {});
+        await page.locator('#shapeStartNumber').fill(String(steps[0].amount), { timeout: 3_000 }).catch(() => {});
         await page.getByRole('button', { name: 'Use it' }).click({ timeout: 3_000 }).catch(() => {});
         for (let i = 1; i < want.length; i++) await page.getByRole('button', { name: '+ Add a step' }).click({ timeout: 3_000 }).catch(() => {});
         got = await typedSteps();
@@ -190,6 +204,8 @@ export async function stressLadder(page, { pension, cashYears, steps = null }) {
       }
     }
     for (const [sel, v] of [['#miniSipp', pension], ['#giltCashYears', cashYears]]) if (v != null && (await page.locator(sel).inputValue({ timeout: 3_000 }).catch(() => '')) !== String(v)) { same = false; await page.locator(sel).fill(String(v), { timeout: 3_000 }).catch(() => {}); await page.locator(sel).dispatchEvent('change', {}, { timeout: 3_000 }).catch(() => {}); }
+    // (step F2) how the tax-free part is taken, pressed as a person presses it ("Kept separate, or already taken" when it is)
+    if (access) { const b = page.locator(`#stress-stresssettings button[data-access="${access}"]`); if (!(await b.evaluate((el) => el.classList.contains('active')).catch(() => false))) { same = false; await b.click({ timeout: 3_000 }).catch(() => {}); } }
     held = same ? held + 1 : 0;
     return held >= 2;
   }, { timeout: 45_000, intervals: [750] }).toBe(true);

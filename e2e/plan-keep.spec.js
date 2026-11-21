@@ -8,7 +8,7 @@
  */
 import { readFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { test, expect, PROD, REPO, FIXED_NOW, V7_PATH, CLASSIC_PATH, WORKER_DATA_MISSING } from './helpers/app.js';
+import { test, expect, PROD, REPO, FIXED_NOW, V7_PATH, CLASSIC_PATH } from './helpers/app.js';
 import { OPEN_PLACE_KEY, makeRequest } from '../src/services/OpenPlace.js';
 
 test.use({ outside: 'block' });
@@ -52,7 +52,6 @@ const shots = (name, info) => { const dir = process.env.SHOTS_DIR; if (!dir) ret
 test.describe('"Keep this", without an account', () => {
   test('a line kept on a locked plan: one write of the record, the gaps read, Undo byte for byte; kept by choice is never a sell', async ({ page, watch }, info) => {
     test.setTimeout(240_000);
-    watch.allow(WORKER_DATA_MISSING);
     await page.clock.setFixedTime(new Date(FIXED_NOW));
     await page.goto(v7('#/'));
     await expect(page.locator('#app [data-screen]')).toBeVisible();
@@ -137,7 +136,6 @@ test.describe('"Keep this", without an account', () => {
 
   test('the classic planner\'s Transition tab: Keep this is one save, and the page says the same sentences', async ({ page, watch }, info) => {
     test.setTimeout(240_000);
-    watch.allow(WORKER_DATA_MISSING);
     await page.clock.setFixedTime(new Date(FIXED_NOW));
     await page.goto(v7('#/'));
     await expect(page.locator('#app [data-screen]')).toBeVisible();

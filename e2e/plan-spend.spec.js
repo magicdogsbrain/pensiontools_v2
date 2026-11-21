@@ -14,7 +14,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { test, expect, PROD, REPO, FIXED_NOW, watchLanding, landingShown, V7_PATH, atClassic, WORKER_DATA_MISSING } from './helpers/app.js';
+import { test, expect, PROD, REPO, FIXED_NOW, watchLanding, landingShown, V7_PATH, atClassic } from './helpers/app.js';
 import { SPEND_WRITES } from '../src/answers/plan/schema.js';
 import { monthlyNet, yearlyGross } from '../src/answers/plan/spend.js';
 import { bandsOf } from '../src/answers/plan/about.js';
@@ -60,7 +60,6 @@ test.describe('"What you spend", without an account', () => {
   test('the first row and the cards; a new first figure and a step with a fall; Save (one plan, the declared keys only); Undo byte for byte; the planner shows the new shape', async ({ page, watch }) => {
     test.setTimeout(240_000);
     // as on the live site today: the engine worker asks for the market files from its own address (e2e/full-view-unchanged.spec.js)
-    watch.allow(WORKER_DATA_MISSING);
     const plan = lumpyPlan();
     const locked = lockedPlan();
     const b = bandsOf(plan.stressTool.settings);
@@ -151,8 +150,9 @@ test.describe('"What you spend", without an account', () => {
     const stepRows = page.locator('#incomeStepsEditor input[type="number"]');
     const values = await stepRows.evaluateAll((els) => els.map((e) => e.value));
     expect(values).toContain('85');
-    expect(values).toContain(String(yearlyGross(3000, b)));
-    expect(values).toContain(String(yearlyGross(2000, b)));
+    // (step F2) the full view's step boxes ask a month after tax, as the simple view does: the figures typed there read back
+    expect(values).toContain('3000');
+    expect(values).toContain('2000');
     await expect(page.locator('#ssBaseSalary')).toHaveValue(String(yearlyGross(3000, b)));
     // the planner's own loader stamps its upgrade as it always has; this step's keys are as the preview wrote them
     const plansNow = await storedPlans(page);

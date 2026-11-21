@@ -11,6 +11,7 @@
  *   setFact(el, id)                the attribute set on a DOM element
  *   markWithin(html, finds)        words already written, with group 1 of the first match of each [RegExp, id] marked
  *   unmarked(html)                 the same HTML with the fact marks taken off (for tests that read the words)
+ *   asWhatIf(html)                 a what-if's HTML: every fact and table mark taken off (never the plan's figure)
  *
  * An id outside the register (src/reading/facts.js) throws: a mark the sweep cannot read is a mistake to catch at once.
  */
@@ -69,6 +70,14 @@ export const CHANCE_WORDS = /((?:more than |less than |about )?(?:\d+ times|once
 
 /** The fixed-age chance as the words say it (answers/shared/format.js twentiethsOfFutures): "in 14 of 20 futures we tried". */
 export const FIXED_CHANCE_WORDS = /(in (?:every future|none of the futures|(?:more than |fewer than )?\d+ of 20 futures) we tried)/;
+
+/**
+ * A what-if's HTML (lead4.md D10; step F3): the same figures with every fact and table mark taken off. A what-if (Try a
+ * strategy, a way's own page run on its dials) is never the plan's figure, so it never carries the plan's marks.
+ */
+export function asWhatIf(html) {
+  return String(html == null ? '' : html).replace(/\sdata-fact(?:-table)?="[^"]*"/g, '');
+}
 
 /** The HTML with every fact mark taken off, its figure left as it was: what a test of the words compares. */
 export function unmarked(html) {

@@ -24,7 +24,7 @@ import { HELD } from '../../v7/copy/held.js';
 import { PLAN } from '../../v7/copy/plan.js';
 import { LAYOUT } from '../../appLayout.js';
 import { markWithin, markFact } from '../../reading/mark.js';
-import { GILTS_HELD_FIND } from '../../reading/sentenceMarks.js';
+import { GILTS_HELD_FIND, MOVE_MONEY_FINDS } from '../../reading/sentenceMarks.js';
 import { moveStatusOf, sayMoveStatus, payingOf, outsideRowsOf, moveTotalsOf, cashRowsOf, fillMove } from '../../answers/plan/moveWords.js';
 
 const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
@@ -193,7 +193,7 @@ export function payingHtml(R) {
   if (!R || (!R.paying && !(R.outside && R.outside.length))) return '';
   const P = MOVE.paying, O = MOVE.outside;
   let h = '<div class="section-title" style="margin-top:10px;">' + esc(P.title) + '</div>';
-  if (R.paying) { const slots = { ...R.paying.slots, from: P.from[R.paying.slots.from] || R.paying.slots.from }; h += '<p id="transitionPaying">' + esc(R.paying.ids.map((id) => fillMove(P[id], slots)).join(' ')) + '</p>'; }
+  if (R.paying) { const slots = R.paying.slots; h += '<p id="transitionPaying">' + markWithin(esc(R.paying.ids.map((id) => fillMove(P[id], slots)).join(' ')), MOVE_MONEY_FINDS) + '</p>'; }
   const note = (n) => {
     if (!n) return '';
     if (n.id === 'gilt' || n.id === 'giltReal') return esc(fillMove(O.notes[n.id], n.slots)) + ' ' + esc(O.notes.sellOr) + ' <a href="#holdingsCard">' + esc(O.notes.sayYears) + '</a>.' + (n.cashYear ? ' ' + esc(fillMove(O.notes.cashYear, n.slots)) : '');
@@ -343,7 +343,7 @@ export function transitionHtml(a) {
     // when to buy on a ladder; a pot plan keeps when its plan starts and its window opens
     const when = ladder || totalsOnly ? '' : ' ' + esc(seq && seq.startPassed ? 'The plan has been paying since tax year ' + startLabel + '; the schedule is spread over the next ' + seq.months + ' months.'
       : (startLabel ? 'The plan’s first tax year is ' + startLabel + '. ' : '') + (seq && seq.opensAt ? 'Your move window opens in ' + monthWordsLong(seq.opensAt) + '; nothing to do before then.' : seq ? 'The buying is spread over the next ' + seq.months + ' month' + (seq.months === 1 ? '' : 's') + '.' : ''));
-    h += '<div class="alert ' + tone + '" id="transitionStatus"><strong>' + markWithin(esc(sayMoveStatus(R.status, MOVE)), [[GILTS_HELD_FIND, 'gilts.held']]) + '</strong>' + when
+    h += '<div class="alert ' + tone + '" id="transitionStatus"><strong>' + markWithin(esc(sayMoveStatus(R.status, MOVE)), [[GILTS_HELD_FIND, 'gilts.held'], ...MOVE_MONEY_FINDS]) + '</strong>' + when
       + (R.pace ? '<br>' + esc(fillMove(R.pace.months === '1' ? MOVE.status.paceOne : MOVE.status.pace, R.pace)) : '')
       + (ladder ? '<br>' + esc(MOVE.status.timing) : '') + '</div>';
   }

@@ -14,9 +14,10 @@ import { LEVEL_IDS } from '../answers/shared/shown.js';
 import { SUCCESS, planToAgeOf } from '../answers/shared/rules.js';
 import { withSavingChance } from '../answers/shared/savingChance.js';
 import { markFact, markWithin, tableAttr, cellAttr } from '../reading/mark.js';
-import { TABLES } from '../reading/facts.js';
+import { TABLES, FACT } from '../reading/facts.js';
 import { wayFactIds, wayVerdictOf, wayFiguresOf } from '../reading/ways.js';
-import { LASTS_FINDS } from '../reading/sentenceMarks.js';
+import { LASTS_FINDS, DOC_LASTS_FINDS } from '../reading/sentenceMarks.js';
+import { lockedLastsOf } from '../reading/document.js';
 import { MIX } from '../v7/copy/mix.js';
 
 
@@ -377,15 +378,16 @@ function documentBlockHtml(r, p, def) {
   const w = def.weighted;
   const v = chanceVerdictOf(r, p, { definition: def }) || 'no';
   const tone = v === 'yes' ? 'success' : v === 'close' ? 'warning' : 'danger';
-  const kind = kindOf(r);
-  const age = planToAgeOfDefinition(def) ?? planToAgeOf(+p.startAge || 0, +p.durationYears || 0);
   const name = LEVEL_NAMES[def.level] || 'Balanced';
-  const head = typeof w.chance === 'number'
-    ? '<div data-weighted="' + w.chance + '"><span class="hero" style="font-size:30px;">' + esc(chanceWords(w.chance)) + '</span><span class="hero-sub">When the plan was locked, counting how long people your age live, ' + esc(LASTS_AS_LONG[kind]) + ' ' + esc(chanceWords(w.chance)) + '.</span></div>'
-    : '<div><span class="hero" style="font-size:30px;">' + esc(twentiethsOfFutures(w.fixedAge)) + '</span><span class="hero-sub">When the plan was locked.</span></div>';
+  // the document's own words, the one reader both views say (src/reading/document.js; step F5, D18): its figures marked as
+  // the record they are (doc.lasts.chance, doc.lasts.fixedChance), never as today's
+  const L = lockedLastsOf({ assumptions: { success: def }, strategy: { r, p } });
+  const head = L.tested === 'weighted'
+    ? '<div data-weighted="' + w.chance + '"><span class="hero" style="font-size:30px;">' + markFact(FACT.DOC_CHANCE, esc(L.chanceWords)) + '</span><span class="hero-sub">' + markWithin(esc(L.headline), DOC_LASTS_FINDS) + '</span></div>'
+    : '<div><span class="hero" style="font-size:30px;">' + esc(twentiethsOfFutures(w.fixedAge)) + '</span><span class="hero-sub">' + esc(L.headline) + '</span></div>';
   return '<div class="verdict verdict-' + tone + '" data-level="' + esc(def.level) + '"><div class="verdict-title">' + (r.ruinLabel ? 'Will you get what you planned? — ' : 'Will your money last? — ') + VERDICT_TITLE[v] + ' at ' + name + ', when it was locked</div>'
     + '<div class="verdict-heroes">' + head + '</div>'
-    + '<p class="verdict-fixed" data-fixed="1">' + esc(fixedAgeWords(typeof w.fixedAge === 'number' ? w.fixedAge : 1 - (r.ruin.mc || 0) / 100, age, { kind })) + '</p>'
+    + '<p class="verdict-fixed" data-fixed="1">' + markWithin(esc(L.fixed), DOC_LASTS_FINDS) + '</p>'
     + '<div class="verdict-basis">The figures this plan was locked with; the document keeps them.</div></div>';
 }
 

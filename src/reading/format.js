@@ -86,6 +86,8 @@ export const FACT_FORMAT = Object.freeze({
   'income.step.#.fromAge': ageText,
   'plan.pricesFrom': monthText,
   'ladder.monthly': money,
+  'doc.lasts.chance': asIs,
+  'doc.lasts.fixedChance': asIs,
   'stop.month': monthText,
   yearsToGo: spanText,
   stage: asIs,

@@ -126,6 +126,15 @@ export const THIS_YEAR_MARKS = Object.freeze({ keys: THIS_YEAR_FACTS, finds: [[T
 export const PRICES_FIND = / at ((?:January|February|March|April|May|June|July|August|September|October|November|December) \d{4}) prices\b/;
 export const STEP_FINDS = Object.freeze([[PRICES_FIND, FACT.PRICES_FROM]]);
 
+/**
+ * The plan document's own chance and fixed-age count, as it was locked (src/reading/document.js lockedLastsOf, both views):
+ * a record beside the live run's lasts.chance and lasts.fixedChance, so marked as its own facts.
+ */
+export const DOC_LASTS_FINDS = Object.freeze([
+  [/counting how long people your age live, [a-z ]+? ((?:more than |less than |about )?(?:\d+ times|once) in 20|in every future we tried|in none of the futures we tried)\./, FACT.DOC_CHANCE],
+  [FIXED_CHANCE_WORDS, FACT.DOC_FIXED_CHANCE]
+]);
+
 /** The household's headline (HOUSEHOLD.verdict.headline, both views): its chance in words. */
 export const HOUSEHOLD_CHANCE = Object.freeze({ words: FACT.HOUSEHOLD_CHANCE });
 

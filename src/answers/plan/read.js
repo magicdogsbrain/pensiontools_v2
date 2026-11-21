@@ -46,24 +46,7 @@ import { oneAnswer, futuresOutOfTen } from '../../services/OneAnswer.js';
 import { SUCCESS, planToAgeOf, STRESS as STRESS_ON } from '../shared/rules.js';
 import { chanceWords, fixedAgeWords } from '../shared/format.js';
 
-/**
- * What a locked document says about lasting, in its own words (7.8.0, the build spec's section 8). A document tested
- * under the weighted definition (assumptions.success with a weighted figure) says it as it was locked: the chance the money
- * lasted as long as you do, then the fixed-age count with its age. A document without one (every document before 7.8.0) keeps
- * its words, "Your plan lasts in 9 futures out of 10", and — once the figures are weighted (SUCCESS.weighted) — says how it
- * was counted, so it is never read against the weighted figures beside it. Nothing is written.
- */
-export function lockedLastsWords(doc, a, dp, weighted = SUCCESS.weighted) {
-  const def = doc && doc.assumptions && doc.assumptions.success && typeof doc.assumptions.success === 'object' ? doc.assumptions.success : null;
-  const w = def && def.weighted && typeof def.weighted === 'object' ? def.weighted : null;
-  if (w && typeof w.chance === 'number') {
-    const age = planToAgeOfDefinition(def) ?? planToAgeOfDoc(dp);
-    return 'When the plan was locked, counting how long people your age live, the money lasted as long as you do ' + chanceWords(w.chance) + '. ' + fixedAgeWords(typeof w.fixedAge === 'number' ? w.fixedAge : a.share, age).replace(/\.$/, '');
-  }
-  const own = 'Your plan lasts ' + futuresOutOfTen(a.share).words;
-  if (!weighted || def) return own;
-  return own + '; when it was locked, counted to ' + planToAgeOfDoc(dp) + '; not by how long you might live';
-}
+// What a locked document says about lasting: src/reading/document.js lockedLastsOf, the one reader both views say (step F5)
 
 /** The age a document's plan runs to, as every page of both apps says it (rules.js planToAgeOf: "to 97" = to the 97th birthday). */
 const planToAgeOfDoc = (dp) => planToAgeOf(+(dp && dp.startAge) || 0, +(dp && dp.durationYears) || 0);
@@ -81,6 +64,7 @@ import { shownPlanName } from '../../services/PlanName.js';
 import { takenSentence, firstPaymentMonth, monthToRecord } from '../../services/YearPlan.js';
 import { thisTaxYearOf, thisYearSentences } from '../../reading/thisYear.js';
 import { planYearSentence, stepSentence, ladderSentence } from '../../reading/where.js';
+import { lockedLastsOf } from '../../reading/document.js';
 // the plans linked to this one, in either direction (6), this plan's own link first; never a closed plan (services/HouseholdLink.js)
 import { partnersOf, partnerIdOf } from '../../services/HouseholdLink.js';
 
@@ -622,7 +606,7 @@ function planStep(C) {
     if (a) {
       figures.saysBad = r0(a.badCaseLeft); figures.saysTypical = r0(a.typicalLeft);
       if (doc.strategy.contract) lines.push(line('says.badContract', ['Every year is bought by contract, so no future and no start year can run it out. Left at the end, at today’s prices: typically ', money('saysTypical'), '; in a bad case (the worst 1 in 10) ', money('saysBad')], figures, src));
-      else lines.push(line('says.bad', [lockedLastsWords(doc, a, dp) + '. Left at the end, at today’s prices: typically ', money('saysTypical'), '; in a bad case (the worst 1 in 10) ', money('saysBad')], figures, src));
+      else lines.push(line('says.bad', [(lockedLastsOf(doc) || { words: '' }).words + '. Left at the end, at today’s prices: typically ', money('saysTypical'), '; in a bad case (the worst 1 in 10) ', money('saysBad')], figures, src));
     }
     const sl = savedLasts(plan, { today: now.toISOString().slice(0, 10) });
     const v = sl.values;

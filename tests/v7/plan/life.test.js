@@ -17,7 +17,7 @@ import { describe, it, expect } from 'vitest';
 import { STRATEGY_LIFE, DURATION_SHAPED, lifeOf, lifeOfSettings, planLevelOf, weightedReasonOf, weightedYearsOf } from '../../../src/answers/plan/life.js';
 import { runLasts, runForDocument, planFor, weightedPlanFor, onCourseOptsOf, weighing, documentSuccessOf, successOf } from '../../../src/answers/plan/lastsRun.js';
 import { verdictOf, verdictWord, boldConsequenceOf } from '../../../src/answers/plan/lasts.js';
-import { lockedLastsWords } from '../../../src/answers/plan/read.js';
+import { lockedLastsOf } from '../../../src/reading/document.js';   // step F5: the one reader of the document's lasting words, both views
 import { lockPatch } from '../../../src/answers/plan/lock.js';
 import { aboutOf } from '../../../src/answers/plan/about.js';
 import { oneAnswer, weightedFailsOf, headYearsOf } from '../../../src/services/OneAnswer.js';
@@ -294,8 +294,8 @@ describe('the plan document records its definition; an old one reads as written'
     expect(on.stored.note).toBe(off.stored.note);
     expect(on.stored.success).toBe(null);
     const a = oneAnswer(doc.strategy.r, doc.strategy.p);
-    expect(lockedLastsWords(doc, a, doc.strategy.p, false)).toBe('Your plan lasts ' + a.outOfTen.words);
-    expect(lockedLastsWords(doc, a, doc.strategy.p, true)).toMatch(/; when it was locked, counted to \d+; not by how long you might live$/);
+    expect(lockedLastsOf(doc, { weighted: false }).words).toBe('Your plan lasts ' + a.outOfTen.words);
+    expect(lockedLastsOf(doc, { weighted: true }).words).toMatch(/; when it was locked, counted to \d+; not by how long you might live$/);
   });
 });
 

@@ -20,6 +20,7 @@ import { HOUSEHOLD } from '../v7/copy/household.js';
 import { planEndAgeOf } from '../services/PlanTiming.js';
 import { householdStartsOf, startsWords } from '../services/HouseholdStarts.js';
 import { todayOf } from '../reading/clock.js';
+import { CHECK_DEFAULTS as D } from '../answers/plan/household.js';   // the survivor and care checks' one set of starting figures (step F6)
 
 export const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 export const gbp = (n) => '£' + Math.round(+n || 0).toLocaleString('en-GB');
@@ -139,18 +140,18 @@ export function survivorCareHtml(ownName, pName) {
     + '<p style="font-size:13px;">The survivor keeps their own pensions, inherits what the other\'s plan has left then (a pension inherited is added to the pension in their name and taxed as it is drawn), loses one State Pension, and typically needs about 70% of the joint spending. Both plans run through their own strategy\'s test.</p>'
     + '<div class="row-flex" style="font-size:13px;">'
     + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Who dies<select id="hhWhoDies" style="min-width:150px;"><option value="A">' + a + '</option><option value="B">' + b + '</option></select></label>'
-    + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Years from now<input type="number" id="hhDeathYear" value="10" min="1" max="40" style="width:80px;"></label>'
-    + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Survivor spends (% of joint)<input type="number" id="hhSurvivorPct" value="70" min="40" max="100" style="width:80px;"></label>'
-    + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">DB survivor %<input type="number" id="hhDbSurvivorPct" value="50" min="0" max="100" style="width:80px;"></label>'
+    + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Years from now<input type="number" id="hhDeathYear" value="' + D.survivorInYears + '" min="1" max="40" style="width:80px;"></label>'
+    + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Survivor spends (% of joint)<input type="number" id="hhSurvivorPct" value="' + D.spendPct + '" min="40" max="100" style="width:80px;"></label>'
+    + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">DB survivor %<input type="number" id="hhDbSurvivorPct" value="' + D.dbPct + '" min="0" max="100" style="width:80px;"></label>'
     + '<button type="button" class="risk-btn" style="padding:8px 14px;align-self:flex-end;" data-on-click="runSurvivorUI()">Run survivor check</button></div>'
     + '<div id="hhSurvivorResult" style="margin-top:8px;"></div></div>'
     + '<div class="settings-section"><div class="section-title">What if one of you needs care?</div>'
     + '<p style="font-size:13px;">Nursing care runs roughly £80–100k a year. This adds the full cost on top of normal spending (deliberately cautious) as a one-off cost in that person\'s plan and re-runs both plans through their own strategy\'s test. It models the cost only — never local-authority means-testing.</p>'
     + '<div class="row-flex" style="font-size:13px;">'
     + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Who needs care<select id="hhCareWho" style="min-width:150px;"><option value="A">' + a + '</option><option value="B">' + b + '</option></select></label>'
-    + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">From (years from now)<input type="number" id="hhCareStart" value="15" min="0" max="40" style="width:80px;"></label>'
-    + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">For (years)<input type="number" id="hhCareYears" value="3" min="1" max="15" style="width:80px;"></label>'
-    + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Cost (£ a year after tax, today\'s money)<input type="number" id="hhCareCost" value="90000" step="5000" style="width:110px;"></label>'
+    + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">From (years from now)<input type="number" id="hhCareStart" value="' + D.careInYears + '" min="0" max="40" style="width:80px;"></label>'
+    + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">For (years)<input type="number" id="hhCareYears" value="' + D.careYears + '" min="1" max="15" style="width:80px;"></label>'
+    + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Cost (£ a year after tax, today\'s money)<input type="number" id="hhCareCost" value="' + D.careCost + '" step="5000" style="width:110px;"></label>'
     + '<button type="button" class="risk-btn" style="padding:8px 14px;align-self:flex-end;" data-on-click="runCareUI()">Run care check</button></div>'
     + '<div id="hhCareResult" style="margin-top:8px;"></div></div>';
 }

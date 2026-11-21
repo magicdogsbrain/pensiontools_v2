@@ -45,6 +45,12 @@ import { dateOf, dayWords } from './dates.js';
 import { planEndAgeOf } from '../../services/PlanTiming.js';
 import { shownPlanNameOn } from '../../services/PlanName.js';
 
+/**
+ * The survivor and care checks' starting figures, ONE set for both views (lead4.md D20; step F6): the full view's Household tab
+ * fills its boxes from these, the simple view's from the same (in years from now there, as ages here).
+ */
+export const CHECK_DEFAULTS = Object.freeze({ survivorInYears: 10, spendPct: 70, dbPct: 50, careInYears: 15, careYears: 3, careCost: 90000 });
+
 export { runKeyOf };
 
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
@@ -110,8 +116,8 @@ export function boxesOf(plan, partner, { today }) {
     'link.choice': '',
     'need.amount': '',
     'limit.kind': 'none', 'limit.age': String(s.spAge[s.smaller] || 67), 'limit.amount': '',
-    'survivor.who': 'a', 'survivor.atAge': String(ageOf('a') + 10), 'survivor.spendPct': '70', 'survivor.dbPct': '50',
-    'care.who': 'a', 'care.fromAge': String(ageOf('a') + 15), 'care.years': '3', 'care.cost': '90000',
+    'survivor.who': 'a', 'survivor.atAge': String(ageOf('a') + CHECK_DEFAULTS.survivorInYears), 'survivor.spendPct': String(CHECK_DEFAULTS.spendPct), 'survivor.dbPct': String(CHECK_DEFAULTS.dbPct),
+    'care.who': 'a', 'care.fromAge': String(ageOf('a') + CHECK_DEFAULTS.careInYears), 'care.years': String(CHECK_DEFAULTS.careYears), 'care.cost': String(CHECK_DEFAULTS.careCost),
     'budget.shared': read.budget.sharedWithPartner ? 'yes' : 'no', 'budget.mySharePct': String(Number.isFinite(+read.budget.mySharePct) ? +read.budget.mySharePct : (Number.isFinite(+b.mySharePct) ? +b.mySharePct : 50))
   };
 }

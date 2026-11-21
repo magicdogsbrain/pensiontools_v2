@@ -25,7 +25,9 @@ export const SIMPLE_PRESS = Object.freeze({
   // "Which mix lasts best?", as the full view's Compare allocations is pressed
   mix: Object.freeze(['[data-testid="plan.mix.compare.run"]']),
   // "More columns" under the ways' cards: the worst 12 months and what is left per way, as the full view's ranking shows them
-  way: Object.freeze(['[data-testid="plan.way.more"]'])
+  way: Object.freeze(['[data-testid="plan.way.more"]']),
+  // "Check them together", as the full view's "Run the household check" is pressed (step F6: household.chance in both views)
+  household: Object.freeze(['[data-testid="plan.household.check"]'])
 });
 
 /** A page's presses as a list (a page may name one press or several, in order). */
@@ -59,7 +61,8 @@ export const FULL_PAGES = Object.freeze([
   // "Am I on course?" is worked out when the tab opens, in the worker, as in the simple view (lead4.md R6; step M): no press
   { name: 'accumulation', tab: 'accumulation' },
   { name: 'transition', tab: 'transition' },
-  { name: 'household', tab: 'household' }
+  // the household check runs on a press in both views; the sweep presses it in both (step F6)
+  { name: 'household', tab: 'household', press: 'button[data-on-click="runHouseholdCheck()"]' }
 ]);
 
 /** Opens a tab (and sub-tab) of the full view as a person does; false when the stage does not offer it. */

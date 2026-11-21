@@ -124,8 +124,6 @@ export function thisYearSentences(t) {
       ? ['In ' + t.year + ' your plan takes ', money('yearMonthly'), ' a month before tax.']
       : ['In ' + t.year + ' your plan takes ', money('yearMonthly'), ' a month before tax, from ' + monthWords(S.from) + ': ' + S.payments + ' payment' + (S.payments === 1 ? '' : 's') + ', ', money('yearTotal'), '.']
   }];
-  // the set-up is a dated record (lead4.md R4; step F5): said with its day wherever it is shown, in both views
-  if (S.on && !(t.differs && t.planSays)) out[0].parts = [...out[0].parts, ' This tax year was set up on ' + dayWords(S.on) + '.'];
   if (t.differs && t.planSays && t.planSays.perYear != null && S.perYear != null) {
     const f = { planYear: t.planSays.perYear, setUpYear: S.perYear, yearMonthly: Math.round(S.perMonth) };
     out.push({

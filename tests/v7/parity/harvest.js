@@ -165,7 +165,8 @@ export function harvestV6Keys() {
   }
   add('decision', returnLiteralKeys(definer('readGiaFields').src, 'readGiaFields'), 'readGiaFields() (the Decision form uses it too)');
   // the setup wizard's first settings
-  for (const [ns, re] of [['stress', /const stressSettings\s*=\s*(?=\{)/], ['decision', /const decisionSettings\s*=\s*(?=\{)/]]) {
+  // (step F6: src/ui/planStartUi.js wizardSettingsOf returns them, its timing through PlanFromSeed.timingSettingsOf)
+  for (const [ns, re] of [['stress', /(?:const stressSettings\s*=|return \{ stressSettings:)\s*(?=\{)/], ['decision', /(?:const decisionSettings\s*=|, decisionSettings:)\s*(?=\{)/]]) {
     const w = sourceWith(re, 'the set-up wizard\'s ' + ns + 'Settings');
     add(ns, literalKeysAfter(w.src, re), w.rel + ': set-up wizard ' + ns + 'Settings');
   }

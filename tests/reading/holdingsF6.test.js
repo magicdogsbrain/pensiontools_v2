@@ -214,7 +214,7 @@ describe('a saver waiting for the move window can choose an earlier start in the
     const h = waitingHtml({ opens: 'June 2027', yearsToStart: '6', startsAround: 'June 2030', newMoney: null, planMix: null, held: null }, { years: 4 });
     const { MOVE } = await import('../../src/v7/copy/move.js');
     expect(h).toContain(REVIEW.moveWindow.title + ': <select');
-    expect(h).toContain(MOVE.waiting.window);   // no figure outside the box: the length is the box's own
+    expect(h).toContain(MOVE.waiting.longerWindow);   // no figure outside the box: the length is the box's own
     expect(h).toContain('data-on-change="setMoveWindow(this.value)"');
     for (const n of [1, 2, 3, 4, 5]) expect(h).toContain('<option value="' + n + '"' + (n === 4 ? ' selected' : '') + '>' + REVIEW.moveWindow.options[n] + '</option>');
     expect(waitingHtml({ opens: null, yearsToStart: '6', startsAround: '', newMoney: null, planMix: null, held: null }, null)).not.toContain('setMoveWindow');

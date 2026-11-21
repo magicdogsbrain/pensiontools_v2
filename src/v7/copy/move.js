@@ -78,7 +78,7 @@ export const MOVE = {
     planMix: 'The plan’s mix: shares {shares}%, bonds {bonds}%, cash {cash}%.',
     heldMix: 'What you hold, in your pension: shares {shares}%, bonds {bonds}%, gold and trend {diversifiers}%, cash {cash}%.',
     starts: 'The move itself starts around {when}.',
-    window: 'A longer move window starts the move earlier. Nothing is moved before it opens.'
+    longerWindow: 'A longer move window starts the move earlier. Nothing is moved before it opens.'
   },
   cost: {
     title: 'What skipping it costs',

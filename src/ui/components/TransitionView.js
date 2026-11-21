@@ -250,7 +250,7 @@ export function waitingHtml(w, moveWindow = null) {
   if (moveWindow && moveWindow.years) {
     const M = REVIEW.moveWindow, n = moveWindow.years;
     h += '<p class="hint" id="transitionWindow"><label>' + esc(M.title) + ': <select id="trMoveWindow" data-on-change="setMoveWindow(this.value)">'
-      + Object.keys(M.options).map((k) => '<option value="' + k + '"' + (+k === n ? ' selected' : '') + '>' + esc(M.options[k]) + '</option>').join('') + '</select></label> ' + esc(S.window) + '</p>';
+      + Object.keys(M.options).map((k) => '<option value="' + k + '"' + (+k === n ? ' selected' : '') + '>' + esc(M.options[k]) + '</option>').join('') + '</select></label> ' + esc(S.longerWindow) + '</p>';
   }
   return h + '</div>';
 }

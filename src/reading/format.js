@@ -7,6 +7,7 @@
  *   moneyK(n)       the nearest £1,000: 468,250 → '£468,000' (a figure worked out over many futures, never to the pound)
  *   ageText(n)      95.6 → '95'. Whole years, rounded down.
  *   monthText(ym)   '2027-05' (or '2027-05-14', or a Date) → 'May 2027'; '' when it is not a month
+ *   dayText(d)      '2026-11-03' → '3 November 2026'; '' when it is not a day
  *   spanText(m)     months to go: 7 → '7 months', 19 → '1 year 7 months', 24 → '2 years', 131 → '10 years' (whole years
  *                   rounded down; the months said too under two years, and alone under one)
  *   pctText(n)      31 → '31%', 26.5 → '26.5%' (two places at most)
@@ -39,6 +40,13 @@ export function monthText(x) {
   const m = /^(\d{4})-(\d{2})/.exec(String(x == null ? '' : x));
   if (!m || +m[2] < 1 || +m[2] > 12) return '';
   return MONTHS[+m[2] - 1] + ' ' + m[1];
+}
+
+/** A calendar day: '2026-11-03' (or an ISO time on that day) → '3 November 2026'; '' when it is not a day. */
+export function dayText(x) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(x == null ? '' : x));
+  if (!m || +m[2] < 1 || +m[2] > 12) return '';
+  return +m[3] + ' ' + MONTHS[+m[2] - 1] + ' ' + m[1];
 }
 
 export function spanText(months) {
@@ -90,6 +98,7 @@ export const FACT_FORMAT = Object.freeze({
   'income.thisYear.perMonth': money,
   'income.thisYear.total': money,
   'income.thisYear.from': monthText,
+  'income.thisYear.setUpOn': dayText,
   // step F3: each way's figures in the ways list (src/reading/ways.js wayFiguresOf). What is left at the end is worked out
   // over many futures: the nearest £1,000, as "Does it last?" says it (lead4.md D8: one precision); the rest whole pounds
   'way.#.left': moneyK,

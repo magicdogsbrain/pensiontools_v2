@@ -9,7 +9,7 @@
  *   yearPlanHtml(t)                       the year as set up, the very sentence "Where you are" says in the simple view
  */
 import { thisTaxYearOf, thisYearSentences } from '../reading/thisYear.js';
-import { sentenceHtml, THIS_YEAR_FACTS, THIS_YEAR_MARKS } from '../reading/sentenceMarks.js';
+import { sentenceHtml, THIS_YEAR_MARKS } from '../reading/sentenceMarks.js';
 import { markFact } from '../reading/mark.js';
 import { FACT } from '../reading/facts.js';
 import { money, monthText } from '../reading/format.js';
@@ -44,5 +44,5 @@ export function yearChangedHtml(t, { button = '' } = {}) {
   const s = sentenceOf(t, 'where.yearChanged');
   if (!s) return '';
   const btn = button ? ' <button class="btn secondary" data-testid="setUpAgain" data-on-click="' + esc(button) + '">Set this year up again</button>' : '';
-  return '<div class="alert alert-warning" data-sentence-id="where.yearChanged"><p style="margin:0;">' + sentenceHtml(s, s.figures, { keys: THIS_YEAR_FACTS }, esc) + '</p>' + (btn ? '<p style="margin:8px 0 0;">' + btn + '</p>' : '') + '</div>';
+  return '<div class="alert alert-warning" data-sentence-id="where.yearChanged"><p style="margin:0;">' + sentenceHtml(s, s.figures, THIS_YEAR_MARKS, esc) + '</p>' + (btn ? '<p style="margin:8px 0 0;">' + btn + '</p>' : '') + '</div>';
 }

@@ -38,6 +38,7 @@ export function readingsFor(raw, { now }) {
     if (t.setUp && t.setUp.perYear != null) put('income.thisYear.beforeTax', t.setUp.perYear);
     if (t.setUp) { put('income.thisYear.from', t.setUp.from); put('income.thisYear.perMonth', Math.round(t.setUp.perMonth)); if (!(t.setUp.from.slice(5) === '04' && t.setUp.payments === 12)) put('income.thisYear.total', t.setUp.total); }
     if (t.differs && t.planSays) put('income.thisYear.planSays', t.planSays.perYear);
+    if (t.setUp && t.setUp.on) put('income.thisYear.setUpOn', t.setUp.on);   // step F5 (R4): the set-up's day
   } catch { /* not set up */ }
   return out;
 }

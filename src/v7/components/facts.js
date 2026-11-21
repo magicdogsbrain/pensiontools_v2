@@ -9,7 +9,7 @@
  * Until 7.12.0 a mark sat on the whole line (LINE_FACTS); it now sits on the figure.
  */
 
-import { GILTS_HELD_FIND, LASTS_FINDS, THIS_YEAR_FROM_FIND } from '../../reading/sentenceMarks.js';
+import { GILTS_HELD_FIND, LASTS_FINDS, THIS_YEAR_FROM_FIND, THIS_YEAR_ON_FIND } from '../../reading/sentenceMarks.js';
 
 /** The words under "Does it last?" (OneAnswer's weighted words), marked as the full view marks them: a row id → its finds. */
 const LASTS_ROW_FINDS = Object.freeze({ floorW: LASTS_FINDS.floor, leftW: LASTS_FINDS.left, assumedW: LASTS_FINDS.assumed, fixedW: LASTS_FINDS.fixed });
@@ -86,7 +86,8 @@ const FINDS = Object.freeze({
   'move.giltsPart': [[GILTS_HELD_FIND, 'gilts.held']],
   'lock.locked': [[/^(Locked)\b/, 'lock.state'], [/^Locked (.+)$/, 'lock.date']],
   'lock.notLocked': [[/^(Not locked)/, 'lock.state']],
-  'where.yearPlan': [[THIS_YEAR_FROM_FIND, 'income.thisYear.from']]
+  'where.yearPlan': [[THIS_YEAR_FROM_FIND, 'income.thisYear.from'], [THIS_YEAR_ON_FIND, 'income.thisYear.setUpOn']],
+  'where.yearChanged': [[THIS_YEAR_ON_FIND, 'income.thisYear.setUpOn']]
 });
 export const sentenceFindsOf = (id) => FINDS[id] || [];
 

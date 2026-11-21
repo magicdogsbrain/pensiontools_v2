@@ -91,6 +91,8 @@ export const FACT = Object.freeze({
   YEAR_PER_MONTH: 'income.thisYear.perMonth',
   YEAR_TOTAL: 'income.thisYear.total',
   YEAR_FROM: 'income.thisYear.from',
+  // the day the year was set up: the set-up is a dated record (lead4.md R4; step F5)
+  YEAR_SET_UP_ON: 'income.thisYear.setUpOn',
   MONTH_TAKE: 'month.take.afterTax',
   MONTH_TAKE_PENSION: 'month.take.pension',
   MONTH_FROM: 'month.take.from',

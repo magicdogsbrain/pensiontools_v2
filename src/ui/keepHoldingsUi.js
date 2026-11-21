@@ -8,7 +8,9 @@ import { holdingsWith } from '../services/HoldingsRecord.js';
 import { typedTaxYears, tooEarlyOf } from '../answers/plan/hold.js';
 import { GAPS } from '../v7/copy/gaps.js';
 import { lifeOf } from '../answers/plan/gaps.js';
-import { heldPhase } from '../services/Phases.js';
+import { heldPhase, windowYearsOf } from '../services/Phases.js';
+import { phaseChoicePatch } from '../answers/plan/review.js';
+import { REVIEW } from '../v7/copy/review.js';
 import { PLAN } from '../v7/copy/plan.js';
 import { moveOf } from '../answers/plan/move.js';
 import { keepTestOf, amendPatch, withdrawPatch, sayKeep } from '../answers/plan/keepTest.js';
@@ -81,7 +83,8 @@ export function transitionHeld(scenario, rec, today = todayOf(), entries = null)
       status: v.status || null, totalsOnly: !!v.totalsOnly, pace: v.pace || null, paying: v.paying || null, outside: v.outside || [], ladderTotals: v.ladderTotals || null, cash: v.cash || null, isa: v.isa || null,
       sayHeld: v.sayHeld || null, saidHeld: v.saidHeld || null, sayHeldOpen: sayHeldMemory.open && sayHeldMemory.planId === String(plan.id),
       waiting: v.mode === 'waiting' ? { opens: v.opens || null, yearsToStart: v.yearsToStart || '0', startsAround: v.startsAround || '', newMoney: v.newMoney || null, planMix: v.planMix || null, held: v.held || null } : null,
-      sheet: v.sheet || [], spGate: v.spGate || null, pricedOn: v.pricedOn || null, gaps: v.gaps || null, ladder: !!v.ladder, raw: v.raw || null } : null;
+      sheet: v.sheet || [], spGate: v.spGate || null, pricedOn: v.pricedOn || null, gaps: v.gaps || null, ladder: !!v.ladder, raw: v.raw || null,
+      window: { years: windowYearsOf(plan) } } : null;   // the move window's length, chosen or the default (Phases.windowYearsOf)
   } catch { return null; }
 }
 
@@ -203,16 +206,31 @@ export function keepLineHtml(scenario) {
 /** The full view's confirm for "This is how I want to hold it" (7.12.0): page memory only, for the plan it was opened on. */
 const sayHeldMemory = { open: false, planId: null };
 
+/** The moment a write is stamped with (a record's time, never handed to a sum). */
+const stampNow = () => new Date().toISOString();
+
 export function installKeepTestHandlers(w, { scenario, persist, rerender, toast, persistPhases = null, run = runInWorker, canRun = workerAvailable, marketReady = () => w._marketReady, today = () => dayKeyOf(todayOf()) }) {
   // "This is how I want to hold it" and "Take this back" (7.12.0): the same one write as V7 (agree.js), the shell's save of `phases`
   const dayIso = today;   // the one clock (src/reading/clock.js)
   w.askSayHeld = async () => { const sc = await scenario(); sayHeldMemory.open = true; sayHeldMemory.planId = sc ? String(sc.id) : null; rerender(); };
   w.cancelSayHeld = () => { sayHeldMemory.open = false; rerender(); };
+  // the move window's length (step F6): the simple view's review choice, its one write and its words
+  w.setMoveWindow = async (value) => {
+    try {
+      const sc = await scenario();
+      if (!sc || !persistPhases) return;
+      const p = phaseChoicePatch(sc, 'window', +value, { at: stampNow(), today: dayIso() });
+      if (!p.ok) { toast(REVIEW.problems[p.problem] || REVIEW.problems.failed, 'error'); await rerender(); return; }
+      await persistPhases(p.patch.phases);
+      toast(REVIEW.toast.moveWindow.replace('{n}', REVIEW.moveWindow.options[+value]), 'success');
+    } catch (e) { toast(REVIEW.problems.failed, 'error'); }
+    await rerender();
+  };
   w.sayHeldFull = async () => {
     try {
       const sc = await scenario();
       if (!sc || closed(sc) || !persistPhases) return;
-      const p = sayHeldPatch(sc, { today: dayIso(), at: new Date().toISOString() });
+      const p = sayHeldPatch(sc, { today: dayIso(), at: stampNow() });
       if (!p.ok) { toast(MOVE.problems[p.problem] || MOVE.problems.failed, 'error'); return; }
       await persistPhases(p.patch.phases);
       sayHeldMemory.open = false;
@@ -223,7 +241,7 @@ export function installKeepTestHandlers(w, { scenario, persist, rerender, toast,
     try {
       const sc = await scenario();
       if (!sc || closed(sc) || !persistPhases) return;
-      const p = agreeWithdrawPatch(sc, { at: new Date().toISOString() });
+      const p = agreeWithdrawPatch(sc, { at: stampNow() });
       if (!p.ok) return;
       await persistPhases(p.patch.phases);
       if (JSON.stringify(p.patch.planAmendments || []) !== JSON.stringify(Array.isArray(sc.planAmendments) ? sc.planAmendments : [])) await persist(p.patch.planAmendments);
@@ -264,7 +282,7 @@ export function installKeepTestHandlers(w, { scenario, persist, rerender, toast,
       if (!sc || closed(sc)) return;
       forPlan(sc);
       // the result is for this plan as it is now, or nothing is written (the plan changed since the test: run it again)
-      const p = amendPatch(sc, resultFor(sc), { at: new Date().toISOString() });
+      const p = amendPatch(sc, resultFor(sc), { at: stampNow() });
       if (!p.ok) { memory.confirm = false; toast(HOLD.problems[p.problem] || KEEPTEST.failed, 'error'); await rerender(); return; }
       await persist(p.patch.planAmendments);
       memory.confirm = false;

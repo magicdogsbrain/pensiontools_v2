@@ -18,6 +18,7 @@ import { GAPS } from '../../v7/copy/gaps.js';
 import { sayKeep } from '../../answers/plan/keepTest.js';
 import { KEEPTEST } from '../../v7/copy/keepTest.js';
 import { MOVE } from '../../v7/copy/move.js';
+import { REVIEW } from '../../v7/copy/review.js';
 import { heldLadderHtml } from './HeldLadderView.js';
 import { heldSummaryView } from '../../answers/plan/held.js';
 import { HELD } from '../../v7/copy/held.js';
@@ -235,7 +236,7 @@ export function heldInfoHtml(I) {
  * through keepHoldingsUi.transitionHeld; src/v7/copy/move.js MOVE.waiting) — where new money goes, the two mixes, when the move
  * starts. No list to buy or sell before the window opens: the schedule runs over the window (TransitionPlanner.sequence).
  */
-export function waitingHtml(w) {
+export function waitingHtml(w, moveWindow = null) {
   if (!w) return '';
   const S = MOVE.waiting;
   let h = '<div id="transitionWaiting"><p><strong>' + esc(w.opens ? fillMove(S.line, { years: w.yearsToStart, opens: w.opens }) : fillMove(S.lineSoon, { years: w.yearsToStart })) + '</strong></p>';
@@ -244,6 +245,13 @@ export function waitingHtml(w) {
   if (w.planMix) h += '<p>' + esc(S.planMix).replace(/\{(shares|bonds|cash)\}/g, (m, b) => markFact(PLAN_MIX_SLOTS[b], esc(String(w.planMix[b])))) + '</p>';
   if (w.held && w.held.pcts) h += '<p>' + esc(fillMove(S.heldMix, w.held.pcts)) + '</p>';
   if (w.startsAround) h += '<p class="hint">' + esc(fillMove(S.starts, { when: w.startsAround })) + '</p>';
+  // the window's length (step F6; R8): the simple view's review choice, in its words and through its one write (setMoveWindow,
+  // review.js phaseChoicePatch 'window'). A longer window is an earlier start: nothing is moved before the window opens.
+  if (moveWindow && moveWindow.years) {
+    const M = REVIEW.moveWindow, n = moveWindow.years;
+    h += '<p class="hint" id="transitionWindow"><label>' + esc(M.title) + ': <select id="trMoveWindow" data-on-change="setMoveWindow(this.value)">'
+      + Object.keys(M.options).map((k) => '<option value="' + k + '"' + (+k === n ? ' selected' : '') + '>' + esc(M.options[k]) + '</option>').join('') + '</select></label> ' + esc(S.window) + '</p>';
+  }
   return h + '</div>';
 }
 
@@ -408,7 +416,7 @@ export function transitionHtml(a) {
       + (R.pace ? '<br>' + esc(fillMove(R.pace.months === '1' ? MOVE.status.paceOne : MOVE.status.pace, R.pace)) : '')
       + (ladder ? '<br>' + esc(MOVE.status.timing) : '') + '</div>';
   }
-  if (waiting) h += waitingHtml(held.waiting);
+  if (waiting) h += waitingHtml(held.waiting, held.window);
   if (!asHeld && !totalsOnly && !waiting && R.cash && R.cash.rows.length) {
     // the cash to hold now (7.12.0, S2): V7's reading and words — what each year needs beside the cash to hold for it, and the
     // years what is kept pays in part or in full

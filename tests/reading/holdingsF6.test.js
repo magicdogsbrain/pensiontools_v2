@@ -206,3 +206,31 @@ describe('the Accumulation tab never fills a box from What you hold (R2; nothing
     expect(pensionTodayOf(plan, { now: NOW })).toMatchObject({ value: 40000, from: 'holdings' });
   });
 });
+
+describe('a saver waiting for the move window can choose an earlier start in the full view too (step F6; R8)', () => {
+  it('the waiting section says the window in the review\'s words and offers its five lengths, the one chosen selected', async () => {
+    const { waitingHtml } = await import('../../src/ui/components/TransitionView.js');
+    const { REVIEW } = await import('../../src/v7/copy/review.js');
+    const h = waitingHtml({ opens: 'June 2027', yearsToStart: '6', startsAround: 'June 2030', newMoney: null, planMix: null, held: null }, { years: 4 });
+    const { MOVE } = await import('../../src/v7/copy/move.js');
+    expect(h).toContain(REVIEW.moveWindow.title + ': <select');
+    expect(h).toContain(MOVE.waiting.window);   // no figure outside the box: the length is the box's own
+    expect(h).toContain('data-on-change="setMoveWindow(this.value)"');
+    for (const n of [1, 2, 3, 4, 5]) expect(h).toContain('<option value="' + n + '"' + (n === 4 ? ' selected' : '') + '>' + REVIEW.moveWindow.options[n] + '</option>');
+    expect(waitingHtml({ opens: null, yearsToStart: '6', startsAround: '', newMoney: null, planMix: null, held: null }, null)).not.toContain('setMoveWindow');
+  });
+  it('the choice is the simple view\'s one write (review.js phaseChoicePatch part "window"), and the schedule opens at the window chosen', async () => {
+    const src = readFileSync('src/ui/keepHoldingsUi.js', 'utf8');
+    expect(src).toMatch(/w\.setMoveWindow = async[\s\S]*phaseChoicePatch\(sc, 'window'/);
+    const { transitionHeld } = await import('../../src/ui/keepHoldingsUi.js');
+    const { opensAtOf } = await import('../../src/answers/plan/move.js');
+    const { planStage } = await import('../../src/services/PlanReading.js');
+    const plan = { id: 'jo', stressTool: { settings: { currentAge: 52, currentAgeAsOf: PARITY_DAY, retired: false, retireAge: 62 } } };
+    const chosen = { ...plan, phases: { moving: { window: { years: 5, at: '2026-11-01T00:00:00Z' } } } };
+    expect(transitionHeld(plan, null, NOW).window).toEqual({ years: 3 });
+    expect(transitionHeld(chosen, null, NOW).window).toEqual({ years: 5 });
+    const a = opensAtOf(plan, planStage(plan, { now: NOW }), NOW), b = opensAtOf(chosen, planStage(chosen, { now: NOW }), NOW);
+    expect(a).toMatch(/^\d{4}-\d{2}$/);
+    expect(+b.slice(0, 4)).toBe(+a.slice(0, 4) - 2);   // two years longer, two years earlier
+  });
+});

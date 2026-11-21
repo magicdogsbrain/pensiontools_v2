@@ -6,7 +6,7 @@
   "grossToNet": 6,
   "projectAccumulation": 0,
   "diffHoldings": 0,
-  "newDate": 41,
+  "newDate": 39,
   "boxValue": 89,
   "engineImport": 21
  },
@@ -39,7 +39,7 @@
    "src/ui/homeBannerUi.js": 2,
    "src/ui/householdTabUi.js": 1,
    "src/ui/householdView.js": 1,
-   "src/ui/keepHoldingsUi.js": 3,
+   "src/ui/keepHoldingsUi.js": 1,
    "src/ui/monthFillEntry.js": 1,
    "src/ui/monthlyEntry.js": 1,
    "src/ui/planCloseUi.js": 2,

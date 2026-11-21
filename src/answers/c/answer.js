@@ -453,7 +453,7 @@ function fromNowOf(checked, env) {
  * household plan only decides whether the answer is on this path. A couple from now is on it too (the lead's ruling 9,
  * step P4): the runs are the two kept plans' (planPath coupleCaseOf), the household's split at each amount is what the keep
  * writes, and the words stay the household plan's, cut at the kept plans' years (planPath householdWordsTo). Not (yet) on
- * it: a couple who stop in different years or with a pension still closed today (planPath couplesOnPlans), a spending
+ * it: a couple who stop in different years (planPath couplesOnPlans), a spending
  * shape, a start moved to the day the pension opens, and three test devices (env.mix, env.solver 'reference', and
  * env.householdRoute: the household run a couple still takes, asked for by name so its fast path, its reference and its
  * month rows stay proved on one person too).
@@ -463,7 +463,7 @@ const coupleOf = (ins) => ins.household === 'couple' && !!ins.partner;
 
 function onPlanPath(ins, now, env) {
   if (env.mix || env.solver === 'reference' || env.householdRoute) return false;
-  // (a couple: planPath couplesOnPlans, the one rule A, C and D read — a pension still closed today stays on the household run)
+  // (a couple: planPath couplesOnPlans, the one rule A, C and D read)
   if (coupleOf(ins)) return !now.household.shape && !!env.planPath && typeof env.planPath.couplesOnPlans === 'function' && env.planPath.couplesOnPlans(now.plan);
   return now.plan.totalPots > 0 && !now.plan.apart && !now.household.shape && !now.plan.startMoved;
 }

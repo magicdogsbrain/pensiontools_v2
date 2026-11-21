@@ -41,6 +41,7 @@ import { toHousehold as toHouseholdD } from '../d/toHousehold.js';
 import { stopsOf } from '../shared/household.js';
 import { payInParts } from '../shared/schemaParts.js';
 import { firstAccessAge, addYears, RULES, LEVEL_DEFAULT } from '../shared/rules.js';
+import { OLDEST_PLAN_AGE } from '../../services/AgeConvention.js';
 import { shownOf } from '../shared/levels.js';
 import { suggestedPlanName, checkPlanName } from '../shared/planName.js';
 import { checkSheet, sheetForSeed } from './budgetSheet.js';
@@ -153,6 +154,9 @@ function takeHomeOf(who, couple, ageAtStop, perMonth, phases) {
     const mine = Array.isArray(ph.byPerson) ? ph.byPerson.find((p) => p.who === who) : null;
     const from = ph.ages && ph.ages[who] ? ph.ages[who].from : null;
     if (!mine || !isNum(mine.takeHome) || !isNum(from) || mine.working === true) continue;
+    // (a stretch that starts after the oldest age a plan holds is not theirs: a couple far apart in age, whose household
+    // runs on to the younger's end, has stretches set by the younger's birthdays when the elder would be past it)
+    if (from > OLDEST_PLAN_AGE) continue;
     const row = { fromAge: from, perMonth: round2(mine.takeHome * partOfAsked(ph, perMonth)) };
     const last = rows[rows.length - 1];
     if (last && Math.abs(last.perMonth - row.perMonth) < 1) continue;
@@ -172,7 +176,7 @@ function takeHomeByYear(who, couple, ageAtStop, byYear) {
   const rows = [];
   for (const y of byYear) {
     const from = y.ages && Number.isFinite(y.ages[who]) ? y.ages[who] : null;
-    if (from === null) continue;
+    if (from === null || from > OLDEST_PLAN_AGE) continue;
     let perMonth;
     if (!couple) perMonth = round2(y.spend);
     else {

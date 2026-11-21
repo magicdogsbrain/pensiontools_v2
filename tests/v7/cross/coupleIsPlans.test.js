@@ -6,11 +6,12 @@
  *   - the answer for a couple from now (D, C at each level, A's row at which both stop today) runs on the two plans keeping it
  *     would write, so those two plans read as one household give the answer's figure, to the bit, at the same futures.
  *
- * Measured (40 futures, 30 Sep 2026; the household model's own run before, the two kept plans after):
+ * Measured (40 futures, 30 Sep 2026; the household model's own run before, the two kept plans after, as the household's
+ * money is one: step P4, fix round 1):
  *   D2 at £3,800 a month (Alex 72 and Sam 70, £250,000 and £150,000, £30,000 savings, an £8,000 final-salary pension):
- *   the answer said "yes", 30 of 40 last, weighted 0.917; the two kept plans say "close", 27 of 40, weighted 0.868, middle
- *   run-out 96, bad case 93, left £152,350 (best £709,886), and the answer now says the same. D2 at £2,800: 40 of 40 both.
- *   D2's levels moved from £3,710 / £3,830 / £4,160 to £3,590 / £3,730 / £4,080 a month.
+ *   the answer said "yes", 30 of 40 last, weighted 0.917; the two kept plans say "close", 28 of 40, weighted 0.889, bad
+ *   case 94, and the answer now says the same. D2 at £2,800: 40 of 40 both.
+ *   D2's levels moved from £3,710 / £3,830 / £4,160 to £3,650 / £3,770 / £4,100 a month.
  *
  * The households are made up (Alex, Sam, Jo, Pat, Kim; round figures).
  */
@@ -236,5 +237,72 @@ describe('two linked plans that start in different years are not read on one clo
     const h = householdReadingOf(sam, pat, { today: TODAY, futures: N });
     expect(h.reason).toBe('notSameStart');
     expect(householdLastsOf(pat, sam, { today: TODAY, futures: N }).reason).toBe('notSameStart');
+  });
+});
+
+// ---- step P4, fix round 2 ----------------------------------------------------------------------------------------------
+// Sam, 54, £250,000, and Pat, 53, £150,000, £60,000 savings: both pensions closed today (they open at 57). As the answer
+// first ran it (the household model's own run, as the route kept for anyone under the access age), against the two plans
+// keeping it writes, read as one household (40 futures, 30 Sep 2026):
+//   £1,500: 40, weighted 1, yes, bad case 101, plan-to 101      against 40, 1, yes, 98, 98
+//   £2,200: 34, 0.865, close, 86, 101                           against 39, 0.982, yes, 98, 98
+//   £2,800: 2, 0.113, no, 63, 101                               against 13, 0.413, no, 66, 98
+//   £3,400: 0, 0.0003, no, 56, 101                              against 2, 0.058, no, 64, 98
+// The plan-to age differed too: the keep's 45-year limit (53 + 45 = 98) against the household model's 101 (ruling H: one
+// limit, the kept plan's). Whose money pays a closed person's part is the household's split, which the keep writes into each
+// plan as its take-home; once one plan's money cannot pay its part, the other's pays it (the household's money is one).
+const SAM_PAT_CLOSED = { household: 'couple', you: { age: 54, pot: 250000, taxFreeTaken: 'no' }, partner: { age: 53, pot: 150000, taxFreeTaken: 'no' }, savings: 60000 };
+
+describe('a couple both under the access age today: the answer is the two plans kept from it', () => {
+  for (const amount of [1500, 2200, 2800, 3400]) {
+    it(`Will it last at £${amount.toLocaleString('en-GB')} a month: the same count, weighted chance, verdict, run-out ages, left and plan-to age (the kept plan's limit)`, () => {
+      const res = answerD({ ...SAM_PAT_CLOSED, spend: { kind: 'amount', amount } }, ENV);
+      const kept = keptPlansOf('d', res, ENV);
+      expect(kept.partner).not.toBeNull();
+      const h = householdReading(kept.yours, kept.partner);
+      const ans = { lasted: Math.round(res.chance.fixedAge * N), weighted: res.chance.weighted, verdict: res.verdict, floorAge: res.floorAge ?? null,
+        worstAge: res.runOutAge, left: res.left ? { typical: res.left.typical, best: res.left.best } : null, planToAge: res.chance.planToAge };
+      expect(ans).toEqual(h);
+      expect(ans.planToAge).toBe(98);                                   // 53 + the keep's 45 years
+    });
+  }
+});
+
+// Sam, 70, £220,000, and Pat, 67, £90,000, £25,000 savings, kept from How much can I take at "bold" (£3,260 a month: 17 of
+// 40 last, weighted 0.7013). Pat's plan is then set to "careful". As first written the household's verdict was read at the
+// level of the plan it was read from: "yes" from Sam's (bold allows 6 of 20 to fail), "no" from Pat's (careful allows 1), for
+// one count and one weighted chance. The household's verdict is now read at the more careful of the two plans' levels, so
+// both plans say "no" (0.7013 is under careful's 0.95 and the count is not every future).
+describe('two linked plans at different levels: one household verdict', () => {
+  it('Sam bold, Pat careful: read from either plan, the same verdict, at the more careful level', () => {
+    const c = answerC({ household: 'couple', you: { age: 70, pot: 220000 }, partner: { age: 67, pot: 90000 }, savings: 25000, confidence: 'bold' }, ENV);
+    const kept = keptPlansOf('c', c, ENV);
+    const a = kept.partner.fromAnswer.answer;
+    const pat = { ...kept.partner, fromAnswer: { ...kept.partner.fromAnswer, answer: { ...a, level: 'careful', levelChosen: true } } };
+    const fromSam = householdReadingOf(kept.yours, pat, { today: TODAY, futures: N });
+    const fromPat = householdReadingOf(pat, kept.yours, { today: TODAY, futures: N });
+    expect(fromSam).toEqual(fromPat);
+    expect({ lasted: fromSam.lasted, verdict: fromSam.verdict }).toEqual({ lasted: 17, verdict: 'no' });
+    expect(fromSam.weighted).toBeCloseTo(0.7013, 4);
+    // both at bold, the household says what the answer said: "yes"
+    expect(householdReadingOf(kept.yours, kept.partner, { today: TODAY, futures: N }).verdict).toBe('yes');
+    expect(householdLastsOf(pat, kept.yours, { today: TODAY, futures: N })).toEqual(householdLastsOf(kept.yours, pat, { today: TODAY, futures: N }));
+  });
+});
+
+// Kim, 100, £200,000, and Jo, 36, with nothing (Jo's pension closed until 57): the household runs on to Jo's end, so its
+// stretches start at Jo's birthdays, when Kim would be 121 and 131. As first written on the two kept plans the keep wrote a
+// row for Kim from 131, past the oldest age a plan holds (130), and refused the seed: "How much can I take?" threw. A stretch
+// that starts after 130 is not Kim's.
+describe('a couple far apart in age: the keep writes no row past the oldest age a plan holds', () => {
+  it('Kim 100 and Jo 36: How much can I take answers, and its two kept plans read as one household are its figure', () => {
+    const inputs = { household: 'couple', you: { age: 100, pot: 200000 }, partner: { age: 36, pot: 0 } };
+    const c = answerC(inputs, ENV);
+    expect(c.status).toBe('ok');
+    const kept = keptPlansOf('c', c, ENV);
+    expect(kept.partner).not.toBeNull();
+    for (const pl of [kept.yours, kept.partner]) for (const s of pl.stressTool.settings.incomeSteps) expect(s.fromAge).toBeLessThanOrEqual(130);
+    const h = householdReading(kept.yours, kept.partner);
+    expect({ lasted: N - c.chance.fails, weighted: c.chance.weighted, planToAge: c.chance.planToAge }).toEqual({ lasted: h.lasted, weighted: h.weighted, planToAge: h.planToAge });
   });
 });

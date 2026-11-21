@@ -173,7 +173,7 @@ function onPlanPath(inputs, household, sp, env) {
  * A COUPLE STOPPING NOW IS ON THE PLAN PATH TOO (the lead's ruling 9, step P4): a row at which both of a couple stop today
  * runs on the two plans keeping that row would write (keep/planPath.js coupleCaseOf), as C and D from now do, so A's
  * stop-now row is still C's and D's. Not (yet) on it: a couple from a later stop (the saving lives per person), a couple
- * who stop in different years, a spending shape, and a pension still closed today (planPath couplesOnPlans).
+ * who stop in different years and a spending shape (planPath couplesOnPlans).
  */
 function coupleNow(inputs, sp, env) {
   if (inputs.household !== 'couple' || !inputs.partner || !(env.planPath && typeof env.planPath.coupleCaseOf === 'function')) return false;

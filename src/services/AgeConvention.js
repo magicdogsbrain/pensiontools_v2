@@ -10,6 +10,8 @@ const finite = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
  * success.planTo, an agreement); a stored age without it was the age in the last year, and is read one on
  * (toAgeAsWritten: PlanDocument.planToAgeOfDefinition, keepTest.js's agreed lines).
  */
+/** The oldest age a plan seed holds (PlanFromSeed: an age in a take-home row, a stop, an end age). */
+export const OLDEST_PLAN_AGE = 130;
 export const planToAgeOf = (startAge, years) => Math.round(finite(startAge) + finite(years));
 /** The rule a stored "to {age}" was written under from 7.9.0: the birthday its last year ends on. */
 export const TO_AGE_RULE = 'birthday';

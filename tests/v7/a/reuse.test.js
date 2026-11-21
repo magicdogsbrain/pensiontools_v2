@@ -161,7 +161,10 @@ describe('R4 — each row\'s band is the band searched with no hint: where the s
       const { sp, pc } = stopPlanOf(ins, { ...env, planPath }, row.age, lives);
       // (7.8.0: the row's level figures, searched again with no hint, on the weights of the stop)
       const weigher = pc ? pc.weigher : weigherOf(sp.plan, ins, env);
-      const band = bandAt(sp, createStopRunner(sp), null, { weigher, levels: Object.keys(row.levels), toMonth: pc ? pc.toMonth : 12 * (sp.plan.endAge - sp.plan.startAge) });
+      // (a couple stopping now on the two kept plans: their runner on their lives, as A's stopCase runs it)
+      const band = sp.couple
+        ? bandAt({ ...pc.sp, couple: sp.couple }, pc.runner, null, { weigher, levels: Object.keys(row.levels), toMonth: pc.toMonth })
+        : bandAt(sp, createStopRunner(sp), null, { weigher, levels: Object.keys(row.levels), toMonth: pc ? pc.toMonth : 12 * (sp.plan.endAge - sp.plan.startAge) });
       const got = Object.fromEntries(Object.entries(band.levels).map(([k, v]) => [k, { monthly: v.monthly, yearly: v.yearly, weighted: v.chance.weighted, fixedAge: v.chance.fixedAge }]));
       expect(got, `${fx.id} at ${row.age}`).toEqual(row.levels);
     }

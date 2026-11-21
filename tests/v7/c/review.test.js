@@ -26,6 +26,9 @@ import { startWhenPensionsOpen } from '../../../src/answers/shared/household.js'
 import { toHousehold } from '../../../src/answers/c/toHousehold.js';
 import { enginePlan, configsAt, breakdownAt } from '../../../src/answers/shared/toEngine.js';
 import { TAX_DEFAULTS, ISA_DEFAULTS } from '../../../src/constants.js';
+import { keptPlansOf } from '../../../src/answers/keep/keptPlan.js';
+import { effectiveStressSettings } from '../../../src/services/PlanReading.js';
+import { planFor } from '../../../src/answers/plan/lastsRun.js';
 
 const ENV = { ...TEST_ENV, futures: 40 };
 const ok = (a, inputs) => { const f = checkAnswer(a, inputs); expect(f, f.join('\n')).toEqual([]); return a; };
@@ -69,8 +72,12 @@ describe('2 a couple with one partner under the earliest pension age', () => {
     expect(a.basis.start).toBe('2026-09');
     expect(a.basis.startAge).toBe(50);                       // the younger person's age at the start
     expect(a.phases[0].ages.you.from).toBe(60);
-    // the State Pensions are more than the amount from when the partner is 67, so the amount is said until then (spans.js)
-    expect(a.sentences.sub.text).toContain('from now until your partner is 67. From when your partner is 67: ');
+    // (step P4, fix round 2: a couple with someone under the access age today runs on the two plans keeping it writes, as
+    // every couple from now does.) The careful amount is £2,120 a month, above the two State Pensions (£2,091 a month from
+    // when your partner is 67), so the amount is said for the whole plan, to the kept plans' end (the younger 50 + the
+    // keep's 45 years). On the household model's own run it was £1,760, under them, and was said only until then (spans.js).
+    expect(a.levels.careful.monthly).toBe(2120);
+    expect(a.sentences.sub.text).toBe('after tax, for the two of you, from now until the younger of you is 95, going up each year with prices');
     expect(assumed(a, 'start').text).toBe('The money is taken from now, when you are 60.');
     expect(warning(a, 'pension-locked')).toBeUndefined();
     const w = warning(a, 'pension-locked-partner');
@@ -90,8 +97,13 @@ describe('2 a couple with one partner under the earliest pension age', () => {
     expect(locked[0].byPerson[0].fromPension).toBeGreaterThan(0);
     expect(open[0].byPerson[1].fromPension).toBeGreaterThan(0);
     expect(open[0].byPerson[1].locked).toBe(false);
-    for (const r of a.trace.atCareful.rows) if (r.who === 'partner' && r.age < 57) expect(r.fromPension, `m${r.m}`).toBe(0);
-    expect(a.trace.atCareful.rows.some((r) => r.who === 'partner' && r.age >= 57 && r.fromPension > 0)).toBe(true);
+    // the partner's plan keeping it writes holds the pension shut: its run takes nothing from it in the 96 months before the
+    // first tax year that starts with the partner at 57 or over (April 2034: ruling G), and the plan pays from it after
+    const kept = keptPlansOf('c', a, ENV);
+    const p = planFor(effectiveStressSettings(kept.partner, { now: new Date(ENV.today) }), new Date(ENV.today));
+    expect(p.pnvCfg.pensionLockedMonths).toBe(96);
+    expect(p.pensionLock).toMatchObject({ accessAge: 57, opensTaxYear: 2034 });
+    expect(p.pnvCfg.equityStart + p.pnvCfg.bondStart + p.pnvCfg.cashStart).toBeCloseTo(100000, 6);
     // the made-of lines say whose pot pays before the partner's opens
     expect(a.sentences.madeOf[0].text).toMatch(/^Until (you are 67|your partner is 57): £[\d,]+ a month, all from your pot\.$/);
   });
@@ -121,11 +133,16 @@ describe('2 a couple with one partner under the earliest pension age', () => {
     expect(first).toMatchObject({ locked: true, fromPension: 0 });
     expect(first.fromSavings).toBeGreaterThan(0);
     expect(a.phases[0].byPerson[0].fromPension).toBeGreaterThan(0);
-    const partnerRows = a.trace.atCareful.rows.filter((r) => r.who === 'partner');
-    expect(partnerRows[0].potStart).toBeCloseTo(130000, 6);           // pension and half the savings, in one row a month
-    expect(partnerRows.filter((r) => r.age < 57).every((r) => r.fromPension === 0)).toBe(true);
-    expect(partnerRows.some((r) => r.age < 57 && r.fromSavings > 0)).toBe(true);
-    expect(partnerRows.some((r) => r.age >= 57 && r.fromPension > 0)).toBe(true);
+    // (step P4, fix round 2: on the two kept plans) the partner's plan holds their pension (£100,000) and half the savings
+    // (£30,000); while the pension is shut the savings pay the partner's part: £2,625 a year (£1,531.25 for year 0's seven
+    // months), £4,620 in the last closed year, from age 57; the pension pays from April 2034
+    const kept = keptPlansOf('c', a, ENV);
+    const p = planFor(effectiveStressSettings(kept.partner, { now: new Date(ENV.today) }), new Date(ENV.today));
+    expect(p.pnvCfg.equityStart + p.pnvCfg.bondStart + p.pnvCfg.cashStart).toBeCloseTo(100000, 6);
+    expect(p.pnvCfg.isaBalance).toBe(30000);
+    expect(p.pnvCfg.pensionLockedMonths).toBe(96);
+    expect(p.pensionLock.paid).toEqual([1531.25, 2625, 2625, 2625, 2625, 2625, 2625, 4620]);
+    expect(p.pensionLock.unpaid.every((u) => u === 0)).toBe(true);
     expect(warning(a, 'pension-locked-partner').text).toBe("Your partner can't take money from their pension until they are 57 (April 2028 rules). Until then it is left alone and the rest of the money pays.");
     expect(checkTrace(a)).toEqual([]);
     const without = ok(answerC(inputs, ENV), inputs);

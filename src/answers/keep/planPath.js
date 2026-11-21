@@ -60,7 +60,7 @@ import { createFastRunner, prepareFutureFrom } from '../shared/fastEngine.js';
 import { livesList, sliceReturns, bondStream } from '../shared/lives.js';
 import { STEP } from '../shared/band.js';
 import { verdictAt } from '../shared/stopAt.js';
-import { WEIGHT_ONE, accessAgeOn, RULES } from '../shared/rules.js';
+import { WEIGHT_ONE, accessAgeOn, RULES, LEVEL_FAILS20 } from '../shared/rules.js';
 import { firstOpenAge } from '../shared/household.js';
 import { LEVEL_IDS } from '../shared/levels.js';
 import { RISK_PRESETS } from '../../services/GlidepathService.js';
@@ -68,6 +68,8 @@ import { wantWrites } from '../plan/saving.js';
 import { stressTestStrategy, pnvFamilyPlan, buysIncome, boughtCostOf, boughtLifeOf, lifeAvailableOf } from '../../strategies/stressTest.js';
 
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
+/** The more careful of some levels: the one that lets the fewest futures fail (rules.js LEVEL_FAILS20). */
+const carefulOf = (levels) => levels.reduce((a, b) => (LEVEL_FAILS20[b] < LEVEL_FAILS20[a] ? b : a));
 const STRATEGY = 'pots-and-valves';
 
 /** stressTest.js yearOfAge: the run year a future failed in, from its age then. */
@@ -625,9 +627,8 @@ export function planCaseOf(source, ins, env, { lives = null, dragPct = 0, fromAg
  * a one-person household run is the plan test (tests/v7/cross/coupleIsPlans.test.js holds it to the bit).
  *
  * Pots & Valves only; both from now, every plan drawing from this tax year (else it throws with reason 'notSameStart': a
- * plan still saving runs on its own clock; a couple who stop in different years, a spending shape, a start moved to the day
- * a pension opens and someone under the age a pension can be touched today stay on the household plan's own run:
- * couplesOnPlans).
+ * plan still saving runs on its own clock; a couple who stop in different years, a spending shape and a start moved to the
+ * day a pension opens stay on the household plan's own run: couplesOnPlans).
  *
  *   coupleCaseOf(source, ins, env, { lives, dragPct, phasesAt, planAt, H0 }) → planCaseOf's case less the words (`words`
  *     stays the household plan's; wordsPlan is not given)
@@ -856,7 +857,9 @@ export function coupleCaseOf(source, ins, env, { lives = null, dragPct = 0, phas
   return {
     source, household: true, couple: first.length > 1, plan, sp: { n, lives: L }, runner, weigher, toMonth, planYears, years, startAge, planToAge, weightToAge,
     drawFutures, driversFor, configsAtH,
-    level: planLevelOf(first[0].kept), capped: plan.runCapped, reason,
+    // the household's verdict is read at ONE level, whichever plan it is read from: the more careful of the plans' levels
+    // (two linked plans may be set to different ones; an answer's kept plans share the answer's)
+    level: carefulOf(first.map((x) => planLevelOf(x.kept))), capped: plan.runCapped, reason,
     keptAt: (H) => at(H).map((x) => x.kept), settingsAt: (H) => at(H).map((x) => x.settings),
     floorAgeOf, worstAgeOf, leftOf, leftTermsOf,
     // what comes in anyway, a month after tax at today's prices, in whole £10 steps, the least over the plan's years (each
@@ -867,15 +870,14 @@ export function coupleCaseOf(source, ins, env, { lives = null, dragPct = 0, phas
 
 /**
  * Whether a couple's answer from now runs on the two plans keeping it would write (coupleCaseOf), read from the household
- * plan of the stop: both stop in the same year, no spending shape, a start not moved, something to draw on, and both of
- * them at or over the age a pension can be touched today. Someone younger stays on the household plan's own run, with a
- * pension or without one (so £1 in it and nothing in it are the same run: tests/v7/c/review.test.js §2), until the lead
- * rules whose money pays a closed partner's part (step P4's question 1: in the two kept plans each pays their own closed
- * years from their own savings; the household plan lets the other's money pay).
+ * plan of the stop: both stop in the same year, no spending shape, a start not moved and something to draw on. Someone
+ * under the age a pension can be touched today is on it too (step P4, fix round 2): whose money pays a closed partner's
+ * part is the household's split, which the keep writes into each plan as its take-home (phasesAt), and once one plan's own
+ * money cannot pay its part the other's does (coupleCaseOf householdOf). So the answer is the two kept plans' figure, and
+ * its plan-to age is theirs (the keep's year limit, ruling H).
  */
 export function couplesOnPlans(plan) {
-  if (!(plan.totalPots > 0) || plan.apart || plan.shape || plan.startMoved) return false;
-  return plan.people.every((p) => firstOpenAge(p.ageAtStart, plan.today, 0) <= p.ageAtStart);
+  return plan.totalPots > 0 && !plan.apart && !plan.shape && !plan.startMoved;
 }
 
 /**
@@ -937,7 +939,8 @@ function anywayByYear(p, settings, planYears) {
 
 /**
  * Two saved plans read as one household (ruling 9: a linked couple's plan gets its figure from the household run): the count
- * that lasts to the plan-to age, the weighted chance (joint), the verdict at the first plan's level, the middle run-out age,
+ * that lasts to the plan-to age, the weighted chance (joint), the verdict at the more careful of the two plans' levels (one
+ * verdict, read from either plan), the middle run-out age,
  * the bad case and what is left, on the plans as they are. `partner` null: the one plan alone (the plan path's own case).
  * → { lasted, n, weighted, verdict, floorAge, worstAge, left: { typical, best }, planToAge, weightToAge, joint } or
  *   { reason } when the household cannot be run this way: 'notPotsAndValves' (a way of drawing other than Pots & Valves),

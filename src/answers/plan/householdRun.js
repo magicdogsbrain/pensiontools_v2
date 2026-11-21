@@ -18,7 +18,7 @@
  *   householdLastsOf(plan, partner, { today, futures }) → the two plans' household figure (7.12.0, the lead's ruling 9): the
  *     one adapter's household run (keep/planPath.js householdReadingOf, the run a couple's answer makes on the two plans
  *     keeping it writes) — the count that lasts to the plan-to age, the weighted chance (either of the two alive), the
- *     verdict at this plan's level, the middle and bad-case run-out ages and what is left; { reason } when it cannot run
+ *     verdict at the more careful of the two plans' levels, the middle and bad-case run-out ages and what is left; { reason } when it cannot run
  *     (a way of drawing other than Pots & Valves). A linked couple's plan says its weighted figure from this; runHousehold
  *     carries it as `lasts`.
  *   runSurvivor(plan, partner, { today, who, atAge, spendPct, dbPct, onProgress }) → runSurvivorCheck's result less the

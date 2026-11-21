@@ -28,6 +28,7 @@ import { isChargesPct, DEFAULT_CHARGES_PCT } from './Charges.js';
 import { isIsaGrowth, DEFAULT_ISA_GROWTH } from './IsaGrowth.js';
 import { pctText, CHANCE_BARS } from './OneAnswer.js';
 import { ENGINE_VERSION } from '../strategies/version.js';
+import { OLDEST_PLAN_AGE } from './AgeConvention.js';
 import { shareSettings, PRICE_RISE_PCT } from './SaverPayIn.js';
 import { SCHEMA_VERSION } from '../storage/schema.js';
 import { getDefaultStressSettings } from '../storage/stressDefaults.js';
@@ -148,7 +149,7 @@ const ENABLED_TOOLS = Object.freeze(['budget', 'stress', 'decision', 'accumulati
 export const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 export const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
 const isMoney = (v) => isNum(v) && v >= 0;
-const isAge = (v) => Number.isInteger(v) && v >= 0 && v <= 130;
+const isAge = (v) => Number.isInteger(v) && v >= 0 && v <= OLDEST_PLAN_AGE;
 const round2 = (v) => Math.round(v * 100) / 100;
 const clone = (v) => JSON.parse(JSON.stringify(v));   // also drops undefined: the plan must be Firestore-safe
 

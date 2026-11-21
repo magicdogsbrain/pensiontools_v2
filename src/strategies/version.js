@@ -128,8 +128,12 @@
  *           of the two is alive at the start of the year it ran out in (it was the household model's own run, weighed month
  *           by month). Two linked plans say that same household figure (householdRun.householdLastsOf). The answers'
  *           amounts for a couple move, for some by over £100 a month (each plan taxes and shares its own); a one-person household is the plan
- *           test, as before. A couple with someone under the age a pension can be touched today, a couple who stop in
- *           different years, and a couple from a later stop stay on the household model's own run for now.
+ *           test, as before. A couple with someone under the age a pension can be touched today is on the two plans too:
+ *           each plan pays its own closed years from its own savings as the household's split gives them, the other's money
+ *           after, and the plan-to age is the kept plans' (it ran to the household model's end age). A couple who stop in
+ *           different years, and a couple from a later stop stay on the household model's own run for now. Two linked plans
+ *           set to different levels read the household's verdict at the more careful of the two (it was the level of the
+ *           plan it was read from, so the two plans could give two verdicts for one chance).
  *           Keeping a couple's answer writes two plans whose spending adds up to the amount asked (each one's part cut in
  *           proportion where the incomes that come anyway pay more than it, as one person's plan spends the amount itself);
  *           it wrote each one's take-home as all of their own income that comes anyway. Two linked plans that do not both

@@ -174,6 +174,12 @@ export const MONTH = {
       topUpCash: 'The plan’s rule tops up cash with {amount} from shares and bonds. You can make the move, or leave your cash as it is.',
       lowCash: 'This month takes money from pots below the level your plan keeps them at.'
     },
+    // what the plan's rule did in a month recorded (step F5, lead4.md D17, R4: a record, with its month): the full view's History
+    movesThenTitle: 'What the plan’s rule did in {month}',
+    movesThen: {
+      sharesToBonds: 'The plan’s rule moved {amount} from shares to bonds, back towards its mix.',
+      bondsToShares: 'The plan’s rule moved {amount} from bonds to shares, back towards its mix.'
+    },
     // the pots against the plan's levels, as facts (the full view's Fund Status)
     levels: { title: 'Your pots against the plan’s levels', level: 'Plan’s level {amount}', above: '{amount} above', below: '{amount} below', same: 'At the plan’s level',
       all: 'In all: {amount} {side} the plan’s levels ({pct}%).', allAbove: 'above', allBelow: 'below' },

@@ -28,3 +28,26 @@ describe('History: a record shows its own figures, never the move words it kept'
     expect(detail).toContain('formatHistoryTabDate(h.date)');
   });
 });
+
+import { recordMovesOf } from '../../src/services/PlanRuleWords.js';
+import { MONTH } from '../../src/v7/copy/month.js';
+describe('History: what the plan\'s rule did that month, read as the live month reads it (PlanRuleWords)', () => {
+  it('a record\'s move is the rule\'s words, dated, never the order it kept', () => {
+    expect(recordMovesOf({ date: '2026-11-03', rebal: 'Move £8,000 Equity→Bond' })).toEqual([{ id: 'sharesToBonds', slots: { amount: '£8,000' } }]);
+    expect(recordMovesOf({ date: '2026-11-03', rebal: 'Move £6,500 Bond→Equity' })).toEqual([{ id: 'bondsToShares', slots: { amount: '£6,500' } }]);
+    expect(recordMovesOf({ date: '2026-11-03', rebal: '' })).toEqual([]);
+    expect(recordMovesOf({ date: '2026-11-03', rebal: 'Move £8,000 Equity→Bond', contract: true })).toEqual([]);
+    expect(recordMovesOf(null)).toEqual([]);
+    for (const id of ['sharesToBonds', 'bondsToShares']) {
+      expect(MONTH.advice.movesThen[id]).toMatch(/^The plan’s rule moved \{amount\}/);
+      expect(MONTH.advice.movesThen[id]).not.toMatch(/Equity|Bond→|Move £|should|recommend/);
+    }
+    expect(MONTH.advice.movesThenTitle).toBe('What the plan’s rule did in {month}');
+  });
+  it('the detail draws the record\'s moves through it, with the record\'s month, under a heading with no "recommendation"', () => {
+    expect(detail).toContain('recordMovesOf(h)');
+    expect(detail).toContain('MONTH.advice.movesThenTitle');
+    expect(detail).not.toContain('Monthly Recommendation');
+    expect(detail).toContain('What this month recorded');
+  });
+});

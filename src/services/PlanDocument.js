@@ -651,9 +651,8 @@ export function whereAmI(doc, { today = new Date(), history = [], potsToday = nu
       months: tp.months, setUpMonths: tp.setUpMonths, cut: tp.cut, taxYear
     },
     pot,
-    ladder: ladderPos ? { phase: ladderPos.phase, instruction: ladderPos.instruction, monthly: ladderPos.monthly, source: ladderPos.source, verdict: ladderPos.cashCheck?.verdict || null,
-      // not paying yet: the month it starts and the month's figure then (year 0 pays for the months it has)
-      ...(ladderPos.phase === 'before' && ladderPos.upcoming && ladderPos.upcoming.startsLate ? { starts: { label: ladderPos.upcoming.startsLabel, monthly: ladderPos.upcoming.monthly, payments: ladderPos.upcoming.payments, yearPays: ladderPos.upcoming.yearPays } } : {}) } : null,
+    // not paying yet, the instruction says when it starts and what a month will be (year 0 pays for the months it has)
+    ladder: ladderPos ? { phase: ladderPos.phase, instruction: ladderPos.instruction, monthly: ladderPos.monthly, source: ladderPos.source, verdict: ladderPos.cashCheck?.verdict || null } : null,
     contract: !!doc.strategy?.contract,
     strategyId: doc.strategy?.id || 'pots-and-valves',   // the strip's words follow the way of drawing (StrategyWords.js)
     saving

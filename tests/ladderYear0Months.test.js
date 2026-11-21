@@ -15,6 +15,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { ladderPosition } from '../src/services/LadderPosition.js';
+import { ladderSentence } from '../src/reading/where.js';
 
 const sam = {
   years: [
@@ -36,6 +37,9 @@ describe('a first tax year that starts in the month work stops', () => {
     expect(lp.upcoming.yearPays).toBeCloseTo(12500, 6);
     expect(lp.upcoming.startsLabel).toBe('October 2027');
     expect(lp.instruction).toBe('The plan starts paying in October 2027: £2,083 a month, 6 payments to March 2028, £12,500.');
+    // the one where-reader both views draw (src/reading/where.js): not paying yet, the plan's own sentence, said once
+    const said = ladderSentence({ ladder: { instruction: lp.instruction, monthly: lp.monthly } }, { yearSaid: false });
+    expect(said).toEqual({ id: 'where.ladder', parts: [lp.instruction], figures: {} });
   });
 
   it('from the stop month the year is paid at its monthly rate for the months it has', () => {

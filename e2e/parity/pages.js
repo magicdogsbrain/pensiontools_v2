@@ -48,8 +48,8 @@ export const FULL_PAGES = Object.freeze([
   { name: 'stress settings', tab: 'stress', sub: 'stresssettings' },
   // the ranking's "More columns", as the sweep opens the simple view's under the ways' cards (step F3)
   { name: 'strategies', tab: 'strategies', press: 'button[data-on-click="setCmpMore(true)"]' },
-  // this month's figures are worked out on a press ("Calculate"); on a plan not locked that press asks to lock it first, so
-  // the sweep presses it only on a locked plan (the simple view shows the month only once locked)
+  // this month's figures are worked out on a press ("Calculate"; it never asks about locking, step F5). The simple view
+  // shows the month only once the plan is locked, so the sweep presses it only on a locked plan, to compare like with like
   { name: 'monthly entry', tab: 'decision', sub: 'entry', press: '#decisionForm button[type="submit"]', onlyLocked: true },
   { name: 'history', tab: 'decision', sub: 'history' },
   // the plan document draws its sections folded; a person reading it opens them (the sweep opens every fold of the document)

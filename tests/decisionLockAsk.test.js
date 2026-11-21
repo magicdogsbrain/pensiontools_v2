@@ -9,7 +9,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { deriveStage, decisionLockQuestion } from '../src/services/LifeStage.js';
+import { deriveStage, decisionLockQuestion, decisionEntryAllowed } from '../src/services/LifeStage.js';
 import { askBeforeMonthLocks, decisionLockQuestionHtml, LOCKED_FROM_DECISION } from '../src/ui/decisionLockAsk.js';
 
 const NOW = new Date(2026, 9, 2);   // 2 October 2026
@@ -60,6 +60,23 @@ describe('decisionLockQuestion: who is asked', () => {
     expect(decisionLockQuestion({ ...st, beforeStart: false }).okLabel).toBe('Lock the plan and record this month');
     expect(decisionLockQuestion({ ...st, timingMode: 'legacy' }).okLabel).toBe('Lock the plan and record this month');
     expect(decisionLockQuestion(null)).toBeNull();
+  });
+});
+
+// step F5 (lead4.md D17): a saver whose plan is not locked is not led into Monthly Entry as if drawing
+describe('decisionEntryAllowed: an unlocked saver is not led into a month as if drawing', () => {
+  it('a month before the stop is refused, with where a saver records their pot; nothing is asked or locked', () => {
+    const st = stageOf(unlocked(saver));
+    expect(st.locked).toBe(false);
+    expect(st.beforeStart).toBe(true);
+    const g = decisionEntryAllowed(st, '2026-10');
+    expect(g.ok).toBe(false);
+    expect(g.reason).toMatch(/^This plan says you are still saving until [A-Z][a-z]+ \d{4}\. Monthly entries open from then\./);
+    expect(g.reason).toContain('record your pot on the Accumulation planner; nothing is locked');
+    expect(decisionEntryAllowed(st, st.startMonth).ok).toBe(true);
+  });
+  it('a retired plan not locked is let through (its month is worked out at once, on Calculate)', () => {
+    expect(decisionEntryAllowed(stageOf(unlocked(ladder)), '2026-10').ok).toBe(true);
   });
 });
 
@@ -122,11 +139,18 @@ describe('askBeforeMonthLocks: the question, then the full lock', () => {
 describe('index.html: the Decision tool asks before the month that would lock, and the lock is the full one', () => {
   const html = readFileSync('index.html', 'utf8');
   const fn = (name) => html.slice(html.indexOf('window.' + name + ' = async function'), html.indexOf('window.' + name + ' = async function') + 6000);
-  it('Calculate asks right after the stage gate, before the tax-year set-up', () => {
+  // retaken in step F5 (lead4.md D17): Calculate is a read and never asks about locking before a figure exists. The question
+  // comes before the writes that lock: the tax-year set-up's Confirm (the wizard's beforeSave) and Save.
+  it('Calculate never asks about locking; the tax-year set-up asks on its Confirm, before it writes', () => {
     const f = fn('handleDecisionSubmit');
-    const ask = f.indexOf('askBeforeMonthLocks(stage)');
-    expect(ask).toBeGreaterThan(f.indexOf('decisionEntryAllowed(stage, dateStr)'));
-    expect(ask).toBeLessThan(f.indexOf('checkWizardNeeded(dateStr)'));
+    const body = f.slice(0, f.indexOf('window.saveCurrentDecision'));
+    expect(body.indexOf('decisionEntryAllowed(stage, dateStr)')).toBeGreaterThan(0);
+    expect(body.indexOf('beforeSave: async () => askBeforeMonthLocks(')).toBeGreaterThan(body.indexOf('initTaxYearWizard(wizardContainer'));
+    expect(body.replace(/beforeSave: async \(\) => askBeforeMonthLocks\(/, '')).not.toContain('askBeforeMonthLocks(');
+    const wiz = readFileSync('src/ui/components/TaxYearSetupWizard.js', 'utf8');
+    const fin = wiz.slice(wiz.indexOf('async function finishWizard'));
+    expect(fin.indexOf('beforeSaveHook()')).toBeGreaterThan(0);
+    expect(fin.indexOf('beforeSaveHook()')).toBeLessThan(fin.indexOf('await saveTaxYearConfig('));
   });
   it('Save asks before anything is written', () => {
     const f = fn('saveCurrentDecision');

@@ -5467,7 +5467,8 @@
         const stage = window._lifeStage || await refreshLifeStage();
         const gate = decisionEntryAllowed(stage, dateStr);
         if (!gate.ok) { showToast(gate.reason, 'info', 8000); monthEntry.failed(dateStr, gate.reason); return; }
-        if (!(await askBeforeMonthLocks(stage))) return;   // still saving, plan unlocked: this month (or its tax-year set-up) would lock it — ask first (6.20.2)
+        // (step F5, lead4.md D17) Calculate is a read: it never asks about locking. The question comes before a write that
+        // locks: Save, or the tax-year set-up's Confirm (initTaxYearWizard's beforeSave below)
         if (stage && stage.timingMode === 'future' && !stage.beforeStart && !window._arrivalChecked) {
           const doc = await getActivePlanDocument();
           const hist = await getHistoryAsync({ limit: 1 }).catch(() => []);
@@ -5534,7 +5535,7 @@
               }
             }
             // If cancelled, just return without calculating
-          });
+          }, { beforeSave: async () => askBeforeMonthLocks(window._lifeStage || await refreshLifeStage()) });   // the set-up locks a plan not yet locked: asked on its Confirm, never on Calculate (step F5, D17)
           return;
         }
 

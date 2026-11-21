@@ -292,6 +292,15 @@ export function decisionEntryAllowed(stage, entryMonth) {
       return { ok: false, reason: 'This plan is locked and you retire in ' + mon + ' ' + y + ' (plan year 0 is ' + stage.startLabel + '). Monthly entries open then — until then you are still saving, so record your pot on the Accumulation planner instead.' };
     }
   }
+  // (step F5, lead4.md D17) a plan not locked whose person is still saving is not led into a month as if drawing: a month
+  // before the one they stop work is refused, as a locked saver's is, and nothing is asked or locked
+  if (!stage.locked && stage.timingMode === 'future' && stage.startMonth) {
+    const key = String(entryMonth || '').slice(0, 7);
+    if (!/^\d{4}-\d{2}$/.test(key) || key < stage.startMonth) {
+      const [y, m] = stage.startMonth.split('-').map(Number);
+      return { ok: false, reason: 'This plan says you are still saving until ' + MONTHS[m - 1] + ' ' + y + '. Monthly entries open from then. Until then you can record your pot on the Accumulation planner; nothing is locked.' };
+    }
+  }
   return { ok: true };
 }
 

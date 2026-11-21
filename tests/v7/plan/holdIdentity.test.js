@@ -199,7 +199,7 @@ describe('gate 10 — the record round-trips byte for byte, and the move reads a
     const held = heldMixSettings(plan, { today: TODAY });
     expect(held).not.toBe(null);
     expect(held.fromPension).toBe(true);
-    expect(held.pcts.shares + held.pcts.bonds + held.pcts.diversifiers + held.pcts.cash).toBeGreaterThanOrEqual(99);
+    expect(held.pcts.shares + held.pcts.bonds + held.pcts.diversifiers + held.pcts.cash).toBe(100);
     expect(held.settings.equityMin + held.settings.bondMin + held.settings.cashTarget + held.settings.diversifierStart).toBe(held.pot);
     const mine = runHeld(plan, { today: TODAY });
     expect(mine.basis.runs).toBe(1);

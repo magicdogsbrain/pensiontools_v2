@@ -312,6 +312,8 @@ export const PLAN = {
     'where.yearPlan': '',
     /** The plan's own figure for the year differs from the year as set up (step F2, lead4.md D7): both, with the set-up's date. */
     'where.yearChanged': '',
+    /** The plan year this is (step F5): the sentence carries its own words. */
+    'where.planYear': 'Where the plan is',
     'where.step': 'Step {n} of {of} of your plan',
     'where.pot': 'Your pot',
     'where.potMid': 'The plan’s middle line for now',

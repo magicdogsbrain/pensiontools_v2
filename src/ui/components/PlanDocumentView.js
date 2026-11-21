@@ -500,7 +500,7 @@ export function whereAmIHtml(w, g = null, { steps = null, year = null } = {}) {
     if (income) parts.push(income);
     return '<div class="alert alert-info pd-where"><div class="section-title" style="font-size:13px;">Where you are — ' + esc(dateGB(w.today)) + '</div><p style="margin:4px 0 0;">' + parts.join(' ') + '</p></div>';
   }
-  else parts.push('<strong>Plan year ' + w.planYear + ' of ' + w.planYears + '</strong> — tax year ' + esc(w.taxYear) + ', age ' + w.age + '.');
+  else parts.push('<strong>Plan year ' + markFact('plan.year', esc(String(w.planYear))) + ' of ' + markFact('plan.years', esc(String(w.planYears))) + '</strong> — tax year ' + esc(w.taxYear) + ', age ' + w.age + '.');   // the plan year, in both views (step F5, R8)
   // (7.12.0) the step is in the plan's own prices, named, so it is not read as this tax year's figure (the set-up's, in this
   // year's prices, on Month by month and Tax Years)
   const stepPrices = w.pot && w.pot.prices && w.pot.prices.since ? ' at ' + whenText(w.pot.prices.since) + ' prices' : '';

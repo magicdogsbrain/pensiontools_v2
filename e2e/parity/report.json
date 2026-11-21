@@ -1,5 +1,5 @@
 {
- "at": "2026-11-21T11:36:00.060Z",
+ "at": "2026-11-21T15:03:20.834Z",
  "fixtures": [
   "age-only",
   "budget",
@@ -21,17 +21,73 @@
   "wizard-defaults"
  ],
  "factsMarked": 200,
- "factsInBoth": 192,
+ "factsInBoth": 195,
  "pagesOpened": 635,
- "marks": 24132,
+ "marks": 24267,
  "fieldsBound": 61,
  "disagreements": 2,
- "unmarked": 14027,
- "oneViewOnly": 230,
+ "unmarked": 13843,
+ "oneViewOnly": 192,
  "readingMismatches": 0,
- "roundTripsFailed": 62,
+ "roundTripsFailed": 60,
  "rose": [],
- "shrank": [],
+ "shrank": [
+  "in both views now, take it out of one-view-only.json: closed-successor|holdings.total",
+  "in both views now, take it out of one-view-only.json: closed-successor|mix.held.bonds",
+  "in both views now, take it out of one-view-only.json: closed-successor|mix.held.cash",
+  "in both views now, take it out of one-view-only.json: closed-successor|mix.held.diversifiers",
+  "in both views now, take it out of one-view-only.json: closed-successor|mix.held.shares",
+  "in both views now, take it out of one-view-only.json: mover-holdings|holdings.total",
+  "in both views now, take it out of one-view-only.json: mover-holdings|mix.held.bonds",
+  "in both views now, take it out of one-view-only.json: mover-holdings|mix.held.cash",
+  "in both views now, take it out of one-view-only.json: mover-holdings|mix.held.diversifiers",
+  "in both views now, take it out of one-view-only.json: retired-everything|holdings.total",
+  "in both views now, take it out of one-view-only.json: retired-everything|mix.held.bonds",
+  "in both views now, take it out of one-view-only.json: retired-everything|mix.held.cash",
+  "in both views now, take it out of one-view-only.json: retired-everything|mix.held.diversifiers",
+  "in both views now, take it out of one-view-only.json: retired-everything|mix.held.shares",
+  "in both views now, take it out of one-view-only.json: retired-locked-ladder|gilts.held",
+  "in both views now, take it out of one-view-only.json: retired-locked-ladder|holdings.total",
+  "in both views now, take it out of one-view-only.json: retired-locked-ladder|mix.held.bonds",
+  "in both views now, take it out of one-view-only.json: retired-locked-ladder|mix.held.cash",
+  "in both views now, take it out of one-view-only.json: retired-locked-ladder|mix.held.diversifiers",
+  "in both views now, take it out of one-view-only.json: retired-locked-ladder|mix.held.shares",
+  "in both views now, take it out of one-view-only.json: retired-locked-months|holdings.total",
+  "in both views now, take it out of one-view-only.json: retired-locked-months|mix.held.bonds",
+  "in both views now, take it out of one-view-only.json: retired-locked-months|mix.held.cash",
+  "in both views now, take it out of one-view-only.json: retired-locked-months|mix.held.diversifiers",
+  "in both views now, take it out of one-view-only.json: retired-locked-months|mix.held.shares",
+  "in both views now, take it out of one-view-only.json: retired-locked-months|mix.plan.bonds",
+  "in both views now, take it out of one-view-only.json: retired-locked-months|mix.plan.cash",
+  "in both views now, take it out of one-view-only.json: retired-locked-months|mix.plan.shares",
+  "in both views now, take it out of one-view-only.json: retired-locked-pots|mix.plan.bonds",
+  "in both views now, take it out of one-view-only.json: retired-locked-pots|mix.plan.cash",
+  "in both views now, take it out of one-view-only.json: retired-locked-pots|mix.plan.shares",
+  "in both views now, take it out of one-view-only.json: saver-ladder-draft|holdings.total",
+  "in both views now, take it out of one-view-only.json: saver-ladder-draft|mix.held.cash",
+  "in both views now, take it out of one-view-only.json: saver-ladder-draft|mix.held.diversifiers",
+  "in both views now, take it out of one-view-only.json: saver-locked-ladder|gilts.held",
+  "in both views now, take it out of one-view-only.json: saver-locked-ladder|holdings.total",
+  "in both views now, take it out of one-view-only.json: saver-locked-ladder|mix.held.cash",
+  "in both views now, take it out of one-view-only.json: saver-locked-ladder|mix.held.diversifiers",
+  "unmarked figures fell on closed-successor|simple:hold: 15 → 14",
+  "unmarked figures fell on mover-holdings|simple:hold: 13 → 12",
+  "unmarked figures fell on retired-everything|simple:hold: 18 → 17",
+  "unmarked figures fell on retired-locked-ladder|simple:plan: 41 → 38",
+  "unmarked figures fell on retired-locked-ladder|simple:pots: 24 → 21",
+  "unmarked figures fell on retired-locked-ladder|simple:hold: 30 → 29",
+  "unmarked figures fell on retired-locked-months|simple:hold: 24 → 23",
+  "unmarked figures fell on saver-ladder-draft|simple:plan: 17 → 14",
+  "unmarked figures fell on saver-ladder-draft|simple:pots: 35 → 32",
+  "unmarked figures fell on saver-ladder-draft|simple:hold: 16 → 15",
+  "unmarked figures fell on saver-locked-ladder|simple:plan: 42 → 39",
+  "unmarked figures fell on saver-locked-ladder|simple:pots: 23 → 20",
+  "unmarked figures fell on saver-locked-ladder|simple:hold: 28 → 27",
+  "unmarked figures fell on saver-locked-ladder|full:transition: 157 → 17",
+  "unmarked figures fell on saver-locked-pots|full:transition: 26 → 7",
+  "comes back now, take it out of known-roundtrips.json: hold.lines|f2s (was not tried)",
+  "comes back now, take it out of known-roundtrips.json: hold.lines|s2f (was not tried)"
+ ],
  "grew": [
   "opens now, add it to coverage.json: age-only|full:glidepath#press",
   "opens now, add it to coverage.json: age-only|full:scenarios#press",
@@ -352,6 +408,8 @@
   "more places now, raise coverage.json: budget|way.pots-and-valves.worst12|simple 0 → 1",
   "more places now, raise coverage.json: budget|years.prices|full 0 → 2",
   "more places now, raise coverage.json: budget|years.prices|simple 0 → 2",
+  "more places now, raise coverage.json: closed-successor|holdings.total|full 1 → 2",
+  "more places now, raise coverage.json: closed-successor|holdings.total|simple 0 → 1",
   "more places now, raise coverage.json: closed-successor|lasts.coverage|full 0 → 1",
   "more places now, raise coverage.json: closed-successor|lasts.coverage|simple 0 → 1",
   "more places now, raise coverage.json: closed-successor|lasts.worst12|full 1 → 3",
@@ -359,6 +417,10 @@
   "more places now, raise coverage.json: closed-successor|left.badCase|simple 0 → 1",
   "more places now, raise coverage.json: closed-successor|mix.best|full 0 → 1",
   "more places now, raise coverage.json: closed-successor|mix.best|simple 0 → 1",
+  "more places now, raise coverage.json: closed-successor|mix.held.bonds|full 0 → 1",
+  "more places now, raise coverage.json: closed-successor|mix.held.cash|full 0 → 1",
+  "more places now, raise coverage.json: closed-successor|mix.held.diversifiers|full 0 → 1",
+  "more places now, raise coverage.json: closed-successor|mix.held.shares|full 0 → 1",
   "more places now, raise coverage.json: closed-successor|statePension.age|full 1 → 2",
   "more places now, raise coverage.json: closed-successor|statePension.amount|full 0 → 1",
   "more places now, raise coverage.json: closed-successor|statePension.week|full 0 → 1",
@@ -766,6 +828,8 @@
   "more places now, raise coverage.json: couple|way.pots-and-valves.worst12|simple 0 → 1",
   "more places now, raise coverage.json: couple|years.prices|full 0 → 2",
   "more places now, raise coverage.json: couple|years.prices|simple 0 → 2",
+  "more places now, raise coverage.json: mover-holdings|holdings.total|full 1 → 2",
+  "more places now, raise coverage.json: mover-holdings|holdings.total|simple 0 → 1",
   "more places now, raise coverage.json: mover-holdings|income.step.0.beforeTax|simple 2 → 3",
   "more places now, raise coverage.json: mover-holdings|income.step.0.monthAfterTax|simple 1 → 2",
   "more places now, raise coverage.json: mover-holdings|lasts.worst12|full 0 → 2",
@@ -773,6 +837,10 @@
   "more places now, raise coverage.json: mover-holdings|left.badCase|simple 0 → 1",
   "more places now, raise coverage.json: mover-holdings|mix.best|full 0 → 1",
   "more places now, raise coverage.json: mover-holdings|mix.best|simple 0 → 1",
+  "more places now, raise coverage.json: mover-holdings|mix.held.bonds|full 0 → 1",
+  "more places now, raise coverage.json: mover-holdings|mix.held.cash|full 0 → 1",
+  "more places now, raise coverage.json: mover-holdings|mix.held.diversifiers|full 0 → 1",
+  "more places now, raise coverage.json: mover-holdings|mix.held.shares|full 1 → 2",
   "more places now, raise coverage.json: mover-holdings|statePension.age|full 1 → 2",
   "more places now, raise coverage.json: mover-holdings|statePension.amount|full 0 → 1",
   "more places now, raise coverage.json: mover-holdings|statePension.week|full 0 → 1",
@@ -1375,6 +1443,8 @@
   "more places now, raise coverage.json: retired-draft|way.pots-and-valves.worst12|simple 0 → 1",
   "more places now, raise coverage.json: retired-draft|years.prices|full 0 → 2",
   "more places now, raise coverage.json: retired-draft|years.prices|simple 0 → 2",
+  "more places now, raise coverage.json: retired-everything|holdings.total|full 1 → 2",
+  "more places now, raise coverage.json: retired-everything|holdings.total|simple 0 → 1",
   "more places now, raise coverage.json: retired-everything|lasts.coverage|full 0 → 1",
   "more places now, raise coverage.json: retired-everything|lasts.coverage|simple 0 → 1",
   "more places now, raise coverage.json: retired-everything|lasts.worst12|full 1 → 3",
@@ -1382,6 +1452,10 @@
   "more places now, raise coverage.json: retired-everything|left.badCase|simple 0 → 1",
   "more places now, raise coverage.json: retired-everything|mix.best|full 0 → 1",
   "more places now, raise coverage.json: retired-everything|mix.best|simple 0 → 1",
+  "more places now, raise coverage.json: retired-everything|mix.held.bonds|full 0 → 1",
+  "more places now, raise coverage.json: retired-everything|mix.held.cash|full 0 → 1",
+  "more places now, raise coverage.json: retired-everything|mix.held.diversifiers|full 0 → 1",
+  "more places now, raise coverage.json: retired-everything|mix.held.shares|full 0 → 1",
   "more places now, raise coverage.json: retired-everything|statePension.age|full 1 → 2",
   "more places now, raise coverage.json: retired-everything|statePension.amount|full 0 → 1",
   "more places now, raise coverage.json: retired-everything|statePension.week|full 0 → 1",
@@ -1586,6 +1660,10 @@
   "more places now, raise coverage.json: retired-everything|way.pots-and-valves.worst12|simple 0 → 1",
   "more places now, raise coverage.json: retired-everything|years.prices|full 0 → 2",
   "more places now, raise coverage.json: retired-everything|years.prices|simple 0 → 2",
+  "more places now, raise coverage.json: retired-locked-ladder|gilts.held|full 0 → 2",
+  "more places now, raise coverage.json: retired-locked-ladder|gilts.held|simple 19 → 21",
+  "more places now, raise coverage.json: retired-locked-ladder|holdings.total|full 1 → 2",
+  "more places now, raise coverage.json: retired-locked-ladder|holdings.total|simple 0 → 1",
   "more places now, raise coverage.json: retired-locked-ladder|income.step.0.beforeTax|full 1 → 4",
   "more places now, raise coverage.json: retired-locked-ladder|income.step.0.beforeTax|simple 2 → 3",
   "more places now, raise coverage.json: retired-locked-ladder|income.step.0.monthAfterTax|full 1 → 2",
@@ -1608,6 +1686,10 @@
   "more places now, raise coverage.json: retired-locked-ladder|lasts.worst12|simple 0 → 1",
   "more places now, raise coverage.json: retired-locked-ladder|left.badCase|simple 0 → 1",
   "more places now, raise coverage.json: retired-locked-ladder|lock.date|simple 20 → 27",
+  "more places now, raise coverage.json: retired-locked-ladder|mix.held.bonds|full 0 → 1",
+  "more places now, raise coverage.json: retired-locked-ladder|mix.held.cash|full 0 → 1",
+  "more places now, raise coverage.json: retired-locked-ladder|mix.held.diversifiers|full 0 → 1",
+  "more places now, raise coverage.json: retired-locked-ladder|mix.held.shares|full 0 → 1",
   "more places now, raise coverage.json: retired-locked-ladder|month.take.from|full 0 → 1",
   "more places now, raise coverage.json: retired-locked-ladder|month.take.from|simple 0 → 1",
   "more places now, raise coverage.json: retired-locked-ladder|plan.pricesFrom|full 0 → 2",
@@ -1778,6 +1860,8 @@
   "more places now, raise coverage.json: retired-locked-ladder|way.pots-and-valves.verdict|simple 0 → 1",
   "more places now, raise coverage.json: retired-locked-ladder|way.pots-and-valves.worst12|full 0 → 2",
   "more places now, raise coverage.json: retired-locked-ladder|way.pots-and-valves.worst12|simple 0 → 1",
+  "more places now, raise coverage.json: retired-locked-months|holdings.total|full 1 → 2",
+  "more places now, raise coverage.json: retired-locked-months|holdings.total|simple 0 → 1",
   "more places now, raise coverage.json: retired-locked-months|income.step.0.beforeTax|full 1 → 4",
   "more places now, raise coverage.json: retired-locked-months|income.step.0.beforeTax|simple 2 → 3",
   "more places now, raise coverage.json: retired-locked-months|income.step.0.monthAfterTax|full 1 → 2",
@@ -1797,6 +1881,13 @@
   "more places now, raise coverage.json: retired-locked-months|lock.date|simple 20 → 28",
   "more places now, raise coverage.json: retired-locked-months|mix.best|full 0 → 1",
   "more places now, raise coverage.json: retired-locked-months|mix.best|simple 0 → 1",
+  "more places now, raise coverage.json: retired-locked-months|mix.held.bonds|full 0 → 1",
+  "more places now, raise coverage.json: retired-locked-months|mix.held.cash|full 0 → 1",
+  "more places now, raise coverage.json: retired-locked-months|mix.held.diversifiers|full 0 → 1",
+  "more places now, raise coverage.json: retired-locked-months|mix.held.shares|full 0 → 1",
+  "more places now, raise coverage.json: retired-locked-months|mix.plan.bonds|simple 0 → 1",
+  "more places now, raise coverage.json: retired-locked-months|mix.plan.cash|simple 0 → 1",
+  "more places now, raise coverage.json: retired-locked-months|mix.plan.shares|simple 0 → 1",
   "more places now, raise coverage.json: retired-locked-months|month.take.from|full 0 → 1",
   "more places now, raise coverage.json: retired-locked-months|month.take.from|simple 0 → 1",
   "more places now, raise coverage.json: retired-locked-months|plan.pricesFrom|full 0 → 2",
@@ -2037,6 +2128,9 @@
   "more places now, raise coverage.json: retired-locked-pots|lock.date|simple 20 → 26",
   "more places now, raise coverage.json: retired-locked-pots|mix.best|full 0 → 1",
   "more places now, raise coverage.json: retired-locked-pots|mix.best|simple 0 → 1",
+  "more places now, raise coverage.json: retired-locked-pots|mix.plan.bonds|simple 0 → 1",
+  "more places now, raise coverage.json: retired-locked-pots|mix.plan.cash|simple 0 → 1",
+  "more places now, raise coverage.json: retired-locked-pots|mix.plan.shares|simple 0 → 1",
   "more places now, raise coverage.json: retired-locked-pots|month.take.from|full 0 → 1",
   "more places now, raise coverage.json: retired-locked-pots|month.take.from|simple 0 → 1",
   "more places now, raise coverage.json: retired-locked-pots|plan.pricesFrom|full 0 → 2",
@@ -2584,6 +2678,8 @@
   "more places now, raise coverage.json: saver-draft|way.pots-and-valves.worst12|simple 0 → 1",
   "more places now, raise coverage.json: saver-draft|years.prices|full 0 → 2",
   "more places now, raise coverage.json: saver-draft|years.prices|simple 0 → 2",
+  "more places now, raise coverage.json: saver-ladder-draft|holdings.total|full 1 → 2",
+  "more places now, raise coverage.json: saver-ladder-draft|holdings.total|simple 0 → 1",
   "more places now, raise coverage.json: saver-ladder-draft|income.step.0.beforeTax|simple 2 → 3",
   "more places now, raise coverage.json: saver-ladder-draft|income.step.0.monthAfterTax|simple 1 → 2",
   "more places now, raise coverage.json: saver-ladder-draft|lasts.coverage|full 0 → 1",
@@ -2591,6 +2687,10 @@
   "more places now, raise coverage.json: saver-ladder-draft|lasts.worst12|full 1 → 2",
   "more places now, raise coverage.json: saver-ladder-draft|lasts.worst12|simple 0 → 1",
   "more places now, raise coverage.json: saver-ladder-draft|left.badCase|simple 0 → 1",
+  "more places now, raise coverage.json: saver-ladder-draft|mix.held.bonds|full 1 → 2",
+  "more places now, raise coverage.json: saver-ladder-draft|mix.held.cash|full 0 → 1",
+  "more places now, raise coverage.json: saver-ladder-draft|mix.held.diversifiers|full 0 → 1",
+  "more places now, raise coverage.json: saver-ladder-draft|mix.held.shares|full 1 → 2",
   "more places now, raise coverage.json: saver-ladder-draft|statePension.age|full 0 → 1",
   "more places now, raise coverage.json: saver-ladder-draft|statePension.amount|full 0 → 1",
   "more places now, raise coverage.json: saver-ladder-draft|statePension.week|full 0 → 1",
@@ -2763,6 +2863,9 @@
   "more places now, raise coverage.json: saver-locked-ladder|doc.lasts.fixedChance|simple 0 → 1",
   "more places now, raise coverage.json: saver-locked-ladder|doc.lasts.toAge|full 0 → 1",
   "more places now, raise coverage.json: saver-locked-ladder|doc.lasts.toAge|simple 0 → 1",
+  "more places now, raise coverage.json: saver-locked-ladder|gilts.held|simple 0 → 1",
+  "more places now, raise coverage.json: saver-locked-ladder|holdings.total|full 1 → 2",
+  "more places now, raise coverage.json: saver-locked-ladder|holdings.total|simple 0 → 1",
   "more places now, raise coverage.json: saver-locked-ladder|income.step.0.beforeTax|full 1 → 4",
   "more places now, raise coverage.json: saver-locked-ladder|income.step.0.beforeTax|simple 2 → 4",
   "more places now, raise coverage.json: saver-locked-ladder|income.step.0.monthAfterTax|full 1 → 2",
@@ -2778,6 +2881,10 @@
   "more places now, raise coverage.json: saver-locked-ladder|lasts.worst12|simple 0 → 1",
   "more places now, raise coverage.json: saver-locked-ladder|left.badCase|simple 0 → 1",
   "more places now, raise coverage.json: saver-locked-ladder|lock.date|simple 20 → 28",
+  "more places now, raise coverage.json: saver-locked-ladder|mix.held.bonds|full 1 → 2",
+  "more places now, raise coverage.json: saver-locked-ladder|mix.held.cash|full 0 → 1",
+  "more places now, raise coverage.json: saver-locked-ladder|mix.held.diversifiers|full 0 → 1",
+  "more places now, raise coverage.json: saver-locked-ladder|mix.held.shares|full 1 → 2",
   "more places now, raise coverage.json: saver-locked-ladder|statePension.age|full 0 → 1",
   "more places now, raise coverage.json: saver-locked-ladder|statePension.amount|full 0 → 1",
   "more places now, raise coverage.json: saver-locked-ladder|statePension.week|full 0 → 1",
@@ -2954,6 +3061,12 @@
   "more places now, raise coverage.json: saver-locked-pots|lock.date|simple 20 → 25",
   "more places now, raise coverage.json: saver-locked-pots|mix.best|full 0 → 1",
   "more places now, raise coverage.json: saver-locked-pots|mix.best|simple 0 → 1",
+  "more places now, raise coverage.json: saver-locked-pots|mix.plan.bonds|full 1 → 2",
+  "more places now, raise coverage.json: saver-locked-pots|mix.plan.bonds|simple 1 → 2",
+  "more places now, raise coverage.json: saver-locked-pots|mix.plan.cash|full 1 → 2",
+  "more places now, raise coverage.json: saver-locked-pots|mix.plan.cash|simple 1 → 2",
+  "more places now, raise coverage.json: saver-locked-pots|mix.plan.shares|full 1 → 2",
+  "more places now, raise coverage.json: saver-locked-pots|mix.plan.shares|simple 1 → 2",
   "more places now, raise coverage.json: saver-locked-pots|pot.today|simple 2 → 22",
   "more places now, raise coverage.json: saver-locked-pots|statePension.age|full 2 → 3",
   "more places now, raise coverage.json: saver-locked-pots|statePension.amount|full 0 → 1",
@@ -3473,12 +3586,6 @@
     "view": "simple"
    },
    {
-    "key": "closed-successor|holdings.total",
-    "fixture": "closed-successor",
-    "fact": "holdings.total",
-    "view": "full"
-   },
-   {
     "key": "closed-successor|income.step.1.beforeTax",
     "fixture": "closed-successor",
     "fact": "income.step.1.beforeTax",
@@ -3491,64 +3598,16 @@
     "view": "simple"
    },
    {
-    "key": "closed-successor|mix.held.bonds",
-    "fixture": "closed-successor",
-    "fact": "mix.held.bonds",
-    "view": "simple"
-   },
-   {
-    "key": "closed-successor|mix.held.cash",
-    "fixture": "closed-successor",
-    "fact": "mix.held.cash",
-    "view": "simple"
-   },
-   {
-    "key": "closed-successor|mix.held.diversifiers",
-    "fixture": "closed-successor",
-    "fact": "mix.held.diversifiers",
-    "view": "simple"
-   },
-   {
-    "key": "closed-successor|mix.held.shares",
-    "fixture": "closed-successor",
-    "fact": "mix.held.shares",
-    "view": "simple"
-   },
-   {
     "key": "closed-successor|pot.today",
     "fixture": "closed-successor",
     "fact": "pot.today",
     "view": "simple"
    },
    {
-    "key": "mover-holdings|holdings.total",
-    "fixture": "mover-holdings",
-    "fact": "holdings.total",
-    "view": "full"
-   },
-   {
     "key": "mover-holdings|lasts.fixedChance",
     "fixture": "mover-holdings",
     "fact": "lasts.fixedChance",
     "view": "full"
-   },
-   {
-    "key": "mover-holdings|mix.held.bonds",
-    "fixture": "mover-holdings",
-    "fact": "mix.held.bonds",
-    "view": "simple"
-   },
-   {
-    "key": "mover-holdings|mix.held.cash",
-    "fixture": "mover-holdings",
-    "fact": "mix.held.cash",
-    "view": "simple"
-   },
-   {
-    "key": "mover-holdings|mix.held.diversifiers",
-    "fixture": "mover-holdings",
-    "fact": "mix.held.diversifiers",
-    "view": "simple"
    },
    {
     "key": "mover-totals|isa.today",
@@ -3587,12 +3646,6 @@
     "view": "simple"
    },
    {
-    "key": "retired-everything|holdings.total",
-    "fixture": "retired-everything",
-    "fact": "holdings.total",
-    "view": "full"
-   },
-   {
     "key": "retired-everything|income.step.1.beforeTax",
     "fixture": "retired-everything",
     "fact": "income.step.1.beforeTax",
@@ -3617,69 +3670,9 @@
     "view": "simple"
    },
    {
-    "key": "retired-everything|mix.held.bonds",
-    "fixture": "retired-everything",
-    "fact": "mix.held.bonds",
-    "view": "simple"
-   },
-   {
-    "key": "retired-everything|mix.held.cash",
-    "fixture": "retired-everything",
-    "fact": "mix.held.cash",
-    "view": "simple"
-   },
-   {
-    "key": "retired-everything|mix.held.diversifiers",
-    "fixture": "retired-everything",
-    "fact": "mix.held.diversifiers",
-    "view": "simple"
-   },
-   {
-    "key": "retired-everything|mix.held.shares",
-    "fixture": "retired-everything",
-    "fact": "mix.held.shares",
-    "view": "simple"
-   },
-   {
     "key": "retired-everything|pot.today",
     "fixture": "retired-everything",
     "fact": "pot.today",
-    "view": "simple"
-   },
-   {
-    "key": "retired-locked-ladder|gilts.held",
-    "fixture": "retired-locked-ladder",
-    "fact": "gilts.held",
-    "view": "simple"
-   },
-   {
-    "key": "retired-locked-ladder|holdings.total",
-    "fixture": "retired-locked-ladder",
-    "fact": "holdings.total",
-    "view": "full"
-   },
-   {
-    "key": "retired-locked-ladder|mix.held.bonds",
-    "fixture": "retired-locked-ladder",
-    "fact": "mix.held.bonds",
-    "view": "simple"
-   },
-   {
-    "key": "retired-locked-ladder|mix.held.cash",
-    "fixture": "retired-locked-ladder",
-    "fact": "mix.held.cash",
-    "view": "simple"
-   },
-   {
-    "key": "retired-locked-ladder|mix.held.diversifiers",
-    "fixture": "retired-locked-ladder",
-    "fact": "mix.held.diversifiers",
-    "view": "simple"
-   },
-   {
-    "key": "retired-locked-ladder|mix.held.shares",
-    "fixture": "retired-locked-ladder",
-    "fact": "mix.held.shares",
     "view": "simple"
    },
    {
@@ -4163,72 +4156,6 @@
     "view": "full"
    },
    {
-    "key": "retired-locked-months|holdings.total",
-    "fixture": "retired-locked-months",
-    "fact": "holdings.total",
-    "view": "full"
-   },
-   {
-    "key": "retired-locked-months|mix.held.bonds",
-    "fixture": "retired-locked-months",
-    "fact": "mix.held.bonds",
-    "view": "simple"
-   },
-   {
-    "key": "retired-locked-months|mix.held.cash",
-    "fixture": "retired-locked-months",
-    "fact": "mix.held.cash",
-    "view": "simple"
-   },
-   {
-    "key": "retired-locked-months|mix.held.diversifiers",
-    "fixture": "retired-locked-months",
-    "fact": "mix.held.diversifiers",
-    "view": "simple"
-   },
-   {
-    "key": "retired-locked-months|mix.held.shares",
-    "fixture": "retired-locked-months",
-    "fact": "mix.held.shares",
-    "view": "simple"
-   },
-   {
-    "key": "retired-locked-months|mix.plan.bonds",
-    "fixture": "retired-locked-months",
-    "fact": "mix.plan.bonds",
-    "view": "full"
-   },
-   {
-    "key": "retired-locked-months|mix.plan.cash",
-    "fixture": "retired-locked-months",
-    "fact": "mix.plan.cash",
-    "view": "full"
-   },
-   {
-    "key": "retired-locked-months|mix.plan.shares",
-    "fixture": "retired-locked-months",
-    "fact": "mix.plan.shares",
-    "view": "full"
-   },
-   {
-    "key": "retired-locked-pots|mix.plan.bonds",
-    "fixture": "retired-locked-pots",
-    "fact": "mix.plan.bonds",
-    "view": "full"
-   },
-   {
-    "key": "retired-locked-pots|mix.plan.cash",
-    "fixture": "retired-locked-pots",
-    "fact": "mix.plan.cash",
-    "view": "full"
-   },
-   {
-    "key": "retired-locked-pots|mix.plan.shares",
-    "fixture": "retired-locked-pots",
-    "fact": "mix.plan.shares",
-    "view": "full"
-   },
-   {
     "key": "saver-checkin|isa.today",
     "fixture": "saver-checkin",
     "fact": "isa.today",
@@ -4277,12 +4204,6 @@
     "view": "full"
    },
    {
-    "key": "saver-ladder-draft|holdings.total",
-    "fixture": "saver-ladder-draft",
-    "fact": "holdings.total",
-    "view": "full"
-   },
-   {
     "key": "saver-ladder-draft|income.step.1.beforeTax",
     "fixture": "saver-ladder-draft",
     "fact": "income.step.1.beforeTax",
@@ -4298,18 +4219,6 @@
     "key": "saver-ladder-draft|isa.today",
     "fixture": "saver-ladder-draft",
     "fact": "isa.today",
-    "view": "simple"
-   },
-   {
-    "key": "saver-ladder-draft|mix.held.cash",
-    "fixture": "saver-ladder-draft",
-    "fact": "mix.held.cash",
-    "view": "simple"
-   },
-   {
-    "key": "saver-ladder-draft|mix.held.diversifiers",
-    "fixture": "saver-ladder-draft",
-    "fact": "mix.held.diversifiers",
     "view": "simple"
    },
    {
@@ -4769,30 +4678,6 @@
     "view": "full"
    },
    {
-    "key": "saver-locked-ladder|gilts.held",
-    "fixture": "saver-locked-ladder",
-    "fact": "gilts.held",
-    "view": "full"
-   },
-   {
-    "key": "saver-locked-ladder|holdings.total",
-    "fixture": "saver-locked-ladder",
-    "fact": "holdings.total",
-    "view": "full"
-   },
-   {
-    "key": "saver-locked-ladder|mix.held.cash",
-    "fixture": "saver-locked-ladder",
-    "fact": "mix.held.cash",
-    "view": "simple"
-   },
-   {
-    "key": "saver-locked-ladder|mix.held.diversifiers",
-    "fixture": "saver-locked-ladder",
-    "fact": "mix.held.diversifiers",
-    "view": "simple"
-   },
-   {
     "key": "saver-locked-pots|isa.today",
     "fixture": "saver-locked-pots",
     "fact": "isa.today",
@@ -4867,16 +4752,6 @@
     "key": "budget.lines|s2f",
     "kind": "not tried",
     "detail": "budget lines: rows in both views"
-   },
-   {
-    "key": "hold.lines|f2s",
-    "kind": "not tried",
-    "detail": "holdings lines: rows in both views"
-   },
-   {
-    "key": "hold.lines|s2f",
-    "kind": "not tried",
-    "detail": "holdings lines: rows in both views"
    },
    {
     "key": "household.whoPays|f2s",

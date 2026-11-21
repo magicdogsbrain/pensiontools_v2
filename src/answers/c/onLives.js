@@ -31,7 +31,7 @@ import { validateHousehold } from '../shared/household.js';
 import { bandIndexes, STEP } from '../shared/band.js';
 import { potsShareOf, potsNeedByYear } from '../shared/toEngine.js';
 import { shapeOfAnswer, markShapeMoves } from '../shared/shapeAnswer.js';
-import { stopAtPlan, createStopRunner, verdictAt, bandAt, phasesAt, coverAt, leftAtStop, weighingPlansOf } from '../shared/stopAt.js';
+import { stopAtPlan, createStopRunner, verdictAt, bandAt, phasesAt, coverAt, leftAtStop, weighingPlansOf, coversGapOf } from '../shared/stopAt.js';
 import { weigherOf } from '../shared/weigh.js';
 import { livesList } from '../shared/lives.js';
 import { lifeFactsOf } from '../shared/lastsWords.js';
@@ -226,7 +226,8 @@ const keyOf = (inputs, env) => { const { take, ...rest } = inputs; void take; re
  */
 function keptCaseOf(inputs, household, sp, startAge, env, { dragPct = 0, livesEnv = null } = {}) {
   if (!(env.planPath && typeof env.planPath.planCaseOf === 'function') || env.mix || env.householdRoute) return null;
-  if (inputs.household === 'couple' || household.shape || household.people.length !== 1) return null;
+  if (inputs.household === 'couple' && inputs.partner) return coupleCaseOn(inputs, household, sp, startAge, env, { dragPct, livesEnv });
+  if (household.shape || household.people.length !== 1) return null;
   const you = household.people[0];
   if (firstOpenAge(you.age, env.today, sp.S) > you.age + sp.S) return null;
   const p = sp.saving.people[0].payIn;
@@ -242,13 +243,44 @@ function keptCaseOf(inputs, household, sp, startAge, env, { dragPct = 0, livesEn
 }
 
 /**
+ * A COUPLE ON THE LIVES IS ON THE PLAN PATH (the lead's rulings 9 and P, step P5): from a later start, or one of them still
+ * working, C runs on the two plans C's own Keep writes there, read as one household on two clocks (keep/planPath.js
+ * coupleCaseOf 'c' with each one's stop, what goes in until then and the pots at it), each life drawing from its own pots
+ * at each one's stop (the stop runner, `sp.couple`), the household's split at each amount this stop plan's phases; as A's
+ * row at the same stop and B are. Not on it: a spending shape and a start moved to the day a pension opens (planPath
+ * couplesOnPlans; P6). → the case, or null.
+ */
+function coupleCaseOn(inputs, household, sp, startAge, env, { dragPct = 0, livesEnv = null } = {}) {
+  if (typeof env.planPath.coupleCaseOf !== 'function' || household.shape || !env.planPath.couplesOnPlans(sp.plan)) return null;
+  const own = sp.plan;
+  const saver = {
+    S: sp.S, stopAge: startAge,
+    saving: sp.saving.people.map((p, j) => ({ who: p.who, yearsSaving: sp.stops[j].S, payIn: { total: p.payIn.total, own: p.payIn.own, employer: p.payIn.employer, savings: 0 },
+      potAtStop: { pension: spreadOf(sp.pots[j].pension), savings: spreadOf(sp.pots[j].savings) } }))
+  };
+  const lives = (T) => (livesEnv || T > sp.T ? livesList(sp.n, Math.max(T, sp.T), livesEnv || env) : sp.lives);
+  // (the household's split at each amount: this stop plan's phases, on its own plan, uncut)
+  return env.planPath.coupleCaseOf('c', inputs, env, { lives, saver, dragPct, phasesAt: (H) => phasesAt({ ...sp, plan: own, couple: null }, H), coversGap: coversGapOf(own) });
+}
+
+/**
+ * The stop plan with its kept case, in place: one person's (`sp.kept`), or a couple's (`sp.couple`, the words the household
+ * plan's cut at the kept plans' years: planPath householdWordsTo).
+ */
+function withCase(sp, pc, env) {
+  if (pc && pc.household) { sp.couple = pc; sp.plan = env.planPath.householdWordsTo(sp.plan, pc); }
+  else if (pc) sp.kept = pc;
+  return sp;
+}
+
+/**
  * The band at one start age on the lives, its search started where a smaller pass of the same inputs ended (a hint), with
  * the levels asked for (7.8.0; the level chosen when none are named) on the weights of the stop plan.
  */
 function bandOn(inputs, household, startAge, env, onProgress, ids = [levelOfInputs(inputs)]) {
   const sp = stopAtPlan(household, startAge, env);
   const pc = keptCaseOf(inputs, household, sp, startAge, env);
-  if (pc) sp.kept = pc;
+  withCase(sp, pc, env);
   const runner = createStopRunner(sp);
   const key = keyOf({ ...inputs, start: { kind: 'age', age: startAge } }, env);
   const byN = remembered.get(key) || new Map();
@@ -404,7 +436,7 @@ export function stressCaseOnLives(checked, env, { defaulted = [] } = {}) {
  * worse futures or lower returns put into a kept case of its own on the same lives, as D's stressCaseOf does.
  */
 function stressCaseOnPlanPath(inputs, household, sp, pc, startAge, env, defaulted) {
-  sp.kept = pc;
+  withCase(sp, pc, env);
   const runner = createStopRunner(sp);
   const level = levelOfInputs(inputs);
   const { weigher, toMonth, planToAge } = pc;
@@ -420,12 +452,12 @@ function stressCaseOnPlanPath(inputs, household, sp, pc, startAge, env, defaulte
       // (the fall starts at the start, 12·S months in, and lower returns are the drawing years' alone: both are the kept
       // case's; the saving years, so the pots at the start, are this stop plan's as they are — the stop runner reads only
       // its pots when it carries a kept case)
-      s = { ...sp };
-      s.kept = keptCaseOf(inputs, household, s, startAge, env, { dragPct, livesEnv });
+      s = { ...sp, plan: sp.couple ? sp.plan.full || sp.plan : sp.plan, kept: undefined, couple: undefined };
+      withCase(s, keptCaseOf(inputs, household, s, startAge, env, { dragPct, livesEnv }), env);
       r = createStopRunner(s);
     }
     const months = verdictAt(s, r, H, { weigher, level, toMonth }).runOutMonths;
-    return { months, left: leftAtStop(s, r, H, months, toMonth), plan: pc.wordsPlan };
+    return { months, left: leftAtStop(s, r, H, months, toMonth), plan: pc.household ? sp.plan : pc.wordsPlan };
   };
   return { q: 'c', inputs, plan, weigher, level, toMonth, lf, n: sp.n, drawingNow: sp.S === 0, monthsAt };
 }
@@ -458,7 +490,7 @@ export function answerOnLives(checked, env, ctx) {
   const { sp, runner, band } = bandOn(inputs, household, startAge, env, typeof env.onProgress === 'function' ? env.onProgress : undefined, LEVEL_IDS);
   // on the plan path (one person: bandOn keptCaseOf) the runs, the plan-to age and the phases are the kept plan's; the words
   // read the household's facts beside them, as A's row does (a/answer.js rowOf)
-  const pc = sp.kept || null;
+  const pc = sp.kept || sp.couple || null;
   const plan = pc ? sp.plan : runner.plan;
   const weigher = band.weigher;
   const planToAge = pc ? pc.planToAge : plan.endAge;
@@ -513,7 +545,7 @@ export function answerOnLives(checked, env, ctx) {
     // (on the plan path the kept plan's plan-to age, at most its own limit from the start: ruling H)
     ...(pc ? { endAge: planToAge, years: planToAge - plan.startAge, planPath: true } : {}),
     split: sp.saving.people.map((p, j) => ({ who: p.who, share: midTotal > 0 ? (mid[j].pension + mid[j].isa) / midTotal : 1 / mid.length })),
-    yearsSaving: S, lifeYears: pc ? S + pc.years : sp.T, bondDraws: 'life', cashRule: 'previous-year', grid: 'yearly'
+    yearsSaving: S, lifeYears: pc ? (pc.household ? pc.years : S + pc.years) : sp.T, bondDraws: 'life', cashRule: 'previous-year', grid: 'yearly'
   };
   // couples apart: each person's own stop, the pay line, and — in a bad case (the worst 1 in 10), at the careful amount —
   // the age from which the pay of the one still working covers all of what is spent
@@ -531,7 +563,7 @@ export function answerOnLives(checked, env, ctx) {
     whose: plan.whose,
     ...(apart ? { apart } : {}),
     // (on the plan path what comes in anyway is the kept plan's own, its words plan: as C and D say it)
-    guaranteed: { monthlyAfterTax: round2((pc ? pc.wordsPlan.guaranteedAYear : plan.guaranteedAYear) / 12) },
+    guaranteed: { monthlyAfterTax: round2((pc && !pc.household ? pc.wordsPlan.guaranteedAYear : plan.guaranteedAYear) / 12) },
     phases: shaped ? markShapeMoves(phasesAt(sp, shownMonthly * 12).map(asCPhase), shaped.byYear) : phasesAt(sp, shownMonthly * 12).map(asCPhase),
     take,
     payIn: { total: payInTotal, byPerson: saving.map((s) => ({ who: s.who, total: s.payIn.total })) },
@@ -549,7 +581,7 @@ export function answerOnLives(checked, env, ctx) {
       sf: shownMonthly > 0 ? shortfallOf(wordsPlan, band.levels[level].months, shownMonthly * 12, { toMonth, left: leftAtStop(sp, runner, shownMonthly * 12, band.levels[level].months, toMonth) }) : null, takeSf } : null;
   // the facts the words read (when the pension opens, the incomes that come anyway and their ages): on the plan path the kept
   // plan's own (its words plan, as C from now reads them), at this start
-  const factsPlan = pc ? { ...pc.wordsPlan, yearsFromNow: plan.yearsFromNow, start: plan.start, startMoved: plan.startMoved, movedBy: plan.movedBy, movedFor: plan.movedFor } : plan;
+  const factsPlan = pc && !pc.household ? { ...pc.wordsPlan, yearsFromNow: plan.yearsFromNow, start: plan.start, startMoved: plan.startMoved, movedBy: plan.movedBy, movedFor: plan.movedFor } : plan;
   ctx.finish(result, factsPlan, household, { middling: mid, potAtStartMiddling: potAtStart.middling, own, middlingRunOut, weighing, ...(pc ? { capped, capYears: pc.planYears } : {}) });
 
   if (env.trace) {
@@ -559,12 +591,16 @@ export function answerOnLives(checked, env, ctx) {
     const bad = at.careful;
     // (couples apart: each person's saving months to their own stop; the price level at your start)
     const saves = sp.saving.people.some((p) => p.until > 0);
+    // (a couple on the two kept plans, `sp.couple`: the household's run counts its months from this tax year, planPath
+    // coupleCaseOf's two clocks; the trace says each run-out month from the start, as for one person — the same month)
+    const fromStart = sp.couple ? 12 * S : 0;
+    const mo = (m) => (m === null || m === undefined ? m : m - fromStart);
     result.trace = {
       saving: { atCareful: { futureId: bad, priceAtStop: sp.saving.people[0].until > 0 ? sp.kernels[0].pension.priceAtStop[bad] : 1, potAtStart: round2(totals[bad]),
         rows: saves ? sp.saving.people.flatMap((p) => savingRows(sp.saving, p, sp.lives[bad])) : [] } },
       futures: Array.from({ length: n }, (_, i) => ({ id: i, most: band.solver ? band.solver.most(i) * STEP : band.k.careful * STEP,
         // (7.8.0, weighing: each life's run-out month at the amount the answer stands behind, beside the spread's)
-        runOutMonth: { careful: band.runOutMonths.careful[i], middling: band.runOutMonths.middling[i], good: band.runOutMonths.good[i], ...(weigher.weighted ? { shown: band.levels[level].months[i] } : {}) } })),
+        runOutMonth: { careful: mo(band.runOutMonths.careful[i]), middling: mo(band.runOutMonths.middling[i]), good: mo(band.runOutMonths.good[i]), ...(weigher.weighted ? { shown: mo(band.levels[level].months[i]) } : {}) } })),
       evaluations: band.evaluations
     };
   }

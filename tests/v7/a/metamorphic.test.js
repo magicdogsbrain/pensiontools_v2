@@ -15,6 +15,7 @@ import { resolve } from 'node:path';
 import { answerA, SCHEMA_A, TEST_ENV, checkAnswerA, ENGINE_READY, payInsFit, FIXTURE_FILES } from './invariants.js';
 import { arbitraryInputs } from '../gen/arbitrary.mjs';
 import { oneLife, largeHousehold, amountsToAStep } from '../oracles/oneStep.mjs';
+import { firstOpenAge } from '../../../src/answers/shared/household.js';
 
 const RUNS = Number(process.env.FC_RUNS || 8);
 const SEED = process.env.NIGHTLY ? undefined : 20261001;
@@ -143,15 +144,33 @@ describe.skipIf(!ENGINE_READY)('A — metamorphic relations', () => {
     }
   }, 120000);
 
+  // (step P5, ruling P: both on the plan path — the single on its kept plan, the couple on the two kept plans read as one
+  // household, the partner's with nothing in it. Not yet: a single whose pension is still closed at the stop, who is on the
+  // household run until P6 moves a stop before the pension opens onto the plan path (its counterexample: 18, stopping at 19))
+  const singlesA5 = named.filter((i) => i.household === 'single' && i.spend.kind === 'amount' && !(i.savings > 0) && !(i.savingsIn > 0));
+  const coupleOfA5 = (single) => ({ ...single, household: 'couple', partner: { age: single.you.age, pot: 0, payIn: { kind: 'total', total: 0 }, statePension: { kind: 'none' }, finalSalary: { has: false } } });
+  const openAtStop = (single) => firstOpenAge(single.you.age, ENV.today, single.stop.age - single.you.age) <= single.stop.age;
+  /** The count's figures of the shown row (household() less what the words say: what comes in anyway and the phases). */
+  const counted = (x) => { const { guaranteed, takeHome, ...rest } = household(x); void guaranteed; void takeHome; return rest; };
   it('M-A5 a partner with nothing — no pot, nothing going in, no State Pension, no final-salary pension, the same age — is the single answer (an amount: a level is a couple\'s figure)', () => {
-    fc.assert(fc.property(named.filter((i) => i.household === 'single' && i.spend.kind === 'amount' && !(i.savings > 0) && !(i.savingsIn > 0)), (single) => {
-      const couple = { ...single, household: 'couple', partner: { age: single.you.age, pot: 0, payIn: { kind: 'total', total: 0 }, statePension: { kind: 'none' }, finalSalary: { has: false } } };
+    fc.assert(fc.property(singlesA5, (single) => {
       // (7.8.0: while weighing, a couple is counted while either of you is alive, so a partner with nothing still moves the
       // weights and the plan-to age; the relation is the engine's and is held on the count, env.weighted false)
-      // (7.12.0: one person's drawing years run on the kept plan, a couple's on the household run (ruling 9, step P4): the
-      // relation is the household run's, so the single is asked on it by name — env.householdRoute — until couples move)
-      const a = run(single, { ...envFor(single), weighted: false, householdRoute: true });
-      const b = run(couple, { ...envFor(couple), weighted: false });
+      fc.pre(openAtStop(single));
+      const a = run(single, { ...envFor(single), weighted: false });
+      const b = run(coupleOfA5(single), { ...envFor(single), weighted: false });
+      expect(counted(b)).toEqual(counted(a));
+    }), opts());
+  });
+
+  // the words' figures: a couple's words are still the household plan's (the State Pension as typed, £x a year), one
+  // person's the kept plan's (in pence a week, as the plan holds it: £115.38 a week is £5,999.76 a year) — a penny apart a
+  // month. They meet when a couple's words come from the two kept plans (ruling O's other words; P5's last part)
+  it.fails('M-A5 (the words) what comes in anyway and the phases, said for the single and the couple with a partner with nothing, are the same', () => {
+    fc.assert(fc.property(singlesA5, (single) => {
+      fc.pre(openAtStop(single));
+      const a = run(single, { ...envFor(single), weighted: false });
+      const b = run(coupleOfA5(single), { ...envFor(single), weighted: false });
       expect(household(b)).toEqual(household(a));
     }), opts());
   });

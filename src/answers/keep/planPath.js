@@ -42,7 +42,7 @@ import { buildPlanSeed } from './planSeed.js';
 import { seedToScenario } from '../../services/PlanFromSeed.js';
 import { effectiveStressSettings } from '../../services/PlanReading.js';
 import { jointSurvivalOf, weightToAge as jointWeightToAge } from '../../services/LongevityModel.js';
-import { planToAgeOf } from '../../services/AgeConvention.js';
+import { planToAgeOf, OLDEST_PLAN_AGE } from '../../services/AgeConvention.js';
 import { pct } from '../../strategies/ladderEngine.js';
 import { simulate, incomeAnywayByMonth } from '../../services/SimulationEngine.js';
 import { isIsaGrowthMix } from '../../services/IsaGrowth.js';
@@ -93,7 +93,9 @@ function resultAt(source, ins, env, perMonth, startAge = ins.you.age, saver = nu
   if (source === 'b' || source === 'a') {
     if (!saver) throw new Error('planCaseOf: a saver\'s answer needs its stop and its pots at the stop');
     return {
-      status: 'ok', inputs: ins, whose: 'you', level, levels: { [level]: source === 'b' ? { pot: null, payIn: null } : {} }, chance: {}, phases: [],
+      // (a couple: B's phases are the household's split at the amount, which the keep writes each one's part from; A's are
+      // its shown row's)
+      status: 'ok', inputs: ins, whose: 'you', level, levels: { [level]: source === 'b' ? { pot: null, payIn: null } : {} }, chance: {}, phases: source === 'b' ? phases : [],
       spend: { perMonth, perYear: perMonth * 12, kind: ins.spend.kind, level: ins.spend.kind === 'level' ? ins.spend.level : null },
       ...(source === 'b' ? { stop: { age: saver.stopAge } } : { shown: { age: saver.stopAge, phases } }),
       // (a couple: who the answer is about, so the keep reads the stop as that person's)
@@ -645,8 +647,11 @@ export function planCaseOf(source, ins, env, { lives = null, dragPct = 0, fromAg
  *            the household's split at H (`phasesAt(H)`: the answer's phases, each one's part of the take-home); A's row hands
  *            in `saver` (its stop, what goes in as now, each one's pots), as for one person
  *     planAt () → { yours, partner }: two saved plans as they are (householdReadingOf): the plans' own amounts, H unread
+ *     coversGap  a couple apart whose pay makes up what the first to stop's money cannot until the second stop (the
+ *            household's rule, household.js APART.payCoversGap; the answer's stop plan, plan.apart.coversGap): a plan that
+ *            runs out before the other draws does not end the household; the other's money pays on from its own first year
  */
-export function coupleCaseOf(source, ins, env, { lives = null, dragPct = 0, phasesAt = null, planAt = null, H0 = null, saver = null } = {}) {
+export function coupleCaseOf(source, ins, env, { lives = null, dragPct = 0, phasesAt = null, planAt = null, H0 = null, saver = null, coversGap = false } = {}) {
   const now = dateOf(env.today);
   const memo = new Map();
   const at = (H) => {
@@ -699,8 +704,11 @@ export function coupleCaseOf(source, ins, env, { lives = null, dragPct = 0, phas
   const drawing = first.map((x, idx) => idx).filter((idx) => potsIn(first[idx].p.pnvCfg) > 0);
   // a couple's household run: both plans, the one with nothing to draw on too (its part is paid by its own income that comes
   // anyway, and by the other's money once that income falls short: a pension whose rises are capped buys less in years when
-  // prices rise faster) — `parts`; one plan alone: its run, as the plan test runs it
-  const together = first.length > 1 && drawing.length > 0;
+  // prices rise faster) — `parts`; one plan alone: its run, as the plan test runs it. Both plans with nothing in them are
+  // a household run too: an answer's search can try a pay-in that leaves both pots empty, and its stop runner draws each
+  // life from the answer's own pots, not the kept plans' (runnerWith); each part then pays what its own income does, and
+  // the household runs out in the first month a part cannot pay its share (b/answer.js atPayIns, pay-in £0)
+  const together = first.length > 1;
   const parts = together ? first.map((x, idx) => idx) : drawing;
   // each part's years from its own first draw year to the household's end, and its offset on the household's clock
   const gP = parts.map((idx) => gOf[idx]);
@@ -748,7 +756,7 @@ export function coupleCaseOf(source, ins, env, { lives = null, dragPct = 0, phas
     guaranteedCeilingAYear: Math.max(0, ...gross)
   };
   const personRuns = bases.map((b, r) => ({ base: b.config, index: r, role: 'pension', offset: 0 }));
-  const plan = { ...shared, runs: !drawing.length ? [] : together ? [{ base: bases[0].config, index: 0, role: 'household', offset: 0, household: true }] : personRuns };
+  const plan = { ...shared, runs: together ? [{ base: bases[0].config, index: 0, role: 'household', offset: 0, household: true }] : !drawing.length ? [] : personRuns };
   /**
    * Each part's runner on its own clock: its drawing years are the life's market read on from its first draw year (the plan
    * test's futures: seed i × 7919 + 3; a plan drawing now, the life's own drivers; a plan still saving, the engine's bond draws
@@ -837,8 +845,11 @@ export function coupleCaseOf(source, ins, env, { lives = null, dragPct = 0, phas
       if (j < 0) out = { failed: false, failMonth: null, passOn: null };
       else {
         const k = j === 0 ? 1 : 0;
-        if (M[j] < 12 * gP[k]) {
+        if (M[j] < 12 * gP[k] && !coversGap) {
           // (two clocks) j's money ran out before k's plan draws: nothing can pay j's part yet, the household is out there
+          // (a couple apart whose pay makes up the gap, `coversGap`: the pay of the one still working pays j's part until k's
+          // plan draws — no run-out — and k's money pays on from k's first year: the pass-on below, passOnConfig skipping
+          // the years before k's clock starts)
           out = { failed: true, failMonth: M[j], passOn: null };
         } else {
           const config = passOnConfig(hc.parts[k], hc.parts[j], pr[j].futs[i].returns, res[j].failMonth, gP[j] - gP[k]);
@@ -971,7 +982,23 @@ export function coupleCaseOf(source, ins, env, { lives = null, dragPct = 0, phas
  * its plan-to age is theirs (the keep's year limit, ruling H).
  */
 export function couplesOnPlans(plan) {
-  return plan.totalPots > 0 && !plan.apart && !plan.shape && !plan.startMoved;
+  // (someone past the oldest age a plan holds at their own stop — 100 today, stopping with a partner 31 years on — has no
+  // plan the keep can write: AgeConvention OLDEST_PLAN_AGE; the household run answers them)
+  const keepable = plan.people.every((q) => !(q.ageAtStart + (q.join || 0) > OLDEST_PLAN_AGE));
+  // (nor has a later stop at or past the years a kept plan holds from the first stop — at most RULES.maxYears, to the end
+  // age: the later one's own plan would have no year, planSeed "people.N.years"; the household run answers them, P6)
+  const apartYears = plan.apart ? plan.apart.years : 0;
+  // (and, stopping apart, no one past that oldest age at the household's plan-to age: their own plan is cut there, before
+  // the household's end, and nobody's plan pays their part after it)
+  const within = apartYears < Math.min(RULES.maxYears, plan.endAge - plan.startAge)
+    && !(plan.apart && plan.people.some((q) => q.ageAtStart + (plan.endAge - plan.startAge) > OLDEST_PLAN_AGE));
+  // (nor, from a later stop or stopping apart, someone whose pension is still closed at their own stop: the kept plan reads
+  // a closed year it cannot pay as unpaid, not as running out, so the other's money passed on into those years could never
+  // fail — ruling W, a short year, is built in P6; until then the household run answers them. Couples stopping together now
+  // stay on the plans, as step P4 moved them)
+  const later = plan.yearsFromNow > 0 || Boolean(plan.apart);
+  const closedAtStop = plan.people.some((q) => q.lockedYears > (q.join || 0));
+  return plan.totalPots > 0 && !plan.shape && !plan.startMoved && keepable && within && !(later && closedAtStop);
 }
 
 /**
@@ -980,9 +1007,11 @@ export function couplesOnPlans(plan) {
  * plan would run on), so the phases end where the chance is counted. The plan itself when it already ends there.
  */
 export function householdWordsTo(plan, c) {
-  const years = c.planYears;
-  if (!(plan.years > years) || plan.startAge !== c.startAge) return plan;
-  return { ...plan, years, endAge: c.planToAge, capped: true,
+  // (a plan that starts at a later stop than the household's clock: its own years to the kept plans' plan-to age)
+  const years = plan.startAge === c.startAge ? c.planYears : Math.round(c.planToAge - plan.startAge);
+  if (!(plan.years > years)) return plan;
+  // (`full`: the household plan uncut, for the runs the words make on its own clock: stopAt.js middlingAtJoin)
+  return { ...plan, years, endAge: c.planToAge, capped: true, full: plan.full || plan,
     periods: plan.periods.filter((per) => per.from < years).map((per) => (per.to > years ? { ...per, to: years } : per)) };
 }
 

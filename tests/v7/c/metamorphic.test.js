@@ -146,26 +146,35 @@ describe('C — metamorphic relations', () => {
   });
 
   // (7.12.0: from now, a couple's runs are the two kept plans' (planPath coupleCaseOf, the lead's ruling 9, step P4), and a
-  // partner with nothing has no run, so the counts and amounts are the single's. Still open (step P4's handover): a couple's
-  // WORDS (what each amount is made of, the phases) are the household plan's where the single's are the kept plan's, and a
-  // couple from a later start (C on the lives) is still the household run. The counterexample found first is such a start:
-  // 18, nothing in the pot, £10,000 a month going in, from now, so the money is first taken at 57.)
+  // partner with nothing has no run, so the counts and amounts are the single's; from a later start too (step P5). Not yet:
+  // a start moved to the day a pension opens — 18, nothing in the pot, paying in, from now, first taken at 57 — on the
+  // household run for a couple until P6 (ruling M) moves it for one person and couples at once.)
+  // no savings: a couple's savings are split between them, so a partner would then have something
+  const singlesM6 = arbitraryInputs(SCHEMA_C, ENV).filter((i) => i.household === 'single' && !(i.savings > 0));
+  const coupleOfM6 = (single) => ({ ...single, household: 'couple', partner: { age: single.you.age, pot: 0, statePension: { kind: 'none' }, finalSalary: { has: false } } });
+  // (7.8.0: while weighing, a couple is counted while either of you is alive, so a partner with nothing still moves the
+  // weights and the plan-to age; the relation is the engine's and is held on the count, env.weighted false)
+  const COUNT_M6 = { ...ENV, weighted: false };
+  // (a case where the two runs differ is always tried first, found with FC_RUNS=150: the twelve drawn cases can all agree
+  // to the £10 step, which would hide a relation that does not hold)
+  const firstM6 = [[{ household: 'single', you: { pot: 740, age: 68, payIn: { has: 'no' }, statePension: { kind: 'forecast', yearly: 0 }, finalSalary: { has: false }, taxFreeTaken: false, sex: 'notSaid' }, start: { kind: 'now' }, savings: 0, risk: 'cautious', charge: 0, endAge: 75, confidence: 'careful', take: null }]];
+  // Still open after step P5 (each found by this property): (1) the words — a couple's are still the household plan's, one
+  // person's the kept plan's: a pension first taken in the tax year after the access age (ruling G: 18, £1 in the pot, from
+  // 57, says 57–58 nothing, then 58–68; the couple 57–68), and the State Pension in pence a week; they meet when a couple's
+  // words come from the two kept plans (ruling O's other words). (2) Not a couple's matter: one person's own answer at
+  // weighted false fails its I3 — 67, £30,000, a £30,210 final-salary pension, from now: Careful at what comes in anyway,
+  // £3,060, is short in 2 of 20 futures where 1 is allowed (a pension whose rises are capped buys less when prices rise).
   it.fails('M6 a partner with nothing — no pot, no State Pension, no final-salary pension, the same age — is the single answer, to the penny', () => {
-    // no savings: a couple's savings are split between them, so a partner would then have something
-    fc.assert(fc.property(arbitraryInputs(SCHEMA_C, ENV).filter((i) => i.household === 'single' && !(i.savings > 0)), (single) => {
-      const couple = { ...single, household: 'couple', partner: { age: single.you.age, pot: 0, statePension: { kind: 'none' }, finalSalary: { has: false } } };
-      // (7.8.0: while weighing, a couple is counted while either of you is alive, so a partner with nothing still moves the
-      // weights and the plan-to age; the relation is the engine's and is held on the count, env.weighted false)
-      const COUNT = { ...ENV, weighted: false };
-      const a = ok(answerC(single, COUNT), single);
-      const b = ok(answerC(couple, COUNT), couple);
+    fc.assert(fc.property(singlesM6, (single) => {
+      fc.pre(!movedToAccess(single, ENV.today));
+      const a = ok(answerC(single, COUNT_M6), single);
+      const couple = coupleOfM6(single);
+      const b = ok(answerC(couple, COUNT_M6), couple);
       const unshown = (list) => list.map(({ shown, ...p }) => p);
       const strip = (h) => ({ ...h, phases: unshown(h.phases), ...(h.take ? { take: { ...h.take, phases: unshown(h.take.phases) } } : {}) });
       expect(strip(household(b))).toEqual(strip(household(a)));
       expect(b.phases.map((p) => p.takeHome)).toEqual(a.phases.map((p) => p.takeHome));
-    // (a case where the two runs differ is always tried first, found with FC_RUNS=150: the twelve drawn cases can all agree
-    // to the £10 step, which would hide that the relation does not hold yet)
-    }), { ...opts(), examples: [[{ household: 'single', you: { pot: 740, age: 68, payIn: { has: 'no' }, statePension: { kind: 'forecast', yearly: 0 }, finalSalary: { has: false }, taxFreeTaken: false, sex: 'notSaid' }, start: { kind: 'now' }, savings: 0, risk: 'cautious', charge: 0, endAge: 75, confidence: 'careful', take: null }]] });
+    }), { ...opts(), examples: firstM6 });
   });
 
   it('M7 the same pension in two names against one name, same ages: the even split is no lower', () => {

@@ -12,6 +12,7 @@ import { resolve } from 'node:path';
 import { SCHEMA_B, TEST_ENV, answerB, checkAnswerB, withinCeiling, asksB } from './invariants.js';
 import { arbitraryInputs } from '../gen/arbitrary.mjs';
 import { fullStatePensionYearly } from '../../../src/answers/shared/rules.js';
+import { firstOpenAge } from '../../../src/answers/shared/household.js';
 import { payInParts } from '../../../src/answers/shared/schemaParts.js';
 import { STEP, oneLife, largeHousehold, pointReachedInClosedYears } from '../oracles/oneStep.mjs';
 
@@ -220,20 +221,38 @@ describe('B — metamorphic relations', () => {
   // ONE TEST (step 4 brief J9): the whole life is taxed person by person, so a pay-in the couple would split between them
   // (when nothing goes in now it is split evenly) is not the single's. With something going in now it is all the first
   // person's, as the single's is: then the partner with nothing changes nothing.
-  it('M-B11 a partner with nothing — no pot, nothing paid in, no State Pension or final-salary pension, the same age — is the single answer, while all that goes in is the first person\'s', () => {
-    fc.assert(fc.property(singles.filter((i) => !(i.savings > 0) && !(i.savingsIn > 0) && i.spend.kind === 'amount' && payInParts(i.you.payIn).total > 0), (single) => {   // a level is a couple's figure for a couple
-      const couple = { ...single, household: 'couple', partner: { age: single.you.age, pot: 0, payIn: { kind: 'total', total: 0 }, statePension: { kind: 'none' }, finalSalary: { has: false } } };
-      // (7.8.0: while weighing, a couple is counted while either of you is alive, so a partner with nothing still moves the
-      // weights and the plan-to age; the relation is the engine's and is held on the count, env.weighted false)
-      const COUNT = { ...ENV, weighted: false };
-      // (7.12.0: one person's drawing years run on the kept plan, a couple's on the household run (ruling 9, step P4): the
-      // relation is the household run's, so the single is asked on it by name — env.householdRoute — until couples move)
-      const a = ok(answerB(single, { ...COUNT, householdRoute: true }), single);
-      // before a pension opens the savings a month are split between the two of you (two ISAs): not the single's question
-      fc.pre(a.outside === null);
-      const b = ok(answerB(couple, COUNT), couple);
-      const h = (x) => { const y = household(x); return { ...y, levers: null }; };
-      expect(h(b)).toEqual(h(a));
+  // (step P5, ruling P: both on the plan path — the single on its kept plan, the couple on the two kept plans read as one
+  // household, the partner's with nothing in it. Not yet: a single whose pension is still closed at the stop, on the
+  // household run until P6 moves a stop before the pension opens onto the plan path)
+  const singlesB11 = singles.filter((i) => !(i.savings > 0) && !(i.savingsIn > 0) && i.spend.kind === 'amount' && payInParts(i.you.payIn).total > 0);   // a level is a couple's figure for a couple
+  const coupleOfB11 = (single) => ({ ...single, household: 'couple', partner: { age: single.you.age, pot: 0, payIn: { kind: 'total', total: 0 }, statePension: { kind: 'none' }, finalSalary: { has: false } } });
+  const openAtStopB11 = (single) => firstOpenAge(single.you.age, ENV.today, single.stop.age - single.you.age) <= single.stop.age;
+  // (7.8.0: while weighing, a couple is counted while either of you is alive, so a partner with nothing still moves the
+  // weights and the plan-to age; the relation is the engine's and is held on the count, env.weighted false)
+  const COUNT_B11 = { ...ENV, weighted: false };
+  const pairB11 = (single) => {
+    const a = ok(answerB(single, COUNT_B11), single);
+    // before a pension opens the savings a month are split between the two of you (two ISAs): not the single's question
+    fc.pre(a.outside === null);
+    const couple = coupleOfB11(single);
+    return [a, ok(answerB(couple, COUNT_B11), couple)];
+  };
+  const hB11 = (x) => { const y = household(x); return { ...y, levers: null }; };
+  it('M-B11 a partner with nothing — no pot, nothing paid in, no State Pension or final-salary pension, the same age — is the single answer, while all that goes in is the first person\'s: every count and pot', () => {
+    fc.assert(fc.property(singlesB11, (single) => {
+      fc.pre(openAtStopB11(single));
+      const [a, b] = pairB11(single);
+      expect({ ...hB11(b), guaranteed: null }).toEqual({ ...hB11(a), guaranteed: null });
+    }), opts());
+  });
+  // the words' figure: what comes in anyway is said from the household plan for a couple (the State Pension as typed) and
+  // from the kept plan for one person (in pence a week) — a penny apart a month — until a couple's words come from the two
+  // kept plans (ruling O's other words)
+  it.fails('M-B11 (the words) what comes in anyway, said for the single and the couple with a partner with nothing, is the same', () => {
+    fc.assert(fc.property(singlesB11, (single) => {
+      fc.pre(openAtStopB11(single));
+      const [a, b] = pairB11(single);
+      expect(hB11(b)).toEqual(hB11(a));
     }), opts());
   });
 });

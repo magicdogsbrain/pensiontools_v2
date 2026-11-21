@@ -140,6 +140,13 @@
  *           different tax years (one still saving) are read on two clocks: each from its own first draw year, a plan still
  *           saving on its whole lives, the ages the younger's from this tax year, a run-out before the other plan draws
  *           ending the household (they were read on one clock from year 0, then refused), its chance weighed from the
- *           household's first draw year in either order. The household figure says the level it was judged at.
+ *           household's first draw year in either order. The household figure says the level it was judged at. A couple
+ *           who stop in different years or together later is answered from the two plans keeping the answer would write
+ *           (When could I stop's later rows, Am I paying in enough, How much can I take from a later start), as a couple
+ *           stopping now is; for a couple apart the pay of the one still working makes up what the first to stop's money
+ *           cannot until the second stop, as the household's rule says. Still on the household run: a spending shape, a
+ *           start moved to when a pension opens, someone past the oldest age a plan holds at their stop, a second stop at
+ *           or past the years a kept plan holds, and (until short years count as not lasting) a couple from a later stop
+ *           or apart with a pension still closed at its own stop.
  */
 export const ENGINE_VERSION = '6.39.0';

@@ -508,8 +508,11 @@ export function checkAnswerB(answer, given) {
     for (const [field, id] of Object.entries(FIELD)) {
       if (!(field in applies) || flat[field] !== undefined || id === null) continue;
       const line = answer.assumed.find((a) => a.id === id);
+      // (on the plan path a plan-to age below the end age asked is the kept plans' own limit — ruling H, "We tested to …,
+      // the age your plan runs to": nobody chose it and it is not the default, so the line says it is the rule)
+      const want = field === 'endAge' && answer.basis && answer.basis.planPath && answer.basis.endAge < inputs.endAge ? 'rule' : 'default';
       if (!line) fail('B12', `${field} was defaulted but ${id} is not under what was assumed`);
-      else if (line.source !== 'default') fail('B12', `${field} was defaulted but ${id} says ${line.source}`);
+      else if (line.source !== want) fail('B12', `${field} was defaulted but ${id} says ${line.source}`);
     }
   }
 

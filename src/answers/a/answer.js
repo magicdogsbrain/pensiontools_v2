@@ -36,7 +36,7 @@ import { outOfTen } from '../shared/format.js';
 import { agesToShow, spendLevelAMonth, handOverToC, askedAbout, stopYearsOf, shapeOfInputs } from '../shared/schemaParts.js';
 import { livesList } from '../shared/lives.js';
 import { savingRows } from '../shared/saving.js';
-import { stopAtPlan, createStopRunner, verdictAt, bandAt, phasesAt, coverAt, leftAtStop, weighingPlansOf } from '../shared/stopAt.js';
+import { stopAtPlan, createStopRunner, verdictAt, bandAt, phasesAt, coverAt, leftAtStop, weighingPlansOf, coversGapOf } from '../shared/stopAt.js';
 import { weigherOf, runToAgeOfInputs } from '../shared/weigh.js';
 import { lifeFactsOf } from '../shared/lastsWords.js';
 import { shortfallOf } from '../shared/shortfall.js';
@@ -177,7 +177,7 @@ function onPlanPath(inputs, household, sp, env) {
  */
 function coupleNow(inputs, sp, env) {
   if (inputs.household !== 'couple' || !inputs.partner || !(env.planPath && typeof env.planPath.coupleCaseOf === 'function')) return false;
-  if (env.mix || env.householdRoute || sp.stops.some((s) => s.S !== 0) || sp.household.shape) return false;
+  if (env.mix || env.householdRoute || sp.household.shape) return false;
   return env.planPath.couplesOnPlans(sp.plan);
 }
 
@@ -210,7 +210,7 @@ export function stopPlanOf(ins, env, age, lives) {
     // a couple stopping now: the runs are the two kept plans' (`sp.couple`), the household's split at each amount (this
     // row's phases) what the keep writes, and the words the household plan's cut at the kept plans' years
     const longer = (T) => (T <= lives[0].years ? lives : livesList(lives.length, T, env));
-    const pc = env.planPath.coupleCaseOf('a', ins, env, { lives: longer, phasesAt: (H) => phasesAt(sp, H), H0: spendAYearOf(ins), saver: keptSaverOf(sp, age, ins, env) });
+    const pc = env.planPath.coupleCaseOf('a', ins, env, { lives: longer, phasesAt: (H) => phasesAt(sp, H), H0: spendAYearOf(ins), saver: keptSaverOf(sp, age, ins, env), coversGap: coversGapOf(sp.plan) });
     return { sp: { ...sp, plan: env.planPath.householdWordsTo(sp.plan, pc), couple: pc }, pc };
   }
   const pc = onPlanPath(ins, household, sp, env) ? env.planPath.planCaseOf('a', ins, env, { lives, saver: keptSaverOf(sp, age, ins, env) }) : null;
@@ -693,6 +693,10 @@ export function answerA(inputs, env) {
     // the person the answer is about
     const k = sp.saving.people.findIndex((p) => p.who === ask.asked);
     const saves = sp.saving.people.some((p) => p.until > 0);
+    // (a couple on the two kept plans, `sp.couple`: the household's run counts its months from this tax year (planPath
+    // coupleCaseOf, two clocks); the trace says each life's run-out month from the shown row's stop, as for one person —
+    // the same month, 12 × the years saving earlier)
+    const fromStop = sp.couple ? 12 * result.shown.yearsSaving : 0;
     result.trace = {
       saving: {
         atCareful: {
@@ -703,7 +707,7 @@ export function answerA(inputs, env) {
       // the drawing months of a stop are question C's trace when it is today (tests/v7/c/trace.test.js); the fast path's
       // locked run keeps no month-by-month record yet, so the drawing years are given here by their outcome per life
       drawing: null,
-      lives: totals.map((t, i) => ({ id: i, potAtStop: round2(t), runOutMonth: sc.verdict.runOutMonths[i], most: band && band.solver ? band.solver.most(i) * STEP : band.levels[level].monthly }))
+      lives: totals.map((t, i) => ({ id: i, potAtStop: round2(t), runOutMonth: sc.verdict.runOutMonths[i] === null ? null : sc.verdict.runOutMonths[i] - fromStop, most: band && band.solver ? band.solver.most(i) * STEP : band.levels[level].monthly }))
     };
   }
   return JSON.parse(JSON.stringify(result, (key, v) => (typeof v === 'number' ? noNegZero(v) : v)));

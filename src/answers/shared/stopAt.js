@@ -148,6 +148,30 @@ export function stopAtPlan(household, stopAge, env, lives = null) {
 }
 
 /**
+ * The stop plan at other pay-ins (per person in plan order, { pension, savings } a month): each life's pots at the stop
+ * from the same kernels (exactly linear in what goes in), the middling pots and what goes in as the stop plan says them.
+ * The household plan and the lives are this stop plan's. (b/answer.js: a couple's plans kept at a pay-in tried.)
+ */
+export function stopPlanAtPayIns(sp, payIns) {
+  const n = sp.n;
+  const pots = sp.saving.people.map((p, j) => {
+    const kp = sp.kernels[j].pension, ks = sp.kernels[j].savings;
+    const pension = new Float64Array(n), savings = new Float64Array(n);
+    for (let i = 0; i < n; i++) {
+      pension[i] = kp.A[i] + payIns[j].pension * kp.B[i];
+      savings[i] = ks.A[i] + payIns[j].savings * ks.B[i];
+    }
+    return { who: p.who, pension, savings };
+  });
+  const midOf = (a) => { const s = Array.from(a).sort((x, y) => x - y); return s.length ? s[Math.floor(s.length / 2)] : 0; };
+  return {
+    ...sp, pots, middling: pots.map((q) => ({ pension: midOf(q.pension), isa: midOf(q.savings) })),
+    saving: { ...sp.saving, people: sp.saving.people.map((p, j) => ({ ...p, payIn: { ...p.payIn, total: payIns[j].pension, savings: payIns[j].savings } })) },
+    potsOf: (i) => pots.map((q) => ({ pension: q.pension[i], isa: q.savings[i] }))
+  };
+}
+
+/**
  * The runner of one stop age: each life's pots (the kernels × what is paid in, or `opts` in their place), the life's
  * drivers from the stop, the fast path. A couple's configs are made per life (their shares follow their pots).
  * @param {object} sp   stopAtPlan(...)
@@ -348,7 +372,11 @@ function withoutRuns(plan, H, n) {
  * worst 1 in 10: the floor(n/10)-th earliest over the lives; null when fewer lives than that need it), and each life's
  * first such month on the household's clock (null when never). null for a plan whose people stop together.
  */
-export function coverAt(sp, runner, H) {
+export function coverAt(sp0, runner0, H) {
+  // a couple on the two kept plans: the plans have no cover (the pay of the one still working is in neither), so the words
+  // of it read the household plan's own run, as the couple's other words do until they come from the two plans (P4 pass 3)
+  const sp = sp0.couple ? { ...sp0, plan: sp0.plan.full || sp0.plan, couple: undefined, atPayIns: undefined } : sp0;
+  const runner = sp0.couple ? createStopRunner(sp) : runner0;
   const plan = runner.plan;
   if (!plan.apart) return null;
   const G = plan.apart.years;
@@ -862,6 +890,9 @@ const PAY_IN_RUNNERS_KEPT = 8;
 function makeRunnerAtPayIns(sp, payIns, lumps, opts) {
   const today = sp.saving.people.every((p, j) => payIns[j].pension === p.payIn.total && payIns[j].savings === p.payIn.savings);
   if (today && !lumps && !(opts.pensionAt >= 0)) return createStopRunner(sp, sp.lives, sp.kernels, { keep: true });
+  // a couple on the two kept plans (`sp.atPayIns`, b/answer.js): the plans keeping the answer at these pay-ins would write,
+  // each life from its own pots at each one's stop at them — so what B finds at a pay-in is A's row paying it in
+  if (sp.atPayIns && !lumps && !(opts.pensionAt >= 0)) return sp.atPayIns(payIns);
   const kp = sp.kernels.map((k) => k.pension);
   const ks = sp.kernels.map((k) => k.savings);
   const pensionOf = opts.pensionAt >= 0
@@ -991,7 +1022,9 @@ export function monthlyAt(sp, runner, potsFixed, opts = {}) {
  * pots for the G years apart, once in every life (one part-run each), its pots at the join at today's prices, and the
  * middling of them (by the total; the lower life of a tie). null when the first stopper has no run.
  */
-function middlingAtJoin(sp, plan, H, q) {
+function middlingAtJoin(sp, cut, H, q) {
+  // (the words plan cut at the kept plans' years, planPath householdWordsTo: its runs are the uncut plan's)
+  const plan = cut.full || cut;
   const r = plan.runs.findIndex((run) => run.offset === 0);
   if (r < 0) return null;
   const G = plan.apart.years;
@@ -1031,6 +1064,24 @@ export function weighingPlansOf(sp, runner, endAge) {
 }
 
 /**
+ * Whether a couple apart's pay makes up what the first to stop's money cannot until the second stop (the household's rule,
+ * household.js APART.payCoversGap, set on the plan by toEngine.js): the two kept plans read on two clocks follow it
+ * (planPath coupleCaseOf `coversGap`).
+ */
+export const coversGapOf = (plan) => Boolean(plan && plan.apart && plan.apart.coversGap);
+
+/**
+ * A household plan cut as `cut` is (planPath householdWordsTo: `cut.full` the plan it was cut from): its years to the same
+ * plan-to age, its own runs kept for the words' runs (`full`). The plan itself when `cut` is not cut or it is no longer.
+ */
+function cutAs(plan, cut) {
+  if (!(cut && cut.full) || !(plan.years > cut.years) || plan.startAge !== cut.startAge) return plan;
+  const years = cut.years;
+  return { ...plan, years, endAge: cut.endAge, capped: true, full: plan,
+    periods: plan.periods.filter((per) => per.from < years).map((per) => (per.to > years ? { ...per, to: years } : per)) };
+}
+
+/**
  * The phases of a spend from the stop (C's phasesOf on breakdownAt), at the middling pots or the pots given (per person,
  * plan order, { pension, isa }): £ a month at today's prices. Added for A and B: `work` (part-time earnings before
  * tax), `fromWork` (what they add after tax), `pensionOpen` (false while a pension is closed: nothing from it), and
@@ -1043,7 +1094,9 @@ export function phasesAt(sp, spendAYear, pots = null, opts = {}) {
   const q = pots || sp.middling;
   // on the plan path (one person, `sp.kept`): what an amount is made of is the kept plan's own draw (planPath wordsPlan), as
   // C's and D's phases are, whatever the pots: the kept plan's words do not change with them
-  const plan = sp.kept ? sp.kept.wordsPlan : pots ? sp.planFor(q.map((x) => ({ pension: x.pension, isa: x.isa }))) : sp.plan;
+  // (a couple on the two kept plans, `sp.couple`: the household plan at other pots is cut where the stop plan's words are, at
+  // the kept plans' plan-to age — planPath householdWordsTo)
+  const plan = sp.kept ? sp.kept.wordsPlan : pots ? cutAs(sp.planFor(q.map((x) => ({ pension: x.pension, isa: x.isa }))), sp.plan) : sp.plan;
   if (plan.apart) return apartPhases(sp, plan, spendAYear, q, opts);
   // `opts.yearly` (a shaped answer's per-year rows, spending-shape.md 5.6): one phase a year, the same figures year by year
   const per = breakdownAt(opts.yearly ? yearlyPlan(plan) : plan, spendAYear, q);

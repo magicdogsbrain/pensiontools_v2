@@ -15,7 +15,7 @@ import { runHousehold, runSurvivor, runCare } from '../answers/plan/householdRun
 import { runMixCompare } from '../answers/plan/mixRun.js';
 import { loadMarket } from '../reading/market.js';
 import { cloneSafe } from '../utils/cloneSafe.js';
-import { sweepRetirementAges } from '../services/RetireSweep.js';
+import { answerA } from '../answers/a/answer.js';
 // (static: this worker is built as one classic-format file, which cannot split off a lazy chunk; it carries the engine already)
 import { runStressRow } from '../answers/plan/stressPanelRun.js';
 import { runKeepRetest } from '../answers/plan/keepRun.js';
@@ -60,9 +60,8 @@ self.onmessage = async (e) => {
       post({ id, result: cloneSafe(runKeepRetest(payload.plan, { today: payload.today, onProgress: (i, n) => self.postMessage({ id, progress: { i, n, name: '' } }) })) });
     } else if (type === 'saver') {   // "Am I on course?" (lead4.md R6): question B on the plan's figures, as the simple view's worker runs it
       post({ id, result: cloneSafe(answerB(payload.inputs, payload.env)) });
-    } else if (type === 'sweep') {   // "when can I retire?" (6.10.0): one strategy run per candidate age, with progress
-      const out = sweepRetirementAges({ ...payload, now: jobNow, onProgress: (i, n, age) => self.postMessage({ id, progress: { i, n, name: 'age ' + age } }) });
-      post({ id, result: cloneSafe(out) });
+    } else if (type === 'whenStop') {   // "When could I retire?" (lead4.md D11): answer A on the plan's figures (src/reading/whenStop.js), as the simple view runs it
+      post({ id, result: cloneSafe(answerA(payload.inputs, { ...payload.env, onProgress: (i, n) => self.postMessage({ id, progress: { i, n, name: '' } }) })) });
     } else {
       throw new Error('unknown job ' + type);
     }

@@ -11,3 +11,9 @@
 export const RUN_FUTURES = 1000;
 export const RUN_SEED = 0;
 export const SAVER_RUN = Object.freeze({ futures: RUN_FUTURES, seed: RUN_SEED, trace: false, detail: 'answer' });
+
+/**
+ * "When could I stop?" (lead4.md D11): answer A's whole-life function on the plan's figures, "show me ages" with every age
+ * (A's ages step, detail 'all'), one pass at RUN_FUTURES, in both views (src/reading/whenStop.js).
+ */
+export const WHEN_STOP_RUN = Object.freeze({ futures: RUN_FUTURES, seed: RUN_SEED, trace: false, detail: 'all' });

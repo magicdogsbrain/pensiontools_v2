@@ -46,6 +46,7 @@ import { pounds } from './income.js';
 import { SAVING_FIELDS, SAVING_WRITES, SCHEME_TYPES, SAVING_WANT_FIELDS, SAVING_WANT_WRITES } from './schema.js';
 import { ACCUMULATION_V7_KEYS, payInSaid, payInShareOf } from '../../services/SaverPayIn.js';
 import { saverInputsOf, saverRunKey, saverDraftOf } from './saverInputs.js';
+import { whenStopOf } from '../../reading/whenStop.js';
 import { SAVER_STAGES } from './steps.js';
 import { dateOf, dayWords, monthWords } from './dates.js';
 import { mpaaOf, flexibleAccessAlong, FLEXIBLE_ACCESS_LIMIT } from '../../services/FlexibleAccess.js';
@@ -365,7 +366,8 @@ export function allowanceOf(plan, yearlyIn, plans = []) {
 /**
  * What the rail's "Ask a question" links open filled from the plan (research/saving-enough-and-check-in.md 4.1): B with a
  * saver's own figures, as B's boxes hold them, and the plan's own mixes when its boxes can name them only by the nearest
- * level (saverInputs.js saverDraftOf), so B gives the answer the plan gives — `{ b: { values, mixes } }`, `mixes` null when
+ * level (saverInputs.js saverDraftOf), so B gives the answer the plan gives — `{ b: { values, mixes }, a: { values, mixes } }`
+ * (A: the plan's figures with "show me ages", src/reading/whenStop.js), `mixes` null when
  * the levels are the plan's; `{}` for a plan that is not saving, or one B cannot read (no aim, no saving years), and then
  * B opens as it always has. The plan source puts it on the page reading (planSource.js viewFor), beside read.js planPage.
  * A plan that carries the person's fact of money taken flexibly (services/FlexibleAccess.js flexibleAccessAlong: a saving
@@ -378,7 +380,10 @@ export function askFillOf(entries, id, { today } = {}) {
     if (!SAVER_STAGES.includes(planStage(entry.plan, { now: dateOf(today) }).key)) return {};
     const d = saverDraftOf(entry.plan, { today, plans: entries });
     const fa = d.ok ? flexibleAccessAlong(entry.plan, entries) : null;
-    return d.ok ? { b: { values: d.values, mixes: d.mixes, ...(fa ? { flexibleAccess: fa } : {}) } } : {};
+    // A ("When can I afford to stop work?") with the same figures, "show me ages": the one gatherer the full view's "When
+    // could I retire?" runs answer A on (src/reading/whenStop.js, lead4.md D11)
+    const w = whenStopOf(entry.plan, { today, plans: entries });
+    return d.ok ? { b: { values: d.values, mixes: d.mixes, ...(fa ? { flexibleAccess: fa } : {}) }, ...(w.ok ? { a: { values: w.values, mixes: w.mixes } } : {}) } : {};
   } catch { return {}; }
 }
 

@@ -37,7 +37,7 @@ export const potsAtStopBuilds = () => builds;
 /**
  * The saving lives' path to `timing.shapeAgeNow` (services/SavingPath.js buildSavingPath, what goes in raised each year as
  * the plan says): the one model of the pot at a stop, for the plan's own stop (potsAtStopOf) and for another age the
- * "When could I retire?" spin asks about (services/RetireSweep.js). Memoised by its inputs and the month.
+ * "When could I retire?" asks about (answer A, src/reading/whenStop.js). Memoised by its inputs and the month.
  */
 export function savingPathAt({ settings = {}, timing, accumulation = {}, holdings = null, phases = null, explicit, now = new Date(), env = {} } = {}) {
   const s = settings || {};

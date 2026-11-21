@@ -110,7 +110,7 @@ describe('the full view\'s page prices nothing before the one market is in (fix 
     'async function genericStrategyPageHtml(', 'async function fullGiltPageHtml(', 'async function floorToAgePageHtml(',
     'async function specStrategyPageHtml(', 'window.runHouseholdCheck = async function', 'window.runSurvivorUI = async function',
     'window.runCareUI = async function', 'async function planYearTables(', 'window.renderDecisionStrategyPanel = async function',
-    'window.showStrategyPage = async function', 'window.runRetireSweep = async function', 'async function oneTestFor(', 'async function cmpRun('
+    'window.showStrategyPage = async function', 'window.runWhenStop = async function', 'async function oneTestFor(', 'async function cmpRun('
   ])('%s waits for the one market before it prices anything', (head) => {
     expect(bodyOf(head)).toMatch(/await window\._marketReady/);
   });

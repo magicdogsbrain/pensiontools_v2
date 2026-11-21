@@ -2,7 +2,7 @@
  * An ISA made of the ISA funds in the plan's list of funds to test (the "own-funds" ISA): its mix, and whether those funds
  * decide how the ISA grows. Moved here from src/storage/StressRepository.js (deriveIsaMix) and src/ui/isaGrowthSetting.js
  * (isaFundsDecide) in the review of 6.22.0, so the projections to retirement (services/PlanTiming.js,
- * services/RetireSweep.js) and a saver's path (services/SavingPath.js) can ask the same question the runs ask without
+ * answer A) and a saver's path (services/SavingPath.js) can ask the same question the runs ask without
  * importing a storage or screen module. The arithmetic is unchanged.
  *
  * When the list holds ISA-wrapped funds, every run grows the ISA at THEIR asset mix (config.isaMix) whatever the plan's

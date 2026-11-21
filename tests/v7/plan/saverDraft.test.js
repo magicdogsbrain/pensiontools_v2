@@ -10,7 +10,8 @@
  *     nearest level, gives the plan's own answer too: B runs on the plan's mixes while those boxes stay as loaded;
  *   - draft/load: the values replace the draft, every box marked left, the old answer gone, B's numbers step opened; nothing
  *     that is not one of B's boxes is taken;
- *   - the rail: a saver's B link loads the plan's figures, its A link opens A as before; a retired plan's rail fills nothing.
+ *   - the rail: a saver's B link loads the plan's figures; its A link (step F3, lead4.md D11) loads them too, with "show me
+ *     ages" (src/reading/whenStop.js, the figures the full view's "When could I retire?" runs A on); a retired plan's rail fills nothing.
  */
 import { describe, it, expect } from 'vitest';
 import { h, render } from 'preact';
@@ -24,6 +25,7 @@ import { upgradeScenario } from '../../../src/firebase/scenarioMigration.js';
 import { saverInputsOf, saverDraftOf } from '../../../src/answers/plan/saverInputs.js';
 import { planPage } from '../../../src/answers/plan/read.js';
 import { askFillOf } from '../../../src/answers/plan/saving.js';
+import { whenStopOf } from '../../../src/reading/whenStop.js';
 import { reduce } from '../../../src/v7/state/reduce.js';
 import { A } from '../../../src/v7/state/actions.js';
 import { parsedDraft, planMixOf, currentKey } from '../../../src/v7/state/select.js';
@@ -132,7 +134,8 @@ describe('the round trip: a plan kept from B, opened back into B from its rail, 
       expect(filled.exactMix).toBe(true);                       // as kept: the answer's own levels
       // the rail's link, loaded as the page loads it (the plan source puts the fill on the page reading)
       const onPage = onPlan(plan);
-      expect(askFillOf([{ plan, newer: false, failed: false }], plan.id, { today: KEPT_ON })).toEqual({ b: { values: filled.values, mixes: null } });
+      const w = whenStopOf(plan, { today: KEPT_ON, plans: [{ plan, newer: false, failed: false }] });
+      expect(askFillOf([{ plan, newer: false, failed: false }], plan.id, { today: KEPT_ON })).toEqual({ b: { values: filled.values, mixes: null }, a: { values: w.values, mixes: w.mixes } });
       expect(onPage.plans.view.page.askFill.b.values).toEqual(filled.values);
       const s = reduce(onPage, { type: A.DRAFT_LOAD, q: 'b', values: onPage.plans.view.page.askFill.b.values });
       const parsed = parsedDraft(s, 'b');
@@ -183,7 +186,7 @@ describe('draft/load: a whole draft, as text', () => {
 });
 
 describe('the home (the rail until 7.3.0): a saver\'s B link opens B with the plan\'s figures; A as before; a retired plan fills nothing', () => {
-  it('a plan kept from B: the B link is marked filled and loads its figures; the A link opens A empty, as before', () => {
+  it('a plan kept from B: the B link is marked filled and loads its figures; the A link loads them with "show me ages" (step F3, D11)', () => {
     const { plan } = kept(sam({ kind: 'share', pay: 38000, ownPct: 6, employerPct: 4 }));
     const { root, actions } = draw(onHome(plan));
     const b = root.querySelector('[data-testid="plan.home.ask.b"]');
@@ -193,10 +196,11 @@ describe('the home (the rail until 7.3.0): a saver\'s B link opens B with the pl
     // ... and the plan's id (6.59.0): "Use these in ‘…’" writes back onto this plan, only when pressed
     expect(actions.at(-1)).toEqual({ type: 'draft/load', q: 'b', values: saverDraftOf(plan, { today: KEPT_ON }).values, planId: plan.id });
     const a = root.querySelector('[data-testid="plan.home.ask.a"]');
-    expect(a.getAttribute('data-filled')).toBe(null);
-    const before = actions.length;
+    // (step F3, lead4.md D11) A opens with the plan's figures, "show me ages": what the full view's "When could I retire?" runs A on
+    expect(a.getAttribute('data-filled')).toBe('plan');
     a.click();
-    expect(actions.length).toBe(before);                       // A: the link alone, as before
+    const w = whenStopOf(plan, { today: KEPT_ON, plans: [{ plan, newer: false, failed: false }] });
+    expect(actions.at(-1)).toEqual({ type: 'draft/load', q: 'a', values: w.values, ...(w.mixes ? { mixes: w.mixes } : {}) });
   });
   it('every saver plan in the corpus that B can read is filled with what saverInputsOf reads; a retired plan\'s rail asks C, unfilled', () => {
     const entries = entriesAt(TODAY);
@@ -271,7 +275,8 @@ describe('a saver\'s plan whose mixes are not a level\'s: B opened from its rail
     for (const bad of [{ ...mixes, risk: 'wild' }, { ...mixes, mix: { equity: 2, bond: 0, cash: 0 } }, { ...mixes, savingMix: null }, 'x']) {
       expect(() => reduce(s, { type: A.DRAFT_LOAD, q: 'b', values, mixes: bad })).toThrow();
     }
-    expect(() => reduce(s, { type: A.DRAFT_LOAD, q: 'a', values: {}, mixes })).toThrow();
+    expect(() => reduce(s, { type: A.DRAFT_LOAD, q: 'c', values: {}, mixes })).toThrow();
+    expect(() => reduce(s, { type: A.DRAFT_LOAD, q: 'a', values: {}, mixes })).not.toThrow();   // A opened from a saving plan takes them (step F3, D11)
   });
   it('the home\'s B link (the rail\'s until 7.3.0) loads the figures with the plan\'s mixes', () => {
     const e = mixed[0];

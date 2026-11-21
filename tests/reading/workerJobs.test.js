@@ -10,6 +10,7 @@ import { jobPayload } from '../../src/workers/engineClient.js';
 import { FIXTURES, PARITY_DAY } from '../../e2e/parity/fixtures/plans.js';
 import { effectiveStressSettings } from '../../src/services/PlanReading.js';
 import { upgradeScenario } from '../../src/firebase/scenarioMigration.js';
+import { whenStopOf } from '../../src/reading/whenStop.js';
 
 const noon = (day) => { const [y, m, d] = day.split('-').map(Number); return new Date(y, m - 1, d, 12); };
 const NOW = noon(PARITY_DAY);
@@ -50,15 +51,17 @@ describe('a day crosses the worker boundary as the same day', () => {
 });
 
 describe('the engine worker runs every job on the day it is handed', () => {
-  it('"When could I retire?" runs in the worker on the page\'s day, a string or a Date', async () => {
+  it('"When could I retire?" runs answer A in the worker on the plan\'s figures (step F3, lead4.md D11)', async () => {
     const plan = planOf('saver-draft');
-    const settings = effectiveStressSettings(plan, { now: NOW });
+    const w = whenStopOf(plan, { today: PARITY_DAY, plans: [{ plan }] });
+    expect(w.ok).toBe(true);
     for (const now of [NOW.toISOString(), NOW]) {
-      const m = await run('sweep', { settings, accumulation: plan.accumulation || {}, holdings: [], ages: [60], now });
+      const m = await run('whenStop', { inputs: w.inputs, env: { ...w.env, futures: 40 }, now });   // fewer futures: the job, not the figures
       expect(m.error).toBeUndefined();
-      expect(m.result.rows.length).toBeGreaterThanOrEqual(0);
+      expect(m.result.status).not.toBe('invalid');
+      expect(m.result.ages.length).toBeGreaterThan(0);
     }
-  }, 60000);
+  }, 120000);
   it('the survivor and care checks run in the worker on the two plans and the day', async () => {
     const f = FIXTURES.find((x) => x.key === 'couple');
     const plans = f.plans().map((p) => upgradeScenario(JSON.parse(JSON.stringify(p)), { now: NOW }).scenario);
@@ -71,13 +74,14 @@ describe('the engine worker runs every job on the day it is handed', () => {
 });
 
 describe('the full view hands "When could I retire?" the one clock and waits for the one market', () => {
-  it('the sweep\'s payload names the page\'s day (todayOf), and the run waits for window._marketReady', async () => {
+  it('the run reads the page\'s day (todayOf) through whenStopOf, and waits for window._marketReady', async () => {
     const { readFileSync } = await import('node:fs');
     const page = readFileSync('index.html', 'utf8');
-    const at = page.indexOf('window.runRetireSweep = async function');
+    const at = page.indexOf('window.runWhenStop = async function');
     const body = page.slice(at, page.indexOf('\n    };\n', at));
-    expect(body).toMatch(/const payload = \{[^}]*now: todayOf\(\)/);
+    expect(body).toMatch(/const now = todayOf\(\), today = dayKeyOf\(now\)/);
+    expect(body).toMatch(/whenStopOf\(entry\.plan, \{ today, plans: entries \}\)/);
     expect(body.indexOf('await window._marketReady')).toBeGreaterThan(-1);
-    expect(body.indexOf('await window._marketReady')).toBeLessThan(body.indexOf("runInWorker('sweep'"));
+    expect(body.indexOf('await window._marketReady')).toBeLessThan(body.indexOf("runInWorker('whenStop'"));
   });
 });

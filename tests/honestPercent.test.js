@@ -5,7 +5,6 @@
 import { describe, it, expect } from 'vitest';
 import { pctText, tenthsOutOfTen } from '../src/services/OneAnswer.js';
 import { strategyOf } from '../src/storage/ScenarioRepository.js';
-import { earliestAt, sweepHeadline } from '../src/services/RetireSweep.js';
 import { jointVerdictHtml } from '../src/services/OnCourse.js';
 
 describe('pctText', () => {
@@ -62,13 +61,6 @@ describe('the on-course words never round across the bar', () => {
     const w = jointVerdictHtml(0.896);
     expect(w).toMatch(/Not on course/);
     expect(w).toContain('89.6%');
-  });
-  it('the age spin: 89.6% is not on course, and is said as 89.6%', () => {
-    const rows = [{ age: 60, success: 89.6, coverage: 99.7 }, { age: 61, success: 92, coverage: 100 }];
-    expect(earliestAt(rows, 90)).toMatchObject({ age: 61, met: true });
-    const h = sweepHeadline({ rows: [{ age: 60, success: 89.6 }], income: 40000, basis: 'the middle band' }, 90);
-    expect(h).toContain('89.6%');
-    expect(h).not.toMatch(/ 90%/);
   });
 });
 

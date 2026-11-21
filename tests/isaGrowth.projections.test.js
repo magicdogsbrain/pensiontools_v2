@@ -99,5 +99,5 @@ describe('the Timing block\'s pots at retirement (projectedPotAtRetirement)', ()
   });
 });
 
-// (step F1, lead4.md D4) the retire-at-what-age sweep's ISA is the plan's saving lives' ISA (RetireSweep.potAtAge, read off
-// PotsAtStop.savingPathAt): its own projection is gone, and tests/retireSweep.test.js holds it to the plan's own pot at the stop.
+// (step F1, lead4.md D4; step F3, D11) "When could I retire?" is answer A on the plan's figures (src/reading/whenStop.js): it has
+// no projection of its own.

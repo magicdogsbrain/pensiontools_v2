@@ -13,8 +13,6 @@ import { describe, it, expect, vi } from 'vitest';
 vi.mock('../src/firebase/index.js', () => ({ isFirebaseConfigured: () => false, isLoggedIn: () => false }));
 import { projectAccumulation, FCA_RATES } from '../src/services/AccumulationEngine.js';
 import { projectedPotAtRetirement, deriveTiming } from '../src/services/PlanTiming.js';
-import { potAtAge } from '../src/services/RetireSweep.js';
-import { savingInputsOf } from '../src/services/PotsAtStop.js';
 import { buildAccumulationPath, buildPlanDocument } from '../src/services/PlanDocument.js';
 import { generateDrawdownSchedule } from '../src/services/DrawdownService.js';
 import { proportions } from '../src/services/Holdings.js';
@@ -82,17 +80,6 @@ describe('the callers pass the plan\'s charge', () => {
     expect(Math.abs(b.isa - 100000 * Math.pow((1 + FCA_RATES.mid / 12) * m, 12 * years) / Math.pow(1.025, years))).toBeLessThanOrEqual(0.5);
   });
 
-  it('potAtAge (the retire-at-what-age sweep, step F1: the plan\'s saving lives): lower at a charge, the same without', () => {
-    const plan = (st) => ({ stressTool: { settings: st }, accumulationTool: { settings: acc }, holdings: ledger });
-    const at = (st) => potAtAge({ settings: st, inputs: savingInputsOf(plan(st), st, { now: NOW }), currentAge: 55, age: 62, now: NOW });
-    const settings = { currentAge: 55, currentAgeAsOf: '2026-09-10', retired: false, retireAge: 62 };
-    const a = at(settings);
-    expect(at({ ...settings, chargesPct: 0 })).toEqual(a);
-    const b = at({ ...settings, chargesPct: 0.5 });
-    expect(b.pot).toBeLessThan(a.pot);
-    expect(b.low).toBeLessThan(a.low);
-    expect(b.high).toBeLessThan(a.high);
-  });
 
   it('buildAccumulationPath (the plan document): the path takes the charge; the document records it', () => {
     const settings = { currentAge: 58, currentAgeAsOf: '2026-09-10', retired: false, retireAge: 60, equityMin: 500000, bondMin: 200000, cashTarget: 50000, baseSalary: 40000, duration: 30, incomeShape: 'phases', incomeSteps: [{ fromAge: 60, amount: 40000 }] };

@@ -576,13 +576,13 @@ function reduceAction(state, action) {
       // figures, answers/plan/saverInputs.js saverDraftOf): the values replace the draft's — each a field of the question,
       // as text or yes/no, the later steps cleaned to their boxes — and every box is marked left, so a problem shows where
       // it is; the old answer goes, as with a draft started again; the page opens the question's numbers step. `mixes`
-      // (B only): the plan's own mixes, which B's risk boxes can name only by the nearest level — B runs on them while those
+      // (B, and A opened from a saving plan: src/reading/whenStop.js): the plan's own mixes, which B's risk boxes can name only by the nearest level — B runs on them while those
       // boxes say what they were loaded with (select.js planMixOf), so it gives the plan's own answer.
       if (!draft) return refuse(`draft/load: no question "${q}"`);
       const given = action.values;
       if (!given || typeof given !== 'object' || Array.isArray(given)) return refuse('draft/load: needs the values');
       const planMix = action.mixes == null ? null : cleanPlanMix(action.mixes);
-      if (action.mixes != null && (q !== 'b' || !planMix)) return refuse(`draft/load: "${q}" cannot take these mixes`);
+      if (action.mixes != null && ((q !== 'b' && q !== 'a') || !planMix)) return refuse(`draft/load: "${q}" cannot take these mixes`);
       // B opened from a plan that carries the person's fact of money taken flexibly (research/plan-start.md §2 J): kept with
       // the draft, so "Keep this as a plan" puts it on the plan made (effects/planWrite.js keep)
       const fa = action.flexibleAccess == null ? null : cleanFlexibleAccess(action.flexibleAccess);

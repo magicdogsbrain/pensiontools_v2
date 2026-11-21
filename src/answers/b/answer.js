@@ -194,7 +194,7 @@ function createAges(inputs, env, lives, ctx) {
       // a couple (the lead's rulings 9 and P): the drawing years are the two plans' that keeping this stop would write, read
       // as one household on two clocks (keep/planPath.js coupleCaseOf; the stop runner draws on it, `sp.couple`, each life
       // from its own pots at each one's stop), the household's split at each amount this stop's phases, the words the
-      // household plan's cut at the kept plans' years
+      // two kept plans' own, joined (planPath coupleWordsOf; a couple apart's the household plan's, cut at their years)
       const cc = coupleOnPlans(inputs, sp0, env)
         ? env.planPath.coupleCaseOf('b', asked, env, { lives: longerOf(lives, env), phasesAt: (H) => phasesAt(sp0, H), H0: 12 * spendMonthOf(inputs), saver: keptSaverOf(sp0, stopAge, asked, env), coversGap: coversGapOf(sp0.plan) })
         : null;
@@ -204,9 +204,9 @@ function createAges(inputs, env, lives, ctx) {
         const s = stopPlanAtPayIns(sp0, payIns);
         const fed = fedAtPayIns(asked, payIns, sp0);
         const c2 = env.planPath.coupleCaseOf('b', fed, env, { lives: longerOf(lives, env), phasesAt: (H) => phasesAt(s, H), H0: 12 * spendMonthOf(inputs), saver: keptSaverOf(s, stopAge, fed, env), coversGap: coversGapOf(s.plan) });
-        return createStopRunner({ ...s, plan: env.planPath.householdWordsTo(sp0.plan, c2), couple: c2 });
+        return createStopRunner({ ...s, plan: env.planPath.coupleWordsOf(sp0.plan, c2), couple: c2 });
       } : null;
-      const sp = cc ? { ...sp0, plan: env.planPath.householdWordsTo(sp0.plan, cc), couple: cc, atPayIns } : sp0;
+      const sp = cc ? { ...sp0, plan: env.planPath.coupleWordsOf(sp0.plan, cc), couple: cc, atPayIns } : sp0;
       // one person whose pension is open at the stop: the drawing years are the plan's that keeping this stop would write
       // (keep/planPath.js; the stop runner draws on it), the saving years this stop plan's own
       // (a saved plan read as B, env.fromPlan: its drawing years are that plan's own at this stop, keep/planPath.js planAtStop)
@@ -904,7 +904,8 @@ export function answerB(inputs, env) {
         closedUntil: lock ? lock.untilAge : null,
         // open at the stop by its age, but the kept plan takes it from the first tax year that starts with you at or over
         // the access age (the lead's ruling G; planPath wordsPlan): said, with both facts
-        opens: !lock && who === 'you' && base.pc && !base.pc.household && base.pc.wordsPlan.pensionOpens ? base.pc.wordsPlan.pensionOpens : null,
+        // (a couple's: each one's own kept plan's, from their own words: planPath coupleWordsOf)
+        opens: lock || !base.pc ? null : base.pc.household ? person.pensionOpens || null : who === 'you' ? base.pc.wordsPlan.pensionOpens || null : null,
         S: own[who], saves: savers[p], payIn: payIns[p].total, taxFreeTaken: inp[who].taxFreeTaken === true, pension: plan.people[p].pension > 0
       };
     }),
@@ -920,7 +921,8 @@ export function answerB(inputs, env) {
     oneName: couple && totalPension > 0 && plan.people.some((p, i) => p.pension / totalPension > ONE_NAME_SHARE && bothStopped.byPerson[1 - i].gross < BANDS.pa),
     accessRises: whos.some((w) => accessRiseAffects(inp[w].age, env.today, inp[w].age + own[w])),
     // a partner past their State Pension age, their stop not given: most likely stopped already (said so)
-    partnerRetired: couple && S > 0 && plan.people[1].statePension.startAge <= inp.partner.age && !inp.partner.stop,
+    // (the State Pension age is the household plan's fact, as one person's: a couple's words plan holds when their plan pays it)
+    partnerRetired: couple && S > 0 && (plan.full || plan).people[1].statePension.startAge <= inp.partner.age && !inp.partner.stop,
     asked: partnerAsked ? 'partner' : 'you',
     // couples apart (shared/apart.js): who pays in, a pension paid to the one still working, money into drawdown before
     // 6 April 2028

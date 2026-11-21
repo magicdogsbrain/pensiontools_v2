@@ -14,6 +14,7 @@ import { join } from 'node:path';
 import { PENSION_ACCESS, accessAgeOn } from '../src/services/PensionAge.js';
 import { pensionLockOf, payClosedYears, closedYearsWords, closedYearsShort, pensionPotOf } from '../src/services/PensionLock.js';
 import { accessAgeOf, earlyPensionDrawOf, earlyPensionDrawWords, ageOnDate, pensionOpensOf, pensionOpensSentence } from '../src/services/PlanTiming.js';
+import { pensionOpensSentence as opensSentence } from '../src/services/PensionAge.js';
 import { RULES } from '../src/answers/shared/rules.js';
 import { ACCUMULATION_RULES } from '../src/services/AccumulationEngine.js';
 import { PENSION_AGE_CHANGE, householdDrawSplit } from '../src/services/HouseholdDraw.js';
@@ -486,5 +487,12 @@ describe('the review of 7.4.1: every engine and screen reads the closed years th
     // the same slump with the pension open from the start is a protection episode: the gate is what keeps it out
     const open = simulate({ ...cfg, pensionLockedMonths: 0, years: 40, trace: true }, crash, 1);
     expect(open.trace.slice(0, L * 12).some((t) => t.inProtection)).toBe(true);
+  });
+});
+
+describe('ruling G said of a partner (a couple\'s words from the two kept plans: their own plan\'s first open year)', () => {
+  it('the law and their plan\'s first tax year, of them', () => {
+    expect(opensSentence({ accessAge: 57, opensTaxYear: 2034, who: 'partner' })).toBe('Your partner can take money from their pension from 57. Their plan takes it from April 2034, the first tax year they start at 57 or over; until then the rest of the money pays.');
+    expect(opensSentence({ accessAge: 57, opensTaxYear: 2034 })).toBe('You can take money from your pension from 57. This plan takes it from April 2034, the first tax year you start at 57 or over; until then your ISA and savings pay.');
   });
 });

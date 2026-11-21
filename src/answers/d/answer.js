@@ -23,8 +23,8 @@
  * The plan-to age is the kept plan's (at most 45 years). A couple's household run stays the couple's engine (the lead's
  * ruling 9), fed by one adapter from the two plans keeping the answer would write (planPath coupleCaseOf: each one's own
  * run, on the same futures, weighed by the chance either is alive), so the two kept plans read as one household say the
- * answer's figures (tests/v7/cross/coupleIsPlans.test.js); its words stay the household's stop plan's, cut at the kept
- * plans' years. A couple with someone under the age a pension can be touched today stays on the household run (planPath
+ * answer's figures (tests/v7/cross/coupleIsPlans.test.js); its words are the two kept plans' own,
+ * joined (planPath coupleWordsOf). A couple with someone under the age a pension can be touched today stays on the household run (planPath
  * couplesOnPlans, the one rule A, C and D read). A household with nothing to draw on has no run at all. C from now and A's
  * stop-now row run on the same cases, so D is C from now and A stopping now (tests/v7/d/identity.test.js).
  *
@@ -125,12 +125,12 @@ function stopCaseOf(ins, env, lives, stopAge, dragPct = 0) {
   }
   // a couple with something to draw on: the runs are the two plans keeping the answer would write, fed to the household run
   // by the one adapter (planPath coupleCaseOf, the lead's ruling 9); the household's split at each amount (each one's part,
-  // its phases) is what the keep writes, and the words stay the household's stop plan's
+  // its phases) is what the keep writes, and the words are the two kept plans' own (planPath coupleWordsOf)
   if (couple && anyPotIn(ins) && !env.householdRoute) {
     const sp = stopAtPlan(toHousehold(ins, env).household, stopAge, env, lives(0));
     if (env.planPath.couplesOnPlans(sp.plan)) {
       const pc = env.planPath.coupleCaseOf('d', ins, env, { lives, dragPct, phasesAt: (H) => phasesAt(sp, H), H0: spendOf(ins) * 12 });
-      return { sp: pc.sp, runner: pc.runner, weigher: pc.weigher, toMonth: pc.toMonth, pc, stop: sp, words: env.planPath.householdWordsTo(sp.plan, pc) };
+      return { sp: pc.sp, runner: pc.runner, weigher: pc.weigher, toMonth: pc.toMonth, pc, stop: sp, words: env.planPath.coupleWordsOf(sp.plan, pc) };
     }
   }
   const { household: named } = toHousehold(ins, env);

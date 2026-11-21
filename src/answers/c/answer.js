@@ -155,7 +155,8 @@ function factsOf(plan, checked, household, fullSp, env) {
       // under the earliest pension age today, with a pension pot: the pension cannot be touched before `accessAge`
       underAccessAge: p.pension > 0 && p.ageToday < accessAge, accessAge, startsAtAccessAge: p.ageAtStart === accessAge,
       // the kept plan's own first tax year it takes from a pension still closed (planPath wordsPlan; the lead's ruling G)
-      opens: lock && plan.pensionOpens && p.who === 'you' ? plan.pensionOpens : null,
+      // (a couple's: each one's own kept plan's, planPath coupleWordsOf)
+      opens: !lock ? null : p.pensionOpens || (plan.pensionOpens && p.who === 'you' ? plan.pensionOpens : null),
       // "Already had the tax-free part?" (couples-different-years.md 2.3: asked only of someone who has stopped)
       taxFreeTaken: raw.taxFreeTaken === true
     };
@@ -452,7 +453,7 @@ function fromNowOf(checked, env) {
  * made of, the incomes that come anyway, who can draw before 2028, when the money runs out, the facts and the basis); the
  * household plan only decides whether the answer is on this path. A couple from now is on it too (the lead's ruling 9,
  * step P4): the runs are the two kept plans' (planPath coupleCaseOf), the household's split at each amount is what the keep
- * writes, and the words stay the household plan's, cut at the kept plans' years (planPath householdWordsTo). Not (yet) on
+ * writes, and the words are the two kept plans' own, joined (planPath coupleWordsOf). Not (yet) on
  * it: a couple who stop in different years (planPath couplesOnPlans), a spending
  * shape, a start moved to the day the pension opens, and three test devices (env.mix, env.solver 'reference', and
  * env.householdRoute: the household run a couple still takes, asked for by name so its fast path, its reference and its
@@ -484,7 +485,7 @@ function livesOf(n, env) {
 function planCaseC(checked, now, env, { lives = livesOf(env.futures, env), dragPct = 0 } = {}) {
   const ins = checked.inputs;
   // a couple: the runs are the two kept plans', the household's split at each amount (its phases) what the keep writes, and
-  // the words the household plan's (now.plan)
+  // the words the two kept plans' own (planPath coupleWordsOf; now.plan says who is who)
   const couple = coupleOf(ins);
   const pc = couple
     ? env.planPath.coupleCaseOf('c', ins, env, { lives, dragPct, phasesAt: (H) => phasesOf(now.plan, H) })
@@ -494,7 +495,7 @@ function planCaseC(checked, now, env, { lives = livesOf(env.futures, env), dragP
     horizonRule: horizonRuleOf({ defaulted: defaultedFields(ins, env).includes('endAge'), capped }) };
   // the plan the words read (what comes in each year, the State Pension's start, when the money runs out): the kept plan's
   // own (planPath wordsPlan), over its years to the plan-to age (at most 45: its phases end where its chance is counted)
-  const words = couple ? env.planPath.householdWordsTo(now.plan, pc) : pc.wordsPlan;
+  const words = couple ? env.planPath.coupleWordsOf(now.plan, pc) : pc.wordsPlan;
   // the plan the words read the run from: cut short (the kept plan's 45 years) says so as a cap, "We could test only to …"
   const runPlan = capped && !pc.runner.plan.runCapped ? { ...pc.runner.plan, runCapped: true, years: Math.min(pc.runner.plan.years, pc.planToAge - pc.runner.plan.startAge) } : pc.runner.plan;
   return { pc, sp: pc.sp, runner: pc.runner, weigher: pc.weigher, toMonth: pc.toMonth, chanceAges, words, lives, runPlan };

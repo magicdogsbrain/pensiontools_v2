@@ -208,10 +208,10 @@ export function stopPlanOf(ins, env, age, lives) {
   const sp = stopAtPlan(household, stopsAt(ins, age).engineStop, env, lives);
   if (coupleNow(ins, sp, env)) {
     // a couple stopping now: the runs are the two kept plans' (`sp.couple`), the household's split at each amount (this
-    // row's phases) what the keep writes, and the words the household plan's cut at the kept plans' years
+    // row's phases) what the keep writes, and the words the two kept plans' own (planPath coupleWordsOf)
     const longer = (T) => (T <= lives[0].years ? lives : livesList(lives.length, T, env));
     const pc = env.planPath.coupleCaseOf('a', ins, env, { lives: longer, phasesAt: (H) => phasesAt(sp, H), H0: spendAYearOf(ins), saver: keptSaverOf(sp, age, ins, env), coversGap: coversGapOf(sp.plan) });
-    return { sp: { ...sp, plan: env.planPath.householdWordsTo(sp.plan, pc), couple: pc }, pc };
+    return { sp: { ...sp, plan: env.planPath.coupleWordsOf(sp.plan, pc), couple: pc }, pc };
   }
   const pc = onPlanPath(ins, household, sp, env) ? env.planPath.planCaseOf('a', ins, env, { lives, saver: keptSaverOf(sp, age, ins, env) }) : null;
   if (pc) sp.kept = pc;
@@ -380,7 +380,8 @@ function rowOf(ctx, c, band) {
   const paid = people.map((who) => ({ who, amount: Math.round(payInOf(inputs[who]).total * 12 * own[who] * 100) / 100 }));
   // the years from the stop until the first pension opens: 0 when one is open at the stop, or there is none (a couple
   // apart: from where the pay of the one still working stops covering)
-  const gapYears = gapYearsOf(plan);
+  // (the household plan's, as one person's is: a couple's words plan keeps it as `full`)
+  const gapYears = gapYearsOf(plan.full || plan);
   const ages = { you: inputs.you.age + own.you, ...(couple ? { partner: inputs.partner.age + own.partner } : {}) };
   const asked = own[ctx.asked];
   const v = c.verdict;
@@ -681,7 +682,9 @@ export function answerA(inputs, env) {
     madeUpFutures: typeof env.futureReturns === 'function', capped: sc.pc ? sc.pc.planToAge < ins.endAge : Boolean(plan.capped), capYears: sc.pc ? sc.pc.planYears : drawYearsCap(env), drawdown2028,
     ...(apartCtx ? { apart: apartCtx } : {}), weighing,
     // the kept plan's own first tax year it takes from the pension (the lead's ruling G; planPath wordsPlan)
-    ...(sc.sp.kept && sc.pc.wordsPlan.pensionOpens ? { pensionOpens: { you: sc.pc.wordsPlan.pensionOpens } } : {})
+    ...(sc.sp.kept && sc.pc.wordsPlan.pensionOpens ? { pensionOpens: { you: sc.pc.wordsPlan.pensionOpens } } : {}),
+    // (a couple's: each one's own kept plan's, from their words: planPath coupleWordsOf)
+    ...(sc.sp.couple && plan.people.some((q) => q.pensionOpens) ? { pensionOpens: Object.fromEntries(plan.people.filter((q) => q.pensionOpens).map((q) => [q.who, q.pensionOpens])) } : {})
   });
 
   if (env.trace) {

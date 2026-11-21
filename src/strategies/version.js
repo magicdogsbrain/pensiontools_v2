@@ -148,5 +148,12 @@
  *           start moved to when a pension opens, someone past the oldest age a plan holds at their stop, a second stop at
  *           or past the years a kept plan holds, and (until short years count as not lasting) a couple from a later stop
  *           or apart with a pension still closed at its own stop.
+ *           A couple's words (what an amount is made of, stretch by stretch, the months each stretch has, what comes in anyway)
+ *           are the two kept plans' own, joined, when both draw from one tax year: each one's part as their own plan draws
+ *           it, the State Pension as the plan holds it (pence a week), the first stretch the months left in the tax year
+ *           (they were the household model's, in whole years); the one whose plan draws most from its pots takes home what
+ *           the parts leave, so the stretch takes home the amount named. Couples apart, someone past the oldest age a plan
+ *           holds, and a pension still closed when the household's split opens it a tax year before the plan does keep the
+ *           household model's words for now.
  */
 export const ENGINE_VERSION = '6.39.0';

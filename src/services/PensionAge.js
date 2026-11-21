@@ -50,11 +50,22 @@ export function accessAgeFromAgeBeforeChange(ageThen) {
  *   law        "You can take money from your pension from 57."
  *   plan       "This plan takes it from April 2031, the first tax year you start at 57 or over"
  *   meanwhile  "; until then your ISA and savings pay."
- * @param {{ accessAge: number, opensTaxYear: number }} o
+ *   (a partner's, `o.who` 'partner': "Your partner can take money from their pension from 57. Their plan takes it from April
+ *   2034, the first tax year they start at 57 or over; until then the rest of the money pays.")
+ * @param {{ accessAge: number, opensTaxYear: number, who?: 'you' | 'partner' }} o
  */
 export function pensionOpensPieces(o) {
   const date = 'April ' + o.opensTaxYear;
   const age = { age: o.accessAge };
+  // a partner's pension in a couple's plans (o.who 'partner': their own kept plan's first open year), said of them
+  if (o.who === 'partner') {
+    return {
+      date,
+      law: ['Your partner can take money from their pension from ', age, '.'],
+      plan: ['Their plan takes it from ', { date }, ', the first tax year they start at ', age, ' or over'],
+      meanwhile: ['; until then the rest of the money pays.']
+    };
+  }
   return {
     date,
     law: ['You can take money from your pension from ', age, '.'],

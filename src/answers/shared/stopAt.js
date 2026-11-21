@@ -374,7 +374,7 @@ function withoutRuns(plan, H, n) {
  */
 export function coverAt(sp0, runner0, H) {
   // a couple on the two kept plans: the plans have no cover (the pay of the one still working is in neither), so the words
-  // of it read the household plan's own run, as the couple's other words do until they come from the two plans (P4 pass 3)
+  // of it read the household plan's own run (`full`: uncut), as a couple apart's other words do
   const sp = sp0.couple ? { ...sp0, plan: sp0.plan.full || sp0.plan, couple: undefined, atPayIns: undefined } : sp0;
   const runner = sp0.couple ? createStopRunner(sp) : runner0;
   const plan = runner.plan;
@@ -1023,7 +1023,7 @@ export function monthlyAt(sp, runner, potsFixed, opts = {}) {
  * middling of them (by the total; the lower life of a tie). null when the first stopper has no run.
  */
 function middlingAtJoin(sp, cut, H, q) {
-  // (the words plan cut at the kept plans' years, planPath householdWordsTo: its runs are the uncut plan's)
+  // (the words plan cut at the kept plans' years, planPath coupleWordsOf: its runs are the uncut plan's)
   const plan = cut.full || cut;
   const r = plan.runs.findIndex((run) => run.offset === 0);
   if (r < 0) return null;
@@ -1059,7 +1059,8 @@ export function weighingPlansOf(sp, runner, endAge) {
   const plan = runner.plan;
   const capped = Boolean(pc.capped) || pc.planToAge < endAge;
   const runPlan = capped && !plan.runCapped ? { ...plan, runCapped: true, years: Math.min(plan.years, pc.planToAge - plan.startAge) } : plan;
-  // (a couple's words are the household plan's, cut at the kept plans' years: sp.plan, planPath householdWordsTo)
+  // (a couple's words are the two kept plans' own, joined, or a couple apart's the household plan's cut at the kept plans'
+  // years: sp.plan, planPath coupleWordsOf)
   return { runPlan, wordsPlan: sp.kept ? pc.wordsPlan : sp.plan };
 }
 
@@ -1071,7 +1072,7 @@ export function weighingPlansOf(sp, runner, endAge) {
 export const coversGapOf = (plan) => Boolean(plan && plan.apart && plan.apart.coversGap);
 
 /**
- * A household plan cut as `cut` is (planPath householdWordsTo: `cut.full` the plan it was cut from): its years to the same
+ * A household plan cut as `cut` is (planPath coupleWordsOf: `cut.full` the plan it was cut from): its years to the same
  * plan-to age, its own runs kept for the words' runs (`full`). The plan itself when `cut` is not cut or it is no longer.
  */
 function cutAs(plan, cut) {
@@ -1094,9 +1095,11 @@ export function phasesAt(sp, spendAYear, pots = null, opts = {}) {
   const q = pots || sp.middling;
   // on the plan path (one person, `sp.kept`): what an amount is made of is the kept plan's own draw (planPath wordsPlan), as
   // C's and D's phases are, whatever the pots: the kept plan's words do not change with them
-  // (a couple on the two kept plans, `sp.couple`: the household plan at other pots is cut where the stop plan's words are, at
-  // the kept plans' plan-to age — planPath householdWordsTo)
-  const plan = sp.kept ? sp.kept.wordsPlan : pots ? cutAs(sp.planFor(q.map((x) => ({ pension: x.pension, isa: x.isa }))), sp.plan) : sp.plan;
+  // (a couple on the two kept plans, `sp.couple`: their own words, joined — planPath coupleWordsOf — whatever the pots, as
+  // one person's; a couple apart's are the household plan's, so at other pots it is cut where the stop plan's words are, at
+  // the kept plans' plan-to age)
+  const joinedWords = sp.couple && !sp.plan.apart;
+  const plan = sp.kept ? sp.kept.wordsPlan : joinedWords ? sp.plan : pots ? cutAs(sp.planFor(q.map((x) => ({ pension: x.pension, isa: x.isa }))), sp.plan) : sp.plan;
   if (plan.apart) return apartPhases(sp, plan, spendAYear, q, opts);
   // `opts.yearly` (a shaped answer's per-year rows, spending-shape.md 5.6): one phase a year, the same figures year by year
   const per = breakdownAt(opts.yearly ? yearlyPlan(plan) : plan, spendAYear, q);

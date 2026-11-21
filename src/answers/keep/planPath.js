@@ -269,6 +269,35 @@ function wordsPlanFrom({ p, settings, life, asGiven, work = asGiven, planYears, 
   };
 }
 
+/**
+ * What one person's kept plan draws in its run year `from` (SimulationEngine calculateMonthlyDraw: planDrawdown on the plan's
+ * target for the year, with what comes in anyway `b` as the fixed income, the plan's bands, its ISA order and its tax-free
+ * share; savings counted as there), at today's prices: one stretch of breakdownAt's byPerson. `exact`: the take-home's
+ * gross-up the keep made before it rounded the target to whole pounds (BudgetModel.grossUpAnnual), read in its place when
+ * the stored target is that rounding, so the take-home is the amount the answer names. `wp`: the words plan (withWork,
+ * asGiven). One function for one person (planCaseOf splitAt) and for each of a couple (coupleCaseOf wordsOver).
+ */
+function keptDrawOf(wp, person, b, cfg, from, exact = null) {
+  const f = cfg.accessMethod === 'ufpls' ? RULES.taxFreeShare : 0;
+  const { pa, brl, hrl } = cfg;
+  const stored = Array.isArray(cfg.targetSchedule) && cfg.targetSchedule[from] != null ? cfg.targetSchedule[from] : cfg.baseSalary;
+  const target = isNum(exact) && stored === Math.round(exact) ? exact : stored;
+  const pd = planDrawdown({ targetGross: target, fixedIncome: b.gross, pa, brl, hrl, isaBalance: person.isa > 0 ? 1e15 : 0,
+    strategy: cfg.isaDrawdownStrategy, yearsUntilSp: isNum(cfg.spStartYear) ? Math.max(0, cfg.spStartYear - from) : 0, taxFreeFraction: f });
+  const closed = person.kind === 'pension' && b.locked;
+  const takeHome = Math.max(pd.net, b.net);
+  // the pension draws (none while closed, none without a pension: the savings pay what the draw would have paid)
+  const draws = person.kind === 'pension' && !closed;
+  const fromPension = draws ? pd.sippGross : 0;
+  const fromSavings = draws ? pd.isaDraw : takeHome - b.net;
+  const tax = draws ? pd.tax : b.gross - b.net;
+  const out = { who: person.who, statePension: b.statePension, finalSalary: b.finalSalary, fromPension, fromSavings, tax, takeHome,
+    higherRate: fromPension + fromSavings > 0 && b.gross + fromPension * (1 - f) > brl + 1, locked: b.locked, pensionOpen: !b.locked };
+  if (wp.withWork) Object.assign(out, { work: b.work, workAfterTax: b.work > 0 ? b.net - b.anyway : 0 });
+  if (wp.asGiven) out.pensionOpen = !closed;
+  return out;
+}
+
 /** The fields the fast path reads once per run from its base (fastEngine.js prepareRun): every config of a case shares them. */
 const PREPARED = ['equityMin', 'bondMin', 'cashTarget', 'duration', 'pa', 'brl', 'hrl', 'spendingProfile', 'spStartYear', 'spWeeklyAmount', 'spFirstYearRatio', 'dbAmount', 'dbStartYear', 'dbIndexation', 'years'];
 const sameBase = (a, b) => PREPARED.every((k) => a[k] === b[k]) && JSON.stringify(a.extraIncomes || []) === JSON.stringify(b.extraIncomes || []);
@@ -526,28 +555,10 @@ export function planCaseOf(source, ins, env, { lives = null, dragPct = 0, fromAg
   const splitAt = (H) => {
     const wp = wordsPlan();
     const cfg = at(H).p.pnvCfg;
-    const person = wp.people[0];
-    const f = cfg.accessMethod === 'ufpls' ? RULES.taxFreeShare : 0;
-    const { pa, brl, hrl } = cfg;
+    const exact = grossUpAnnual(H);
     return wp.periods.map((per) => {
-      const b = per.byPerson[0];
-      const stored = Array.isArray(cfg.targetSchedule) && cfg.targetSchedule[per.from] != null ? cfg.targetSchedule[per.from] : cfg.baseSalary;
-      const exact = grossUpAnnual(H);
-      const target = stored === Math.round(exact) ? exact : stored;
-      const pd = planDrawdown({ targetGross: target, fixedIncome: b.gross, pa, brl, hrl, isaBalance: person.isa > 0 ? 1e15 : 0,
-        strategy: cfg.isaDrawdownStrategy, yearsUntilSp: isNum(cfg.spStartYear) ? Math.max(0, cfg.spStartYear - per.from) : 0, taxFreeFraction: f });
-      const closed = person.kind === 'pension' && b.locked;
-      const takeHome = Math.max(pd.net, b.net);
-      // the pension draws (none while closed, none without a pension: the savings pay what the draw would have paid)
-      const draws = person.kind === 'pension' && !closed;
-      const fromPension = draws ? pd.sippGross : 0;
-      const fromSavings = draws ? pd.isaDraw : takeHome - b.net;
-      const tax = draws ? pd.tax : b.gross - b.net;
-      const out = { who: person.who, statePension: b.statePension, finalSalary: b.finalSalary, fromPension, fromSavings, tax, takeHome,
-        higherRate: fromPension + fromSavings > 0 && b.gross + fromPension * (1 - f) > brl + 1, locked: b.locked, pensionOpen: !b.locked };
-      if (wp.withWork) Object.assign(out, { work: b.work, workAfterTax: b.work > 0 ? b.net - b.anyway : 0 });
-      if (wp.asGiven) out.pensionOpen = !closed;
-      return { from: per.from, to: per.to, months: per.months, ...(per.waitMonths ? { waitMonths: per.waitMonths } : {}), takeHome, byPerson: [out], beforeStatePension: wp.spCount > 0 && per.spPaidCount < wp.spCount };
+      const out = keptDrawOf(wp, wp.people[0], per.byPerson[0], cfg, per.from, exact);
+      return { from: per.from, to: per.to, months: per.months, ...(per.waitMonths ? { waitMonths: per.waitMonths } : {}), takeHome: out.takeHome, byPerson: [out], beforeStatePension: wp.spCount > 0 && per.spPaidCount < wp.spCount };
     });
   };
   /** The plan the words read (wordsPlanFrom), made once: the kept plan's incomes do not change with the amount. */
@@ -956,6 +967,131 @@ export function coupleCaseOf(source, ins, env, { lives = null, dragPct = 0, phas
     return { typical: Math.round(pct(terms, 0.5)), best: Math.round(pct(terms, 0.9)) };
   };
   const anywayNet = onClock('net');
+
+  /**
+   * A couple's WORDS from the two kept plans (ruling O's other words; one reader of the plans' incomes, as wordsPlanFrom is
+   * for one person): each plan's own words plan (its incomes year by year, its closed years by ruling G, its months, ruling
+   * C), joined on the plans' clock when both draw from one tax year (both from now, or both stopping in the same year): the
+   * stretches cut wherever either plan's are, each stretch person by person as their own plan has it, and what an amount H
+   * is made of in each stretch each one's own plan's draw at the target the keep wrote from their part of H (`phasesAt(H)`,
+   * keptDrawOf). The household plan `hplan` gives only what the plans do not hold: who is who, each one's share of the
+   * money (the split the keep wrote the plans from), the start, and its runs (A's stop plan draws on them; `full`).
+   * Couples apart (two first draw years) keep the household plan's words, cut at the kept plans' plan-to age (ruling H):
+   * the years before the second stop are the worker's pay, which neither plan holds; so do the couples `joinable` names.
+   */
+  const g0 = gOf[0];
+  const oneClock = gOf.every((g) => g === g0);
+  const joinedMemo = new Map();
+  const joinedWords = (splitCuts) => {
+    const key = splitCuts.join(',');
+    if (joinedMemo.has(key)) return joinedMemo.get(key);
+    const Y = planYears - g0;
+    const ownWords = first.map((x, idx) => {
+      const wp = wordsPlanFrom({ p: x.p, settings: x.settings, life: ls[idx], asGiven: source === 'd', work: source === 'd' || source === 'a',
+        planYears: x.p.durationYears, planToAge: planToAgeOf(x.p.startAge, x.p.durationYears), today: env.today });
+      const fix = (o) => ({ ...o, who: x.who, index: idx });
+      // (each one's own first tax year their plan takes from a pension still closed, ruling G, said of them)
+      const opens = wp.pensionOpens ? { pensionOpens: { ...wp.pensionOpens, ...(x.who === 'partner' ? { who: 'partner' } : {}) } } : {};
+      return { ...wp, people: wp.people.map((q) => ({ ...fix(q), ...opens })), runs: wp.runs.map(fix), lockedUntil: wp.lockedUntil.map((l) => ({ ...l, who: x.who })),
+        periods: wp.periods.map((per) => ({ ...per, byPerson: per.byPerson.map((b) => ({ ...b, who: x.who })) })) };
+    });
+    const periodAt = (wp, y) => wp.periods.find((per) => y >= per.from && y < per.to) || wp.periods[wp.periods.length - 1];
+    // (cut too wherever the household's split changes — `splitCuts`, the household plan's stretches — so each stretch has one
+    // part each, the rows the keep wrote each plan's take-home from: each plan's target steps there)
+    const cuts = new Set([0, Y]);
+    for (const wp of ownWords) for (const per of wp.periods) if (per.from > 0 && per.from < Y) cuts.add(per.from);
+    for (const y of splitCuts) if (y > 0 && y < Y) cuts.add(y);
+    const bounds = [...cuts].sort((a, b) => a - b);
+    const cfg0 = first[0].p.pnvCfg;
+    const year0Months = isNum(cfg0.year0Months) && cfg0.year0Months > 0 ? cfg0.year0Months : 12;
+    const monthsOf = (from, to) => 12 * (to - from) - (from === 0 && to > 0 ? 12 - year0Months : 0);
+    const runs = ownWords.flatMap((wp) => wp.runs);
+    const periods = [];
+    for (let i = 0; i + 1 < bounds.length; i++) {
+      const from = bounds[i], to = bounds[i + 1];
+      const own = ownWords.map((wp) => periodAt(wp, from));
+      const byPerson = own.map((per) => per.byPerson[0]);
+      // the pots' share between the runs, as each plan shares its own: a closed pension draws on nothing until it opens
+      const available = runs.map((r) => (r.role === 'pension' && byPerson[r.index].locked ? 0 : r.money));
+      const total = available.reduce((t, v) => t + v, 0);
+      // the months of a State Pension's first tax year before it pays, when it is the first income that comes anyway to
+      // start for either of them (each plan's own `waitMonths`; both starting that year: the sooner)
+      const before = periods.length ? periods[periods.length - 1].byPerson : null;
+      const nothingYet = !before || before.every((b) => !(b.statePension > 0) && !(b.finalSalary > 0));
+      const waits = own.filter((per) => per.from === from && per.waitMonths > 0).map((per) => per.waitMonths);
+      const wait = nothingYet && waits.length && byPerson.every((b) => !(b.finalSalary > 0)) ? Math.min(...waits) : 0;
+      periods.push({ from, to, months: monthsOf(from, to), ...(wait > 0 ? { waitMonths: wait } : {}), byPerson, shares: available.map((v) => (total > 0 ? v / total : 0)),
+        netTotal: byPerson.reduce((t, b) => t + b.net, 0), spPaidCount: byPerson.filter((b) => b.statePension > 0).length });
+    }
+    const people = ownWords.map((wp) => wp.people[0]);
+    const spCount = ownWords.reduce((t, wp) => t + wp.spCount, 0);
+    const wp1 = { asGiven: source === 'd', withWork: source === 'd' || source === 'a' };
+    /** What H a year is made of in each stretch: each one's own plan's draw at their own target (the keep's, at H). */
+    const breakdownAt = (H) => {
+      const ph = phasesAt ? phasesAt(H) : [];
+      const cfgs = at(H).map((x) => x.p.pnvCfg);
+      return periods.map((per) => {
+        const out = per.byPerson.map((b, idx) => {
+          const age = people[idx].ageAtStart + per.from;
+          const row = ph.find((q) => q.ages && q.ages[people[idx].who] && age >= q.ages[people[idx].who].from && age < q.ages[people[idx].who].to);
+          const mine = row && Array.isArray(row.byPerson) ? row.byPerson.find((q) => q.who === people[idx].who) : null;
+          const exact = mine && isNum(mine.takeHome) ? grossUpAnnual(12 * (Math.round(mine.takeHome * 100) / 100)) : null;
+          return keptDrawOf(wp1, people[idx], b, cfgs[idx], per.from, exact);
+        });
+        // the household takes home H, the amount the answer names (invariant I5), as one person's plan does: each part is the
+        // keep's (its pence a month), and what the parts leave to the penny — each one's own income that comes anyway as
+        // their plan counts it (the State Pension in pence a week) against the household's split, and the pence the keep
+        // rounds each part to — is the part of the one whose plan draws most from its pots, its target the keep's within
+        // that rounding (keptDrawOf's exact rule)
+        const fromPotsOf = (o, b) => o.takeHome - b.net;
+        let d = -1;
+        out.forEach((o, idx) => { if (fromPotsOf(o, per.byPerson[idx]) > 0.005 && (d < 0 || fromPotsOf(o, per.byPerson[idx]) > fromPotsOf(out[d], per.byPerson[d]))) d = idx; });
+        if (d >= 0) {
+          const rest = H - out.reduce((t, o, idx) => (idx === d ? t : t + o.takeHome), 0);
+          if (rest > per.byPerson[d].net) out[d] = keptDrawOf(wp1, people[d], per.byPerson[d], cfgs[d], per.from, grossUpAnnual(rest));
+        }
+        return { from: per.from, to: per.to, months: per.months, ...(per.waitMonths ? { waitMonths: per.waitMonths } : {}), takeHome: out.reduce((t, o) => t + o.takeHome, 0),
+          byPerson: out, beforeStatePension: spCount > 0 && per.spPaidCount < spCount };
+      });
+    };
+    const joined = { years: Y, people, runs, periods, spCount, breakdownAt,
+      lockedUntil: ownWords.flatMap((wp) => wp.lockedUntil),
+      pensionOpens: people.map((q) => q.pensionOpens).find(Boolean) || null,
+      guaranteedAYear: ownWords.reduce((t, wp) => t + wp.guaranteedAYear, 0),
+      totalPots: ownWords.reduce((t, wp) => t + wp.totalPots, 0), totalPension: ownWords.reduce((t, wp) => t + wp.totalPension, 0), totalIsa: ownWords.reduce((t, wp) => t + wp.totalIsa, 0),
+      guaranteedAtStartAYear: source === 'd' ? Math.min(...periods.map((per) => per.netTotal)) : periods[0].netTotal };
+    joinedMemo.set(key, joined);
+    return joined;
+  };
+  // the joined words say what the two plans pay only where both plans hold those years and agree with the household's split
+  // on whose pension is open: a plan that ends before the household does (someone past the oldest age a plan holds) has
+  // no words for its last years, and where a pension is closed the household's split opens it at the access age while its
+  // plan opens it from the first tax year that starts at or over it (ruling G), so the split gives that person a part their
+  // own plan cannot pay that year (ruling W, P6): both keep the household plan's words until then
+  const joinable = (hplan) => oneClock && !hplan.apart && first.every((x) => x.p.durationYears === planYears - g0)
+    // (the keep writes no part for a stretch that starts past the oldest age a plan holds, so that plan pays on at its last
+    // part there while the split moves its part to the other: the words would not be the split the answer ran)
+    && hplan.people.every((q) => q.ageAtStart + (planYears - g0) - 1 <= OLDEST_PLAN_AGE)
+    && first.every((x, idx) => {
+      const own = x.p.pnvCfg.pensionLockedMonths > 0 ? Math.ceil(x.p.pnvCfg.pensionLockedMonths / 12) : 0;
+      const h = hplan.people[idx];
+      return Boolean(h) && own === (h.lockedYears || 0);
+    });
+  const wordsOver = (hplan) => {
+    const full = hplan.full || hplan;
+    if (!joinable(hplan)) {
+      // (couples apart: the household plan's own words, its years to the kept plans' plan-to age)
+      const yrs = Math.round(planToAge - hplan.startAge);
+      if (!(hplan.years > yrs)) return hplan;
+      return { ...hplan, years: yrs, endAge: planToAge, capped: true, full,
+        periods: hplan.periods.filter((per) => per.from < yrs).map((per) => (per.to > yrs ? { ...per, to: yrs } : per)) };
+    }
+    const j = joinedWords(hplan.periods.map((per) => per.from));
+    return { ...hplan, ...j, runs: Array.isArray(hplan.runs) ? hplan.runs : j.runs, full,
+      // (each one's share of the household's money is the household's fact, the split the keep wrote the plans from)
+      people: j.people.map((q, i) => ({ ...(hplan.people[i] || {}), ...q, ...(hplan.people[i] && isNum(hplan.people[i].share) ? { share: hplan.people[i].share } : {}) })),
+      endAge: planToAge, startAge: startAge + g0, capped: Boolean(hplan.capped) || hplan.years > j.years };
+  };
   return {
     source, household: true, couple: first.length > 1, plan, sp: { n, lives: L }, runner, weigher, toMonth, planYears, years, startAge, planToAge, weightToAge,
     drawFutures, driversFor, configsAtH,
@@ -963,7 +1099,7 @@ export function coupleCaseOf(source, ins, env, { lives = null, dragPct = 0, phas
     // (two linked plans may be set to different ones; an answer's kept plans share the answer's)
     level: carefulOf(first.map((x) => planLevelOf(x.kept))), levels: first.map((x) => planLevelOf(x.kept)), capped: plan.runCapped, reason,
     keptAt: (H) => at(H).map((x) => x.kept), settingsAt: (H) => at(H).map((x) => x.settings),
-    floorAgeOf, worstAgeOf, leftOf, leftTermsOf,
+    floorAgeOf, worstAgeOf, leftOf, leftTermsOf, wordsOver,
     // an answer's stop runner (stopAt.js createStopRunner): the same household run, each life from the answer's own pots at
     // each one's stop (`potsOf(i)`, plan order), `refOf(i)` the stop plan's own (partsWith)
     runnerWith: (potsOf, refOf) => runnerOver(partsWith(potsOf, refOf), potsOf),
@@ -1002,17 +1138,14 @@ export function couplesOnPlans(plan) {
 }
 
 /**
- * A couple's words (the household plan: what an amount is made of, person by person) over the years the two kept plans run:
- * the household plan's own periods cut at the kept plans' plan-to age (the keep's 45-year cap, ruling H, where the household
- * plan would run on), so the phases end where the chance is counted. The plan itself when it already ends there.
+ * A couple's words over the years the two kept plans run (ruling O's other words): the two plans' own words joined
+ * (coupleCaseOf wordsOver: each stretch person by person as their own plan has it, what an amount is made of each one's own
+ * plan's draw), to the kept plans' plan-to age (the keep's 45-year cap, ruling H), so the phases end where the chance is
+ * counted. The household plan `plan` gives only who is who and what the plans do not hold (`full`: it, uncut, for the runs
+ * a couple apart's words make on its own clock: stopAt.js middlingAtJoin, coverAt).
  */
-export function householdWordsTo(plan, c) {
-  // (a plan that starts at a later stop than the household's clock: its own years to the kept plans' plan-to age)
-  const years = plan.startAge === c.startAge ? c.planYears : Math.round(c.planToAge - plan.startAge);
-  if (!(plan.years > years)) return plan;
-  // (`full`: the household plan uncut, for the runs the words make on its own clock: stopAt.js middlingAtJoin)
-  return { ...plan, years, endAge: c.planToAge, capped: true, full: plan.full || plan,
-    periods: plan.periods.filter((per) => per.from < years).map((per) => (per.to > years ? { ...per, to: years } : per)) };
+export function coupleWordsOf(plan, c) {
+  return c.wordsOver(plan);
 }
 
 /**

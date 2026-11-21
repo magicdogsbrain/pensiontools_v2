@@ -158,10 +158,10 @@ describe('C — metamorphic relations', () => {
   // (a case where the two runs differ is always tried first, found with FC_RUNS=150: the twelve drawn cases can all agree
   // to the £10 step, which would hide a relation that does not hold)
   const firstM6 = [[{ household: 'single', you: { pot: 740, age: 68, payIn: { has: 'no' }, statePension: { kind: 'forecast', yearly: 0 }, finalSalary: { has: false }, taxFreeTaken: false, sex: 'notSaid' }, start: { kind: 'now' }, savings: 0, risk: 'cautious', charge: 0, endAge: 75, confidence: 'careful', take: null }]];
-  // Still open after step P5 (each found by this property): (1) the words — a couple's are still the household plan's, one
-  // person's the kept plan's: a pension first taken in the tax year after the access age (ruling G: 18, £1 in the pot, from
-  // 57, says 57–58 nothing, then 58–68; the couple 57–68), and the State Pension in pence a week; they meet when a couple's
-  // words come from the two kept plans (ruling O's other words). (2) Not a couple's matter: one person's own answer at
+  // Still open after step P5 (each found by this property): (1) the words — a couple's are the two kept plans' own now
+  // (planPath coupleWordsOf), except where the household's split opens a pension at the access age and its plan a tax year
+  // later (ruling G: 18, £1 in the pot, from 57; one person's words say 57–58 nothing, then 58–68; the couple keeps the
+  // household plan's 57–68, planPath joinable), until the split follows ruling G and a short year counts (ruling W). (2) Not a couple's matter: one person's own answer at
   // weighted false fails its I3 — 67, £30,000, a £30,210 final-salary pension, from now: Careful at what comes in anyway,
   // £3,060, is short in 2 of 20 futures where 1 is allowed (a pension whose rises are capped buys less when prices rise).
   it.fails('M6 a partner with nothing — no pot, no State Pension, no final-salary pension, the same age — is the single answer, to the penny', () => {

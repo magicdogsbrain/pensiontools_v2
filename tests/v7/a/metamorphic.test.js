@@ -166,7 +166,7 @@ describe.skipIf(!ENGINE_READY)('A — metamorphic relations', () => {
   // the words' figures: a couple's words are still the household plan's (the State Pension as typed, £x a year), one
   // person's the kept plan's (in pence a week, as the plan holds it: £115.38 a week is £5,999.76 a year) — a penny apart a
   // month. They meet when a couple's words come from the two kept plans (ruling O's other words; P5's last part)
-  it.fails('M-A5 (the words) what comes in anyway and the phases, said for the single and the couple with a partner with nothing, are the same', () => {
+  it('M-A5 (the words) what comes in anyway and the phases, said for the single and the couple with a partner with nothing, are the same', () => {
     fc.assert(fc.property(singlesA5, (single) => {
       fc.pre(openAtStop(single));
       const a = run(single, { ...envFor(single), weighted: false });

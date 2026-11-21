@@ -312,3 +312,34 @@ describe('a couple far apart in age: the keep writes no row past the oldest age 
     expect({ lasted: N - c.chance.fails, weighted: c.chance.weighted, planToAge: c.chance.planToAge }).toEqual({ lasted: h.lasted, weighted: h.weighted, planToAge: h.planToAge });
   });
 });
+
+describe('a couple\'s words are the two kept plans\' own (ruling O\'s other words: one reader of the plans\' incomes, as for one person)', () => {
+  // Pat (60, £300,000 in a pension, a final-salary pension of £9,000 a year from 63) and Jo (58, £100,000), £50,000 of
+  // savings, How much can I take from now (made up; 40 futures, 30 September 2026). Each kept plan's year 0 is the tax
+  // year's months from the pots' day: September 2026 to March 2027, 7 months (year0Months 7, as for one person); Pat's
+  // final-salary pension pays from run year 3 (April 2029), the first income that comes anyway for either of them. So the
+  // pots alone pay 7 + 12 + 12 = 31 months, not 36: the bridge is 31 months of the first stretch's draw, "2 years and 7
+  // months" (the household plan's stretches carry no months, so its words said 3 whole years).
+  const PAT_JO = { household: 'couple', you: { age: 60, pot: 300000, finalSalary: { has: true, yearly: 9000, fromAge: 63 } }, partner: { age: 58, pot: 100000 }, savings: 50000 };
+  it('Pat and Jo, How much can I take: the first stretch is the kept plans\' 31 months, and the bridge says so', () => {
+    const c = answerC({ ...PAT_JO, confidence: 'balanced' }, ENV);
+    expect(c.status).toBe('ok');
+    expect(c.phases[0].months).toBe(31);
+    const total = Math.round((c.phases[0].shown.fromPots * 31) / 1000) * 1000;
+    expect(c.sentences.bridge.text).toContain(`2 years and 7 months, about £${total.toLocaleString('en-GB')} at today's prices.`);
+  }, 60000);
+
+  // Sam (66, £30,000 in a pension, a State Pension forecast of £1 a year) and Alex (66, nothing but the same £1 forecast),
+  // from now, cautious, careful, to 75 (made up). The household's split counts Alex's State Pension as typed, £1 a year
+  // (£0.0833 a month), Alex's own plan as it holds it, in pence a week: £0.02 × 52 = £1.04 a year (£0.0867 a month). At
+  // £90 a month the split gives Sam £89.9167 (the keep: £89.92); Alex's plan takes home its £0.0867. Each plan's own
+  // take-home added, £89.92 + £0.0867 = £90.0067, is a penny over the £90 the answer names; the rest the parts leave,
+  // £90 − £0.0867 = £89.9133, is Sam's, whose plan draws on its pot: the first stretch takes home £90.00.
+  it('Sam and Alex, a £1 State Pension each: the first stretch takes home the amount named, to the penny', () => {
+    const twin = (pot) => ({ age: 66, pot, statePension: { kind: 'forecast', yearly: 1 }, finalSalary: { has: false } });
+    const c = answerC({ household: 'couple', you: twin(30000), partner: twin(0), start: { kind: 'now' }, savings: 0, risk: 'cautious', charge: 0, endAge: 75, confidence: 'careful' }, { ...ENV, futures: 20 });
+    expect(c.levels.careful.monthly).toBe(90);
+    expect(c.phases[0].takeHome).toBe(90);
+    expect(c.phases[0].byPerson.find((q) => q.who === 'partner').takeHome).toBe(0.09);
+  }, 60000);
+});

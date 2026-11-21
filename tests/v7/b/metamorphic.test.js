@@ -248,7 +248,7 @@ describe('B — metamorphic relations', () => {
   // the words' figure: what comes in anyway is said from the household plan for a couple (the State Pension as typed) and
   // from the kept plan for one person (in pence a week) — a penny apart a month — until a couple's words come from the two
   // kept plans (ruling O's other words)
-  it.fails('M-B11 (the words) what comes in anyway, said for the single and the couple with a partner with nothing, is the same', () => {
+  it('M-B11 (the words) what comes in anyway, said for the single and the couple with a partner with nothing, is the same', () => {
     fc.assert(fc.property(singlesB11, (single) => {
       fc.pre(openAtStopB11(single));
       const [a, b] = pairB11(single);

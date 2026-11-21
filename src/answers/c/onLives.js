@@ -264,11 +264,11 @@ function coupleCaseOn(inputs, household, sp, startAge, env, { dragPct = 0, lives
 }
 
 /**
- * The stop plan with its kept case, in place: one person's (`sp.kept`), or a couple's (`sp.couple`, the words the household
- * plan's cut at the kept plans' years: planPath householdWordsTo).
+ * The stop plan with its kept case, in place: one person's (`sp.kept`), or a couple's (`sp.couple`, the words the two kept
+ * plans' own, joined: planPath coupleWordsOf).
  */
 function withCase(sp, pc, env) {
-  if (pc && pc.household) { sp.couple = pc; sp.plan = env.planPath.householdWordsTo(sp.plan, pc); }
+  if (pc && pc.household) { sp.couple = pc; sp.plan = env.planPath.coupleWordsOf(sp.plan, pc); }
   else if (pc) sp.kept = pc;
   return sp;
 }

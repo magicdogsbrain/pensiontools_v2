@@ -117,7 +117,7 @@ export const LABELS = Object.freeze({
 });
 
 /** The columns of the year tables (src/reading/yearTable.js), one label each, both views (the simple view's copy reads these). */
-export const YEAR_COLUMNS = Object.freeze({ year: 'Year', age: 'Age', pension: 'From the pension', state: 'State Pension', tax: 'Tax', net: 'After tax, before the ISA', isa: 'From the ISA', gia: 'From other savings', spendable: 'To spend', isaLeft: 'ISA left', incomeMid: 'Income (middle)', incomeBad: 'Income (1 in 10 bad)', leftMid: 'Left (middle)' });
+export const YEAR_COLUMNS = Object.freeze({ year: 'Year', age: 'Age', pension: 'From the pension', state: 'State Pension', otherIncome: 'Other income', tax: 'Tax', net: 'After tax, before the ISA', isa: 'From the ISA', gia: 'From other savings', spendable: 'To spend', isaLeft: 'ISA left', incomeMid: 'Income (middle)', incomeBad: 'Income (1 in 10 bad)', leftMid: 'Left (middle)' });
 export const FLOOR_COLUMNS = Object.freeze({ year: 'Year', age: 'Age', shares: 'Shares floor', bonds: 'Bonds floor', cash: 'Cash', diversifiers: 'Gold and trend', reserve: 'Reserve', sharesPct: 'Shares % of the pot', isa: 'ISA', total: 'All floors' });
 
 export function labelOf(id) {

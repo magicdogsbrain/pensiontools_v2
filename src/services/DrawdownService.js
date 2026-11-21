@@ -148,6 +148,9 @@ export function generateDrawdownSchedule(settings, duration, assumedInflation = 
       year,
       brl,
       other,
+      // every income that comes anyway but the State Pension: another pension, a final-salary pension, rent or work. With the
+      // SIPP draw and the State Pension, less the tax, it is what the year pays after tax, before the ISA (netIncome).
+      otherIncome: other + dbPension + extraIncome,
       statePension,
       sippDraw: plan.sippGross,
       totalTaxable: plan.taxable,

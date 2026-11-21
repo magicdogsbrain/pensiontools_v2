@@ -10,7 +10,8 @@
  *     p, r       the one test's plan and result (a locked ladder: the document's)
  *     prices     ASSUMED_PRICES unless a what-if says otherwise (the full view's "what if" boxes: never the plan's table)
  *     duration   the plan's own length (settings.duration) unless a what-if says otherwise
- *       schedule   Pots & Valves: year by year, from DrawdownService.generateDrawdownSchedule (raw pounds, numbers)
+ *       schedule   Pots & Valves: year by year (every income in the after-tax figure has its column: the pension, the State
+ *                  Pension, other income when there is some, so a row adds up both ways), from DrawdownService.generateDrawdownSchedule (raw pounds, numbers)
  *       glidepath  Pots & Valves: the pots' floors, from GlidepathService.generateGlidepathSchedule, with the ISA left
  *       own        any other way, when it can be bought: the run's cones (income middle and 1 in 10 bad, left middle)
  *   yearColumnsOf(tables) → { years: [col…], floors: [col…] }   the columns both views draw, in order
@@ -36,7 +37,7 @@ export function yearTablesOf({ settings, strategyId, p = null, r = null, now, pr
   if (pnv) {
     const s = { ...s0, duration };
     try {
-      schedule = generateDrawdownSchedule(s, duration, prices, now).map((x) => ({ year: x.year, age: startAge + x.year, pension: r0(x.sippDraw), state: r0(x.statePension), tax: r0(x.tax), net: r0(x.netIncome), isa: r0(x.isaDraw), ...(x.giaDraw > 0 ? { gia: r0(x.giaDraw) } : {}), spendable: r0(x.spendable), isaLeft: r0(x.isaBalance) }));
+      schedule = generateDrawdownSchedule(s, duration, prices, now).map((x) => ({ year: x.year, age: startAge + x.year, pension: r0(x.sippDraw), state: r0(x.statePension), ...(x.otherIncome > 0 ? { otherIncome: r0(x.otherIncome) } : {}), tax: r0(x.tax), net: r0(x.netIncome), isa: r0(x.isaDraw), ...(x.giaDraw > 0 ? { gia: r0(x.giaDraw) } : {}), spendable: r0(x.spendable), isaLeft: r0(x.isaBalance) }));
     } catch { schedule = null; }
     try {
       const isaByYear = {};
@@ -58,7 +59,8 @@ export function yearTablesOf({ settings, strategyId, p = null, r = null, now, pr
 export function yearColumnsOf(t) {
   const x = t || {};
   const gia = Array.isArray(x.schedule) && x.schedule.some((r) => r.gia > 0) ? ['gia'] : [];
-  const years = Array.isArray(x.schedule) ? ['year', 'age', 'pension', 'state', 'tax', 'net', 'isa', ...gia, 'spendable', 'isaLeft']
+  const other = Array.isArray(x.schedule) && x.schedule.some((r) => r.otherIncome > 0) ? ['otherIncome'] : [];
+  const years = Array.isArray(x.schedule) ? ['year', 'age', 'pension', 'state', ...other, 'tax', 'net', 'isa', ...gia, 'spendable', 'isaLeft']
     : Array.isArray(x.own) ? ['year', 'age', 'incomeMid', 'incomeBad', 'leftMid'] : [];
   const g = x.glidepath;
   const floors = g && Array.isArray(g.rows) ? ['year', 'age', 'shares', 'bonds', 'cash', ...(g.diversifiers ? ['diversifiers'] : []), ...(g.reserve ? ['reserve'] : []), 'sharesPct', 'isa', 'total'] : [];
@@ -77,7 +79,7 @@ export function yearCellText(col, v) {
 export function yearTablesText(t) {
   const x = t || {};
   const { years, floors } = yearColumnsOf(x);
-  const rowsOf = (list, cols) => (Array.isArray(list) ? list.map((r) => ({ key: String(r.year), age: r.age, raw: { ...r }, cells: Object.fromEntries(cols.map((c) => [c, c === 'gia' ? yearCellText(c, r.gia || 0) : yearCellText(c, r[c])])) })) : []);
+  const rowsOf = (list, cols) => (Array.isArray(list) ? list.map((r) => ({ key: String(r.year), age: r.age, raw: { ...r }, cells: Object.fromEntries(cols.map((c) => [c, (c === 'gia' || c === 'otherIncome') ? yearCellText(c, r[c] || 0) : yearCellText(c, r[c])])) })) : []);
   const g = x.glidepath;
   return {
     prices: String(Math.round((+x.prices || 0) * 1000) / 10),

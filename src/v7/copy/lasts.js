@@ -119,7 +119,7 @@ export const LASTS = {
     title: 'The years, one by one',
     show: 'Show the years',
     hide: 'Hide the years',
-    lead: 'Year by year at {prices}% a year prices, with no ups and downs: what is drawn from the pension to fill the basic-rate band, the State Pension once it starts, the tax, what the ISA tops up to reach the plan’s figure, what is left to spend, and the ISA left. A steady path for reading, not a second test: the figure above counts every real start and 1,000 futures.',
+    lead: 'Year by year at {prices}% a year prices, with no ups and downs: what is drawn from the pension to fill the basic-rate band, the State Pension once it starts, any other income (another pension, rent or work), the tax, what the ISA tops up to reach the plan’s figure, what is left to spend, and the ISA left. A steady path for reading, not a second test: the figure above counts every real start and 1,000 futures.',
     leadOwn: 'Year by year as this way of drawing pays: the income in the middle future, the income in a 1-in-10 bad one, and what is left in the middle — read off the same test as the figure above.',
     // (the columns' labels are the reading's, one per column for both views: src/reading/labels.js YEAR_COLUMNS, FLOOR_COLUMNS)
     floorsTitle: 'The pots’ floors over the plan',

@@ -4206,8 +4206,7 @@
     import { ladderPosition, taxYearOf, borrowedFloorStatus, documentLadder, ladderForDisplay, repriceComparisonText, firstRungOf, ladderMonthAdvice, ladderCheckWords } from './src/services/LadderPosition.js';
     import { repriceLadder } from './src/strategies/GiltLadderPlan.js';
     import { deriveTiming, migrateTiming, describeTiming, taxYearLabel, planYearOf, taxYearStartOf, decisionAnchorYear, staleDraft, staleDraftMessage, startYearChoices, stoppedWorkOf, taxYearOfMonth } from './src/services/PlanTiming.js';
-    import { recordMovesOf } from './src/services/PlanRuleWords.js';   // History: what the plan's rule did, as the live month reads it (step F5)
-    import { MONTH } from './src/v7/copy/month.js';
+    import { recordMovesOf, RECORD_MOVE_WORDS } from './src/services/PlanRuleWords.js';   // History: what the plan's rule did, as the live month reads it (step F5)
     import { installStopMonth, stopMonthFromForm, paintStopMonth, wizardStop, recordBeforeStart, recordYearLabel as recordYearLabelFor, recordSourceWords, yearRowHtml, firstSetUpPlanYear, potsDayOf, planVsActualWords } from './src/ui/planStartUi.js';   // when the plan's income starts (6.51.0)
     import { installLockedStart, startLaterOfActive, fillPlanStart, fillPlanBounds, decisionPotsYear, stressLockBannerHtml, plansInListOrder, planListDesc, decisionLockBannerHtml, planDocumentMay, planDocumentEmptyHtml, paintPlanDocumentTools, planNoticeHtml, drawClosedTransition, taxYearTabsFor, closedTimingSummary } from './src/ui/lockedStartUi.js';   // a locked plan's stop month (6.53.0); "Move to a new plan" and a closed plan (6.56.0, src/ui/planCloseUi.js)
     import { planExportFileName, planExportJson } from './src/services/PlanExport.js';
@@ -11875,8 +11874,8 @@
         ${(() => {
           // what the plan's rule did that month, read as the live month reads it (services/PlanRuleWords.js; step F5, D17, R4):
           // the rule's words with the record's month, never the order kept when it was saved
-          const moves = recordMovesOf(h).filter((m) => MONTH.advice.movesThen[m.id]);
-          return moves.length ? '<div class="history-detail-card" id="historyRuleMoves"><h3>' + budEsc(MONTH.advice.movesThenTitle.replace('{month}', formatHistoryTabDate(h.date))) + '</h3>' + moves.map((m) => '<p style="margin:4px 0;">' + budEsc(MONTH.advice.movesThen[m.id].replace('{amount}', m.slots.amount)) + '</p>').join('') + '</div>' : '';
+          const moves = recordMovesOf(h).filter((m) => RECORD_MOVE_WORDS[m.id]);
+          return moves.length ? '<div class="history-detail-card" id="historyRuleMoves"><h3>' + budEsc(RECORD_MOVE_WORDS.title.replace('{month}', formatHistoryTabDate(h.date))) + '</h3>' + moves.map((m) => '<p style="margin:4px 0;">' + budEsc(RECORD_MOVE_WORDS[m.id]) + '</p>').join('') + '</div>' : '';
         })()}
         <!-- What this month recorded -->
         <div class="history-detail-card">

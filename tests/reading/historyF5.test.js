@@ -29,8 +29,7 @@ describe('History: a record shows its own figures, never the move words it kept'
   });
 });
 
-import { recordMovesOf } from '../../src/services/PlanRuleWords.js';
-import { MONTH } from '../../src/v7/copy/month.js';
+import { recordMovesOf, RECORD_MOVE_WORDS } from '../../src/services/PlanRuleWords.js';
 describe('History: what the plan\'s rule did that month, read as the live month reads it (PlanRuleWords)', () => {
   it('a record\'s move is the rule\'s words, dated, never the order it kept', () => {
     expect(recordMovesOf({ date: '2026-11-03', rebal: 'Move £8,000 Equity→Bond' })).toEqual([{ id: 'sharesToBonds', slots: { amount: '£8,000' } }]);
@@ -39,14 +38,14 @@ describe('History: what the plan\'s rule did that month, read as the live month 
     expect(recordMovesOf({ date: '2026-11-03', rebal: 'Move £8,000 Equity→Bond', contract: true })).toEqual([]);
     expect(recordMovesOf(null)).toEqual([]);
     for (const id of ['sharesToBonds', 'bondsToShares']) {
-      expect(MONTH.advice.movesThen[id]).toMatch(/^The plan’s rule moved money from/);   // the record's own figures are its balances; the move's size is not one of them (the gate counts it as a figure no reading gives)
-      expect(MONTH.advice.movesThen[id]).not.toMatch(/Equity|Bond→|Move £|should|recommend/);
+      expect(RECORD_MOVE_WORDS[id]).toMatch(/^The plan’s rule moved money from/);   // the record's own figures are its balances; the move's size is not one of them (the gate counts it as a figure no reading gives)
+      expect(RECORD_MOVE_WORDS[id]).not.toMatch(/Equity|Bond→|Move £|should|recommend/);
     }
-    expect(MONTH.advice.movesThenTitle).toBe('What the plan’s rule did in {month}');
+    expect(RECORD_MOVE_WORDS.title).toBe('What the plan’s rule did in {month}');
   });
   it('the detail draws the record\'s moves through it, with the record\'s month, under a heading with no "recommendation"', () => {
     expect(detail).toContain('recordMovesOf(h)');
-    expect(detail).toContain('MONTH.advice.movesThenTitle');
+    expect(detail).toContain('RECORD_MOVE_WORDS.title');
     expect(detail).not.toContain('Monthly Recommendation');
     expect(detail).toContain('What this month recorded');
   });

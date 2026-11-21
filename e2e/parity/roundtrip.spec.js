@@ -511,15 +511,10 @@ test.describe('parity round trips: a new plan after another', () => {
 // ---- 5. the actions: a month recorded, a tax year set up, the plan locked and unlocked ----------------------------------
 
 /** Polls the stored plan until `done(plan)` holds; false after `ms`. */
-async function storedUntil(uid, id, done, ms = 30_000) {
-  const end = Date.now() + ms;
-  for (;;) {
-    const p = await subjectOf(uid, id).catch(() => null);
-    if (p && done(p)) return true;
-    if (Date.now() > end) return false;
-    await new Promise((r) => setTimeout(r, 400));
-  }
-}
+const storedUntil = (uid, id, done, ms = 30_000) => expect.poll(async () => {
+  const p = await subjectOf(uid, id).catch(() => null);
+  return !!(p && done(p));
+}, { timeout: ms, intervals: [400] }).toBe(true).then(() => true, () => false);
 const factsOn = (places, id) => places.filter((p) => p.fact === id).map((p) => p.text);
 const monthBox = (page, path) => page.getByTestId(`plan.month.${path}`);
 async function typeIfShown(loc, v) {

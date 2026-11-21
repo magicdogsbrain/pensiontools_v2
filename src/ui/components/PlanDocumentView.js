@@ -21,6 +21,7 @@ import { markFact } from '../../reading/mark.js';
 import { LABELS } from '../../reading/labels.js';
 import { FACT, factId } from '../../reading/facts.js';
 import { GUARDRAIL_FACTS, TAKEN_FACTS, PLAN_MIX_SLOTS, sentenceHtml } from '../../reading/sentenceMarks.js';
+import { planYearSentence, stepSentence, WHERE_KEYS, stepKeysOf } from '../../reading/where.js';
 
 const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 const dateGB = (iso) => { const d = new Date(iso); return Number.isFinite(d.getTime()) ? d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : ''; };
@@ -500,14 +501,14 @@ export function whereAmIHtml(w, g = null, { steps = null, year = null } = {}) {
     if (income) parts.push(income);
     return '<div class="alert alert-info pd-where"><div class="section-title" style="font-size:13px;">Where you are — ' + esc(dateGB(w.today)) + '</div><p style="margin:4px 0 0;">' + parts.join(' ') + '</p></div>';
   }
-  else parts.push('<strong>Plan year ' + w.planYear + ' of ' + w.planYears + '</strong> — tax year ' + esc(w.taxYear) + ', age ' + w.age + '.');
-  // (7.12.0) the step is in the plan's own prices, named, so it is not read as this tax year's figure (the set-up's, in this
-  // year's prices, on Month by month and Tax Years)
-  const stepPrices = w.pot && w.pot.prices && w.pot.prices.since ? ' at ' + whenText(w.pot.prices.since) + ' prices' : '';
-  // (step F2, lead4.md D6) each step as the reading gives it: a year before tax as it is taken, never the stored figure as "gross"
-  const stepRead = (i) => (Array.isArray(steps) && steps[i] && Number.isFinite(+steps[i].beforeTax) ? steps[i].beforeTax : null);
-  const stepMoney = (i, stored) => (stepRead(i) != null ? markFact(factId(FACT.STEP_BEFORE_TAX, i), esc(money(stepRead(i)))) + ' a year before tax' : gbp(stored) + '/yr gross');
-  if (w.step) parts.push('Income step ' + w.step.index + ' of ' + w.step.of + ': ' + stepMoney(w.step.index - 1, w.step.amount) + stepPrices + (w.step.next ? '; next step ' + stepMoney(w.step.index, w.step.next.amount).replace(/ a year before tax$/, '').replace(/\/yr gross$/, '') + ' from age ' + w.step.next.fromAge + ' (' + esc(w.step.next.taxYear || '') + ', ' + w.step.next.yearsAway + ' year' + (w.step.next.yearsAway === 1 ? '' : 's') + ' away)' : '; no further steps') + '.');
+  else {
+    // the plan year and the income step: the one sentence builder both views draw (src/reading/where.js; step F5, D17, R8),
+    // the step a year before tax as it is taken (step F2, D6), in the plan's own prices
+    const py = planYearSentence(w);
+    if (py) parts.push('<strong>' + sentenceHtml(py, py.figures, { keys: WHERE_KEYS[py.id] }, esc) + '</strong>');
+  }
+  const st = stepSentence(w, steps);
+  if (st) parts.push(sentenceHtml(st, st.figures, { keys: stepKeysOf(st) }, esc));
   if (year && year.plan) parts.push(year.plan);
   const income = incomeThisYearText(w.incomeThisYear);
   if (income) parts.push(income);

@@ -22,6 +22,9 @@ export const FACT = Object.freeze({
   END_AGE: 'plan.endAge',
   LOCKED: 'lock.state',
   LOCK_DATE: 'lock.date',
+  // the plan year this tax year is (0 in its first) and how many tax years the plan runs (src/reading/where.js; step F5, R8)
+  PLAN_YEAR: 'plan.year',
+  PLAN_YEARS: 'plan.years',
   DUE_NEXT: 'due.next',
   // money today, by pot
   POT_TODAY: 'pot.today',

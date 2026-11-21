@@ -312,7 +312,9 @@ export const PLAN = {
     'where.yearPlan': '',
     /** The plan's own figure for the year differs from the year as set up (step F2, lead4.md D7): both, with the set-up's date. */
     'where.yearChanged': '',
-    'where.step': 'Step {n} of {of} of your plan',
+    /** The plan year and the income step (step F5, src/reading/where.js, both views): the sentences carry their own words. */
+    'where.planYear': '',
+    'where.step': '',
     'where.pot': 'Your pot',
     'where.potMid': 'The plan’s middle line for now',
     /** The plan's 1-in-10 bad line for now, said where the full view says it: the pot below it or between it and the middle. */

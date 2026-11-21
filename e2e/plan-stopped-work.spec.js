@@ -7,7 +7,7 @@
  *      its income from next April): the month box takes October 2023, the plan's income then starts in 2023/24 — the year
  *      offered and chosen by default — and the summary says plan year 3 now; the ladder's cash "until the plan's income
  *      starts" is not offered. Locked from the Stress settings: the document's ladder is bought from 2026/27 on and the pots
- *      are plan year 3's; the strip reads "Plan year 3 of …". September 2026 recorded in Month by month is "Year 3" in the
+ *      are plan year 3's; the strip reads "Tax year 2026/27 is 3 years into your plan …". September 2026 recorded in Month by month is "Year 3" in the
  *      History view and in plan vs actual, compared with the plan.
  *  (c) The same draft, saved with next April (7.4.0): read from this tax year, said once in the summary; nothing written by
  *      opening it; locked from the Stress settings, it is locked as it reads — from 2026/27 — with nothing to move. The words
@@ -94,7 +94,8 @@ test.describe('Say when you stopped work, without an account', () => {
     expect(locked.planDocument.strategy.r.plan.years[0].Y).toBe(2026);
     expect('bridgeCash' in locked.planDocument.assumptions).toBe(false);   // 7.4.2: never written
     const strip = page.locator('.pd-where');
-    await expect(strip).toContainText(/Plan year 3 of \d+ — tax year 2026\/27/);
+    // step F5 (lead4.md R8): the strip says the plan year in the words both views say (src/reading/where.js), never "plan year N"
+    await expect(strip).toContainText(/Tax year 2026\/27 is 3 years into your plan, which runs \d+ tax years\./);
     const doc = await page.locator('.pd').innerText();
     expect(doc).toContain('Plan started');
     expect(doc).toContain('locked in plan year 3, on the pots as they stood in September 2026');

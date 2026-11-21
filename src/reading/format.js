@@ -81,6 +81,8 @@ export const FACT_FORMAT = Object.freeze({
   'pot.atStop.high': moneyK,
   'age.today': ageText,
   'plan.endAge': ageText,
+  'plan.year': (n) => String(Math.round(Number(n) || 0)),
+  'plan.years': (n) => String(Math.round(Number(n) || 0)),
   'stop.month': monthText,
   yearsToGo: spanText,
   stage: asIs,

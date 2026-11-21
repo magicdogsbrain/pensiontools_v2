@@ -31,6 +31,8 @@ const FIGURES = Object.freeze({
   'where.saverPot:potPension': 'pot.today',
   'where.saverPot:potIsa': 'isa.today',
   'where.taken:drawn': 'taken.againstPlan',
+  'where.planYear:planYear': 'plan.year',
+  'where.planYear:planYears': 'plan.years',
   'where.retired:drawn': 'taken.againstPlan',
   'where.yearChanged:planYear': 'income.thisYear.planSays',
   'where.yearChanged:yearMonthly': 'income.thisYear.perMonth',

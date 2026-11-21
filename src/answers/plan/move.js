@@ -30,7 +30,7 @@ import { planStage, settingsForScreen } from '../../services/PlanReading.js';
 import { sequence, tickMove, untickMove } from '../../services/TransitionPlanner.js';
 import { normaliseHoldings } from '../../services/HoldingsRecord.js';
 import { proportions } from '../../services/Holdings.js';
-import { moveReadingOf, giltsCountOf, sheetOf, planMixOf } from '../../reading/holdings.js';
+import { moveReadingOf, giltsCountOf, sheetOf, planMixOf, heldMixOf, heldMixPartsOf } from '../../reading/holdings.js';
 import { rotationWatch } from '../../services/RotationStatus.js';
 import { taxYearLabel, deriveTiming, taxYearStartOf } from '../../services/PlanTiming.js';
 import { CONTRACT_STRATEGIES } from '../../services/PlanDocument.js';
@@ -126,20 +126,18 @@ export function savedMove(plan, { today, index = null, life = null }) {
 }
 
 /** The plan's effective settings with the pension's mix AS HELD (§3.3): the four amounts in the proportions the record's pension lines hold, on the same pot. */
+// The split is the one reader's (src/reading/holdings.js heldMixPartsOf / heldMixOf with `pension`; step F6): the words that say
+// what the test ran on are the very figures the run was given.
 export function heldMixSettings(plan, { today }) {
   const now = dateOf(today);
   const ss = safeSettings(plan, now);
-  const rec = normaliseHoldings(plan && plan.holdings);
-  const sipp = rec.lines.filter((l) => String(l.wrapper || 'SIPP').toUpperCase() === 'SIPP');
-  const p = proportions(sipp.length ? sipp : rec.lines);
-  if (!(p.total > 0)) return null;
+  const h = heldMixPartsOf(plan, { pension: true });
+  if (!h) return null;
   const pot = r0(ss.equityMin) + r0(ss.bondMin) + r0(ss.cashTarget) + r0(ss.diversifierStart);
-  const counted = p.buckets.shares + p.buckets.bonds + p.buckets.diversifiers + p.buckets.cash;
-  if (!(counted > 0)) return null;
-  const share = (b) => Math.round(pot * (p.buckets[b] / counted));
+  const share = (b) => Math.round(pot * h.parts[b]);
   const equityMin = share('shares'), bondMin = share('bonds'), diversifierStart = share('diversifiers');
   const cashTarget = Math.max(0, pot - equityMin - bondMin - diversifierStart);
-  return { settings: { ...ss, equityMin, bondMin, cashTarget, diversifierStart, allocMode: 'risk' }, pcts: { shares: Math.round(100 * p.buckets.shares / counted), bonds: Math.round(100 * p.buckets.bonds / counted), diversifiers: Math.round(100 * p.buckets.diversifiers / counted), cash: Math.round(100 * p.buckets.cash / counted) }, pot, fromPension: sipp.length > 0 };
+  return { settings: { ...ss, equityMin, bondMin, cashTarget, diversifierStart, allocMode: 'risk' }, pcts: heldMixOf(plan, { pension: true }), pot, fromPension: h.fromPension };
 }
 
 // ---- the writes ----------------------------------------------------------------------------------------------------------------

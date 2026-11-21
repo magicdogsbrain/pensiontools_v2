@@ -11,7 +11,8 @@
  */
 import { PlanRail, changeAction, EditField, UndoToast, fill, Button, LinkButton } from '../../components/index.js';
 import { LOCK_DATE } from '../../components/facts.js';
-import { fillMarked } from '../../components/PlanFigures.jsx';
+import { fillMarked, markIn } from '../../components/PlanFigures.jsx';
+import { GILTS_HELD_FIND } from '../../../reading/sentenceMarks.js';
 import { ADVICE_SHORT } from '../../copy/common.js';
 import { planView, planReviewView } from '../../state/select.js';
 import { href } from '../../router/routes.js';
@@ -143,7 +144,7 @@ function MoveReview({ V }) {
       {M.noReading && <p class="note" data-testid={`${T}.moving.noReading`}>{W.moving.noReading}</p>}
       {M.ladder && (
         <>
-          <p data-testid={`${T}.moving.ladder`}>{fill(W.moving.ladder, { held: String(M.ladder.held), needed: String(M.ladder.needed) })}</p>
+          <p data-testid={`${T}.moving.ladder`}>{markIn(fill(W.moving.ladder, { held: String(M.ladder.held), needed: String(M.ladder.needed) }), [[GILTS_HELD_FIND, 'gilts.held']])}</p>
           {M.ladder.years.length > 0 && <p class="note" data-testid={`${T}.moving.ladderYears`}>{fill(W.moving.ladderYears, { years: M.ladder.years.join(', ') })}</p>}
         </>
       )}

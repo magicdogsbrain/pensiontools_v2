@@ -136,6 +136,8 @@ export const FACT = Object.freeze({
   GILTS_HELD: 'gilts.held',
   MIX_PLAN: 'mix.plan.#',
   MIX_HELD: 'mix.held.#',
+  // what the pension alone holds, as a mix (the held-mix test is run on it): a figure of its own beside every account's
+  MIX_HELD_PENSION: 'mix.heldPension.#',
   HOLDINGS_TOTAL: 'holdings.total',
   HOLDINGS_WRAPPER: 'holdings.#',
   // "Try the bad years" (lead4.md R6; step F3): each row's figures, keyed by the row's id (stressPanel.js ROW_IDS) — its weighted

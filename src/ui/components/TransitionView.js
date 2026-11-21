@@ -24,8 +24,8 @@ import { heldSummaryView } from '../../answers/plan/held.js';
 import { HELD } from '../../v7/copy/held.js';
 import { PLAN } from '../../v7/copy/plan.js';
 import { LAYOUT } from '../../appLayout.js';
-import { markWithin, markFact, tableAttr, cellAttr } from '../../reading/mark.js';
-import { GILTS_HELD_FIND, MOVE_MONEY_FINDS, PLAN_MIX_SLOTS, HELD_MIX_SLOTS } from '../../reading/sentenceMarks.js';
+import { markWithin, markFact, tableAttr, cellAttr, fillHtml } from '../../reading/mark.js';
+import { GILTS_HELD_FIND, MOVE_MONEY_FINDS, PLAN_MIX_SLOTS, HELD_MIX_SLOTS, HELD_PENSION_MIX_SLOTS } from '../../reading/sentenceMarks.js';
 import { holdingsTotalsOf, heldMixOf } from '../../reading/holdings.js';
 import { HOLD } from '../../v7/copy/hold.js';
 import { mixWords } from '../../answers/plan/hold.js';
@@ -243,7 +243,8 @@ export function waitingHtml(w, moveWindow = null) {
   h += w.newMoney ? '<p>' + esc(fillMove(S.newMoney, { parts: w.newMoney.parts.map((p) => fillMove(S.newMoneyPart, p)).join(', '), monthly: w.newMoney.monthly })) + '</p>' : '<p class="hint">' + esc(S.newMoneyNone) + '</p>';
   // the plan's mix (mix.plan.#), marked as the simple view marks it: each figure once, through its slot
   if (w.planMix) h += '<p>' + esc(S.planMix).replace(/\{(shares|bonds|cash)\}/g, (m, b) => markFact(PLAN_MIX_SLOTS[b], esc(String(w.planMix[b])))) + '</p>';
-  if (w.held && w.held.pcts) h += '<p>' + esc(fillMove(S.heldMix, w.held.pcts)) + '</p>';
+  // what the pension holds, as a mix (mix.heldPension.#: src/reading/holdings.js heldMixOf `pension`), marked as the simple view marks it
+  if (w.held && w.held.pcts) h += '<p>' + fillHtml(S.heldMix, w.held.pcts, HELD_PENSION_MIX_SLOTS) + '</p>';
   if (w.startsAround) h += '<p class="hint">' + esc(fillMove(S.starts, { when: w.startsAround })) + '</p>';
   // the window's length (step F6; R8): the simple view's review choice, in its words and through its one write (setMoveWindow,
   // review.js phaseChoicePatch 'window'). A longer window is an earlier start: nothing is moved before the window opens.

@@ -50,7 +50,8 @@ import { planPage, dateOf, monthWords, offCourseWordsOf } from './read.js';
 import { dayWords } from './dates.js';
 import { pounds } from './income.js';
 import { REVIEW_FIELDS, REVIEW_CHOICES } from './schema.js';
-import { settingsForScreen, whereAmIInputs, moveInputs, historyAscending } from '../../services/PlanReading.js';
+import { settingsForScreen, whereAmIInputs, historyAscending } from '../../services/PlanReading.js';
+import { moveReadingOf, giltsCountOf } from '../../reading/holdings.js';
 import { whereAmI, guardrailOf, bandMeasure, GUARDRAIL_STRATEGIES } from '../../services/PlanDocument.js';
 import { driftOf } from '../../services/TransitionPlanner.js';
 import { RISK_PRESETS } from '../../services/GlidepathService.js';
@@ -189,13 +190,16 @@ function livingReadingOf(plan, { now, pots, entered, older }) {
 
 /**
  * Where the move stands (Moving): months left to the stop, how far each bucket of what is held is from the mix the plan moves
- * to on today's pension (PlanReading.moveInputs `fromSettings`: on an unlocked plan against its settings, in memory), whether
+ * to on today's pension (the page's one diff, src/reading/holdings.js moveReadingOf `fromSettings`: on an unlocked plan against
+ * its settings, in memory; once what is held was accepted, every line as it is), whether
  * it is on course, the lines nothing places, and on a ladder the years not yet held.
  */
 function movingReadingOf(plan, { now, life, log }) {
   const rec = normaliseHoldings(plan && plan.holdings);
   const record = holdingsSummary(rec).count > 0;
-  let mv = null; try { mv = moveInputs(plan, { now, fromSettings: true }); } catch { mv = null; }
+  // the page's one diff (src/reading/holdings.js moveReadingOf; step F6): once what is held was accepted, every line as it is,
+  // as the move page and the full view's Transition tab read it
+  const mv = moveReadingOf(plan, { now, life, fromSettings: true }).m;
   const d = mv && mv.diff ? driftOf(mv.diff) : null;
   const w = moveWindowOf(life);
   const windowMonths = w && w.from && w.to ? monthsBetween(w.from, w.to) : null;
@@ -223,7 +227,9 @@ function movingReadingOf(plan, { now, life, log }) {
   } else if (d && d.kind === 'ladder') {
     const thisTY = Number(mv.target && mv.target.thisTaxYear);
     const years = [...new Set((mv.diff.buy || []).filter((b) => b.kind === 'gilt' && Array.isArray(b.taxYears)).flatMap((b) => b.taxYears.map(Number)))].sort((p, q) => p - q);
-    out.ladder = { held: d.rungs.held, needed: d.rungs.needed, years: years.map(taxYearLabel), gapSoon: !!d.gapSoon, soon: years.filter((Y) => Y === thisTY || Y === thisTY + 1).map(taxYearLabel) };
+    // the one "n of m" (giltsCountOf): once accepted, a gilt of the plan held in part is held as the person chose
+    const gc = giltsCountOf(mv.target, mv.diff, { agreed: !!(life && life.agreed && life.agreed.at) });
+    out.ladder = { held: gc.counted, needed: gc.total, years: years.map(taxYearLabel), gapSoon: !!d.gapSoon, soon: years.filter((Y) => Y === thisTY || Y === thisTY + 1).map(taxYearLabel) };
   } else if (mv && mv.diff && mv.diff.kind === 'none') out.noReading = true;
   return out;
 }
@@ -236,7 +242,7 @@ function movingReadingOf(plan, { now, life, log }) {
  */
 function heldAgainstMixOf(plan, now) {
   if (!(holdingsSummary(normaliseHoldings(plan && plan.holdings)).count > 0)) return null;
-  let mv = null; try { mv = moveInputs(plan, { now, fromSettings: true }); } catch { mv = null; }
+  const mv = moveReadingOf(plan, { now, fromSettings: true }).m;   // the one diff (src/reading/holdings.js)
   const d = mv && mv.diff ? driftOf(mv.diff) : null;
   if (!d || d.kind !== 'buckets') return null;
   const inPlay = num(mv.diff.inPlay);
@@ -520,7 +526,7 @@ export function reviewEntryOf(plan, { phase, today, typed = {}, at, reading = nu
     }
   }
   if (phase === 'moving') {
-    let mv = null; try { mv = moveInputs(plan, { now, fromSettings: true }); } catch { mv = null; }
+    const mv = moveReadingOf(plan, { now, fromSettings: true }).m;   // the one diff (a pot plan's: its marks as they are)
     const d = mv && mv.diff ? driftOf(mv.diff) : null;
     if (d && d.kind === 'buckets') { entry.drift = { ...d.drift }; entry.maxDrift = d.maxDrift; }
   }

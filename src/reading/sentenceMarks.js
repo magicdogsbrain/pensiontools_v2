@@ -159,6 +159,7 @@ export const HOUSEHOLD_CHANCE = Object.freeze({ words: FACT.HOUSEHOLD_CHANCE });
 const bucketMarks = (pattern) => Object.freeze(Object.fromEntries(BUCKETS.map((b) => [b, factId(pattern, b)])));
 export const HELD_MIX_SLOTS = bucketMarks(FACT.MIX_HELD);
 export const PLAN_MIX_SLOTS = bucketMarks(FACT.MIX_PLAN);
+export const HELD_PENSION_MIX_SLOTS = bucketMarks(FACT.MIX_HELD_PENSION);
 /** The full view's one line of the held mix (Holdings.describeMix: "78% shares · 17% bonds · 5% cash; cost …"). */
 export const HELD_MIX_FINDS = Object.freeze(BUCKETS.map((b) => [new RegExp('(\\d+)% ' + b + '\\b'), HELD_MIX_SLOTS[b]]));
 

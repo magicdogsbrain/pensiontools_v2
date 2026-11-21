@@ -17,7 +17,7 @@
 import { PlanRail, changeAction, UndoToast, fill, Button, LinkButton, stepNameOf } from '../../components/index.js';
 import { LOCK_DATE } from '../../components/facts.js';
 import { fillMarked, markIn } from '../../components/PlanFigures.jsx';
-import { PLAN_MIX_SLOTS, MOVE_MONEY_FINDS, GILTS_HELD_FIND } from '../../../reading/sentenceMarks.js';
+import { PLAN_MIX_SLOTS, HELD_PENSION_MIX_SLOTS, MOVE_MONEY_FINDS, GILTS_HELD_FIND } from '../../../reading/sentenceMarks.js';
 import { TABLES } from '../../../reading/facts.js';
 import { planView, planMoveView, planKeepTestView } from '../../state/select.js';
 import { KeepTestLine } from './KeepTest.jsx';
@@ -147,7 +147,7 @@ function Cost({ V, dispatch }) {
               {h.result.unaffordable
                 ? <p class="figure">{fill(C.unaffordable, { reason: h.result.reason ? fill(C.reasonWas, { reason: h.result.reason }) : '' })}</p>
                 : <>
-                  <p class="figure" data-testid={`${T}.cost.headline`}>{fill(C.result, { ...(h.result.pcts || V.held.pcts), words: h.result.words, ownWords: V.own ? V.own.words : '' })}</p>
+                  <p class="figure" data-testid={`${T}.cost.headline`}>{fillMarked(C.result, { ...(h.result.pcts || V.held.pcts), words: h.result.words, ownWords: V.own ? V.own.words : '' }, HELD_PENSION_MIX_SLOTS)}</p>
                   <p class="note">{fill(C.left, { bad: h.result.badCaseLeft, typical: h.result.typicalLeft })}</p>
                 </>}
               <p class="plan-source" data-testid={`${T}.cost.ran`}>{h.ms != null ? fill(C.ran, { ms: seconds(h.ms) }) : C.ranUntimed}</p>
@@ -167,7 +167,7 @@ function Waiting({ V }) {
       <p class="figure" data-testid={`${T}.waiting.line`}>{V.opens ? fill(S.line, { years: V.yearsToStart, opens: V.opens }) : fill(S.lineSoon, { years: V.yearsToStart })}</p>
       {V.newMoney ? <p class="line" data-testid={`${T}.waiting.newMoney`}>{fill(S.newMoney, { parts: V.newMoney.parts.map((p) => fill(S.newMoneyPart, p)).join(', '), monthly: V.newMoney.monthly })}</p> : <p class="note" data-testid={`${T}.waiting.noNewMoney`}>{S.newMoneyNone} <a href={href.plan(V.id, 'hold')}>{W.buttons.hold}</a></p>}
       {V.planMix && <p class="line" data-testid={`${T}.waiting.planMix`}>{fillMarked(S.planMix, V.planMix, PLAN_MIX_SLOTS)}</p>}
-      {V.held && <p class="line" data-testid={`${T}.waiting.heldMix`}>{fill(S.heldMix, V.held.pcts)}</p>}
+      {V.held && <p class="line" data-testid={`${T}.waiting.heldMix`}>{fillMarked(S.heldMix, V.held.pcts, HELD_PENSION_MIX_SLOTS)}</p>}
       {V.startsAround && <p class="note" data-testid={`${T}.waiting.starts`}>{fill(S.starts, { when: V.startsAround })}</p>}
     </section>
   );

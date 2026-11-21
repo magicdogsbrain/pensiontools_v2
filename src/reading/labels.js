@@ -113,6 +113,7 @@ export const LABELS = Object.freeze({
   [FACT.GILTS_HELD]: { label: 'Gilts held', basis: 'a count' },
   [FACT.MIX_PLAN]: { label: "The plan's mix", basis: 'a share' },
   [FACT.MIX_HELD]: { label: 'What you hold', basis: 'a share' },
+  [FACT.MIX_HELD_PENSION]: { label: 'What you hold, in your pension', basis: 'a share' },
   [FACT.HOLDINGS_TOTAL]: { label: 'Held in all', basis: TODAY },
   [FACT.HOLDINGS_WRAPPER]: { label: 'Held', basis: TODAY },
   [FACT.STRESS_CHANCE]: { label: 'This line: the money lasts as long as you do', basis: 'a chance' },

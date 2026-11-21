@@ -7,11 +7,10 @@
 import { holdingsWith } from '../services/HoldingsRecord.js';
 import { typedTaxYears, tooEarlyOf } from '../answers/plan/hold.js';
 import { GAPS } from '../v7/copy/gaps.js';
-import { gapsOf, gapsView, lifeOf } from '../answers/plan/gaps.js';
+import { lifeOf } from '../answers/plan/gaps.js';
 import { heldPhase } from '../services/Phases.js';
 import { PLAN } from '../v7/copy/plan.js';
-import { moveOf, opensAtOf } from '../answers/plan/move.js';
-import { planStage } from '../services/PlanReading.js';
+import { moveOf } from '../answers/plan/move.js';
 import { keepTestOf, amendPatch, withdrawPatch, sayKeep } from '../answers/plan/keepTest.js';
 import { sayHeldPatch, agreeWithdrawPatch } from '../answers/plan/agree.js';
 import { MOVE } from '../v7/copy/move.js';
@@ -52,14 +51,6 @@ export function transitionTabName(scenario, today = todayOf()) {
   try { return scenario && heldPhase(lifeOf(scenario, new Date(today.getFullYear(), today.getMonth(), today.getDate(), 12))) ? PLAN.steps.move.short : 'Transition'; } catch { return 'Transition'; }
 }
 
-/**
- * The month a saver's move window opens, for the full view's schedule (move.js opensAtOf: the reading the simple view's
- * schedule and home use). Null when there is none, or the plan cannot be read.
- */
-export function transitionOpensAt(scenario, today = todayOf()) {
-  try { const now = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 12); return scenario ? opensAtOf(scenario, planStage(scenario, { now }), now) : null; } catch { return null; }
-}
-
 /** Names the full view's Transition tab in `doc` by the phase (transitionTabName); `read()` gives the stored plan. The name. */
 export async function nameTransitionTab(doc, read, fallback = null, today = todayOf()) {
   let plan = null; try { plan = (await read()) || fallback; } catch { plan = fallback; }
@@ -67,12 +58,6 @@ export async function nameTransitionTab(doc, read, fallback = null, today = toda
   const tb = doc && doc.querySelector ? doc.querySelector('.tab[data-tab="transition"]') : null;
   if (tb) tb.textContent = name;
   return name;
-}
-
-/** The gaps as the Transition tab draws them: V7's reading of the plan with this record (by the phase the home reads: 7.12.0, nothing in the held phase); null when there is nothing to read. */
-export function transitionGaps(scenario, rec, today = todayOf()) {
-  if (!scenario) return null;
-  try { return gapsView(gapsOf({ ...scenario, holdings: rec }, { today: dayOf(today) })); } catch { return null; }
 }
 
 /**

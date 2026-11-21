@@ -26,7 +26,7 @@ import { MOVE } from '../../../src/v7/copy/move.js';
 import { PLAN } from '../../../src/v7/copy/plan.js';
 import { transitionHtml } from '../../../src/ui/components/TransitionView.js';
 import { unmarked } from '../../../src/reading/mark.js';
-import { transitionHeld, transitionGaps } from '../../../src/ui/keepHoldingsUi.js';
+import { transitionHeld } from '../../../src/ui/keepHoldingsUi.js';
 import { moveInputs } from '../../../src/services/PlanReading.js';
 import { diffHoldings, targetHoldings, yearNeedsOf } from '../../../src/services/TransitionPlanner.js';
 import { stateWith, entryOf, noon, corpus } from './_plans.js';
@@ -113,7 +113,7 @@ describe('Living on it: "Your plan\'s mix" is what is held, never a move', () =>
     expect(held).toMatchObject({ mode: 'held', heldInfo: V.heldInfo, heldView: V.heldView, phase: 'drawing' });
     const mi = moveInputs(p, { now: noon(TODAY) });
     // the count is marked (gilts.held, step F6): the words are read without their marks
-    const html = unmarked(transitionHtml({ doc: p.planDocument, target: mi.target, diff: mi.diff, seq: null, prog: mi.prog, holdings: p.holdings, gaps: transitionGaps(p, p.holdings, noon(TODAY)), held }));
+    const html = unmarked(transitionHtml({ doc: p.planDocument, target: mi.target, diff: mi.diff, seq: null, prog: mi.prog, holdings: p.holdings, gaps: ((transitionHeld(p, p.holdings, noon(TODAY)) || {}).gaps || null), held }));
     expect(html).not.toMatch(/>Sell<|>Buy<|Totals: buy|When — a schedule|toggleTransitionDone|Next: <strong>|Things the schedule assumes/);
     expect(html).toContain(HELD.lead);
     expect(html).toContain('12 of 14 of your plan’s gilts are held.');

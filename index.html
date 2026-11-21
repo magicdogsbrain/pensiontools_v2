@@ -4240,11 +4240,11 @@
     import { installStressSubTabs } from './src/ui/stressSubTabs.js'; import { installStressSettingsAutosave, installAccumulationAutosave, accumulationInputsOf, SAVE_WORDS, SAVE_OUTCOME_WORDS, saveOutcomeToast } from './src/ui/settingsAutosave.js'; import { orderStressSettingsSections } from './src/ui/settingsLayout.js'; import { tryFillKeyOf, tryNeedsFill, watchTryTouched, paintTryPotWords } from './src/ui/tryBoxes.js';   // the Stress tester's sub-tabs (Settings pressed while open is not drawn again); Settings and the Accumulation tab save as they change; Settings' order (7.12.0)
     import { updateHomeBanner, installHomeBanner, openingTabOf, pressOpeningSub } from './src/ui/homeBannerUi.js'; import { installHouseholdTab } from './src/ui/householdTabUi.js';   // the next-step banner is the plan home's first thing due, else the life stage's sentence (7.10.0; 6.20.2); the opening tab reads the plan's phase (7.11.0)
     import { moreSheetHtml, MORE_TABS } from './src/ui/mobileMenu.js';
-    import { proportions as holdingsProportions, describeMix } from './src/services/Holdings.js';
+    import { proportions as holdingsProportions } from './src/services/Holdings.js';
     import { tickMove, untickMove } from './src/services/TransitionPlanner.js';   // the move's target, diff and schedule are the one reading's (step F6: keepHoldingsUi.transitionHeld → moveOf)
-    import { transitionHtml } from './src/ui/components/TransitionView.js';
+    import { transitionHtml, heldMixLineHtml } from './src/ui/components/TransitionView.js';
     import { typedLineOf, ordersOf as holdOrdersOf } from './src/answers/plan/hold.js';   // "Add a line" and the paste's orders: the simple view's readers (step F6)
-    import { installKeepHandlers, transitionHeld, nameTransitionTab, installKeepTestHandlers, transitionKeepTest, keepLineHtml } from './src/ui/keepHoldingsUi.js'; import { installStressPanel } from './src/ui/stressPanelUi.js'; import { markFact, markWithin, tableAttr, cellAttr, asWhatIf } from './src/reading/mark.js'; import { markFieldBoxes, fieldAttrOf } from './src/reading/fields.js'; import { trackBusy } from './src/reading/busy.js'; import { HELD_MIX_FINDS } from './src/reading/sentenceMarks.js';   // "Try the bad years" on the Scenarios page (7.9.0)
+    import { installKeepHandlers, transitionHeld, nameTransitionTab, installKeepTestHandlers, transitionKeepTest, keepLineHtml } from './src/ui/keepHoldingsUi.js'; import { installStressPanel } from './src/ui/stressPanelUi.js'; import { markFact, markWithin, tableAttr, cellAttr, asWhatIf } from './src/reading/mark.js'; import { markFieldBoxes, fieldAttrOf } from './src/reading/fields.js'; import { trackBusy } from './src/reading/busy.js';   // "Try the bad years" on the Scenarios page (7.9.0)
     import { parsePaste, matchRows, mergeLedger, categorise, applyPaste } from './src/services/HoldingsPaste.js';
     import { pastePreviewHtml } from './src/ui/components/HoldingsPasteView.js';   // every pasted line counts (6.23)
     import { CONTRACT_IDS } from './src/services/DecisionOverlay.js';   // the ways that pay by contract (one list)
@@ -7338,7 +7338,8 @@
         const hp = holdingsProportions(rec.lines || []);
         if (!(hp.total > 0)) { el.innerHTML = '<p class="hint">Nothing is listed under What you hold, and you do not need to list it. If you do (paste it from your platform on the Transition tab), its proportions show here.</p>'; return; }
         const pct = (v) => Math.round(v * 100) + '%';
-        let h = '<div class="alert alert-info" style="margin:0 0 8px;">' + markWithin(budEsc(describeMix(hp)), HELD_MIX_FINDS) + '</div>';
+        // the mix held: the one line What you hold draws (heldMixLineHtml: heldMixOf and holdingsTotalsOf, step F6)
+        let h = '<div class="alert alert-info" style="margin:0 0 8px;">' + heldMixLineHtml(rec, { cls: 'hint', charge: true }) + '</div>';
         h += '<div class="table-scroll-container"><table><thead><tr><th>Asset class</th><th>Value</th><th>Share</th></tr></thead><tbody>'
           + hp.subClasses.map((s) => '<tr><td>' + budEsc(s.label) + ' <span class="hint">(' + budEsc(s.bucket) + ')</span></td><td>' + gbp(s.value) + '</td><td>' + pct(s.weight) + '</td></tr>').join('')
           + '<tr><td><strong>Total</strong> — SIPP ' + gbp(hp.byWrapper.SIPP) + (hp.byWrapper.ISA ? ' · ISA ' + gbp(hp.byWrapper.ISA) : '') + (hp.byWrapper.GIA ? ' · GIA ' + gbp(hp.byWrapper.GIA) : '') + '</td><td><strong>' + gbp(hp.total) + '</strong></td><td></td></tr></tbody></table></div>';

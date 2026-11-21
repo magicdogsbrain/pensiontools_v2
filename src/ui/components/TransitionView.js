@@ -27,6 +27,9 @@ import { markWithin, markFact, tableAttr, cellAttr } from '../../reading/mark.js
 import { GILTS_HELD_FIND, MOVE_MONEY_FINDS, PLAN_MIX_SLOTS, HELD_MIX_SLOTS } from '../../reading/sentenceMarks.js';
 import { holdingsTotalsOf, heldMixOf } from '../../reading/holdings.js';
 import { HOLD } from '../../v7/copy/hold.js';
+import { mixWords } from '../../answers/plan/hold.js';
+import { proportions } from '../../services/Holdings.js';
+import { normaliseHoldings } from '../../services/HoldingsRecord.js';
 import { TABLES } from '../../reading/facts.js';
 import { moveStatusOf, sayMoveStatus, payingOf, outsideRowsOf, moveTotalsOf, cashRowsOf, fillMove } from '../../answers/plan/moveWords.js';
 
@@ -317,8 +320,7 @@ export function holdingsCardHtml({ holdings = null, offer = null, keep = null } 
     // the record's totals and the mix held: one reader each (src/reading/holdings.js; step F6), as the simple view's What you hold says them
     const sum = holdingsTotalsOf({ holdings: rec }), byW = sum.byWrapper;
     h += '<p class="hint" style="margin-top:6px;">Total ' + markFact('holdings.total', gbp(sum.total)) + ' — ' + HOLDING_WRAPPERS.filter((w) => byW[w] > 0).map((w) => w + ' ' + markFact('holdings.' + w.toLowerCase(), gbp(byW[w]))).join(' · ') + '. Units matter for gilts (the nominal); value is enough for a fund.</p>';
-    const mix = heldMixOf({ holdings: rec });
-    if (mix) h += '<p id="holdingsMix">' + esc(HOLD.mix.line).replace(/\{(shares|bonds|diversifiers|cash)\}/g, (m, b) => markFact(HELD_MIX_SLOTS[b], String(mix[b]))).replace('{total}', markFact('holdings.total', gbp(sum.total))) + '</p>';
+    h += heldMixLineHtml(rec, { id: 'holdingsMix' });
     // What you hold counts every line, as it is (7.12.0 round 3); a pot plan's move still leaves a line nothing places out of
     // its figures until the person says what it is, and says so (6.23); on a ladder the move counts the money whatever it is
     const unplaced = keep && (keep.ladder || keep.held) ? [] : lines.filter((l) => l && needsCategory(l) && (+l.value || 0) > 0);
@@ -479,4 +481,19 @@ export function transitionHtml(a) {
   h += '</div>';
   if (heldLadder) h += holdCard;
   return h;
+}
+
+/**
+ * The mix held, as one marked line (step F6): the one reader of the mix (heldMixOf) and of the total (holdingsTotalsOf), in the
+ * simple view's words (HOLD.mix.line). The full view's What you hold card and its Accumulation tab both draw this; '' when
+ * nothing with a value is held.
+ */
+export function heldMixLineHtml(rec, { id = '', cls = '', charge = false } = {}) {
+  const mix = heldMixOf({ holdings: rec });
+  if (!mix) return '';
+  const sum = holdingsTotalsOf({ holdings: rec });
+  // `charge`: the yearly charge, weighted, under it in the simple view's words (What you hold, answers/plan/hold.js mixWords)
+  const w = charge ? mixWords(proportions(normaliseHoldings(rec).lines || []), rec) : null;
+  return '<p' + (id ? ' id="' + esc(id) + '"' : '') + (cls ? ' class="' + esc(cls) + '"' : '') + '>' + esc(HOLD.mix.line).replace(/\{(shares|bonds|diversifiers|cash)\}/g, (m, b) => markFact(HELD_MIX_SLOTS[b], String(mix[b]))).replace('{total}', markFact('holdings.total', gbp(sum.total))) + '</p>'
+    + (w ? '<p' + (cls ? ' class="' + esc(cls) + '"' : '') + ' style="margin:4px 0 0;">' + esc(HOLD.mix.charge.replace('{charge}', w.charge)) + '</p>' : '');
 }

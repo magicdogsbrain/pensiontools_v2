@@ -191,3 +191,18 @@ describe('a partner\'s plan made in the full view (lead4.md D2, D20)', () => {
     expect(stopped).toMatchObject({ currentAge: 70, retired: true, retireAge: null, firstTaxYear: taxYearStartOf(NOW) });
   });
 });
+
+describe('the Accumulation tab never fills a box from What you hold (R2; nothing must be pressed for a holding to count)', () => {
+  it('renderAccumulationHoldings draws the held mix and writes no box: the pension today reads the holdings itself', async () => {
+    const src = readFileSync('index.html', 'utf8');
+    const at = src.indexOf('window.renderAccumulationHoldings = async function');
+    const body = src.slice(at, src.indexOf('window.renderAccumulationRecords', at));
+    expect(body).not.toMatch(/acPotNow/);
+    expect(body).not.toMatch(/\.value\s*=/);
+    // with no pot typed, the one reader already counts what is held (PensionToday.pensionTodayOf 'holdings')
+    const { pensionTodayOf } = await import('../../src/services/PensionToday.js');
+    const plan = { stressTool: { settings: { currentAge: 50, retired: false, retireAge: 60 } }, accumulationTool: { settings: {} },
+      holdings: { lines: [{ wrapper: 'SIPP', name: 'A world shares fund', value: 40000 }] } };
+    expect(pensionTodayOf(plan, { now: NOW })).toMatchObject({ value: 40000, from: 'holdings' });
+  });
+});

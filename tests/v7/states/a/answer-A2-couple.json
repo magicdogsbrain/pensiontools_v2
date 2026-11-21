@@ -124,18 +124,18 @@
         "levels": {
           "careful": {
             "stopAge": 65,
-            "weighted": 0.9557845259057358,
-            "fixedAge": 0.912
+            "weighted": 0.9580987699804827,
+            "fixedAge": 0.919
           },
           "balanced": {
             "stopAge": 63,
-            "weighted": 0.9021723191542551,
-            "fixedAge": 0.826
+            "weighted": 0.904475032158196,
+            "fixedAge": 0.831
           },
           "bold": {
             "stopAge": 60,
-            "weighted": 0.7269155846284703,
-            "fixedAge": 0.612
+            "weighted": 0.7385008951602503,
+            "fixedAge": 0.619
           }
         },
         "chance": {
@@ -1068,32 +1068,32 @@
             "stopYear": "2032",
             "status": "final",
             "verdict": "no",
-            "lasted": 0.696,
+            "lasted": 0.703,
             "outOfTen": {
               "words": "in only 7 futures out of 10",
               "only": true,
               "count": 7
             },
             "runOutAge": 86,
-            "weighted": 0.8007375180935488,
+            "weighted": 0.8041811815081165,
             "levels": {
               "careful": {
-                "monthly": 3130,
-                "yearly": 37560,
-                "weighted": 0.9514211570424959,
-                "fixedAge": 0.916
+                "monthly": 3160,
+                "yearly": 37920,
+                "weighted": 0.9501834811447188,
+                "fixedAge": 0.912
               },
               "balanced": {
-                "monthly": 3330,
-                "yearly": 39960,
-                "weighted": 0.9019478166708723,
-                "fixedAge": 0.833
+                "monthly": 3340,
+                "yearly": 40080,
+                "weighted": 0.9024387243930251,
+                "fixedAge": 0.836
               },
               "bold": {
-                "monthly": 3810,
-                "yearly": 45720,
-                "weighted": 0.7011198348347097,
-                "fixedAge": 0.575
+                "monthly": 3820,
+                "yearly": 45840,
+                "weighted": 0.7018519146693871,
+                "fixedAge": 0.576
               }
             },
             "spare": 0,
@@ -1141,31 +1141,31 @@
             "stopYear": "2034",
             "status": "final",
             "verdict": "yes",
-            "lasted": 0.826,
+            "lasted": 0.831,
             "outOfTen": {
               "words": "in only 8 futures out of 10",
               "only": true,
               "count": 8
             },
-            "runOutAge": 93,
-            "weighted": 0.9021723191542551,
+            "runOutAge": 94,
+            "weighted": 0.904475032158196,
             "levels": {
               "careful": {
-                "monthly": 3370,
-                "yearly": 40440,
-                "weighted": 0.950469673817046,
-                "fixedAge": 0.908
+                "monthly": 3380,
+                "yearly": 40560,
+                "weighted": 0.9504303267030045,
+                "fixedAge": 0.91
               },
               "balanced": {
                 "monthly": 3600,
                 "yearly": 43200,
-                "weighted": 0.9000451833503321,
-                "fixedAge": 0.822
+                "weighted": 0.9022323626577854,
+                "fixedAge": 0.826
               },
               "bold": {
-                "monthly": 4170,
-                "yearly": 50040,
-                "weighted": 0.7032429084982723,
+                "monthly": 4190,
+                "yearly": 50280,
+                "weighted": 0.7018158919056878,
                 "fixedAge": 0.568
               }
             },
@@ -1221,28 +1221,28 @@
               "count": 9
             },
             "runOutAge": 101,
-            "weighted": 0.9820430152779445,
+            "weighted": 0.9824437323641032,
             "levels": {
               "careful": {
-                "monthly": 3920,
-                "yearly": 47040,
-                "weighted": 0.9509331414327026,
-                "fixedAge": 0.895
+                "monthly": 3910,
+                "yearly": 46920,
+                "weighted": 0.9513102997234091,
+                "fixedAge": 0.901
               },
               "balanced": {
-                "monthly": 4240,
-                "yearly": 50880,
-                "weighted": 0.900556064426899,
-                "fixedAge": 0.81
+                "monthly": 4230,
+                "yearly": 50760,
+                "weighted": 0.9016815428892151,
+                "fixedAge": 0.825
               },
               "bold": {
                 "monthly": 5040,
                 "yearly": 60480,
-                "weighted": 0.7024049572963267,
-                "fixedAge": 0.55
+                "weighted": 0.7031312418058515,
+                "fixedAge": 0.561
               }
             },
-            "spare": 648,
+            "spare": 638,
             "potAtStop": {
               "careful": 714016,
               "middling": 1029585,
@@ -2347,7 +2347,7 @@
             },
             {
               "id": "a.chart.row",
-              "text": "At 61, you could spend about £3,330 a month; £3,592 a month lasted in only 7 futures out of 10.",
+              "text": "At 61, you could spend about £3,340 a month; £3,592 a month lasted in only 7 futures out of 10.",
               "parts": [
                 "At ",
                 {
@@ -2409,7 +2409,7 @@
             },
             {
               "id": "a.chart.row",
-              "text": "At 67, you could spend about £4,240 a month; £3,592 a month lasted in more than 9 futures out of 10.",
+              "text": "At 67, you could spend about £4,230 a month; £3,592 a month lasted in more than 9 futures out of 10.",
               "parts": [
                 "At ",
                 {

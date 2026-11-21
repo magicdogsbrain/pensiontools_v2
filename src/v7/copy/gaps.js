@@ -72,7 +72,10 @@ export const GAPS = {
     byChoice: 'Kept by choice.',
     byChoiceGaps: 'Kept by choice, counted toward the gaps.',
     byChoicePlan: 'Kept by choice, counted toward the plan’s money.',
-    noYears: 'Choose at least one tax year.'
+    noYears: 'Choose at least one tax year.',
+    // both views refuse a year a gilt cannot pay for, in these words (answers/plan/hold.js tooEarlyOf; step F6)
+    notAYear: 'A tax year, like 2028/29.',
+    tooEarly: 'This gilt pays on {date}, after {years} {ends}, so it cannot pay for {years}.'
   },
   // money expected later
   expected: {

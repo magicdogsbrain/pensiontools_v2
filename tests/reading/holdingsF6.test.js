@@ -115,3 +115,29 @@ describe('what is held and the plan\'s mix: one reader each', () => {
     expect(planMixOf(planOf('retired-locked-ladder'), { now: NOW })).toBe(null);
   });
 });
+
+describe('keep and stands-in years: one parser, one refusal, the same words in both views', () => {
+  it('a year is typed one way in both views', async () => {
+    const { typedTaxYears } = await import('../../src/answers/plan/hold.js');
+    expect(typedTaxYears('2028/29, 2029')).toEqual([2028, 2029]);
+    expect(typedTaxYears('2028/30')).toBe(null);
+    expect(typedTaxYears('next year')).toBe(null);
+  });
+  it('a gilt that pays after the years chosen is refused in both views, in the same words', async () => {
+    const { holdOf } = await import('../../src/answers/plan/hold.js');
+    const { tooEarlyWords } = await import('../../src/ui/keepHoldingsUi.js');
+    const { GAPS } = await import('../../src/v7/copy/gaps.js');
+    const entries = entriesOf('saver-locked-ladder');
+    const plan = entries.find((e) => e.plan.id === subjectOf('saver-locked-ladder')).plan;
+    const line = { wrapper: 'SIPP', ticker: 'TG28', name: '4½% Treasury Gilt 2028', units: 20000, value: 19900, kind: 'gilt' };
+    plan.holdings = { ...normaliseHoldings(plan.holdings), lines: [...normaliseHoldings(plan.holdings).lines, line] };
+    const at = plan.holdings.lines.length - 1;
+    const v = holdOf(entries, plan.id, { today: PARITY_DAY, typed: { 'keep.index': at, [`line.${at}.keepAs`]: 'rung', [`line.${at}.keepYears`]: '2027' } });
+    const k = v.groups.flatMap((g) => g.lines).find((l) => l.index === at).keep;
+    expect(k.error).toBe('tooEarly');
+    expect(k.change).toBe(null);
+    const words = GAPS.keep.tooEarly.replace(/\{(\w+)\}/g, (m, x) => k.errorSlots[x]);
+    expect(tooEarlyWords(line, [2027])).toBe(words);
+    expect(words).toMatch(/^This gilt pays on \d+ \w+ 2028, after 2027\/28 ends, so it cannot pay for 2027\/28\.$/);
+  });
+});

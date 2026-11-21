@@ -138,7 +138,7 @@ function KeepLine({ l, V, dispatch, planId, KT }) {
                   <label for={`${base}.year.${y.Y}`}>{y.label}</label>
                 </div>
               ))}
-              {k.error && <p class="error" data-testid={`${base}.error`}>{K.noYears}</p>}
+              {k.error && <p class="error" data-testid={`${base}.error`} data-error={k.error}>{k.error === 'tooEarly' ? fill(K.tooEarly, k.errorSlots) : K.noYears}</p>}
             </fieldset>
           )}
           {k.as === 'mine' && (

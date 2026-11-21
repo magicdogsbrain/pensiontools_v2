@@ -5,7 +5,8 @@
  * same thing.
  */
 import { holdingsWith } from '../services/HoldingsRecord.js';
-import { standInPays } from '../services/TransitionPlanner.js';
+import { typedTaxYears, tooEarlyOf } from '../answers/plan/hold.js';
+import { GAPS } from '../v7/copy/gaps.js';
 import { gapsOf, gapsView, lifeOf } from '../answers/plan/gaps.js';
 import { heldPhase } from '../services/Phases.js';
 import { PLAN } from '../v7/copy/plan.js';
@@ -26,11 +27,6 @@ import { runInWorker, workerAvailable } from '../workers/engineClient.js';
 
 const pad = (n) => String(n).padStart(2, '0');
 const dayOf = (d) => dayKeyOf(todayOf(d));   // the one clock (src/reading/clock.js)
-
-/** "2027/28, 2028" → [2027, 2028]: the April each tax year starts. */
-export function parseTaxYears(text) {
-  return [...new Set(String(text || '').split(/[,;\s]+/).map((t) => { const m = /^(20\d{2})/.exec(t.trim()); return m ? +m[1] : null; }).filter(Boolean))];
-}
 
 /**
  * The keep a choice in the "Keep this" box makes: '' none, 'rung' (the years it had, else `firstYear` — the plan's year the
@@ -105,20 +101,14 @@ export function transitionHeld(scenario, rec, today = todayOf(), entries = null)
 }
 
 /**
- * Why a gilt cannot stand in for the years typed (7.12.0 round 3): when every year typed ends before the gilt matures, the words
- * that say so ("This gilt pays on 7 June 2028, after 2027/28 ends, so it cannot pay for 2027/28."); else null. Its maturity is
- * the bundled list's, or its name's (TransitionPlanner.standInPays); a line with none is never refused.
+ * Why a gilt cannot stand in for the years typed: the simple view's refusal and words (answers/plan/hold.js tooEarlyOf,
+ * GAPS.keep.tooEarly; step F6). Null when it can.
  */
 export function tooEarlyWords(line, years) {
-  let m = null; try { m = standInPays(line, { today: todayOf() }).matures; } catch { m = null; }
-  if (!m || !years.length) return null;
-  const early = years.filter((Y) => (Y + 1) + '-04-05' < m);
-  if (early.length < years.length) return null;
-  const [y, mo, d] = m.split('-').map(Number);
-  const day = d + ' ' + ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][mo - 1] + ' ' + y;
-  const ys = early.map((Y) => Y + '/' + String(Y + 1).slice(2)).join(', ');
-  return 'This gilt pays on ' + day + ', after ' + ys + ' end' + (early.length === 1 ? 's' : '') + ', so it cannot pay for ' + ys + '.';
+  const slots = tooEarlyOf(line, years, { today: dayOf(todayOf()) });
+  return slots ? fillGaps(GAPS.keep.tooEarly, slots) : null;
 }
+const fillGaps = (t, slots) => String(t || '').replace(/\{(\w+)\}/g, (m, k) => (slots && slots[k] != null ? String(slots[k]) : m));
 
 /**
  * The handlers the Transition tab's markup names (TransitionView.js): keepHolding, keepHoldingYears, keepHoldingFor,
@@ -142,7 +132,8 @@ export function installKeepHandlers(w, { draft, persist, toast }) {
     save({ kind: 'keep', index: i, keep });
   };
   w.keepHoldingYears = (i, text) => {
-    const ys = parseTaxYears(text); if (!ys.length) { toast('Type at least one tax year, like 2027/28.', 'error'); return; }
+    // the one parser of typed tax years, and its refusal, as the simple view reads them (answers/plan/hold.js typedTaxYears; step F6)
+    const ys = typedTaxYears(text); if (!ys || !ys.length) { toast(GAPS.keep.notAYear, 'error'); return; }
     // a gilt cannot pay for a year that ends before it matures (7.12.0 round 3, walker 5): said beside the choice, not saved
     const d = pending || draft(); const why = d && d.lines && d.lines[i] ? tooEarlyWords(d.lines[i], ys) : null;
     if (why) { toast(why, 'error'); return; }
@@ -152,8 +143,8 @@ export function installKeepHandlers(w, { draft, persist, toast }) {
   w.keepHoldingFor = (i, text) => {
     const d = pending || draft(); if (!d || !d.lines || !d.lines[i]) return;
     if (!String(text || '').trim()) { const k = d.lines[i].keep; if (k && k.as === 'rung') save({ kind: 'keep', index: i, keep: null }); return; }
-    const ys = parseTaxYears(text);
-    if (!ys.length) { toast('A tax year, like 2028/29.', 'error'); return; }
+    const ys = typedTaxYears(text);
+    if (!ys || !ys.length) { toast(GAPS.keep.notAYear, 'error'); return; }
     save({ kind: 'keep', index: i, keep: { as: 'rung', taxYears: ys } });
   };
   w.addExpected = () => {

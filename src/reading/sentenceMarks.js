@@ -122,6 +122,17 @@ export const THIS_YEAR_FROM_FIND = /, from ((?:January|February|March|April|May|
 export const THIS_YEAR_ON_FIND = / set up on (\d{1,2} (?:January|February|March|April|May|June|July|August|September|October|November|December) \d{4})\b/;
 export const THIS_YEAR_MARKS = Object.freeze({ keys: THIS_YEAR_FACTS, finds: [[THIS_YEAR_FROM_FIND, FACT.YEAR_FROM], [THIS_YEAR_ON_FIND, FACT.YEAR_SET_UP_ON]] });
 
+/**
+ * Where a pension today is from, dated (src/reading/money.js pensionFromWords, both views; lead4.md R4): the record's month.
+ * The move's money sentences (MOVE.status.unlisted*, MOVE.paying.planHas*) also name the pension today and the ISA today.
+ */
+export const POT_FROM_FIND = /from (?:your last record|your check-in|What you hold), ((?:January|February|March|April|May|June|July|August|September|October|November|December) \d{4})\b/;
+export const MOVE_MONEY_FINDS = Object.freeze([
+  [/Your plan has (£[\d,]+) in your pension/, FACT.POT_TODAY],
+  [/in your pension and (£[\d,]+) in your ISA/, FACT.ISA_TODAY],
+  [POT_FROM_FIND, FACT.POT_TODAY_AS_OF]
+]);
+
 /** The month an income step's figures are priced in ("… a year before tax at April 2026 prices"; src/reading/where.js), both views. */
 export const PRICES_FIND = / at ((?:January|February|March|April|May|June|July|August|September|October|November|December) \d{4}) prices\b/;
 export const STEP_FINDS = Object.freeze([[PRICES_FIND, FACT.PRICES_FROM]]);

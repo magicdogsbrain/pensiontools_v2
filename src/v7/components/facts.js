@@ -9,7 +9,7 @@
  * Until 7.12.0 a mark sat on the whole line (LINE_FACTS); it now sits on the figure.
  */
 
-import { GILTS_HELD_FIND, LASTS_FINDS, THIS_YEAR_FROM_FIND, THIS_YEAR_ON_FIND, STEP_FINDS, DOC_LASTS_FINDS } from '../../reading/sentenceMarks.js';
+import { GILTS_HELD_FIND, LASTS_FINDS, THIS_YEAR_FROM_FIND, THIS_YEAR_ON_FIND, STEP_FINDS, DOC_LASTS_FINDS, POT_FROM_FIND } from '../../reading/sentenceMarks.js';
 
 /** The words under "Does it last?" (OneAnswer's weighted words), marked as the full view marks them: a row id → its finds. */
 const LASTS_ROW_FINDS = Object.freeze({ floorW: LASTS_FINDS.floor, leftW: LASTS_FINDS.left, assumedW: LASTS_FINDS.assumed, fixedW: LASTS_FINDS.fixed });
@@ -25,6 +25,8 @@ const FIGURES = Object.freeze({
   'where.pot:potPension': 'pot.today',
   'where.pot:potIsa': 'isa.today',
   'where.saverPot:actual': 'pot.today',
+  'where.saverUnlisted:pension': 'pot.today',
+  'where.saverUnlisted:isa': 'isa.today',
   'where.saverPot:potAgainst': 'pot.againstPlan',
   'where.potMid:potMid': 'pot.planMiddle',
   'where.potLow:potLow': 'pot.planLow',
@@ -93,6 +95,7 @@ const FINDS = Object.freeze({
   'where.yearPlan': [[THIS_YEAR_FROM_FIND, 'income.thisYear.from'], [THIS_YEAR_ON_FIND, 'income.thisYear.setUpOn']],
   'where.yearChanged': [[THIS_YEAR_ON_FIND, 'income.thisYear.setUpOn']],
   'where.step': STEP_FINDS,
+  'where.saverUnlisted': [[POT_FROM_FIND, 'pot.today.asOf']],
   'says.bad': DOC_LASTS_FINDS
 });
 export const sentenceFindsOf = (id) => FINDS[id] || [];

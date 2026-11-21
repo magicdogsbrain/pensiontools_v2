@@ -38,6 +38,7 @@ export const LABELS = Object.freeze({
   [FACT.DUE_NEXT]: { label: 'Next', basis: 'words' },
   [FACT.POT_TODAY]: { label: 'Pension today', basis: TODAY },
   [FACT.ISA_TODAY]: { label: 'ISA today', basis: TODAY },
+  [FACT.POT_TODAY_AS_OF]: { label: 'Pension today, as recorded in', basis: 'a month' },
   [FACT.GIA_TODAY]: { label: 'General account today', basis: TODAY },
   [FACT.CASH_TODAY]: { label: 'Cash today', basis: TODAY },
   [FACT.POT_AGAINST_PLAN]: { label: 'Your pot, against the plan', basis: "the prices the plan's figures are in" },

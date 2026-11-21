@@ -17,10 +17,11 @@ import { STRESS } from '../../v7/copy/stressPanel.js';
 import { PLAN } from '../../v7/copy/plan.js';
 import { lockedShortOf } from '../../services/PlanCommit.js';
 import { STRESS as STRESS_ON } from '../../answers/shared/rules.js';
-import { markFact } from '../../reading/mark.js';
+import { markFact, markWithin } from '../../reading/mark.js';
+import { pensionFromWords } from '../../reading/money.js';
 import { LABELS } from '../../reading/labels.js';
 import { FACT, factId } from '../../reading/facts.js';
-import { GUARDRAIL_FACTS, TAKEN_FACTS, PLAN_MIX_SLOTS, sentenceHtml } from '../../reading/sentenceMarks.js';
+import { GUARDRAIL_FACTS, TAKEN_FACTS, PLAN_MIX_SLOTS, POT_FROM_FIND, sentenceHtml } from '../../reading/sentenceMarks.js';
 import { planYearSentence, stepSentence, ladderSentence, WHERE_KEYS, stepKeysOf, STEP_FINDS } from '../../reading/where.js';
 
 const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
@@ -420,13 +421,13 @@ const monthText = (k) => whenText(String(k || '').slice(0, 7));
  */
 const PATH_MISSING = 'This plan was locked before it had a pension figure to draw a saving path from.';
 const PATH_NEW = 'A new version of the plan document adds the path.';
-const PATH_FROM = { holdings: 'from what you hold', record: 'from your last record', checkIn: 'from your check-in', accumulation: 'from your last record', plan: 'from your plan' };
 export function saverReadingText(s) {
   if (!s) return '';
   const src = s.recordedAt ? (s.actualSource === 'holdings' ? 'holdings as of ' : 'recorded ') + esc(ukDate(s.recordedAt)) : s.actualSource === 'holdings' ? 'from what you hold' : '';
   const from = src ? ' (' + src + ')' : '';
   // 7.12.0: what happened, the pension today with where it is from, and how the path comes — never "record what you hold"
-  if (s.pathMissing) return PATH_MISSING + (s.actual != null ? ' Your pension today is ' + gbp(s.actual) + ' (' + (PATH_FROM[s.actualSource] || PATH_FROM.plan) + ').' : '') + ' ' + PATH_NEW;
+  // where the pension is from, dated, in the one wording (src/reading/money.js pensionFromWords; lead4.md R4), the month marked
+  if (s.pathMissing) return PATH_MISSING + (s.actual != null ? ' Your pension today is ' + markFact('pot.today', money(s.actual)) + ' (' + markWithin(esc(pensionFromWords({ from: s.actualSource, asOf: s.recordedAt })), [[POT_FROM_FIND, 'pot.today.asOf']]) + ').' : '') + ' ' + PATH_NEW;
   const missing = Array.isArray(s.missing) ? s.missing : [];
   if (missing.includes('pension') || (s.actual == null && !missing.length)) return s.expected != null ? 'The locked path expects about ' + gbp(s.expected) + (s.version === 3 ? (s.isaCounted ? ' in your pension and ISA now, in pounds of the day' : ' in the pension pot now, in pounds of the day') : ' in the pension pot now') + '. Record this month\'s pot on the Accumulation planner to compare.' : '';
   if (missing.includes('isa')) return 'Pension pot ' + gbp(s.pension) + from + '. The locked path counts your ISA as well, and there is no ISA figure with it, so the pot is not set against the path. Add your ISA to the monthly record on the Accumulation tab to compare.';

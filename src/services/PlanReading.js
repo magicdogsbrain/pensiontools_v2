@@ -370,21 +370,23 @@ export function moveInputs(scenario, { now = new Date(), fromSettings = false, r
   return { target, diff, prog, strategyParams: ss.strategyParams || null };
 }
 
-/** Where a pension today came from, in the move's words (MOVE.paying.from): a record, a check-in, else the plan's own figure. */
-const MONEY_FROM = { checkIn: 'checkIn', record: 'record' };
+/** Where a pension today came from (src/reading/money.js pensionFromWords says it): a record, a check-in, What you hold, else the plan's own figure. */
+const MONEY_FROM = { checkIn: 'checkIn', record: 'record', holdings: 'holdings' };
 
 /**
  * The plan's own money for the move when nothing is listed (7.12.0, the moving brief D3): the one pension today
  * (services/PensionToday.js pensionTodayOf: a check-in, the newest pot record, What you hold, the saved pot, the plan's own
- * pension total) with the ISA beside it (the record's, else the plan's), or null when no pension is known. Pure.
- * @returns {{ pension: number, isa: number, from: 'plan'|'checkIn'|'record' }|null}
+ * pension total) with the ISA beside it (the record's, else the plan's), or null when no pension is known; `asOf` the month
+ * of the record, check-in or list it was read from (lead4.md R4). Pure.
+ * @returns {{ pension: number, isa: number, from: 'plan'|'checkIn'|'record'|'holdings', asOf: string|null }|null}
  */
 export function planMoneyOf(scenario, { now = new Date(), settings = null } = {}) {
   const ss = settings || effectiveStressSettings(scenario, { now });
   const t = pensionTodayOf(scenario, { now, settings: ss });
   if (!(t && t.value > 0)) return null;
   const isa = isaTodayOf(scenario, { now, settings: ss, today: t }).value;   // the one ISA-today rule (lead4.md D3)
-  return { pension: t.value, isa, from: MONEY_FROM[t.from] || 'plan' };
+  const from = MONEY_FROM[t.from] || 'plan';
+  return { pension: t.value, isa, from, asOf: from !== 'plan' && t.asOf ? String(t.asOf).slice(0, 7) : null };
 }
 
 /** moveInputs on an unlocked plan (no document): the settings' own year-0 mix, in memory only (see moveInputs). */

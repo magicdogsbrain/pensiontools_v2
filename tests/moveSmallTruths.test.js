@@ -48,8 +48,9 @@ describe('the keep test\'s one-company sentence', () => {
 
 describe('an old document locked with no pension figure', () => {
   it('says why there is no path, and never asks to record what you hold', () => {
+    // (step F5) the pension today marked, and where it is from in the one wording both views say (pensionFromWords)
     const t = saverReadingText({ pathMissing: true, actual: 400000, actualSource: 'holdings' });
-    expect(t).toBe('This plan was locked before it had a pension figure to draw a saving path from. Your pension today is £400,000 (from what you hold). A new version of the plan document adds the path.');
+    expect(t).toBe('This plan was locked before it had a pension figure to draw a saving path from. Your pension today is <span data-fact="pot.today">£400,000</span> (from What you hold). A new version of the plan document adds the path.');
     expect(saverReadingText({ pathMissing: true, actual: null })).toBe('This plan was locked before it had a pension figure to draw a saving path from. A new version of the plan document adds the path.');
   });
 });

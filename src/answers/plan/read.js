@@ -21,7 +21,7 @@ import { taxYearLabel, taxYearStartOf, taxYearKey } from '../../services/PlanTim
 import { documentLadder, firstRungOf } from '../../services/LadderPosition.js';
 import { saverPotOf } from '../../services/SaverReading.js';
 import { pensionTodayOf } from '../../services/PensionToday.js';
-import { pensionToday, isaToday, giaToday } from '../../reading/money.js';
+import { pensionToday, isaToday, giaToday, pensionFromWords } from '../../reading/money.js';
 import { potAtStop } from '../../reading/atStop.js';
 import { ageToday as readingAgeToday } from '../../reading/timing.js';
 import { money as fmtMoney, moneyK as fmtPot, weekText } from '../../reading/format.js';
@@ -397,7 +397,7 @@ function whereStep(C) {
     if (un && un.pension > 0) {
       figures.pension = r0(un.pension); figures.isa = r0(un.isa || 0);
       result = sentence('where.saverUnlisted', ['You have not listed what your pension holds, and you do not need to. Your plan has ', money('pension'), ' in your pension',
-        ...(figures.isa > 0 ? [' and ', money('isa'), ' in your ISA'] : []), ' (' + ({ checkIn: 'from your check-in', record: 'from your last record' }[un.from] || 'from your plan') + ').'], figures);
+        ...(figures.isa > 0 ? [' and ', money('isa'), ' in your ISA'] : []), ' (' + pensionFromWords(un) + ').'], figures);   // the record's month said with it (R4)
     }
     else if (s.actual != null && (s.pathMissing || s.expected == null)) {
       figures.actual = r0(s.actual);

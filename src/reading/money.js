@@ -23,12 +23,18 @@
  *     ISA today (isaToday: a record, What you hold or the plan's own); a plan already drawing its own ISA (what its runs start
  *     from); null for a locked plan. Its write is the plan's ISA plus PensionToday.isaTodayPatch.
  *
+ *   pensionFromWords({ from, asOf }) → words
+ *     where a pension today is from, as every sentence of both views says it (lead4.md R4: a record says its month):
+ *     "from your last record, September 2026", "from your check-in, October 2026", "from What you hold" (its month when
+ *     known), else "from your plan". The month is the fact pot.today.asOf (sentenceMarks.js POT_FROM_FIND marks it).
+ *
  * Pure (the plan's settings are read once, by PlanReading, on ctx.now).
  */
 import { pensionTodayOf, isaTodayOf } from '../services/PensionToday.js';
 import { settingsForScreen, potsAs } from '../services/PlanReading.js';
 import { sippTodayOf } from '../services/PotsAtRetirement.js';
 import { wrapperFigure } from '../services/DrawingPot.js';
+import { monthText } from './format.js';
 
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 const num = (v) => (v == null || v === '' || !Number.isFinite(+v) ? null : +v);
@@ -61,6 +67,14 @@ export function giaToday(plan, ctx = {}) {
 export function cashToday(plan, ctx = {}) {
   const held = wrapperFigure(plan && plan.holdings, 'CASH');
   return held ? { value: Math.max(0, held.value), from: 'holdings' } : { value: 0, from: 'none' };
+}
+
+const FROM_WORDS = Object.freeze({ record: 'from your last record', accumulation: 'from your last record', checkIn: 'from your check-in', holdings: 'from What you hold' });
+export function pensionFromWords(t) {
+  const w = t && FROM_WORDS[t.from];
+  if (!w) return 'from your plan';
+  const month = t.asOf ? monthText(t.asOf) : '';
+  return month ? w + ', ' + month : w;
 }
 
 const POT_KEYS = ['equityMin', 'bondMin', 'cashTarget', 'diversifierStart'];

@@ -16,8 +16,8 @@
  */
 import { PlanRail, changeAction, UndoToast, fill, Button, LinkButton, stepNameOf } from '../../components/index.js';
 import { LOCK_DATE } from '../../components/facts.js';
-import { fillMarked } from '../../components/PlanFigures.jsx';
-import { PLAN_MIX_SLOTS } from '../../../reading/sentenceMarks.js';
+import { fillMarked, markIn } from '../../components/PlanFigures.jsx';
+import { PLAN_MIX_SLOTS, MOVE_MONEY_FINDS } from '../../../reading/sentenceMarks.js';
 import { TABLES } from '../../../reading/facts.js';
 import { planView, planMoveView, planKeepTestView } from '../../state/select.js';
 import { KeepTestLine } from './KeepTest.jsx';
@@ -54,7 +54,7 @@ function Status({ V }) {
   const s = V.status;
   return (
     <section class="plan-section" data-section="status" data-testid={`${T}.status`} data-status={s.id}>
-      <p class="figure" data-testid={`${T}.status.line`}>{fill(S[s.id], s.slots)}</p>
+      <p class="figure" data-testid={`${T}.status.line`}>{markIn(fill(S[s.id], s.slots), MOVE_MONEY_FINDS)}</p>
       {V.pace && <p class="note" data-testid={`${T}.pace`}>{fill(V.pace.months === '1' ? S.paceOne : S.pace, V.pace)}</p>}
       {V.ladder && !V.complete && <p class="note" data-testid={`${T}.timing`}>{S.timing}</p>}
       <p class="note" data-testid={`${T}.target`}>{V.ladder ? W.target.ladder + ' ' + W.isa[V.isa || 'none'] : W.target.buckets}</p>
@@ -100,7 +100,7 @@ function SaidHeld({ V, dispatch }) {
 function Paying({ V, holdHref }) {
   const P = W.paying, O = W.outside;
   if (!V.paying && !(V.outside && V.outside.length)) return null;
-  const slots = V.paying ? { ...V.paying.slots, from: P.from[V.paying.slots.from] || V.paying.slots.from } : {};
+  const slots = V.paying ? V.paying.slots : {};
   const note = (n) => {
     if (!n) return '';
     if (n.id === 'gilt' || n.id === 'giltReal') return <>{fill(O.notes[n.id], n.slots)} {O.notes.sellOr} <a href={holdHref}>{O.notes.sayYears}</a>.{n.cashYear ? ' ' + fill(O.notes.cashYear, n.slots) : ''}</>;
@@ -109,7 +109,7 @@ function Paying({ V, holdHref }) {
   return (
     <section class="plan-section" data-section="paying" data-testid={`${T}.paying`}>
       <h2>{P.title}</h2>
-      {V.paying && <p class="line" data-testid={`${T}.paying.says`} data-ids={V.paying.ids.join(' ')}>{V.paying.ids.map((id) => fill(P[id], slots)).join(' ')}</p>}
+      {V.paying && <p class="line" data-testid={`${T}.paying.says`} data-ids={V.paying.ids.join(' ')}>{markIn(V.paying.ids.map((id) => fill(P[id], slots)).join(' '), MOVE_MONEY_FINDS)}</p>}
       {V.outside && V.outside.length > 0 && (
         <>
           <h3>{O.title}</h3>

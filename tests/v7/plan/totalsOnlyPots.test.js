@@ -23,7 +23,7 @@ import { sequence } from '../../../src/services/TransitionPlanner.js';
 import { entryOf, stateWith, noon } from './_plans.js';
 
 const TODAY = '2035-06-01';
-const SAID = 'You have not listed what your pension holds, and you do not need to. Your plan has £319,800 in your pension and £41,450 in your ISA (from your last record).';
+const SAID = 'You have not listed what your pension holds, and you do not need to. Your plan has £319,800 in your pension and £41,450 in your ISA (from your last record, September 2026).';   // the record's month (step F5, R4)
 function plan() {
   const raw = JSON.parse(readFileSync('tests/fixtures/plans/05-saver-committed.json', 'utf8'));
   raw.holdings = { version: 1, lines: [] };

@@ -29,6 +29,8 @@ export const FACT = Object.freeze({
   // money today, by pot
   POT_TODAY: 'pot.today',
   ISA_TODAY: 'isa.today',
+  // the month of the record the pension today is read from ("from your last record, September 2026"): a dated record (R4)
+  POT_TODAY_AS_OF: 'pot.today.asOf',
   GIA_TODAY: 'gia.today',
   CASH_TODAY: 'cash.today',
   // the pot Where you are sets against the plan's band: its accounts, in the prices the plan's figures are in

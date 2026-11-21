@@ -136,7 +136,10 @@
  *           plan it was read from, so the two plans could give two verdicts for one chance).
  *           Keeping a couple's answer writes two plans whose spending adds up to the amount asked (each one's part cut in
  *           proportion where the incomes that come anyway pay more than it, as one person's plan spends the amount itself);
- *           it wrote each one's take-home as all of their own income that comes anyway. Two linked plans that do not both
- *           draw from this tax year give no household figure (they were read on one clock from year 0).
+ *           it wrote each one's take-home as all of their own income that comes anyway. Two linked plans that draw from
+ *           different tax years (one still saving) are read on two clocks: each from its own first draw year, a plan still
+ *           saving on its whole lives, the ages the younger's from this tax year, a run-out before the other plan draws
+ *           ending the household (they were read on one clock from year 0, then refused). The household figure says the
+ *           level it was judged at.
  */
 export const ENGINE_VERSION = '6.39.0';

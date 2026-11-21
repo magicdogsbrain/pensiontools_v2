@@ -4207,7 +4207,7 @@
     import { repriceLadder } from './src/strategies/GiltLadderPlan.js';
     import { deriveTiming, migrateTiming, describeTiming, taxYearLabel, planYearOf, taxYearStartOf, decisionAnchorYear, staleDraft, staleDraftMessage, startYearChoices, stoppedWorkOf, taxYearOfMonth } from './src/services/PlanTiming.js';
     import { recordMovesOf, RECORD_MOVE_WORDS } from './src/services/PlanRuleWords.js';   // History: what the plan's rule did, as the live month reads it (step F5)
-    import { installStopMonth, stopMonthFromForm, paintStopMonth, wizardStop, recordBeforeStart, recordYearLabel as recordYearLabelFor, recordSourceWords, yearRowHtml, firstSetUpPlanYear, potsDayOf, planVsActualWords } from './src/ui/planStartUi.js';   // when the plan's income starts (6.51.0)
+    import { installStopMonth, stopMonthFromForm, paintStopMonth, wizardSettingsOf, WIZARD_END_AGE, recordBeforeStart, recordYearLabel as recordYearLabelFor, recordSourceWords, yearRowHtml, firstSetUpPlanYear, potsDayOf, planVsActualWords } from './src/ui/planStartUi.js';   // when the plan's income starts (6.51.0)
     import { installLockedStart, startLaterOfActive, fillPlanStart, fillPlanBounds, decisionPotsYear, stressLockBannerHtml, plansInListOrder, planListDesc, decisionLockBannerHtml, planDocumentMay, planDocumentEmptyHtml, paintPlanDocumentTools, planNoticeHtml, drawClosedTransition, taxYearTabsFor, closedTimingSummary } from './src/ui/lockedStartUi.js';   // a locked plan's stop month (6.53.0); "Move to a new plan" and a closed plan (6.56.0, src/ui/planCloseUi.js)
     import { planExportFileName, planExportJson } from './src/services/PlanExport.js';
     import { guardrailOf, potRecordOf, recordIsaOf, guaranteeSaid } from './src/services/PlanDocument.js';
@@ -4678,24 +4678,10 @@
       // defaults + the chosen ages/household, seed the budget with those, and open the chosen start tab.
       // Everything else (spending, pots, State Pension) is filled in lazily by each tool.
       const retire = parseInt(wizardData.retirementAge) || 60;
-      const cur = parseInt(wizardData.currentAge) || retire;
-      const endAge = 95;
-      // Drawdown horizon runs from retirement, or from now if already retired (retire ≤ current age).
-      const duration = Math.max(5, endAge - Math.max(cur, retire));
-
-      // Duration flows from the horizon; the rest are defaults (target income is derived from the
-      // Budget, not asked as a gross salary here).
-      // Timing (6.4.0): the ages the wizard already asks for become the plan's saved start — age
-      // today, retired / retire-at-age, and the first tax year derived from them — for both tools.
-      const today = new Date().toISOString().slice(0, 10);
-      const alreadyRetired = !!wizardData.retired || retire <= cur;
-      // The month work stopped or stops (6.51.0, planStartUi.js); "Pick up from here" (6.6.0): the plan starts THIS tax year.
-      const stop = wizardStop(wizardData, { cur, retire, alreadyRetired, today });
-      const timingSeed = cur > 0 ? { currentAge: cur, currentAgeAsOf: today, retired: alreadyRetired, retireAge: stop.retireAge, ...stop.extra, ...(wizardData.pickUp ? { firstTaxYear: taxYearStartOf(new Date()) } : {}) } : {};
-      const timing = cur > 0 ? deriveTiming(timingSeed) : null;
-      const movedBack = stop.movedBack(timing);   // a year 0 moved back keeps the plan's end age
-      const stressSettings = { duration: duration + movedBack, ...timingSeed, ...(timing ? { firstTaxYear: timing.firstTaxYear, shapeAgeNow: timing.shapeAgeNow } : {}) };
-      const decisionSettings = { duration: duration + movedBack, ...(timing ? { firstTaxYear: timing.firstTaxYear } : {}) };
+      const endAge = WIZARD_END_AGE;
+      // Timing (6.4.0; step F6, D2): the ages and the month the wizard asks for become the plan's start through the one timing
+      // seed a plan made from an answer gets, on the one clock: nothing stored that nobody gave (no age typed, no age stored).
+      const { stressSettings, decisionSettings } = wizardSettingsOf(wizardData, todayOf());
 
       // a plan not made rejects: the wizard opens its doors again and says so (SetupWizard.js once), never the app on no new plan
       await createNewScenario(

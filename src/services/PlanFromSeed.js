@@ -644,10 +644,11 @@ function describe(seed, p, names = null) {
  * `since`, when known), the plan's first tax year and its start age — derived as every later load derives them, on top of
  * `base` (the State Pension date, when given, is the birthday ages are reckoned from). Pure.
  */
-export function timingSettingsOf(base, { ageToday, later, ageAtStop = null, since = null }, today) {
+export function timingSettingsOf(base, { ageToday, later, ageAtStop = null, since = null, pickUp = false }, today) {
   const T = localDate(today);
   const S = { ...(base || {}), configured: true, currentAge: ageToday, currentAgeAsOf: today, retired: !later, retireAge: later ? ageAtStop : null, ...(since ? { stoppedWork: since } : {}) };
-  S.firstTaxYear = later ? deriveTiming(S, T).firstTaxYear : since ? taxYearOfMonth(since) : taxYearStartOf(T);
+  // `pickUp` (the full view's "pick up from here", 6.6.0): stopped already, the plan starts this tax year whatever the month
+  S.firstTaxYear = later ? deriveTiming(S, T).firstTaxYear : since && !pickUp ? taxYearOfMonth(since) : taxYearStartOf(T);
   S.shapeAgeNow = deriveTiming(S, T).shapeAgeNow;
   const { configured, currentAge, currentAgeAsOf, retired, retireAge, stoppedWork, firstTaxYear, shapeAgeNow } = S;
   return { configured, currentAge, currentAgeAsOf, retired, retireAge, ...(since ? { stoppedWork } : {}), firstTaxYear, shapeAgeNow };

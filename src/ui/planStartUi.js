@@ -7,6 +7,8 @@
  *   stopMonthFromForm(doc, future, now)   'YYYY-MM' typed in the box when it fits the choice above it, else null
  *   paintStopMonth(doc, t, s, summary)    the box's label, and the summary's warning for a month that does not fit
  *   wizardStop(wizardData, ...)           the setup wizard's month: the timing it adds and the years it moves year 0 back
+ *   wizardSettingsOf(wizardData, now)     the settings a plan made by the setup wizard stores: its timing through the one
+ *                                         timing seed (PlanFromSeed.timingSettingsOf), nothing nobody gave (step F6, D2)
  *   recordBeforeStart(h, anchor)          is a Decision record before the plan's year 0 as it is now
  *   recordYearLabel(h, anchor)            "Year N", or "{Month YYYY} · tax year {TY}" for a month before year 0
  *   recordSourceWords(h, anchor, …)       where a ladder month was paid from, never the stamped words of an old start
@@ -24,6 +26,7 @@
  * Pure, bar the two that read or write the page they are handed.
  */
 import { stoppedWorkOf, hasStopped, ageOnDate, taxYearStartOf, planYearOf, taxYearLabel, monthName } from '../services/PlanTiming.js';
+import { timingSettingsOf } from '../services/PlanFromSeed.js';
 // The day of the run's pots, for the Decision tool's ladder month (index.html ladderPositionForPlan; LadderPosition potsDay).
 export { potsDayOf } from '../services/PlanFromToday.js';
 
@@ -89,6 +92,32 @@ export function wizardStop(wizardData, { cur, retire, alreadyRetired, today, now
   if (fits && !alreadyRetired && cur > 0) { const [y, m] = stop.split('-').map(Number); retireAge = ageOnDate({ currentAge: cur, currentAgeAsOf: today }, new Date(y, m, 0), now) || retire; }
   const moved = (timing) => (timing && alreadyRetired && fits && !wizardData.pickUp ? Math.max(0, taxYearStartOf(now) + 1 - timing.firstTaxYear) : 0);
   return { extra: fits ? { stoppedWork: stop } : {}, retireAge, movedBack: moved };
+}
+
+/** The plan's end age a plan made by the setup wizard runs to (its horizon: the wizard asks no end age). */
+export const WIZARD_END_AGE = 95;
+
+/**
+ * The settings a plan made by the setup wizard stores (step F6; lead4.md D2, D20): its timing through the one timing seed a
+ * plan made from an answer gets (PlanFromSeed.timingSettingsOf), on `now`'s day — the age given, dated; stopping at the age
+ * or month given, else already stopped (from the month given, or this tax year on "pick up from here") — and the horizon to
+ * WIZARD_END_AGE. Nothing nobody gave: no age typed stores no age, no start and no "already retired"; `configured` (figures
+ * given) is never stored, since ages are not figures. Pure.
+ * @returns {{ stressSettings: object, decisionSettings: object }}
+ */
+export function wizardSettingsOf(wizardData, now) {
+  const d = wizardData || {};
+  const retire = parseInt(d.retirementAge) || 60;
+  const ageGiven = parseInt(d.currentAge) > 0 ? parseInt(d.currentAge) : null;
+  const cur = ageGiven || retire;
+  const duration = Math.max(5, WIZARD_END_AGE - Math.max(cur, retire));
+  if (!ageGiven) return { stressSettings: { duration }, decisionSettings: { duration } };
+  const day = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+  const alreadyRetired = !!d.retired || retire <= cur;
+  const stop = wizardStop(d, { cur, retire, alreadyRetired, today: day, now });
+  const { configured: _notFigures, ...timing } = timingSettingsOf({}, { ageToday: ageGiven, later: !alreadyRetired, ageAtStop: stop.retireAge, since: stop.extra.stoppedWork || null, pickUp: !!d.pickUp }, day);
+  const years = duration + stop.movedBack(timing);   // a year 0 moved back keeps the plan's end age
+  return { stressSettings: { duration: years, ...timing }, decisionSettings: { duration: years, firstTaxYear: timing.firstTaxYear } };
 }
 
 /**

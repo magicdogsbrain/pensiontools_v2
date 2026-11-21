@@ -579,7 +579,8 @@ function planStep(C) {
     const a = dr && typeof dr === 'object' ? oneAnswer(dr, dp || {}) : null;
     if (a) {
       figures.saysBad = r0(a.badCaseLeft); figures.saysTypical = r0(a.typicalLeft);
-      if (doc.strategy.contract) lines.push(line('says.badContract', ['Every year is bought by contract, so no future and no start year can run it out. Left at the end, at today’s prices: typically ', money('saysTypical'), '; in a bad case (the worst 1 in 10) ', money('saysBad')], figures, src));
+      // (step F5, R8) a bought way says the document's fixed-age count too, as the full view's document does (lockedLastsOf)
+      if (doc.strategy.contract) { const fx = (lockedLastsOf(doc) || { fixed: '' }).fixed; lines.push(line('says.badContract', ['Every year is bought by contract, so no future and no start year can run it out. ' + (fx ? fx + ' ' : '') + 'Left at the end, at today’s prices: typically ', money('saysTypical'), '; in a bad case (the worst 1 in 10) ', money('saysBad')], figures, src)); }
       else lines.push(line('says.bad', [(lockedLastsOf(doc) || { words: '' }).words + '. Left at the end, at today’s prices: typically ', money('saysTypical'), '; in a bad case (the worst 1 in 10) ', money('saysBad')], figures, src));
     }
     const sl = savedLasts(plan, { today: now.toISOString().slice(0, 10) });

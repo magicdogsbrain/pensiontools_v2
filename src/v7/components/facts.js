@@ -98,7 +98,8 @@ const FINDS = Object.freeze({
   'where.yearChanged': [[THIS_YEAR_ON_FIND, 'income.thisYear.setUpOn']],
   'where.step': STEP_FINDS,
   'where.saverUnlisted': [[POT_FROM_FIND, 'pot.today.asOf']],
-  'says.bad': DOC_LASTS_FINDS
+  'says.bad': DOC_LASTS_FINDS,
+  'says.badContract': DOC_LASTS_FINDS
 });
 export const sentenceFindsOf = (id) => FINDS[id] || [];
 

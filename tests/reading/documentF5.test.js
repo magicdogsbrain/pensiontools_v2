@@ -52,3 +52,32 @@ describe('the document\'s lasting words: one reader, both views', () => {
     expect(LABELS[FACT.DOC_CHANCE].label).toBe('When the plan was locked');
   });
 });
+
+// Step F5, pass 3 (R8): a document of a way bought by contract says its fixed-age count in both views, marked the same
+describe('a bought way\'s document: its fixed-age count in both views', () => {
+  const tried = [];
+  for (const f of FIXTURES) {
+    it(f.key, () => {
+      const plans = f.plans().map(up);
+      const plan = plans.find((p) => p.id === f.subject);
+      const doc = plan.planDocument;
+      if (!doc || !doc.strategy || !doc.strategy.r || !doc.strategy.contract) return;
+      const L = lockedLastsOf(doc);
+      if (!L || !L.fixed) return;
+      const pg = planPage(plans.map((p) => ({ plan: p })), plan.id, 'plan', { today: PARITY_DAY });
+      const step = (pg.steps || []).find((s) => s.id === 'plan');
+      const bad = step && (step.lines || []).find((l) => l.id === 'says.badContract');
+      if (!bad) return;
+      tried.push(f.key);
+      expect(bad.sentence.text).toContain('run it out. ' + L.fixed + ' Left at the end');
+      const groups = groupParts(bad.sentence.parts, {}, { keys: {}, finds: sentenceFindsOf('says.badContract') });
+      const simple = groups.filter((g) => g.fact === FACT.DOC_FIXED_CHANCE).map((g) => g.items.map((x) => x.text).join(''));
+      expect(simple.length).toBe(1);
+      const def = definitionOf(doc);
+      if (!def || !def.weighted) return;
+      const full = verdictBlockView(doc.strategy.r, doc.strategy.p, { definition: def });
+      expect(marks(full)).toContain(FACT.DOC_FIXED_CHANCE + '=' + simple[0]);
+    });
+  }
+  it('was tried on a locked ladder', () => { expect(tried.length).toBeGreaterThan(0); });
+});

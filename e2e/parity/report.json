@@ -1,5 +1,5 @@
 {
- "at": "2026-11-21T20:20:01.236Z",
+ "at": "2026-11-21T23:34:47.491Z",
  "fixtures": [
   "age-only",
   "budget",
@@ -31,10 +31,7 @@
  "readingMismatches": 0,
  "roundTripsFailed": 60,
  "rose": [],
- "shrank": [
-  "unmarked figures fell on saver-locked-ladder|simple:move: 25 → 21",
-  "unmarked figures fell on saver-locked-ladder|full:transition: 17 → 13"
- ],
+ "shrank": [],
  "grew": [
   "opens now, add it to coverage.json: age-only|full:glidepath#press",
   "opens now, add it to coverage.json: age-only|full:household#press",

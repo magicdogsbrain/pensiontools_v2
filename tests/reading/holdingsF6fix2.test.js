@@ -101,6 +101,15 @@ describe('a gilt held by its code alone is bonds in the held mix (fault 2)', () 
     const h = heldMixSettings({ holdings: d }, { today: '2026-11-16' });
     expect(h.pcts.bonds).toBe(33);
   });
+  it('the four whole percents always add to 100 (one rounding rule)', () => {
+    const rec = normaliseHoldings({ lines: [{ wrapper: 'SIPP', ticker: 'VWRL', value: 100000 }, { wrapper: 'SIPP', ticker: 'T29', value: 60000 }] });
+    const m = heldMixOf({ holdings: rec });
+    expect(m.shares + m.bonds + m.diversifiers + m.cash).toBe(100);
+    expect(m).toEqual({ shares: 63, bonds: 37, diversifiers: 0, cash: 0 });
+    const three = normaliseHoldings({ lines: [{ wrapper: 'SIPP', ticker: 'VWRL', value: 1 }, { wrapper: 'SIPP', ticker: 'T29', value: 1 }, { wrapper: 'SIPP', kind: 'cash', value: 1 }] });
+    const t = heldMixOf({ holdings: three });
+    expect(t.shares + t.bonds + t.cash).toBe(100);
+  });
   it('money in the bank with a code like a gilt\'s stays bank cash, outside the mix, in both readers', () => {
     const rec = normaliseHoldings({ lines: [{ wrapper: 'CASH', ticker: 'T29', name: 'Savings', value: 5000 }, { wrapper: 'SIPP', ticker: 'VWRL', value: 10000 }] });
     expect(countedAs(rec.lines[0]).kind).toBe('bankCash');

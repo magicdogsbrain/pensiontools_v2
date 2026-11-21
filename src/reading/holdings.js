@@ -128,10 +128,23 @@ export function heldMixPartsOf(plan, { pension = false } = {}) {
   return { parts: Object.fromEntries(BUCKETS.map((b) => [b, num(p.buckets[b]) / counted])), fromPension };
 }
 
-/** What is held as a mix (see the header): { shares, bonds, diversifiers, cash } whole percent, or null. */
+/**
+ * Whole percents of a split of one that always add to 100 (largest remainder: each share rounded down, then the points left go
+ * to the largest remainders, the first bucket first on a tie), so a mix never reads 63% and 38%.
+ */
+function wholePercents(parts) {
+  const raw = BUCKETS.map((b) => ({ b, v: 100 * num(parts[b]) }));
+  const out = Object.fromEntries(raw.map((r) => [r.b, Math.floor(r.v + 1e-9)]));
+  let left = 100 - BUCKETS.reduce((t, b) => t + out[b], 0);
+  const order = raw.map((r, i) => ({ ...r, i, rem: r.v - out[r.b] })).sort((x, y) => (y.rem - x.rem) || (x.i - y.i));
+  for (const r of order) { if (left <= 0) break; if (r.rem > 1e-9) { out[r.b] += 1; left -= 1; } }
+  return out;
+}
+
+/** What is held as a mix (see the header): { shares, bonds, diversifiers, cash } whole percent adding to 100, or null. */
 export function heldMixOf(plan, { pension = false } = {}) {
   const h = heldMixPartsOf(plan, { pension });
-  return h ? Object.fromEntries(BUCKETS.map((b) => [b, pct(h.parts[b])])) : null;
+  return h ? wholePercents(h.parts) : null;
 }
 
 /** The plan's own mix (see the header): { shares, bonds, cash, from: 'document'|'settings' } (a year-0 target has no gold and trend), or null. */

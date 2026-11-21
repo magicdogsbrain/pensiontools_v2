@@ -61,7 +61,10 @@ const wanted = (x) => (x.byNode && x.byNode[NODE]) || x.hash;
  * The cases that gain the 2028 note (people of 54 or 55 today who first draw before 6 April 2028), by index — the same
  * indices as answers.flat.json's first 171 cases, which are these. Nothing else of theirs may move.
  */
-const GAINS_2028 = [24, 32, 38, 42, 43, 50, 58, 99, 102, 112, 116, 120, 121, 124, 138, 155, 157, 163];
+// (21 and 55, step P4 fix round 2: a couple of 55 or 54, already drawing, with a partner of 18 whose pension is closed. On
+// the household model's own run their answer missed the note; on the two kept plans, the route every couple from now
+// takes, it is said, to the person answers.flat's own check (flatCorpus whoIn2028) names for the same two cases.)
+const GAINS_2028 = [21, 24, 32, 38, 42, 43, 50, 55, 58, 99, 102, 112, 116, 120, 121, 124, 138, 155, 157, 163];
 const without2028 = (r) => ({ ...r, warnings: r.warnings.filter((w) => w.id !== 'drawdown-2028') });
 
 describe('same-year couples and single people: today\'s answers, byte for byte', () => {

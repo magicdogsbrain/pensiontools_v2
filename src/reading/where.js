@@ -12,6 +12,12 @@
  *                                next step with the age it starts at. null with no step.
  *   ladderSentence(w, { yearSaid })  a gilt ladder's month: what the plan's rule pays, its figure marked; null beside a
  *                                year set up that says the month (the month's figure once)
+ *   potSentence(w)               the pot set against the plan's band, ONE basis (the band's: whereAmI's `real`), with the
+ *                                figure as recorded in brackets when prices have moved and its parts named when there is
+ *                                more than one: { pot: 'where.pot' sentence (no full stop: the full view goes on with the
+ *                                band), parts: 'where.potParts' sentence (each part with its date, when they are more
+ *                                than a month apart) | null, source: { kind: 'record' | 'hold', at } (the record's date,
+ *                                R4) }. null with no pot to set against the band.
  *   WHERE_KEYS                   { sentenceId: { figureKey: factId } }: which figure of a sentence is which fact, the
  *                                full view's marks (the simple view's are src/v7/components/facts.js, the same ids)
  *   stepKeysOf(s)                the step sentence's own keys (its figures are numbered by step: step# the amount, from#
@@ -21,6 +27,7 @@
  */
 import { FACT, factId } from './facts.js';
 import { monthText, money as moneyText } from './format.js';
+import { ym, monthWords, monthsBetween } from '../answers/plan/dates.js';
 
 const money = (key) => ({ key, kind: 'money' });
 const count = (key) => ({ key, kind: 'count' });
@@ -75,7 +82,40 @@ export function ladderSentence(w, { yearSaid = false } = {}) {
   return { id: 'where.ladder', parts, figures };
 }
 
+export function potSentence(w) {
+  const P = w && w.pot;
+  if (!P || P.real == null || P.actual == null) return null;
+  const figures = { pot: r0(P.real), potActual: r0(P.actual) };
+  const moved = !!P.prices && Number.isFinite(+P.prices.factor) && Math.abs(+P.prices.factor - 1) >= 0.0005;
+  // its parts as recorded: the pension and the ISA, each from where and when it came
+  const parts = (Array.isArray(P.parts) ? P.parts : []).filter((x) => x && x.asOf && (x.key === 'pension' || x.key === 'isa'));
+  const whence = (x) => (x.source === 'holdings' ? 'from What you hold, ' + monthWords(x.asOf) : 'recorded ' + monthWords(x.asOf));
+  const partKey = (x) => (x.key === 'pension' ? 'potPension' : 'potIsa');
+  parts.forEach((x) => { figures[partKey(x)] = r0(x.value); });
+  const partName = (x) => (x.key === 'isa' ? 'ISA ' : 'pension ');
+  const together = parts.length > 1 && whence(parts[0]) === whence(parts[1]);
+  // named in the sentence whenever there is more than one; one part, the pension: the figure as recorded is the pension today
+  const inLine = parts.length > 1 ? parts.flatMap((x, i) => [...(i ? [', '] : []), partName(x), money(partKey(x))]) : [];
+  const named = inLine.length > 0;
+  const pensionOnly = parts.length === 1 && parts[0].key === 'pension';
+  if (pensionOnly) figures.potPension = r0(P.actual);
+  const month = monthWords(P.prices && P.prices.since) || 'the start of the plan';
+  const said = moved
+    ? [money('pot'), ' at the prices of ' + month + ' (', money(pensionOnly ? 'potPension' : 'potActual'), ' as recorded', ...(named ? [': ', ...inLine] : []), ')']
+    : [money(pensionOnly ? 'potPension' : 'pot'), ...(named ? [' (', ...inLine, ')'] : [])];
+  // the parts' own dates when they are more than a month apart
+  const ms = parts.map((x) => ym(x.asOf)).filter(Boolean);
+  let partsSaid = null;
+  if (parts.length > 1 && !together && ms.length === parts.length && Math.abs(monthsBetween(ms[0], ms[1])) > 1) {
+    const words = parts.map((x) => [(x.key === 'isa' ? 'ISA ' : 'Pension '), money(partKey(x)), ', ' + whence(x) + '.']);
+    partsSaid = { id: 'where.potParts', parts: words.reduce((a, b, i) => a.concat(i ? [' '] : [], b), []), figures };
+  }
+  return { pot: { id: 'where.pot', parts: said, figures }, parts: partsSaid, source: { kind: P.source === 'holdings' ? 'hold' : 'record', at: P.asOf || null } };
+}
+
 export const WHERE_KEYS = Object.freeze({
+  'where.pot': Object.freeze({ pot: FACT.POT_AGAINST_PLAN, potPension: FACT.POT_TODAY, potIsa: FACT.ISA_TODAY }),
+  'where.potParts': Object.freeze({ potPension: FACT.POT_TODAY, potIsa: FACT.ISA_TODAY }),
   'where.planYear': Object.freeze({ planYear: FACT.PLAN_YEAR, planYears: FACT.PLAN_YEARS }),
   'where.ladder': Object.freeze({ ladderMonthly: FACT.LADDER_MONTHLY })
 });

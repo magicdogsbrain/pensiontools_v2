@@ -24,6 +24,8 @@ const FIGURES = Object.freeze({
   'where.pot:pot': 'pot.againstPlan',
   'where.pot:potPension': 'pot.today',
   'where.pot:potIsa': 'isa.today',
+  'where.potParts:potPension': 'pot.today',
+  'where.potParts:potIsa': 'isa.today',
   'where.saverPot:actual': 'pot.today',
   'where.saverUnlisted:pension': 'pot.today',
   'where.saverUnlisted:isa': 'isa.today',

@@ -7,7 +7,7 @@
 import { describe, it, expect } from 'vitest';
 import { FIXTURES, PARITY_DAY } from '../../e2e/parity/fixtures/plans.js';
 import { upgradeScenario } from '../../src/firebase/scenarioMigration.js';
-import { planYearSentence, stepSentence, ladderSentence, WHERE_KEYS } from '../../src/reading/where.js';
+import { planYearSentence, stepSentence, ladderSentence, potSentence, WHERE_KEYS } from '../../src/reading/where.js';
 import { yearPlanHtml, thisYearOfPlan } from '../../src/ui/thisYearHtml.js';
 import { whereAmIFor } from '../../src/services/PlanReading.js';
 import { incomeStepsOf } from '../../src/reading/income.js';
@@ -104,4 +104,31 @@ describe('both views draw the one builder\'s sentences', () => {
   it('the locked plans past their start are tried', () => {
     expect(tried.length).toBeGreaterThan(0);
   });
+});
+
+// Step F5, pass 3 (D17): the pot set against the band is one builder (where.js potSentence) in both views, marked the same
+describe('the pot against the plan, one sentence in both views', () => {
+  const tried = [];
+  for (const f of FIXTURES) {
+    it(f.key, () => {
+      const plans = f.plans().map(up);
+      const plan = plans.find((p) => p.id === f.subject);
+      if (!plan.planDocument) return;
+      let w = null; try { w = whereAmIFor(plan, { now: NOW }); } catch { w = null; }
+      if (!w || w.saving || w.beforeStart) return;
+      const ps = potSentence(w);
+      if (!ps) return;
+      const full = whereAmIHtml(w, null, { steps: incomeStepsOf(plan, { now: NOW }).steps });
+      const pg = planPage(plans.map((p) => ({ plan: p })), plan.id, 'where', { today: PARITY_DAY });
+      const where = (pg.steps || []).find((x) => x.id === 'where');
+      const pot = (where.lines || []).find((l) => l.id === 'where.pot');
+      tried.push(f.key);
+      expect(pot.sentence.text, 'the simple view').toBe(text(ps.pot) + '.');
+      expect(plain(full), 'the full view').toContain('Your pot: ' + text(ps.pot));
+      // a record says its date (R4): the full view after the band, the simple view on the line's source
+      if (!ps.parts && ps.source.at) expect(plain(full)).toMatch(/From (your record|What you hold), [A-Z]/);
+      for (const [k, id] of Object.entries(WHERE_KEYS['where.pot'])) if (ps.pot.parts.some((p) => p && p.key === k)) expect(marks(full).some((m) => m.startsWith(id + '=')), id).toBe(true);
+    });
+  }
+  it('was tried on a locked drawing plan', () => { expect(tried.length).toBeGreaterThan(0); });
 });

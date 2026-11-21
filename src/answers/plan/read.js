@@ -16,7 +16,7 @@
 import { LOCK_WORDS } from '../../reading/labels.js';
 import { READ_FAULT_WORDS } from '../../reading/readFault.js';
 import { planStage, settingsForScreen, whereAmIFor, whereAmIInputs, moveInputs, thisMonth, historyAscending, planMoneyOf } from '../../services/PlanReading.js';
-import { CONTRACT_STRATEGIES, planToAgeOfDefinition, guardrailOf, pricesMonthKeyOf } from '../../services/PlanDocument.js';
+import { CONTRACT_STRATEGIES, planToAgeOfDefinition, guardrailOf } from '../../services/PlanDocument.js';
 import { taxYearLabel, taxYearStartOf, taxYearKey } from '../../services/PlanTiming.js';
 import { documentLadder, firstRungOf } from '../../services/LadderPosition.js';
 import { saverPotOf } from '../../services/SaverReading.js';
@@ -63,7 +63,7 @@ import { startLaterOf, laterDraftLeftOf } from '../../services/PlanMove.js';
 import { shownPlanName } from '../../services/PlanName.js';
 import { takenSentence, firstPaymentMonth, monthToRecord } from '../../services/YearPlan.js';
 import { thisTaxYearOf, thisYearSentences } from '../../reading/thisYear.js';
-import { planYearSentence, stepSentence, ladderSentence } from '../../reading/where.js';
+import { planYearSentence, stepSentence, ladderSentence, potSentence } from '../../reading/where.js';
 import { lockedLastsOf } from '../../reading/document.js';
 // the plans linked to this one, in either direction (6), this plan's own link first; never a closed plan (services/HouseholdLink.js)
 import { partnersOf, partnerIdOf } from '../../services/HouseholdLink.js';
@@ -365,15 +365,6 @@ function monthStep(C) {
   return { done: recorded, result, figures, lines, buttons, notes: [], recorded, setUp, gap, toRecord };
 }
 
-/**
- * The month whose prices the plan's band is in (7.12.0): April of its first tax year; or, for a document locked in a later
- * plan year (its pots `asOfPlanYear` > 0), the month it was locked.
- */
-function pricesMonthOf(doc) {
-  // the one rule both views say it by (PlanDocument.pricesMonthKeyOf, whereAmI's pot.prices.since)
-  return monthWords(pricesMonthKeyOf(doc)) || 'the start of the plan';
-}
-
 /** Where you are (2.3 `where`): whereAmI on the plan document, never the countdown. */
 function whereStep(C) {
   const { plan, now, ss } = C;
@@ -462,38 +453,17 @@ function whereStep(C) {
     // figure as recorded in brackets when prices have moved; its parts and their dates when they are more than a month apart;
     // and, when the band counts the ISA and no figure for it exists anywhere, that — never a pot set against the line
     const P = w.pot;
-    if (P && P.real != null && P.actual != null) {
-      figures.pot = r0(P.real); figures.potActual = r0(P.actual);
-      const moved = P.prices && Number.isFinite(+P.prices.factor) && Math.abs(+P.prices.factor - 1) >= 0.0005;
-      // its parts as typed (7.12.0): the pension and the ISA said in the same line when they come from the same month and
-      // the same place (so the ISA typed with each month is said back on the home); else their own line, each with its date
-      const parts = (Array.isArray(P.parts) ? P.parts : []).filter((x) => x && x.asOf && (x.key === 'pension' || x.key === 'isa'));
-      const whence = (x) => (x.source === 'holdings' ? 'from What you hold, ' + monthWords(x.asOf) : 'recorded ' + monthWords(x.asOf));
-      // (step F1) the figures named by what they are: the pot set against the band (pot.againstPlan), and — where the line says
-      // it — the pension today and the ISA today, the very figures every page reads (src/reading/money.js)
-      const partKey = (x, i) => (x.key === 'pension' ? 'potPension' : x.key === 'isa' ? 'potIsa' : 'potPart' + i);
-      parts.forEach((x, i) => { figures[partKey(x, i)] = r0(x.value); figures['potPart' + i] = r0(x.value); });
-      const partName = (x) => (x.key === 'isa' ? 'ISA ' : 'pension ');
-      const together = parts.length > 1 && whence(parts[0]) === whence(parts[1]);
-      // its parts named in the line whenever there is more than one (step F1: as the full view's sentence names them), their
-      // dates in the line below when they differ
-      const inLine = parts.length > 1 ? parts.flatMap((x, i) => [i ? ', ' : '', partName(x), money(partKey(x, i))]) : [];
-      const named = inLine.length > 0;
-      // one part, the pension: the figure as recorded is the pension today
-      const pensionOnly = parts.length === 1 && parts[0].key === 'pension';
-      if (pensionOnly) figures.potPension = r0(P.actual);
-      lines.push(line('where.pot', moved
-        ? [money('pot'), ' at the prices of ' + pricesMonthOf(plan.planDocument) + ' (', money(pensionOnly ? 'potPension' : 'potActual'), ' as recorded', ...(named ? [': ', ...inLine] : []), ').']
-        : [money(pensionOnly ? 'potPension' : 'pot'), ...(named ? [' (', ...inLine, ')'] : []), '.'], figures, sourceOf(P.source === 'holdings' ? 'hold' : 'record', P.asOf, now)));
+    // the pot (7.12.0): ONE basis, the one the band is in, said by the one builder both views draw (src/reading/where.js
+    // potSentence; step F5, D17): the figure as recorded in brackets when prices have moved, its parts named, their dates
+    const potSaid = potSentence(w);
+    if (potSaid) {
+      Object.assign(figures, potSaid.pot.figures);
+      lines.push(line('where.pot', [...potSaid.pot.parts, '.'], figures, sourceOf(potSaid.source.kind, potSaid.source.at, now)));
       if (P.p50 != null && !older && !w.contract) { figures.potMid = r0(P.p50); lines.push(line('where.potMid', [money('potMid'), '.'], figures, sourceOf('locked', lockedAt, now))); }
       // (lead4.md D24, R8; step F3) the 1-in-10 bad line, where the full view's strip says it: the pot below it, or between it
       // and the middle — so a pot under the middle line is read against the bad line too
       if (nearLowLine(P) && !older && !w.contract) { figures.potLow = r0(P.p10); lines.push(line('where.potLow', [money('potLow'), '.'], figures, sourceOf('locked', lockedAt, now))); }
-      const ms = parts.map((x) => ym(x.asOf)).filter(Boolean);
-      if (parts.length > 1 && !together && ms.length === parts.length && Math.abs(monthsBetween(ms[0], ms[1])) > 1) {
-        const words = parts.map((x, i) => [(x.key === 'isa' ? 'ISA ' : 'Pension '), money('potPart' + i), ', ' + whence(x) + '.']);
-        lines.push(line('where.potParts', words.reduce((a, b, i) => a.concat(i ? [' '] : [], b), []), figures, sourceOf('record', null, now)));
-      }
+      if (potSaid.parts) lines.push(line('where.potParts', potSaid.parts.parts, figures, sourceOf('record', null, now)));
     } else if (P && Array.isArray(P.missing) && P.missing.includes('isa') && !P.missing.includes('pension')) {
       lines.push(line('where.potNoIsa', ['Your plan counts your ISA too, and we have no figure for it. You can type it in the ISA box when you next record a month, or add it under What you hold.'], figures, sourceOf('record', null, now)));
     }

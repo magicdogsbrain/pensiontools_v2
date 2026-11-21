@@ -22,7 +22,7 @@ import { pensionFromWords } from '../../reading/money.js';
 import { LABELS } from '../../reading/labels.js';
 import { FACT, factId } from '../../reading/facts.js';
 import { GUARDRAIL_FACTS, TAKEN_FACTS, PLAN_MIX_SLOTS, POT_FROM_FIND, sentenceHtml } from '../../reading/sentenceMarks.js';
-import { planYearSentence, stepSentence, ladderSentence, WHERE_KEYS, stepKeysOf, STEP_FINDS } from '../../reading/where.js';
+import { planYearSentence, stepSentence, ladderSentence, potSentence, WHERE_KEYS, stepKeysOf, STEP_FINDS } from '../../reading/where.js';
 
 const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 const dateGB = (iso) => { const d = new Date(iso); return Number.isFinite(d.getTime()) ? d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : ''; };
@@ -365,23 +365,17 @@ export function whereAmIPotText(pot) {
     return head + 'The plan\'s band counts ' + names.map((k) => (k === 'isa' ? 'your ISA' : 'your taxable account')).join(' and ') + ' as well, and there is no figure on record for ' + (names.length > 1 ? 'either' : 'it') + ', so the pot is not set against the band. Add ' + names.map((k) => ADD_NAME[k]).join(' and ') + ' under What you hold, to compare.';
   }
   if (P.actual == null || P.p50 == null) return '';
-  // 7.12.0, as the simple view says it (read.js where.pot): the figure the band is in first, at the prices of the month the
-  // plan's figures are in, and the figure as recorded in brackets with where it came from —
-  // "Your pot: £670,000 at the prices of April 2026 (£753,659, recorded April 2029)"; prices not moved: "Your pot: £695,000
-  // (recorded April 2026)"; more than one account: "(…; pension £A recorded September 2026; ISA £B from What you hold as of
-  // 5 January 2027)". How far prices moved, and on what, follows as a sentence of its own.
-  const moved = movedPrices(P);
-  // (step F1) the figures marked by what they are, as the simple view marks them (read.js where.pot): the pot set against the
-  // band, and the pension today and the ISA today where the sentence names them
-  const PART_FACT = { pension: 'pot.today', isa: 'isa.today' };
-  const partFig = (x) => (PART_FACT[x.key] ? markFact(PART_FACT[x.key], money(x.value)) : gbp(x.value));
-  const pensionOnly = parts.length === 1 && parts[0].key === 'pension';
-  const from = parts.length > 1 ? parts.map((x) => PART_NAME[x.key] + ' ' + partFig(x) + (sourceText(x) ? ' ' + esc(sourceText(x)) : '')).join('; ')
-    : parts[0] && parts[0].source !== 'today' && sourceText(parts[0]) ? esc(sourceText(parts[0])) : '';
-  const month = moved && P.prices.since ? whenText(P.prices.since) : '';
-  const actual = pensionOnly ? markFact('pot.today', money(P.actual)) : moved ? gbp(P.actual) : markFact('pot.againstPlan', money(P.actual));
-  let pt = 'Your pot: ' + (moved ? markFact('pot.againstPlan', money(P.real)) + (month ? ' at the prices of ' + month : ' in the prices the plan’s figures are in') + ' (' + actual + (from ? ', ' + from : ' as recorded') + ')'
-    : actual + (from ? ' (' + from + ')' : ''));
+  // the pot sentence both views say (src/reading/where.js potSentence; step F5, D17): the figure the band is in first, at the
+  // prices of the month the plan's figures are in, the figure as recorded in brackets with its parts — "Your pot: £670,000 at
+  // the prices of April 2026 (£753,659 as recorded)" — and where and when it was recorded after the band, as the simple
+  // view's source line says it (R4); how far prices moved, and on what, follows as a sentence of its own.
+  const said = potSentence({ pot: P });
+  if (!said) return '';
+  const pt = 'Your pot: ' + sentenceHtml(said.pot, said.pot.figures, { keys: WHERE_KEYS['where.pot'] }, esc);
+  const dated = said.parts ? ' ' + sentenceHtml(said.parts, said.parts.figures, { keys: WHERE_KEYS['where.potParts'] }, esc) : potSourceText(said.source);
+  // the full view says more (R8): any other part the band counts (diversifiers, a taxable account), with where and when
+  const others = parts.filter((x) => x && x.key !== 'pension' && x.key !== 'isa' && x.value != null)
+    .map((x) => ' ' + esc((PART_NAME[x.key] || 'other').replace(/^./, (c) => c.toUpperCase())) + ' ' + gbp(x.value) + (sourceText(x) ? ', ' + esc(sourceText(x)) : '') + '.').join('');
   const mid = markFact('pot.planMiddle', money(P.p50));   // (step F2) the plan's middle by now, marked as the simple view marks it (read.js where.potMid)
   const expects = ' against ' + mid + ' the plan expects by then';
   const verdict = P.verdict || (P.band ? 'band' : null);
@@ -401,7 +395,14 @@ export function whereAmIPotText(pot) {
   } else if (verdict === 'band' && VERDICT[P.band]) {
     s = pt + ' — ' + VERDICT[P.band](P) + '.';
   } else return '';
-  return s + pricesText(P) + leftOut + staleText(P.stale);
+  return s + dated + others + pricesText(P) + leftOut + staleText(P.stale);
+}
+/** Where and when the pot was recorded, in the simple view's source words (PLAN.page.source; lead4.md R4). */
+function potSourceText(src) {
+  const W = PLAN.page.source;
+  const at = src && src.at ? (String(src.at).length > 7 ? dayWords(src.at) : monthYearWords(src.at)) : '';
+  const t = src && src.kind === 'hold' ? (at ? fillSlots(W.hold, { date: at }) : W.holdUndated) : (at ? fillSlots(W.record, { date: at }) : W.recordUndated);
+  return ' ' + esc(t) + '.';
 }
 
 const SAVER_V3_BAND = {

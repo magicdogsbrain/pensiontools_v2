@@ -30,7 +30,7 @@ import { openingTabOf } from './homeBannerUi.js';
 import { emptyPlanBoxes } from './emptyPlanBoxes.js';
 import { READ_FAULT_WORDS } from '../reading/readFault.js';
 
-const SAME_PLAN = ['lock', 'unlock'];
+const SAME_PLAN = ['lock', 'unlock', 'split'];   // the same plan written from the page it is open on: it stays on that page
 
 export function installRepaint(win, doc, d) {
   const st = d.planState;

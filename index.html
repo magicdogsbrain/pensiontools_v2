@@ -9238,7 +9238,8 @@
         const done = await applySplit({ own: L.own, partner: L.partner, split: L.split, names: L.split.names, copyNames, repo: { saveScenario: saveScenarioDoc, duplicateScenario, loadScenario: loadScenarioDoc } });
         invalidateScenarioCache(); invalidateCache(); invalidateStressCache();
         if (done.mode === 'write') {
-          showUndoToast('Both plans now draw together, tax first: the split is ' + L.ownName + '\'s and ' + L.pName + '\'s income shape.', async () => { await done.undo(); invalidateScenarioCache(); invalidateCache(); invalidateStressCache(); showToast('Both plans are back as they were.', 'success'); await runHouseholdCheck(); });
+          await repaintPlan('split');   // every tab and box follows both plans as written (R2): the Settings boxes show the new shape
+          showUndoToast('Both plans now draw together, tax first: the split is ' + L.ownName + '\'s and ' + L.pName + '\'s income shape.', async () => { await done.undo(); invalidateScenarioCache(); invalidateCache(); invalidateStressCache(); await repaintPlan('split'); showToast('Both plans are back as they were.', 'success'); await runHouseholdCheck(); });
           await runHouseholdCheck();
         } else {
           showToast('"' + done.names.a + '" and "' + done.names.b + '" created as unlocked drafts, linked to each other. Your plans are untouched — open the copies from the plan menu.', 'success', 8000);

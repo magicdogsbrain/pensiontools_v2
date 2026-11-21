@@ -4253,7 +4253,7 @@
     import { switchStrategy, cleanParams, activeParams, sortLegacyParams } from './src/services/StrategyState.js';
     import { switchPatch, restoredParamsFor, dialParams } from './src/services/PlanCommit.js';   // the strategy switch as one pure patch (6.40.0)
     import { compareAll, ladderYearsOfPlan, rankedWays, wayCostOf } from './src/strategies/compareRunner.js'; import { FACT, factId } from './src/reading/facts.js'; import { LOCK_WORDS, labelOf } from './src/reading/labels.js'; import { dayWords } from './src/answers/plan/dates.js'; import { wayFactIds, wayFiguresOf, wayNameOf, wayReasonOf, wayCannotText, boughtWhenOf, BOUGHT_WORDS } from './src/reading/ways.js';   // the nine ways through the one test, one loop (6.40.0); the Compare allocations cells (6.41.0)
-    import { rotationStatus, rotationBlock, rotationMarket, sellTicketRows } from './src/services/RotationStatus.js';
+    import { rotationBlock, rotationMarket, sellTicketRows } from './src/services/RotationStatus.js';
     import { activeEquity, equityDrawdown, equityProvenance, setEquityOverride } from './src/services/EquityIndex.js'; import { loadMarket, marketStamp, marketLabel } from './src/reading/market.js'; import { marketFolderOf } from './src/reading/marketPlain.js'; import { LAYOUT } from './src/appLayout.js';
     import { enterGuestMode, isGuest, leaveGuestMode, clearGuestData } from './src/firebase/index.js';
 
@@ -7269,7 +7269,7 @@
         const doc = locked ? storedPlan.planDocument || null : null;
         const keepTest = transitionKeepTest(storedPlan, rec);   // "Test what you keep against your plan" (7.7.0): V7's reading, run only on its button
         const done = (storedPlan && storedPlan.transition && storedPlan.transition.done) || {};
-        let rotation = null; try { const ss = await getStressSettingsAsync(); const t = deriveTiming(ss); rotation = rotationStatus(doc, { today, ageToday: t.currentAge || null, params: ss.strategyParams || null }); } catch (e) { rotation = null; }
+        const rotation = raw && raw.watch ? raw.watch : null;   // the rotation watch: the move reading's (move.js rotationWatch, one clock), as the simple view's (step F6)
         box.innerHTML = transitionHtml({ stage, doc, target: raw ? raw.target : null, diff: raw ? raw.diff : null, seq: raw ? raw.seq : null, prog: raw ? raw.prog : null, done, ledgerCount: ledger.filter((f) => f && (+f.value > 0 || +f.units > 0)).length, startLabel: stage?.startLabel || '', holdings: rec, offer, rotation, complete: raw ? !!raw.diff.complete : false, gaps: held ? held.gaps : null, keepTest, held });
         window._transitionLast = raw ? { diff: raw.diff, seq: raw.seq } : null;
       } catch (e) { console.error('transition', e); box.innerHTML = '<p class="hint">Could not build the transition: ' + budEsc(e.message) + '</p>'; }

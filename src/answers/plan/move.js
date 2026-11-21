@@ -273,7 +273,7 @@ export function moveOf(entries, id, { today, index = null, M = null, source = 'a
     // record that keeps something or expects money, so a plan without keeps reads exactly as before; in a move, never a line
     // the move sells (gapsOf by phase). 7.12.0: never on a ladder in the held phase — heldInfo is the one reading there
     ...(heldMode(life) && T.kind === 'ladder' ? {} : keptOf(D, g))
-  }, { target: T, diff: D, prog: P, seq: seq || null });
+  }, { target: T, diff: D, prog: P, seq: seq || null, watch: s.watch || null });   // the rotation watch as data: the full tab's too (step F6)
 }
 
 /**

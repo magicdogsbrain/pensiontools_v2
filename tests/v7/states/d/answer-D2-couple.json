@@ -167,29 +167,35 @@
           "only": false,
           "count": null
         },
+        "floorAge": 103,
+        "left": {
+          "age": 100,
+          "typical": 865208,
+          "best": 2380937
+        },
         "level": "balanced",
         "levels": {
           "careful": {
-            "monthly": 3710,
-            "yearly": 44520,
-            "weighted": 0.9502715935697779,
-            "fixedAge": 0.841
+            "monthly": 3560,
+            "yearly": 42720,
+            "weighted": 0.9518053673058748,
+            "fixedAge": 0.877
           },
           "balanced": {
-            "monthly": 3830,
-            "yearly": 45960,
-            "weighted": 0.9011792770838365,
-            "fixedAge": 0.715
+            "monthly": 3710,
+            "yearly": 44520,
+            "weighted": 0.9011563544534147,
+            "fixedAge": 0.749
           },
           "bold": {
-            "monthly": 4130,
-            "yearly": 49560,
-            "weighted": 0.7034834293313325,
-            "fixedAge": 0.364
+            "monthly": 4050,
+            "yearly": 48600,
+            "weighted": 0.7004308465877548,
+            "fixedAge": 0.395
           }
         },
         "chance": {
-          "weighted": 1,
+          "weighted": 0.9999566462300717,
           "fixedAge": 1,
           "fails": 0,
           "n": 1000,
@@ -199,7 +205,7 @@
         },
         "headroom": {
           "kind": "more",
-          "perMonth": 1030
+          "perMonth": 910
         },
         "guaranteed": {
           "monthlyAfterTax": 2624.97
@@ -570,6 +576,28 @@
         ],
         "warnings": [
           {
+            "id": "long-plan",
+            "severity": "important",
+            "text": "We can only test 30 years ahead, so this runs to age 100, not 100.",
+            "parts": [
+              "We can only test ",
+              {
+                "fixed": "30"
+              },
+              " years ahead, so this runs to age ",
+              {
+                "key": "basis.endAge",
+                "kind": "age"
+              },
+              ", not ",
+              {
+                "key": "inputs.endAge",
+                "kind": "age"
+              },
+              "."
+            ]
+          },
+          {
             "id": "state-pension-assumed",
             "severity": "note",
             "text": "This assumes the full State Pension. If yours is lower, so is the figure.",
@@ -605,7 +633,7 @@
           },
           "line": {
             "id": "d.line.weighted",
-            "text": "Counting how long people your ages live, £2,800 a month after tax lasts as long as one of you is alive in every future we tried.",
+            "text": "Counting how long people your ages live, £2,800 a month after tax lasts as long as one of you is alive more than 19 times in 20.",
             "parts": [
               "Counting how long people your ages live",
               ", ",
@@ -616,16 +644,35 @@
               " a month after tax lasts ",
               "as long as one of you is alive",
               " ",
-              "in every future we tried",
+              "more than ",
+              {
+                "fixed": "19"
+              },
+              " times in ",
+              {
+                "fixed": "20"
+              },
               "."
             ],
             "mark": "weighted"
           },
           "bad": {
-            "id": "d.bad.lasts",
-            "text": "In a bad case (the worst 1 in 10) it still lasted until the younger of you is 100.",
+            "id": "d.when",
+            "text": "We follow each future on to when the younger of you is 104. In the futures where the money runs out before then, it typically runs out when the younger of you is 103. In the worst 1 in 10 of all the futures it still lasts to 100.",
             "parts": [
-              "In a bad case (the worst ",
+              "We follow each future on to ",
+              "when the younger of you is ",
+              {
+                "fixed": "104"
+              },
+              ". In the futures where the money runs out before then",
+              ", it typically runs out ",
+              "when the younger of you is ",
+              {
+                "fixed": "103"
+              },
+              ". ",
+              "In the worst ",
               {
                 "fixed": "1"
               },
@@ -633,19 +680,16 @@
               {
                 "fixed": "10"
               },
-              ")",
-              " it still lasted ",
-              "until the younger of you is ",
+              " of all the futures it still lasts to ",
               {
-                "key": "basis.endAge",
-                "kind": "age"
+                "fixed": "100"
               },
               "."
             ]
           },
           "headroom": {
             "id": "d.more",
-            "text": "You could spend about £1,030 a month more. At Balanced, about £3,830 a month lasts as long as one of you is alive 18 times in 20.",
+            "text": "You could spend about £910 a month more. At Balanced, about £3,710 a month lasts as long as one of you is alive 18 times in 20.",
             "parts": [
               "You could spend about ",
               {
@@ -676,7 +720,7 @@
           },
           "levels": {
             "id": "d.levels",
-            "text": "At Careful, about £3,710 a month. At Bold, about £4,130 a month.",
+            "text": "At Careful, about £3,560 a month. At Bold, about £4,050 a month.",
             "parts": [
               "At Careful, about ",
               {
@@ -759,9 +803,35 @@
             ],
             "mark": "fixed"
           },
+          "floor": {
+            "id": "d.floor",
+            "text": "If the money ran out when the younger of you is 103, you would still have £31,500 a year after tax between you, from your pensions; if one of you has died by then, about £12,548 at least.",
+            "parts": [
+              "If the money ran out ",
+              "when the younger of you is ",
+              {
+                "fixed": "103"
+              },
+              ", ",
+              "you would still have ",
+              {
+                "fixed": "£31,500"
+              },
+              " a year after tax",
+              " between you",
+              ", ",
+              "from your pensions",
+              "; if one of you has died by then, about ",
+              {
+                "fixed": "£12,548"
+              },
+              " at least",
+              "."
+            ]
+          },
           "left": {
             "id": "d.left",
-            "text": "If one of you is still alive when the younger of you is 100, what is typically left then is £920,000 at today's prices. In the best 1 in 10 futures it is £2,512,000 or more.",
+            "text": "If one of you is still alive when the younger of you is 100, what is typically left then is £865,000 at today's prices. In the best 1 in 10 futures it is £2,381,000 or more.",
             "parts": [
               "If one of you is still alive when the younger of you is ",
               {
@@ -769,7 +839,7 @@
               },
               ", what is typically left then is ",
               {
-                "fixed": "£920,000"
+                "fixed": "£865,000"
               },
               " at today's prices. In the best ",
               {
@@ -781,31 +851,31 @@
               },
               " futures it is ",
               {
-                "fixed": "£2,512,000"
+                "fixed": "£2,381,000"
               },
               " or more."
             ]
           },
           "cost": {
             "id": "d.cost",
-            "text": "Careful asks for £120 a month less than Balanced. Bold would let you take £300 a month more.",
+            "text": "Careful asks for £150 a month less than Balanced. Bold would let you take £340 a month more.",
             "parts": [
               "Careful asks for ",
               {
-                "fixed": "£120"
+                "fixed": "£150"
               },
               " a month less than Balanced.",
               " ",
               "Bold would let you take ",
               {
-                "fixed": "£300"
+                "fixed": "£340"
               },
               " a month more."
             ]
           },
           "headroomFixed": {
             "id": "d.more.fixed",
-            "text": "At £3,830 a month: if one of you is still alive when the younger of you is 100, the money lasts that long in 14 of 20 futures we tried.",
+            "text": "At £3,710 a month: if one of you is still alive when the younger of you is 100, the money lasts that long in 15 of 20 futures we tried.",
             "parts": [
               "At ",
               {
@@ -819,7 +889,7 @@
               },
               ", the money lasts that long in ",
               {
-                "fixed": "14"
+                "fixed": "15"
               },
               " of ",
               {

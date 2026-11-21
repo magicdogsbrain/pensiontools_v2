@@ -13,7 +13,7 @@ import { moveOf } from '../../src/answers/plan/move.js';
 import { heldLadder, heldLadderView, sayHeld } from '../../src/answers/plan/held.js';
 import { HELD } from '../../src/v7/copy/held.js';
 import { transitionHeld } from '../../src/ui/keepHoldingsUi.js';
-import { transitionHtml } from '../../src/ui/components/TransitionView.js';
+import { transitionHtml, heldMixLineHtml } from '../../src/ui/components/TransitionView.js';
 import { moveReadingOf, giltsCountOf, sheetOf, heldMixOf, planMixOf, holdingsTotalsOf } from '../../src/reading/holdings.js';
 import { orderSheetRows } from '../../src/strategies/GiltLadderPlan.js';
 import { normaliseHoldings } from '../../src/services/HoldingsRecord.js';
@@ -38,6 +38,23 @@ describe('one diff for both views', () => {
     const body = src.slice(at, src.indexOf('window._transitionLast =', at));
     for (const reader of ['diffHoldings(', 'targetHoldings(', 'transitionSequence(', 'transitionProgress(', 'transitionGaps(', 'orderSheetRows(']) expect(body.indexOf(reader), reader).toBe(-1);
     expect(body).toContain('transitionHeld(');
+    // the rotation watch is the move reading's too (move.js rotationWatch, the one clock): no second status of its own
+    expect(body.indexOf('rotationStatus(')).toBe(-1);
+    expect(body).toContain('raw.watch');
+  });
+
+  it('a ladder + rotation: the tab\'s watch is the move page\'s, from the same reading', () => {
+    const key = 'retired-locked-ladder';
+    const entries = entriesOf(key).map((e) => (e.plan.id !== subjectOf(key) ? e : { ...e, plan: { ...e.plan, planDocument: { ...e.plan.planDocument, strategy: { ...e.plan.planDocument.strategy, id: 'gilt-rotation' } }, stressTool: { ...e.plan.stressTool, settings: { ...e.plan.stressTool.settings, strategyId: 'gilt-rotation' } } } }));
+    const v = moveOf(entries, subjectOf(key), { today: PARITY_DAY });
+    const plan = entries.find((e) => e.plan.id === subjectOf(key)).plan;
+    const held = transitionHeld(plan, plan.holdings, NOW, entries);
+    expect(v.watch && v.watch.state).toBeTruthy();
+    expect(held.raw.watch.applies).toBe(true);
+    expect(held.raw.watch.state).toBe(v.watch.state);
+    expect(String(held.raw.watch.cutAge)).toBe(v.watch.cutAge);
+    const html = transitionHtml({ doc: plan.planDocument, target: held.raw.target, diff: held.raw.diff, seq: held.raw.seq, prog: held.raw.prog, holdings: normaliseHoldings(plan.holdings), rotation: held.raw.watch, gaps: held.gaps, held });
+    expect(html).toContain('Rotation watch');
   });
 
   it.each(['saver-locked-ladder', 'saver-locked-pots', 'retired-locked-ladder', 'retired-locked-pots'])('%s: the tab draws the very diff the move page reads', (key) => {
@@ -107,6 +124,14 @@ describe('what is held and the plan\'s mix: one reader each', () => {
     const m = heldMixOf(plan);
     expect(Object.keys(m)).toEqual(['shares', 'bonds', 'diversifiers', 'cash']);
     expect(holdingsTotalsOf(plan).total).toBeGreaterThan(0);
+    // the full view's What you hold card and its Accumulation tab draw the one line, its figures marked (heldMixLineHtml)
+    const line = heldMixLineHtml(plan.holdings, { charge: true });
+    for (const b of ['shares', 'bonds', 'diversifiers', 'cash']) expect(line).toContain('data-fact="mix.held.' + b + '">' + m[b] + '<');
+    expect(line).toContain('Yearly charge, weighted:');
+    const src = readFileSync('index.html', 'utf8');
+    const acc = src.slice(src.indexOf('window.renderAccumulationHoldings'), src.indexOf('window.renderAccumulationHoldings') + 2000);
+    expect(acc).toContain('heldMixLineHtml(rec');
+    expect(acc).not.toContain('describeMix(');
   });
   it('a locked plan\'s mix is its document\'s year 0; a ladder has none', () => {
     const p = planOf('retired-locked-pots');
@@ -150,6 +175,9 @@ describe('a partner\'s plan made in the full view (lead4.md D2, D20)', () => {
     expect(body).toContain('timingSettingsOf(');
     expect(body).toContain('setHouseholdPartnerId(');
     expect(body).not.toMatch(/createNewScenario\([^)]*, \{\}, true\)/);
+    // ages are not figures: the plan is not marked as having figures given (PlanFigures.planHasFigures)
+    expect(body).toContain('const { configured: _given, ...timingOnly } = timing;');
+    expect(body).toContain('{ stressSettings: timingOnly }');
   });
   it('a partner still working stops in a month ahead; one already stopped has no stop month to come', async () => {
     const { timingSettingsOf } = await import('../../src/services/PlanFromSeed.js');

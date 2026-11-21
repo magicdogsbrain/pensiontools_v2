@@ -9333,7 +9333,9 @@
         const ageGiven = mine && +mine.partnerAge > 0 ? Math.round(+mine.partnerAge) : null, stopGiven = mine && +mine.partnerRetirementAge > 0 ? Math.round(+mine.partnerRetirementAge) : null;
         const later = !!ageGiven && !(mine && mine.partnerRetired) && stopGiven > ageGiven;
         const timing = !ageGiven ? {} : later || (mine && mine.partnerRetired) ? timingSettingsOf({}, { ageToday: ageGiven, later, ageAtStop: later ? stopGiven : null }, dayKeyOf(todayOf())) : { currentAge: ageGiven, currentAgeAsOf: dayKeyOf(todayOf()) };
-        await createNewScenario(name, 'Partner plan (household)', ['stress', 'decision'], { stressSettings: timing }, true);
+        // ages are not figures: `configured` (figures given) is left out, so their plan reads no pot or income nobody gave
+        const { configured: _given, ...timingOnly } = timing;
+        await createNewScenario(name, 'Partner plan (household)', ['stress', 'decision'], { stressSettings: timingOnly }, true);
         // linked to this plan, as the simple view links a couple's two plans (either side's link reads both ways)
         if (myId) { try { await setHouseholdPartnerId(myId); } catch (e) { console.warn('Partner link skipped:', e); } }
         try {

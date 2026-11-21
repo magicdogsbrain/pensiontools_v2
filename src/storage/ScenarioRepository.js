@@ -331,10 +331,11 @@ export async function createNewScenario(name, description, enabledTools, overrid
 
   const scenario = getDefaultScenario(name, description, enabledTools);
 
-  // Apply overrides (using new nested structure)
-  if (overrides.stressSettings) {
-    scenario.stressTool.settings = { ...scenario.stressTool.settings, ...overrides.stressSettings };
-  }
+  // Only what was given is stored (lead4.md D2; step F6): the settings handed in, and the charge and the ISA's growth every new
+  // plan is given in both views. The factory figures (a State Pension of £12,000, pots, a salary) are never written as if
+  // typed: the reading counts what it needs and says it assumed it (reading/statePension.js 'assumed'), as it did before.
+  const base = scenario.stressTool.settings;
+  scenario.stressTool.settings = { chargesPct: base.chargesPct, isaGrowth: base.isaGrowth, ...(overrides.stressSettings || {}) };
   if (overrides.decisionSettings) {
     scenario.decisionTool.settings = { ...scenario.decisionTool.settings, ...overrides.decisionSettings };
   }

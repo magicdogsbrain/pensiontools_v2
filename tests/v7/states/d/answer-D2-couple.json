@@ -224,6 +224,7 @@
                 "to": 100
               }
             },
+            "months": 355,
             "takeHome": 2800,
             "fromPension": 218.32,
             "fromSavings": 0,
@@ -240,7 +241,7 @@
                 "finalSalary": 666.67,
                 "work": 0,
                 "fromWork": 0,
-                "fromPension": 134.83,
+                "fromPension": 134.84,
                 "fromSavings": 0,
                 "tax": 159.93,
                 "takeHome": 1687.21,
@@ -254,7 +255,7 @@
                 "finalSalary": 0,
                 "work": 0,
                 "fromWork": 0,
-                "fromPension": 83.49,
+                "fromPension": 83.48,
                 "fromSavings": 0,
                 "tax": 16.32,
                 "takeHome": 1112.79,

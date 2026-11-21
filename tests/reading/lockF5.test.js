@@ -73,4 +73,14 @@ describe('the superseded document builder is gone from the full view', () => {
     expect(w).toContain("type === 'document'");
     expect(w).toContain('runForDocument(payload.plan');
   });
+  // the gate's action round trips (e2e/parity/roundtrip.spec.js, step F5): after a lock or unlock in the full view the chip
+  // still said the plan as it was, because the write went past the plan copy the page reads (R2: every cache dropped)
+  it('a lock, an unlock and a new version drop the page\'s copy of the plan with the write, so the repaint reads the plan as written', () => {
+    expect(html).toMatch(/const savePlanWrite = async \(pid, patch\) => \{ await saveScenarioDoc\(pid, patch\); invalidateScenarioCache\(\);/);
+    for (const f of ['lockWrite', 'unlockWrite', 'documentWrite']) {
+      const calls = html.split(f + '({').slice(1).map((c) => c.slice(0, 260));
+      expect(calls.length, f).toBeGreaterThan(0);
+      for (const c of calls) expect(c, f).toContain('save: savePlanWrite');
+    }
+  });
 });

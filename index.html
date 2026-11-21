@@ -7041,6 +7041,9 @@
       const entry = entries.find((e) => e && e.plan && String(e.plan.id) === String(id));
       return { id, now, entries, plan: entry ? entry.plan : null };
     }
+    // a lock, an unlock or a new version is written straight to the store: the page's copy of the plan goes with the write, so
+    // the repaint that follows reads the plan as written (lead4.md R2; the gate's action round trips, step F5)
+    const savePlanWrite = async (pid, patch) => { await saveScenarioDoc(pid, patch); invalidateScenarioCache(); };
     async function documentRunNow(plan, entries, now) {
       await window._marketReady;   // the one market, as every run of the page
       return documentRunOf(plan, entries, { today: dayKeyOf(now), runInWorker: (type, payload) => runInWorker(type, payload), inline: (pl, o) => runForDocumentInline(pl, o) });
@@ -7051,7 +7054,7 @@
         const R = await lockReadingNow();
         if (!R.plan) throw new Error(LOCK_REFUSALS.notHere);
         const run = runGiven && runGiven.p && runGiven.r ? runGiven : await documentRunNow(R.plan, R.entries, R.now);
-        const p = await lockWrite({ planId: R.id, plan: R.plan, entries: R.entries, now: R.now, run, save: (pid, patch) => saveScenarioDoc(pid, patch) });
+        const p = await lockWrite({ planId: R.id, plan: R.plan, entries: R.entries, now: R.now, run, save: savePlanWrite });
         if (!p.ok) { if (p.errors && p.errors.plan === 'locked') return false; throw new Error(LOCK_REFUSALS[p.errors && p.errors.plan] || LOCK_REFUSALS.noRun); }
         await repaintPlan('lock');   // every tab, the banners and the chip follow the plan as locked
         return true;
@@ -7068,7 +7071,7 @@
         // the one document write (step F5, lead4.md D18): the current one archived and a new one built by documentFor, ONE write
         const R = await lockReadingNow();
         if (!R.plan) throw new Error(LOCK_REFUSALS.notHere);
-        const p = await documentWrite({ planId: R.id, plan: R.plan, entries: R.entries, now: R.now, run: await documentRunNow(R.plan, R.entries, R.now), save: (pid, patch) => saveScenarioDoc(pid, patch) });
+        const p = await documentWrite({ planId: R.id, plan: R.plan, entries: R.entries, now: R.now, run: await documentRunNow(R.plan, R.entries, R.now), save: savePlanWrite });
         if (!p.ok) throw new Error(LOCK_REFUSALS[p.errors && p.errors.plan] || LOCK_REFUSALS.noRun);
         await repaintPlan('lock');   // the banners and every tab follow the new version
         showToast(prev ? 'A new version of the plan document was written — the previous one is kept under previous versions.' : 'Plan document created.', 'success', 4000);
@@ -11435,7 +11438,7 @@
       try {
         // the one unlock (step F5, lead4.md D18): answers/plan/lock.js unlockPatch in ONE write, as the simple view unlocks
         const R = await lockReadingNow();
-        const p = R.plan ? await unlockWrite({ planId: R.id, plan: R.plan, now: R.now, save: (pid, patch) => saveScenarioDoc(pid, patch) }) : { ok: false, errors: { plan: 'notHere' } };
+        const p = R.plan ? await unlockWrite({ planId: R.id, plan: R.plan, now: R.now, save: savePlanWrite }) : { ok: false, errors: { plan: 'notHere' } };
         if (!p.ok) throw new Error(LOCK_REFUSALS[p.errors && p.errors.plan] || LOCK_REFUSALS.notHere);
         await repaintPlan('unlock');   // every tab, the banners and the stage follow the plan as unlocked
         showToast('Plan unlocked. Changes save as you make them; lock it again from Settings when you are happy.', 'success', 5000);   // walk W4: no Save to press, and it never locks itself

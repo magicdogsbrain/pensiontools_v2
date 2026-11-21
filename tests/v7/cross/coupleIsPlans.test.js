@@ -227,18 +227,8 @@ describe('the household\'s pass-on, worked by hand (planPath passOnConfig)', () 
   });
 });
 
-describe('two linked plans that start in different years are not read on one clock', () => {
-  it('Sam stops now, Pat works to 64: no household figure from mixed clocks (a reason instead)', () => {
-    // Sam's plan draws from this tax year (66, 33 years); Pat's still saves and draws from April 2030 (64). As first written
-    // both runs read the futures from year 0 and the ages ran from 64 for the longer plan's years: plan-to 104 for a couple
-    // whose plans end when the younger is 100.
-    const sam = keptPlansOf('d', answerD({ you: { age: 66, pot: 200000, taxFreeTaken: 'no' }, savings: 10000, spend: { kind: 'amount', amount: 1500 } }, ENV), ENV).yours;
-    const pat = keptPlansOf('b', answerB({ you: { age: 60, pot: 100000, payIn: { kind: 'total', total: 500 } }, stop: { kind: 'age', age: 64 }, spend: { kind: 'amount', amount: 1200 } }, ENV), ENV).yours;
-    const h = householdReadingOf(sam, pat, { today: TODAY, futures: N });
-    expect(h.reason).toBe('notSameStart');
-    expect(householdLastsOf(pat, sam, { today: TODAY, futures: N }).reason).toBe('notSameStart');
-  });
-});
+// Two linked plans that start in different years (Sam stops now, Pat works to 64) were refused here ('notSameStart') until
+// step P5 put each plan on its own clock: tests/v7/cross/coupleTwoClocks.test.js.
 
 // ---- step P4, fix round 2 ----------------------------------------------------------------------------------------------
 // Sam, 54, £250,000, and Pat, 53, £150,000, £60,000 savings: both pensions closed today (they open at 57). As the answer
@@ -287,6 +277,22 @@ describe('two linked plans at different levels: one household verdict', () => {
     // both at bold, the household says what the answer said: "yes"
     expect(householdReadingOf(kept.yours, kept.partner, { today: TODAY, futures: N }).verdict).toBe('yes');
     expect(householdLastsOf(pat, kept.yours, { today: TODAY, futures: N })).toEqual(householdLastsOf(kept.yours, pat, { today: TODAY, futures: N }));
+  });
+  // the lead's ruling O: the household reading carries the level it was judged at, and the words that say so
+  it('Sam bold, Pat careful: the reading says it was judged at Careful, the more careful of the two plans\' levels', () => {
+    const c = answerC({ household: 'couple', you: { age: 70, pot: 220000 }, partner: { age: 67, pot: 90000 }, savings: 25000, confidence: 'bold' }, ENV);
+    const kept = keptPlansOf('c', c, ENV);
+    const a = kept.partner.fromAnswer.answer;
+    const pat = { ...kept.partner, fromAnswer: { ...kept.partner.fromAnswer, answer: { ...a, level: 'careful', levelChosen: true } } };
+    for (const h of [householdReadingOf(kept.yours, pat, { today: TODAY, futures: N }), householdLastsOf(pat, kept.yours, { today: TODAY, futures: N })]) {
+      expect(h.level).toBe('careful');
+      expect(h.levelWords).toBe('judged at Careful, the more careful of your two plans\' levels');
+    }
+    const same = householdReadingOf(kept.yours, kept.partner, { today: TODAY, futures: N });
+    expect({ level: same.level, levelWords: same.levelWords }).toEqual({ level: 'bold', levelWords: 'judged at Bold, the level both your plans are set to' });
+    // one plan alone: its own level, and no household words
+    const one = householdReadingOf(kept.yours, null, { today: TODAY, futures: N });
+    expect({ level: one.level, levelWords: one.levelWords }).toEqual({ level: 'bold', levelWords: null });
   });
 });
 

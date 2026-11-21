@@ -28,6 +28,17 @@ const S = (id, parts, mark) => ({ id, text: '', parts: parts.flat().filter((p) =
 
 export const LEVEL_NAME = Object.freeze({ careful: 'Careful', balanced: 'Balanced', bold: 'Bold' });
 
+/**
+ * The level a household figure was judged at, said (the lead's ruling O): two linked plans give one verdict, at the more
+ * careful of their two levels. `levels`: each plan's own level, in either order. Null for one plan alone.
+ */
+export function householdLevelWords(level, levels) {
+  if (!Array.isArray(levels) || levels.length < 2 || !LEVEL_NAME[level]) return null;
+  return new Set(levels).size > 1
+    ? `judged at ${LEVEL_NAME[level]}, the more careful of your two plans' levels`
+    : `judged at ${LEVEL_NAME[level]}, the level both your plans are set to`;
+}
+
 /** "Counting how long people your age live" (a couple: "your ages"). */
 export const countingLead = (couple) => (couple ? 'Counting how long people your ages live' : 'Counting how long people your age live');
 /** "as long as you do" (a couple: "as long as one of you is alive"). */

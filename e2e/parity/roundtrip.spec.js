@@ -45,6 +45,7 @@ import { LOCK_WORDS } from '../../src/reading/labels.js';
 import { upgradeScenario } from '../../src/firebase/scenarioMigration.js';
 import { effectiveStressSettings } from '../../src/services/PlanReading.js';
 import { LATER_DRAFT_WRITES } from '../../src/answers/plan/schema.js';
+import { holdingsSummary, normaliseHoldings } from '../../src/services/HoldingsRecord.js';
 
 const OUT = join(process.cwd(), 'test-results', 'parity', 'roundtrips');
 const VERSION = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8')).version;
@@ -265,7 +266,9 @@ test.describe('parity round trips: the boxes', () => {
 // lists of rows, not typed into yet: counted as not tried, both directions (no browser needed)
 test('parity round trips: the lists, not tried yet', async () => {
   const byFixture = new Map();
-  for (const e of REGISTRY) if (e.kind === 'list' && e.simple && e.full && runs(e.fixture)) {
+  // a list an action below adds a row to is tried there, under the list's own key (step F6: holdings lines)
+  const tried = new Set(ACTIONS.filter((a) => a.field).map((a) => a.field));
+  for (const e of REGISTRY) if (e.kind === 'list' && e.simple && e.full && runs(e.fixture) && !tried.has(e.id)) {
     if (!byFixture.has(e.fixture)) byFixture.set(e.fixture, []);
     for (const dir of DIRECTIONS) byFixture.get(e.fixture).push({ key: `${e.id}|${dir}`, field: e.id, kind: 'not tried', press: false, detail: e.why || 'rows of boxes' });
   }
@@ -612,6 +615,26 @@ const ACTIONS = [
   }
 ];
 
+// holdings lines (step F6): a line added in one view is in the other, and the record's total says it in both
+const ADDED_LINE = { name: 'Example Bond Index Fund', value: 12345 };
+const poundsOf = (n) => '£' + Math.round(n).toLocaleString('en-GB');
+const holdTotalAfter = () => { const fx = fixtureNamed('mover-holdings'); const p = fx.plans().find((x) => x.id === fx.subject); return holdingsSummary(normaliseHoldings(p.holdings)).total + ADDED_LINE.value; };
+ACTIONS.push({
+  key: 'holdLine', field: 'hold.lines', fixture: 'mover-holdings', pages: { simple: 'hold', full: 'transition' },
+  done: (p) => normaliseHoldings(p.holdings).lines.some((l) => l.name === ADDED_LINE.name && +l.value === ADDED_LINE.value),
+  simple: async (page) => {
+    await page.getByTestId('plan.hold.add.text').fill(ADDED_LINE.name); await page.getByTestId('plan.hold.add.text').blur();
+    await page.getByTestId('plan.hold.add.value').fill(String(ADDED_LINE.value)); await page.getByTestId('plan.hold.add.value').blur();
+    await page.getByTestId('plan.hold.add.asTyped').click();
+  },
+  full: async (page) => {
+    await page.locator('#hlName').fill(ADDED_LINE.name);
+    await page.locator('#hlValue').fill(String(ADDED_LINE.value));
+    await page.locator('button[data-on-click="addHoldingLine()"]').click();
+  },
+  shows: (B, text, places) => factsOn(places, 'holdings.total').includes(poundsOf(holdTotalAfter()))
+});
+
 const openActionPage = async (page, view, act, planId) => (view === 'simple'
   ? openSimplePage(page, planId, act.pages.simple).then(() => true)
   : openFullPage(page, fullNamed(act.pages.full)));
@@ -627,7 +650,7 @@ test.describe('parity round trips: the actions', () => {
         test.setTimeout(6 * 60_000);
         const plans = act.prep ? act.prep(fx.plans(), fx.subject) : fx.plans();
         const page = await freshPage(acct, plans);
-        const key = `action:${act.key}|${dir}`;
+        const key = act.field ? `${act.field}|${dir}` : `action:${act.key}|${dir}`;
         let entry = { key, kind: 'ok', press: false };
         const fail = (kind, detail) => { if (entry.kind === 'ok') entry = { ...entry, kind, detail }; };
         expect(await openActionPage(page, A, act, fx.subject), `${A} view opens the page of ${act.key}`).toBe(true);

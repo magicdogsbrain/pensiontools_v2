@@ -459,11 +459,6 @@ function whereStep(C) {
     }
     // (7.10.0: the start is changed on "About you and when", by unlock and lock again — no longer a to-do)
     if (older) lines.push(line('where.startLater', ['Your plan is set to start in April ' + C.startLater.start + ', so these months are not read against it yet' + (C.readonly ? '' : '. You can change the start on About you and when')], figures, sourceOf('locked', lockedAt, now), { start: 'April ' + C.startLater.start }));
-    // the plan year this is, as the plan document says it (step F5, lead4.md R8: what the full view has, the simple view reaches)
-    if (Number.isFinite(+w.planYear) && Number.isFinite(+w.planYears) && !older) {
-      figures.planYearNow = +w.planYear; figures.planYearsAll = +w.planYears;
-      lines.push(line('where.planYear', ['Plan year ', count('planYearNow'), ' of ', count('planYearsAll'), ', tax year ' + w.taxYear], figures, sourceOf('locked', lockedAt, now), { year: w.taxYear }));
-    }
     if (inc.recorded > 0) lines.push(line('where.taken', [money('drawn')], figures, sourceOf('record', null, now), { year: w.taxYear }));
     // the step in force as the reading gives it (step F2, lead4.md D6): a year before tax as it is taken, never the stored figure
     if (w.step && w.step.amount != null) {

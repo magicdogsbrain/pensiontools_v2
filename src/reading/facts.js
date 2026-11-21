@@ -22,9 +22,6 @@ export const FACT = Object.freeze({
   END_AGE: 'plan.endAge',
   LOCKED: 'lock.state',
   LOCK_DATE: 'lock.date',
-  // the plan year this is, and how many the plan runs (the plan document's "Plan year X of Y"; step F5, lead4.md R8)
-  PLAN_YEAR: 'plan.year',
-  PLAN_YEARS: 'plan.years',
   DUE_NEXT: 'due.next',
   // money today, by pot
   POT_TODAY: 'pot.today',

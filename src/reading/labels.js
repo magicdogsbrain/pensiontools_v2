@@ -28,8 +28,6 @@ export const LABELS = Object.freeze({
   [FACT.END_AGE]: { label: 'Plan to age', basis: 'an age' },   // both views' box (step F1)
   [FACT.LOCKED]: { label: 'Locked', basis: 'words' },
   [FACT.LOCK_DATE]: { label: 'Locked on', basis: 'a day' },
-  [FACT.PLAN_YEAR]: { label: 'Plan year', basis: 'a count' },
-  [FACT.PLAN_YEARS]: { label: 'Plan years in all', basis: 'a count' },
   [FACT.DUE_NEXT]: { label: 'Next', basis: 'words' },
   [FACT.POT_TODAY]: { label: 'Pension today', basis: TODAY },
   [FACT.ISA_TODAY]: { label: 'ISA today', basis: TODAY },

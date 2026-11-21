@@ -28,7 +28,7 @@ import { normaliseHoldings, holdingsSummary, holdingsWith, normaliseLine, numOrN
 import { taxYearLabel, taxYearStartOf } from '../../services/PlanTiming.js';
 import { gapsOf, gapsView } from './gaps.js';
 import { heldLadder, heldSummaryView } from './held.js';
-import { applyPaste, needsCategory, CATEGORY_CHOICES, isGiltCode, parsePaste, giltFromName } from '../../services/HoldingsPaste.js';
+import { applyPaste, needsCategory, CATEGORY_CHOICES, isGiltCode, isGiltLine, parsePaste, giltFromName } from '../../services/HoldingsPaste.js';
 import { proportions } from '../../services/Holdings.js';
 import { heldMixOf, holdingsTotalsOf } from '../../reading/holdings.js';
 import { SUB_ASSET_PROFILES, FUND_TAG_MAP, catalogueEntry } from '../../services/SubAssetModel.js';
@@ -69,7 +69,7 @@ export function countedAs(line) {
   // what it is, as Holdings.proportions counts it (placedLines)
   if (needsCategory(L)) return { kind: 'bucket', bucket: 'shares', assumed: true };
   if (up(L.wrapper) === 'CASH') return { kind: 'bankCash', bucket: 'cash' };
-  if (L.kind === 'gilt' || (!L.subClass && isGiltCode(L.ticker))) return { kind: 'gilt', bucket: 'bonds', code: up(L.ticker) || null };
+  if (isGiltLine(L)) return { kind: 'gilt', bucket: 'bonds', code: up(L.ticker) || null };
   if (L.kind === 'cash' && !L.subClass) return { kind: 'cash', bucket: 'cash' };
   const key = L.subClass || FUND_TAG_MAP[up(L.ticker)];
   const prof = key ? SUB_ASSET_PROFILES[key] : null;

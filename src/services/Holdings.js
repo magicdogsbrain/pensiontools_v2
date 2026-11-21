@@ -14,19 +14,19 @@
 import { tagPortfolio } from './PortfolioTagger.js';
 import { SUB_ASSET_PROFILES, BUCKETS } from './SubAssetModel.js';
 import { holdingsLines } from './HoldingsRecord.js';
-import { needsCategory } from './HoldingsPaste.js';
+import { needsCategory, isGiltLine } from './HoldingsPaste.js';
 
 export const ASSUMED_CPI = 0.025;   // long-run CPI used to state expected returns in real terms (FCA-style)
 
 const num = (v) => (Number.isFinite(+v) ? +v : 0);
 
 /**
- * A gilt held directly — a line whose kind is 'gilt' (a ladder's rung from the order sheet, or a gilt typed by its code) with
- * no sub-class of its own — counts as bonds (a correction, 6.45.0): the tagger knows a line only by its sub-class or its fund
+ * A gilt held directly — HoldingsPaste.isGiltLine: a line whose kind is 'gilt' (a ladder's rung from the order sheet, or a gilt
+ * typed by its code), or a line with no kind and no sub-class whose code is a gilt's (step F6) — counts as bonds (a correction, 6.45.0): the tagger knows a line only by its sub-class or its fund
  * code, so such a line was left untagged and out of the proportions. It is given the index-linked profile, which every
  * ladder's rungs are; a line with its own sub-class is left as it is.
  */
-export const giltsAsBonds = (lines) => lines.map((h) => (h && h.kind === 'gilt' && !h.subClass ? { ...h, subClass: 'indexLinked' } : h));
+export const giltsAsBonds = (lines) => lines.map((h) => (h && !h.subClass && isGiltLine(h) ? { ...h, subClass: 'indexLinked' } : h));
 
 /**
  * Every line counts, as it is (7.12.0 round 3, decision 4): nothing has to be answered for a holding to count. A gilt is bonds

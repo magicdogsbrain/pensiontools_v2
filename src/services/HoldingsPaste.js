@@ -225,6 +225,18 @@ export function namesAgree(pasted, catalogueName, ticker) {
 
 /** Does a ticker-column cell look like a gilt's exchange code (T31, TR31, TG54, TN28, T26A)? "CGT", "PNL" do not. */
 export function isGiltCode(ticker) { return /^T[A-Z]?\d{2}[A-Z]?$/.test(up(ticker)); }
+/**
+ * The ONE rule for "this line is a gilt held directly" (step F6): its kind says so, or it has no kind and no sub-class of its
+ * own and its code is a gilt's (a code typed in the full view's editable row stores no kind; older records have such lines too). Money in
+ * the bank (a CASH account) is never a gilt. What you hold (answers/plan/hold.js countedAs), its row words and the held mix
+ * (Holdings.giltsAsBonds) all read it.
+ */
+export function isGiltLine(line) {
+  const l = line || {};
+  if (String(l.wrapper || '').toUpperCase() === 'CASH') return false;
+  if (l.kind) return l.kind === 'gilt';   // a line that says what it is (a fund, cash) is that, whatever its code looks like
+  return !l.subClass && isGiltCode(l.ticker);
+}
 
 export function matchRows(rows, { catalogue = FUND_CATALOGUE, orders = [], wrapper = 'SIPP' } = {}) {
   const byTicker = new Map(catalogue.map((f) => [up(f.ticker), f]));

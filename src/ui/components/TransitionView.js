@@ -11,7 +11,7 @@
  * importHoldingsFromStress, dismissHoldingsOffer, updHolding, removeHolding, addHoldingLine.
  */
 import { esc } from './ReleaseNotesView.js';
-import { CATEGORY_CHOICES, needsCategory, isGiltCode } from '../../services/HoldingsPaste.js';
+import { CATEGORY_CHOICES, needsCategory, isGiltLine } from '../../services/HoldingsPaste.js';
 import { SUB_ASSET_PROFILES, FUND_TAG_MAP } from '../../services/SubAssetModel.js';
 import { sayGapLine } from '../../answers/plan/gaps.js';
 import { GAPS } from '../../v7/copy/gaps.js';
@@ -60,7 +60,7 @@ function whatItIsHtml(i, L) {
       + CATEGORY_CHOICES.filter((c) => c.subClass).map((c) => '<option value="' + c.subClass + '">' + esc(c.label) + '</option>').join('') + '</select>';
   }
   if (String(L.wrapper || '').toUpperCase() === 'CASH') return '<span class="hint">Bank cash</span>';
-  if (L.kind === 'gilt' || (!L.subClass && isGiltCode(L.ticker))) return '<span class="hint">Gilt</span>';
+  if (isGiltLine(L)) return '<span class="hint">Gilt</span>';
   if (L.kind === 'cash' && !L.subClass) return '<span class="hint">Cash</span>';
   const key = L.subClass || FUND_TAG_MAP[String(L.ticker || '').toUpperCase()];
   const prof = key ? SUB_ASSET_PROFILES[key] : null;

@@ -126,6 +126,22 @@ function householdOf(source, result, today, who) {
 const phasesOf = (source, result) => (source === 'a' ? (result.shown && result.shown.phases) : result.phases) || [];
 
 /**
+ * The share of each one's take-home in a stretch that is their part of the amount asked (a couple; step P4, fix round 1).
+ * The household's split gives each one all of their own income that comes anyway, so in a stretch where the State Pensions
+ * and final-salary pensions pay more than the amount asked, the two take-homes add up to more than it. A plan's spending is
+ * the amount asked, as one person's keep writes it (one row of the amount itself, whatever comes in anyway): so there the
+ * two parts are cut in proportion to add up to the amount, each still no more than their own income that comes anyway, and
+ * neither plan draws on its pots while that income keeps up with prices. 1 where the parts add up to the amount, or where
+ * one of them is still working (their pay covers their part). Worked by hand in tests/v7/cross/coupleIsPlans.test.js.
+ */
+function partOfAsked(ph, asked) {
+  const by = Array.isArray(ph.byPerson) ? ph.byPerson : [];
+  if (!isNum(asked) || asked < 0 || by.some((b) => b.working === true)) return 1;
+  const sum = by.reduce((t, b) => t + (isNum(b.takeHome) ? b.takeHome : 0), 0);
+  return sum > asked + 0.005 ? asked / sum : 1;
+}
+
+/**
  * A person's part of the spending, after tax, today's prices: one row per stretch, neighbours under £1 apart merged.
  * A stretch in which they are still working (a couple apart: `working`) is not theirs to pay — the pay covers their part —
  * so the rows of the one still working start at their own stop, and the first to stop has their part of the years apart.
@@ -137,7 +153,7 @@ function takeHomeOf(who, couple, ageAtStop, perMonth, phases) {
     const mine = Array.isArray(ph.byPerson) ? ph.byPerson.find((p) => p.who === who) : null;
     const from = ph.ages && ph.ages[who] ? ph.ages[who].from : null;
     if (!mine || !isNum(mine.takeHome) || !isNum(from) || mine.working === true) continue;
-    const row = { fromAge: from, perMonth: round2(mine.takeHome) };
+    const row = { fromAge: from, perMonth: round2(mine.takeHome * partOfAsked(ph, perMonth)) };
     const last = rows[rows.length - 1];
     if (last && Math.abs(last.perMonth - row.perMonth) < 1) continue;
     rows.push(row);
@@ -150,7 +166,7 @@ function takeHomeOf(who, couple, ageAtStop, perMonth, phases) {
  * changes, from the answer's year-by-year rows (`byYear`). One person: what is spent that year — the shape itself, as
  * today's single row is the amount itself (today's planner applies its own floor for the incomes you get anyway). A couple:
  * each one's own take-home that year; the years one of them is still working are not theirs to pay (their pay covers it).
- * Neighbours are merged only when equal to the penny.
+ * Neighbours are merged only when equal to the penny. (A couple's two parts add up to what is spent that year, partOfAsked.)
  */
 function takeHomeByYear(who, couple, ageAtStop, byYear) {
   const rows = [];
@@ -162,7 +178,7 @@ function takeHomeByYear(who, couple, ageAtStop, byYear) {
     else {
       const mine = (y.byPerson || []).find((b) => b.who === who);
       if (!mine || mine.working === true || !isNum(mine.takeHome)) continue;
-      perMonth = round2(mine.takeHome);
+      perMonth = round2(mine.takeHome * partOfAsked(y, y.spend));
     }
     const last = rows[rows.length - 1];
     if (last && last.perMonth === perMonth) continue;

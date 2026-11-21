@@ -122,11 +122,17 @@
  *           coupleCaseOf): "Will it last?", "How much can I take?" from now and the "When could I stop?" row at which both
  *           stop today, for a couple, run on the two plans keeping
  *           would write, each its own Pots & Valves run with its own tax bands, State Pension share and glidepath, on the
- *           same futures, the household running out when the first of them does; a future is weighed by the chance either
+ *           same futures, the household's money one: once one plan's pots cannot pay its part, the other's pay what that
+ *           one's own income that comes anyway does not cover (a pension whose rises are capped buys less when prices rise
+ *           faster), and the household runs out when the money left cannot pay both parts; a future is weighed by the chance either
  *           of the two is alive at the start of the year it ran out in (it was the household model's own run, weighed month
  *           by month). Two linked plans say that same household figure (householdRun.householdLastsOf). The answers'
  *           amounts for a couple move, for some by over £100 a month (each plan taxes and shares its own); a one-person household is the plan
  *           test, as before. A couple with someone under the age a pension can be touched today, a couple who stop in
  *           different years, and a couple from a later stop stay on the household model's own run for now.
+ *           Keeping a couple's answer writes two plans whose spending adds up to the amount asked (each one's part cut in
+ *           proportion where the incomes that come anyway pay more than it, as one person's plan spends the amount itself);
+ *           it wrote each one's take-home as all of their own income that comes anyway. Two linked plans that do not both
+ *           draw from this tax year give no household figure (they were read on one clock from year 0).
  */
 export const ENGINE_VERSION = '6.39.0';

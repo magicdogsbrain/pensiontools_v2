@@ -170,17 +170,14 @@ describe('the words', () => {
     expect(seen).toBeGreaterThan(4);
   });
   it('a row whose every figure is As planned\'s is said to change nothing', () => {
-    // (7.12.0, step P4: the couple runs on the two plans keeping the answer would write. At £2,800 a month every future
-    // lasts to the plan-to age in every row, and no row but "spend more" runs out at all: those rows change nothing. Spending
-    // a tenth more still lasts to the plan-to age in every future, but some futures now run out after it, at 100 or 101,
-    // before the age they are followed on to (101 typically, 100 in the worst 1 in 10): that row says so, so it is not
-    // "the same". On the household model's own run no future ran out in that row either.)
+    // (7.12.0, step P4: the couple runs on the two plans keeping the answer would write, the household's money one. At
+    // £2,800 a month every future lasts in every row, and no row runs out at all, before the plan-to age or after it: every
+    // row changes nothing. While the household was out when the first plan was, spending a tenth more ran out at 100 or 101
+    // in some futures, after the plan-to age; with the other's money paying on, it does not, as on the household model's run.)
     const couple = RUN['d/answer-D2-couple'].strip;
     expect(couple.rows[0].chance.fixedAge).toBe(1);
-    expect(couple.rows.filter((x) => x.id !== 'asPlanned').map((x) => [x.id, x.same])).toEqual([['fall', true], ['lower', true], ['spend', false], ['prices', true]]);
-    const more = couple.rows.find((x) => x.id === 'spend');
-    expect(more.chance.fails).toBe(0);
-    expect(more.sf.when).toEqual({ typical: 101, worst: 100, worstLasts: true });
+    expect(couple.rows.filter((x) => x.id !== 'asPlanned').map((x) => [x.id, x.same])).toEqual([['fall', true], ['lower', true], ['spend', true], ['prices', true]]);
+    expect(couple.rows.find((x) => x.id === 'spend').chance.fails).toBe(0);
   });
 });
 

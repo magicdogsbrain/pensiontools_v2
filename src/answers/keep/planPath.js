@@ -44,12 +44,12 @@ import { effectiveStressSettings } from '../../services/PlanReading.js';
 import { jointSurvivalOf, weightToAge as jointWeightToAge } from '../../services/LongevityModel.js';
 import { planToAgeOf } from '../../services/AgeConvention.js';
 import { pct } from '../../strategies/ladderEngine.js';
-import { simulate } from '../../services/SimulationEngine.js';
+import { simulate, incomeAnywayByMonth } from '../../services/SimulationEngine.js';
 import { isIsaGrowthMix } from '../../services/IsaGrowth.js';
 import { planFor, weightedPlanFor, weighing } from '../plan/lastsRun.js';
 import { lifeOf, lifeOfSettings, keptSexOf, weightedReasonOf, weightedYearsOf, planLevelOf, floorAt } from '../plan/life.js';
 import { planShortfallOf } from '../../services/OneAnswer.js';
-import { grossToNet } from '../../services/TaxCalculator.js';
+import { grossToNet, netToGross } from '../../services/TaxCalculator.js';
 import { planDrawdown } from '../../services/DrawdownStrategy.js';
 import { grossUpAnnual } from '../../services/BudgetModel.js';
 import { leftOf as shortfallLeftOf } from '../shared/shortfall.js';
@@ -611,17 +611,22 @@ export function planCaseOf(source, ins, env, { lives = null, dragPct = 0, fromAg
  *   plans at H → PlanReading.effectiveStressSettings, each       the one settings recipe
  *             → lastsRun.planFor, weightedPlanFor, each           each plan's own run, followed on to the household's
  *                                                                 weighting age
- *             → one run per person with money to draw (as toEngine.js enginePlan: a person with nothing to draw has no run),
- *               on the same futures, each future's market shared by both (seed i × 7919 + 3, engine seed i: the plan test's)
+ *             → one run per plan, on the same futures, each future's market shared by both (seed i × 7919 + 3, engine
+ *               seed i: the plan test's); a couple's two runs are ONE household entry for the solvers (householdOf)
  *
- * The household runs out in the month the first of its runs does (a couple who stop in the same year: toEngine's rule), and
+ * The household's money is one (step P4, fix round 1): each plan pays its own part from its own pots; once one plan's pots
+ * cannot, the other's pay that part less what its owner's own income that comes anyway still pays in that future (a pension
+ * whose rises are capped buys less when prices rise faster: passOnConfig), and the household runs out when the other's money
+ * can no longer pay both parts — the household model's rule for a couple once both have stopped (toEngine.js passOnAt). A
+ * plan with nothing to draw on is a part too: its own income pays its part while it can, the other's money after. And
  * a future that runs out is weighed by the chance either of the two is alive at the start of the run YEAR it ran out in
  * (OneAnswer's yearly rule, LongevityModel.jointSurvivalOf on both plans' people). The ages are the younger's, as the
  * household plan says them ("until the younger of you is …"). With one plan this is the plan path's own case (planCaseOf):
  * a one-person household run is the plan test (tests/v7/cross/coupleIsPlans.test.js holds it to the bit).
  *
- * Pots & Valves only; both from now (a couple who stop in different years, a spending shape, a start moved to the day a
- * pension opens and someone under the age a pension can be touched today stay on the household plan's own run:
+ * Pots & Valves only; both from now, every plan drawing from this tax year (else it throws with reason 'notSameStart': a
+ * plan still saving runs on its own clock; a couple who stop in different years, a spending shape, a start moved to the day
+ * a pension opens and someone under the age a pension can be touched today stay on the household plan's own run:
  * couplesOnPlans).
  *
  *   coupleCaseOf(source, ins, env, { lives, dragPct, phasesAt, planAt, H0 }) → planCaseOf's case less the words (`words`
@@ -649,6 +654,11 @@ export function coupleCaseOf(source, ins, env, { lives = null, dragPct = 0, phas
     return c;
   };
   const first = at(isNum(H0) && H0 > 0 ? H0 : 12 * STEP);
+  // one clock: the household's runs read the futures from this tax year, so every plan must draw from it (a plan still
+  // saving, or one that starts later, runs on its own clock: its whole lives from its stop, which this run does not make)
+  if (first.some((x) => x.p.yearsToStart > 0) || new Set(first.map((x) => x.p.firstTaxYear)).size > 1) {
+    throw Object.assign(new Error('coupleCaseOf: the plans do not all draw from this tax year'), { reason: 'notSameStart' });
+  }
   const potsIn = (cfg) => (cfg.equityStart || 0) + (cfg.bondStart || 0) + (cfg.cashStart || 0) + (cfg.isaBalance || 0);
   // the household's ages are the younger's (the household plan's startAge); its years the longer plan's
   const table = env.lifeTable || undefined;
@@ -668,21 +678,37 @@ export function coupleCaseOf(source, ins, env, { lives = null, dragPct = 0, phas
   const drag = isNum(dragPct) && dragPct > 0 ? { returnDragPct: dragPct } : {};
   // the persons with money to draw, each a run (the same at every H: the amount moves only what each one draws)
   const drawing = first.map((x, idx) => idx).filter((idx) => potsIn(first[idx].p.pnvCfg) > 0);
+  // a couple's household run: both plans, the one with nothing to draw on too (its part is paid by its own income that comes
+  // anyway, and by the other's money once that income falls short: a pension whose rises are capped buys less in years when
+  // prices rise faster) — `parts`; one plan alone: its run, as the plan test runs it
+  const together = first.length > 1 && drawing.length > 0;
+  const parts = together ? first.map((x, idx) => idx) : drawing;
   /** Person idx's config at H: their plan's own, followed on to `yrs` when that is longer than the plan. */
   const cfgOf = (H, idx, yrs) => {
     const { settings, p } = at(H)[idx];
     const pRun = yrs > p.durationYears ? weightedPlanFor(settings, p, yrs, now) : p;
     return withIsaMix({ ...pRun.pnvCfg, ...drag, years: yrs });
   };
+  // each part's config at H (person by person, in `parts` order)
   const byH = new Map();
-  const configsAtH = (H) => {
+  const partsAtH = (H) => {
     const key = planAt ? 0 : H;
     let c = byH.get(key);
-    if (!c) { c = drawing.map((idx) => ({ who: first[idx].who, role: 'pension', config: cfgOf(H, idx, years) })); byH.set(key, c); }
+    if (!c) { c = parts.map((idx) => ({ who: first[idx].who, role: 'pension', config: cfgOf(H, idx, years) })); byH.set(key, c); }
+    return c;
+  };
+  // the configs the answers' solvers run at H: a couple's ONE household entry (both parts, run together: householdOf), one
+  // plan's own run
+  const byHousehold = new Map();
+  const configsAtH = (H) => {
+    if (!together) return partsAtH(H);
+    const key = planAt ? 0 : H;
+    let c = byHousehold.get(key);
+    if (!c) { c = [{ who: 'household', role: 'household', config: { household: true, H, years, parts: partsAtH(H).map((x) => x.config) } }]; byHousehold.set(key, c); }
     return c;
   };
   const H1 = isNum(H0) && H0 > 0 ? H0 : 12 * STEP;
-  const bases = configsAtH(H1);
+  const bases = partsAtH(H1);
   const given = typeof lives === 'function' ? lives(years) : lives;
   const L = given || livesList(env.futures, years, env);
   for (const l of L) if (!(l.years >= years)) throw new Error(`coupleCaseOf: a life of ${l.years} years is shorter than the ${years} the plan needs`);
@@ -692,15 +718,18 @@ export function coupleCaseOf(source, ins, env, { lives = null, dragPct = 0, phas
   // the two: each one's State Pension and the income that comes anyway as their plan counts it (wordsPlanFrom's reading)
   const anyway = first.map((x) => anywayByYear(x.p, x.settings, planYears));
   const gross = Array.from({ length: planYears }, (_, y) => anyway.reduce((t, a) => t + a.gross[y], 0));
-  const plan = {
-    runs: bases.map((b, r) => ({ base: b.config, index: r, role: 'pension', offset: 0 })), years, startAge, endAge: planToAgeOf(startAge, planYears),
+  // the persons' runs (the engine's), and the plan the solvers read: a couple's one household run, one plan's own run
+  const personRuns = bases.map((b, r) => ({ base: b.config, index: r, role: 'pension', offset: 0 }));
+  const shared = {
+    years, startAge, endAge: planToAgeOf(startAge, planYears),
     guaranteedAtStartAYear: 0, totalPots, shape: null, apart: null, runCapped: Boolean(w.capped && !reason), people: first.map((x) => ({ who: x.who })),
     guaranteedCeilingAYear: Math.max(0, ...gross)
   };
+  const plan = { ...shared, runs: !drawing.length ? [] : together ? [{ base: bases[0].config, index: 0, role: 'household', offset: 0, household: true }] : personRuns };
   const drawFutures = L.map((l) => ({ id: l.id, seed: l.seed, returns: sliceReturns(l, 0, years) }));
   const drivers = new Array(n).fill(null);
   const driversFor = (i) => drivers[i] || (drivers[i] = prepareFutureFrom(L[i], 0, years));
-  const fast = createFastRunner(plan, drawFutures, { driversFor });
+  const fast = createFastRunner({ ...shared, runs: personRuns }, drawFutures, { driversFor });
   let evaluations = 0;
   let months = 0;
   const fastRun = (r, i, config, hook = null, until = null, more = null) => {
@@ -708,6 +737,41 @@ export function coupleCaseOf(source, ins, env, { lives = null, dragPct = 0, phas
     months += res.failed ? res.failMonth + 1 : until === null ? 12 * config.years : Math.min(until, 12 * config.years);
     return res;
   };
+
+  /**
+   * THE HOUSEHOLD'S MONEY IS ONE (step P4, fix round 1): each plan pays its own part from its own pots, and once one plan's
+   * pots cannot pay its part, the other's pots pay what that one's own income that comes anyway does not cover, from then
+   * on; the household runs out when the money left can no longer pay both parts (the household model's own rule for a
+   * couple once both have stopped: toEngine.js passOnAt). In life i at the household config `hc`:
+   *   1. each part runs as its plan runs it;
+   *   2. none runs out: the household lasts;
+   *   3. else part j runs out first, in month m: the other part k runs again with j's shortfall added to its own part from
+   *      j's run-out year on (passOnConfig), and the household runs out when that run does (never before m: until then j
+   *      paid its own part).
+   * → { failed, failMonth, passOn: { from: j, to: k, month: m, config } | null } (the config k ran with).
+   */
+  const jointMemo = new WeakMap();
+  const householdOf = (i, hc) => {
+    let byLife = jointMemo.get(hc);
+    if (!byLife) { byLife = new Array(n).fill(null); jointMemo.set(hc, byLife); }
+    if (byLife[i]) return byLife[i];
+    const res = hc.parts.map((config, r) => fastRun(r, i, config));
+    let j = -1;
+    res.forEach((x, r) => { if (x.failed && (j < 0 || x.failMonth < res[j].failMonth)) j = r; });
+    let out;
+    if (j < 0) out = { failed: false, failMonth: null, passOn: null };
+    else {
+      const k = j === 0 ? 1 : 0;
+      const m = res[j].failMonth;
+      const config = passOnConfig(hc.parts[k], hc.parts[j], drawFutures[i].returns, m);
+      const again = fastRun(k, i, config);
+      const failMonth = again.failed ? Math.max(m, again.failMonth) : null;
+      out = { failed: failMonth !== null, failMonth, passOn: { from: j, to: k, month: m, config } };
+    }
+    byLife[i] = out;
+    return out;
+  };
+  const runOne = (r, i, config) => (config.household ? householdOf(i, config) : fastRun(r, i, config));
   const runner = {
     plan,
     potsFor: () => null, potsOf: () => bases.map((b) => ({ pension: b.config.equityStart + b.config.bondStart + b.config.cashStart, isa: b.config.isaBalance || 0 })),
@@ -715,9 +779,9 @@ export function coupleCaseOf(source, ins, env, { lives = null, dragPct = 0, phas
     configsFor: (k) => configsAtH(k * STEP * 12),
     fastRun,
     driversOf: (r, i) => fast.driversOf(r, i),
-    run(r, i, config) { evaluations++; return fastRun(r, i, config); },
+    run(r, i, config) { evaluations++; return runOne(r, i, config); },
     runUntil(r, i, config, until) {
-      if (!fast.stoppable(r, config)) return this.run(r, i, config);
+      if (config.household || !fast.stoppable(r, config)) return this.run(r, i, config);
       evaluations++;
       return fastRun(r, i, config, null, until);
     },
@@ -746,25 +810,36 @@ export function coupleCaseOf(source, ins, env, { lives = null, dragPct = 0, phas
     const y = all[Math.floor(ms.length / 10)];
     return Number.isFinite(y) ? Math.round(startAge + y) : planToAge;
   };
-  /** What is left at the plan-to age at H in each future (planCaseOf's reading), the two plans' pots added: £0 where the household ran out. */
+  /**
+   * What is left at the plan-to age at H in each future (planCaseOf's reading), the two plans' pots added: £0 where the
+   * household ran out. Where one plan's pots ran out before the plan-to age and the other's paid on (householdOf's pass-on),
+   * what is left is the other's, from the run it made paying both parts.
+   */
   let lastLeft = null;
   const leftTermsOf = (H, ms) => {
     if (lastLeft && lastLeft.H === H && lastLeft.ms === ms) return lastLeft.terms;
     const terms = new Float64Array(n);
-    const cs = configsAtH(H);
+    const cs = partsAtH(H);
+    const hc = together ? configsAtH(H)[0].config : null;
     for (let i = 0; i < n; i++) {
       const m = ms[i];
       if (m !== null && m !== undefined && m < toMonth) { terms[i] = 0; continue; }
       const ret = drawFutures[i].returns;
       let cumInfl = 1;
       for (let y = 0; y < planYears; y++) cumInfl *= (1 + (ret.inflation[y] ?? 0.025));
+      const po = hc ? householdOf(i, hc).passOn : null;
+      const handed = po && po.month < toMonth ? po : null;
       let t = 0;
       cs.forEach(({ config }, r) => {
-        if (fast.stoppable(r, config)) {
-          const s = fast.run(r, i, config, null, toMonth);
+        if (handed && r === handed.from) return;                    // its pots ran out: the other paid on
+        const own = handed && r === handed.to ? handed.config : config;
+        if (fast.stoppable(r, own)) {
+          const s = fast.run(r, i, own, null, toMonth);
           t += (s.equity + s.bond + s.cash) / cumInfl + (s.isa || 0) / cumInfl;
         } else {
-          const s = simulate(cfgOf(H, drawing[r], planYears), sliceReturns(L[i], 0, planYears), L[i].seed);
+          const plain = cfgOf(H, parts[r], planYears);
+          const c = handed && r === handed.to ? passOnConfig(plain, cfgOf(H, parts[handed.from], planYears), ret, handed.month) : plain;
+          const s = simulate(c, sliceReturns(L[i], 0, planYears), L[i].seed);
           t += s.failed ? 0 : s.finalReal + (s.finalIsa || 0) / (s.cumInflation || 1);
         }
       });
@@ -816,6 +891,37 @@ export function householdWordsTo(plan, c) {
 }
 
 /**
+ * The household's pass-on (coupleCaseOf householdOf): part k's config paying part j's shortfall too, from the month m in
+ * which j's pots could not pay j's part, in one future (its returns: the prices that future has).
+ *
+ * j's shortfall in run year y, today's money, after tax: j's take-home (its target after tax at its own bands, which rise with
+ * prices: the engine's net target, DrawdownStrategy.planDrawdown) less what j's own income that comes anyway pays after tax
+ * that year in this future (SimulationEngine.incomeAnywayByMonth: the engine's own sum, so a pension whose rises are capped
+ * buys what it buys in this future's prices, and a State Pension's first year is its share). From year y on, k's target is
+ * the gross whose take-home at k's bands is k's own take-home plus that shortfall (TaxCalculator.netToGross). In j's run-out
+ * year the shortfall is for the months from m to the year's end, spread over the months k pays in that year (all twelve,
+ * or year 0's own); a year in which nothing is short keeps k's target as it was, to the penny.
+ */
+export function passOnConfig(cK, cJ, returns, m) {
+  const years = cK.years;
+  const y1 = Math.floor(m / 12);
+  const anywayJ = incomeAnywayByMonth(cJ, returns, 12 * years);
+  const schedOf = (c, y) => (Array.isArray(c.targetSchedule) && c.targetSchedule[y] != null ? c.targetSchedule[y] : c.baseSalary);
+  const bandsOf = (c) => ({ pa: c.pa, brl: c.brl, hrl: c.hrl || 125140 });
+  const bJ = bandsOf(cJ), bK = bandsOf(cK);
+  const netOf = (g, b) => (g > 0 ? grossToNet(g, b.pa, b.brl, b.hrl) : 0);
+  const payingK = (y) => (y === 0 && isNum(cK.year0Months) && cK.year0Months > 0 && cK.year0Months < 12 ? cK.year0Months : 12);
+  const schedule = Array.from({ length: years }, (_, y) => schedOf(cK, y));
+  for (let y = y1; y < years; y++) {
+    const short = netOf(schedOf(cJ, y), bJ) - netOf(anywayJ[12 * y] * 12, bJ);
+    if (!(short > 0.005)) continue;
+    const share = y === y1 ? Math.min(1, (12 * (y1 + 1) - m) / payingK(y)) : 1;
+    schedule[y] = netToGross(netOf(schedule[y], bK) + share * short, bK.pa, bK.brl, bK.hrl);
+  }
+  return { ...cK, baseSalary: schedule[0], targetSchedule: schedule };
+}
+
+/**
  * What comes in anyway in each of a plan's years, before and after tax with its bands: its State Pension (a whole year from
  * its first year, as the words read it) and the income that comes anyway as the plan counts it (PlanNeed.lumpyByYear,
  * without income streams and the savings that pay a closed pension's years) — wordsPlanFrom's `anyway`, year by year.
@@ -834,12 +940,14 @@ function anywayByYear(p, settings, planYears) {
  * that lasts to the plan-to age, the weighted chance (joint), the verdict at the first plan's level, the middle run-out age,
  * the bad case and what is left, on the plans as they are. `partner` null: the one plan alone (the plan path's own case).
  * → { lasted, n, weighted, verdict, floorAge, worstAge, left: { typical, best }, planToAge, weightToAge, joint } or
- *   { reason } when the household cannot be run this way (a way of drawing other than Pots & Valves).
+ *   { reason } when the household cannot be run this way: 'notPotsAndValves' (a way of drawing other than Pots & Valves),
+ *   'notSameStart' (a plan that does not draw from this tax year: still saving, or starting later — read on one clock from
+ *   year 0 its runs and ages would be another plan's; couples who stop in different years are not on this run yet).
  */
 export function householdReadingOf(plan, partner, { today, futures = 1000, weighted = undefined, lifeTable = undefined } = {}) {
   const env = { today, futures, seed: 0, ...(weighted === undefined ? {} : { weighted }), ...(lifeTable ? { lifeTable } : {}) };
   let c;
-  try { c = coupleCaseOf(null, null, env, { planAt: () => ({ yours: plan, partner: partner || null }) }); } catch (e) { return { reason: 'notPotsAndValves', why: String(e && e.message) }; }
+  try { c = coupleCaseOf(null, null, env, { planAt: () => ({ yours: plan, partner: partner || null }) }); } catch (e) { return { reason: (e && e.reason) || 'notPotsAndValves', why: String(e && e.message) }; }
   const v = verdictAt(c.sp, c.runner, 0, { weigher: c.weigher, level: c.level, toMonth: c.toMonth });
   return { lasted: c.sp.n - v.fails, n: c.sp.n, weighted: c.weigher.weighted ? v.weighted : null, verdict: v.verdict, floorAge: c.floorAgeOf(v.runOutMonths),
     worstAge: c.worstAgeOf(v.runOutMonths), left: c.leftOf(0, v.runOutMonths), planToAge: c.planToAge, weightToAge: c.weightToAge, joint: c.couple };

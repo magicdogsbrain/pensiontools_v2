@@ -76,6 +76,9 @@ export const FACT = Object.freeze({
   // income
   STEP_BEFORE_TAX: 'income.step.#.beforeTax',
   STEP_MONTH_AFTER_TAX: 'income.step.#.monthAfterTax',
+  // the age a step starts at (Where you are's next step; src/reading/where.js) and the month the plan's figures are priced in
+  STEP_FROM_AGE: 'income.step.#.fromAge',
+  PRICES_FROM: 'plan.pricesFrom',
   MONTH_AFTER_TAX: 'income.perMonth.afterTax',
   SP_WEEK: 'statePension.week',
   SP_YEAR: 'statePension.amount',
@@ -99,6 +102,8 @@ export const FACT = Object.freeze({
   MONTH_TAKE: 'month.take.afterTax',
   MONTH_TAKE_PENSION: 'month.take.pension',
   MONTH_FROM: 'month.take.from',
+  // what a gilt ladder's rule pays this month (Where you are; src/reading/where.js ladderSentence)
+  LADDER_MONTHLY: 'ladder.monthly',
   TAKEN_YEAR: 'taken.againstPlan',
   // the way of drawing
   WAY_NAME: 'way.name',

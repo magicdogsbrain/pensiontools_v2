@@ -323,7 +323,8 @@ export const PLAN = {
     'where.potParts': '',
     /** The band counts the ISA and no figure for it exists anywhere (7.12.0). */
     'where.potNoIsa': '',
-    'where.ladderMonthly': 'Your plan pays',
+    /** A gilt ladder's month (step F5, src/reading/where.js ladderSentence, both views): the sentence carries its own words. */
+    'where.ladder': '',
     'says.pays': '',
     'says.sp': '',
     'says.spAssumed': '',

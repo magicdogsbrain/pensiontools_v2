@@ -80,7 +80,7 @@ import { startLaterOf, laterDraftLeftOf } from '../../services/PlanMove.js';
 import { shownPlanName } from '../../services/PlanName.js';
 import { takenSentence, firstPaymentMonth, monthToRecord } from '../../services/YearPlan.js';
 import { thisTaxYearOf, thisYearSentences } from '../../reading/thisYear.js';
-import { planYearSentence, stepSentence } from '../../reading/where.js';
+import { planYearSentence, stepSentence, ladderSentence } from '../../reading/where.js';
 // the plans linked to this one, in either direction (6), this plan's own link first; never a closed plan (services/HouseholdLink.js)
 import { partnersOf, partnerIdOf } from '../../services/HouseholdLink.js';
 
@@ -515,8 +515,10 @@ function whereStep(C) {
   let guardrail = null;
   if (STRESS_ON.guardrail && !w.saving) { try { const g = guardrailOf(plan.planDocument, w); guardrail = g ? { state: g.state, slots: g.slots, cuts: g.cutsOn } : null; } catch { guardrail = null; } }
   if (w.contract && !inputs.ladderInDocument) notes.push('where.ladderNotInDocument');
-  if (w.ladder && typeof w.ladder.monthly === 'number' && w.ladder.monthly > 0 && !lines.some((l) => l.id === 'where.yearPlan')) {   // the month's figure once: the year as set up says it (7.12.0)
-    figures.ladderMonthly = r0(w.ladder.monthly); lines.push(line('where.ladderMonthly', [money('ladderMonthly'), ' a month before tax'], figures, sourceOf('locked', lockedAt, now))); }
+  // a gilt ladder's month, the one sentence both views say (step F5, src/reading/where.js): the month's figure once — the year
+  // as set up says it (7.12.0)
+  const ladderSaid = ladderSentence(w, { yearSaid: lines.some((l) => l.id === 'where.yearPlan') });
+  if (ladderSaid) { Object.assign(figures, ladderSaid.figures); lines.push(line(ladderSaid.id, ladderSaid.parts, figures, sourceOf('locked', lockedAt, now))); }
   // the records by tax year, a spreadsheet per year and the printed documents stay on the classic page (road-to-7.md step 11b, month.exports)
   const older = !w.saving && !!C.startLater && C.startLater.start > C.ty;
   const startHere = older && !C.readonly ? [link('aboutWhen', '#/plan/' + plan.id + '/about')] : [];

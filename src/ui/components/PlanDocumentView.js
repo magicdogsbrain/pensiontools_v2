@@ -21,7 +21,7 @@ import { markFact } from '../../reading/mark.js';
 import { LABELS } from '../../reading/labels.js';
 import { FACT, factId } from '../../reading/facts.js';
 import { GUARDRAIL_FACTS, TAKEN_FACTS, PLAN_MIX_SLOTS, sentenceHtml } from '../../reading/sentenceMarks.js';
-import { planYearSentence, stepSentence, WHERE_KEYS, stepKeysOf } from '../../reading/where.js';
+import { planYearSentence, stepSentence, ladderSentence, WHERE_KEYS, stepKeysOf, STEP_FINDS } from '../../reading/where.js';
 
 const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 const dateGB = (iso) => { const d = new Date(iso); return Number.isFinite(d.getTime()) ? d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : ''; };
@@ -508,13 +508,15 @@ export function whereAmIHtml(w, g = null, { steps = null, year = null } = {}) {
     if (py) parts.push('<strong>' + sentenceHtml(py, py.figures, { keys: WHERE_KEYS[py.id] }, esc) + '</strong>');
   }
   const st = stepSentence(w, steps);
-  if (st) parts.push(sentenceHtml(st, st.figures, { keys: stepKeysOf(st) }, esc));
+  if (st) parts.push(sentenceHtml(st, st.figures, { keys: stepKeysOf(st), finds: STEP_FINDS }, esc));
   if (year && year.plan) parts.push(year.plan);
   const income = incomeThisYearText(w.incomeThisYear);
   if (income) parts.push(income);
   const potText = whereAmIPotText(w.pot);
   if (potText) parts.push(potText);
-  if (w.ladder && w.ladder.instruction) parts.push(esc(w.ladder.instruction));
+  // a gilt ladder's month: the one sentence both views say, the month's figure once (step F5, src/reading/where.js)
+  const lad = ladderSentence(w, { yearSaid: !!(year && year.plan) });
+  if (lad) parts.push(sentenceHtml(lad, lad.figures, { keys: WHERE_KEYS[lad.id] }, esc));
   // the guardrail reading (7.9.0; services/PlanDocument.js guardrailOf, passed in by the page): the words V7 says
   const guard = g && STRESS_ON.guardrail && STRESS.guardrail[g.state] ? '<p class="hint" id="planDocGuardrail" data-guardrail="' + esc(g.state) + '" style="margin:6px 0 0;">' + fillSlotsMarked(STRESS.guardrail[g.state], g.slots, GUARDRAIL_FACTS) + esc(g.cutsOn ? ' ' + STRESS.guardrail.cuts : '') + '</p>' : '';
   return '<div class="alert alert-info pd-where"><div class="section-title" style="font-size:13px;">Where you are — ' + esc(dateGB(w.today)) + '</div><p style="margin:4px 0 0;">' + parts.join(' ') + '</p>' + guard + (year && year.changed ? year.changed : '') + '</div>';

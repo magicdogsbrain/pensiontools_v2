@@ -7,7 +7,8 @@
 import { describe, it, expect } from 'vitest';
 import { FIXTURES, PARITY_DAY } from '../../e2e/parity/fixtures/plans.js';
 import { upgradeScenario } from '../../src/firebase/scenarioMigration.js';
-import { planYearSentence, stepSentence, WHERE_KEYS } from '../../src/reading/where.js';
+import { planYearSentence, stepSentence, ladderSentence, WHERE_KEYS } from '../../src/reading/where.js';
+import { yearPlanHtml, thisYearOfPlan } from '../../src/ui/thisYearHtml.js';
 import { whereAmIFor } from '../../src/services/PlanReading.js';
 import { incomeStepsOf } from '../../src/reading/income.js';
 import { whereAmIHtml } from '../../src/ui/components/PlanDocumentView.js';
@@ -48,6 +49,19 @@ describe('the plan year, in words both views may say', () => {
   });
 });
 
+describe('the ladder\'s month', () => {
+  const w = (ladder) => ({ planYear: 2, planYears: 30, taxYear: '2026/27', ladder });
+  it('the plan\'s rule for the month, its figure marked; nothing beside a year set up that says the month', () => {
+    const s = ladderSentence(w({ phase: 'running', monthly: 2833.4, instruction: 'The plan pays £2,833 a month for the 5 months to 5 April 2027.' }));
+    expect(text(s)).toBe('The plan pays £2,833 a month for the 5 months to 5 April 2027.');
+    expect(s.parts.filter((p) => typeof p !== 'string')).toEqual([{ key: 'ladderMonthly', kind: 'money' }]);
+    expect(WHERE_KEYS['where.ladder']).toEqual({ ladderMonthly: FACT.LADDER_MONTHLY });
+    expect(ladderSentence(w({ phase: 'running', monthly: 2833.4, instruction: 'The plan pays £2,833 a month.' }), { yearSaid: true })).toBe(null);
+    expect(text(ladderSentence(w({ phase: 'before', monthly: 0, instruction: 'The ladder starts in 2029/30.' }), { yearSaid: true }))).toBe('The ladder starts in 2029/30.');
+    expect(ladderSentence(w(null))).toBe(null);
+  });
+});
+
 describe('both views draw the one builder\'s sentences', () => {
   const tried = [];
   for (const f of FIXTURES) {
@@ -71,6 +85,15 @@ describe('both views draw the one builder\'s sentences', () => {
       // the first year and a year past the last say no count of years into the plan
       if (w.planYear > 0 && w.planYear < w.planYears) expect(marks(full)).toContain('plan.year=' + w.planYear);
       expect(marks(full)).toContain('plan.years=' + w.planYears);
+      // the ladder's month, said once: not beside the year as set up, which says the month's figure (7.12.0), in both views
+      const t = thisYearOfPlan(plan, NOW);
+      const yearPlan = t && t.setUp ? yearPlanHtml(t) : '';
+      const lad = ladderSentence(w, { yearSaid: !!yearPlan });
+      const fullWith = whereAmIHtml(w, null, { steps, year: yearPlan ? { plan: yearPlan, changed: '' } : null });
+      if (lad) {
+        expect(plain(fullWith), 'the full view says the ladder').toContain(text(lad));
+        expect(said, 'the simple view says the ladder').toContain(text(lad));
+      } else expect(said.some((x) => /^The ladder|^The plan pays/.test(x)), 'nor does the simple view').toBe(false);
       const st = stepSentence(w, steps);
       if (st) {
         expect(plain(full), 'the full view says the step').toContain(text(st));

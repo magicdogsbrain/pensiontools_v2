@@ -10,6 +10,7 @@
  */
 
 import { GILTS_HELD_FIND, LASTS_FINDS, THIS_YEAR_FROM_FIND, THIS_YEAR_ON_FIND } from '../../reading/sentenceMarks.js';
+import { STEP_FINDS } from '../../reading/where.js';
 
 /** The words under "Does it last?" (OneAnswer's weighted words), marked as the full view marks them: a row id → its finds. */
 const LASTS_ROW_FINDS = Object.freeze({ floorW: LASTS_FINDS.floor, leftW: LASTS_FINDS.left, assumedW: LASTS_FINDS.assumed, fixedW: LASTS_FINDS.fixed });
@@ -33,6 +34,7 @@ const FIGURES = Object.freeze({
   'where.taken:drawn': 'taken.againstPlan',
   'where.planYear:planYear': 'plan.year',
   'where.planYear:planYears': 'plan.years',
+  'where.ladder:ladderMonthly': 'ladder.monthly',
   'where.retired:drawn': 'taken.againstPlan',
   'where.yearChanged:planYear': 'income.thisYear.planSays',
   'where.yearChanged:yearMonthly': 'income.thisYear.perMonth',
@@ -66,7 +68,8 @@ const FIGURES = Object.freeze({
 const NUMBERED = Object.freeze({
   'income.lump:lump': 'lump.#.amount',
   'pays.step:step': 'income.step.#.beforeTax',
-  'where.step:step': 'income.step.#.beforeTax'
+  'where.step:step': 'income.step.#.beforeTax',
+  'where.step:from': 'income.step.#.fromAge'
 });
 
 export function figureFactOf(lineId, key) {
@@ -89,7 +92,8 @@ const FINDS = Object.freeze({
   'lock.locked': [[/^(Locked)\b/, 'lock.state'], [/^Locked (.+)$/, 'lock.date']],
   'lock.notLocked': [[/^(Not locked)/, 'lock.state']],
   'where.yearPlan': [[THIS_YEAR_FROM_FIND, 'income.thisYear.from'], [THIS_YEAR_ON_FIND, 'income.thisYear.setUpOn']],
-  'where.yearChanged': [[THIS_YEAR_ON_FIND, 'income.thisYear.setUpOn']]
+  'where.yearChanged': [[THIS_YEAR_ON_FIND, 'income.thisYear.setUpOn']],
+  'where.step': STEP_FINDS
 });
 export const sentenceFindsOf = (id) => FINDS[id] || [];
 

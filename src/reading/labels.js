@@ -28,6 +28,9 @@ export const LABELS = Object.freeze({
   [FACT.END_AGE]: { label: 'Plan to age', basis: 'an age' },   // both views' box (step F1)
   [FACT.LOCKED]: { label: 'Locked', basis: 'words' },
   [FACT.LOCK_DATE]: { label: 'Locked on', basis: 'a day' },
+  [FACT.LADDER_MONTHLY]: { label: 'Your plan pays', basis: 'a month before tax' },
+  [FACT.STEP_FROM_AGE]: { label: 'Step starts at', basis: 'an age' },
+  [FACT.PRICES_FROM]: { label: 'In the prices of', basis: 'a month' },
   [FACT.PLAN_YEAR]: { label: 'Years into the plan', basis: 'a count' },
   [FACT.PLAN_YEARS]: { label: 'Tax years in the plan', basis: 'a count' },
   [FACT.DUE_NEXT]: { label: 'Next', basis: 'words' },

@@ -476,8 +476,11 @@ test.describe('parity round trips: a new plan after another', () => {
     const stored = (await plansOf(acct.uid)).find((p) => p.id !== first.id);
     expect(stored, 'the wizard made a new plan').toBeTruthy();
     // a figure the new plan holds itself (a default it shares with the first) is not a carry-over; the first plan's name in
-    // the plan menus is the first plan itself, so names are not looked for
-    const own = figuresOf(stored);
+    // the plan menus is the first plan itself, so names are not looked for. Since step F6 (lead4.md D2) a new plan stores only
+    // what was given and reads the rest as the named assumptions (the same defaults it used to store), so its own figures are
+    // what it stores and what it reads (its Stress settings as read, and its Month-by-month settings as stored, where the
+    // recovery buffer it reads now lives): exactly the set it held before, nothing more
+    const own = new Set([...figuresOf(stored), ...figuresOf({ stressTool: { settings: readSettings(stored) } }), ...figuresOf({ stressTool: { settings: (stored.decisionTool && stored.decisionTool.settings) || {} } })]);
     const look = [...figuresOf(first)].filter((n) => !own.has(n));
     const hits = new Map();
     const scan = async (where) => {

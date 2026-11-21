@@ -20,7 +20,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test, expect, PROD, REPO, FIXED_NOW, SLOWDOWN, record, watchLanding, landingShown, V7_PATH, atClassic } from './helpers/app.js';
 import { lockInNode } from './helpers/lockInNode.js';
-import { LOCK_WRITES, UNLOCK_WRITES } from '../src/answers/plan/schema.js';
+import { LOCK_WRITES, UNLOCK_WRITES, LOCK_AS_READ_WRITES } from '../src/answers/plan/schema.js';
 
 /** The label a lock made here carries (src/answers/plan/lock.js LOCKED_BY; tests/v7/plan/lock.test.js pins the two as one). */
 const LOCKED_BY = 'locked in PensionTools';
@@ -113,8 +113,12 @@ test.describe('"Lock the plan", without an account', () => {
     // ONE plan written, by the declared keys only; the locked plan byte-identical; the text otherwise identical
     const after = await storedPlans(page);
     expect(JSON.stringify(after[1])).toBe(JSON.stringify(planted[1]));
-    expect(stripped(after[0], LOCK_WRITES)).toBe(stripped(planted[0], LOCK_WRITES));
+    // step F5: the charge and the ISA choice as the plan read them go with the lock (a plan saved before them would read 0%
+    // and a fixed 3% once locked, unlike its document)
+    expect(stripped(after[0], [...LOCK_WRITES, ...LOCK_AS_READ_WRITES])).toBe(stripped(planted[0], [...LOCK_WRITES, ...LOCK_AS_READ_WRITES]));
     const S = after[0];
+    expect(S.stressTool.settings.chargesPct).toBe(S.planDocument.assumptions.chargesPct);
+    expect(S.stressTool.settings.isaGrowth).toBe(S.planDocument.assumptions.isaGrowth);
     expect(S.decisionTool.settings.locked).toBe(true);
     expect(S.decisionTool.settings.lockedBy).toBe(LOCKED_BY);
     expect(S.decisionTool.settings.lockedAt).toBe(FIXED_NOW);
@@ -124,7 +128,7 @@ test.describe('"Lock the plan", without an account', () => {
     expect(S.planDocument.planName).toBe('Alex’s plan');
     expect(S.decisionTool.planOfRecord.savedAt).toBe(FIXED_NOW);
     expect(S.journey[S.journey.length - 1].at).toBe(FIXED_NOW);
-    expect(S.stressTool.settings).toEqual(planted[0].stressTool.settings);
+    expect(S.stressTool.settings).toEqual({ ...planted[0].stressTool.settings, chargesPct: 0.5, isaGrowth: 'cash' });   // step F5: the two as the plan read them (it was saved before them)
     expect(S.lastModified).toBe(FIXED_NOW);
     // the document, the plan of record and the journey equal the same lock worked out in Node — every figure to the pound
     // (the browser's and Node's floating point differ in the last digit of a cone's value; the planner's own checks read to the pound)
@@ -260,7 +264,13 @@ test.describe('"Lock the plan", without an account', () => {
     expect((await storedPlans(page))[0].decisionTool.settings.locked).toBe(true);
     await page.getByTestId('plan.plan.undo').click();
     await expect(page.getByTestId('plan.plan.toast')).toContainText('Put back as it was.', { timeout: 30_000 });
-    expect(await page.evaluate((k) => sessionStorage.getItem(k), GUEST_KEY)).toBe(stored);
+    // byte for byte, bar the charge and the ISA choice the lock wrote as the plan read them (step F5): Undo leaves them, the
+    // values the upgrade gives this plan saved before them, so it reads as it did
+    const back = await storedPlans(page), was = JSON.parse(stored);
+    expect(JSON.stringify(back[1])).toBe(JSON.stringify(was[1]));
+    expect(stripped(back[0], LOCK_AS_READ_WRITES)).toBe(stripped(was[0], LOCK_AS_READ_WRITES));
+    expect(back[0].lastModified).toBe(was[0].lastModified);
+    expect([back[0].stressTool.settings.chargesPct, back[0].stressTool.settings.isaGrowth]).toEqual([0.5, 'cash']);
     await expect(page.getByTestId('plan.step.plan')).toHaveText('Your plan', { timeout: 30_000 });
     await expect(page.getByTestId('rail.plan.lock')).toHaveCount(1);   // on the rail again (a closed sheet on a phone: present, not shown)
   });

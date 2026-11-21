@@ -180,7 +180,9 @@ export const MIX = {
   },
   locked: {
     lead: 'This plan is locked, so its mix is fixed. The tries and the comparison still run; nothing here changes the plan.',
-    document: 'The plan as locked on {date} lasts {words}; in a bad case (the worst 1 in 10) {bad} is left at the end.'
+    document: 'The plan as locked on {date} lasts {words}; in a bad case (the worst 1 in 10) {bad} is left at the end.',
+    // the plan's own mix as locked (step F6): the plan document's first year, as the full view's plan document says it
+    planMix: 'The plan’s mix as locked: shares {shares}%, bonds {bonds}%, cash {cash}%.'
   },
   readonly: 'This plan is shown as it was saved and cannot be changed here. Nothing has been lost.',
   notRun: 'This plan is shown as it was saved, so nothing is run here. Nothing has been lost.',

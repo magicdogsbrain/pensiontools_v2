@@ -344,6 +344,7 @@ export const PLAN = {
     'pays.notSet': 'No income set yet: say what you want to spend.',
     'pots.pension': 'Pension pot',
     'pots.split': 'Split',
+    'pots.bought': 'How it is held',
     'pots.isa': 'ISA',
     'pots.gia': 'Ordinary investment account',
     'pots.atStop': 'Pots when you stop',

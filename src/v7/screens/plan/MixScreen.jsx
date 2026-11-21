@@ -13,6 +13,7 @@
 import { PlanRail, changeAction, EditField, UndoToast, fill, Button, LinkButton, RunRing, Held } from '../../components/index.js';
 import { LOCK_DATE } from '../../components/facts.js';
 import { fillMarked } from '../../components/PlanFigures.jsx';
+import { PLAN_MIX_SLOTS } from '../../../reading/sentenceMarks.js';
 import { TABLES } from '../../../reading/facts.js';
 import { planView, planMixView } from '../../state/select.js';
 import { href } from '../../router/routes.js';
@@ -420,6 +421,7 @@ export function MixScreen(state, dispatch) {
   const lockedLines = (
     <>
       {V.locked && <p class="note" data-testid="plan.mix.locked">{MIX.locked.lead}</p>}
+      {V.locked && V.planMix && <p class="line" data-testid="plan.mix.planMix">{fillMarked(MIX.locked.planMix, V.planMix, PLAN_MIX_SLOTS)}</p>}
       {V.locked && V.document && <p class="note" data-testid="plan.mix.document">{fill(MIX.locked.document, { date: V.document.lockedOn, words: V.document.words, bad: V.document.badCaseLeft })}</p>}
       {V.readonly && <p class="notice" role="status" data-testid="plan.mix.readonly">{MIX.readonly}</p>}
       {!V.runKey && <p class="notice" role="status" data-testid="plan.mix.notRun">{MIX.notRun}</p>}

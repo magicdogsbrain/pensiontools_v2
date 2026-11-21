@@ -30,7 +30,7 @@ import { planStage, settingsForScreen } from '../../services/PlanReading.js';
 import { sequence, tickMove, untickMove } from '../../services/TransitionPlanner.js';
 import { normaliseHoldings } from '../../services/HoldingsRecord.js';
 import { proportions } from '../../services/Holdings.js';
-import { moveReadingOf, giltsCountOf, sheetOf } from '../../reading/holdings.js';
+import { moveReadingOf, giltsCountOf, sheetOf, planMixOf } from '../../reading/holdings.js';
 import { rotationWatch } from '../../services/RotationStatus.js';
 import { taxYearLabel, deriveTiming, taxYearStartOf } from '../../services/PlanTiming.js';
 import { CONTRACT_STRATEGIES } from '../../services/PlanDocument.js';
@@ -119,8 +119,9 @@ export function savedMove(plan, { today, index = null, life = null }) {
   const a = dr ? oneAnswer(dr, dp || {}) : null;
   const own = a ? { share: a.share, words: futuresOutOfTen(a.share).words, lockedOn: dayWords(doc.lockedAt || lockedAtOf(plan)) } : null;
   // the plan's own mix (the document's year-0 target), beside the held mix for a saver (§3.4)
-  const mix0 = Array.isArray(doc.targetMix) && doc.targetMix.length ? doc.targetMix[0] : null;
-  const planMix = mix0 ? { shares: String(r0(mix0.equity)), bonds: String(r0(mix0.bond)), cash: String(r0(mix0.cash)) } : null;
+  // the one reader of the plan's mix (src/reading/holdings.js planMixOf; step F6): the document's year 0, as the mix page says it
+  const pm = planMixOf(plan, { now });
+  const planMix = pm ? { shares: String(pm.shares), bonds: String(pm.bonds), cash: String(pm.cash) } : null;
   return { ...base, hasDocument: true, m, reading, seq, sheet, watch, spGate, own, contributionsMonthly, planMix, isa: m.target.kind === 'ladder' ? (m.target.isaIn ? 'in' : num(doc.pots && doc.pots.isa) > 0 ? 'hold' : 'none') : null };
 }
 

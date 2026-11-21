@@ -37,6 +37,7 @@ import { planHasFigures } from '../../services/PlanFigures.js';
 import { MIX_FIELDS, MIX_LISTS, MIX_LEVELS, MIX_SPLIT, MIX_WRAPPERS, MIX_WHATS, MIX_WRITES, isCardId } from './schema.js';
 import { dateOf, dayWords } from './dates.js';
 import { shownPlanNameOn } from '../../services/PlanName.js';
+import { planMixOf } from '../../reading/holdings.js';
 
 export { applyPatch, runKeyOf };
 
@@ -485,6 +486,8 @@ export function mixOf(entries, id, { today, typed = null, M = null, base = null 
     fields, lists: { funds: { ids: c.lists.funds.ids, cards: c.lists.funds.cards.map((card) => ({ id: card.id, saved: !!card.saved, fields: card.fields, bucket: card.bucket, recognised: card.recognised, category: card.category })) } },
     categories: CATEGORY_GROUPS, errors: c.errors, ok: c.ok, derived, sleeve, tent, search, example: { rows: example.rows, level: c.values.level || saved.values.level },
     summary, paste: c.paste, compare: cmp, pick: pickWords,
+    // the plan's own mix as locked (src/reading/holdings.js planMixOf; step F6): the document's year 0, as the full view's plan document says it
+    planMix: saved.locked ? (() => { const pm = planMixOf(plan, { now: dateOf(today) }); return pm ? { shares: String(pm.shares), bonds: String(pm.bonds), cash: String(pm.cash) } : null; })() : null,
     document: saved.document ? { badCaseLeft: pounds(saved.document.badCaseLeft), words: futuresOutOfTen(saved.document.share).words, lockedOn: saved.document.lockedOn } : null,
     documentBase: mixBaseOf(plan, { today }),
     base: baseMine ? { badCaseLeft: pounds(baseMine.badCaseLeft), words: futuresOutOfTen(baseMine.share).words, chance: chance({ chancePct: baseMine.share * 100 }) } : null,

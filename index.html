@@ -4243,6 +4243,7 @@
     import { proportions as holdingsProportions, describeMix } from './src/services/Holdings.js';
     import { tickMove, untickMove } from './src/services/TransitionPlanner.js';   // the move's target, diff and schedule are the one reading's (step F6: keepHoldingsUi.transitionHeld → moveOf)
     import { transitionHtml } from './src/ui/components/TransitionView.js';
+    import { typedLineOf, ordersOf as holdOrdersOf } from './src/answers/plan/hold.js';   // "Add a line" and the paste's orders: the simple view's readers (step F6)
     import { installKeepHandlers, transitionHeld, nameTransitionTab, installKeepTestHandlers, transitionKeepTest, keepLineHtml } from './src/ui/keepHoldingsUi.js'; import { installStressPanel } from './src/ui/stressPanelUi.js'; import { markFact, markWithin, tableAttr, cellAttr, asWhatIf } from './src/reading/mark.js'; import { markFieldBoxes, fieldAttrOf } from './src/reading/fields.js'; import { trackBusy } from './src/reading/busy.js'; import { HELD_MIX_FINDS } from './src/reading/sentenceMarks.js';   // "Try the bad years" on the Scenarios page (7.9.0)
     import { parsePaste, matchRows, mergeLedger, categorise, applyPaste } from './src/services/HoldingsPaste.js';
     import { pastePreviewHtml } from './src/ui/components/HoldingsPasteView.js';   // every pasted line counts (6.23)
@@ -7189,15 +7190,16 @@
       document.getElementById('pasteHoldingsOverlay')?.remove();
       // Gilt rungs to match against: the plan document's order sheet, else the last strategy run's (a draft
       // plan that has been stress-tested but not locked yet — 6.10.5).
-      let orders = []; try { const doc = await getActivePlanDocument(); orders = doc?.strategy?.r?.plan?.orders || []; } catch (e) { orders = []; }
-      if (!orders.length && window._latestStrategyStress?.plan?.orders) orders = window._latestStrategyStress.plan.orders;
+      // the plan document's orders only, as the simple view matches a paste (answers/plan/hold.js ordersOf; step F6): never a
+      // strategy's last run, which is not the plan
+      let orders = []; try { orders = holdOrdersOf(await getActiveScenarioAsStored()); } catch (e) { orders = []; }
       window._pasteCtx = { p, orders, matched: null, wrapper: 'SIPP' };
       const ov = document.createElement('div'); ov.id = 'pasteHoldingsOverlay';
       ov.style.cssText = 'position:fixed;inset:0;z-index:1300;background:rgba(0,0,0,.55);display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:24px 12px;';
       ov.innerHTML = '<div class="card" style="max-width:900px;width:100%;">'
         + '<h2 style="margin-top:0;">' + (p === 'hold' ? 'Paste what you hold' : 'Paste a list to test') + '</h2>'
         + '<p class="hint">Open your platform\'s holdings page (or its export), select the table, copy, and paste it below. Any layout works: the tool looks for a name, units, value, and a SEDOL or ticker. Nothing you paste leaves this browser; ' + (p === 'hold' ? 'the resulting list is saved with your plan as what you hold.' : 'the resulting list becomes the funds this strategy is tested on — it does not change what you hold, and is kept only when you Save Settings.') + '</p>'
-        + '<div class="row-flex" style="margin-bottom:6px;"><label class="hint" style="display:flex;flex-direction:column;gap:2px;">' + (p === 'hold' ? 'These holdings are in' : 'Treat this list as held in') + '<select id="pasteWrapper" style="width:160px;"><option value="SIPP" selected>SIPP / pension</option><option value="ISA">ISA</option><option value="GIA">Taxable account (GIA)</option></select></label></div>'
+        + '<div class="row-flex" style="margin-bottom:6px;"><label class="hint" style="display:flex;flex-direction:column;gap:2px;">' + (p === 'hold' ? 'These holdings are in' : 'Treat this list as held in') + '<select id="pasteWrapper" style="width:160px;"><option value="SIPP" selected>SIPP / pension</option><option value="ISA">ISA</option><option value="GIA">Taxable account (GIA)</option>' + (p === 'hold' ? '<option value="CASH">Bank cash</option>' : '') + '</select></label></div>'
         + '<textarea id="pasteText" rows="8" style="width:100%;font-family:monospace;font-size:12px;" placeholder="Investment,Units,Value&#10;Vanguard FTSE All-World UCITS ETF,500,£52,600.00&#10;Treasury 0.125% I/L 22/03/2030,35000,£38,584.00"></textarea>'
         + '<div class="row-flex" style="margin-top:8px;"><button type="button" data-on-click="previewPasteHoldings()">Preview</button><button type="button" class="secondary" data-on-click="document.getElementById(\'pasteHoldingsOverlay\').remove()">Cancel</button></div>'
         + '<div id="pastePreview" style="margin-top:10px;"></div></div>';
@@ -7302,7 +7304,10 @@
       const d = window._holdingsDraft || (window._holdingsDraft = emptyHoldings());
       const g = (id) => { const el = document.getElementById(id); return el ? String(el.value || '').trim() : ''; };
       const ticker = g('hlTicker'), name = g('hlName'), wrapper = g('hlWrapper') || 'SIPP', value = g('hlValue'), units = g('hlUnits');
-      const line = { wrapper, ticker: ticker.toUpperCase(), name, sedol: null, units: units === '' ? null : +units, value: value === '' ? null : +value, ocf: null, contribution: null, subClass: null, kind: null, asOf: null };
+      // the line the simple view's add makes of the same typing (answers/plan/hold.js typedLineOf; step F6): a gilt on the order
+      // sheet or typed by its code is a gilt, a bundled fund that fund, cash is cash — in both views
+      let orders = []; try { const sc = await getActiveScenarioAsStored(); orders = holdOrdersOf(sc); } catch (e) { orders = []; }
+      const line = typedLineOf({ ticker, name, wrapper, value: value === '' ? null : +value, units: units === '' ? null : +units }, { orders }) || { wrapper, ticker: null, name: '', sedol: null, units: null, value: null, ocf: null, contribution: null, subClass: null, kind: null, asOf: null };
       if (ticker || name) { await persistHoldings(holdingsWith(d, { kind: 'add', line }, { today: new Date() })); return; }   // a filled row saves at once (HoldingsRecord.holdingsWith, 6.43.0)
       d.lines.push(line);
       await loadTransitionUI(d);   // an empty row to type into, kept until Save

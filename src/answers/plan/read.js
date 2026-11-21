@@ -648,7 +648,10 @@ function planStep(C) {
   const potGia = r0(giaToday(plan, rctx).value);
   figures.sipp = potSipp; figures.isa = potIsa; figures.gia = potGia;
   pots.push(line('pots.pension', [money('sipp')], figures, src));
-  if (!locked) {
+  // a way that buys its income (a gilt ladder, a floor): the pension is held as the way buys it — its gilts and its cash years —
+  // never split into shares, bonds and cash (step F6, lead4.md D19), as the full view's settings and plan document say it
+  if (isBought(stratId(plan, ss))) pots.push(line('pots.bought', ['Held as your way of drawing buys it, not split into shares, bonds and cash'], figures, src));
+  else if (!locked) {
     // the split the plan draws on (its settings' pots are the pension today on a plan still saving: PlanReading.withSaversPensionToday)
     const potStored = r0(ss.equityMin) + r0(ss.bondMin) + r0(ss.cashTarget) + r0(ss.diversifierStart);
     const k = potStored > 0 && !ss.potsNotSet ? potSipp / potStored : 1;

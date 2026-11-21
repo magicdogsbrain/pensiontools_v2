@@ -24,7 +24,9 @@ import { HELD } from '../../v7/copy/held.js';
 import { PLAN } from '../../v7/copy/plan.js';
 import { LAYOUT } from '../../appLayout.js';
 import { markWithin, markFact, tableAttr, cellAttr } from '../../reading/mark.js';
-import { GILTS_HELD_FIND, MOVE_MONEY_FINDS, PLAN_MIX_SLOTS } from '../../reading/sentenceMarks.js';
+import { GILTS_HELD_FIND, MOVE_MONEY_FINDS, PLAN_MIX_SLOTS, HELD_MIX_SLOTS } from '../../reading/sentenceMarks.js';
+import { holdingsTotalsOf, heldMixOf } from '../../reading/holdings.js';
+import { HOLD } from '../../v7/copy/hold.js';
 import { TABLES } from '../../reading/facts.js';
 import { moveStatusOf, sayMoveStatus, payingOf, outsideRowsOf, moveTotalsOf, cashRowsOf, fillMove } from '../../answers/plan/moveWords.js';
 
@@ -312,8 +314,11 @@ export function holdingsCardHtml({ holdings = null, offer = null, keep = null } 
       ];
     });
     h += table(['Wrapper', 'Ticker / gilt code', 'Name', 'Units', 'Value', 'What it is', ''], rows);
-    const byW = {}; for (const l of lines) { const w = String((l && l.wrapper) || 'SIPP').toUpperCase(); byW[w] = (byW[w] || 0) + (+(l && l.value) || 0); }
-    h += '<p class="hint" style="margin-top:6px;">Total ' + markFact('holdings.total', gbp(Object.values(byW).reduce((t, v) => t + v, 0))) + ' — ' + HOLDING_WRAPPERS.filter((w) => byW[w] > 0).map((w) => w + ' ' + markFact('holdings.' + w.toLowerCase(), gbp(byW[w]))).join(' · ') + '. Units matter for gilts (the nominal); value is enough for a fund.</p>';
+    // the record's totals and the mix held: one reader each (src/reading/holdings.js; step F6), as the simple view's What you hold says them
+    const sum = holdingsTotalsOf({ holdings: rec }), byW = sum.byWrapper;
+    h += '<p class="hint" style="margin-top:6px;">Total ' + markFact('holdings.total', gbp(sum.total)) + ' — ' + HOLDING_WRAPPERS.filter((w) => byW[w] > 0).map((w) => w + ' ' + markFact('holdings.' + w.toLowerCase(), gbp(byW[w]))).join(' · ') + '. Units matter for gilts (the nominal); value is enough for a fund.</p>';
+    const mix = heldMixOf({ holdings: rec });
+    if (mix) h += '<p id="holdingsMix">' + esc(HOLD.mix.line).replace(/\{(shares|bonds|diversifiers|cash)\}/g, (m, b) => markFact(HELD_MIX_SLOTS[b], String(mix[b]))).replace('{total}', markFact('holdings.total', gbp(sum.total))) + '</p>';
     // What you hold counts every line, as it is (7.12.0 round 3); a pot plan's move still leaves a line nothing places out of
     // its figures until the person says what it is, and says so (6.23); on a ladder the move counts the money whatever it is
     const unplaced = keep && (keep.ladder || keep.held) ? [] : lines.filter((l) => l && needsCategory(l) && (+l.value || 0) > 0);

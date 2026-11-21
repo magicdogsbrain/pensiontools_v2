@@ -66,13 +66,14 @@ export function lifeOf(plan, now) {
  *   expected: { items, total, late }, withExpected: { covered, short }|null, withAll: { covered, short }|null, heldAnotherWay: number, keptCount: number,
  *   lumps: [{ Y, year, amount }] }}
  */
-export function gapsOf(plan, { today, asKept = false, life } = {}) {
+export function gapsOf(plan, { today, asKept = false, life, m: given } = {}) {
   const now = dateOf(today);
   const rec = normaliseHoldings(plan && plan.holdings);
   if (!hasKeeps(rec)) return null;
   const doc = isLocked(plan) && isObj(plan.planDocument) ? plan.planDocument : null;
   if (!doc) return null;
-  let m = null; try { m = moveInputs(plan, { now }); } catch { m = null; }
+  // the page's one diff when the caller has it (the move page: src/reading/holdings.js moveReadingOf; step F6), else the plan's
+  let m = given || null; if (!m) { try { m = moveInputs(plan, { now }); } catch { m = null; } }
   if (!m || !m.target || m.target.kind === 'none') return null;
   // a ladder in the held phase: "Your plan's mix" (held.js) is the one reading; a pot plan reads what is kept, as before
   if (!asKept && m.target.kind === 'ladder' && heldPhase(life === undefined ? lifeOf(plan, now) : life)) return null;

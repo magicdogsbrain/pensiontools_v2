@@ -26,11 +26,11 @@
  * it can be tested. The reading still carries the lists, the totals and the schedule (as it does for a saver waiting), but no
  * view draws them there. Moving otherwise (`mode` 'move'), and a saver waiting (`mode` 'waiting'), as before.
  */
-import { planStage, settingsForScreen, moveInputs, planMoneyOf } from '../../services/PlanReading.js';
+import { planStage, settingsForScreen } from '../../services/PlanReading.js';
 import { sequence, tickMove, untickMove } from '../../services/TransitionPlanner.js';
 import { normaliseHoldings } from '../../services/HoldingsRecord.js';
 import { proportions } from '../../services/Holdings.js';
-import { orderSheetRows } from '../../strategies/GiltLadderPlan.js';
+import { moveReadingOf, giltsCountOf, sheetOf } from '../../reading/holdings.js';
 import { rotationWatch } from '../../services/RotationStatus.js';
 import { taxYearLabel, deriveTiming, taxYearStartOf } from '../../services/PlanTiming.js';
 import { CONTRACT_STRATEGIES } from '../../services/PlanDocument.js';
@@ -92,7 +92,7 @@ export function opensAtOf(plan, stage, now) {
 }
 
 /** The saved facts, as data (the words are the screen's). */
-export function savedMove(plan, { today, index = null }) {
+export function savedMove(plan, { today, index = null, life = null }) {
   const now = dateOf(today);
   const locked = isLocked(plan);
   const doc = locked && isObj(plan.planDocument) ? plan.planDocument : null;
@@ -102,13 +102,15 @@ export function savedMove(plan, { today, index = null }) {
   const strategyId = (doc && doc.strategy && doc.strategy.id) || ss.strategyId || 'pots-and-valves';
   const base = { locked, lockedOn: locked ? dayWords(lockedAtOf(plan)) : null, name: nameOf(plan, today), stage, waiting: waitingOf(plan, stage), opensAt: opensAtOf(plan, stage, now), strategyId, ladder: CONTRACT_STRATEGIES.includes(strategyId), family: FAMILY.includes(strategyId), record: rec, now, ss };
   if (!doc) return { ...base, hasDocument: false, m: null, seq: null, sheet: [], watch: null, spGate: null, own: null };
-  let m = null; try { m = moveInputs(plan, { now }); } catch { m = null; }
-  if (!m || !m.target || m.target.kind === 'none') return { ...base, hasDocument: true, m: null, seq: null, sheet: [], watch: null, spGate: null, own: null };
+  // the ONE diff of the page (src/reading/holdings.js moveReadingOf; step F6): every list and count below reads it, in both views
+  const reading = moveReadingOf(plan, { now, life });
+  const m = reading.m;
+  if (!m || !m.target || m.target.kind === 'none') return { ...base, hasDocument: true, m: null, reading, seq: null, sheet: [], watch: null, spGate: null, own: null };
   const contributionsMonthly = contributionsMonthlyOf(plan, rec);
   let seq = null;
   try { seq = sequence(m.diff, { today: now, startYear: stage.firstTaxYear || (doc.timing && doc.timing.firstTaxYear) || taxYearStartOf(now), startMonth: stage.startMonth || (doc.timing && doc.timing.startMonth) || null, opensAt: base.opensAt, contributionsMonthly }); } catch { seq = null; }
   let sheet = [];
-  if (m.target.kind === 'ladder') { try { sheet = orderSheetRows(doc, rec.lines, { today: now, params: m.strategyParams }); } catch { sheet = []; } }
+  if (m.target.kind === 'ladder') sheet = sheetOf(doc, reading);   // the bought column from the page's own diff, never a second one
   let watch = null;
   if (strategyId === 'gilt-rotation') { try { const t = deriveTiming(ss, now); watch = rotationWatch(doc, { today: now, ageToday: t.currentAge || null, params: ss.strategyParams || null, index }); } catch { watch = null; } }
   const dp = doc.strategy && isObj(doc.strategy.p) ? doc.strategy.p : null;
@@ -119,7 +121,7 @@ export function savedMove(plan, { today, index = null }) {
   // the plan's own mix (the document's year-0 target), beside the held mix for a saver (§3.4)
   const mix0 = Array.isArray(doc.targetMix) && doc.targetMix.length ? doc.targetMix[0] : null;
   const planMix = mix0 ? { shares: String(r0(mix0.equity)), bonds: String(r0(mix0.bond)), cash: String(r0(mix0.cash)) } : null;
-  return { ...base, hasDocument: true, m, seq, sheet, watch, spGate, own, contributionsMonthly, planMix, isa: m.target.kind === 'ladder' ? (m.target.isaIn ? 'in' : num(doc.pots && doc.pots.isa) > 0 ? 'hold' : 'none') : null };
+  return { ...base, hasDocument: true, m, reading, seq, sheet, watch, spGate, own, contributionsMonthly, planMix, isa: m.target.kind === 'ladder' ? (m.target.isaIn ? 'in' : num(doc.pots && doc.pots.isa) > 0 ? 'hold' : 'none') : null };
 }
 
 /** The plan's effective settings with the pension's mix AS HELD (§3.3): the four amounts in the proportions the record's pension lines hold, on the same pot. */
@@ -189,7 +191,7 @@ export function moveOf(entries, id, { today, index = null, M = null, source = 'a
   const readonly = !!(entry.newer || entry.failed);
   // a closed plan's record and its tick-offs moved to the plan that carries it on (6.56.0, PlanClosed.js): nothing to tick here
   const closed = isClosedPlan(plan) ? closedReading(plan, list, dateOf(today)) : null;
-  const s = savedMove(plan, { today, index });
+  const s = savedMove(plan, { today, index, life });
   const runKey = readonly || closed ? null : runKeyOf(plan);
   // no box is typed on this step (schema.js isMovePath): the fields are empty, so the shell reads it as every editing step
   const base = { found: true, id: String(plan.id), name: s.name, locked: s.locked, lockedOn: s.lockedOn, readonly, editable: !readonly && !closed, closed, source, strategyId: s.strategyId, ladder: s.ladder, family: s.family, stageKey: s.stage.key, runKey, recorded: s.record.lines.length > 0, fields: [], errors: {}, ok: true, phase: life ? life.key : null };
@@ -201,7 +203,9 @@ export function moveOf(entries, id, { today, index = null, M = null, source = 'a
   const T = m.target, D = m.diff, P = m.prog;
   const done = (plan.transition && isObj(plan.transition) && isObj(plan.transition.done)) ? plan.transition.done : {};
   // the rungs bought: held, or held above the target (7.11.1, the diff's own count) — the order sheet says the same
-  const rungs = T.kind === 'ladder' ? { total: T.lines.length, bought: D.rungs ? D.rungs.held : D.hold.filter((h) => Array.isArray(h.taxYears)).length } : null;
+  // the one count of the plan's gilts held (src/reading/holdings.js giltsCountOf), as the order sheet and the home read it
+  const gc = giltsCountOf(T, D);
+  const rungs = gc ? { total: gc.total, bought: gc.held } : null;
   // a rung part bought (some of its units held: gaps.js heldOf's 'partRung', as Living on it reads it) is never "no gilt
   // bought": its years are left out of the uncovered ones, and it is said with the units held of the units it needs
   const partRungs = T.kind === 'ladder' ? D.buy.filter((b) => b.kind === 'gilt' && num(b.heldUnits) > 0) : [];
@@ -226,7 +230,7 @@ export function moveOf(entries, id, { today, index = null, M = null, source = 'a
   const first = s.sheet.length ? s.sheet[0] : null;
   const example = first ? { name: first.name, code: first.tidm, nominal: String(first.nominal || ''), cost: pounds(first.cost), pays: pounds(first.pays), years: first.taxYears.map((y) => taxYearLabel(+y)).join(', '), matures: first.matures ? dayWords(first.matures) : '' } : null;
   // "What is covered, year by year": one reading for the page, by the phase the home reads (7.11.1)
-  let g = null; try { g = gapsOf(plan, { today, life }); } catch { g = null; }
+  let g = null; try { g = gapsOf(plan, { today, life, m: s.reading && !s.reading.asHeld ? m : undefined }); } catch { g = null; }
   const w = s.watch;
   const watch = w ? {
     state: w.state, cutAge: String(w.cutAge), disarmAge: String(w.disarmAge), triggerPct: String(Math.round(w.triggerPct * 100)), firedOn: w.firedAt ? dayWords(w.firedAt) : null, yearsArmed: w.yearsArmed == null ? null : String(w.yearsArmed),
@@ -234,8 +238,9 @@ export function moveOf(entries, id, { today, index = null, M = null, source = 'a
     market: w.market ? { symbol: w.market.symbol || '', level: String(r0(w.market.level)).replace(/\B(?=(\d{3})+(?!\d))/g, ','), ath: String(r0(w.market.ath)).replace(/\B(?=(\d{3})+(?!\d))/g, ','), asOf: w.market.asOf ? dayWords(w.market.asOf) : null, athOn: w.market.athDate ? dayWords(w.market.athDate) : null, below: (-(w.market.drawdown) * 100).toFixed(1), fireLevel: String(w.market.fireLevel).replace(/\B(?=(\d{3})+(?!\d))/g, ','), live: w.market.live } : null,
     ticket: w.ticket && w.market && w.market.live ? { rows: w.ticket.rows.map((r) => ({ n: String(r.n), name: r.name, sedol: r.sedol, tidm: r.tidm, matures: r.matures ? dayWords(r.matures) : '', nominal: String(r.nominal), proceeds: pounds(r.proceeds), pays: pounds(r.pays), taxYears: r.taxYears.map((y) => taxYearLabel(+y)) })), proceeds: pounds(w.ticket.proceeds), income: pounds(w.ticket.income) } : null
   } : null;
-  return {
-    ...base, hasDocument: true, kind: T.kind, running: !!T.running, status, complete: !!D.complete, reason: D.reason, progressPct: String(D.progressPct), movesDone: String(P.doneCount), moves: String(P.total), rungs: rungs ? { bought: String(rungs.bought), total: String(rungs.total) } : null,
+  return withRaw({
+    ...base, hasDocument: true, kind: T.kind, running: !!T.running, status,
+ complete: !!D.complete, reason: D.reason, progressPct: String(D.progressPct), movesDone: String(P.doneCount), moves: String(P.total), rungs: rungs ? { bought: String(rungs.bought), total: String(rungs.total) } : null,
     waiting: s.waiting, yearsToStart: String(s.stage.yearsToStart || 0), opens: s.opensAt ? monthWords(s.opensAt) : null, startsAround: s.stage.startMonth ? monthWords(s.stage.startMonth) : (s.stage.firstTaxYear ? 'April ' + s.stage.firstTaxYear : ''),
     own: s.own, held: held ? { pcts: held.pcts, fromPension: held.fromPension } : null, heldRun, planMix: s.planMix || null,
     newMoney: (() => { const p = proportions(s.record.lines); if (!(p.contributions && p.contributions.monthly > 0)) return null; const m = p.contributions.monthly; return { monthly: pounds(m), parts: ['shares', 'bonds', 'diversifiers', 'cash'].filter((b) => p.contributions.byBucket[b] > 0.004).map((b) => ({ bucket: b, word: b === 'diversifiers' ? 'gold and trend' : b, amount: pounds(m * p.contributions.byBucket[b]) })) }; })(),
@@ -262,12 +267,21 @@ export function moveOf(entries, id, { today, index = null, M = null, source = 'a
     // once said (Moving by agreement), the day it was said, "Take this back", and on a ladder the gilts not bought in full
     sayHeld: mode0 === 'move' && life && life.key === 'moving' && !D.complete && !readonly && !closed ? { can: true } : null,
     saidHeld: heldMode(life) && life && life.key === 'moving' && life.agreed ? { date: dayWords(life.agreed.at), withdrawable: !readonly && !closed,
-      notFull: T.kind === 'ladder' && T.lines.length > (D.rungs ? D.rungs.held : 0) ? { n: String(T.lines.length - (D.rungs ? D.rungs.held : 0)), total: String(T.lines.length) } : null } : null,
+      notFull: gc && gc.total > gc.held ? { n: String(gc.total - gc.held), total: String(gc.total) } : null } : null,
     // 7.6.0: what the person keeps — held another way, kept by choice, the rungs covered — and the gaps it leaves; only on a
     // record that keeps something or expects money, so a plan without keeps reads exactly as before; in a move, never a line
     // the move sells (gapsOf by phase). 7.12.0: never on a ladder in the held phase — heldInfo is the one reading there
     ...(heldMode(life) && T.kind === 'ladder' ? {} : keptOf(D, g))
-  };
+  }, { target: T, diff: D, prog: P, seq: seq || null });
+}
+
+/**
+ * The page's one diff as data (step F6), beside the reading and never part of it (not enumerable: the screen's state and its
+ * pins are unchanged): the full view draws its lists from exactly this diff, so it never works out a second one.
+ */
+function withRaw(view, raw) {
+  Object.defineProperty(view, 'raw', { value: raw, enumerable: false });
+  return view;
 }
 
 /**
@@ -283,7 +297,7 @@ const BUCKETS = ['shares', 'bonds', 'cash', 'diversifiers'];
 function heldOf(plan, s, { today, life, page, recorded }) {
   const mode = heldMode(life) ? 'held' : s.waiting ? 'waiting' : 'move';
   if (mode !== 'held') return { mode, heldInfo: null };
-  if (s.m.target.kind === 'ladder') { const h = heldLadder(plan, { today, life }); return { mode, heldInfo: h, heldView: heldLadderView(h) }; }
+  if (s.m.target.kind === 'ladder') { const h = heldLadder(plan, { today, life, reading: s.reading }); return { mode, heldInfo: h, heldView: heldLadderView(h) }; }
   return { mode, heldInfo: potHeldOf(plan, s, { life, page, recorded }) };
 }
 

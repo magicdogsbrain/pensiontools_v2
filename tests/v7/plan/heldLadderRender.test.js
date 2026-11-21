@@ -92,10 +92,10 @@ describe('Alex: both views say the page alike', () => {
 describe('Jo and Sam', () => {
   it('Jo: two gilts below the plan\'s units, and the cash short of the cash years', () => {
     const { simple, full } = both(joLivingRaw());
-    for (const s of ['12 of your plan’s 14 gilts are held.', '2 are held below the plan’s units.',
+    for (const s of ['12 of 14 of your plan’s gilts are held.', '2 are held below the plan’s units.',
       '−13,500 (£19,240 less that year)', '−7,300 (£10,910 less that year)',
       'Where you hold fewer units than the plan has, those years pay less than the plan says.',
-      'In one line: 12 of your plan’s 14 gilts are held, and what you hold is £42,167 less than your cash years need.',
+      'In one line: 12 of 14 of your plan’s gilts are held, and what you hold is £42,167 less than your cash years need.',
       'What you hold, at today’s value, is £42,167 less than these years need.']) expect(simple, s).toContain(s);
     expect(simple).not.toContain('One difference');
     expect(simple).not.toContain('Also in your pension');

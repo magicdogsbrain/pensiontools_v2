@@ -85,16 +85,22 @@ export function transitionGaps(scenario, rec, today = todayOf()) {
  * is held was accepted): the tab draws what is held as information, never Buy or Sell; on a ladder (7.12.0) `heldView` is
  * "Your plan's mix" as both views draw it (answers/plan/held.js). Null when it cannot be read.
  */
-export function transitionHeld(scenario, rec, today = todayOf()) {
+export function transitionHeld(scenario, rec, today = todayOf(), entries = null) {
   if (!scenario) return null;
   try {
     const plan = { ...scenario, holdings: rec || scenario.holdings };
-    const v = moveOf([{ plan }], plan.id, { today: dayOf(today) });
+    // the account's plans when the caller has them (a successor, a partner), as the simple view's page reads them
+    const others = Array.isArray(entries) ? entries.filter((e) => e && e.plan && String(e.plan.id) !== String(plan.id)) : [];
+    const v = moveOf([{ plan }, ...others], plan.id, { today: dayOf(today) });
     // 7.12.0: and the move's readings both views word the same way — the one status, the pace, what pays for the buys, what is
     // held that the plan does not use, the totals and the cash to hold now (answers/plan/moveWords.js through moveOf)
+    // step F6: and the page's ONE diff (moveOf's `raw`: target, diff, progress, schedule), the order sheet with its bought column
+    // and the gaps, so the tab draws every list and count from the reading the simple view draws — never a diff of its own
     return v && v.found ? { mode: v.mode || null, heldInfo: v.heldInfo || null, heldView: v.heldView || null, phase: v.phase || null,
       status: v.status || null, totalsOnly: !!v.totalsOnly, pace: v.pace || null, paying: v.paying || null, outside: v.outside || [], ladderTotals: v.ladderTotals || null, cash: v.cash || null, isa: v.isa || null,
-      sayHeld: v.sayHeld || null, saidHeld: v.saidHeld || null, sayHeldOpen: sayHeldMemory.open && sayHeldMemory.planId === String(plan.id) } : null;
+      sayHeld: v.sayHeld || null, saidHeld: v.saidHeld || null, sayHeldOpen: sayHeldMemory.open && sayHeldMemory.planId === String(plan.id),
+      waiting: v.mode === 'waiting' ? { opens: v.opens || null, yearsToStart: v.yearsToStart || '0', startsAround: v.startsAround || '', newMoney: v.newMoney || null, planMix: v.planMix || null, held: v.held || null } : null,
+      sheet: v.sheet || [], spGate: v.spGate || null, pricedOn: v.pricedOn || null, gaps: v.gaps || null, ladder: !!v.ladder, raw: v.raw || null } : null;
   } catch { return null; }
 }
 

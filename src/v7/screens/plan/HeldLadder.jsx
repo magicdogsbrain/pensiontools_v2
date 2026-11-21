@@ -6,6 +6,11 @@
  */
 import { fill } from '../../components/index.js';
 import { HELD as H } from '../../copy/held.js';
+import { markIn } from '../../components/PlanFigures.jsx';
+import { GILTS_HELD_FIND } from '../../../reading/sentenceMarks.js';
+
+// the one count of the plan's gilts held (gilts.held), marked where the page says it, as the full view marks it
+const COUNT = [[GILTS_HELD_FIND, 'gilts.held']];
 
 /** One sentence (the same rule as held.js sayHeld): a slot that is a sentence is filled too; a list is "a, b and c". */
 export function heldText(s) {
@@ -27,10 +32,10 @@ export function HeldLadder({ v, prefix, holdHref }) {
   return (
     <section class="plan-section held-ladder" data-section="heldLadder" data-testid={T}>
       {v.head.map((x, i) => <p class={x.key === 'agreed' ? 'lead' : 'note'} key={i} data-testid={`${T}.${x.key}`}>{heldText(x)}{x.key === 'noRecord' && holdHref ? <> <a href={holdHref}>{H.holdLink}</a></> : null}</p>)}
-      {v.summary && <p class="lead" data-testid={`${T}.summary`}>{heldText(v.summary)}</p>}
+      {v.summary && <p class="lead" data-testid={`${T}.summary`}>{markIn(heldText(v.summary), COUNT)}</p>}
       {holdHref && !v.head.some((x) => x.key === 'noRecord') && <p class="line"><a href={holdHref} data-testid={`${T}.change`}>{H.changeLink}</a></p>}
       <h2>{H.giltsTitle}</h2>
-      {v.figure.map((x, i) => <p class="line" key={i} data-testid={`${T}.figure`}>{heldText(x)}</p>)}
+      {v.figure.map((x, i) => <p class="line" key={i} data-testid={`${T}.figure`}>{markIn(heldText(x), COUNT)}</p>)}
       <div class="table-wrap">
         <table class="way-table held-table" data-testid={`${T}.gilts`}>
           <thead><tr><th>{C.gilt}</th><th>{C.years}</th><th>{C.plan}</th><th>{C.held}</th><th>{C.difference}</th></tr></thead>

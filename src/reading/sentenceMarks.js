@@ -83,8 +83,9 @@ export function sentenceHtml(s, source, marks, esc) {
 /** The chance said in words ("as long as you do 18 times in 20", "about 17 times in 20", "less than once in 20"). */
 const CHANCE = /((?:more than |less than |about )?(?:\d+ times|once) in 20)/;
 
-/** "3 of 22" in "3 of 22 gilts bought" / "… gilts held": the gilts held, said the same in both views (moveWords.moveStatusOf). */
-export const GILTS_HELD_FIND = /^(\d+ of \d+) gilts? (?:bought|held)/;
+/** "3 of 22" in "3 of 22 gilts bought" / "… gilts held" / "3 of 22 of your plan’s gilts are held": the gilts held, said the
+ * same in both views (moveWords.moveStatusOf; answers/plan/held.js heldLadderView: the one count, src/reading/holdings.js). */
+export const GILTS_HELD_FIND = /(?:^|: )(\d+ of \d+)(?: of your plan’s)? gilts? (?:bought|held|are held)/;
 
 const LEAD = 'enough.atLevel';
 /** The figures of the saver's block (state/saverBlock.js lines), by line id: the same in both views. */

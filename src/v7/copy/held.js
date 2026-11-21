@@ -17,7 +17,7 @@ export const HELD = {
   allSame: 'All {total} of your plan’s gilts are held, in the plan’s units.',
   allHeld: 'All {total} of your plan’s gilts are held.',
   over: '{over} {isAre} held above the plan’s units.',
-  someHeld: '{held} of your plan’s {total} gilts are held.',
+  someHeld: '{held} of {total} of your plan’s gilts are held.',
   under: '{under} {isAre} held below the plan’s units.',
   underNone: '{under} {isAre} held below the plan’s units, and {none} {noneIsAre} not held.',
   none: '{none} {isAre} not held.',
@@ -32,6 +32,10 @@ export const HELD = {
   lessYears: '({money} less over those years)',
   belowOver: 'Units above the plan’s pay out with their gilt, in the years shown.',
   belowUnder: 'Where you hold fewer units than the plan has, those years pay less than the plan says.',
+  // once what is held was accepted as the plan (step F6): a gilt held in part, or not held, is how the person chose to hold it
+  chosenYear: '(that year is paid from what else you hold, as you chose)',
+  chosenYears: '(those years are paid from what else you hold, as you chose)',
+  belowChosen: 'Where you hold fewer of the plan’s units, those years are paid from what else you hold, as you chose: what that pays then moves with its value, not a fixed gilt payment.',
   paid: 'Matured and paid out: {list}.',
   stale: 'Still on What you hold but matured: {list}. You can remove the line there.',
 
@@ -39,7 +43,7 @@ export const HELD = {
   summary: 'In one line: {gilts}, and {cash}.',
   summaryGilts: 'In one line: {gilts}.',
   sumAll: 'all {total} of your plan’s gilts are held',
-  sumSome: '{held} of your plan’s {total} gilts are held',
+  sumSome: '{held} of {total} of your plan’s gilts are held',
   sumCash: 'your pension’s cash pays your cash years',
   sumArrives: 'what you hold pays your cash years, if you keep your gilts until they pay',
   sumAllMoney: 'what you hold pays your cash years, part of it from shares and funds at today’s value',

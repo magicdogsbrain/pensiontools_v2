@@ -16,6 +16,7 @@
 import { LOCK_WORDS } from '../../reading/labels.js';
 import { READ_FAULT_WORDS } from '../../reading/readFault.js';
 import { planStage, settingsForScreen, whereAmIFor, whereAmIInputs, moveInputs, thisMonth, historyAscending, planMoneyOf } from '../../services/PlanReading.js';
+import { moveReadingOf } from '../../reading/holdings.js';
 import { CONTRACT_STRATEGIES, planToAgeOfDefinition, guardrailOf } from '../../services/PlanDocument.js';
 import { taxYearLabel, taxYearStartOf, taxYearKey } from '../../services/PlanTiming.js';
 import { documentLadder, firstRungOf } from '../../services/LadderPosition.js';
@@ -934,12 +935,14 @@ function moveStep(C) {
   const { plan, now, life } = C;
   const figures = {};
   const lines = [];
-  let m = null; try { m = moveInputs(plan, { now }); } catch { m = null; }
+  // the page's one diff (src/reading/holdings.js moveReadingOf; step F6): the move page's own, so the home says its count
+  const reading = moveReadingOf(plan, { now, life });
+  const m = reading.m;
   // Living on it, or Moving once what is held was accepted (7.11.1, Phases.heldPhase): what is held, never moves to make
   const asHeld = heldPhase(life);
   let result, done = false, unlisted = false;
   // living on a ladder (7.12.0): the gilts held, as "Your plan's mix" counts them (held.js, the one reading)
-  let hl = null; if (asHeld && m && m.target && m.target.kind === 'ladder') { try { hl = heldLadder(plan, { today: localDay(now), life }); } catch { hl = null; } }
+  let hl = null; if (asHeld && m && m.target && m.target.kind === 'ladder') { try { hl = heldLadder(plan, { today: localDay(now), life, reading }); } catch { hl = null; } }
   if (!m || !m.target || m.target.kind === 'none') result = sentence('move.notSet', ['Set when the plan is locked'], figures);
   // Moving, once the person said this is how they want to hold it (7.12.0): said so, with the day
   else if (asHeld && life && life.key === 'moving' && life.agreed && life.agreed.at) { result = sentence('move.ownWay', ['You hold it your own way (said ', { fixed: dayWords(life.agreed.at) }, ').'], figures); }

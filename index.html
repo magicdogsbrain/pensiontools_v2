@@ -4232,7 +4232,7 @@
     // Who draws what (6.25.0, household-draw-split.md): the rule, the writes, the words — the tab only gathers and calls
     import { householdDrawSplit, limitFrom } from './src/services/HouseholdDraw.js';
     import { splitWriteMode, splitChanges, applySplit, dismissalFor, isSplitDismissed } from './src/services/HouseholdSplitApply.js';
-    import { runHousehold, runSurvivor, runCare, householdNamesOf } from './src/answers/plan/householdRun.js'; import { runMixCompare } from './src/answers/plan/mixRun.js'; import { mixCompareView } from './src/answers/plan/mix.js'; import { effectiveStressSettings, planMoneyOf, whereAmIFor } from './src/services/PlanReading.js';   // the partner's plan read as its own tools read it (6.42.0)
+    import { runHousehold, runSurvivor, runCare, householdNamesOf } from './src/answers/plan/householdRun.js'; import { runMixCompare } from './src/answers/plan/mixRun.js'; import { mixCompareView } from './src/answers/plan/mix.js'; import { effectiveStressSettings, whereAmIFor } from './src/services/PlanReading.js';   // the partner's plan read as its own tools read it (6.42.0)
     import { splitSectionHtml, splitNoneHtml, splitDismissedHtml, splitConfirmHtml, verdictSectionHtml, timelineSectionHtml, wealthSectionHtml, whatToDoHtml, survivorCareHtml, survivorResultHtml, careResultHtml, budgetShareHtml, budgetSharedLineHtml, householdNotSetWords } from './src/ui/householdView.js';
     import { shareBudgetWith, stopSharingBudget, getHouseholdSplitDismissed, setHouseholdSplitDismissed, budgetSharedFromOf } from './src/storage/ScenarioRepository.js';
     import { guestPlanRefusal, isExamplePlanError, DEMO_PLANS, EXAMPLE_PLAN_KEY, EXAMPLE_PLAN_DESCRIPTION } from './src/services/GuestPlans.js';   // three plans without an account; the read-only example (6.23.0)
@@ -4241,9 +4241,9 @@
     import { updateHomeBanner, installHomeBanner, openingTabOf, pressOpeningSub } from './src/ui/homeBannerUi.js'; import { installHouseholdTab } from './src/ui/householdTabUi.js';   // the next-step banner is the plan home's first thing due, else the life stage's sentence (7.10.0; 6.20.2); the opening tab reads the plan's phase (7.11.0)
     import { moreSheetHtml, MORE_TABS } from './src/ui/mobileMenu.js';
     import { proportions as holdingsProportions, describeMix } from './src/services/Holdings.js';
-    import { targetHoldings, diffHoldings, sequence as transitionSequence, progress as transitionProgress, tickMove, untickMove, yearNeedsOf } from './src/services/TransitionPlanner.js';
+    import { tickMove, untickMove } from './src/services/TransitionPlanner.js';   // the move's target, diff and schedule are the one reading's (step F6: keepHoldingsUi.transitionHeld → moveOf)
     import { transitionHtml } from './src/ui/components/TransitionView.js';
-    import { installKeepHandlers, transitionGaps, transitionHeld, transitionOpensAt, nameTransitionTab, installKeepTestHandlers, transitionKeepTest, keepLineHtml } from './src/ui/keepHoldingsUi.js'; import { installStressPanel } from './src/ui/stressPanelUi.js'; import { markFact, markWithin, tableAttr, cellAttr, asWhatIf } from './src/reading/mark.js'; import { markFieldBoxes, fieldAttrOf } from './src/reading/fields.js'; import { trackBusy } from './src/reading/busy.js'; import { HELD_MIX_FINDS } from './src/reading/sentenceMarks.js';   // "Try the bad years" on the Scenarios page (7.9.0)
+    import { installKeepHandlers, transitionHeld, nameTransitionTab, installKeepTestHandlers, transitionKeepTest, keepLineHtml } from './src/ui/keepHoldingsUi.js'; import { installStressPanel } from './src/ui/stressPanelUi.js'; import { markFact, markWithin, tableAttr, cellAttr, asWhatIf } from './src/reading/mark.js'; import { markFieldBoxes, fieldAttrOf } from './src/reading/fields.js'; import { trackBusy } from './src/reading/busy.js'; import { HELD_MIX_FINDS } from './src/reading/sentenceMarks.js';   // "Try the bad years" on the Scenarios page (7.9.0)
     import { parsePaste, matchRows, mergeLedger, categorise, applyPaste } from './src/services/HoldingsPaste.js';
     import { pastePreviewHtml } from './src/ui/components/HoldingsPasteView.js';   // every pasted line counts (6.23)
     import { CONTRACT_IDS } from './src/services/DecisionOverlay.js';   // the ways that pay by contract (one list)
@@ -7248,28 +7248,28 @@
       try {
         try { await window._marketReady; } catch (e) { /* the built-in prices stand */ }   // gilts are read below: the day's prices first, as the simple view waits (lead4.md R5)
         const stage = window._lifeStage || await refreshLifeStage();
-        const doc = await getActivePlanDocument();
         const today = todayOf();   // the one clock (src/reading/clock.js): noon of the day, as the simple view reads it
-        const ssLive = await getStressSettingsAsync();
-        const target = targetHoldings(doc, { today, params: ssLive.strategyParams || null });   // live params: a fired rotation's sold block drops out of the target
+        // the plan as the simple view reads it (brought up to date), beside the account's other plans (lead4.md D19; step F6)
+        const [plans, planId] = await Promise.all([listScenariosAsync(), getActiveScenarioId()]);
+        const entries = entriesOfPlans(plans, today);
+        const entry = entries.find((e) => e && e.plan && String(e.plan.id) === String(planId)) || null;
+        const storedPlan = entry ? entry.plan : null;
         // What you hold (6.13.0): the plan-level record — never the Stress tester's funds-to-test list.
         const rec = recOverride || await getActiveHoldings();
-        window._holdingsDraft = JSON.parse(JSON.stringify(rec)); try { window._holdingsDraftFor = await getActiveScenarioId(); } catch (e) { window._holdingsDraftFor = null; } window._holdingsLines = (rec.lines || []).slice();
+        window._holdingsDraft = JSON.parse(JSON.stringify(rec)); window._holdingsDraftFor = planId || null; window._holdingsLines = (rec.lines || []).slice();
         const ledger = rec.lines || [];
-        const ss = ssLive;
-        const testList = (Array.isArray(ss.taggedFunds) ? ss.taggedFunds : []).filter((f) => f && f.ticker && +f.value > 0);
         const offer = null;   // 6.13.1: the Stress tester's list is never offered as what you hold — not even as a question
-        const storedPlan = await getActiveScenarioAsStored().catch(() => null);
-        const diff = diffHoldings(ledger, target, { needs: yearNeedsOf(doc), today, asOf: rec.updatedAt || null, planMoney: storedPlan ? planMoneyOf(storedPlan, { now: today }) : null });   // the document's needs (7.6.0); the record's date, for a gilt matured since (7.11.1); the plan's own money when nothing is listed (7.12.0)
-        const gaps = transitionGaps(storedPlan, rec, today), held = transitionHeld(storedPlan, rec, today);   // "What is covered, year by year" (7.6.0) and, Living on it, what is held, never a move (7.11.1): V7's readings
+        // the move as the simple view reads it (answers/plan/move.js moveOf, through transitionHeld): ONE diff for every list
+        // and count on this tab — the target, the diff, the progress and the schedule are that reading's own (step F6)
+        const held = transitionHeld(storedPlan, rec, today, entries);
+        const raw = held && held.raw;
+        const locked = !!(storedPlan && storedPlan.decisionTool && storedPlan.decisionTool.settings && storedPlan.decisionTool.settings.locked);
+        const doc = locked ? storedPlan.planDocument || null : null;
         const keepTest = transitionKeepTest(storedPlan, rec);   // "Test what you keep against your plan" (7.7.0): V7's reading, run only on its button
-        let contributionsMonthly = 0; try { const hp = holdingsProportions(ledger); contributionsMonthly = hp.contributions.monthly || 0; if (!contributionsMonthly) { const acc = await getActiveAccumulation(); if (acc && (+acc.netMonthly > 0 || +acc.employerMonthly > 0)) contributionsMonthly = (+acc.netMonthly || 0) * 1.25 + (+acc.employerMonthly || 0); } } catch (e) { contributionsMonthly = 0; }
-        const seq = target.kind === 'none' ? null : transitionSequence(diff, { today, startYear: stage?.firstTaxYear || (doc?.timing?.firstTaxYear) || (today.getFullYear() + 1), startMonth: stage?.startMonth || doc?.timing?.startMonth || null, opensAt: transitionOpensAt(storedPlan, today), contributionsMonthly });
-        const tr = await getActiveTransition();
-        const prog = transitionProgress(diff, tr.done || {});
-        let rotation = null; try { const t = deriveTiming(ss); rotation = rotationStatus(doc, { today, ageToday: t.currentAge || null, params: ss.strategyParams || null }); } catch (e) { rotation = null; }
-        box.innerHTML = transitionHtml({ stage, doc, target, diff, seq, prog, done: tr.done || {}, ledgerCount: ledger.filter((f) => f && (+f.value > 0 || +f.units > 0)).length, startLabel: stage?.startLabel || '', holdings: rec, offer, rotation, complete: !!diff.complete, gaps, keepTest, held });
-        window._transitionLast = { diff, seq };
+        const done = (storedPlan && storedPlan.transition && storedPlan.transition.done) || {};
+        let rotation = null; try { const ss = await getStressSettingsAsync(); const t = deriveTiming(ss); rotation = rotationStatus(doc, { today, ageToday: t.currentAge || null, params: ss.strategyParams || null }); } catch (e) { rotation = null; }
+        box.innerHTML = transitionHtml({ stage, doc, target: raw ? raw.target : null, diff: raw ? raw.diff : null, seq: raw ? raw.seq : null, prog: raw ? raw.prog : null, done, ledgerCount: ledger.filter((f) => f && (+f.value > 0 || +f.units > 0)).length, startLabel: stage?.startLabel || '', holdings: rec, offer, rotation, complete: raw ? !!raw.diff.complete : false, gaps: held ? held.gaps : null, keepTest, held });
+        window._transitionLast = raw ? { diff: raw.diff, seq: raw.seq } : null;
       } catch (e) { console.error('transition', e); box.innerHTML = '<p class="hint">Could not build the transition: ' + budEsc(e.message) + '</p>'; }
     };
     // ---- What you hold (6.13.0): the plan-level record, edited on the Transition tab. No strategy code writes it,

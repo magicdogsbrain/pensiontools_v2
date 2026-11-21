@@ -6,6 +6,11 @@
 import { esc } from './ReleaseNotesView.js';
 import { sayHeld } from '../../answers/plan/held.js';
 import { HELD as H } from '../../v7/copy/held.js';
+import { markWithin } from '../../reading/mark.js';
+import { GILTS_HELD_FIND } from '../../reading/sentenceMarks.js';
+
+// the one count of the plan's gilts held (gilts.held), marked where the page says it, as the simple view marks it
+const sayCount = (s) => markWithin(say(s), [[GILTS_HELD_FIND, 'gilts.held']]);
 
 const say = (s) => esc(sayHeld(s, H));
 const lines = (items, attr) => items.map((x) => '<p class="hint" data-' + attr + '="' + esc(x.key) + '">' + say(x) + '</p>').join('');
@@ -21,10 +26,10 @@ export function heldLadderHtml(v, { holdHref = '#holdingsCard' } = {}) {
   const C = H.giltColumns, K = H.cashColumns, A = H.alsoColumns;
   let h = '<div id="heldLadder">';
   h += v.head.map((x) => (x.key === 'agreed' ? '<p><strong>' + say(x) + '</strong></p>' : '<p class="hint">' + say(x) + (x.key === 'noRecord' ? ' <a href="' + esc(holdHref) + '">' + esc(H.holdLink) + '</a>' : '') + '</p>')).join('');
-  if (v.summary) h += '<p class="held-summary" style="font-size:16px;"><strong>' + say(v.summary) + '</strong></p>';
+  if (v.summary) h += '<p class="held-summary" style="font-size:16px;"><strong>' + sayCount(v.summary) + '</strong></p>';
   if (!v.head.some((x) => x.key === 'noRecord')) h += '<p class="hint"><a href="' + esc(holdHref) + '">' + esc(H.changeLink) + '</a></p>';
   h += title(H.giltsTitle);
-  h += v.figure.map((x) => '<p>' + say(x) + '</p>').join('');
+  h += v.figure.map((x) => '<p>' + sayCount(x) + '</p>').join('');
   h += table('held-gilts', [C.gilt, C.years, C.plan, C.held, C.difference], v.gilts.map((r) => [esc(r.gilt), esc(r.years), esc(r.plan), esc(r.held), say(r.difference)]));
   h += lines(v.under, 'under');
   if (v.cash) {

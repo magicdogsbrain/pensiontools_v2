@@ -17,7 +17,7 @@
 import { PlanRail, changeAction, UndoToast, fill, Button, LinkButton, stepNameOf } from '../../components/index.js';
 import { LOCK_DATE } from '../../components/facts.js';
 import { fillMarked, markIn } from '../../components/PlanFigures.jsx';
-import { PLAN_MIX_SLOTS, MOVE_MONEY_FINDS } from '../../../reading/sentenceMarks.js';
+import { PLAN_MIX_SLOTS, MOVE_MONEY_FINDS, GILTS_HELD_FIND } from '../../../reading/sentenceMarks.js';
 import { TABLES } from '../../../reading/facts.js';
 import { planView, planMoveView, planKeepTestView } from '../../state/select.js';
 import { KeepTestLine } from './KeepTest.jsx';
@@ -54,7 +54,7 @@ function Status({ V }) {
   const s = V.status;
   return (
     <section class="plan-section" data-section="status" data-testid={`${T}.status`} data-status={s.id}>
-      <p class="figure" data-testid={`${T}.status.line`}>{markIn(fill(S[s.id], s.slots), MOVE_MONEY_FINDS)}</p>
+      <p class="figure" data-testid={`${T}.status.line`}>{markIn(fill(S[s.id], s.slots), [[GILTS_HELD_FIND, 'gilts.held'], ...MOVE_MONEY_FINDS])}</p>
       {V.pace && <p class="note" data-testid={`${T}.pace`}>{fill(V.pace.months === '1' ? S.paceOne : S.pace, V.pace)}</p>}
       {V.ladder && !V.complete && <p class="note" data-testid={`${T}.timing`}>{S.timing}</p>}
       <p class="note" data-testid={`${T}.target`}>{V.ladder ? W.target.ladder + ' ' + W.isa[V.isa || 'none'] : W.target.buckets}</p>
@@ -319,7 +319,8 @@ function Sheet({ V, dispatch }) {
       {/* living on the plan (7.11.1): the same sheet, read as what the plan holds — "Bought" beside each gilt, so a phone sees it
           without scrolling; how to give an order only while a rung is still not fully bought */}
       <p class="note">{fill(held ? S.leadHeld : S.lead, { date: V.pricedOn || '' })}</p>
-      {(!held || V.sheet.some((r) => r.bought === 'part' || r.bought === 'not yet')) && <p class="note">{S.order}</p>}
+      {/* living on it (step F6, R9): the sheet is what the plan holds, never an order to give */}
+      {!held && <p class="note">{S.order}</p>}
       <div class="table-wrap">
         <table class="way-table" data-testid={`${T}.sheet.table`} data-fact-table={TABLES.LADDER}>
           <thead><tr><th>{S.columns.n}</th><th>{held ? S.gilt : S.columns.buy}</th>{held && <th>{S.columns.bought}</th>}<th>{S.columns.code}</th><th>{S.columns.sedol}</th><th>{S.columns.matures}</th><th>{S.columns.pays}</th><th>{S.columns.years}</th><th>{held ? S.units : S.columns.units}</th><th>{S.columns.price}</th><th>{S.columns.cost}</th>{!held && <th>{S.columns.bought}</th>}</tr></thead>
@@ -482,6 +483,8 @@ export function MoveScreen(state, dispatch) {
             </>
           )}
           </>}
+          {/* the order sheet with its bought column (a move, or a saver waiting), as the full view's tab draws it (step F6); living on
+              a ladder the plan's gilts beside what is held is the one table, and the sheet as locked is with Your plan */}
           {!heldLadder && <Sheet V={V} dispatch={dispatch} />}
           <Explained V={V} dispatch={dispatch} />
           <Watch V={V} onChange={onChange} />

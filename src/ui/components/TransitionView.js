@@ -23,8 +23,9 @@ import { heldSummaryView } from '../../answers/plan/held.js';
 import { HELD } from '../../v7/copy/held.js';
 import { PLAN } from '../../v7/copy/plan.js';
 import { LAYOUT } from '../../appLayout.js';
-import { markWithin, markFact } from '../../reading/mark.js';
-import { GILTS_HELD_FIND, MOVE_MONEY_FINDS } from '../../reading/sentenceMarks.js';
+import { markWithin, markFact, tableAttr, cellAttr } from '../../reading/mark.js';
+import { GILTS_HELD_FIND, MOVE_MONEY_FINDS, PLAN_MIX_SLOTS } from '../../reading/sentenceMarks.js';
+import { TABLES } from '../../reading/facts.js';
 import { moveStatusOf, sayMoveStatus, payingOf, outsideRowsOf, moveTotalsOf, cashRowsOf, fillMove } from '../../answers/plan/moveWords.js';
 
 const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
@@ -225,6 +226,56 @@ export function heldInfoHtml(I) {
 }
 
 /**
+ * A saver waiting for the move window (step F6): the simple view's reading and words (answers/plan/move.js moveOf `waiting`,
+ * through keepHoldingsUi.transitionHeld; src/v7/copy/move.js MOVE.waiting) — where new money goes, the two mixes, when the move
+ * starts. No list to buy or sell before the window opens: the schedule runs over the window (TransitionPlanner.sequence).
+ */
+export function waitingHtml(w) {
+  if (!w) return '';
+  const S = MOVE.waiting;
+  let h = '<div id="transitionWaiting"><p><strong>' + esc(w.opens ? fillMove(S.line, { years: w.yearsToStart, opens: w.opens }) : fillMove(S.lineSoon, { years: w.yearsToStart })) + '</strong></p>';
+  h += w.newMoney ? '<p>' + esc(fillMove(S.newMoney, { parts: w.newMoney.parts.map((p) => fillMove(S.newMoneyPart, p)).join(', '), monthly: w.newMoney.monthly })) + '</p>' : '<p class="hint">' + esc(S.newMoneyNone) + '</p>';
+  // the plan's mix (mix.plan.#), marked as the simple view marks it: each figure once, through its slot
+  if (w.planMix) h += '<p>' + esc(S.planMix).replace(/\{(shares|bonds|cash)\}/g, (m, b) => markFact(PLAN_MIX_SLOTS[b], esc(String(w.planMix[b])))) + '</p>';
+  if (w.held && w.held.pcts) h += '<p>' + esc(fillMove(S.heldMix, w.held.pcts)) + '</p>';
+  if (w.startsAround) h += '<p class="hint">' + esc(fillMove(S.starts, { when: w.startsAround })) + '</p>';
+  return h + '</div>';
+}
+
+const groupedUnits = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+/**
+ * The order sheet with its bought column (step F6, lead4.md D19), in a move or while a saver waits: the document's rungs as the
+ * simple view's move page draws them
+ * (answers/plan/move.js moveOf `sheet`, read from the page's one diff by src/reading/holdings.js sheetOf), the same cells marked
+ * (table 'ladder'). Living on a ladder it is not drawn here: the plan's gilts beside what is held is the one table (7.12.0).
+ */
+export function sheetHtml(held) {
+  if (!held || !held.ladder || !Array.isArray(held.sheet) || !held.sheet.length) return '';
+  const S = MOVE.sheet;
+  const asHeld = held.mode === 'held';
+  const gated = !!held.spGate;
+  const bought = (r) => (r.bought ? S.bought[r.bought] || r.bought : '—');
+  let h = '<div id="transitionSheet"><div class="section-title" style="margin-top:12px;">' + esc(S.title) + '</div>';
+  if (gated) h += '<div class="alert alert-warning">' + esc(fillMove(S.gate, held.spGate)) + ' ' + esc(S.gateHeld) + '</div>';
+  h += '<p class="hint">' + esc(fillMove(asHeld ? S.leadHeld : S.lead, { date: held.pricedOn || '' })) + '</p>';
+  if (!asHeld) h += '<p class="hint">' + esc(S.order) + '</p>';   // living on it (R9): what the plan holds, never an order to give
+  const units = (r) => {
+    if (gated) return esc(S.withheld);
+    if (!r.nominal) return '—';
+    // a rung part bought, in a move: what is still to buy (the Buy table's figure), with what is held of the plan's units
+    if (!asHeld && r.part && r.part.toBuy > 0) return '<strong>' + groupedUnits(r.part.toBuy) + '</strong><br><span class="hint">' + esc(fillMove(S.lots, { lots: groupedUnits(Math.round(r.part.toBuy / 100)) })) + '<br>' + esc(fillMove(S.partHeld, { held: groupedUnits(r.part.heldUnits), plan: groupedUnits(r.nominal) })) + '</span>';
+    return '<strong' + cellAttr(r.tidm, 'units') + '>' + groupedUnits(r.nominal) + '</strong><br><span class="hint">' + esc(fillMove(S.lots, { lots: groupedUnits(Math.round(+r.nominal / 100)) })) + '</span>';
+  };
+  const head = [S.columns.n, asHeld ? S.gilt : S.columns.buy, S.columns.bought, S.columns.code, S.columns.sedol, S.columns.matures, S.columns.pays, S.columns.years, asHeld ? S.units : S.columns.units, S.columns.price, S.columns.cost];
+  h += '<div class="table-scroll-container"><table' + tableAttr(TABLES.LADDER) + '><thead><tr>' + head.map((x) => '<th>' + esc(x) + '</th>').join('') + '</tr></thead><tbody>'
+    + held.sheet.map((r) => '<tr data-rung="' + esc(String(r.n)) + '" data-bought="' + esc(r.bought || '') + '"><td>' + esc(String(r.n)) + '</td><td>' + esc(r.name) + '</td><td>' + esc(bought(r)) + '</td><td>' + esc(r.tidm) + '</td><td>' + esc(r.sedol) + '</td>'
+      + '<td' + cellAttr(r.tidm, 'matures') + '>' + esc(r.matures) + '</td><td' + cellAttr(r.tidm, 'pays') + '>' + esc(r.pays) + '</td><td>' + esc(r.taxYears.join(', ')) + (r.taxYears.length > 1 ? ' ' + esc(S.surplus) : '') + '</td>'
+      + '<td>' + units(r) + '</td><td>' + (gated ? esc(S.withheld) : esc(r.cleanPrice || '—')) + '</td><td>' + (gated ? esc(S.withheld) : '<span' + cellAttr(r.tidm, 'cost') + '>' + esc(r.cost) + '</span>') + '</td></tr>').join('')
+    + '</tbody></table></div></div>';
+  return h;
+}
+
+/**
  * The "What you hold" card: the holdings record as an editable table (no import from the Stress
  * tester's fund list as a starting point, and the paste / save buttons.
  * @param {{ holdings?: { updatedAt, source, offerDismissed, lines: [], expected? }, offer?: { taggedFunds: [] }|null, keep?: { ladder: boolean }|null }} a
@@ -302,6 +353,9 @@ export function transitionHtml(a) {
   const heldLadder = asHeld && !!held.heldView;
   // totals only on a pot plan (7.12.0, the moving brief S4): nothing listed, so no buys, sales or shortfall worked out against nothing
   const totalsOnly = !!(held && held.totalsOnly);
+  // a saver waiting for the move window (step F6): the simple view's page — where new money goes, the two mixes, when the move
+  // starts — and no list to buy or sell before the window opens
+  const waiting = !!(held && held.mode === 'waiting' && held.waiting);
   const lines = holdings && Array.isArray(holdings.lines) ? holdings.lines : [];
   const ledgerCount = a && a.ledgerCount != null ? a.ledgerCount : lines.filter(valued).length;
   // (i) What you hold — the record, always editable, whether or not there is a plan document yet; "Keep this" (7.6.0) once
@@ -347,7 +401,8 @@ export function transitionHtml(a) {
       + (R.pace ? '<br>' + esc(fillMove(R.pace.months === '1' ? MOVE.status.paceOne : MOVE.status.pace, R.pace)) : '')
       + (ladder ? '<br>' + esc(MOVE.status.timing) : '') + '</div>';
   }
-  if (!asHeld && !totalsOnly && R.cash && R.cash.rows.length) {
+  if (waiting) h += waitingHtml(held.waiting);
+  if (!asHeld && !totalsOnly && !waiting && R.cash && R.cash.rows.length) {
     // the cash to hold now (7.12.0, S2): V7's reading and words — what each year needs beside the cash to hold for it, and the
     // years what is kept pays in part or in full
     const C = MOVE.cash;
@@ -356,7 +411,7 @@ export function transitionHtml(a) {
         ['<strong>' + esc(C.total) + '</strong>', '', '<strong>' + esc(R.cash.target) + '</strong>'], [esc(C.held), '', esc(R.cash.held)], [esc(R.cash.spare != null ? C.spare : C.short), '', esc(R.cash.spare != null ? R.cash.spare : R.cash.short)]])
       + (R.cash.over ? '<p class="hint">' + esc(C.over) + '</p>' : '');
   }
-  if (!asHeld && !totalsOnly && !ledgerCount && !ladder) h += '<div class="alert alert-warning">Nothing recorded under <strong>What you hold</strong> yet — everything below reads as "to buy". Paste from your platform or add lines above and this page updates.</div>';
+  if (!asHeld && !totalsOnly && !waiting && !ledgerCount && !ladder) h += '<div class="alert alert-warning">Nothing recorded under <strong>What you hold</strong> yet — everything below reads as "to buy". Paste from your platform or add lines above and this page updates.</div>';
   // The plan is running: cash is being spent, so it is reported, not diffed
   if (!asHeld && diff.cashInfo) {
     const ci = diff.cashInfo;
@@ -372,7 +427,7 @@ export function transitionHtml(a) {
   // (iii) Rotation watch
   if (rotation && rotation.applies) h += '<div class="alert ' + (rotation.state === 'fired' ? 'alert-warning' : 'alert-info') + '" style="margin-top:8px;"><strong>Rotation watch</strong> · ' + esc(rotation.text) + '</div>';
 
-  if (!heldLadder) {
+  if (!heldLadder && !waiting) {
     // (iv) The moves
     const tick = (item) => '<input type="checkbox" style="width:auto;"' + (done[item.key] ? ' checked' : '') + ' data-on-change="toggleTransitionDone(\'' + esc(item.key) + '\', this.checked)" title="Tick when the order is placed">';
     if (!asHeld && !totalsOnly && diff.buy.length) h += '<div class="section-title" style="margin-top:10px;">Buy</div>' + table(['Done', 'What', 'Units', 'Amount', 'Why'], diff.buy.map((b) => [tick(b), esc(b.label) + (b.ticker ? ' <span class="hint">' + esc(b.ticker) + (b.sedol ? ' · ' + esc(b.sedol) : '') + '</span>' : ''), units(b.units), gbp(b.amount), esc(b.why || '')]));
@@ -395,7 +450,7 @@ export function transitionHtml(a) {
       : '<p class="hint">Totals: buy ' + gbp(diff.totals.buyCost) + ' · sell ' + gbp(diff.totals.sellValue) + (diff.totals.shortfall ? ' · <strong>short by ' + gbp(diff.totals.shortfall) + '</strong> before contributions' : '') + '.</p>';
   }
   // Timeline
-  if (!asHeld && seq && seq.steps.length && ladder) {
+  if (waiting) { /* the schedule runs over the move window: nothing to do before it opens (the waiting lines say when) */ } else if (!asHeld && seq && seq.steps.length && ladder) {
     // a ladder (7.12.0): V7's words — one amount raised a date from what the plan does not use, then the buys
     const S = MOVE.schedule;
     h += '<div class="section-title" style="margin-top:12px;">' + esc(S.title) + '</div><p class="hint">' + esc(fillMove(S.leadLadder, { tranches: seq.tranches })) + '</p><ul style="font-size:13px;line-height:1.6;">'
@@ -405,8 +460,10 @@ export function transitionHtml(a) {
       + '<p class="hint">' + esc(seq.note) + (target.kind === 'ladder' ? ' Cash years first, near rungs before far ones' : ' Bonds and cash first, then shares') + '; sales spread over ' + seq.tranches + ' tranche' + (seq.tranches === 1 ? '' : 's') + ' so no single month\'s price decides the outcome; new contributions are used before sales.</p>'
       + table(['When', 'Action', 'What', 'Units', 'Amount'], seq.steps.map((s) => [esc(monthName(s.when)), esc(s.action), esc(s.label) + (s.ticker ? ' <span class="hint">' + esc(s.ticker) + '</span>' : ''), units(s.units), gbp(s.amount)]));
   }
+  // the order sheet with its bought column, for a locked ladder in every phase (step F6): as the simple view's move page draws it
+  if (!heldLadder) h += sheetHtml(held);
   // Rules of the road
-  if (!asHeld) h += '<details style="margin-top:12px;"><summary class="hint" style="cursor:pointer;">Things the schedule assumes — check them against your own position</summary><ul style="font-size:13px;line-height:1.5;">'
+  if (!asHeld && !waiting) h += '<details style="margin-top:12px;"><summary class="hint" style="cursor:pointer;">Things the schedule assumes — check them against your own position</summary><ul style="font-size:13px;line-height:1.5;">'
     + (ladder ? '<li>' + esc(fillMove(MOVE.how.accountsLadder, { isa: MOVE.isa[(R && R.isa) || (target.isaIn ? 'in' : 'none')] })) + '</li>'
       : '<li><strong>Wrappers.</strong> The target mix lives in the SIPP. ISA and taxable holdings are left alone; if the plan needs money moved between wrappers, that is a contribution (SIPP room: the MPAA £10,000 once you have drawn flexibly; ISA £20,000 a year) — not a sale.</li>')
     + '<li><strong>Tax on sales.</strong> Inside a SIPP or ISA, none. In a taxable account, gains above the £3,000 exemption are taxable — gilts are exempt.</li>'

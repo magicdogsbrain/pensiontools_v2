@@ -1,18 +1,18 @@
 {
  "note": "Banned direct uses outside the reading layer (lead4.md G6), counted by tests/reading/staticRatchet.js. Baseline written by step G1 (18 Nov 2026). May only go down: lower a count in the same change that removes a use; never raise one.",
  "totals": {
-  "getStressSettingsAsync": 51,
+  "getStressSettingsAsync": 46,
   "DEFAULT_TAX_BANDS": 11,
   "grossToNet": 6,
   "projectAccumulation": 0,
-  "diffHoldings": 1,
+  "diffHoldings": 0,
   "newDate": 43,
-  "boxValue": 91,
-  "engineImport": 22
+  "boxValue": 89,
+  "engineImport": 21
  },
  "byRule": {
   "getStressSettingsAsync": {
-   "index.html": 44,
+   "index.html": 39,
    "src/ui/components/NewPlanFromSeed.js": 1,
    "src/ui/draftPlanLine.js": 1,
    "src/ui/homeBannerUi.js": 1,
@@ -30,9 +30,7 @@
    "src/answers/plan/life.js": 2
   },
   "projectAccumulation": {},
-  "diffHoldings": {
-   "index.html": 1
-  },
+  "diffHoldings": {},
   "newDate": {
    "index.html": 16,
    "src/ui/accumulationProjection.js": 1,
@@ -57,7 +55,7 @@
    "src/v7/effects/planWrite.js": 1
   },
   "boxValue": {
-   "index.html": 88,
+   "index.html": 86,
    "src/ui/dbStartSetting.js": 2,
    "src/ui/planStartUi.js": 1
   },
@@ -71,7 +69,6 @@
    "src/answers/plan/keepRun.js": 3,
    "src/answers/plan/lastsRun.js": 1,
    "src/answers/plan/mixRun.js": 2,
-   "src/answers/plan/move.js": 1,
    "src/answers/plan/moveRun.js": 1,
    "src/answers/plan/saving.js": 1,
    "src/answers/plan/stressPanelRun.js": 1,

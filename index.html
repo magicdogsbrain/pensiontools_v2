@@ -4174,7 +4174,7 @@
     import { getStrategy } from './src/strategies/registry.js'; import { monthReadingOf } from './src/reading/month.js'; import { strategyOf as planStrategyOf } from './src/storage/ScenarioRepository.js';   // this month, the one gatherer both views use (step F5, lead4.md D17)
     import { tagPortfolio, allocationFromTags, mixFromFunds } from './src/services/PortfolioTagger.js';   // the mix a funds list makes, lifted pure (6.41.0)
     import { searchFunds as searchFundsIn } from './src/services/FundCatalogue.js';   // the fuzzy fund search, lifted pure (6.41.0)
-    import { documentRunOf, lockWrite, unlockWrite, documentWrite, LOCK_REFUSALS } from './src/ui/lockWrite.js';   // the one lock and unlock (step F5, lead4.md D18)
+    import { documentRunOf, lockWrite, unlockWrite, documentWrite, lockReadingOf, LOCK_REFUSALS } from './src/ui/lockWrite.js'; import { momentOf } from './src/reading/clock.js';   // the one lock and unlock (step F5, lead4.md D18); stamped with the moment
     import { trySettingsOf, chanceRunOf, runForDocument as runForDocumentInline } from './src/answers/plan/lastsRun.js';   // "Try a strategy": the what-if copy of the settings, lifted pure (6.41.0)
     import { tryDifferencesOf } from './src/answers/plan/lasts.js'; import { tryStartOf, tryIncomeStartOf, tryIncomeYearOf } from './src/reading/tryStart.js';   // … and its "What's different" list (6.41.0); where its boxes start, as the simple view's (step F1)
     import { SUB_ASSET_PROFILES, FUND_TAG_MAP, FUND_CATALOGUE, catalogueEntry, subClassOptionsByBucket } from './src/services/SubAssetModel.js';
@@ -4221,7 +4221,7 @@
     import { paintEndAge, endAgeTyped, endAgeError } from './src/ui/endAgeBox.js';   // "Plan to age", the simple view's quantity (step F1)   // the final-salary start, asked by age (audit problem 3)
     import { pnvOnlySections, paintSettingUseNotes, heldIsaNote } from './src/ui/strategySettingsUse.js';   // the settings every strategy shows, and the notes beside them (audit problem 4)
     import { ukMonth, ukDay, ukDate } from './src/ui/ukDates.js';   // dates in UK words, never ISO or US order (audit problem 3)
-    import { strategyCountWord, paintStrategyCounts, assumedStatePensionAlertHtml, assumedStatePensionTag, newDocumentVersionQuestion } from './src/ui/plannerWords.js'; import { installLockFromStress } from './src/ui/lockFromStressUi.js';
+    import { strategyCountWord, paintStrategyCounts, assumedStatePensionAlertHtml, assumedStatePensionTag, newDocumentVersionQuestion } from './src/ui/plannerWords.js'; import { installLockFromStress, settleBeforeLock } from './src/ui/lockFromStressUi.js';
     import { cadenceMonths, cadenceNote } from './src/services/DrawCadence.js';   // how often you draw: a preference at decisionTool.cadence (audit decision 4)
     import { isFilledIn, filledInLabel, filledInNote, historyForEngine, refusedMonthWords, recordsToDelete, deleteButtonWords } from './src/services/MonthFill.js';   // the History view's mark on a month filled in later and its delete; the records the engine is handed; a month Calculate refuses (3 Nov 2026)
     import { createMonthEntry } from './src/ui/monthFillEntry.js';   // why Save is off; a failed Calculate kept on the page; the missed months filled in (3 Nov 2026)
@@ -7033,12 +7033,11 @@
     // lockPatch): the Decision tool seeded from the Stress settings, the flags, the plan of record, the plan document built by
     // documentFor from the plan's own run, and the journey — ONE write. Then every tab, the banners and the chip repaint.
     // `runGiven`: the run the lock's fit was read from (lockFromStressUi), so the document is built from the run that was judged.
+    // R.now is the day the plan is read and run on; R.at the moment, which the lock, the unlock and a new version are stamped
+    // with (as the simple view stamps them), never the day's noon (lockWrite.js lockReadingOf)
     async function lockReadingNow() {
       const [plans, id] = await Promise.all([listScenariosAsync(), getActiveScenarioId()]);
-      const now = todayOf();
-      const entries = entriesOfPlans(plans, now);
-      const entry = entries.find((e) => e && e.plan && String(e.plan.id) === String(id));
-      return { id, now, entries, plan: entry ? entry.plan : null };
+      return lockReadingOf(plans, id, momentOf());
     }
     // a lock, an unlock or a new version is written straight to the store: the page's copy of the plan goes with the write, so
     // the repaint that follows reads the plan as written (lead4.md R2; the gate's action round trips, step F5)
@@ -7053,13 +7052,13 @@
         const R = await lockReadingNow();
         if (!R.plan) throw new Error(LOCK_REFUSALS.notHere);
         const run = runGiven && runGiven.p && runGiven.r ? runGiven : await documentRunNow(R.plan, R.entries, R.now);
-        const p = await lockWrite({ planId: R.id, plan: R.plan, entries: R.entries, now: R.now, run, save: savePlanWrite });
+        const p = await lockWrite({ planId: R.id, plan: R.plan, entries: R.entries, now: R.at, run, save: savePlanWrite });
         if (!p.ok) { if (p.errors && p.errors.plan === 'locked') return false; throw new Error(LOCK_REFUSALS[p.errors && p.errors.plan] || LOCK_REFUSALS.noRun); }
         await repaintPlan('lock');   // every tab, the banners and the chip follow the plan as locked
         return true;
       } finally { hideLoading(); }
     };
-    installLockFromStress(window, { isLoggedIn, planIsLocked, appConfirm: (m, o) => window.appConfirm(m, o), saveStressSettingsUI: () => saveStressSettingsUI(), runPlan: async () => { const R = await lockReadingNow(); return R.plan ? documentRunNow(R.plan, R.entries, R.now) : null; }, commitPlanLock: (why, run) => window.commitPlanLock(why, run), showToast, openPlanDocument: () => window.openPlanDocument(), showIncome: () => document.getElementById('ssNetSpend')?.focus() });   // 7.12.0: src/ui/lockFromStressUi.js — a way of drawing that cannot be paid for is not locked
+    installLockFromStress(window, { isLoggedIn, planIsLocked, appConfirm: (m, o) => window.appConfirm(m, o), settle: () => settleBeforeLock({ autosave: window._ssAutosave, flushAll: flushSettings, showToast, outcomeWords: SAVE_OUTCOME_WORDS, fixBox: SAVE_WORDS.fixBox }), runPlan: async () => { const R = await lockReadingNow(); return R.plan ? documentRunNow(R.plan, R.entries, R.now) : null; }, commitPlanLock: (why, run) => window.commitPlanLock(why, run), showToast, openPlanDocument: () => window.openPlanDocument(), showIncome: () => document.getElementById('ssNetSpend')?.focus() });   // 7.12.0: src/ui/lockFromStressUi.js — a way of drawing that cannot be paid for is not locked
     window.createPlanDocumentNow = async function () {
       if (!(await planDocumentMay(window))) return;   // signed in, and never on a closed plan (6.56.0): src/ui/planCloseUi.js says why
       const prev = await getActivePlanDocument();
@@ -7070,7 +7069,7 @@
         // the one document write (step F5, lead4.md D18): the current one archived and a new one built by documentFor, ONE write
         const R = await lockReadingNow();
         if (!R.plan) throw new Error(LOCK_REFUSALS.notHere);
-        const p = await documentWrite({ planId: R.id, plan: R.plan, entries: R.entries, now: R.now, run: await documentRunNow(R.plan, R.entries, R.now), save: savePlanWrite });
+        const p = await documentWrite({ planId: R.id, plan: R.plan, entries: R.entries, now: R.at, run: await documentRunNow(R.plan, R.entries, R.now), save: savePlanWrite });
         if (!p.ok) throw new Error(LOCK_REFUSALS[p.errors && p.errors.plan] || LOCK_REFUSALS.noRun);
         await repaintPlan('lock');   // the banners and every tab follow the new version
         showToast(prev ? 'A new version of the plan document was written — the previous one is kept under previous versions.' : 'Plan document created.', 'success', 4000);
@@ -11438,7 +11437,7 @@
       try {
         // the one unlock (step F5, lead4.md D18): answers/plan/lock.js unlockPatch in ONE write, as the simple view unlocks
         const R = await lockReadingNow();
-        const p = R.plan ? await unlockWrite({ planId: R.id, plan: R.plan, now: R.now, save: savePlanWrite }) : { ok: false, errors: { plan: 'notHere' } };
+        const p = R.plan ? await unlockWrite({ planId: R.id, plan: R.plan, now: R.at, save: savePlanWrite }) : { ok: false, errors: { plan: 'notHere' } };
         if (!p.ok) throw new Error(LOCK_REFUSALS[p.errors && p.errors.plan] || LOCK_REFUSALS.notHere);
         await repaintPlan('unlock');   // every tab, the banners and the stage follow the plan as unlocked
         showToast('Plan unlocked. Changes save as you make them; lock it again from Settings when you are happy.', 'success', 5000);   // walk W4: no Save to press, and it never locks itself

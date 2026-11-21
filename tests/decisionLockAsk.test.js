@@ -171,10 +171,13 @@ describe('index.html: the Decision tool asks before the month that would lock, a
     for (const w of ['seedDecisionFromStress(', 'lockPlanIfNeeded(', 'buildPlanDocumentNow(', 'saveDecisionSettings(', 'saveActivePlanDocument(']) expect(f.slice(0, f.indexOf('installLockFromStress')), w).not.toContain(w);
   });
   // retaken in 7.12.0: the button's handler moved to src/ui/lockFromStressUi.js (it reads the lock's fit before it locks)
-  it('the Stress settings button saves the form, then takes the same route', () => {
+  // retaken in step F5 (lead4.md R3, D18): the button no longer runs the whole Settings save (a second write the simple view's
+  // lock never makes); it sends only a change still waiting to go, then takes the same route (tests/reading/lockStampF5.test.js)
+  it('the Stress settings button sends what is waiting to go, then takes the same route', () => {
     const f = readFileSync('src/ui/lockFromStressUi.js', 'utf8');
-    expect(f.indexOf('await d.saveStressSettingsUI()')).toBeGreaterThan(0);
-    expect(f.indexOf('await d.saveStressSettingsUI()')).toBeLessThan(f.indexOf("d.commitPlanLock('locked from Stress settings'"));
+    expect(f).not.toContain('saveStressSettingsUI(');
+    expect(f.indexOf('await d.settle()')).toBeGreaterThan(0);
+    expect(f.indexOf('await d.settle()')).toBeLessThan(f.indexOf("d.commitPlanLock('locked from Stress settings'"));
     expect(f).toContain('lockFromStressQuestion()');
     expect(html).toContain('installLockFromStress(window, {');
   });

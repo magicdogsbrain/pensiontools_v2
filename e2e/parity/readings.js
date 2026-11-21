@@ -23,6 +23,8 @@ export function readingsFor(raw, { now }) {
   try { plan = upgradeScenario(JSON.parse(JSON.stringify(raw)), { now }).scenario; } catch { plan = raw; }
   const ctx = { now };
   put('pot.today', pensionToday(plan, ctx).value);
+  // step F5 (R4): the month of the record, check-in or list the pension today is from, where the words say it
+  { const t = pensionToday(plan, ctx); if (['record', 'checkIn', 'holdings'].includes(t.from) && t.asOf) put('pot.today.asOf', String(t.asOf).slice(0, 7)); }
   put('isa.today', isaToday(plan, ctx).value);
   const a = potAtStop(plan, ctx);
   if (a) { put('pot.atStop', a.middle); put('pot.atStop.low', a.low); put('pot.atStop.high', a.high); }

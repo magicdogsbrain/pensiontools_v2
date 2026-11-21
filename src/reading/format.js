@@ -71,6 +71,7 @@ const asIs = (v) => (v == null ? '' : String(v));
 export const FACT_FORMAT = Object.freeze({
   'pot.today': money,
   'isa.today': money,
+  'pot.today.asOf': monthText,   // the month of the record the pension today is from (step F5, R4)
   'gia.today': money,
   'cash.today': money,
   'pot.againstPlan': money,

@@ -30,6 +30,7 @@ export const LABELS = Object.freeze({
   [FACT.LOCK_DATE]: { label: 'Locked on', basis: 'a day' },
   [FACT.DOC_CHANCE]: { label: 'When the plan was locked', basis: 'a chance' },
   [FACT.DOC_FIXED_CHANCE]: { label: 'When the plan was locked, to one age', basis: 'a chance' },
+  [FACT.DOC_FIXED_AGE]: { label: 'When the plan was locked, counted to age', basis: 'an age' },
   [FACT.LADDER_MONTHLY]: { label: 'Your plan pays', basis: 'a month before tax' },
   [FACT.STEP_FROM_AGE]: { label: 'Step starts at', basis: 'an age' },
   [FACT.PRICES_FROM]: { label: 'In the prices of', basis: 'a month' },

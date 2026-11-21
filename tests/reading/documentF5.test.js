@@ -73,6 +73,8 @@ describe('a bought way\'s document: its fixed-age count in both views', () => {
       const groups = groupParts(bad.sentence.parts, {}, { keys: {}, finds: sentenceFindsOf('says.badContract') });
       const simple = groups.filter((g) => g.fact === FACT.DOC_FIXED_CHANCE).map((g) => g.items.map((x) => x.text).join(''));
       expect(simple.length).toBe(1);
+      // the age it is counted to, the document's own (doc.lasts.toAge), marked too
+      expect(groups.filter((g) => g.fact === FACT.DOC_FIXED_AGE).length).toBe(1);
       const def = definitionOf(doc);
       if (!def || !def.weighted) return;
       const full = verdictBlockView(doc.strategy.r, doc.strategy.p, { definition: def });

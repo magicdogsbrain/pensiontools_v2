@@ -143,7 +143,8 @@ export const STEP_FINDS = Object.freeze([[PRICES_FIND, FACT.PRICES_FROM]]);
  */
 export const DOC_LASTS_FINDS = Object.freeze([
   [/counting how long people your age live, [a-z ]+? ((?:more than |less than |about )?(?:\d+ times|once) in 20|in every future we tried|in none of the futures we tried)\./, FACT.DOC_CHANCE],
-  [FIXED_CHANCE_WORDS, FACT.DOC_FIXED_CHANCE]
+  [FIXED_CHANCE_WORDS, FACT.DOC_FIXED_CHANCE],
+  [/If you live to (\d+),/, FACT.DOC_FIXED_AGE]
 ]);
 
 /** The household's headline (HOUSEHOLD.verdict.headline, both views): its chance in words. */

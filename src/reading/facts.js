@@ -75,6 +75,8 @@ export const FACT = Object.freeze({
   // the plan document's own chance and fixed-age count, as locked (src/reading/document.js; step F5): a dated record
   DOC_CHANCE: 'doc.lasts.chance',
   DOC_FIXED_CHANCE: 'doc.lasts.fixedChance',
+  // the age the document's fixed-age count is to ("If you live to 95, …"), as it was locked: a record (step F5)
+  DOC_FIXED_AGE: 'doc.lasts.toAge',
   // the prices a year the year tables assume (src/reading/yearTable.js: the plan's own, 2.5 for 2.5%), said over both views' tables
   YEAR_PRICES: 'years.prices',
   FOLLOW_TO: 'lasts.followTo',

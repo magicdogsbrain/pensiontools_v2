@@ -160,6 +160,15 @@ const bucketMarks = (pattern) => Object.freeze(Object.fromEntries(BUCKETS.map((b
 export const HELD_MIX_SLOTS = bucketMarks(FACT.MIX_HELD);
 export const PLAN_MIX_SLOTS = bucketMarks(FACT.MIX_PLAN);
 export const HELD_PENSION_MIX_SLOTS = bucketMarks(FACT.MIX_HELD_PENSION);
+/**
+ * A bucket's line, what the pension holds against the plan's mix (src/reading/holdings.js mixAgainstPlanOf: the home, the
+ * review, the move page held as it is, in both views): `held` is the pension's held mix, `plan` (the home's `mix`) the plan's
+ * own mix. The plan's mix has no gold and trend of its own, so that bucket's plan figure is not a fact.
+ */
+export const BUCKET_LINE_MARKS = Object.freeze(Object.fromEntries(BUCKETS.map((b) => {
+  const plan = b === 'diversifiers' ? null : factId(FACT.MIX_PLAN, b);
+  return [b, Object.freeze({ held: factId(FACT.MIX_HELD_PENSION, b), ...(plan ? { plan, mix: plan } : {}) })];
+})));
 /** The full view's one line of the held mix (Holdings.describeMix: "78% shares · 17% bonds · 5% cash; cost …"). */
 export const HELD_MIX_FINDS = Object.freeze(BUCKETS.map((b) => [new RegExp('(\\d+)% ' + b + '\\b'), HELD_MIX_SLOTS[b]]));
 

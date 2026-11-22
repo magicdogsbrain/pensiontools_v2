@@ -28,6 +28,12 @@
  *   planMixOf(plan, { now })              the plan's own mix in whole percent: a locked plan's document (its year-0 target),
  *                                         else the plan's settings' year 0 (PlanDocument.buildTargetMix); null for a way
  *                                         bought by contract, which holds a ladder, not a mix
+ *   mixAgainstPlanOf(plan, m, { now })    a pot plan's pension, bucket by bucket, held against the plan's mix (the home's line,
+ *                                         the review, the move page held as it is, the agreement's stored mix): `held` is
+ *                                         heldMixOf with `pension`, `plan` is planMixOf, `drift` their difference and
+ *                                         `maxDrift` the largest; `assumed` the pension lines counted as shares because
+ *                                         nothing says what they hold. Read only when the page's diff (`m`, moveReadingOf)
+ *                                         has pension money to read on a pot plan; null else (a ladder has its own check)
  *
  * Pure: the plan brought up to date in memory and the day; nothing here writes or reads a clock.
  */
@@ -35,6 +41,7 @@ import { moveInputs, effectiveStressSettings } from '../services/PlanReading.js'
 import { isRungRow } from '../services/TransitionPlanner.js';
 import { normaliseHoldings, holdingsSummary } from '../services/HoldingsRecord.js';
 import { proportions } from '../services/Holdings.js';
+import { needsCategory } from '../services/HoldingsPaste.js';
 import { heldPhase } from '../services/Phases.js';
 import { buildTargetMix, CONTRACT_STRATEGIES } from '../services/PlanDocument.js';
 import { orderSheetRows } from '../strategies/GiltLadderPlan.js';
@@ -160,4 +167,29 @@ export function planMixOf(plan, { now } = {}) {
   let mix = []; try { mix = buildTargetMix(ss, Math.max(1, Math.round(num(ss.duration) || 1))); } catch { mix = []; }
   const m0 = mix.length ? mix[0] : null;
   return m0 ? { shares: Math.round(num(m0.equity)), bonds: Math.round(num(m0.bond)), cash: Math.round(num(m0.cash)), from: 'settings' } : null;
+}
+
+/**
+ * A pot plan's pension held against the plan's mix (see the header): { buckets: [{ bucket, held, plan }] (buckets held or in
+ * the plan), drift: { shares, bonds, cash, diversifiers }, maxDrift, assumed: [names] }, or null. One sum: what is held is the
+ * one held mix, what the plan holds the one plan's mix, so every page says the figures the held-mix test is run on.
+ */
+export function mixAgainstPlanOf(plan, m, { now } = {}) {
+  const D = m && m.diff;
+  if (!D || D.kind !== 'buckets' || !(num(D.inPlay) > 0)) return null;
+  const held = heldMixOf(plan, { pension: true });
+  const pm = planMixOf(plan, { now });
+  if (!held || !pm) return null;
+  const want = { shares: num(pm.shares), bonds: num(pm.bonds), cash: num(pm.cash), diversifiers: 0 };
+  const order = ['shares', 'bonds', 'cash', 'diversifiers'];
+  const drift = Object.fromEntries(order.map((b) => [b, num(held[b]) - want[b]]));
+  const rec = normaliseHoldings(plan && plan.holdings);
+  const own = rec.lines.filter(inPension);
+  const assumed = (own.length ? own : rec.lines).filter((l) => (num(l.value) > 0) && needsCategory(l)).map((l) => String(l.name || l.ticker || '')).filter(Boolean);
+  return {
+    buckets: order.map((b) => ({ bucket: b, held: num(held[b]), plan: want[b] })).filter((x) => x.held > 0 || x.plan > 0),
+    drift,
+    maxDrift: Math.max(...order.map((b) => Math.abs(drift[b]))),
+    assumed
+  };
 }

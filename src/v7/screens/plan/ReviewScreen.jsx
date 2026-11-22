@@ -12,7 +12,7 @@
 import { PlanRail, changeAction, EditField, UndoToast, fill, Button, LinkButton } from '../../components/index.js';
 import { LOCK_DATE } from '../../components/facts.js';
 import { fillMarked, markIn } from '../../components/PlanFigures.jsx';
-import { GILTS_HELD_FIND } from '../../../reading/sentenceMarks.js';
+import { GILTS_HELD_FIND, BUCKET_LINE_MARKS } from '../../../reading/sentenceMarks.js';
 import { ADVICE_SHORT } from '../../copy/common.js';
 import { planView, planReviewView } from '../../state/select.js';
 import { href } from '../../router/routes.js';
@@ -133,7 +133,7 @@ function MoveReview({ V }) {
         <>
           <h2>{W.moving.title}</h2>
           <ul class="review-buckets" data-testid={`${T}.moving.buckets`}>
-            {M.buckets.map((b) => <li key={b.bucket} data-bucket={b.bucket} data-held={b.held} data-plan={b.plan}>{fill(W.moving.bucket[b.bucket], { held: String(b.held), plan: String(b.plan) })}</li>)}
+            {M.buckets.map((b) => <li key={b.bucket} data-bucket={b.bucket} data-held={b.held} data-plan={b.plan}>{fillMarked(W.moving.bucket[b.bucket], { held: String(b.held), plan: String(b.plan) }, BUCKET_LINE_MARKS[b.bucket])}</li>)}
           </ul>
           {M.onTrack && (M.onTrack.on
             ? <p data-testid={`${T}.moving.onTrack`} data-on="1">{fill(W.moving.onTrack, { stop: M.stopWords || '' })}</p>
@@ -174,7 +174,7 @@ function LivingReview({ V, dispatch }) {
         <div class="review-held" data-testid={`${T}.living.held`}>
           <h3>{W.living.held.title}</h3>
           <ul class="review-buckets" data-testid={`${T}.living.held.buckets`}>
-            {L.held.buckets.map((b) => <li key={b.bucket} data-bucket={b.bucket} data-held={b.held} data-plan={b.plan}>{fill(W.living.held.bucket[b.bucket], { held: String(b.held), plan: String(b.plan) })}</li>)}
+            {L.held.buckets.map((b) => <li key={b.bucket} data-bucket={b.bucket} data-held={b.held} data-plan={b.plan}>{fillMarked(W.living.held.bucket[b.bucket], { held: String(b.held), plan: String(b.plan) }, BUCKET_LINE_MARKS[b.bucket])}</li>)}
           </ul>
           {L.held.untagged.map((name) => <p class="note" key={name} data-testid={`${T}.living.held.untagged`}>{fill(W.moving.untagged, { name })}</p>)}
         </div>

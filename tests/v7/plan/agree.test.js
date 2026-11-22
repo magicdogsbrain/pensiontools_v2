@@ -436,8 +436,11 @@ describe('Living on it: "Test with what I hold" from today, and accepting what i
     if (!r2.querySelector('[data-testid="plan.home.where"] .home-where-block')) expect(r2.querySelector('[data-testid="plan.home.whereNone"]')).toBeTruthy();
   });
   it('a ladder\'s line links to What you hold, never to a review it cannot run', () => {
-    const day = '2028-05-10';   // 03 holds no gilt yet for 2029/30
-    const plan = entryOf(copy(C['03-gilt-ladder-locked']), day).plan;
+    const day = '2028-05-10';
+    // 03 holds the gilt for 2029/30 in part, which is held (step F6: never "not held yet"); without it, that year is not held
+    const raw = copy(C['03-gilt-ladder-locked']);
+    raw.holdings = { ...raw.holdings, lines: raw.holdings.lines.filter((l) => String(l.ticker).toUpperCase() !== 'T29') };
+    const plan = entryOf(raw, day).plan;
     const R = reviewOf([{ plan, newer: false, failed: false }], plan.id, { today: day });
     expect(R.run).toBe(null);
     const h = homeOf([{ plan, newer: false, failed: false }], plan.id, { today: day });

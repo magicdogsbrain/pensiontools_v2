@@ -139,7 +139,7 @@ export const MOVE = {
       cash: 'Cash: {held}% of your pension now; your plan’s mix has {plan}%.',
       diversifiers: 'Gold and trend: {held}% of your pension now; your plan’s mix has {plan}%.'
     },
-    unknown: 'We could not tell what {name} holds, so it is left out of these figures. You can say what it holds on What you hold.',
+    unknown: 'We could not tell what {name} holds, so it is counted as shares in these figures, as What you hold counts it. You can say what it holds there.',
     review: 'You can test what you hold against your plan, and accept it as your plan, on',
     // ISA, taxable-account and bank lines: outside the pension, so outside the plan's mix
     outsideTitle: 'Outside your pension',

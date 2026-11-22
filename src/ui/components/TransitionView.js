@@ -25,7 +25,7 @@ import { HELD } from '../../v7/copy/held.js';
 import { PLAN } from '../../v7/copy/plan.js';
 import { LAYOUT } from '../../appLayout.js';
 import { markWithin, markFact, tableAttr, cellAttr, fillHtml } from '../../reading/mark.js';
-import { GILTS_HELD_FIND, MOVE_MONEY_FINDS, PLAN_MIX_SLOTS, HELD_MIX_SLOTS, HELD_PENSION_MIX_SLOTS } from '../../reading/sentenceMarks.js';
+import { GILTS_HELD_FIND, MOVE_MONEY_FINDS, PLAN_MIX_SLOTS, HELD_MIX_SLOTS, HELD_PENSION_MIX_SLOTS, BUCKET_LINE_MARKS } from '../../reading/sentenceMarks.js';
 import { holdingsTotalsOf, heldMixOf } from '../../reading/holdings.js';
 import { HOLD } from '../../v7/copy/hold.js';
 import { mixWords } from '../../answers/plan/hold.js';
@@ -221,11 +221,11 @@ export function heldInfoHtml(I) {
   if (!I) return '';
   const H = MOVE.held;
   const fill = (t, slots) => String(t || '').replace(/\{(\w+)\}/g, (m, k) => (slots && slots[k] != null ? String(slots[k]) : m));
-  const li = (items) => '<ul style="font-size:13px;line-height:1.6;">' + items.map((x) => '<li>' + esc(x) + '</li>').join('') + '</ul>';
   let h = '';
   if (I.agreed) h += '<p><strong>' + esc(fill(H.agreed, I.agreed)) + '</strong></p>';
   if (I.noRecord) h += '<p class="hint">' + esc(H.noRecord) + '</p>';
-  if (I.buckets) h += '<div class="section-title" style="margin-top:10px;">' + esc(H.mixTitle) + '</div>' + li(I.buckets.map((b) => fill(H.bucket[b.bucket], b)));
+  // each bucket's two figures marked (mix.heldPension.#, mix.plan.#), as the simple view marks them
+  if (I.buckets) h += '<div class="section-title" style="margin-top:10px;">' + esc(H.mixTitle) + '</div><ul style="font-size:13px;line-height:1.6;">' + I.buckets.map((b) => '<li>' + fillHtml(H.bucket[b.bucket], b, BUCKET_LINE_MARKS[b.bucket]) + '</li>').join('') + '</ul>';
   for (const name of I.unknown || []) h += '<p class="hint">' + esc(fill(H.unknown, { name })) + '</p>';
   if (I.review) h += '<p class="hint">' + esc(H.review) + ' <a href="' + esc(LAYOUT.classic.v7 + I.review) + '">' + esc(H.reviewLink) + '</a>.</p>';
   return h;

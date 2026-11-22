@@ -46,7 +46,7 @@ export const REVIEW = {
     },
     onTrack: 'At this pace the move finishes by {stop}.',
     behind: 'At this pace the move is behind: £{n} in every £100 of your pension is still to move. You can move some now, or accept what you hold below.',
-    untagged: 'We could not tell what {name} holds, so it is left out of these figures. You can say what it holds on What you hold.',
+    untagged: 'We could not tell what {name} holds, so it is counted as shares in these figures, as What you hold counts it. You can say what it holds there.',
     noReading: 'We could not tell what any line of your pension holds, so there is nothing to compare yet. You can say what each holds on What you hold.',
     ladder: 'Your ladder: {held} of {needed} of your plan’s gilts are held.',
     ladderYears: 'Not held yet: the gilts for {years}.',

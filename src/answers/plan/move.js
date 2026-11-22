@@ -30,7 +30,7 @@ import { planStage, settingsForScreen } from '../../services/PlanReading.js';
 import { sequence, tickMove, untickMove } from '../../services/TransitionPlanner.js';
 import { normaliseHoldings } from '../../services/HoldingsRecord.js';
 import { proportions } from '../../services/Holdings.js';
-import { moveReadingOf, giltsCountOf, ladderGapsOf, sheetOf, planMixOf, heldMixOf, heldMixPartsOf } from '../../reading/holdings.js';
+import { moveReadingOf, giltsCountOf, ladderGapsOf, sheetOf, planMixOf, heldMixOf, heldMixPartsOf, mixAgainstPlanOf } from '../../reading/holdings.js';
 import { rotationWatch } from '../../services/RotationStatus.js';
 import { taxYearLabel, deriveTiming, taxYearStartOf } from '../../services/PlanTiming.js';
 import { CONTRACT_STRATEGIES } from '../../services/PlanDocument.js';
@@ -291,14 +291,13 @@ function withRaw(view, raw) {
 export const heldMode = (life) => heldPhase(life);
 
 const grouped = (v) => String(Math.round(num(v))).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-const BUCKETS = ['shares', 'bonds', 'cash', 'diversifiers'];
 
 /** The page by phase: `mode`, and in the held phase `heldInfo` (and on a ladder `heldView`, both views' drawing of it). */
 function heldOf(plan, s, { today, life, page, recorded }) {
   const mode = heldMode(life) ? 'held' : s.waiting ? 'waiting' : 'move';
   if (mode !== 'held') return { mode, heldInfo: null };
   if (s.m.target.kind === 'ladder') { const h = heldLadder(plan, { today, life, reading: s.reading }); return { mode, heldInfo: h, heldView: heldLadderView(h) }; }
-  return { mode, heldInfo: potHeldOf(plan, s, { life, page, recorded }) };
+  return { mode, heldInfo: potHeldOf(plan, s, { life, page, recorded, now: dateOf(today) }) };
 }
 
 /**
@@ -308,16 +307,17 @@ function heldOf(plan, s, { today, life, page, recorded }) {
  *            `review` where "Test with what I hold" and the agreement are (Your review), when it can test them
  *   noRecord nothing recorded yet
  */
-function potHeldOf(plan, s, { life, page, recorded }) {
+function potHeldOf(plan, s, { life, page, recorded, now }) {
   const T = s.m.target, D = s.m.diff;
   const agreed = life && life.agreed && life.agreed.at ? { date: dayWords(life.agreed.at) } : null;
   const base = { kind: T.kind, agreed, noRecord: !recorded, rungs: null, lines: [], cash: null, buckets: null, unknown: [], review: null };
   if (T.kind === 'buckets') {
-    const inPlay = num(D.inPlay);
-    if (inPlay > 0 && D.buckets) base.buckets = BUCKETS.filter((b) => D.buckets[b] && (num(D.buckets[b].held) > 0 || num(D.buckets[b].target) > 0)).map((b) => ({ bucket: b, held: String(Math.round(100 * num(D.buckets[b].held) / inPlay)), plan: String(Math.round(100 * num(D.buckets[b].target) / inPlay)) }));
-    base.unknown = (D.unknown || []).map((u) => u.label).filter(Boolean);
+    // the one held mix against the one plan's mix (src/reading/holdings.js mixAgainstPlanOf), as the home and the review say it
+    const x = mixAgainstPlanOf(plan, s.m, { now });
+    if (x) base.buckets = x.buckets.map((b) => ({ bucket: b.bucket, held: String(b.held), plan: String(b.plan) }));
+    base.unknown = x ? x.assumed.slice() : [];
     // "Test with what I hold" and "I accept this as my plan" are on Your review, once there is a pension record to read
-    base.review = recorded && inPlay > 0 ? ((page && page.reviewDue && page.reviewDue.href) || reviewHrefOf(plan)) : null;
+    base.review = recorded && x ? ((page && page.reviewDue && page.reviewDue.href) || reviewHrefOf(plan)) : null;
   }
   return base;
 }

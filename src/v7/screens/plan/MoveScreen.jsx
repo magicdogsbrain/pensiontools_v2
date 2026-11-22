@@ -17,7 +17,7 @@
 import { PlanRail, changeAction, UndoToast, fill, Button, LinkButton, stepNameOf } from '../../components/index.js';
 import { LOCK_DATE } from '../../components/facts.js';
 import { fillMarked, markIn } from '../../components/PlanFigures.jsx';
-import { PLAN_MIX_SLOTS, HELD_PENSION_MIX_SLOTS, MOVE_MONEY_FINDS, GILTS_HELD_FIND } from '../../../reading/sentenceMarks.js';
+import { PLAN_MIX_SLOTS, HELD_PENSION_MIX_SLOTS, MOVE_MONEY_FINDS, GILTS_HELD_FIND, BUCKET_LINE_MARKS } from '../../../reading/sentenceMarks.js';
 import { TABLES } from '../../../reading/facts.js';
 import { planView, planMoveView, planKeepTestView } from '../../state/select.js';
 import { KeepTestLine } from './KeepTest.jsx';
@@ -209,7 +209,7 @@ function Held({ V }) {
     <section class="plan-section" data-section="heldInfo" data-testid={`${T}.heldInfo`} data-kind={I.kind}>
       {I.agreed && !V.saidHeld && <p class="lead" data-testid={`${T}.heldInfo.agreed`}>{fill(H.agreed, I.agreed)}</p>}
       {I.noRecord && <p class="note" data-testid={`${T}.heldInfo.noRecord`}>{H.noRecord} <a href={href.plan(V.id, 'hold')}>{W.buttons.hold}</a></p>}
-      {I.buckets && <><h2>{H.mixTitle}</h2><ul class="plan-lines" data-testid={`${T}.heldInfo.buckets`}>{I.buckets.map((b) => <li key={b.bucket} class="plan-line" data-bucket={b.bucket}>{fill(H.bucket[b.bucket], b)}</li>)}</ul></>}
+      {I.buckets && <><h2>{H.mixTitle}</h2><ul class="plan-lines" data-testid={`${T}.heldInfo.buckets`}>{I.buckets.map((b) => <li key={b.bucket} class="plan-line" data-bucket={b.bucket}>{fillMarked(H.bucket[b.bucket], b, BUCKET_LINE_MARKS[b.bucket])}</li>)}</ul></>}
       {I.unknown.map((name) => <p class="note" key={name} data-testid={`${T}.heldInfo.unknown`}>{fill(H.unknown, { name })}</p>)}
       {I.review && <p class="note" data-testid={`${T}.heldInfo.review`}>{H.review} <a href={I.review}>{H.reviewLink}</a>.</p>}
     </section>

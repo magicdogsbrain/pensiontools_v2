@@ -160,6 +160,8 @@ export const LOCK_DATE = Object.freeze({ date: 'lock.date' });
  */
 const AFTER = Object.freeze({
   'pots.statePension': { from: 'statePension.start' },
+  'pots.statePensionOld': { age: 'statePension.age' },
+  'pots.statePensionOldAge': { age: 'statePension.age' },
   'income.lump': { age: 'lump.#.age' }
 });
 export function afterFactsOf(line) {

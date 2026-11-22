@@ -685,6 +685,260 @@
         }
       }
     ],
+    "keptSplit": [
+      {
+        "fromAge": 55,
+        "toAge": 56,
+        "ages": {
+          "you": {
+            "from": 56,
+            "to": 57
+          },
+          "partner": {
+            "from": 55,
+            "to": 56
+          }
+        },
+        "takeHome": 3500,
+        "fromPension": 1812.35,
+        "fromSavings": 0,
+        "fromPots": 1812.35,
+        "statePension": 0,
+        "finalSalary": 0,
+        "tax": 62.35,
+        "work": 0,
+        "fromWork": 0,
+        "byPerson": [
+          {
+            "who": "you",
+            "statePension": 0,
+            "finalSalary": 0,
+            "work": 0,
+            "fromWork": 0,
+            "fromPension": 1812.35,
+            "fromSavings": 0,
+            "tax": 62.35,
+            "takeHome": 1750,
+            "higherRate": false,
+            "locked": false,
+            "pensionOpen": true,
+            "working": false
+          },
+          {
+            "who": "partner",
+            "statePension": 0,
+            "finalSalary": 0,
+            "work": 0,
+            "fromWork": 0,
+            "fromPension": 0,
+            "fromSavings": 0,
+            "tax": 0,
+            "takeHome": 0,
+            "higherRate": false,
+            "locked": false,
+            "pensionOpen": true,
+            "working": true
+          }
+        ],
+        "beforeStatePension": true,
+        "pensionOpen": true,
+        "shown": {
+          "takeHome": 3500,
+          "fromPots": 1750,
+          "statePension": 0,
+          "finalSalary": 0,
+          "fromWork": 0,
+          "fromPay": 1750
+        },
+        "fromPay": 1750
+      },
+      {
+        "fromAge": 56,
+        "toAge": 66,
+        "ages": {
+          "you": {
+            "from": 57,
+            "to": 67
+          },
+          "partner": {
+            "from": 56,
+            "to": 66
+          }
+        },
+        "takeHome": 3500,
+        "fromPension": 3624.71,
+        "fromSavings": 0,
+        "fromPots": 3624.71,
+        "statePension": 0,
+        "finalSalary": 0,
+        "tax": 124.71,
+        "work": 0,
+        "fromWork": 0,
+        "byPerson": [
+          {
+            "who": "you",
+            "statePension": 0,
+            "finalSalary": 0,
+            "work": 0,
+            "fromWork": 0,
+            "fromPension": 1970.12,
+            "fromSavings": 0,
+            "tax": 86.02,
+            "takeHome": 1884.1,
+            "higherRate": false,
+            "locked": false,
+            "pensionOpen": true
+          },
+          {
+            "who": "partner",
+            "statePension": 0,
+            "finalSalary": 0,
+            "work": 0,
+            "fromWork": 0,
+            "fromPension": 1654.59,
+            "fromSavings": 0,
+            "tax": 38.69,
+            "takeHome": 1615.9,
+            "higherRate": false,
+            "locked": false,
+            "pensionOpen": true
+          }
+        ],
+        "beforeStatePension": true,
+        "pensionOpen": true,
+        "shown": {
+          "takeHome": 3500,
+          "fromPots": 3500,
+          "statePension": 0,
+          "finalSalary": 0,
+          "fromWork": 0
+        }
+      },
+      {
+        "fromAge": 66,
+        "toAge": 67,
+        "ages": {
+          "you": {
+            "from": 67,
+            "to": 68
+          },
+          "partner": {
+            "from": 66,
+            "to": 67
+          }
+        },
+        "takeHome": 3500,
+        "fromPension": 2687.08,
+        "fromSavings": 0,
+        "fromPots": 2687.08,
+        "statePension": 1045.63,
+        "finalSalary": 0,
+        "tax": 232.72,
+        "work": 0,
+        "fromWork": 0,
+        "byPerson": [
+          {
+            "who": "you",
+            "statePension": 1045.63,
+            "finalSalary": 0,
+            "work": 0,
+            "fromWork": 0,
+            "fromPension": 1553.94,
+            "fromSavings": 0,
+            "tax": 232.72,
+            "takeHome": 2366.85,
+            "higherRate": false,
+            "locked": false,
+            "pensionOpen": true
+          },
+          {
+            "who": "partner",
+            "statePension": 0,
+            "finalSalary": 0,
+            "work": 0,
+            "fromWork": 0,
+            "fromPension": 1133.15,
+            "fromSavings": 0,
+            "tax": 0,
+            "takeHome": 1133.15,
+            "higherRate": false,
+            "locked": false,
+            "pensionOpen": true
+          }
+        ],
+        "beforeStatePension": true,
+        "pensionOpen": true,
+        "shown": {
+          "takeHome": 3500,
+          "fromPots": 2454,
+          "statePension": 1046,
+          "finalSalary": 0,
+          "fromWork": 0
+        }
+      },
+      {
+        "fromAge": 67,
+        "toAge": 101,
+        "ages": {
+          "you": {
+            "from": 68,
+            "to": 102
+          },
+          "partner": {
+            "from": 67,
+            "to": 101
+          }
+        },
+        "takeHome": 3500,
+        "fromPension": 1656.45,
+        "fromSavings": 0,
+        "fromPots": 1656.45,
+        "statePension": 2091.27,
+        "finalSalary": 0,
+        "tax": 247.72,
+        "work": 0,
+        "fromWork": 0,
+        "byPerson": [
+          {
+            "who": "you",
+            "statePension": 1045.63,
+            "finalSalary": 0,
+            "work": 0,
+            "fromWork": 0,
+            "fromPension": 891.73,
+            "fromSavings": 0,
+            "tax": 133.39,
+            "takeHome": 1803.97,
+            "higherRate": false,
+            "locked": false,
+            "pensionOpen": true
+          },
+          {
+            "who": "partner",
+            "statePension": 1045.63,
+            "finalSalary": 0,
+            "work": 0,
+            "fromWork": 0,
+            "fromPension": 764.73,
+            "fromSavings": 0,
+            "tax": 114.34,
+            "takeHome": 1696.03,
+            "higherRate": false,
+            "locked": false,
+            "pensionOpen": true
+          }
+        ],
+        "beforeStatePension": false,
+        "pensionOpen": true,
+        "shown": {
+          "takeHome": 3500,
+          "fromPots": 1409,
+          "statePension": 2091,
+          "finalSalary": 0,
+          "fromWork": 0
+        }
+      }
+    ],
     "guaranteed": {
       "monthlyAfterTax": 2091.27
     },

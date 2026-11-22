@@ -124,7 +124,9 @@ function householdOf(source, result, today, who) {
 }
 
 /** The stretches of years the answer was worked out in, for its careful amount (C, B) or the spending shown (A). */
-const phasesOf = (source, result) => (source === 'a' ? (result.shown && result.shown.phases) : result.phases) || [];
+// (B for a couple apart on the two kept plans: the split its answer ran on, at the pots as now — its phases are shown at the
+// pot that would be enough, another split — so the plans kept are the plans its figures come from)
+const phasesOf = (source, result) => (source === 'a' ? (result.shown && result.shown.phases) : source === 'b' && Array.isArray(result.keptSplit) ? result.keptSplit : result.phases) || [];
 
 /**
  * The share of each one's take-home in a stretch that is their part of the amount asked (a couple; step P4, fix round 1).

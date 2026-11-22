@@ -168,6 +168,15 @@ describe('a couple on two clocks, Am I paying in enough: kept, it is the two pla
     'both 58, paying in, stopping together at 61': { household: 'couple', you: { age: 58, pot: 250000, payIn: { kind: 'total', total: 400 } },
       partner: { age: 58, pot: 180000, payIn: { kind: 'total', total: 300 } }, savings: 20000, stop: { kind: 'age', age: 61 }, spend: { kind: 'amount', amount: 2600 } }
   };
+  // (fix round 1 of P5: where some futures run out, the split matters. B's phases are shown at the pot that would be enough,
+  // and the keep wrote each one's part from that split — you 0.530 / Pat 0.470 — where B's answer ran on the split at the
+  // pots as now, A's — 0.435 / 0.565 — so the plans kept said 0.80131 where B said 0.79981 at £3,000, and 0.43976 against
+  // 0.43534 at £3,400; your first income step £11,779 against A's £11,088. Both ways round alike.)
+  const apart = cases['one saving, one retired: you stop at 62, Pat (64) has stopped'];
+  cases['one saving, one retired, £3,000 a month'] = { ...apart, spend: { kind: 'amount', amount: 3000 } };
+  cases['one saving, one retired, £3,400 a month'] = { ...apart, spend: { kind: 'amount', amount: 3400 } };
+  cases['one saving, one retired, £3,000 a month, the two the other way round'] = { household: 'couple', you: { age: 64, pot: 220000 }, stop: { kind: 'already' },
+    partner: { age: 58, pot: 150000, payIn: { kind: 'total', total: 500 }, stop: { kind: 'age', age: 62 } }, savings: 30000, spend: { kind: 'amount', amount: 3000 } };
   for (const [name, inputs] of Object.entries(cases)) {
     it(name, () => {
       const b = answerB(inputs, ENV);
@@ -179,6 +188,7 @@ describe('a couple on two clocks, Am I paying in enough: kept, it is the two pla
       expect(h.reason).toBeUndefined();
       expect({ lasted: Math.round(b.wholeLife.lasted * N), weighted: b.wholeLife.weighted, planToAge: b.chance.planToAge })
         .toEqual({ lasted: h.lasted, weighted: h.weighted, planToAge: h.planToAge });
+      if (inputs.stop.kind !== 'age') return;
       const a = answerA(inputs, { ...ENV, detail: 'chart', ages: [inputs.stop.age] });
       expect({ lasted: a.shown.lasted, weighted: a.shown.weighted }).toEqual({ lasted: b.wholeLife.lasted, weighted: b.wholeLife.weighted });
     });

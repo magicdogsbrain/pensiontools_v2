@@ -206,7 +206,11 @@ function createAges(inputs, env, lives, ctx) {
         const c2 = env.planPath.coupleCaseOf('b', fed, env, { lives: longerOf(lives, env), phasesAt: (H) => phasesAt(s, H), H0: 12 * spendMonthOf(inputs), saver: keptSaverOf(s, stopAge, fed, env), coversGap: coversGapOf(s.plan) });
         return createStopRunner({ ...s, plan: env.planPath.coupleWordsOf(sp0.plan, c2), couple: c2 });
       } : null;
-      const sp = cc ? { ...sp0, plan: env.planPath.coupleWordsOf(sp0.plan, cc), couple: cc, atPayIns } : sp0;
+      // (`splitAt`, a couple apart: the household's split at an amount as this answer runs it, at the pots as now — what the
+      // keep writes each one's part from, so the plans kept are the plans run. Their phases are shown at the pot that would be
+      // enough, which splits the money another way; a couple from one tax year's phases are the joined words, whose parts are
+      // this split whatever the pots, so the keep reads them as it always has)
+      const sp = cc ? { ...sp0, plan: env.planPath.coupleWordsOf(sp0.plan, cc), couple: cc, atPayIns, ...(sp0.plan.apart ? { splitAt: (H) => phasesAt(sp0, H) } : {}) } : sp0;
       // one person whose pension is open at the stop: the drawing years are the plan's that keeping this stop would write
       // (keep/planPath.js; the stop runner draws on it), the saving years this stop plan's own
       // (a saved plan read as B, env.fromPlan: its drawing years are that plan's own at this stop, keep/planPath.js planAtStop)
@@ -845,6 +849,9 @@ export function answerB(inputs, env) {
     reach,
     grid: gridOut,
     phases,
+    // (a couple apart on the two kept plans: the household's split at the spend as the answer ran it, at the pots as now, for
+    // the keep — planSeed takeHomeOf — so the two plans Keep writes are the two the answer's figures come from)
+    ...(sp.splitAt ? { keptSplit: sp.splitAt(H) } : {}),
     // (on the plan path what comes in anyway is the kept plan's own, its words plan: as C and D say it)
     guaranteed: { monthlyAfterTax: round2((base.pc && !base.pc.household ? base.pc.wordsPlan.guaranteedAYear : plan.guaranteedAYear) / 12) },
     handOver: { c: handOverToC(inp, stopAge, env.today) },

@@ -18,7 +18,7 @@ import { STRESS } from '../../v7/copy/stressPanel.js';
 import { PLAN } from '../../v7/copy/plan.js';
 import { lockedShortOf } from '../../services/PlanCommit.js';
 import { STRESS as STRESS_ON } from '../../answers/shared/rules.js';
-import { markFact, markWithin } from '../../reading/mark.js';
+import { markFact, markWithin, asRecord } from '../../reading/mark.js';
 import { pensionFromWords } from '../../reading/money.js';
 import { LABELS } from '../../reading/labels.js';
 import { FACT, factId } from '../../reading/facts.js';
@@ -186,8 +186,9 @@ export function planDocumentHtml(doc, r = {}) {
   // Strategy
   let st = '';
   if (r.strategyCard && d.strategy?.r && d.strategy?.p) {
-    // 7.8.0: the definition it was locked under (PlanDocument.definitionOf: its own success, else the one before 7.8.0), and one line from it
-    try { st = r.strategyCard(d.strategy.r, d.strategy.p, { compact: true, definition: definitionOf(d) }) + successLineHtml(d); } catch (e) { st = '<p class="hint">The strategy result could not be drawn from the stored document (' + esc(e.message) + ').</p>'; }
+    // 7.8.0: the definition it was locked under (PlanDocument.definitionOf: its own success, else the one before 7.8.0), and one line from it;
+    // the card is the record as locked: only its own marks (doc.*) stay, never today's ids (its left, worst 12 months, ages)
+    try { st = asRecord(r.strategyCard(d.strategy.r, d.strategy.p, { compact: true, definition: definitionOf(d) })) + successLineHtml(d); } catch (e) { st = '<p class="hint">The strategy result could not be drawn from the stored document (' + esc(e.message) + ').</p>'; }
   } else if (d.strategy) {
     const rr = d.strategy.r || {};
     st = '<p><strong>' + esc(strategyNameOf(d.strategy)) + '</strong>' + (rr.ruin ? ' — ran out or was cut in ' + esc(pctShare(+rr.ruin.mc || 0, 1)) + ' of simulated futures; income guaranteed: ' + esc(guaranteeSaid(rr, d.strategy.p) || '—') + '.' : '.') + '</p>';

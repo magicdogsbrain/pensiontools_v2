@@ -13,6 +13,7 @@
  *   markWithin(html, finds)        words already written, with group 1 of the first match of each [RegExp, id] marked
  *   unmarked(html)                 the same HTML with the fact marks taken off (for tests that read the words)
  *   asWhatIf(html)                 a what-if's HTML: every fact and table mark taken off (never the plan's figure)
+ *   asRecord(html)                 a record's HTML: every fact mark but the record's own (doc.*) taken off
  *
  * An id outside the register (src/reading/facts.js) throws: a mark the sweep cannot read is a mistake to catch at once.
  */
@@ -87,6 +88,15 @@ export const FIXED_CHANCE_WORDS = /(in (?:every future|none of the futures|(?:mo
  */
 export function asWhatIf(html) {
   return String(html == null ? '' : html).replace(/\sdata-fact(?:-table)?="[^"]*"/g, '');
+}
+
+/**
+ * A record's HTML (the plan document's stored card): the figures as they were locked, so every fact mark of today's reading
+ * is taken off and only the record's own marks (doc.*) and the table marks stay. A record is never read as today's figure:
+ * the stored card and today's test may differ, and each says only what it is.
+ */
+export function asRecord(html) {
+  return String(html == null ? '' : html).replace(/\sdata-fact="(?!doc\.)[^"]*"/g, '');
 }
 
 /** The HTML with every fact mark taken off, its figure left as it was: what a test of the words compares. */

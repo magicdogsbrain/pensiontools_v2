@@ -174,6 +174,16 @@ describe('planDocumentHtml', () => {
     expect(strategyNameOf({ id: 'pots-and-valves', name: 'Pots & Valves' })).toBe('Pots & Valves');
     expect(strategyNameOf(null)).toBe('');
   });
+  it('the stored card is a record: today\'s marks come off it, its own (doc.*) and its tables stay', () => {
+    const card = '<div class="card"><span data-fact="doc.lasts.chance">about 17 times in 20</span> <span data-fact="left.typically">£969,000</span>'
+      + ' <span data-fact="lasts.worst12">£30,000</span><table data-fact-table="ladder"><td data-row="0">£1</td></table></div>';
+    const h = planDocumentHtml(doc, { strategyCard: () => card, staircaseSvg: () => '', whereAmI: '' });
+    expect(h).toContain('£969,000');
+    expect(h).not.toContain('data-fact="left.typically"');
+    expect(h).not.toContain('data-fact="lasts.worst12"');
+    expect(h).toContain('<span data-fact="doc.lasts.chance">about 17 times in 20</span>');
+    expect(h).toContain('data-fact-table="ladder"');
+  });
   it('survives an empty or legacy document and a throwing renderer', () => {
     expect(planDocumentHtml({})).toContain('No plan document yet');
     expect(planDocumentHtml(null)).toContain('No plan document yet');

@@ -60,6 +60,8 @@ export { applyPatch };
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 const blank = (v) => v === undefined || v === null || (typeof v === 'string' && v.trim() === '');
 const copy = (v) => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)));
+/** The plan with its lock flag set to `on` (a reading in memory only, never written). */
+const withLock = (plan, on) => ({ ...plan, decisionTool: { ...(plan.decisionTool || {}), settings: { ...((plan.decisionTool && plan.decisionTool.settings) || {}), locked: on } } });
 const text = (v) => (v === undefined ? '<absent>' : JSON.stringify(v));
 /** The name a plan is shown by: the person's own, else one that follows the plan's present figures (services/PlanName.js). */
 const nameOf = (plan, now) => shownPlanName(plan, { now });
@@ -239,6 +241,12 @@ export function checkWant(plan, typed, { today, tryOnly = false }) {
 export function wantWrites(plan, typed, { today, tryOnly = false }) {
   const w = checkWant(plan, typed, { today, tryOnly });
   if (!w.ok) return { ok: false, errors: w.errors, patch: {}, plan };
+  // a try on a locked plan: About's and What you spend's own writes refuse a locked plan, so they are worked on the plan
+  // read as unlocked (its settings are the ones the lock froze) and the plan handed back keeps its lock; nothing is written
+  if (tryOnly && w.saved.locked) {
+    const opened = wantWrites(withLock(plan, false), typed, { today });
+    return opened.ok ? { ...opened, plan: withLock(opened.plan, true) } : { ...opened, plan };
+  }
   let base = plan;
   const patch = {};
   if (w.changed.stopAge) {

@@ -16,6 +16,7 @@ import { householdInNode } from './helpers/householdInNode.js';
 import { HOUSEHOLD_WRITES } from '../src/answers/plan/schema.js';
 import { applyPatch } from '../src/answers/plan/about.js';
 import { pctBesideWords } from '../src/services/OneAnswer.js';
+import { householdShareOf } from '../src/answers/plan/household.js';
 
 test.use({ outside: 'block' });
 
@@ -77,7 +78,7 @@ test.describe('"Your household", without an account', () => {
       expect(await stored(page), 'opening writes nothing').toBe(planted);
     });
 
-    await test.step('"Check the two plans together": run in the worker; the pooled share, each plan alone and the split\'s pounds equal Node; "Tried in 4 runs"', async () => {
+    await test.step('"Check the two plans together": run in the worker; the household\'s share, each plan alone and the split\'s pounds equal Node; "Tried in 4 runs"', async () => {
       const t0 = Date.now();
       await page.getByTestId(`${T}.check`).click();
       const result = page.getByTestId(`${T}.result`);
@@ -85,7 +86,11 @@ test.describe('"Your household", without an account', () => {
       testInfo.annotations.push({ type: 'household-ms', description: `${Date.now() - t0} ms` });
       const c = node.pooled.own.combined;
       const pct = (share) => pctBesideWords(share).replace(/%$/, '');   // the page's own reading of a share (7.12.0: OneAnswer.pctBesideWords, a decimal kept near a line its words name)
-      await expect(page.locator(`[data-testid="${T}.rows"] tr[data-row="household"]`)).toHaveAttribute('data-pct', pct(c.pooled.success));
+      // the household's own figure (ruling 9): the two kept plans' reading, as Node's run carries it (`lasts`); the pooled
+      // run's share only when that reading could not run. Each plan alone and both alone stay the pooled run's.
+      const own = householdShareOf(node.pooled.lasts);
+      expect(own, 'the two kept plans were read together').not.toBe(null);
+      await expect(page.locator(`[data-testid="${T}.rows"] tr[data-row="household"]`)).toHaveAttribute('data-pct', pct(own));
       await expect(page.locator(`[data-testid="${T}.rows"] tr[data-row="a"]`)).toHaveAttribute('data-pct', pct(c.successA));
       await expect(page.locator(`[data-testid="${T}.rows"] tr[data-row="b"]`)).toHaveAttribute('data-pct', pct(c.successB));
       await expect(page.locator(`[data-testid="${T}.rows"] tr[data-row="both"]`)).toHaveAttribute('data-pct', pct(c.jointSuccess));

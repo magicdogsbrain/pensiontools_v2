@@ -17,7 +17,9 @@ import { SAVING_WRITES } from '../src/answers/plan/schema.js';
 import { applyPatch } from '../src/answers/plan/about.js';
 import { SAVING } from '../src/v7/copy/saving.js';
 import { saverInputsOf, saverDraftOf } from '../src/answers/plan/saverInputs.js';
-import { answerB } from '../src/answers/b/answer.js';
+// B as every caller asks it (answers/index.js answerFor): on the plan path, so a saved plan's verdict is that plan's own
+// drawing years (env.fromPlan; the lead's ruling 10), as the page's worker asks it
+import { answerFor } from '../src/answers/index.js';
 import { upgradeScenario } from '../src/firebase/scenarioMigration.js';
 
 test.use({ outside: 'block' });
@@ -101,7 +103,7 @@ test.describe('"What you pay in", without an account', () => {
     await test.step('"Are you paying in enough?" (release step R2): question B\'s own answer on the plan\'s figures, worked out in the worker — the band and the sentences Node works out at 1,000 futures; the planner\'s check a quiet link; nothing written', async () => {
       const read = saverInputsOf(upgradeScenario(JSON.parse(JSON.stringify(sam)), { now: new Date(FIXED_NOW) }).scenario, { today: TODAY });
       expect(read.ok).toBe(true);
-      const result = answerB(read.inputs, { today: TODAY, futures: 1000, seed: 0, trace: false, detail: 'answer', ...read.env });
+      const result = await answerFor('b', read.inputs, { today: TODAY, futures: 1000, seed: 0, trace: false, detail: 'answer', ...read.env });
       const box = page.getByTestId(`${T}.verdict`);
       await expect(box).toHaveAttribute('data-status', 'final', { timeout: 120_000 });
       await expect(box).toHaveAttribute('data-verdict', result.verdict.band);

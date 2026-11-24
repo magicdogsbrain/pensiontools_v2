@@ -237,7 +237,8 @@ export const FACTS = Object.freeze({
   'lasts.chance': {
     label: 'the chance the money lasts', owner: 'MEASURE', kind: 'chance',
     simple: [
-      { page: 'lasts', find: '(?:lasts|last) as long as you do ((?:more than |less than |about )?\\d+ times in 20)' },
+      // today's test (plan.lasts.result): on a locked plan the record as locked is drawn above it, its own figure (doc.lasts.chance)
+      { page: 'lasts', region: 'plan.lasts.result', find: '(?:lasts|last) as long as you do ((?:more than |less than |about )?\\d+ times in 20)' },
       { page: 'saving', find: '(?:lasts|last) as long as you do ((?:more than |less than |about )?\\d+ times in 20)' }
     ],
     full: [
@@ -248,7 +249,8 @@ export const FACTS = Object.freeze({
   'left.typically': {
     label: 'what is typically left', owner: 'MEASURE', kind: 'money',
     simple: [
-      { page: 'lasts', find: `Left at the end, at today’s prices: typically ${M}` },
+      // today's test, not the record as locked drawn above it on a locked plan (plan.lasts.document: a record, never today's figure)
+      { page: 'lasts', region: 'plan.lasts.result', find: `Left at the end, at today’s prices: typically ${M}` },
       { page: 'way', find: `typically ${M}` }
     ],
     full: [

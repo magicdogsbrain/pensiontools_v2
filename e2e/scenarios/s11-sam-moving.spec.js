@@ -87,8 +87,12 @@ test('s11 · Sam, 59, moving: buy what is missing, sell no more than that, keep 
     q.same('the buy total', [{ where: 'simple Moving', value: buy }, { where: 'home To do', value: grab(/Moving to your plan’s mix: £([\d,]+) still to buy/, home) }], { everywhere: true });
     // (E2) year 0 pays for the months it has. By hand: £26,000 a year ÷ 12 = £2,166.67 → £2,167 a month, from October 2027
     // (6 payments to March 2028, £13,000); never 26,000 over the months left in 2027/28 (÷ 10 = £2,600 in June, ÷ 5 = £5,200
-    // in November). Today Sam is still at work, so the home says when the ladder starts paying and the month then.
-    const starts = /Your ladder pays from October 2027: £([\d,]+) a month before tax/.exec(home);
+    // in November). Today Sam is still at work, so the home says when the ladder starts paying and the month then, in the
+    // one sentence both views say ("The plan starts paying in October 2027: £2,167 a month, 6 payments to March 2028, £13,000.").
+    // By hand, the first year: 6 payments, October to March; 26,000 × 6 ÷ 12 = £13,000 (the plan document's 2027/28 row too).
+    const starts = /The plan starts paying in October 2027: £([\d,]+) a month/.exec(home);
+    const firstYear = /The plan starts paying in October 2027: £[\d,]+ a month, 6 payments to March 2028, £([\d,]+)/.exec(home);
+    q.exact('what the ladder pays in its first year, October 2027 to March 2028', firstYear ? money(firstYear[1]) : null, 13000, { byHand: '26,000 × 6 ÷ 12 = 13,000', tolerance: 1, owner: 'MONTH' });
     q.exact('the month the ladder will pay, from October 2027', starts ? money(starts[1]) : null, 2167, { byHand: '26,000 ÷ 12 = 2,166.67', tolerance: 1, owner: 'MONTH' });
 
     await q.step('the full view, Transition', () => fullPage(page, 'transition'));

@@ -9199,7 +9199,7 @@
         const stratNote = waysNoteHtml({ sids: { a: idA, b: idB }, ownName, pName, shifted: offsets.a > 0 || offsets.b > 0 });   // each plan's way of drawing, in the simple view's words (step F6)
         const startsNote = householdStartWords({ offset: offsets.a, firstTaxYear: deriveTiming(ownSettings, now).firstTaxYear }, { offset: offsets.b, firstTaxYear: deriveTiming(partnerSettings, now).firstTaxYear });   // one plan begins later than the other (couples-different-years.md 7)
         const thisYear = now.getFullYear();
-        out.innerHTML = verdictSectionHtml({ r, ownName, pName, stratNote, startsNote, setA: ownSettings, setB: partnerSettings, offsets, now })
+        out.innerHTML = verdictSectionHtml({ r, ownName, pName, stratNote, startsNote, setA: ownSettings, setB: partnerSettings, offsets, now, lasts: res.lasts || null })   // the household's figure: the two kept plans' reading (runHousehold `lasts`), as the simple view says it
           + timelineSectionHtml(res.timeline, ownName, pName, thisYear)
           + wealthSectionHtml(r.potFan, thisYear)
           + whatToDoHtml(r, ownName, pName)

@@ -36,14 +36,14 @@ const endAgeOf = (s, now) => (s ? planEndAgeOf(s, now) : null);
 
 /**
  * The household verdict in words, pooled first, in the simple view's sentences (7.12.0): until when each plan is tested,
- * and — when one plan fell short and the other paid — whose plan, in that person's ages. `o`: { ownName, pName, setA, setB }.
+ * and — when one plan fell short and the other paid — whose plan, in that person's ages. `o`: { ownName, pName, setA, setB, lasts } (`lasts`: runHousehold's, the household's own figure).
  */
 export function householdVerdictHtml(r, o = {}) {
   const C = HOUSEHOLD.verdict;
   const names = { a: o.ownName || 'This plan', b: o.pName || 'Partner' };
   const now = o.now instanceof Date ? o.now : new Date();
   // the one reader of the verdict's words (answers/plan/household.js householdVerdictOf), as the simple view says them (step F6)
-  const v = householdVerdictOf({ combined: r }, names, o.offsets || null, { a: endAgeOf(o.setA, now), b: endAgeOf(o.setB, now) });
+  const v = householdVerdictOf({ combined: r, lasts: o.lasts || null }, names, o.offsets || null, { a: endAgeOf(o.setA, now), b: endAgeOf(o.setB, now) });
   if (!v) return '';
   let s = '<strong>' + esc(C.head[v.head]) + '.</strong> ' + fillHtml(C.headline, { words: v.words }, { words: 'household.chance' });
   if (v.tested) s += ' ' + fillHtml(v.tested.same ? C.tested : C.testedTwo, v.tested, householdSlotMarks('tested', v.tested, names.a));
@@ -67,13 +67,13 @@ export function waysNoteHtml({ sids, ownName, pName, shifted = false }) {
  * The verdict section: the household first, then each plan on its own and the two as separate plans.
  * @param {{ r: object, ownName: string, pName: string, stratNote?: string, startsNote?: string, setA?: object, setB?: object }} o
  */
-export function verdictSectionHtml({ r, ownName, pName, stratNote = '', startsNote = '', setA = null, setB = null, offsets = null, now = null }) {
+export function verdictSectionHtml({ r, ownName, pName, stratNote = '', startsNote = '', setA = null, setB = null, offsets = null, now = null, lasts = null }) {
   const C = HOUSEHOLD.verdict;
   const names = { a: ownName, b: pName };
-  const v = householdVerdictOf({ combined: r }, names, offsets, { a: endAgeOf(setA, now || todayOf()), b: endAgeOf(setB, now || todayOf()) });
+  const v = householdVerdictOf({ combined: r, lasts }, names, offsets, { a: endAgeOf(setA, now || todayOf()), b: endAgeOf(setB, now || todayOf()) });
   const share = v ? v.share : (r.pooled ? r.pooled.success : r.jointSuccess);
   let html = '<div class="settings-section"><div class="section-title">The verdict</div>';
-  html += '<div class="alert ' + onCourseAlertClass(share) + '" style="font-size:15px;" id="hhHouseholdVerdict">' + householdVerdictHtml(r, { ownName, pName, setA, setB, offsets, now: now || todayOf() }) + '</div>';
+  html += '<div class="alert ' + onCourseAlertClass(share) + '" style="font-size:15px;" id="hhHouseholdVerdict">' + householdVerdictHtml(r, { ownName, pName, setA, setB, offsets, now: now || todayOf(), lasts }) + '</div>';
   // each plan on its own and both: the simple view's rows, the chance of each marked (household.#.chance)
   const cell = (x) => '<strong>' + esc(String(x.words).replace(/^in /, '')) + '</strong>' + (x.id === 'household' ? '' : ' <span class="hint">(' + markFact(householdRowFact(x.id), esc(x.pct + '%')) + ')</span>');
   html += '<table><tbody>'

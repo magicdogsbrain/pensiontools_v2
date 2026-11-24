@@ -20,8 +20,8 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { join } from 'node:path';
-import { runHousehold, runSurvivor, runCare, yearsFromAge } from '../../../src/answers/plan/householdRun.js';
-import { splitPatches, ageNowOf, pairKeyOf, householdOf } from '../../../src/answers/plan/household.js';
+import { runHousehold, runSurvivor, runCare, yearsFromAge, householdLastsOf } from '../../../src/answers/plan/householdRun.js';
+import { splitPatches, ageNowOf, pairKeyOf, householdOf, householdShareOf, householdVerdictOf } from '../../../src/answers/plan/household.js';
 import { applyPatch } from '../../../src/answers/plan/about.js';
 import { effectiveStressSettings } from '../../../src/services/PlanReading.js';
 import { createSimulationConfigFromSettings } from '../../../src/storage/StressRepository.js';
@@ -113,7 +113,14 @@ describe('gate 9 — "Your household" equals the planner\'s Household tab on the
       made[name] = { ...(made[name] || {}), pooled: sha({ combined: combinedOf(mine.own.combined), rA: resultOf(mine.own.rA), rB: resultOf(mine.own.rB), split: splitOf(mine.split), fig: figOf(mine.fig) }) };
       // the figures as the page says them: the verdict's words and the split's pounds are the run's
       const view = householdOf([{ plan: a, newer: false, failed: false }, { plan: b, newer: false, failed: false }], a.id, { today: TODAY, H: { key: pairKeyOf(a, b), status: 'done', limit: null, result: mine, ms: 1, survivor: null, care: null, pick: null } });
-      expect(view.verdict.share).toBe(theirs.res.own.combined.pooled ? theirs.res.own.combined.pooled.success : theirs.res.own.combined.jointSuccess);
+      // the household's figure is the two kept plans' own reading (the lead's ruling 9: householdRun.householdLastsOf, carried
+      // as `lasts`), the same run a couple's answer makes; the pooled run above stays the table's and the split's
+      const lasts = householdLastsOf(a, b, { today: TODAY });
+      expect(mine.lasts).toEqual(lasts);
+      expect(view.verdict.share).toBe(householdShareOf(lasts));
+      expect(view.verdict.share).toBe(lasts.weighted != null ? lasts.weighted : lasts.lasted / lasts.n);
+      // and the full view's Household tab says that same figure (householdView.verdictSectionHtml, handed runHousehold's `lasts`)
+      expect(householdVerdictOf({ combined: theirs.res.own.combined, lasts: mine.lasts }, view.names, mine.offsets, null).share).toBe(view.verdict.share);
       expect(view.split.applies).toBe(theirs.split.applies);
       if (theirs.split.applies) expect(view.split.saving.year).toBe('£' + r0(theirs.split.saving.year).toLocaleString('en-GB'));
     });

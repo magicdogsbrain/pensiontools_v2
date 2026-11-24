@@ -397,10 +397,21 @@ export { householdMarksOf, HOUSEHOLD_SLOT_MARKS, householdSlotMarks, householdRo
  * Both views read it (step F6): the full view hands the pooled run as `{ combined }`.
  */
 export function householdVerdictOf(res, names, offsets, ends) { return verdictView(res, names, offsets, ends); }
+/**
+ * The household's own figure (the lead's ruling 9): the two kept plans' reading (householdRun.js householdLastsOf, carried on
+ * runHousehold's result as `lasts`) — the weighted chance when the plans are weighed, else the share that lasted. Null when
+ * it could not run (a way of drawing other than Pots & Valves): the pooled run's figure stands then.
+ */
+export function householdShareOf(lasts) {
+  if (!lasts || lasts.reason || !(+lasts.n > 0)) return null;
+  if (Number.isFinite(lasts.weighted)) return lasts.weighted;
+  return Number.isFinite(+lasts.lasted) ? +lasts.lasted / +lasts.n : null;
+}
 function verdictView(res, names, offsets, ends) {
   const c = res && res.combined;
   if (!c) return null;
-  const share = c.pooled ? c.pooled.success : c.jointSuccess;
+  const own = householdShareOf(res.lasts);
+  const share = own != null ? own : c.pooled ? c.pooled.success : c.jointSuccess;
   const covered = c.pooled ? ['a', 'b'].map((k) => {
     const x = c.pooled[k === 'a' ? 'shortA' : 'shortB'];
     if (!x || !(x.n > 0) || x.median == null) return null;
@@ -568,7 +579,7 @@ export function householdOf(entries, id, { today, typed = null, H = null, source
     status: h ? h.status : 'idle', reason: h && h.status === 'failed' ? h.reason || null : null, ms: h && h.ms != null ? h.ms : null, progress: h ? h.progress : null, stale,
     runs: result && result.basis ? String(result.basis.runs) : null,
     unaffordable: result && !result.ok ? { which: result.which === 'b' ? names.b : names.a, reason: result.reason === 'partnerNotSet' ? null : (result.why || ''), kind: result.reason, missing: result.missing || null } : null,
-    verdict: ok ? verdictView(result.own, names, result.offsets, { a: endAgeOf(saved.ssA, now), b: endAgeOf(saved.ssB, now) }) : null,
+    verdict: ok ? verdictView({ ...result.own, lasts: result.lasts || null }, names, result.offsets, { a: endAgeOf(saved.ssA, now), b: endAgeOf(saved.ssB, now) }) : null,
     // what the check starts from (7.12.0, services/HouseholdStarts.js): each plan's pension and ISA at its own start, and the sum
     starts: ok && saved.ssA && saved.ssB ? startsWords(householdStartsOf(saved.ssA, saved.ssB, names, result.offsets || {}, now)) : null,
     startsSlots: ok && saved.ssA && saved.ssB ? startsSlotsOf(householdStartsOf(saved.ssA, saved.ssB, names, result.offsets || {}, now)) : null,

@@ -39,6 +39,7 @@ import { pounds } from './income.js';
 import { takenBeforeTax, targetOfTaken } from '../../services/BeforeTax.js';
 import { monthFromOf, monthAfterTaxOf } from '../../reading/month.js';
 import { moveOfAlert } from '../../services/PlanRuleWords.js';
+import { monthsOf } from '../../services/PaidYear.js';
 import { shownPlanNameOn } from '../../services/PlanName.js';
 
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
@@ -102,7 +103,7 @@ function monthChoices(I, mon, fp, wide = false, toRecord = null) {
 
 /**
  * What a locked plan takes in a month of a tax year, from its document (7.12.0): the year's row (TaxYear '2026/27'), what it
- * draws from the pension's investments and what a ladder pays, a twelfth a month. Null without a document or a row, or when
+ * draws from the pension's investments and what a ladder pays, shared over the months the row pays. Null without a document or a row, or when
  * the row takes nothing from the pension.
  */
 export function planMonthOf(plan, key, month) {
@@ -113,7 +114,11 @@ export function planMonthOf(plan, key, month) {
   if (!row) return null;
   const year = (+row.market || 0) + (+row.contract || 0);
   if (!(year > 0)) return null;
-  return { month: monthWords(month), amount: pounds(year / 12) };
+  // the row holds what the plan pays in that year's months: a part first year (the run's year 0, services/PaidYear.js) pays
+  // for the months it has, so its month is the row over those months, never over twelve (a document from before has 12)
+  const p = doc.strategy && doc.strategy.p;
+  const months = monthsOf(p, (+row.y || 0) - (p && +p.yearOffset > 0 ? +p.yearOffset : 0));
+  return { month: monthWords(month), amount: pounds(year / months) };
 }
 
 /** The set-up's boxes read, the top-up settled and the year as it would be stored (TaxYearSetUp, as the classic set-up runs it). */

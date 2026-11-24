@@ -17,6 +17,28 @@ import { StaleWords } from './Problem.jsx';
 import { COMMON, ADVICE_SHORT, ADVICE_FULL } from '../copy/common.js';
 import { PLAN } from '../copy/plan.js';
 
+/**
+ * A section the address names is focused as soon as it is drawn, but the page above it can still be filling in (answers that
+ * arrive a moment later): for a few seconds it is brought back into view while it keeps the keyboard, until the person
+ * scrolls, presses a key or moves the keyboard themselves.
+ */
+function keepFocusedInView() {
+  if (typeof document === 'undefined') return;
+  const el = document.activeElement;
+  if (!el || el === document.body || typeof el.getBoundingClientRect !== 'function') return;
+  let tries = 0, stopped = false;
+  const stop = () => { stopped = true; for (const e of STOP_ON) document.removeEventListener(e, stop, true); };
+  for (const e of STOP_ON) document.addEventListener(e, stop, { capture: true, passive: true });
+  const tick = () => {
+    if (stopped || document.activeElement !== el || !el.isConnected) return stop();
+    const r = el.getBoundingClientRect();
+    if ((r.bottom <= 0 || r.top >= document.documentElement.clientHeight) && typeof el.scrollIntoView === 'function') el.scrollIntoView({ block: 'start' });
+    if (++tries < 60) setTimeout(tick, 100); else stop();
+  };
+  setTimeout(tick, 0);
+}
+const STOP_ON = ['wheel', 'touchstart', 'keydown', 'mousedown'];
+
 export function Shell({ state, dispatch, name, question = null, rail = false, full = false, view = null, children }) {
   const ref = useRef(null);
   const mounted = useRef(false);
@@ -30,7 +52,7 @@ export function Shell({ state, dispatch, name, question = null, rail = false, fu
     pending.current = null;
     // (a plan page's one section an address may name: "Try the bad years", [data-focus-for="plan.stress"])
     if (state.route.focus) {
-      if (focusField(root, state.route.focus, focusQ)) return;
+      if (focusField(root, state.route.focus, focusQ)) { keepFocusedInView(); return; }
       // that section is drawn only once its page has its answer (the panel waits for "Does it last?"): tried again below
       pending.current = address;
     }
@@ -47,7 +69,7 @@ export function Shell({ state, dispatch, name, question = null, rail = false, fu
     if (!root) return;
     const at = typeof document !== 'undefined' ? document.activeElement : null;
     if (at && at !== document.body && at.tagName !== 'H1') { pending.current = null; return; }
-    if (focusField(root, state.route.focus, focusQ)) pending.current = null;
+    if (focusField(root, state.route.focus, focusQ)) { pending.current = null; keepFocusedInView(); }
   });
 
   const focusMain = () => { const main = ref.current && ref.current.querySelector('main'); if (main) main.focus(); };

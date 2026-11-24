@@ -79,8 +79,11 @@ test.describe('J3 — already retired: 68, taking money now', () => {
     await test.step('the pensions alone: £1,343 a month', async () => {
       // The package 1 stub answers with the forum guest's figures whatever is typed, so this waits for the real answer.
       if (!BUILT.answer) { test.info().annotations.push({ type: 'not checked yet', description: 'the £1,343 figure waits for the real answer (package 2)' }); return; }
-      // £11,000 + £6,000 = £17,000 a year; tax (17,000 − 12,570) × 20% = £886; £16,114 a year; £1,342.83 a month.
-      expect(answer.guaranteed.monthlyAfterTax).toBeCloseTo(16114 / 12, 2);
+      // Question C answers on the plan (the plan path): the plan keeps the State Pension as a weekly figure to the penny, as a
+      // forecast states it, so £11,000 a year is kept as 11,000 / 52 = £211.538… → £211.54 a week, and a year of it is
+      // 211.54 × 52 = £11,000.08. With the £6,000 final-salary pension: £17,000.08 a year; tax (17,000.08 − 12,570) × 20%
+      // = 4,430.08 × 0.2 = £886.016 → £886.02; £16,114.06 a year; 16,114.06 / 12 = £1,342.838… → £1,342.84 a month.
+      expect(answer.guaranteed.monthlyAfterTax).toBeCloseTo(16114.06 / 12, 2);
       const shown = page.locator('#app [data-key="guaranteed.monthlyAfterTax"]').first();
       // Whole pounds, like every figure in "what it is made of" and the State Pension line beside it (the
       // build brief's phases.shown rule): £1,342.83 reads "£1,343", not the test plan's "£1,340".

@@ -652,7 +652,7 @@ export function whereAmI(doc, { today = new Date(), history = [], potsToday = nu
     },
     pot,
     // not paying yet, the instruction says when it starts and what a month will be (year 0 pays for the months it has)
-    ladder: ladderPos ? { phase: ladderPos.phase, instruction: ladderPos.instruction, monthly: ladderPos.monthly, source: ladderPos.source, verdict: ladderPos.cashCheck?.verdict || null } : null,
+    ladder: ladderPos ? { phase: ladderPos.phase, instruction: ladderPos.instruction, monthly: ladderPos.monthly, firstMonthly: ladderPos.upcoming ? ladderPos.upcoming.monthly : null, source: ladderPos.source, verdict: ladderPos.cashCheck?.verdict || null } : null,
     contract: !!doc.strategy?.contract,
     strategyId: doc.strategy?.id || 'pots-and-valves',   // the strip's words follow the way of drawing (StrategyWords.js)
     saving

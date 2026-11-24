@@ -111,6 +111,8 @@ export const FACT = Object.freeze({
   MONTH_FROM: 'month.take.from',
   // what a gilt ladder's rule pays this month (Where you are; src/reading/where.js ladderSentence)
   LADDER_MONTHLY: 'ladder.monthly',
+  // and, before it pays, what it pays a month from its first payment (the plan's own "starts paying" sentence)
+  LADDER_FIRST_MONTHLY: 'ladder.firstMonthly',
   TAKEN_YEAR: 'taken.againstPlan',
   // the way of drawing
   WAY_NAME: 'way.name',

@@ -38,6 +38,7 @@ const FIGURES = Object.freeze({
   'where.planYear:planYear': 'plan.year',
   'where.planYear:planYears': 'plan.years',
   'where.ladder:ladderMonthly': 'ladder.monthly',
+  'where.ladder:ladderFirstMonthly': 'ladder.firstMonthly',
   'where.retired:drawn': 'taken.againstPlan',
   'where.yearChanged:planYear': 'income.thisYear.planSays',
   'where.yearChanged:yearMonthly': 'income.thisYear.perMonth',

@@ -66,7 +66,8 @@ export function stepSentence(w, steps = null) {
 
 /**
  * The ladder's month (a plan drawn by a gilt ladder; services/LadderPosition.js, read live): what the plan's rule pays this
- * month, its figure marked (ladder.monthly), or when the ladder starts or that it has paid its last year. The month's figure
+ * month, its figure marked (ladder.monthly), or when the ladder starts (what it pays a month from then marked,
+ * ladder.firstMonthly) or that it has paid its last year. The month's figure
  * is said once (7.12.0): `yearSaid` (the year as set up is said, with the month's figure) leaves a paying month out.
  */
 export function ladderSentence(w, { yearSaid = false } = {}) {
@@ -74,12 +75,18 @@ export function ladderSentence(w, { yearSaid = false } = {}) {
   if (!L || typeof L.instruction !== 'string' || !L.instruction) return null;
   const pays = typeof L.monthly === 'number' && L.monthly > 0;
   if (pays && yearSaid) return null;
-  if (!pays) return { id: 'where.ladder', parts: [L.instruction], figures: {} };
-  const figures = { ladderMonthly: r0(L.monthly) };
-  const fig = moneyText(figures.ladderMonthly);
-  const at = L.instruction.indexOf(fig);
-  const parts = at < 0 ? [L.instruction] : [L.instruction.slice(0, at), money('ladderMonthly'), L.instruction.slice(at + fig.length)].filter((p) => p !== '');
-  return { id: 'where.ladder', parts, figures };
+  // not paying yet: the plan's own sentence, its first month's payment marked (ladder.firstMonthly) when it is said
+  if (!pays) return markedOnce(L.instruction, 'ladderFirstMonthly', typeof L.firstMonthly === 'number' && L.firstMonthly > 0 ? r0(L.firstMonthly) : null);
+  return markedOnce(L.instruction, 'ladderMonthly', r0(L.monthly));
+}
+/** The ladder's sentence with its one figure marked where it is said (its first saying); no figure, the words alone. */
+function markedOnce(text, key, value) {
+  if (value == null) return { id: 'where.ladder', parts: [text], figures: {} };
+  const fig = moneyText(value);
+  const at = text.indexOf(fig);
+  if (at < 0) return { id: 'where.ladder', parts: [text], figures: {} };
+  const parts = [text.slice(0, at), money(key), text.slice(at + fig.length)].filter((p) => p !== '');
+  return { id: 'where.ladder', parts, figures: { [key]: value } };
 }
 
 export function potSentence(w) {
@@ -117,7 +124,7 @@ export const WHERE_KEYS = Object.freeze({
   'where.pot': Object.freeze({ pot: FACT.POT_AGAINST_PLAN, potPension: FACT.POT_TODAY, potIsa: FACT.ISA_TODAY }),
   'where.potParts': Object.freeze({ potPension: FACT.POT_TODAY, potIsa: FACT.ISA_TODAY }),
   'where.planYear': Object.freeze({ planYear: FACT.PLAN_YEAR, planYears: FACT.PLAN_YEARS }),
-  'where.ladder': Object.freeze({ ladderMonthly: FACT.LADDER_MONTHLY })
+  'where.ladder': Object.freeze({ ladderMonthly: FACT.LADDER_MONTHLY, ladderFirstMonthly: FACT.LADDER_FIRST_MONTHLY })
 });
 
 export function stepKeysOf(s) {

@@ -55,7 +55,7 @@ describe('the ladder\'s month', () => {
     const s = ladderSentence(w({ phase: 'running', monthly: 2833.4, instruction: 'The plan pays £2,833 a month for the 5 months to 5 April 2027.' }));
     expect(text(s)).toBe('The plan pays £2,833 a month for the 5 months to 5 April 2027.');
     expect(s.parts.filter((p) => typeof p !== 'string')).toEqual([{ key: 'ladderMonthly', kind: 'money' }]);
-    expect(WHERE_KEYS['where.ladder']).toEqual({ ladderMonthly: FACT.LADDER_MONTHLY });
+    expect(WHERE_KEYS['where.ladder']).toEqual({ ladderMonthly: FACT.LADDER_MONTHLY, ladderFirstMonthly: FACT.LADDER_FIRST_MONTHLY });
     expect(ladderSentence(w({ phase: 'running', monthly: 2833.4, instruction: 'The plan pays £2,833 a month.' }), { yearSaid: true })).toBe(null);
     expect(text(ladderSentence(w({ phase: 'before', monthly: 0, instruction: 'The ladder starts in 2029/30.' }), { yearSaid: true }))).toBe('The ladder starts in 2029/30.');
     expect(ladderSentence(w(null))).toBe(null);

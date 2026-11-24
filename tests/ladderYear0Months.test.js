@@ -40,6 +40,10 @@ describe('a first tax year that starts in the month work stops', () => {
     // the one where-reader both views draw (src/reading/where.js): not paying yet, the plan's own sentence, said once
     const said = ladderSentence({ ladder: { instruction: lp.instruction, monthly: lp.monthly } }, { yearSaid: false });
     expect(said).toEqual({ id: 'where.ladder', parts: [lp.instruction], figures: {} });
+    // with the first month's payment the reading carries (whereAmI ladder.firstMonthly), that figure is marked where it is said
+    const marked = ladderSentence({ ladder: { instruction: lp.instruction, monthly: lp.monthly, firstMonthly: lp.upcoming.monthly } }, { yearSaid: false });
+    expect(marked.figures).toEqual({ ladderFirstMonthly: 2083 });
+    expect(marked.parts).toEqual(['The plan starts paying in October 2027: ', { key: 'ladderFirstMonthly', kind: 'money' }, ' a month, 6 payments to March 2028, £12,500.']);
   });
 
   it('from the stop month the year is paid at its monthly rate for the months it has', () => {

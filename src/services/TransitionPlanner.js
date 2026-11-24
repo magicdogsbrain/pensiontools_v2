@@ -264,9 +264,19 @@ export function standInPays(h, { today = null, from = null } = {}) {
 export function yearNeedsOf(doc) {
   const plan = doc && doc.strategy && doc.strategy.r && doc.strategy.r.plan;
   const out = {};
-  for (const y of (plan && Array.isArray(plan.years) ? plan.years : [])) if (y && +y.Y > 2000) out[+y.Y] = { need: num(y.need), cost: y.cost != null ? num(y.cost) : null, from: y.from || null };
+  for (const y of (plan && Array.isArray(plan.years) ? plan.years : [])) if (y && +y.Y > 2000) out[+y.Y] = { need: num(y.need), cost: y.cost != null ? num(y.cost) : null, from: y.from || null, ...(+y.months > 0 && +y.months < 12 ? { months: Math.round(+y.months) } : {}) };
   return out;
 }
+
+/**
+ * The share of a tax year's need still to come with `monthsLeft` months of it left: the need is for the months the year pays
+ * (twelve, or the `months` a ladder's part first year holds, GiltLadderPlan), so its months still to come are that need at its
+ * monthly rate (need ÷ its months, as LadderPosition's rateOf), never over twelve twice over. 1 when every month is to come.
+ */
+export const shareStillToCome = (entry, monthsLeft) => {
+  const m = entry && +entry.months > 0 && +entry.months < 12 ? +entry.months : 12;
+  return Math.max(0, Math.min(1, (+monthsLeft || 0) / m));
+};
 
 /** The per-year needs a diff reads: the document's when given, else worked from the target (a rung's pay split over its years; a cash year's cost). */
 function needsFrom(target, given) {
@@ -516,7 +526,7 @@ export function diffHoldings(holdings, target, { band = MOVE_BAND, needs: needsG
     const needOf = (Y) => (needs[+Y] ? num(needs[+Y].need) : 0);
     const now = today instanceof Date && !Number.isNaN(today.getTime()) ? today : null;
     const running = !!target.running;
-    const shareOf = (Y) => (running && now && +Y === target.thisTaxYear ? monthsLeftInTaxYear(now) / 12 : 1);
+    const shareOf = (Y) => (running && now && +Y === target.thisTaxYear ? shareStillToCome(needs[+Y], monthsLeftInTaxYear(now)) : 1);
     const wantOf = (Y) => needOf(Y) * shareOf(Y);
     const left = new Map();
     const standYears = new Map();   // Y → labels of the lines standing in for it

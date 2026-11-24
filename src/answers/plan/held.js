@@ -16,7 +16,7 @@
  * Pure: the plan brought up to date in memory and today's date; nothing here writes, runs or reads a clock. The diff is
  * the page's one diff (src/reading/holdings.js moveReadingOf: TransitionPlanner's on the plan whose lines carry no mark).
  */
-import { yearNeedsOf, monthsLeftInTaxYear, isRungRow, standInPays, conventionalEvidence } from '../../services/TransitionPlanner.js';
+import { yearNeedsOf, monthsLeftInTaxYear, shareStillToCome, isRungRow, standInPays, conventionalEvidence } from '../../services/TransitionPlanner.js';
 import { planStage, effectiveStressSettings } from '../../services/PlanReading.js';
 import { moveReadingOf, giltsCountOf } from '../../reading/holdings.js';
 import { stageOf } from '../../services/LifeStage.js';
@@ -118,7 +118,8 @@ export function heldLadder(plan, { today, life, reading = null } = {}) {
     const thisYear = running && Y === thisTY;
     const monthsLeft = thisYear ? monthsLeftInTaxYear(now) : 12;
     const full = num(needs[Y].need);
-    return { Y, need: full * monthsLeft / 12, monthsLeft, thisYear, paidBy: full <= 0 ? paidByOf(doc, Y) : null };
+    // (a ladder's part first year holds its own months: its need is for those, so the months to come are at its own rate)
+    return { Y, need: thisYear ? full * shareStillToCome(needs[Y], monthsLeft) : full, monthsLeft, thisYear, paidBy: full <= 0 ? paidByOf(doc, Y) : null };
   });
   const N = cashRows.reduce((s, r) => s + r.need, 0);
   const cashYears = cashRows.length ? { rows: cashRows.map((r) => ({ ...r, need: r0(r.need) })), need: r0(N) } : null;

@@ -16,7 +16,7 @@
  * Pure: the plan brought up to date in memory and today's date; nothing here writes, runs or reads a clock. The diff is
  * TransitionPlanner's through PlanReading.moveInputs — the very reading the move page and the home make.
  */
-import { yearNeedsOf, monthsLeftInTaxYear as monthsLeftOf } from '../../services/TransitionPlanner.js';
+import { yearNeedsOf, shareStillToCome, monthsLeftInTaxYear as monthsLeftOf } from '../../services/TransitionPlanner.js';
 import { moveInputs, planStage, effectiveStressSettings } from '../../services/PlanReading.js';
 import { stageOf } from '../../services/LifeStage.js';
 import { heldPhase } from '../../services/Phases.js';
@@ -109,7 +109,7 @@ export function gapsOf(plan, { today, asKept = false, life, m: given } = {}) {
     const full = needs[Y] ? num(needs[Y].need) : 0;
     const thisYear = running && Y === thisTY;
     const monthsLeft = thisYear ? monthsLeftInTaxYear(now) : 12;
-    const need = full * monthsLeft / 12;
+    const need = thisYear ? full * shareStillToCome(needs[Y], monthsLeft) : full;   // a part first year: at its own months' rate
     const from = needs[Y] ? needs[Y].from : null;
     const sIn = standIns.map((s) => { const p = s.perYear.find((x) => x.Y === Y); return p ? { label: s.label, pays: Math.min(r0(p.pays), r0(need)), fixed: s.fixed } : null; }).filter(Boolean);
     let source = standYears.has(Y) ? 'standIn' : thisYear ? 'thisYear' : from === 'cash' ? 'cash' : (from && paidTidms.has(String(from).toUpperCase())) ? 'paid' : 'rung';

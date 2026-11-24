@@ -324,6 +324,8 @@ export function derivedLines(v, s) {
     lines.push(tg > 0 ? { id: 'pots.todayTaxable', slots: { pension: pounds(tp), isa: pounds(ti), taxable: pounds(tg) } } : { id: 'pots.today', slots: { pension: pounds(tp), isa: pounds(ti) } });
   }
   if (s.fundsMode) lines.push({ id: 'pots.fromFunds', slots: { pension: pounds(s.values.pension) } });
+  // a way that buys its income (step F6): held as the way buys it, never split into shares, bonds and cash
+  else if (s.bought) lines.push({ id: 'pots.bought', slots: {} });
   else {
     const p = pension === s.values.pension ? s.values.pots : splitTotal(pension, s.values.shares);
     lines.push({ id: 'pots.split', slots: { shares: pounds(p.equity), bonds: pounds(p.bond), cash: pounds(p.cash), div: p.div > 0 ? ', ' + pounds(p.div) + ' diversifiers' : '' } });

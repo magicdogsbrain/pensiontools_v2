@@ -25,7 +25,8 @@ import { homeOf } from '../../../src/answers/plan/home.js';
 import { moveOf } from '../../../src/answers/plan/move.js';
 import { ladderGapsOf } from '../../../src/answers/plan/keepTest.js';
 import { transitionHtml } from '../../../src/ui/components/TransitionView.js';
-import { transitionGaps, transitionHeld } from '../../../src/ui/keepHoldingsUi.js';
+import { unmarked } from '../../../src/reading/mark.js';
+import { transitionHeld } from '../../../src/ui/keepHoldingsUi.js';
 import { moveInputs } from '../../../src/services/PlanReading.js';
 import { entryOf, noon } from './_plans.js';
 import { ALEX_TODAY as TODAY, RAW, L, CONV, SHARES, FUND, PART, alexRaw, alex } from './_alex.js';
@@ -95,9 +96,10 @@ describe('what the cash years need, and what Alex\'s pension holds for them', ()
     expect(m.heldInfo).toEqual(h);
     expect(m.gaps).toBe(undefined);
     expect(homeOf(entries, p.id, { today: TODAY }).gap).toBe(undefined);
-    expect(transitionGaps(p, p.holdings, noon(TODAY))).toBe(null);
+    expect(((transitionHeld(p, p.holdings, noon(TODAY)) || {}).gaps || null)).toBe(null);
     const mi = moveInputs(p, { now: noon(TODAY) });
-    const html = transitionHtml({ doc: p.planDocument, target: mi.target, diff: mi.diff, seq: null, prog: mi.prog, holdings: p.holdings, gaps: null, held: transitionHeld(p, p.holdings, noon(TODAY)) });
+    // the count is marked (gilts.held, step F6): the words are read without their marks
+    const html = unmarked(transitionHtml({ doc: p.planDocument, target: mi.target, diff: mi.diff, seq: null, prog: mi.prog, holdings: p.holdings, gaps: null, held: transitionHeld(p, p.holdings, noon(TODAY)) }));
     for (const t of pageText(h)) expect(html).toContain(t.replace(/&/g, '&amp;'));
     expect(html).not.toContain(GAPS.title);
   });

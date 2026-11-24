@@ -26,10 +26,12 @@ describe('what the household check starts from', () => {
 });
 
 import { verdictSectionHtml } from '../src/ui/householdView.js';
+import { unmarked } from '../src/reading/mark.js';
 describe('the full view says the same sentence', () => {
   it('verdictSectionHtml, given the two plans\' settings, carries the starts line', () => {
     const r = { jointSuccess: 0.9, successA: 0.9, successB: 0.95, runs: 100 };
     const html = verdictSectionHtml({ r, ownName: 'Kim', pName: 'Kim too', setA: kim, setB: kim, offsets: { a: 0, b: 0 } });
-    expect(html).toContain('The check starts from £640,000 in pensions and ISAs: £320,000 in ‘Kim’ now, and £320,000 in ‘Kim too’ now.');
+    // its figures and this plan's name are marked (step F6): read without the marks
+    expect(unmarked(html)).toContain('The check starts from £640,000 in pensions and ISAs: £320,000 in ‘Kim’ now, and £320,000 in ‘Kim too’ now.');
   });
 });

@@ -17,7 +17,7 @@
 import { PlanRail, changeAction, UndoToast, fill, Button, LinkButton, stepNameOf } from '../../components/index.js';
 import { LOCK_DATE } from '../../components/facts.js';
 import { fillMarked, markIn } from '../../components/PlanFigures.jsx';
-import { PLAN_MIX_SLOTS, MOVE_MONEY_FINDS } from '../../../reading/sentenceMarks.js';
+import { PLAN_MIX_SLOTS, HELD_PENSION_MIX_SLOTS, MOVE_MONEY_FINDS, GILTS_HELD_FIND, BUCKET_LINE_MARKS } from '../../../reading/sentenceMarks.js';
 import { TABLES } from '../../../reading/facts.js';
 import { planView, planMoveView, planKeepTestView } from '../../state/select.js';
 import { KeepTestLine } from './KeepTest.jsx';
@@ -54,7 +54,7 @@ function Status({ V }) {
   const s = V.status;
   return (
     <section class="plan-section" data-section="status" data-testid={`${T}.status`} data-status={s.id}>
-      <p class="figure" data-testid={`${T}.status.line`}>{markIn(fill(S[s.id], s.slots), MOVE_MONEY_FINDS)}</p>
+      <p class="figure" data-testid={`${T}.status.line`}>{markIn(fill(S[s.id], s.slots), [[GILTS_HELD_FIND, 'gilts.held'], ...MOVE_MONEY_FINDS])}</p>
       {V.pace && <p class="note" data-testid={`${T}.pace`}>{fill(V.pace.months === '1' ? S.paceOne : S.pace, V.pace)}</p>}
       {V.ladder && !V.complete && <p class="note" data-testid={`${T}.timing`}>{S.timing}</p>}
       <p class="note" data-testid={`${T}.target`}>{V.ladder ? W.target.ladder + ' ' + W.isa[V.isa || 'none'] : W.target.buckets}</p>
@@ -147,7 +147,7 @@ function Cost({ V, dispatch }) {
               {h.result.unaffordable
                 ? <p class="figure">{fill(C.unaffordable, { reason: h.result.reason ? fill(C.reasonWas, { reason: h.result.reason }) : '' })}</p>
                 : <>
-                  <p class="figure" data-testid={`${T}.cost.headline`}>{fill(C.result, { ...(h.result.pcts || V.held.pcts), words: h.result.words, ownWords: V.own ? V.own.words : '' })}</p>
+                  <p class="figure" data-testid={`${T}.cost.headline`}>{fillMarked(C.result, { ...(h.result.pcts || V.held.pcts), words: h.result.words, ownWords: V.own ? V.own.words : '' }, HELD_PENSION_MIX_SLOTS)}</p>
                   <p class="note">{fill(C.left, { bad: h.result.badCaseLeft, typical: h.result.typicalLeft })}</p>
                 </>}
               <p class="plan-source" data-testid={`${T}.cost.ran`}>{h.ms != null ? fill(C.ran, { ms: seconds(h.ms) }) : C.ranUntimed}</p>
@@ -167,7 +167,7 @@ function Waiting({ V }) {
       <p class="figure" data-testid={`${T}.waiting.line`}>{V.opens ? fill(S.line, { years: V.yearsToStart, opens: V.opens }) : fill(S.lineSoon, { years: V.yearsToStart })}</p>
       {V.newMoney ? <p class="line" data-testid={`${T}.waiting.newMoney`}>{fill(S.newMoney, { parts: V.newMoney.parts.map((p) => fill(S.newMoneyPart, p)).join(', '), monthly: V.newMoney.monthly })}</p> : <p class="note" data-testid={`${T}.waiting.noNewMoney`}>{S.newMoneyNone} <a href={href.plan(V.id, 'hold')}>{W.buttons.hold}</a></p>}
       {V.planMix && <p class="line" data-testid={`${T}.waiting.planMix`}>{fillMarked(S.planMix, V.planMix, PLAN_MIX_SLOTS)}</p>}
-      {V.held && <p class="line" data-testid={`${T}.waiting.heldMix`}>{fill(S.heldMix, V.held.pcts)}</p>}
+      {V.held && <p class="line" data-testid={`${T}.waiting.heldMix`}>{fillMarked(S.heldMix, V.held.pcts, HELD_PENSION_MIX_SLOTS)}</p>}
       {V.startsAround && <p class="note" data-testid={`${T}.waiting.starts`}>{fill(S.starts, { when: V.startsAround })}</p>}
     </section>
   );
@@ -209,7 +209,7 @@ function Held({ V }) {
     <section class="plan-section" data-section="heldInfo" data-testid={`${T}.heldInfo`} data-kind={I.kind}>
       {I.agreed && !V.saidHeld && <p class="lead" data-testid={`${T}.heldInfo.agreed`}>{fill(H.agreed, I.agreed)}</p>}
       {I.noRecord && <p class="note" data-testid={`${T}.heldInfo.noRecord`}>{H.noRecord} <a href={href.plan(V.id, 'hold')}>{W.buttons.hold}</a></p>}
-      {I.buckets && <><h2>{H.mixTitle}</h2><ul class="plan-lines" data-testid={`${T}.heldInfo.buckets`}>{I.buckets.map((b) => <li key={b.bucket} class="plan-line" data-bucket={b.bucket}>{fill(H.bucket[b.bucket], b)}</li>)}</ul></>}
+      {I.buckets && <><h2>{H.mixTitle}</h2><ul class="plan-lines" data-testid={`${T}.heldInfo.buckets`}>{I.buckets.map((b) => <li key={b.bucket} class="plan-line" data-bucket={b.bucket}>{fillMarked(H.bucket[b.bucket], b, BUCKET_LINE_MARKS[b.bucket])}</li>)}</ul></>}
       {I.unknown.map((name) => <p class="note" key={name} data-testid={`${T}.heldInfo.unknown`}>{fill(H.unknown, { name })}</p>)}
       {I.review && <p class="note" data-testid={`${T}.heldInfo.review`}>{H.review} <a href={I.review}>{H.reviewLink}</a>.</p>}
     </section>
@@ -319,7 +319,8 @@ function Sheet({ V, dispatch }) {
       {/* living on the plan (7.11.1): the same sheet, read as what the plan holds — "Bought" beside each gilt, so a phone sees it
           without scrolling; how to give an order only while a rung is still not fully bought */}
       <p class="note">{fill(held ? S.leadHeld : S.lead, { date: V.pricedOn || '' })}</p>
-      {(!held || V.sheet.some((r) => r.bought === 'part' || r.bought === 'not yet')) && <p class="note">{S.order}</p>}
+      {/* living on it (step F6, R9): the sheet is what the plan holds, never an order to give */}
+      {!held && <p class="note">{S.order}</p>}
       <div class="table-wrap">
         <table class="way-table" data-testid={`${T}.sheet.table`} data-fact-table={TABLES.LADDER}>
           <thead><tr><th>{S.columns.n}</th><th>{held ? S.gilt : S.columns.buy}</th>{held && <th>{S.columns.bought}</th>}<th>{S.columns.code}</th><th>{S.columns.sedol}</th><th>{S.columns.matures}</th><th>{S.columns.pays}</th><th>{S.columns.years}</th><th>{held ? S.units : S.columns.units}</th><th>{S.columns.price}</th><th>{S.columns.cost}</th>{!held && <th>{S.columns.bought}</th>}</tr></thead>
@@ -482,6 +483,8 @@ export function MoveScreen(state, dispatch) {
             </>
           )}
           </>}
+          {/* the order sheet with its bought column (a move, or a saver waiting), as the full view's tab draws it (step F6); living on
+              a ladder the plan's gilts beside what is held is the one table, and the sheet as locked is with Your plan */}
           {!heldLadder && <Sheet V={V} dispatch={dispatch} />}
           <Explained V={V} dispatch={dispatch} />
           <Watch V={V} onChange={onChange} />

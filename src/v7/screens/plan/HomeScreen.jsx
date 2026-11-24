@@ -22,7 +22,7 @@ import { HELD } from '../../copy/held.js';
 import { fillMarked, markIn } from '../../components/PlanFigures.jsx';
 import { slotFactsOf } from '../../components/facts.js';
 import { Fact } from '../../../reading/Mark.jsx';
-import { SAVER_MARKS, saverSlotsOf } from '../../../reading/sentenceMarks.js';
+import { SAVER_MARKS, saverSlotsOf, BUCKET_LINE_MARKS } from '../../../reading/sentenceMarks.js';
 
 /** After "With ‘…’": the partner's plan's phase (7.12.0), in the words the household page uses (copy/plan.js theirLines). */
 const theirWords = (t) => (t.theirLine && PLAN.theirLines[t.theirLine.id] ? ': ' + fill(PLAN.theirLines[t.theirLine.id], t.theirLine.slots) : '');
@@ -116,7 +116,7 @@ function Item({ it, first, planId, dispatch }) {
 function Drift({ D }) {
   const W = HOME.drift;
   // Moving: against the mix the plan moves to (or within the move's band of it); Living on it: against the plan's mix
-  const text = D.kind === 'ladder' ? fill(W.ladder, { year: D.year }) : D.phase === 'moving' ? (D.close ? W.moving.close : fill(W.moving[D.bucket], { held: String(D.held), mix: String(D.plan) })) : fill(W[D.bucket], { held: String(D.held), mix: String(D.plan) });
+  const text = D.kind === 'ladder' ? fill(W.ladder, { year: D.year }) : D.phase === 'moving' ? (D.close ? W.moving.close : fillMarked(W.moving[D.bucket], { held: String(D.held), mix: String(D.plan) }, BUCKET_LINE_MARKS[D.bucket])) : fillMarked(W[D.bucket], { held: String(D.held), mix: String(D.plan) }, BUCKET_LINE_MARKS[D.bucket]);
   return (
     <div class="home-held" data-testid={`${T}.drift`} data-kind={D.kind} data-phase={D.phase || 'drawing'} {...(D.kind === 'buckets' && D.bucket ? { 'data-bucket': D.bucket } : {})}>
       <p class="note">{text}</p>

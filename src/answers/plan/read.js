@@ -16,6 +16,7 @@
 import { LOCK_WORDS } from '../../reading/labels.js';
 import { READ_FAULT_WORDS } from '../../reading/readFault.js';
 import { planStage, settingsForScreen, whereAmIFor, whereAmIInputs, moveInputs, thisMonth, historyAscending, planMoneyOf } from '../../services/PlanReading.js';
+import { moveReadingOf } from '../../reading/holdings.js';
 import { CONTRACT_STRATEGIES, planToAgeOfDefinition, guardrailOf } from '../../services/PlanDocument.js';
 import { taxYearLabel, taxYearStartOf, taxYearKey } from '../../services/PlanTiming.js';
 import { documentLadder, firstRungOf } from '../../services/LadderPosition.js';
@@ -31,12 +32,12 @@ import { stepsFor, subStepsFor, ALL_STEPS, NEXT_ORDER, NEXT_INFO, DUE_IDS, RETIR
 import { stageOf } from '../../services/LifeStage.js';
 import { windowYearsOf, reviewDueOf, offCourseOf, moveWindowOf, heldPhase } from '../../services/Phases.js';
 import { monthsWanted } from '../../services/DrawCadence.js';
-import { defaultSpYear } from '../../services/IncomeSchedule.js';
 import { taskKeyOf, isPutOff } from './tasks.js';
 import { optionsFor } from './options.js';
 import { answerAge, safeTiming } from './about.js';
 import { incomeStepsOf } from '../../reading/income.js';
-import { spDayOf, spDayWords } from '../../reading/statePension.js';
+import { spDayOf, spDayWords, statePensionOf } from '../../reading/statePension.js';
+import { defaultSpYear } from '../../services/IncomeSchedule.js';
 import { isBought } from './pots.js';
 import { WAY_DIALS } from './schema.js';
 import { savedLasts } from './lasts.js';
@@ -647,7 +648,10 @@ function planStep(C) {
   const potGia = r0(giaToday(plan, rctx).value);
   figures.sipp = potSipp; figures.isa = potIsa; figures.gia = potGia;
   pots.push(line('pots.pension', [money('sipp')], figures, src));
-  if (!locked) {
+  // a way that buys its income (a gilt ladder, a floor): the pension is held as the way buys it — its gilts and its cash years —
+  // never split into shares, bonds and cash (step F6, lead4.md D19), as the full view's settings and plan document say it
+  if (isBought(stratId(plan, ss))) pots.push(line('pots.bought', ['Held as your way of drawing buys it, not split into shares, bonds and cash'], figures, src));
+  else if (!locked) {
     // the split the plan draws on (its settings' pots are the pension today on a plan still saving: PlanReading.withSaversPensionToday)
     const potStored = r0(ss.equityMin) + r0(ss.bondMin) + r0(ss.cashTarget) + r0(ss.diversifierStart);
     const k = potStored > 0 && !ss.potsNotSet ? potSipp / potStored : 1;
@@ -669,12 +673,24 @@ function planStep(C) {
   if (spWeekly > 0) { figures.spWeekly = Math.round(spWeekly * 100) / 100; income.push(line('pots.statePension', [week('spWeekly'), ' a week'], figures, src, { from: spDate ? (spDayWords(spDayOf(spDate)) || String(spDate)) : '' })); }   // (step F2) the date in the one form of words both views use (src/reading/statePension.js)
   else if (num(ss.statePension) > 0) {
     // (7.12.0) the plan year the runs start it in (IncomeSchedule.defaultSpYear: the stored 12 is the old default, read as age
-    // 67), never the first tax year plus the stored 12 — which put it five years late for someone stopping at 60
+    // 67), never the first tax year plus the stored 12 — which put it five years late for someone stopping at 60.
+    // (step F6, lead4.md D2) with an age in the settings the runs read, the age and its tax year from the plan year the runs
+    // start it in; with none there, the one State Pension reader's (src/reading/statePension.js), as the income page and the
+    // full view say them: its tax year only when the plan has an age someone gave — never a tax year worked from a default
+    // age, never an empty age
     figures.spYearly = r0(ss.statePension);
     const at = timing && num(timing.shapeAgeNow) != null ? timing.shapeAgeNow : num(ss.shapeAgeNow);
-    const y = defaultSpYear({ ...ss, shapeAgeNow: at });
-    const known = firstTaxYear && y !== 999 && num(y) != null;
-    income.push(line(known ? 'pots.statePensionOld' : 'pots.statePensionOldNoYear', [money('spYearly'), ' a year'], figures, src, known ? { year: taxYearLabel(firstTaxYear + r0(y)), age: at != null ? String(r0(at + y)) : '' } : {}));
+    const y = at != null ? defaultSpYear({ ...ss, shapeAgeNow: at }) : null;
+    let id = 'pots.statePensionOldNoYear', slots = {};
+    if (at != null && firstTaxYear && y !== 999 && num(y) != null) { id = 'pots.statePensionOld'; slots = { year: taxYearLabel(firstTaxYear + r0(y)), age: String(r0(at + y)) }; }
+    else if (at == null) {
+      const sp = statePensionOf(plan, { now });
+      const spAge = num(sp.startAge), spYear = num(sp.taxYear);
+      const ageGiven = readingAgeToday(plan, { now, settings: ss }) != null;
+      if (spAge != null && ageGiven && spYear != null) { id = 'pots.statePensionOld'; slots = { year: taxYearLabel(spYear), age: String(spAge) }; }
+      else if (spAge != null) { id = 'pots.statePensionOldAge'; slots = { age: String(spAge) }; }
+    }
+    income.push(line(id, [money('spYearly'), ' a year'], figures, src, slots));
   }
   else income.push(line('pots.noStatePension', [], figures, src));
   // the planner's rows are plan years; an age is the plan's start age plus the year (PlanDocument.shapeLayersFromSettings;
@@ -934,12 +950,14 @@ function moveStep(C) {
   const { plan, now, life } = C;
   const figures = {};
   const lines = [];
-  let m = null; try { m = moveInputs(plan, { now }); } catch { m = null; }
+  // the page's one diff (src/reading/holdings.js moveReadingOf; step F6): the move page's own, so the home says its count
+  const reading = moveReadingOf(plan, { now, life });
+  const m = reading.m;
   // Living on it, or Moving once what is held was accepted (7.11.1, Phases.heldPhase): what is held, never moves to make
   const asHeld = heldPhase(life);
   let result, done = false, unlisted = false;
   // living on a ladder (7.12.0): the gilts held, as "Your plan's mix" counts them (held.js, the one reading)
-  let hl = null; if (asHeld && m && m.target && m.target.kind === 'ladder') { try { hl = heldLadder(plan, { today: localDay(now), life }); } catch { hl = null; } }
+  let hl = null; if (asHeld && m && m.target && m.target.kind === 'ladder') { try { hl = heldLadder(plan, { today: localDay(now), life, reading }); } catch { hl = null; } }
   if (!m || !m.target || m.target.kind === 'none') result = sentence('move.notSet', ['Set when the plan is locked'], figures);
   // Moving, once the person said this is how they want to hold it (7.12.0): said so, with the day
   else if (asHeld && life && life.key === 'moving' && life.agreed && life.agreed.at) { result = sentence('move.ownWay', ['You hold it your own way (said ', { fixed: dayWords(life.agreed.at) }, ').'], figures); }

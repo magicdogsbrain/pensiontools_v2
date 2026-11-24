@@ -9,12 +9,13 @@ import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
 import { startPlanWrite, GUEST_PLANS_KEY, TOAST_MS } from '../../../src/v7/effects/planWrite.js';
 import { upgradedList, viewFor } from '../../../src/v7/effects/planSource.js';
+import { effectiveStressSettings } from '../../../src/services/PlanReading.js';
 import { createStore } from '../../../src/v7/effects/store.js';
 import { initialState } from '../../../src/v7/state/initial.js';
 import { reduce } from '../../../src/v7/state/reduce.js';
 import { A } from '../../../src/v7/state/actions.js';
 import { parse } from '../../../src/v7/router/routes.js';
-import { ALL_WRITES, ABOUT_WRITES, INCOME_WRITES, SPEND_WRITES, POTS_WRITES, LASTS_WRITES, LOCK_WRITES, UNLOCK_WRITES, DOCUMENT_WRITES, WAY_WRITES, MIX_WRITES, HOUSEHOLD_WRITES, LOCK_FLAG_WRITES, PLANS_WRITES, CLOSE_WRITES, LATER_DRAFT_WRITES } from '../../../src/answers/plan/schema.js';
+import { ALL_WRITES, ABOUT_WRITES, INCOME_WRITES, SPEND_WRITES, POTS_WRITES, LASTS_WRITES, LOCK_WRITES, UNLOCK_WRITES, DOCUMENT_WRITES, WAY_WRITES, MIX_WRITES, HOUSEHOLD_WRITES, LOCK_FLAG_WRITES, PLANS_WRITES, CLOSE_WRITES, LATER_DRAFT_WRITES, LOCK_AS_READ_WRITES } from '../../../src/answers/plan/schema.js';
 import { applyPatch, boxesOf, checkAbout } from '../../../src/answers/plan/about.js';
 import { checkIncome } from '../../../src/answers/plan/income.js';
 import { checkSpend, savedSpend } from '../../../src/answers/plan/spend.js';
@@ -722,7 +723,7 @@ describe('the lock (road-to-7.md step 6): the run in the worker, then ONE write 
     const data = p.fb.writes[0].data;
     const want = lockPatch(planOf(DRAFT), { now: new Date(STAMP), run: runOf(planOf(DRAFT)), entries: [] });
     expect(data).toEqual({ ...want.patch, lastModified: STAMP });
-    for (const k of Object.keys(data)) expect(k === 'lastModified' || LOCK_WRITES.includes(k), k).toBe(true);
+    for (const k of Object.keys(data)) expect(k === 'lastModified' || LOCK_WRITES.includes(k) || LOCK_AS_READ_WRITES.includes(k), k).toBe(true);   // step F5: the charge and the ISA choice as read
     for (const k of LOCK_FLAG_WRITES) expect(data).toHaveProperty(k);
     expect(data['decisionTool.settings.lockedBy']).toBe(LOCKED_BY);
     expect(data.planDocument.version).toBe(3);
@@ -765,12 +766,16 @@ describe('the lock (road-to-7.md step 6): the run in the worker, then ONE write 
     expect(after[1].decisionTool.settings.lockedBy).toBe(LOCKED_BY);
     expect(after[1].planDocument.lockedAt).toBe(STAMP);
     expect(after[1].decisionTool.planOfRecord.savedAt).toBe(STAMP);
-    expect(stripOf(after[1], [...LOCK_WRITES, 'lastModified'])).toBe(stripOf(JSON.parse(before)[1], [...LOCK_WRITES, 'lastModified']));
+    expect(stripOf(after[1], [...LOCK_WRITES, ...LOCK_AS_READ_WRITES, 'lastModified'])).toBe(stripOf(JSON.parse(before)[1], [...LOCK_WRITES, ...LOCK_AS_READ_WRITES, 'lastModified']));
     expect(p.session.calls.filter(([c]) => c === 'setItem').map(([, k]) => k)).toEqual([GUEST_PLANS_KEY]);
     expect(p.store.getState().route.step).toBe('plan');
     p.store.dispatch({ type: A.PLANS_SET, list: upgradedList(after, noon(TODAY)), source: 'window', readAt: '14:04' });
     p.undo(); await tick(12);
-    expect(JSON.stringify(JSON.parse(p.session.raw(GUEST_PLANS_KEY))[1])).toBe(JSON.stringify(JSON.parse(before)[1]));
+    // byte for byte, bar the charge and the ISA choice the lock wrote as the plan read them (step F5): Undo leaves them, and
+    // the draft reads exactly as it did (the upgrade gives a plan saved before them the same two)
+    const undone = JSON.parse(p.session.raw(GUEST_PLANS_KEY))[1];
+    expect(stripOf(undone, LOCK_AS_READ_WRITES)).toBe(stripOf(JSON.parse(before)[1], LOCK_AS_READ_WRITES));
+    expect(effectiveStressSettings(upgradedList([undone], noon(TODAY))[0].plan, { now: noon(TODAY) })).toEqual(effectiveStressSettings(upgradedList([JSON.parse(before)[1]], noon(TODAY))[0].plan, { now: noon(TODAY) }));
     expect(JSON.stringify(JSON.parse(p.session.raw(GUEST_PLANS_KEY))[0])).toBe(JSON.stringify(JSON.parse(before)[0]));
     p.stop();
   });
@@ -912,13 +917,13 @@ describe('the unlock and the new version (road-to-7.md step 6): one write each t
       p.lock(); await tick(12);
       if (account) {
         expect(p.fb.writes.length).toBe(1);
-        for (const k of Object.keys(p.fb.writes[0].data)) expect(k === 'lastModified' || LOCK_WRITES.includes(k), k).toBe(true);
+        for (const k of Object.keys(p.fb.writes[0].data)) expect(k === 'lastModified' || LOCK_WRITES.includes(k) || LOCK_AS_READ_WRITES.includes(k), k).toBe(true);
       } else {
         expect(p.fb.writes).toEqual([]);
         const after = JSON.parse(p.session.raw(GUEST_PLANS_KEY));
         expect(JSON.stringify(after[1])).toBe(JSON.stringify(JSON.parse(before)[1]));
         expect(after[0].decisionTool.settings.locked).toBe(true);
-        expect(stripOf(after[0], [...LOCK_WRITES, 'lastModified'])).toBe(stripOf(JSON.parse(before)[0], [...LOCK_WRITES, 'lastModified']));
+        expect(stripOf(after[0], [...LOCK_WRITES, ...LOCK_AS_READ_WRITES, 'lastModified'])).toBe(stripOf(JSON.parse(before)[0], [...LOCK_WRITES, ...LOCK_AS_READ_WRITES, 'lastModified']));
       }
       p.stop();
     }), { numRuns: 24 });

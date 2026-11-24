@@ -229,8 +229,11 @@ describe('each stage\'s home', () => {
     const { root: off } = draw(s);
     const d = one(off, `${T}.drift`);
     expect(d.closest(`[data-testid="${T}.where"]`)).not.toBe(null);
-    expect(d.getAttribute('data-bucket')).toBe('shares');
-    expect(d.querySelector('p.note').textContent).toMatch(/^Shares are \d+% of your pension; the plan’s mix has \d+% in shares\.$/);
+    // the bucket furthest from the plan's mix (step F6: the one held mix against the one plan's mix): here the cash moved in
+    expect(d.getAttribute('data-bucket')).toBe('cash');
+    expect(d.querySelector('p.note').textContent).toMatch(/^Cash is \d+% of your pension; the plan’s mix has \d+% in cash\.$/);
+    expect(d.querySelector('p.note [data-fact="mix.heldPension.cash"]')).not.toBe(null);
+    expect(d.querySelector('p.note [data-fact="mix.plan.cash"]').textContent).toBe('10');
     const link = one(off, `${T}.drift.test`);
     expect(link.textContent).toBe(HOME.drift.link);
     expect(link.closest('p.note')).toBe(null);

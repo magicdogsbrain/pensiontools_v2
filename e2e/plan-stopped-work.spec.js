@@ -76,6 +76,10 @@ test.describe('Say when you stopped work, without an account', () => {
     // the month work stopped: its tax year is offered, named, and chosen
     await page.locator('#tmStopMonth').fill('2023-10');
     await expect(page.locator('#tmStartYear')).toHaveValue('2023');
+    // the month saved: a month box filled by the harness raises no person's event, so its autosave never starts; Save stands in
+    // for the month a person picks (step F5: the lock no longer runs the whole Settings save, it sends what is waiting)
+    await page.locator('#ssSaveBtn').click();
+    await expect(page.getByText('Settings saved.').first()).toBeVisible({ timeout: 30_000 });
     await expect(page.locator('#tmStartYear option[value="2023"]')).toHaveText('2023/24 — the year you stopped work');
     // 7.3.3: never a later year than this one (7.4.0: the year saved the old way is read as this one, so it is not offered)
     await expect(page.locator('#tmStartYear option')).toHaveText(['2023/24 — the year you stopped work', '2024/25', '2025/26', 'this tax year — pick up from here — 2026/27']);

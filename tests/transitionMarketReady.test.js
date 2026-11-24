@@ -10,9 +10,11 @@ describe('loadTransitionUI waits for the day\'s prices', () => {
   it('awaits window._marketReady before any gilt is read', () => {
     const src = readFileSync('index.html', 'utf8');
     const at = src.indexOf('window.loadTransitionUI = async function');
-    const body = src.slice(at, src.indexOf('window._transitionLast = { diff, seq };', at));
+    const body = src.slice(at, src.indexOf('window._transitionLast =', at));
     const wait = body.indexOf('await window._marketReady');
     expect(wait).toBeGreaterThan(-1);
-    for (const reader of ['diffHoldings(', 'transitionGaps(', 'transitionHeld(', 'targetHoldings(']) expect(wait, reader).toBeLessThan(body.indexOf(reader));
+    // step F6: the tab reads the move through the one reading (transitionHeld → moveOf), never a diff of its own
+    expect(body.indexOf('transitionHeld(')).toBeGreaterThan(wait);
+    for (const reader of ['diffHoldings(', 'transitionGaps(', 'targetHoldings(', 'transitionSequence(']) expect(body.indexOf(reader), reader).toBe(-1);
   });
 });

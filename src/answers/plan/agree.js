@@ -30,8 +30,8 @@
 import { planPage, dateOf } from './read.js';
 import { reviewEntryOf, reviewRunKeyOf, runInputsOf, readingOf } from './review.js';
 import { stressAmendPatch, fingerprintOf, WHOLE_ID } from './stressPanel.js';
-import { settingsForScreen, moveInputs } from '../../services/PlanReading.js';
-import { driftOf } from '../../services/TransitionPlanner.js';
+import { settingsForScreen } from '../../services/PlanReading.js';
+import { moveReadingOf, mixAgainstPlanOf } from '../../reading/holdings.js';
 import { phasesPatch, storedAgreementOf, strategyIdOf } from '../../services/Phases.js';
 import { amendmentsOf, amendmentsWithout, documentAtOf } from '../../services/PlanAmendments.js';
 import { isExamplePlan } from '../../services/GuestPlans.js';
@@ -50,13 +50,18 @@ export const MOVED_POINTS = 5;
 const safeSettings = (plan, now) => settingsForScreen(plan, { now });   // never the stored or factory settings in its place (lead4.md D1)
 const isWhole = (e) => e && e.kind === 'asHeld' && isObj(e.test) && e.test.id === WHOLE_ID;
 
-/** What is held now, against the mix the plan moves to (PlanReading.moveInputs `fromSettings`), and in whole points. */
+/**
+ * What is held now, against the mix the plan moves to: the page's one diff (src/reading/holdings.js moveReadingOf) and, on a pot
+ * plan, the one held mix against the one plan's mix (mixAgainstPlanOf) — `mix` is the held mix in whole points of the pension
+ * (heldMixOf with `pension`), the figure the held-mix test is run on.
+ */
 function heldNow(plan, now) {
-  let mv = null; try { mv = moveInputs(plan, { now, fromSettings: true }); } catch { mv = null; }
+  const mv = moveReadingOf(plan, { now, fromSettings: true }).m;
   const diff = mv && mv.diff ? mv.diff : null;
-  const d = diff ? driftOf(diff) : null;
-  const mix = d && d.kind === 'buckets' && num(diff.inPlay) > 0 ? Object.fromEntries(BUCKETS.map((b) => [b, Math.round(100 * num(diff.buckets[b] && diff.buckets[b].held) / num(diff.inPlay))])) : null;
-  return { diff, drift: d, mix };
+  const x = mixAgainstPlanOf(plan, mv, { now });
+  const drift = x ? { kind: 'buckets', drift: x.drift, maxDrift: x.maxDrift } : diff && diff.kind === 'ladder' ? { kind: 'ladder' } : null;
+  const mix = x ? Object.fromEntries(BUCKETS.map((b) => [b, (x.buckets.find((r) => r.bucket === b) || { held: 0 }).held])) : null;
+  return { diff, drift, mix };
 }
 
 /** How the move was agreed (see the header). */

@@ -28,8 +28,9 @@ import { normaliseHoldings, holdingsSummary, holdingsWith, normaliseLine, numOrN
 import { taxYearLabel, taxYearStartOf } from '../../services/PlanTiming.js';
 import { gapsOf, gapsView } from './gaps.js';
 import { heldLadder, heldSummaryView } from './held.js';
-import { applyPaste, needsCategory, CATEGORY_CHOICES, isGiltCode, parsePaste, giltFromName } from '../../services/HoldingsPaste.js';
+import { applyPaste, needsCategory, CATEGORY_CHOICES, isGiltCode, isGiltLine, parsePaste, giltFromName } from '../../services/HoldingsPaste.js';
 import { proportions } from '../../services/Holdings.js';
+import { heldMixOf, holdingsTotalsOf } from '../../reading/holdings.js';
 import { SUB_ASSET_PROFILES, FUND_TAG_MAP, catalogueEntry } from '../../services/SubAssetModel.js';
 import { searchFunds } from '../../services/FundCatalogue.js';
 import { planStage } from '../../services/PlanReading.js';
@@ -38,6 +39,7 @@ import { pounds } from './income.js';
 import { HOLD_FIELDS, HOLD_WRITES, HOLD_WRAPPERS, HOLD_WHATS, HOLD_KEEP_AS } from './schema.js';
 import { SAVER_STAGES } from './steps.js';
 import { dateOf, dayWords, monthWords, MONTHS } from './dates.js';
+import { standInPays } from '../../services/TransitionPlanner.js';
 import { isClosedPlan } from '../../services/PlanClosed.js';
 import { closedReading } from '../../services/PlanClosedReading.js';
 import { shownPlanNameOn } from '../../services/PlanName.js';
@@ -53,7 +55,8 @@ const lockedAtOf = (plan) => (plan && plan.decisionTool && plan.decisionTool.set
 const nameOf = (plan, when) => shownPlanNameOn(plan, when);
 const safeStage = (plan, now) => { try { return planStage(plan, { now }); } catch { return { key: 'unknown' }; } };
 /** The plan document's order sheet, for matching a gilt typed or pasted by its code, SEDOL or year (matchRows). */
-const ordersOf = (plan) => { const o = plan && plan.planDocument && plan.planDocument.strategy && plan.planDocument.strategy.r && plan.planDocument.strategy.r.plan && plan.planDocument.strategy.r.plan.orders; return Array.isArray(o) ? o : []; };
+/** The plan document's gilt orders (the rungs a typed or pasted gilt is matched to): the document's only, in both views (step F6). */
+export const ordersOf = (plan) => { const o = plan && plan.planDocument && plan.planDocument.strategy && plan.planDocument.strategy.r && plan.planDocument.strategy.r.plan && plan.planDocument.strategy.r.plan.orders; return Array.isArray(o) ? o : []; };
 const BUCKET_WORDS = { shares: 'shares', bonds: 'bonds', cash: 'cash', diversifiers: 'diversifiers' };
 
 /** The record as the planner reads it: normalised, every field present, null not undefined. */
@@ -66,7 +69,7 @@ export function countedAs(line) {
   // what it is, as Holdings.proportions counts it (placedLines)
   if (needsCategory(L)) return { kind: 'bucket', bucket: 'shares', assumed: true };
   if (up(L.wrapper) === 'CASH') return { kind: 'bankCash', bucket: 'cash' };
-  if (L.kind === 'gilt' || (!L.subClass && isGiltCode(L.ticker))) return { kind: 'gilt', bucket: 'bonds', code: up(L.ticker) || null };
+  if (isGiltLine(L)) return { kind: 'gilt', bucket: 'bonds', code: up(L.ticker) || null };
   if (L.kind === 'cash' && !L.subClass) return { kind: 'cash', bucket: 'cash' };
   const key = L.subClass || FUND_TAG_MAP[up(L.ticker)];
   const prof = key ? SUB_ASSET_PROFILES[key] : null;
@@ -163,6 +166,23 @@ export function addMatches(text, { wrapper = 'SIPP', orders = [], value = null, 
   if (!/^CASH$/i.test(t)) for (const f of searchFunds(t, 6)) if (!out.some((m) => m.ticker === up(f.ticker))) out.push({ id: 'fund:' + up(f.ticker), kind: 'fund', ticker: up(f.ticker), name: f.name, line: { ...base, ticker: up(f.ticker), name: f.name, kind: 'fund', ocf: Number.isFinite(+f.ocf) ? +f.ocf : null } });
   const asTyped = out.some((m) => m.ticker === T) ? null : { id: 'typed', kind: 'typed', ticker: /^[A-Z][A-Z0-9.-]{1,9}$/.test(T) ? T : '', name: t, line: { ...base, ticker: /^[A-Z][A-Z0-9.-]{1,9}$/.test(T) ? T : null, name: t } };
   return { matches: out, asTyped };
+}
+
+/**
+ * The line "Add a line" makes of what is typed in its boxes (step F6, lead4.md D19): the full view's code and name boxes read
+ * through addMatches, the simple view's one reader — so a gilt on the order sheet, or typed by its code, is a gilt in both views,
+ * a bundled fund is that fund, "CASH" (or the CASH account) is cash, and anything else is kept as typed. The name typed wins
+ * over the matched one. Null when nothing is typed.
+ */
+export function typedLineOf({ ticker = '', name = '', wrapper = 'SIPP', value = null, units = null } = {}, { orders = [] } = {}) {
+  const code = String(ticker || '').trim(), label = String(name || '').trim();
+  if (!code && !label) return null;
+  const w = HOLD_WRAPPERS.includes(up(wrapper)) ? up(wrapper) : 'SIPP';
+  const a = addMatches(code || label, { wrapper: w, orders, value, units });
+  const C = up(code);
+  const hit = a.matches.find((m) => m.kind === 'gilt') || (C ? a.matches.find((m) => m.ticker && m.ticker === C) : null) || (w === 'CASH' || /^CASH$/i.test(code || label) ? a.matches.find((m) => m.kind === 'cash') : null);
+  const line = hit ? hit.line : a.asTyped ? a.asTyped.line : { wrapper: w, ticker: C || null, name: label, sedol: null, units, value, ocf: null, contribution: null, subClass: null, kind: null, asOf: null };
+  return { ...line, ticker: line.ticker || (C || null), name: label || line.name || '' };
 }
 
 /** The index in the record of a line mergeLedger reports as not seen (a copy): the first line of that account with the same identity. */
@@ -279,9 +299,13 @@ export function holdPatch(plan, change, { today }) {
 
 const pct = (f) => String(Math.round((+f || 0) * 100));
 /** The mix as held, in words' slots (Holdings.describeMix, as data): the four shares, the total, the yearly charge, the lines not counted. */
-export function mixWords(p) {
+// the four shares are the one reader's (src/reading/holdings.js heldMixOf; step F6) and the total the record's (holdingsTotalsOf),
+// as the full view's What you hold card says them
+export function mixWords(p, rec = null) {
   if (!p || !(p.total > 0)) return null;
-  return { shares: pct(p.buckets.shares), bonds: pct(p.buckets.bonds), diversifiers: pct(p.buckets.diversifiers), cash: pct(p.buckets.cash), total: pounds(p.total), charge: (p.weightedOcf * 100).toFixed(2), untagged: p.untagged.map((u) => u.ticker || u.name || '').filter(Boolean) };
+  const m = rec ? heldMixOf({ holdings: rec }) : null;
+  const four = m ? Object.fromEntries(Object.entries(m).map(([k, v]) => [k, String(v)])) : { shares: pct(p.buckets.shares), bonds: pct(p.buckets.bonds), diversifiers: pct(p.buckets.diversifiers), cash: pct(p.buckets.cash) };
+  return { ...four, total: pounds(rec ? holdingsTotalsOf({ holdings: rec }).total : p.total), charge: (p.weightedOcf * 100).toFixed(2), untagged: p.untagged.map((u) => u.ticker || u.name || '').filter(Boolean) };
 }
 /** Where new money goes (§2.1): the monthly figure and the pounds a month to each bucket, or null when nothing is paid in. */
 export function newMoneyWords(p) {
@@ -310,13 +334,13 @@ export function keepChoices(plan, { today }) {
   if (!doc) return null;
   const p = doc.strategy && doc.strategy.r && doc.strategy.r.plan;
   const ladder = !!(doc.strategy && doc.strategy.contract && p && Array.isArray(p.orders));
-  if (!ladder) return { ladder: false, years: [] };
+  if (!ladder) return { ladder: false, years: [], today };
   const thisTY = taxYearStartOf(now);
   const first = Math.max(thisTY, +p.firstTaxYear || thisTY);
   const last = Math.min(+p.lastTaxYear > 0 ? +p.lastTaxYear : first + 11, first + 11);
   const years = [];
   for (let Y = first; Y <= last; Y++) years.push(Y);
-  return { ladder: true, years };
+  return { ladder: true, years, today };
 }
 
 /**
@@ -333,23 +357,44 @@ function keepLine(l, index, t, K) {
   const gaps = gT != null ? gT === '1' : !!(saved && saved.fundsGaps);
   let change = null, error = null;
   // "choose a year" is said only once the person has touched the years (unticked the last one), never before
-  if (as === 'rung' && K.ladder) { if (on.length) change = { kind: 'keep', index, keep: { as: 'rung', taxYears: on.slice().sort((a, b) => a - b) } }; else if (yT != null) error = 'noYears'; }
+  let errorSlots = null;
+  if (as === 'rung' && K.ladder) {
+    // a gilt cannot pay for a year that ends before it matures: refused, in the words the full view says it (tooEarlyOf)
+    const early = on.length ? tooEarlyOf(l, on, { today: K.today }) : null;
+    if (early) { error = 'tooEarly'; errorSlots = early; }
+    else if (on.length) change = { kind: 'keep', index, keep: { as: 'rung', taxYears: on.slice().sort((a, b) => a - b) } };
+    else if (yT != null) error = 'noYears';
+  }
   else if (as === 'mine') change = { kind: 'keep', index, keep: { as: 'mine', fundsGaps: gaps } };
   const ys = [...new Set([...K.years, ...on])].sort((a, b) => a - b);
   return {
     saved: saved ? { as: saved.as, years: (saved.taxYears || []).map(taxYearLabel), fundsGaps: !!saved.fundsGaps } : null,
-    as, gaps, error, change, stop: saved ? { kind: 'keep', index, keep: null } : null,
+    as, gaps, error, errorSlots, change, stop: saved ? { kind: 'keep', index, keep: null } : null,
     years: ys.map((Y) => ({ Y: String(Y), label: taxYearLabel(Y), on: on.includes(Y), value: on.includes(Y) ? on.filter((x) => x !== Y).join(',') : [...on, Y].join(',') })),
     paths: { as: `line.${index}.keepAs`, years: `line.${index}.keepYears`, gaps: `line.${index}.keepGaps` }
   };
 }
 
-/** Tax years as typed ("2028/29", "2028", "2028/29, 2029/30") → the April each starts, sorted; null when something typed is not one. */
-function typedTaxYears(text) {
+/** Tax years as typed ("2028/29", "2028", "2028/29, 2029/30") → the April each starts, sorted; null when something typed is not one.
+ * The one parser of typed tax years, in both views (step F6). */
+export function typedTaxYears(text) {
   const parts = String(text || '').split(/[,;\s]+/).map((x) => x.trim()).filter(Boolean);
   const ys = parts.map((x) => { const m = /^(20\d{2})(?:\/(\d{2}))?$/.exec(x); return m && (!m[2] || +m[2] === (+m[1] + 1) % 100) ? +m[1] : null; });
   return ys.some((y) => y == null) ? null : [...new Set(ys)].sort((a, b) => a - b);
 }
+/**
+ * Why a kept gilt cannot stand in for the years chosen (7.12.0 round 3; step F6, one refusal in both views): every year ends
+ * before the gilt matures. Its maturity is the bundled list's, or its name's (TransitionPlanner.standInPays); a line with none
+ * is never refused. → the slots of GAPS.keep.tooEarly ({ date, years, ends }), or null.
+ */
+export function tooEarlyOf(line, years, { today } = {}) {
+  let m = null; try { m = standInPays(line, { today: dateOf(today) }).matures; } catch { m = null; }
+  if (!m || !Array.isArray(years) || !years.length) return null;
+  const early = years.filter((Y) => (Y + 1) + '-04-05' < m);
+  if (early.length < years.length) return null;
+  return { date: dayWords(m), years: early.map(taxYearLabel).join(', '), ends: early.length === 1 ? 'ends' : 'end' };
+}
+
 /**
  * The one optional box on a pension line living on a ladder (7.12.0): the tax years the person sets it against — empty unless
  * they set some, never worked out for them. Saved as the keep that exists ({ as: 'rung', taxYears }); emptied, the keep is
@@ -444,7 +489,7 @@ export function holdOf(entries, id, { today, typed = null, source = 'account' } 
     saver: s.saver, stageKey: s.stage.key,
     headline: headlineOf(s.summary, s.record.updatedAt), recordSource: s.record.source, updatedAt: s.record.updatedAt ? dayWords(s.record.updatedAt) : null,
     groups, count: s.record.lines.length,
-    mix: mixWords(s.proportions), newMoney: newMoneyWords(s.proportions),
+    mix: mixWords(s.proportions, s.record), newMoney: newMoneyWords(s.proportions),
     atLock: s.atLock ? { ...headlineOf(s.atLock.summary, s.atLock.updatedAt), lockedOn: s.atLock.lockedOn } : null,
     fields, errors: c.errors, ok: c.ok,
     add: c.add, paste: { text: c.paste.text, wrapper: c.paste.wrapper, empty: c.paste.empty, rows: c.paste.rows, counts: c.paste.counts, leftOut: c.paste.leftOut, warnings: c.paste.warnings, unseen: c.paste.unseen, canAdd: !!pasteChange, change: pasteChange, merged: c.paste.merged ? { added: c.paste.merged.added.length, updated: c.paste.merged.updated.length } : null },

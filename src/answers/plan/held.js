@@ -14,10 +14,11 @@
  *   yearsWords(ys)                      tax years as words: "2032/33", "2029/30 to 2031/32"
  *
  * Pure: the plan brought up to date in memory and today's date; nothing here writes, runs or reads a clock. The diff is
- * TransitionPlanner's through PlanReading.moveInputs, on an in-memory copy of the plan whose lines carry no mark.
+ * the page's one diff (src/reading/holdings.js moveReadingOf: TransitionPlanner's on the plan whose lines carry no mark).
  */
 import { yearNeedsOf, monthsLeftInTaxYear, isRungRow, standInPays, conventionalEvidence } from '../../services/TransitionPlanner.js';
-import { moveInputs, planStage, effectiveStressSettings } from '../../services/PlanReading.js';
+import { planStage, effectiveStressSettings } from '../../services/PlanReading.js';
+import { moveReadingOf, giltsCountOf } from '../../reading/holdings.js';
 import { stageOf } from '../../services/LifeStage.js';
 import { heldPhase } from '../../services/Phases.js';
 import { normaliseHoldings, normaliseKeep, expectedOf } from '../../services/HoldingsRecord.js';
@@ -55,12 +56,6 @@ export function paidByOf(doc, Y) {
   return 'else';
 }
 
-/** The plan with every line's mark taken off, in memory: while living, every line counts as it is. */
-function unmarked(plan) {
-  const rec = normaliseHoldings(plan && plan.holdings);
-  return { ...plan, holdings: { ...(isObj(plan.holdings) ? plan.holdings : {}), lines: rec.lines.map((l) => { const { keep, ...rest } = l; return rest; }) } };
-}
-
 /**
  * The reading (7.12.0). Null unless the plan is locked, has a ladder document and is in the held phase (`life`, the phase the
  * home reads; worked out here when not given).
@@ -75,14 +70,15 @@ function unmarked(plan) {
  *   outsidePension: [{ label, wrapper, value }],
  *   expected: [{ id, label, amount, by }], lumps: [{ Y, amount }], setYears: [{ label, years }] }}
  */
-export function heldLadder(plan, { today, life } = {}) {
+export function heldLadder(plan, { today, life, reading = null } = {}) {
   const now = dateOf(today);
   if (!isLocked(plan) || !isObj(plan.planDocument)) return null;
   const phase = life === undefined ? lifeOf(plan, now) : life;
   if (!heldPhase(phase)) return null;
   const doc = plan.planDocument;
   const rec = normaliseHoldings(plan.holdings);
-  let m = null; try { m = moveInputs(unmarked(plan), { now, roles: true }); } catch { m = null; }
+  // the page's one diff (src/reading/holdings.js moveReadingOf: every line as it is, with its part), the caller's when it has it
+  const m = (reading && reading.asHeld ? reading : moveReadingOf(plan, { now, life: phase })).m;
   if (!m || !m.target || m.target.kind !== 'ladder' || !m.diff) return null;
   const T = m.target, D = m.diff;
   const noRecord = rec.lines.length === 0;
@@ -107,7 +103,10 @@ export function heldLadder(plan, { today, life } = {}) {
     return { ...base, planUnits: t.units, heldUnits, diff, state, money: diff !== 0 && t.indexRatio ? r10(Math.abs(diff) * t.indexRatio) : null, planValue: null, heldValue: null };
   });
   const count = (s) => rows.filter((r) => r.state === s).length;
-  const gilts = { rows, held: D.rungs ? D.rungs.held : 0, total: D.rungs ? D.rungs.needed : T.lines.length, over: count('over'), under: count('under'), none: count('none'),
+  // the one count (giltsCountOf): once what is held was accepted, a gilt of the plan held in part is held as the person chose
+  const agreed = !!(phase && phase.agreed && phase.agreed.at);
+  const gc = giltsCountOf(T, D, { agreed });
+  const gilts = { rows, held: gc.counted, total: gc.total, over: count('over'), under: count('under'), none: count('none'), chosen: agreed,
     paid: (T.paid || []).map((p) => p.label || p.ticker || ''), stale: (D.matured || []).map((x) => x.label || x.ticker || '') };
 
   // the cash years still ahead: this tax year's months still to come while the plan runs, each later one in full
@@ -307,7 +306,8 @@ export function heldLadderView(h) {
     const several = r.years.length > 1;
     let difference = 'same';
     if (!h.noRecord && (r.state === 'over' || r.state === 'under' || r.state === 'none')) {
-      const bracket = r.money != null ? S(r.state === 'over' ? (several ? 'moreYears' : 'moreYear') : (several ? 'lessYears' : 'lessYear'), { money: P(r.money) }) : null;
+      // once what is held was accepted (g.chosen; step F6), fewer units is the person's choice: never "less than the plan says"
+      const bracket = r.state !== 'over' && g.chosen ? S(several ? 'chosenYears' : 'chosenYear') : r.money != null ? S(r.state === 'over' ? (several ? 'moreYears' : 'moreYear') : (several ? 'lessYears' : 'lessYear'), { money: P(r.money) }) : null;
       difference = { key: r.state === 'over' ? 'diffOver' : r.state === 'under' ? 'diffUnder' : 'diffNone', slots: { units: grouped(r.diff) }, bracket };
     }
     return { key: r.key, state: r.state || '', gilt: r.code ? r.label + ' (' + r.code + ')' : r.label, years: yearsWords(r.years),
@@ -327,7 +327,7 @@ export function heldLadderView(h) {
       else if (g.none > 0) figure.push(S('none', { none: String(g.none), isAre: isAre(g.none) }));
     }
     if (g.over > 0) under.push(S('belowOver'));
-    if (g.under + g.none > 0) under.push(S('belowUnder'));
+    if (g.under + g.none > 0) under.push(S(g.chosen ? 'belowChosen' : 'belowUnder'));
   }
   if (g.paid.length) under.push(S('paid', { list: g.paid.join(', ') }));
   if (g.stale.length) under.push(S('stale', { list: g.stale.join(', ') }));

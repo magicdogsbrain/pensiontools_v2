@@ -183,7 +183,8 @@ describe('G2-residual — the app page reads the Budget\'s age only through "did
   it('G2-residual — an age typed on the Budget page, in the setup wizard or for a partner is marked as given', () => {
     expect(html).toContain('if (window._budget.currentAge !== a0 || window._budget.retirementAge !== r0) markBudgetAgesSet(window._budget);');
     expect(html).toContain('if (parseInt(wizardData.currentAge) > 0) markBudgetAgesSet(b);');
-    expect(html).toContain('if (+mine.partnerAge > 0) markBudgetAgesSet(theirs);');
+    // a partner's age typed on the Household tab (step F6 fix round 1: made.ages exists only when an age was typed)
+    expect(html).toContain('if (made.ages) { Object.assign(theirs, made.ages); markBudgetAgesSet(theirs); }');
     // …and the mark is what makes a real 45 / 60 known
     const b = defaultBudget();
     expect(budgetAgeToday(b)).toBeNull();

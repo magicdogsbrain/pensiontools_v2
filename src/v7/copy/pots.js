@@ -75,6 +75,7 @@ export const POTS = {
     'pots.locked': 'Your plan was locked on {date} with a pension of {pension} and ISAs and savings of {isa}.',
     'pots.lockedTaxable': 'Your plan was locked on {date} with a pension of {pension}, ISAs and savings of {isa} and {taxable} in your ordinary account.',
     'pots.split': 'Split as saved: {shares} shares, {bonds} bonds, {cash} cash{div}. The split, the risk level and the funds to test are set with the way of drawing and mix (in the full view).',
+    'pots.bought': 'Your way of drawing buys its income: the pension is held as that way buys it (a ladder’s gilts and its cash years), not split into shares, bonds and cash.',
     'pots.fromFunds': 'Your pension pot of {pension} comes from your list of funds to test: change it with the way of drawing and mix (in the full view).',
     'pots.pinned': 'This way of drawing is sized on its own figures: {pension} pension and {isa} ISAs, set with the way of drawing (in the full view).',
     'stop.projection': 'When you stop, worked out from your pot and what you pay in, in a middling case: {sipp} pension and {isa} in ISAs and savings. Every test is run on these; they follow what you pay in.',

@@ -190,8 +190,10 @@ describe('the move with keeps', () => {
   const lines = [conv(2027, 20000, { as: 'rung', taxYears: [2027] }), conv(2028, 20000, { as: 'rung', taxYears: [2028] }), conv(2029, 20000, { as: 'rung', taxYears: [2029] }), cash(40000)];
   // retaken in 7.12.0: each kept gilt pays only part of its cash year, so the year stays in the table beside it, with what it
   // still needs; the cash to hold is what those parts cost, set against the £40,000 held
+  // step F6: the cash to hold is a move's, so it is read Moving (asMoving): living on the plan, every line counts as it is and no
+  // keep mark changes a sum (src/reading/holdings.js moveReadingOf: the page's one diff), so there is no cash to hold to read
   it('the cash to hold keeps the part of each cash year the kept lines do not pay, and says the year is beside them', () => {
-    const p = withLines(sam(), lines);
+    const p = withLines(asMoving(sam()), lines);
     const m = moveOf([{ plan: p }], p.id, { today: BEFORE });
     expect(m.cash.rows.map((r) => r.id)).toEqual(['cashYearBeside', 'cashYearBeside']);
     expect(m.cash.rows[0].gap).toMatch(/^£[\d,]+$/);

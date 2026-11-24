@@ -16,8 +16,9 @@
  * Pure: no clock (the day arrives as `today`), no storage.
  */
 import { planPage, dateOf, monthWords, monthName } from './read.js';
-import { historyAscending, moveInputs, effectiveStressSettings } from '../../services/PlanReading.js';
-import { driftOf, DRIFT_BAND, MOVE_BAND } from '../../services/TransitionPlanner.js';
+import { historyAscending, effectiveStressSettings } from '../../services/PlanReading.js';
+import { DRIFT_BAND, MOVE_BAND } from '../../services/TransitionPlanner.js';
+import { moveReadingOf, ladderGapsOf, mixAgainstPlanOf } from '../../reading/holdings.js';
 import { monthsWanted } from '../../services/DrawCadence.js';
 import { gapsOf, gapHeadline } from './gaps.js';
 import { heldLadder } from './held.js';
@@ -135,28 +136,32 @@ const BUCKETS = ['shares', 'bonds', 'cash', 'diversifiers'];
 /**
  * How far what is held is from the plan's mix (7.10.0, spec-7100 §3.2), on a plan living on its money: information, never a
  * to-do and never a sale — the bucket furthest from the plan's mix when it is more than DRIFT_BAND of the pension away, or on
- * a ladder a gilt needed this tax year or next that is not held. Read on the plan's document, or (not locked yet) on the
- * plan's settings in memory (PlanReading.moveInputs `fromSettings`). The buckets' line links to the review, whose "Test with
+ * a ladder a gilt needed this tax year or next that is not held at all. Read on the page's one diff (moveReadingOf: the plan's
+ * document, or not locked yet its settings in memory), the one held and plan's mix (mixAgainstPlanOf) and the one reading of
+ * a ladder's gaps (ladderGapsOf). The buckets' line links to the review, whose "Test with
  * what I hold" tries what is held and can accept it (the line then rests); a ladder's to What you hold. Null otherwise.
  */
-function driftLineOf(plan, now, href, { phase = 'drawing' } = {}) {
-  let mv = null; try { mv = moveInputs(plan, { now, fromSettings: true }); } catch { mv = null; }
-  const d = mv && mv.diff ? driftOf(mv.diff) : null;
-  if (!d) return null;
-  if (d.kind === 'buckets') {
+function driftLineOf(plan, now, href, { phase = 'drawing', life = null } = {}) {
+  // the page's one diff (src/reading/holdings.js moveReadingOf; step F6), as the move page and the review read it
+  const mv = moveReadingOf(plan, { now, life, fromSettings: true }).m;
+  if (!mv || !mv.diff) return null;
+  if (mv.diff.kind === 'buckets') {
+    // the one held mix against the one plan's mix (mixAgainstPlanOf): the figures the review and the held-mix test say
+    const x = mixAgainstPlanOf(plan, mv, { now });
+    if (!x) return null;
     // Moving (spec-7100 §3.2: the window line, then the held line): where what is held stands against the mix the plan moves
     // to — the bucket furthest from it, or within the move's band of it; Living on it only beyond DRIFT_BAND
     const moving = phase === 'moving';
-    if (!moving && !(d.maxDrift > DRIFT_BAND * 100)) return null;
-    if (moving && !(d.maxDrift > MOVE_BAND * 100)) return { kind: 'buckets', phase: 'moving', close: true, href };
-    const bucket = BUCKETS.reduce((best, k) => (Math.abs(d.drift[k] || 0) > Math.abs(d.drift[best] || 0) ? k : best), BUCKETS[0]);
-    const x = mv.diff.buckets[bucket] || { held: 0, target: 0 };
-    const inPlay = mv.diff.inPlay;
-    return { kind: 'buckets', ...(moving ? { phase: 'moving' } : {}), bucket, held: Math.round(100 * (+x.held || 0) / inPlay), plan: Math.round(100 * (+x.target || 0) / inPlay), href };
+    if (!moving && !(x.maxDrift > DRIFT_BAND * 100)) return null;
+    if (moving && !(x.maxDrift > MOVE_BAND * 100)) return { kind: 'buckets', phase: 'moving', close: true, href };
+    const bucket = BUCKETS.reduce((best, k) => (Math.abs(x.drift[k] || 0) > Math.abs(x.drift[best] || 0) ? k : best), BUCKETS[0]);
+    const row = x.buckets.find((b) => b.bucket === bucket) || { held: 0, plan: 0 };
+    return { kind: 'buckets', ...(moving ? { phase: 'moving' } : {}), bucket, held: row.held, plan: row.plan, href };
   }
-  if (d.kind === 'ladder' && d.gapSoon) {
+  if (mv.diff.kind === 'ladder') {
+    // the one reading of the ladder's gaps (ladderGapsOf): a gilt held in part is never "not held yet"
     const thisTY = Number(mv.target && mv.target.thisTaxYear);
-    const ys = (mv.diff.buy || []).filter((b) => b.kind === 'gilt' && Array.isArray(b.taxYears)).flatMap((b) => b.taxYears.map(Number)).filter((Y) => Y === thisTY || Y === thisTY + 1).sort((p, q) => p - q);
+    const ys = ladderGapsOf(mv.target, mv.diff).uncovered.filter((Y) => Y === thisTY || Y === thisTY + 1);
     // a ladder's rungs are read on What you hold (its gaps), not tested by the review
     return ys.length ? { kind: 'ladder', year: taxYearLabel(ys[0]), href: '#/plan/' + plan.id + '/hold' } : null;
   }
@@ -298,7 +303,7 @@ export function homeOf(entries, id, { today, source = 'account', page = null } =
   let accepted = false; try { accepted = asHeldStateOf(plan, { today }).status === 'agreed'; } catch { accepted = false; }
   // (Moving: inside the window, the same line about where what is held stands, until what is held is accepted)
   const inWindow = stageKey === 'moving' && !!life && !life.confirmStop && !!moveWindowOf(life) && moveWindowOf(life).state === 'inside';
-  const drift = (stageKey === 'drawing' || inWindow) && recorded && !pg.readonly && !pg.closed && review && !accepted ? driftLineOf(plan, now, review.href, { phase: stageKey }) : null;
+  const drift = (stageKey === 'drawing' || inWindow) && recorded && !pg.readonly && !pg.closed && review && !accepted ? driftLineOf(plan, now, review.href, { phase: stageKey, life }) : null;
   const dt = plan.decisionTool && typeof plan.decisionTool === 'object' ? plan.decisionTool : {};
   const stepOf = (sid) => pg.steps.find((s) => s.id === sid) || null;
   // where you are, as a headline: the saver's reading against the path (or the last check-in); a moving plan's share of the

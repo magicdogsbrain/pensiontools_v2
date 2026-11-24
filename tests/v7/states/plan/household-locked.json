@@ -1863,9 +1863,19 @@
             }
           },
           "starts": "The check starts from £1,710,497 in pensions and ISAs: £1,422,000 in ‘Alex’s plan’ from the month work stops, and £288,497 in ‘Sam’s plan’ from the month work stops.",
+          "startsSlots": {
+            "total": "£1,710,497",
+            "a": "Alex’s plan",
+            "potA": "£1,422,000",
+            "whenA": "from the month work stops",
+            "b": "Sam’s plan",
+            "potB": "£288,497",
+            "whenB": "from the month work stops"
+          },
           "timeline": [
             {
               "year": "2026",
+              "shown": true,
               "beforeStatePension": true,
               "workingA": false,
               "workingB": true,
@@ -1879,6 +1889,7 @@
             },
             {
               "year": "2027",
+              "shown": false,
               "beforeStatePension": true,
               "workingA": false,
               "workingB": true,
@@ -1892,6 +1903,7 @@
             },
             {
               "year": "2028",
+              "shown": false,
               "beforeStatePension": true,
               "workingA": false,
               "workingB": true,
@@ -1905,6 +1917,7 @@
             },
             {
               "year": "2029",
+              "shown": true,
               "beforeStatePension": false,
               "workingA": false,
               "workingB": true,
@@ -1918,6 +1931,7 @@
             },
             {
               "year": "2030",
+              "shown": true,
               "beforeStatePension": true,
               "workingA": false,
               "workingB": false,
@@ -1931,6 +1945,7 @@
             },
             {
               "year": "2031",
+              "shown": true,
               "beforeStatePension": true,
               "workingA": false,
               "workingB": false,
@@ -1944,6 +1959,7 @@
             },
             {
               "year": "2032",
+              "shown": false,
               "beforeStatePension": true,
               "workingA": false,
               "workingB": false,
@@ -1957,6 +1973,7 @@
             },
             {
               "year": "2033",
+              "shown": false,
               "beforeStatePension": true,
               "workingA": false,
               "workingB": false,
@@ -1970,6 +1987,7 @@
             },
             {
               "year": "2034",
+              "shown": false,
               "beforeStatePension": true,
               "workingA": false,
               "workingB": false,
@@ -1983,6 +2001,7 @@
             },
             {
               "year": "2035",
+              "shown": true,
               "beforeStatePension": false,
               "workingA": false,
               "workingB": false,
@@ -1996,6 +2015,7 @@
             },
             {
               "year": "2036",
+              "shown": true,
               "beforeStatePension": false,
               "workingA": false,
               "workingB": false,
@@ -2009,6 +2029,7 @@
             },
             {
               "year": "2037",
+              "shown": false,
               "beforeStatePension": false,
               "workingA": false,
               "workingB": false,
@@ -2022,6 +2043,7 @@
             },
             {
               "year": "2038",
+              "shown": false,
               "beforeStatePension": false,
               "workingA": false,
               "workingB": false,
@@ -2035,6 +2057,7 @@
             },
             {
               "year": "2039",
+              "shown": false,
               "beforeStatePension": false,
               "workingA": false,
               "workingB": false,
@@ -2048,6 +2071,7 @@
             },
             {
               "year": "2040",
+              "shown": false,
               "beforeStatePension": false,
               "workingA": false,
               "workingB": false,
@@ -2061,6 +2085,7 @@
             },
             {
               "year": "2041",
+              "shown": true,
               "beforeStatePension": false,
               "workingA": false,
               "workingB": false,
@@ -2074,6 +2099,7 @@
             },
             {
               "year": "2042",
+              "shown": false,
               "beforeStatePension": false,
               "workingA": false,
               "workingB": false,
@@ -2087,6 +2113,7 @@
             },
             {
               "year": "2043",
+              "shown": false,
               "beforeStatePension": false,
               "workingA": false,
               "workingB": false,
@@ -2100,6 +2127,7 @@
             },
             {
               "year": "2044",
+              "shown": false,
               "beforeStatePension": false,
               "workingA": false,
               "workingB": false,
@@ -2113,6 +2141,7 @@
             },
             {
               "year": "2045",
+              "shown": false,
               "beforeStatePension": false,
               "workingA": false,
               "workingB": false,
@@ -2126,6 +2155,7 @@
             },
             {
               "year": "2046",
+              "shown": true,
               "beforeStatePension": false,
               "workingA": false,
               "workingB": false,
@@ -2139,6 +2169,7 @@
             },
             {
               "year": "2047",
+              "shown": false,
               "beforeStatePension": false,
               "workingA": false,
               "workingB": false,
@@ -2152,6 +2183,7 @@
             },
             {
               "year": "2048",
+              "shown": false,
               "beforeStatePension": false,
               "workingA": false,
               "workingB": false,
@@ -2165,6 +2197,7 @@
             },
             {
               "year": "2049",
+              "shown": false,
               "beforeStatePension": false,
               "workingA": false,
               "workingB": false,
@@ -2178,6 +2211,7 @@
             },
             {
               "year": "2050",
+              "shown": false,
               "beforeStatePension": false,
               "workingA": false,
               "workingB": false,
@@ -2191,6 +2225,7 @@
             },
             {
               "year": "2051",
+              "shown": true,
               "beforeStatePension": false,
               "workingA": false,
               "workingB": false,
@@ -2204,6 +2239,7 @@
             },
             {
               "year": "2052",
+              "shown": false,
               "beforeStatePension": false,
               "workingA": false,
               "workingB": false,
@@ -2217,6 +2253,7 @@
             },
             {
               "year": "2053",
+              "shown": false,
               "beforeStatePension": false,
               "workingA": false,
               "workingB": false,
@@ -2230,6 +2267,7 @@
             },
             {
               "year": "2054",
+              "shown": false,
               "beforeStatePension": false,
               "workingA": false,
               "workingB": false,
@@ -2243,6 +2281,7 @@
             },
             {
               "year": "2055",
+              "shown": false,
               "beforeStatePension": false,
               "workingA": false,
               "workingB": false,
@@ -2256,6 +2295,7 @@
             },
             {
               "year": "2056",
+              "shown": true,
               "beforeStatePension": false,
               "workingA": false,
               "workingB": false,
@@ -2269,6 +2309,7 @@
             },
             {
               "year": "2057",
+              "shown": false,
               "beforeStatePension": false,
               "workingA": false,
               "workingB": false,
@@ -2282,6 +2323,7 @@
             },
             {
               "year": "2058",
+              "shown": false,
               "beforeStatePension": false,
               "workingA": false,
               "workingB": false,
@@ -2295,6 +2337,7 @@
             },
             {
               "year": "2059",
+              "shown": true,
               "beforeStatePension": false,
               "workingA": false,
               "workingB": false,
@@ -2308,6 +2351,7 @@
             },
             {
               "year": "2060",
+              "shown": false,
               "beforeStatePension": false,
               "workingA": false,
               "workingB": false,
@@ -2321,6 +2365,7 @@
             },
             {
               "year": "2061",
+              "shown": true,
               "beforeStatePension": false,
               "workingA": false,
               "workingB": false,
@@ -2334,6 +2379,7 @@
             },
             {
               "year": "2062",
+              "shown": false,
               "beforeStatePension": false,
               "workingA": false,
               "workingB": false,

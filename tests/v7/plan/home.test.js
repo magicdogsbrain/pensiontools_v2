@@ -33,6 +33,7 @@ import { parse, format, PLAN_SUB_STEPS } from '../../../src/v7/router/routes.js'
 import { startPlanWrite } from '../../../src/v7/effects/planWrite.js';
 import { startPlace, landingFor, afterSignInFor } from '../../../src/v7/effects/place.js';
 import { moveInputs } from '../../../src/services/PlanReading.js';
+import { moveReadingOf, mixAgainstPlanOf } from '../../../src/reading/holdings.js';
 import { WHERE_LINES } from '../../../src/answers/plan/home.js';
 import { upgradedList, viewFor } from '../../../src/v7/effects/planSource.js';
 import { corpus, entriesAt, entryOf, household, noon, withTasks, DATES, TODAY } from './_plans.js';
@@ -644,12 +645,16 @@ describe('the drift line (7.10.0): what is held differently is said once, as inf
     const moved = Math.round(sh.value / 3); sh.value -= moved; cash.value += moved;
     const e = entryOf(third, TODAY);
     const h = homeOf([e], e.plan.id, { today: TODAY });
-    const mv = moveInputs(e.plan, { now: noon(TODAY), fromSettings: true });
-    const pct = (x) => Math.round(100 * x / mv.diff.inPlay);
-    expect(h.drift).toEqual({ kind: 'buckets', bucket: 'shares', held: pct(mv.diff.buckets.shares.held), plan: pct(mv.diff.buckets.shares.target), href: '#/plan/' + e.plan.id + '/review' });
-    expect(h.drift.plan - h.drift.held).toBeGreaterThan(10);
+    // (step F6) the one held mix against the one plan's mix (mixAgainstPlanOf): the bucket furthest from it, shares first on a
+    // tie. The plan's document holds 64/25/10, so the cash moved in (32% against 10%) is a point further off than the shares
+    const x = mixAgainstPlanOf(e.plan, moveReadingOf(e.plan, { now: noon(TODAY), fromSettings: true }).m, { now: noon(TODAY) });
+    const far = ['shares', 'bonds', 'cash', 'diversifiers'].reduce((best, k) => (Math.abs(x.drift[k]) > Math.abs(x.drift[best]) ? k : best), 'shares');
+    const row = x.buckets.find((b) => b.bucket === far);
+    expect(h.drift).toEqual({ kind: 'buckets', bucket: far, held: row.held, plan: row.plan, href: '#/plan/' + e.plan.id + '/review' });
+    expect(Math.abs(h.drift.plan - h.drift.held)).toBeGreaterThan(10);
+    expect(x.drift.shares).toBeLessThan(-10);
     expect([...h.todo.items, ...h.todo.more].map((x) => x.id)).toEqual(['month.record']);
-    expect(fill(HOME.drift.shares, { held: String(h.drift.held), mix: String(h.drift.plan) })).toBe('Shares are ' + h.drift.held + '% of your pension; the plan’s mix has ' + h.drift.plan + '% in shares.');
+    expect(fill(HOME.drift.shares, { held: '43', mix: '64' })).toBe('Shares are 43% of your pension; the plan’s mix has 64% in shares.');
   });
   it('a plan not locked yet, living on its money, reads its drift against its settings in memory — nothing is written', () => {
     const raw = copy(C['04-buckets-running']);

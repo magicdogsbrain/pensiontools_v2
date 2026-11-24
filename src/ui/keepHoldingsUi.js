@@ -5,12 +5,14 @@
  * same thing.
  */
 import { holdingsWith } from '../services/HoldingsRecord.js';
-import { standInPays } from '../services/TransitionPlanner.js';
-import { gapsOf, gapsView, lifeOf } from '../answers/plan/gaps.js';
-import { heldPhase } from '../services/Phases.js';
+import { typedTaxYears, tooEarlyOf } from '../answers/plan/hold.js';
+import { GAPS } from '../v7/copy/gaps.js';
+import { lifeOf } from '../answers/plan/gaps.js';
+import { heldPhase, windowYearsOf } from '../services/Phases.js';
+import { phaseChoicePatch } from '../answers/plan/review.js';
+import { REVIEW } from '../v7/copy/review.js';
 import { PLAN } from '../v7/copy/plan.js';
-import { moveOf, opensAtOf } from '../answers/plan/move.js';
-import { planStage } from '../services/PlanReading.js';
+import { moveOf } from '../answers/plan/move.js';
 import { keepTestOf, amendPatch, withdrawPatch, sayKeep } from '../answers/plan/keepTest.js';
 import { sayHeldPatch, agreeWithdrawPatch } from '../answers/plan/agree.js';
 import { MOVE } from '../v7/copy/move.js';
@@ -26,11 +28,6 @@ import { runInWorker, workerAvailable } from '../workers/engineClient.js';
 
 const pad = (n) => String(n).padStart(2, '0');
 const dayOf = (d) => dayKeyOf(todayOf(d));   // the one clock (src/reading/clock.js)
-
-/** "2027/28, 2028" → [2027, 2028]: the April each tax year starts. */
-export function parseTaxYears(text) {
-  return [...new Set(String(text || '').split(/[,;\s]+/).map((t) => { const m = /^(20\d{2})/.exec(t.trim()); return m ? +m[1] : null; }).filter(Boolean))];
-}
 
 /**
  * The keep a choice in the "Keep this" box makes: '' none, 'rung' (the years it had, else `firstYear` — the plan's year the
@@ -56,14 +53,6 @@ export function transitionTabName(scenario, today = todayOf()) {
   try { return scenario && heldPhase(lifeOf(scenario, new Date(today.getFullYear(), today.getMonth(), today.getDate(), 12))) ? PLAN.steps.move.short : 'Transition'; } catch { return 'Transition'; }
 }
 
-/**
- * The month a saver's move window opens, for the full view's schedule (move.js opensAtOf: the reading the simple view's
- * schedule and home use). Null when there is none, or the plan cannot be read.
- */
-export function transitionOpensAt(scenario, today = todayOf()) {
-  try { const now = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 12); return scenario ? opensAtOf(scenario, planStage(scenario, { now }), now) : null; } catch { return null; }
-}
-
 /** Names the full view's Transition tab in `doc` by the phase (transitionTabName); `read()` gives the stored plan. The name. */
 export async function nameTransitionTab(doc, read, fallback = null, today = todayOf()) {
   let plan = null; try { plan = (await read()) || fallback; } catch { plan = fallback; }
@@ -73,46 +62,41 @@ export async function nameTransitionTab(doc, read, fallback = null, today = toda
   return name;
 }
 
-/** The gaps as the Transition tab draws them: V7's reading of the plan with this record (by the phase the home reads: 7.12.0, nothing in the held phase); null when there is nothing to read. */
-export function transitionGaps(scenario, rec, today = todayOf()) {
-  if (!scenario) return null;
-  try { return gapsView(gapsOf({ ...scenario, holdings: rec }, { today: dayOf(today) })); } catch { return null; }
-}
-
 /**
  * "Your plan's mix" by phase (7.11.1): V7's reading of the move (answers/plan/move.js moveOf) for the plan with this record,
  * in the phase the plan's home reads — { mode, heldInfo, heldView, phase }. `mode` 'held' (Living on it, or Moving once what
  * is held was accepted): the tab draws what is held as information, never Buy or Sell; on a ladder (7.12.0) `heldView` is
  * "Your plan's mix" as both views draw it (answers/plan/held.js). Null when it cannot be read.
  */
-export function transitionHeld(scenario, rec, today = todayOf()) {
+export function transitionHeld(scenario, rec, today = todayOf(), entries = null) {
   if (!scenario) return null;
   try {
     const plan = { ...scenario, holdings: rec || scenario.holdings };
-    const v = moveOf([{ plan }], plan.id, { today: dayOf(today) });
+    // the account's plans when the caller has them (a successor, a partner), as the simple view's page reads them
+    const others = Array.isArray(entries) ? entries.filter((e) => e && e.plan && String(e.plan.id) !== String(plan.id)) : [];
+    const v = moveOf([{ plan }, ...others], plan.id, { today: dayOf(today) });
     // 7.12.0: and the move's readings both views word the same way — the one status, the pace, what pays for the buys, what is
     // held that the plan does not use, the totals and the cash to hold now (answers/plan/moveWords.js through moveOf)
+    // step F6: and the page's ONE diff (moveOf's `raw`: target, diff, progress, schedule), the order sheet with its bought column
+    // and the gaps, so the tab draws every list and count from the reading the simple view draws — never a diff of its own
     return v && v.found ? { mode: v.mode || null, heldInfo: v.heldInfo || null, heldView: v.heldView || null, phase: v.phase || null,
       status: v.status || null, totalsOnly: !!v.totalsOnly, pace: v.pace || null, paying: v.paying || null, outside: v.outside || [], ladderTotals: v.ladderTotals || null, cash: v.cash || null, isa: v.isa || null,
-      sayHeld: v.sayHeld || null, saidHeld: v.saidHeld || null, sayHeldOpen: sayHeldMemory.open && sayHeldMemory.planId === String(plan.id) } : null;
+      sayHeld: v.sayHeld || null, saidHeld: v.saidHeld || null, sayHeldOpen: sayHeldMemory.open && sayHeldMemory.planId === String(plan.id),
+      waiting: v.mode === 'waiting' ? { opens: v.opens || null, yearsToStart: v.yearsToStart || '0', startsAround: v.startsAround || '', newMoney: v.newMoney || null, planMix: v.planMix || null, held: v.held || null } : null,
+      sheet: v.sheet || [], spGate: v.spGate || null, pricedOn: v.pricedOn || null, gaps: v.gaps || null, ladder: !!v.ladder, raw: v.raw || null,
+      window: { years: windowYearsOf(plan) } } : null;   // the move window's length, chosen or the default (Phases.windowYearsOf)
   } catch { return null; }
 }
 
 /**
- * Why a gilt cannot stand in for the years typed (7.12.0 round 3): when every year typed ends before the gilt matures, the words
- * that say so ("This gilt pays on 7 June 2028, after 2027/28 ends, so it cannot pay for 2027/28."); else null. Its maturity is
- * the bundled list's, or its name's (TransitionPlanner.standInPays); a line with none is never refused.
+ * Why a gilt cannot stand in for the years typed: the simple view's refusal and words (answers/plan/hold.js tooEarlyOf,
+ * GAPS.keep.tooEarly; step F6). Null when it can.
  */
 export function tooEarlyWords(line, years) {
-  let m = null; try { m = standInPays(line, { today: todayOf() }).matures; } catch { m = null; }
-  if (!m || !years.length) return null;
-  const early = years.filter((Y) => (Y + 1) + '-04-05' < m);
-  if (early.length < years.length) return null;
-  const [y, mo, d] = m.split('-').map(Number);
-  const day = d + ' ' + ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][mo - 1] + ' ' + y;
-  const ys = early.map((Y) => Y + '/' + String(Y + 1).slice(2)).join(', ');
-  return 'This gilt pays on ' + day + ', after ' + ys + ' end' + (early.length === 1 ? 's' : '') + ', so it cannot pay for ' + ys + '.';
+  const slots = tooEarlyOf(line, years, { today: dayOf(todayOf()) });
+  return slots ? fillGaps(GAPS.keep.tooEarly, slots) : null;
 }
+const fillGaps = (t, slots) => String(t || '').replace(/\{(\w+)\}/g, (m, k) => (slots && slots[k] != null ? String(slots[k]) : m));
 
 /**
  * The handlers the Transition tab's markup names (TransitionView.js): keepHolding, keepHoldingYears, keepHoldingFor,
@@ -136,7 +120,8 @@ export function installKeepHandlers(w, { draft, persist, toast }) {
     save({ kind: 'keep', index: i, keep });
   };
   w.keepHoldingYears = (i, text) => {
-    const ys = parseTaxYears(text); if (!ys.length) { toast('Type at least one tax year, like 2027/28.', 'error'); return; }
+    // the one parser of typed tax years, and its refusal, as the simple view reads them (answers/plan/hold.js typedTaxYears; step F6)
+    const ys = typedTaxYears(text); if (!ys || !ys.length) { toast(GAPS.keep.notAYear, 'error'); return; }
     // a gilt cannot pay for a year that ends before it matures (7.12.0 round 3, walker 5): said beside the choice, not saved
     const d = pending || draft(); const why = d && d.lines && d.lines[i] ? tooEarlyWords(d.lines[i], ys) : null;
     if (why) { toast(why, 'error'); return; }
@@ -146,8 +131,8 @@ export function installKeepHandlers(w, { draft, persist, toast }) {
   w.keepHoldingFor = (i, text) => {
     const d = pending || draft(); if (!d || !d.lines || !d.lines[i]) return;
     if (!String(text || '').trim()) { const k = d.lines[i].keep; if (k && k.as === 'rung') save({ kind: 'keep', index: i, keep: null }); return; }
-    const ys = parseTaxYears(text);
-    if (!ys.length) { toast('A tax year, like 2028/29.', 'error'); return; }
+    const ys = typedTaxYears(text);
+    if (!ys || !ys.length) { toast(GAPS.keep.notAYear, 'error'); return; }
     save({ kind: 'keep', index: i, keep: { as: 'rung', taxYears: ys } });
   };
   w.addExpected = () => {
@@ -221,16 +206,31 @@ export function keepLineHtml(scenario) {
 /** The full view's confirm for "This is how I want to hold it" (7.12.0): page memory only, for the plan it was opened on. */
 const sayHeldMemory = { open: false, planId: null };
 
+/** The moment a write is stamped with (a record's time, never handed to a sum). */
+const stampNow = () => new Date().toISOString();
+
 export function installKeepTestHandlers(w, { scenario, persist, rerender, toast, persistPhases = null, run = runInWorker, canRun = workerAvailable, marketReady = () => w._marketReady, today = () => dayKeyOf(todayOf()) }) {
   // "This is how I want to hold it" and "Take this back" (7.12.0): the same one write as V7 (agree.js), the shell's save of `phases`
   const dayIso = today;   // the one clock (src/reading/clock.js)
   w.askSayHeld = async () => { const sc = await scenario(); sayHeldMemory.open = true; sayHeldMemory.planId = sc ? String(sc.id) : null; rerender(); };
   w.cancelSayHeld = () => { sayHeldMemory.open = false; rerender(); };
+  // the move window's length (step F6): the simple view's review choice, its one write and its words
+  w.setMoveWindow = async (value) => {
+    try {
+      const sc = await scenario();
+      if (!sc || !persistPhases) return;
+      const p = phaseChoicePatch(sc, 'window', +value, { at: stampNow(), today: dayIso() });
+      if (!p.ok) { toast(REVIEW.problems[p.problem] || REVIEW.problems.failed, 'error'); await rerender(); return; }
+      await persistPhases(p.patch.phases);
+      toast(REVIEW.toast.moveWindow.replace('{n}', REVIEW.moveWindow.options[+value]), 'success');
+    } catch (e) { toast(REVIEW.problems.failed, 'error'); }
+    await rerender();
+  };
   w.sayHeldFull = async () => {
     try {
       const sc = await scenario();
       if (!sc || closed(sc) || !persistPhases) return;
-      const p = sayHeldPatch(sc, { today: dayIso(), at: new Date().toISOString() });
+      const p = sayHeldPatch(sc, { today: dayIso(), at: stampNow() });
       if (!p.ok) { toast(MOVE.problems[p.problem] || MOVE.problems.failed, 'error'); return; }
       await persistPhases(p.patch.phases);
       sayHeldMemory.open = false;
@@ -241,7 +241,7 @@ export function installKeepTestHandlers(w, { scenario, persist, rerender, toast,
     try {
       const sc = await scenario();
       if (!sc || closed(sc) || !persistPhases) return;
-      const p = agreeWithdrawPatch(sc, { at: new Date().toISOString() });
+      const p = agreeWithdrawPatch(sc, { at: stampNow() });
       if (!p.ok) return;
       await persistPhases(p.patch.phases);
       if (JSON.stringify(p.patch.planAmendments || []) !== JSON.stringify(Array.isArray(sc.planAmendments) ? sc.planAmendments : [])) await persist(p.patch.planAmendments);
@@ -282,7 +282,7 @@ export function installKeepTestHandlers(w, { scenario, persist, rerender, toast,
       if (!sc || closed(sc)) return;
       forPlan(sc);
       // the result is for this plan as it is now, or nothing is written (the plan changed since the test: run it again)
-      const p = amendPatch(sc, resultFor(sc), { at: new Date().toISOString() });
+      const p = amendPatch(sc, resultFor(sc), { at: stampNow() });
       if (!p.ok) { memory.confirm = false; toast(HOLD.problems[p.problem] || KEEPTEST.failed, 'error'); await rerender(); return; }
       await persist(p.patch.planAmendments);
       memory.confirm = false;

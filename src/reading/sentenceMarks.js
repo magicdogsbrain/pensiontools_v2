@@ -83,8 +83,9 @@ export function sentenceHtml(s, source, marks, esc) {
 /** The chance said in words ("as long as you do 18 times in 20", "about 17 times in 20", "less than once in 20"). */
 const CHANCE = /((?:more than |less than |about )?(?:\d+ times|once) in 20)/;
 
-/** "3 of 22" in "3 of 22 gilts bought" / "… gilts held": the gilts held, said the same in both views (moveWords.moveStatusOf). */
-export const GILTS_HELD_FIND = /^(\d+ of \d+) gilts? (?:bought|held)/;
+/** "3 of 22" in "3 of 22 gilts bought" / "… gilts held" / "3 of 22 of your plan’s gilts are held": the gilts held, said the
+ * same in both views (moveWords.moveStatusOf; answers/plan/held.js heldLadderView: the one count, src/reading/holdings.js). */
+export const GILTS_HELD_FIND = /(?:^|: )(\d+ of \d+)(?: of your plan’s)? gilts? (?:bought|held|are held)/;
 
 const LEAD = 'enough.atLevel';
 /** The figures of the saver's block (state/saverBlock.js lines), by line id: the same in both views. */
@@ -143,7 +144,8 @@ export const STEP_FINDS = Object.freeze([[PRICES_FIND, FACT.PRICES_FROM]]);
  */
 export const DOC_LASTS_FINDS = Object.freeze([
   [/counting how long people your age live, [a-z ]+? ((?:more than |less than |about )?(?:\d+ times|once) in 20|in every future we tried|in none of the futures we tried)\./, FACT.DOC_CHANCE],
-  [FIXED_CHANCE_WORDS, FACT.DOC_FIXED_CHANCE]
+  [FIXED_CHANCE_WORDS, FACT.DOC_FIXED_CHANCE],
+  [/If you live to (\d+),/, FACT.DOC_FIXED_AGE]
 ]);
 
 /** The household's headline (HOUSEHOLD.verdict.headline, both views): its chance in words. */
@@ -157,6 +159,16 @@ export const HOUSEHOLD_CHANCE = Object.freeze({ words: FACT.HOUSEHOLD_CHANCE });
 const bucketMarks = (pattern) => Object.freeze(Object.fromEntries(BUCKETS.map((b) => [b, factId(pattern, b)])));
 export const HELD_MIX_SLOTS = bucketMarks(FACT.MIX_HELD);
 export const PLAN_MIX_SLOTS = bucketMarks(FACT.MIX_PLAN);
+export const HELD_PENSION_MIX_SLOTS = bucketMarks(FACT.MIX_HELD_PENSION);
+/**
+ * A bucket's line, what the pension holds against the plan's mix (src/reading/holdings.js mixAgainstPlanOf: the home, the
+ * review, the move page held as it is, in both views): `held` is the pension's held mix, `plan` (the home's `mix`) the plan's
+ * own mix. The plan's mix has no gold and trend of its own, so that bucket's plan figure is not a fact.
+ */
+export const BUCKET_LINE_MARKS = Object.freeze(Object.fromEntries(BUCKETS.map((b) => {
+  const plan = b === 'diversifiers' ? null : factId(FACT.MIX_PLAN, b);
+  return [b, Object.freeze({ held: factId(FACT.MIX_HELD_PENSION, b), ...(plan ? { plan, mix: plan } : {}) })];
+})));
 /** The full view's one line of the held mix (Holdings.describeMix: "78% shares · 17% bonds · 5% cash; cost …"). */
 export const HELD_MIX_FINDS = Object.freeze(BUCKETS.map((b) => [new RegExp('(\\d+)% ' + b + '\\b'), HELD_MIX_SLOTS[b]]));
 
@@ -182,3 +194,37 @@ export const stressMarksOf = (rowId) => Object.freeze({
 });
 export const STRESS_FLOOR_FINDS = Object.freeze([[/still have (£[\d,]+)/, FACT.STRESS_FLOOR]]);
 
+// ---- the household check (step F6): both views mark its sentences from these ----------------------------------------
+
+/**
+ * The marks of the household's sentences (lead4.md G1; step F6), for both views: a slot that names this plan is its name
+ * (plan.name), and `figures` maps the other slots to their facts. `keys` are the slots that may hold a name.
+ */
+export function householdMarksOf(slots, ownName, keys = [], figures = {}) {
+  const marks = { ...figures };
+  for (const k of keys) if (slots && ownName && slots[k] === ownName) marks[k] = FACT.PLAN_NAME;
+  return marks;
+}
+/** Each kind of sentence's name slots and figure slots. */
+export const HOUSEHOLD_SLOT_MARKS = Object.freeze({
+  tested: { names: ['a', 'b'], figures: {} },
+  covered: { names: ['short', 'payer'], figures: {} },
+  row: { names: ['name'], figures: {} },
+  column: { names: ['name'], figures: {} },
+  ways: { names: ['a', 'b'], figures: {} },
+  starts: { names: ['a', 'b'], figures: { total: FACT.HOUSEHOLD_START_TOTAL, potA: factId(FACT.HOUSEHOLD_START, 'a'), potB: factId(FACT.HOUSEHOLD_START, 'b') } }
+});
+/** The marks for one sentence of a kind (HOUSEHOLD_SLOT_MARKS), with `extra` figure marks (a row's chance). */
+export const householdSlotMarks = (kind, slots, ownName, extra = {}) => householdMarksOf(slots, ownName, HOUSEHOLD_SLOT_MARKS[kind].names, { ...HOUSEHOLD_SLOT_MARKS[kind].figures, ...extra });
+/** A row of the verdict's table: its chance's fact (a plan alone, both alone), none for the household's own row (household.chance is the headline's). */
+export const householdRowFact = (id) => (id === 'household' ? null : factId(FACT.HOUSEHOLD_ALONE, id));
+
+/**
+ * The survivor and care questions' opening words (src/v7/copy/household.js survivor.lead, care.lead): the share of the joint
+ * spending the one who is left is taken to need (CHECK_DEFAULTS.spendPct, tested equal) and what nursing care often costs a
+ * year, marked where the words already say them, in both views.
+ */
+export const HOUSEHOLD_LEAD_FINDS = Object.freeze({
+  survivor: Object.freeze([[/about (\d+%) of the joint/, FACT.HOUSEHOLD_SURVIVOR_SPEND]]),
+  care: Object.freeze([[/costs (£[\d,]+) to/, factId(FACT.HOUSEHOLD_CARE_COST, 'low')], [/to (£[\d,]+) a year/, factId(FACT.HOUSEHOLD_CARE_COST, 'high')]])
+});

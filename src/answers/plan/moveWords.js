@@ -9,6 +9,7 @@ import { taxYearLabel } from '../../services/PlanTiming.js';
 import { isRungRow } from '../../services/TransitionPlanner.js';
 import { planMoneyOf } from '../../services/PlanReading.js';
 import { pensionFromWords } from '../../reading/money.js';
+import { giltsCountOf } from '../../reading/holdings.js';
 
 const num = (v) => (Number.isFinite(+v) ? +v : 0);
 const pounds = (n) => '£' + String(Math.abs(Math.round(num(n)))).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
@@ -29,9 +30,9 @@ export function moveStatusOf(target, diff, prog) {
   const ladder = T.kind === 'ladder';
   if (D.complete) return { id: ladder ? (((D.standIn && D.standIn.length) || (D.kept && D.kept.length)) ? 'doneKept' : 'doneLadder') : 'done', slots: {} };
   if (ladder) {
-    const bought = D.rungs ? D.rungs.held : (D.hold || []).filter((h) => Array.isArray(h.taxYears)).length;
-    const part = (D.buy || []).filter((b) => b.kind === 'gilt' && num(b.heldUnits) > 0).length;
-    return { id: part ? 'giltsPart' : 'gilts', slots: { bought: String(bought), rungs: String((T.lines || []).length), held: String(D.progressPct), part: String(part) } };
+    // the one count of the plan's gilts held (src/reading/holdings.js giltsCountOf; step F6)
+    const c = giltsCountOf(T, D);
+    return { id: c.part ? 'giltsPart' : 'gilts', slots: { bought: String(c.held), rungs: String((T.lines || []).length), held: String(D.progressPct), part: String(c.part) } };
   }
   return { id: 'held', slots: { held: String(D.progressPct), done: String(P.doneCount), moves: String(P.total) } };
 }

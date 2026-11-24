@@ -5,6 +5,7 @@
  *
  *   startPotsOf(settings, now)                    → { amount, pension, isa, startAge }
  *   householdStartsOf(setA, setB, names, offsets, now) → { total, a: { name, amount, age, later }, b: {…} }
+ *   startsSlotsOf(starts)                         → the sentence's slots (both views mark its figures from these)
  *   startsWords(starts)                           → the sentence, in src/v7/copy/household.js's words
  */
 import { simulationConfigFromSettings } from './SimulationConfig.js';
@@ -28,9 +29,15 @@ export function householdStartsOf(setA, setB, names = {}, offsets = {}, now = ne
   return { total: a.amount + b.amount, a, b };
 }
 
-export function startsWords(starts) {
-  if (!starts || !starts.a || !starts.b) return '';
+/** The sentence's slots (both views fill HOUSEHOLD.verdict.starts.line with them, the figures marked; step F6), or null. */
+export function startsSlotsOf(starts) {
+  if (!starts || !starts.a || !starts.b) return null;
   const W = HOUSEHOLD.verdict.starts;
   const when = (x) => (x.later && x.age != null ? fill(W.later, { name: x.name, age: x.age }) : W.now);
-  return fill(W.line, { total: pounds(starts.total), a: starts.a.name, potA: pounds(starts.a.amount), whenA: when(starts.a), b: starts.b.name, potB: pounds(starts.b.amount), whenB: when(starts.b) });
+  return { total: pounds(starts.total), a: starts.a.name, potA: pounds(starts.a.amount), whenA: when(starts.a), b: starts.b.name, potB: pounds(starts.b.amount), whenB: when(starts.b) };
+}
+
+export function startsWords(starts) {
+  const slots = startsSlotsOf(starts);
+  return slots ? fill(HOUSEHOLD.verdict.starts.line, slots) : '';
 }

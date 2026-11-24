@@ -3835,6 +3835,9 @@
             <div style="display:flex; align-items:center; gap:8px; margin-top:8px; flex-wrap:wrap;">
               <span style="font-size:12px;color:var(--text-muted);">No plan for them yet?</span>
               <input type="text" id="hhNewPlanName" placeholder="e.g. Partner's plan" style="max-width:200px;">
+              <label style="font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:4px;">Their age today <input type="number" id="hhNewPlanAge" min="16" max="110" style="max-width:70px;"></label>
+              <label style="font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:4px;">Stops work at <input type="number" id="hhNewPlanStopAge" min="16" max="110" style="max-width:70px;"></label>
+              <label style="font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="hhNewPlanStopped" style="width:auto;"> Already stopped work</label>
               <button type="button" class="risk-btn" style="padding:5px 12px;font-size:13px;" data-on-click="createPartnerPlan()">Create their plan &amp; switch to it</button>
             </div>
             <button type="button" data-on-click="runHouseholdCheck()" style="margin-top:10px;">Run the household check</button>
@@ -4174,7 +4177,7 @@
     import { getStrategy } from './src/strategies/registry.js'; import { monthReadingOf } from './src/reading/month.js'; import { strategyOf as planStrategyOf } from './src/storage/ScenarioRepository.js';   // this month, the one gatherer both views use (step F5, lead4.md D17)
     import { tagPortfolio, allocationFromTags, mixFromFunds } from './src/services/PortfolioTagger.js';   // the mix a funds list makes, lifted pure (6.41.0)
     import { searchFunds as searchFundsIn } from './src/services/FundCatalogue.js';   // the fuzzy fund search, lifted pure (6.41.0)
-    import { documentRunOf, lockWrite, unlockWrite, documentWrite, LOCK_REFUSALS } from './src/ui/lockWrite.js';   // the one lock and unlock (step F5, lead4.md D18)
+    import { documentRunOf, lockWrite, unlockWrite, documentWrite, lockReadingOf, LOCK_REFUSALS } from './src/ui/lockWrite.js'; import { momentOf } from './src/reading/clock.js';   // the one lock and unlock (step F5, lead4.md D18); stamped with the moment
     import { trySettingsOf, chanceRunOf, runForDocument as runForDocumentInline } from './src/answers/plan/lastsRun.js';   // "Try a strategy": the what-if copy of the settings, lifted pure (6.41.0)
     import { tryDifferencesOf } from './src/answers/plan/lasts.js'; import { tryStartOf, tryIncomeStartOf, tryIncomeYearOf } from './src/reading/tryStart.js';   // … and its "What's different" list (6.41.0); where its boxes start, as the simple view's (step F1)
     import { SUB_ASSET_PROFILES, FUND_TAG_MAP, FUND_CATALOGUE, catalogueEntry, subClassOptionsByBucket } from './src/services/SubAssetModel.js';
@@ -4207,7 +4210,7 @@
     import { repriceLadder } from './src/strategies/GiltLadderPlan.js';
     import { deriveTiming, migrateTiming, describeTiming, taxYearLabel, planYearOf, taxYearStartOf, decisionAnchorYear, staleDraft, staleDraftMessage, startYearChoices, stoppedWorkOf, taxYearOfMonth } from './src/services/PlanTiming.js';
     import { recordMovesOf, RECORD_MOVE_WORDS } from './src/services/PlanRuleWords.js';   // History: what the plan's rule did, as the live month reads it (step F5)
-    import { installStopMonth, stopMonthFromForm, paintStopMonth, wizardStop, recordBeforeStart, recordYearLabel as recordYearLabelFor, recordSourceWords, yearRowHtml, firstSetUpPlanYear, potsDayOf, planVsActualWords } from './src/ui/planStartUi.js';   // when the plan's income starts (6.51.0)
+    import { installStopMonth, stopMonthFromForm, paintStopMonth, wizardSettingsOf, partnerPlanSettingsOf, WIZARD_END_AGE, recordBeforeStart, recordYearLabel as recordYearLabelFor, recordSourceWords, yearRowHtml, firstSetUpPlanYear, potsDayOf, planVsActualWords } from './src/ui/planStartUi.js';   // when the plan's income starts (6.51.0)
     import { installLockedStart, startLaterOfActive, fillPlanStart, fillPlanBounds, decisionPotsYear, stressLockBannerHtml, plansInListOrder, planListDesc, decisionLockBannerHtml, planDocumentMay, planDocumentEmptyHtml, paintPlanDocumentTools, planNoticeHtml, drawClosedTransition, taxYearTabsFor, closedTimingSummary } from './src/ui/lockedStartUi.js';   // a locked plan's stop month (6.53.0); "Move to a new plan" and a closed plan (6.56.0, src/ui/planCloseUi.js)
     import { planExportFileName, planExportJson } from './src/services/PlanExport.js';
     import { guardrailOf, potRecordOf, recordIsaOf, guaranteeSaid } from './src/services/PlanDocument.js';
@@ -4221,7 +4224,7 @@
     import { paintEndAge, endAgeTyped, endAgeError } from './src/ui/endAgeBox.js';   // "Plan to age", the simple view's quantity (step F1)   // the final-salary start, asked by age (audit problem 3)
     import { pnvOnlySections, paintSettingUseNotes, heldIsaNote } from './src/ui/strategySettingsUse.js';   // the settings every strategy shows, and the notes beside them (audit problem 4)
     import { ukMonth, ukDay, ukDate } from './src/ui/ukDates.js';   // dates in UK words, never ISO or US order (audit problem 3)
-    import { strategyCountWord, paintStrategyCounts, assumedStatePensionAlertHtml, assumedStatePensionTag, newDocumentVersionQuestion } from './src/ui/plannerWords.js'; import { installLockFromStress } from './src/ui/lockFromStressUi.js';
+    import { strategyCountWord, paintStrategyCounts, assumedStatePensionAlertHtml, assumedStatePensionTag, newDocumentVersionQuestion } from './src/ui/plannerWords.js'; import { installLockFromStress, settleBeforeLock } from './src/ui/lockFromStressUi.js';
     import { cadenceMonths, cadenceNote } from './src/services/DrawCadence.js';   // how often you draw: a preference at decisionTool.cadence (audit decision 4)
     import { isFilledIn, filledInLabel, filledInNote, historyForEngine, refusedMonthWords, recordsToDelete, deleteButtonWords } from './src/services/MonthFill.js';   // the History view's mark on a month filled in later and its delete; the records the engine is handed; a month Calculate refuses (3 Nov 2026)
     import { createMonthEntry } from './src/ui/monthFillEntry.js';   // why Save is off; a failed Calculate kept on the page; the missed months filled in (3 Nov 2026)
@@ -4232,18 +4235,19 @@
     // Who draws what (6.25.0, household-draw-split.md): the rule, the writes, the words — the tab only gathers and calls
     import { householdDrawSplit, limitFrom } from './src/services/HouseholdDraw.js';
     import { splitWriteMode, splitChanges, applySplit, dismissalFor, isSplitDismissed } from './src/services/HouseholdSplitApply.js';
-    import { runHousehold, runSurvivor, runCare, householdNamesOf } from './src/answers/plan/householdRun.js'; import { runMixCompare } from './src/answers/plan/mixRun.js'; import { mixCompareView } from './src/answers/plan/mix.js'; import { effectiveStressSettings, planMoneyOf, whereAmIFor } from './src/services/PlanReading.js';   // the partner's plan read as its own tools read it (6.42.0)
-    import { splitSectionHtml, splitNoneHtml, splitDismissedHtml, splitConfirmHtml, verdictSectionHtml, timelineSectionHtml, wealthSectionHtml, whatToDoHtml, survivorCareHtml, survivorResultHtml, careResultHtml, budgetShareHtml, budgetSharedLineHtml, householdNotSetWords } from './src/ui/householdView.js';
+    import { runHousehold, runSurvivor, runCare, householdNamesOf } from './src/answers/plan/householdRun.js'; import { runMixCompare } from './src/answers/plan/mixRun.js'; import { mixCompareView } from './src/answers/plan/mix.js'; import { effectiveStressSettings, whereAmIFor } from './src/services/PlanReading.js';   // the partner's plan read as its own tools read it (6.42.0)
+    import { splitSectionHtml, splitNoneHtml, splitDismissedHtml, splitConfirmHtml, verdictSectionHtml, waysNoteHtml, timelineSectionHtml, wealthSectionHtml, whatToDoHtml, survivorCareHtml, survivorResultHtml, careResultHtml, budgetShareHtml, budgetSharedLineHtml, householdNotSetWords } from './src/ui/householdView.js';
     import { shareBudgetWith, stopSharingBudget, getHouseholdSplitDismissed, setHouseholdSplitDismissed, budgetSharedFromOf } from './src/storage/ScenarioRepository.js';
     import { guestPlanRefusal, isExamplePlanError, DEMO_PLANS, EXAMPLE_PLAN_KEY, EXAMPLE_PLAN_DESCRIPTION } from './src/services/GuestPlans.js';   // three plans without an account; the read-only example (6.23.0)
     import { refreshDraftLines, paintDraftSettingsLine, openStressSettings, blankUnsetPots, missingWords, bedAndIsaTicked, DRAFT_WORDS } from './src/ui/draftPlanLine.js'; window.openStressSettingsTab = () => openStressSettings(window); import { planHasFigures } from './src/services/DraftDecision.js'; import { testReadyOf } from './src/services/PlanFigures.js'; import { sippTodayOf } from './src/services/PotsAtRetirement.js';   // an unlocked plan's own figures (7.12.0)
     import { installStressSubTabs } from './src/ui/stressSubTabs.js'; import { installStressSettingsAutosave, installAccumulationAutosave, accumulationInputsOf, SAVE_WORDS, SAVE_OUTCOME_WORDS, saveOutcomeToast } from './src/ui/settingsAutosave.js'; import { orderStressSettingsSections } from './src/ui/settingsLayout.js'; import { tryFillKeyOf, tryNeedsFill, watchTryTouched, paintTryPotWords } from './src/ui/tryBoxes.js';   // the Stress tester's sub-tabs (Settings pressed while open is not drawn again); Settings and the Accumulation tab save as they change; Settings' order (7.12.0)
-    import { updateHomeBanner, installHomeBanner, openingTabOf, pressOpeningSub } from './src/ui/homeBannerUi.js'; import { installHouseholdTab } from './src/ui/householdTabUi.js';   // the next-step banner is the plan home's first thing due, else the life stage's sentence (7.10.0; 6.20.2); the opening tab reads the plan's phase (7.11.0)
+    import { updateHomeBanner, installHomeBanner, openingTabOf, pressOpeningSub } from './src/ui/homeBannerUi.js'; import { installHouseholdTab, newPartnerPlanTyped } from './src/ui/householdTabUi.js';   // the next-step banner is the plan home's first thing due, else the life stage's sentence (7.10.0; 6.20.2); the opening tab reads the plan's phase (7.11.0)
     import { moreSheetHtml, MORE_TABS } from './src/ui/mobileMenu.js';
-    import { proportions as holdingsProportions, describeMix } from './src/services/Holdings.js';
-    import { targetHoldings, diffHoldings, sequence as transitionSequence, progress as transitionProgress, tickMove, untickMove, yearNeedsOf } from './src/services/TransitionPlanner.js';
-    import { transitionHtml } from './src/ui/components/TransitionView.js';
-    import { installKeepHandlers, transitionGaps, transitionHeld, transitionOpensAt, nameTransitionTab, installKeepTestHandlers, transitionKeepTest, keepLineHtml } from './src/ui/keepHoldingsUi.js'; import { installStressPanel } from './src/ui/stressPanelUi.js'; import { markFact, markWithin, tableAttr, cellAttr, asWhatIf } from './src/reading/mark.js'; import { markFieldBoxes, fieldAttrOf } from './src/reading/fields.js'; import { trackBusy } from './src/reading/busy.js'; import { HELD_MIX_FINDS } from './src/reading/sentenceMarks.js';   // "Try the bad years" on the Scenarios page (7.9.0)
+    import { proportions as holdingsProportions } from './src/services/Holdings.js';
+    import { tickMove, untickMove } from './src/services/TransitionPlanner.js';   // the move's target, diff and schedule are the one reading's (step F6: keepHoldingsUi.transitionHeld → moveOf)
+    import { transitionHtml, heldMixLineHtml } from './src/ui/components/TransitionView.js';
+    import { typedLineOf, ordersOf as holdOrdersOf } from './src/answers/plan/hold.js';   // "Add a line" and the paste's orders: the simple view's readers (step F6)
+    import { installKeepHandlers, transitionHeld, nameTransitionTab, installKeepTestHandlers, transitionKeepTest, keepLineHtml } from './src/ui/keepHoldingsUi.js'; import { installStressPanel } from './src/ui/stressPanelUi.js'; import { markFact, markWithin, tableAttr, cellAttr, asWhatIf } from './src/reading/mark.js'; import { markFieldBoxes, fieldAttrOf } from './src/reading/fields.js'; import { trackBusy } from './src/reading/busy.js';   // "Try the bad years" on the Scenarios page (7.9.0)
     import { parsePaste, matchRows, mergeLedger, categorise, applyPaste } from './src/services/HoldingsPaste.js';
     import { pastePreviewHtml } from './src/ui/components/HoldingsPasteView.js';   // every pasted line counts (6.23)
     import { CONTRACT_IDS } from './src/services/DecisionOverlay.js';   // the ways that pay by contract (one list)
@@ -4252,7 +4256,7 @@
     import { switchStrategy, cleanParams, activeParams, sortLegacyParams } from './src/services/StrategyState.js';
     import { switchPatch, restoredParamsFor, dialParams } from './src/services/PlanCommit.js';   // the strategy switch as one pure patch (6.40.0)
     import { compareAll, ladderYearsOfPlan, rankedWays, wayCostOf } from './src/strategies/compareRunner.js'; import { FACT, factId } from './src/reading/facts.js'; import { LOCK_WORDS, labelOf } from './src/reading/labels.js'; import { dayWords } from './src/answers/plan/dates.js'; import { wayFactIds, wayFiguresOf, wayNameOf, wayReasonOf, wayCannotText, boughtWhenOf, BOUGHT_WORDS } from './src/reading/ways.js';   // the nine ways through the one test, one loop (6.40.0); the Compare allocations cells (6.41.0)
-    import { rotationStatus, rotationBlock, rotationMarket, sellTicketRows } from './src/services/RotationStatus.js';
+    import { rotationBlock, rotationMarket, sellTicketRows } from './src/services/RotationStatus.js';
     import { activeEquity, equityDrawdown, equityProvenance, setEquityOverride } from './src/services/EquityIndex.js'; import { loadMarket, marketStamp, marketLabel } from './src/reading/market.js'; import { marketFolderOf } from './src/reading/marketPlain.js'; import { LAYOUT } from './src/appLayout.js';
     import { enterGuestMode, isGuest, leaveGuestMode, clearGuestData } from './src/firebase/index.js';
 
@@ -4677,24 +4681,10 @@
       // defaults + the chosen ages/household, seed the budget with those, and open the chosen start tab.
       // Everything else (spending, pots, State Pension) is filled in lazily by each tool.
       const retire = parseInt(wizardData.retirementAge) || 60;
-      const cur = parseInt(wizardData.currentAge) || retire;
-      const endAge = 95;
-      // Drawdown horizon runs from retirement, or from now if already retired (retire ≤ current age).
-      const duration = Math.max(5, endAge - Math.max(cur, retire));
-
-      // Duration flows from the horizon; the rest are defaults (target income is derived from the
-      // Budget, not asked as a gross salary here).
-      // Timing (6.4.0): the ages the wizard already asks for become the plan's saved start — age
-      // today, retired / retire-at-age, and the first tax year derived from them — for both tools.
-      const today = new Date().toISOString().slice(0, 10);
-      const alreadyRetired = !!wizardData.retired || retire <= cur;
-      // The month work stopped or stops (6.51.0, planStartUi.js); "Pick up from here" (6.6.0): the plan starts THIS tax year.
-      const stop = wizardStop(wizardData, { cur, retire, alreadyRetired, today });
-      const timingSeed = cur > 0 ? { currentAge: cur, currentAgeAsOf: today, retired: alreadyRetired, retireAge: stop.retireAge, ...stop.extra, ...(wizardData.pickUp ? { firstTaxYear: taxYearStartOf(new Date()) } : {}) } : {};
-      const timing = cur > 0 ? deriveTiming(timingSeed) : null;
-      const movedBack = stop.movedBack(timing);   // a year 0 moved back keeps the plan's end age
-      const stressSettings = { duration: duration + movedBack, ...timingSeed, ...(timing ? { firstTaxYear: timing.firstTaxYear, shapeAgeNow: timing.shapeAgeNow } : {}) };
-      const decisionSettings = { duration: duration + movedBack, ...(timing ? { firstTaxYear: timing.firstTaxYear } : {}) };
+      const endAge = WIZARD_END_AGE;
+      // Timing (6.4.0; step F6, D2): the ages and the month the wizard asks for become the plan's start through the one timing
+      // seed a plan made from an answer gets, on the one clock: nothing stored that nobody gave (no age typed, no age stored).
+      const { stressSettings, decisionSettings } = wizardSettingsOf(wizardData, todayOf());
 
       // a plan not made rejects: the wizard opens its doors again and says so (SetupWizard.js once), never the app on no new plan
       await createNewScenario(
@@ -7033,12 +7023,11 @@
     // lockPatch): the Decision tool seeded from the Stress settings, the flags, the plan of record, the plan document built by
     // documentFor from the plan's own run, and the journey — ONE write. Then every tab, the banners and the chip repaint.
     // `runGiven`: the run the lock's fit was read from (lockFromStressUi), so the document is built from the run that was judged.
+    // R.now is the day the plan is read and run on; R.at the moment, which the lock, the unlock and a new version are stamped
+    // with (as the simple view stamps them), never the day's noon (lockWrite.js lockReadingOf)
     async function lockReadingNow() {
       const [plans, id] = await Promise.all([listScenariosAsync(), getActiveScenarioId()]);
-      const now = todayOf();
-      const entries = entriesOfPlans(plans, now);
-      const entry = entries.find((e) => e && e.plan && String(e.plan.id) === String(id));
-      return { id, now, entries, plan: entry ? entry.plan : null };
+      return lockReadingOf(plans, id, momentOf());
     }
     // a lock, an unlock or a new version is written straight to the store: the page's copy of the plan goes with the write, so
     // the repaint that follows reads the plan as written (lead4.md R2; the gate's action round trips, step F5)
@@ -7053,13 +7042,13 @@
         const R = await lockReadingNow();
         if (!R.plan) throw new Error(LOCK_REFUSALS.notHere);
         const run = runGiven && runGiven.p && runGiven.r ? runGiven : await documentRunNow(R.plan, R.entries, R.now);
-        const p = await lockWrite({ planId: R.id, plan: R.plan, entries: R.entries, now: R.now, run, save: savePlanWrite });
+        const p = await lockWrite({ planId: R.id, plan: R.plan, entries: R.entries, now: R.at, run, save: savePlanWrite });
         if (!p.ok) { if (p.errors && p.errors.plan === 'locked') return false; throw new Error(LOCK_REFUSALS[p.errors && p.errors.plan] || LOCK_REFUSALS.noRun); }
         await repaintPlan('lock');   // every tab, the banners and the chip follow the plan as locked
         return true;
       } finally { hideLoading(); }
     };
-    installLockFromStress(window, { isLoggedIn, planIsLocked, appConfirm: (m, o) => window.appConfirm(m, o), saveStressSettingsUI: () => saveStressSettingsUI(), runPlan: async () => { const R = await lockReadingNow(); return R.plan ? documentRunNow(R.plan, R.entries, R.now) : null; }, commitPlanLock: (why, run) => window.commitPlanLock(why, run), showToast, openPlanDocument: () => window.openPlanDocument(), showIncome: () => document.getElementById('ssNetSpend')?.focus() });   // 7.12.0: src/ui/lockFromStressUi.js — a way of drawing that cannot be paid for is not locked
+    installLockFromStress(window, { isLoggedIn, planIsLocked, appConfirm: (m, o) => window.appConfirm(m, o), settle: () => settleBeforeLock({ autosave: window._ssAutosave, flushAll: flushSettings, showToast, outcomeWords: SAVE_OUTCOME_WORDS, fixBox: SAVE_WORDS.fixBox }), runPlan: async () => { const R = await lockReadingNow(); return R.plan ? documentRunNow(R.plan, R.entries, R.now) : null; }, commitPlanLock: (why, run) => window.commitPlanLock(why, run), showToast, openPlanDocument: () => window.openPlanDocument(), showIncome: () => document.getElementById('ssNetSpend')?.focus() });   // 7.12.0: src/ui/lockFromStressUi.js — a way of drawing that cannot be paid for is not locked
     window.createPlanDocumentNow = async function () {
       if (!(await planDocumentMay(window))) return;   // signed in, and never on a closed plan (6.56.0): src/ui/planCloseUi.js says why
       const prev = await getActivePlanDocument();
@@ -7070,7 +7059,7 @@
         // the one document write (step F5, lead4.md D18): the current one archived and a new one built by documentFor, ONE write
         const R = await lockReadingNow();
         if (!R.plan) throw new Error(LOCK_REFUSALS.notHere);
-        const p = await documentWrite({ planId: R.id, plan: R.plan, entries: R.entries, now: R.now, run: await documentRunNow(R.plan, R.entries, R.now), save: savePlanWrite });
+        const p = await documentWrite({ planId: R.id, plan: R.plan, entries: R.entries, now: R.at, run: await documentRunNow(R.plan, R.entries, R.now), save: savePlanWrite });
         if (!p.ok) throw new Error(LOCK_REFUSALS[p.errors && p.errors.plan] || LOCK_REFUSALS.noRun);
         await repaintPlan('lock');   // the banners and every tab follow the new version
         showToast(prev ? 'A new version of the plan document was written — the previous one is kept under previous versions.' : 'Plan document created.', 'success', 4000);
@@ -7190,15 +7179,16 @@
       document.getElementById('pasteHoldingsOverlay')?.remove();
       // Gilt rungs to match against: the plan document's order sheet, else the last strategy run's (a draft
       // plan that has been stress-tested but not locked yet — 6.10.5).
-      let orders = []; try { const doc = await getActivePlanDocument(); orders = doc?.strategy?.r?.plan?.orders || []; } catch (e) { orders = []; }
-      if (!orders.length && window._latestStrategyStress?.plan?.orders) orders = window._latestStrategyStress.plan.orders;
+      // the plan document's orders only, as the simple view matches a paste (answers/plan/hold.js ordersOf; step F6): never a
+      // strategy's last run, which is not the plan
+      let orders = []; try { orders = holdOrdersOf(await getActiveScenarioAsStored()); } catch (e) { orders = []; }
       window._pasteCtx = { p, orders, matched: null, wrapper: 'SIPP' };
       const ov = document.createElement('div'); ov.id = 'pasteHoldingsOverlay';
       ov.style.cssText = 'position:fixed;inset:0;z-index:1300;background:rgba(0,0,0,.55);display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:24px 12px;';
       ov.innerHTML = '<div class="card" style="max-width:900px;width:100%;">'
         + '<h2 style="margin-top:0;">' + (p === 'hold' ? 'Paste what you hold' : 'Paste a list to test') + '</h2>'
         + '<p class="hint">Open your platform\'s holdings page (or its export), select the table, copy, and paste it below. Any layout works: the tool looks for a name, units, value, and a SEDOL or ticker. Nothing you paste leaves this browser; ' + (p === 'hold' ? 'the resulting list is saved with your plan as what you hold.' : 'the resulting list becomes the funds this strategy is tested on — it does not change what you hold, and is kept only when you Save Settings.') + '</p>'
-        + '<div class="row-flex" style="margin-bottom:6px;"><label class="hint" style="display:flex;flex-direction:column;gap:2px;">' + (p === 'hold' ? 'These holdings are in' : 'Treat this list as held in') + '<select id="pasteWrapper" style="width:160px;"><option value="SIPP" selected>SIPP / pension</option><option value="ISA">ISA</option><option value="GIA">Taxable account (GIA)</option></select></label></div>'
+        + '<div class="row-flex" style="margin-bottom:6px;"><label class="hint" style="display:flex;flex-direction:column;gap:2px;">' + (p === 'hold' ? 'These holdings are in' : 'Treat this list as held in') + '<select id="pasteWrapper" style="width:160px;"><option value="SIPP" selected>SIPP / pension</option><option value="ISA">ISA</option><option value="GIA">Taxable account (GIA)</option>' + (p === 'hold' ? '<option value="CASH">Bank cash</option>' : '') + '</select></label></div>'
         + '<textarea id="pasteText" rows="8" style="width:100%;font-family:monospace;font-size:12px;" placeholder="Investment,Units,Value&#10;Vanguard FTSE All-World UCITS ETF,500,£52,600.00&#10;Treasury 0.125% I/L 22/03/2030,35000,£38,584.00"></textarea>'
         + '<div class="row-flex" style="margin-top:8px;"><button type="button" data-on-click="previewPasteHoldings()">Preview</button><button type="button" class="secondary" data-on-click="document.getElementById(\'pasteHoldingsOverlay\').remove()">Cancel</button></div>'
         + '<div id="pastePreview" style="margin-top:10px;"></div></div>';
@@ -7249,28 +7239,28 @@
       try {
         try { await window._marketReady; } catch (e) { /* the built-in prices stand */ }   // gilts are read below: the day's prices first, as the simple view waits (lead4.md R5)
         const stage = window._lifeStage || await refreshLifeStage();
-        const doc = await getActivePlanDocument();
         const today = todayOf();   // the one clock (src/reading/clock.js): noon of the day, as the simple view reads it
-        const ssLive = await getStressSettingsAsync();
-        const target = targetHoldings(doc, { today, params: ssLive.strategyParams || null });   // live params: a fired rotation's sold block drops out of the target
+        // the plan as the simple view reads it (brought up to date), beside the account's other plans (lead4.md D19; step F6)
+        const [plans, planId] = await Promise.all([listScenariosAsync(), getActiveScenarioId()]);
+        const entries = entriesOfPlans(plans, today);
+        const entry = entries.find((e) => e && e.plan && String(e.plan.id) === String(planId)) || null;
+        const storedPlan = entry ? entry.plan : null;
         // What you hold (6.13.0): the plan-level record — never the Stress tester's funds-to-test list.
         const rec = recOverride || await getActiveHoldings();
-        window._holdingsDraft = JSON.parse(JSON.stringify(rec)); try { window._holdingsDraftFor = await getActiveScenarioId(); } catch (e) { window._holdingsDraftFor = null; } window._holdingsLines = (rec.lines || []).slice();
+        window._holdingsDraft = JSON.parse(JSON.stringify(rec)); window._holdingsDraftFor = planId || null; window._holdingsLines = (rec.lines || []).slice();
         const ledger = rec.lines || [];
-        const ss = ssLive;
-        const testList = (Array.isArray(ss.taggedFunds) ? ss.taggedFunds : []).filter((f) => f && f.ticker && +f.value > 0);
         const offer = null;   // 6.13.1: the Stress tester's list is never offered as what you hold — not even as a question
-        const storedPlan = await getActiveScenarioAsStored().catch(() => null);
-        const diff = diffHoldings(ledger, target, { needs: yearNeedsOf(doc), today, asOf: rec.updatedAt || null, planMoney: storedPlan ? planMoneyOf(storedPlan, { now: today }) : null });   // the document's needs (7.6.0); the record's date, for a gilt matured since (7.11.1); the plan's own money when nothing is listed (7.12.0)
-        const gaps = transitionGaps(storedPlan, rec, today), held = transitionHeld(storedPlan, rec, today);   // "What is covered, year by year" (7.6.0) and, Living on it, what is held, never a move (7.11.1): V7's readings
+        // the move as the simple view reads it (answers/plan/move.js moveOf, through transitionHeld): ONE diff for every list
+        // and count on this tab — the target, the diff, the progress and the schedule are that reading's own (step F6)
+        const held = transitionHeld(storedPlan, rec, today, entries);
+        const raw = held && held.raw;
+        const locked = !!(storedPlan && storedPlan.decisionTool && storedPlan.decisionTool.settings && storedPlan.decisionTool.settings.locked);
+        const doc = locked ? storedPlan.planDocument || null : null;
         const keepTest = transitionKeepTest(storedPlan, rec);   // "Test what you keep against your plan" (7.7.0): V7's reading, run only on its button
-        let contributionsMonthly = 0; try { const hp = holdingsProportions(ledger); contributionsMonthly = hp.contributions.monthly || 0; if (!contributionsMonthly) { const acc = await getActiveAccumulation(); if (acc && (+acc.netMonthly > 0 || +acc.employerMonthly > 0)) contributionsMonthly = contributionBreakdown({ netMonthly: +acc.netMonthly || 0, salary: +acc.salary || 0, schemeType: acc.schemeType || 'ras', employerMonthly: +acc.employerMonthly || 0 }).totalMonthly || 0; } } catch (e) { contributionsMonthly = 0; }
-        const seq = target.kind === 'none' ? null : transitionSequence(diff, { today, startYear: stage?.firstTaxYear || (doc?.timing?.firstTaxYear) || (today.getFullYear() + 1), startMonth: stage?.startMonth || doc?.timing?.startMonth || null, opensAt: transitionOpensAt(storedPlan, today), contributionsMonthly });
-        const tr = await getActiveTransition();
-        const prog = transitionProgress(diff, tr.done || {});
-        let rotation = null; try { const t = deriveTiming(ss); rotation = rotationStatus(doc, { today, ageToday: t.currentAge || null, params: ss.strategyParams || null }); } catch (e) { rotation = null; }
-        box.innerHTML = transitionHtml({ stage, doc, target, diff, seq, prog, done: tr.done || {}, ledgerCount: ledger.filter((f) => f && (+f.value > 0 || +f.units > 0)).length, startLabel: stage?.startLabel || '', holdings: rec, offer, rotation, complete: !!diff.complete, gaps, keepTest, held });
-        window._transitionLast = { diff, seq };
+        const done = (storedPlan && storedPlan.transition && storedPlan.transition.done) || {};
+        const rotation = raw && raw.watch ? raw.watch : null;   // the rotation watch: the move reading's (move.js rotationWatch, one clock), as the simple view's (step F6)
+        box.innerHTML = transitionHtml({ stage, doc, target: raw ? raw.target : null, diff: raw ? raw.diff : null, seq: raw ? raw.seq : null, prog: raw ? raw.prog : null, done, ledgerCount: ledger.filter((f) => f && (+f.value > 0 || +f.units > 0)).length, startLabel: stage?.startLabel || '', holdings: rec, offer, rotation, complete: raw ? !!raw.diff.complete : false, gaps: held ? held.gaps : null, keepTest, held });
+        window._transitionLast = raw ? { diff: raw.diff, seq: raw.seq } : null;
       } catch (e) { console.error('transition', e); box.innerHTML = '<p class="hint">Could not build the transition: ' + budEsc(e.message) + '</p>'; }
     };
     // ---- What you hold (6.13.0): the plan-level record, edited on the Transition tab. No strategy code writes it,
@@ -7303,7 +7293,10 @@
       const d = window._holdingsDraft || (window._holdingsDraft = emptyHoldings());
       const g = (id) => { const el = document.getElementById(id); return el ? String(el.value || '').trim() : ''; };
       const ticker = g('hlTicker'), name = g('hlName'), wrapper = g('hlWrapper') || 'SIPP', value = g('hlValue'), units = g('hlUnits');
-      const line = { wrapper, ticker: ticker.toUpperCase(), name, sedol: null, units: units === '' ? null : +units, value: value === '' ? null : +value, ocf: null, contribution: null, subClass: null, kind: null, asOf: null };
+      // the line the simple view's add makes of the same typing (answers/plan/hold.js typedLineOf; step F6): a gilt on the order
+      // sheet or typed by its code is a gilt, a bundled fund that fund, cash is cash — in both views
+      let orders = []; try { const sc = await getActiveScenarioAsStored(); orders = holdOrdersOf(sc); } catch (e) { orders = []; }
+      const line = typedLineOf({ ticker, name, wrapper, value: value === '' ? null : +value, units: units === '' ? null : +units }, { orders }) || { wrapper, ticker: null, name: '', sedol: null, units: null, value: null, ocf: null, contribution: null, subClass: null, kind: null, asOf: null };
       if (ticker || name) { await persistHoldings(holdingsWith(d, { kind: 'add', line }, { today: new Date() })); return; }   // a filled row saves at once (HoldingsRecord.holdingsWith, 6.43.0)
       d.lines.push(line);
       await loadTransitionUI(d);   // an empty row to type into, kept until Save
@@ -7334,15 +7327,14 @@
         const hp = holdingsProportions(rec.lines || []);
         if (!(hp.total > 0)) { el.innerHTML = '<p class="hint">Nothing is listed under What you hold, and you do not need to list it. If you do (paste it from your platform on the Transition tab), its proportions show here.</p>'; return; }
         const pct = (v) => Math.round(v * 100) + '%';
-        let h = '<div class="alert alert-info" style="margin:0 0 8px;">' + markWithin(budEsc(describeMix(hp)), HELD_MIX_FINDS) + '</div>';
+        // the mix held: the one line What you hold draws (heldMixLineHtml: heldMixOf and holdingsTotalsOf, step F6)
+        let h = '<div class="alert alert-info" style="margin:0 0 8px;">' + heldMixLineHtml(rec, { cls: 'hint', charge: true }) + '</div>';
         h += '<div class="table-scroll-container"><table><thead><tr><th>Asset class</th><th>Value</th><th>Share</th></tr></thead><tbody>'
           + hp.subClasses.map((s) => '<tr><td>' + budEsc(s.label) + ' <span class="hint">(' + budEsc(s.bucket) + ')</span></td><td>' + gbp(s.value) + '</td><td>' + pct(s.weight) + '</td></tr>').join('')
           + '<tr><td><strong>Total</strong> — SIPP ' + gbp(hp.byWrapper.SIPP) + (hp.byWrapper.ISA ? ' · ISA ' + gbp(hp.byWrapper.ISA) : '') + (hp.byWrapper.GIA ? ' · GIA ' + gbp(hp.byWrapper.GIA) : '') + '</td><td><strong>' + gbp(hp.total) + '</strong></td><td></td></tr></tbody></table></div>';
         if (hp.contributions.monthly > 0) h += '<p class="hint" style="margin:6px 0 0;">New money: ' + gbp(hp.contributions.monthly) + ' a month — ' + ['shares', 'bonds', 'diversifiers', 'cash'].filter((b) => hp.contributions.byBucket[b] > 0.004).map((b) => pct(hp.contributions.byBucket[b]) + ' ' + b).join(', ') + '.</p>';
         if (hp.untagged.length) h += '<p class="hint" style="margin:6px 0 0;">Not counted (unknown category): ' + hp.untagged.map((u) => budEsc(u.ticker || u.name || '?')).join(', ') + ' — the fund catalogue does not know them yet.</p>';
-        el.innerHTML = h;
-        // Pot today from the ledger, when the box is empty
-        const pn = document.getElementById('acPotNow'); if (pn && !(+pn.value > 0) && hp.byWrapper.SIPP > 0) { pn.value = Math.round(hp.byWrapper.SIPP); }
+        el.innerHTML = h;   // no box is filled from the list (R2): with no pot typed, the pension today reads what is held itself (pensionTodayOf)
       } catch (e) { el.innerHTML = '<p class="hint">Could not read the holdings: ' + budEsc(e.message) + '</p>'; }
     };
     window.renderAccumulationRecords = async function () {
@@ -9163,7 +9155,7 @@
     window.rmWindfall = function (i) { window._ssWindfalls.splice(i, 1); renderExtraIncomes(); };
 
     // ---- Household tab (couples view) -------------------------------------------------------
-    installHouseholdTab(window, document, { listScenariosAsync, getActiveScenarioId, setHouseholdPartnerId, showToast });   // the partner read either way, with which plan holds the link and their phase (src/ui/householdTabUi.js, 7.12.0)
+    installHouseholdTab(window, document, { listScenariosAsync, getActiveScenarioId, setHouseholdPartnerId, showToast, getBudgetAsync });   // the partner read either way, with which plan holds the link and their phase (src/ui/householdTabUi.js, 7.12.0)
 
     window.runHouseholdCheck = async function () {
       await window._marketReady;   // the one market (lead4.md R5): never priced on the copy built in while the day's file loads
@@ -9204,7 +9196,7 @@
         const r = res.own.combined, fig = res.fig, offsets = res.offsets;
         window._hhLast = { now, today, ownSettings, partnerSettings, ownName, pName, split, fig, own, partner, mode, locked };
         if (split.applies && !dismissed) top.innerHTML = splitSectionHtml({ split, fig, mode, locked });
-        const stratNote = '<p class="hint" style="margin:6px 0 0;">Run with each plan\'s own strategy: <strong>' + budEsc(STRATEGY_NAMES[idA]) + '</strong> for ' + budEsc(ownName) + ', <strong>' + budEsc(STRATEGY_NAMES[idB]) + '</strong> for ' + budEsc(pName) + ' — paired future for future on the same markets' + ((offsets.a > 0 || offsets.b > 0) ? '; note that a partner who is still working is not year-shifted under a contract strategy, so the joint figure is approximate for the years before the State Pensions' : '') + '. "Lasts" means paid in full (for Floor to an age and Gilt ladder + rotation: never cut; for Floor &amp; flex: no lean year).</p>';
+        const stratNote = waysNoteHtml({ sids: { a: idA, b: idB }, ownName, pName, shifted: offsets.a > 0 || offsets.b > 0 });   // each plan's way of drawing, in the simple view's words (step F6)
         const startsNote = householdStartWords({ offset: offsets.a, firstTaxYear: deriveTiming(ownSettings, now).firstTaxYear }, { offset: offsets.b, firstTaxYear: deriveTiming(partnerSettings, now).firstTaxYear });   // one plan begins later than the other (couples-different-years.md 7)
         const thisYear = now.getFullYear();
         out.innerHTML = verdictSectionHtml({ r, ownName, pName, stratNote, startsNote, setA: ownSettings, setB: partnerSettings, offsets, now })
@@ -9314,28 +9306,36 @@
 
     window.createPartnerPlan = async function (...a) { if (await guestPlanGate()) return; return createPartnerPlanReal(...a); };
     window.createPartnerPlanReal = async function () {
-      const name = (document.getElementById('hhNewPlanName').value || '').trim();
+      // what was typed: the name, their age today, when they stop work (the boxes start from this plan's Budget)
+      const typed = newPartnerPlanTyped(document), name = typed.name;
       if (!name) { showToast('Give the plan a name first (e.g. their first name)', 'warning'); return; }
+      // their timing through the setup wizard's one rule (src/ui/planStartUi.js partnerPlanSettingsOf; lead4.md D2, D20; step
+      // F6): the age given, dated today; a stop age above it is a stop in a month ahead, one at or below it (or the tick) a plan
+      // for someone who has stopped, starting this tax year — never a stop month already past; an age with no stop is asked for
+      const made = partnerPlanSettingsOf({ ageToday: typed.age, stopAge: typed.stopAge, stopped: typed.stopped }, todayOf());
+      if (!made.ok) { showToast('Say the age ' + name + ' stops work, or tick that they have already stopped, first.', 'warning'); return; }
       try {
         await flushSettings();   // what was typed goes to this plan first: none of it may land in the partner's plan once it is the open one
         showLoading('Creating ' + name + '…');
-        // Their plan starts from what THIS plan already knows about them: ages from the plan wizard,
-        // sharing on, and this person as their partner — not the 45/60 defaults.
         let mine = null; try { mine = await getBudgetAsync(); } catch (e) { mine = null; }
-        await createNewScenario(name, 'Partner plan (household)', ['stress', 'decision'], {}, true);
+        let myId = null; try { myId = await getActiveScenarioId(); } catch (e) { myId = null; }
+        // ages are not figures: `configured` (figures given) is never stored, so their plan reads no pot or income nobody gave
+        await createNewScenario(name, 'Partner plan (household)', ['stress', 'decision'], { stressSettings: made.stressSettings }, true);
+        // linked to this plan, as the simple view links a couple's two plans (either side's link reads both ways)
+        if (myId) { try { await setHouseholdPartnerId(myId); } catch (e) { console.warn('Partner link skipped:', e); } }
         try {
           const theirs = await getBudgetAsync();
-          if (mine && theirs) {
-            theirs.currentAge = mine.partnerAge || theirs.currentAge;
-            if (+mine.partnerAge > 0) markBudgetAgesSet(theirs);   // the partner's age was given on this plan's Budget (6.13.5)
-            theirs.retirementAge = mine.partnerRetirementAge || theirs.retirementAge;
-            theirs.retired = !!mine.partnerRetired;
+          if (theirs) {
+            // their Budget's ages as their Timing block keeps them, only when an age was given; never the blank budget's 45 / 60
+            if (made.ages) { Object.assign(theirs, made.ages); markBudgetAgesSet(theirs); }
             theirs.sharedWithPartner = true;
-            theirs.partnerAge = mine.currentAge || null; theirs.partnerRetirementAge = mine.retirementAge || null; theirs.partnerRetired = !!mine.retired;
+            // this plan's person, as their partner: only ages somebody gave on this plan's Budget
+            const known = !!mine && budgetAgesKnown(mine);
+            theirs.partnerAge = known ? mine.currentAge : null; theirs.partnerRetirementAge = known ? mine.retirementAge || null : null; theirs.partnerRetired = known ? !!mine.retired : false;
             await saveBudget(theirs);
           }
         } catch (e) { console.warn('Partner budget seed skipped:', e); }
-        showToast(name + ' created — fill in their Stress settings, then come back to Household and pick them.', 'success', 6000);
+        showToast(name + ' created and linked to this plan — fill in their pensions and spending in their plan.', 'success', 6000);
         location.reload();
       } catch (e) {
         showToast('Could not create the plan: ' + e.message, 'error');
@@ -9352,7 +9352,7 @@
         const box = accumulationBoxes(sc, null, todayOf());   // the saver's facts, as "What you pay in" reads them (7.12.0)
         for (const [id, v] of Object.entries(box.values)) { const el = document.getElementById(id); if (el) el.value = v == null ? (el.tagName === 'SELECT' ? ((el.querySelector('option[selected]') || el.options[0] || {}).value || '') : '') : v; }   // an empty value empties the box: nothing of another plan stays in it (lead4.md R2)
         document.getElementById('acPotLine').innerHTML = box.potLine;   // its pension today marked (step F1)
-        await renderAccumulationHoldings();   // 6.7.0: proportions from the ledger (and pot today when the box is empty)
+        await renderAccumulationHoldings();   // 6.7.0: proportions from the ledger
         recalcAccumulation();
         renderAccumulationRecords().catch(() => {});
         if (window._acAutosave) await window._acAutosave.loaded();
@@ -11439,7 +11439,7 @@
       try {
         // the one unlock (step F5, lead4.md D18): answers/plan/lock.js unlockPatch in ONE write, as the simple view unlocks
         const R = await lockReadingNow();
-        const p = R.plan ? await unlockWrite({ planId: R.id, plan: R.plan, now: R.now, save: savePlanWrite }) : { ok: false, errors: { plan: 'notHere' } };
+        const p = R.plan ? await unlockWrite({ planId: R.id, plan: R.plan, now: R.at, save: savePlanWrite }) : { ok: false, errors: { plan: 'notHere' } };
         if (!p.ok) throw new Error(LOCK_REFUSALS[p.errors && p.errors.plan] || LOCK_REFUSALS.notHere);
         await repaintPlan('unlock');   // every tab, the banners and the stage follow the plan as unlocked
         showToast('Plan unlocked. Changes save as you make them; lock it again from Settings when you are happy.', 'success', 5000);   // walk W4: no Save to press, and it never locks itself

@@ -2310,17 +2310,17 @@
     "buckets": [
      {
       "bucket": "shares",
-      "held": "0",
-      "plan": "65"
+      "held": "65",
+      "plan": "64"
      },
      {
       "bucket": "bonds",
-      "held": "71",
+      "held": "25",
       "plan": "25"
      },
      {
       "bucket": "cash",
-      "held": "29",
+      "held": "10",
       "plan": "10"
      }
     ],

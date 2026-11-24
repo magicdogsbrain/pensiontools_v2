@@ -35,7 +35,7 @@ import { holdOf } from '../../../src/answers/plan/hold.js';
 import { moveInputs } from '../../../src/services/PlanReading.js';
 import { sequence, yearNeedsOf } from '../../../src/services/TransitionPlanner.js';
 import { transitionHtml } from '../../../src/ui/components/TransitionView.js';
-import { transitionHeld, transitionGaps, transitionTabName, nameTransitionTab } from '../../../src/ui/keepHoldingsUi.js';
+import { transitionHeld, transitionTabName, nameTransitionTab } from '../../../src/ui/keepHoldingsUi.js';
 import { moreSheetHtml } from '../../../src/ui/mobileMenu.js';
 import { stateWith, entryOf, noon } from './_plans.js';
 import { ALEX_TODAY as TODAY, L, CONV, SHARES, FUND, alexRaw, alex, samRaw, asMoving } from './_alex.js';
@@ -157,7 +157,7 @@ describe('(3) in a move, What is covered never counts a line the move sells', ()
     const p = sam();
     expect(gapsOf(p, { today: TODAY })).toBe(null);
     expect(moveOf([{ plan: p }], p.id, { today: TODAY }).gaps).toBeUndefined();
-    expect(transitionGaps(p, p.holdings, noon(TODAY))).toBe(null);
+    expect(((transitionHeld(p, p.holdings, noon(TODAY)) || {}).gaps || null)).toBe(null);
     expect(homeOf([{ plan: p }], p.id, { today: TODAY }).gap).toBeUndefined();
   });
 });
@@ -262,7 +262,7 @@ describe('(10) the order sheet, where it is', () => {
   it('the full view: the plan\'s gilts beside what is held, no order sheet and no line pointing to one', () => {
     const held = transitionHeld(p, p.holdings, noon(TODAY));
     const mi = moveInputs(p, { now: noon(TODAY) });
-    const html = transitionHtml({ doc: p.planDocument, target: mi.target, diff: mi.diff, seq: null, prog: mi.prog, holdings: p.holdings, gaps: transitionGaps(p, p.holdings, noon(TODAY)), held });
+    const html = transitionHtml({ doc: p.planDocument, target: mi.target, diff: mi.diff, seq: null, prog: mi.prog, holdings: p.holdings, gaps: ((transitionHeld(p, p.holdings, noon(TODAY)) || {}).gaps || null), held });
     expect(html).not.toContain('order sheet');
     expect(html).toContain(HELD.giltColumns.plan);
     expect(html).not.toContain(GAPS.strategyNone);

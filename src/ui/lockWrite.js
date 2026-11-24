@@ -13,10 +13,25 @@
  *   documentWrite({ planId, plan, entries, now, run, save }) lock.js documentPatch ("a new version"): the current document
  *       archived and a new one built by documentFor, in ONE write
  *
+ *   lockReadingOf(plans, id, at)                             the plans as both views read them on the day of `at`
+ *       (homeBannerUi.entriesOf on clock.js todayOf(at)): { id, now (the day, for the run), at (the moment: the stamp the
+ *       three writes above are given as their `now`, as the simple view gives its own now()), entries, plan }
+ *
  * `plan` is the plan as the reading sees it (brought up to date in memory, homeBannerUi.entriesOf), `save(id, patch)` the
  * store's one write (FirestoreService.saveScenario: dotted paths). Nothing here reads a clock, the page or a repository.
  */
 import { lockPatch, unlockPatch, documentPatch, shapeRefsOf } from '../answers/plan/lock.js';
+import { entriesOf } from './homeBannerUi.js';
+import { todayOf, momentOf } from '../reading/clock.js';
+
+/** The full view's gatherer for a lock, an unlock or a new version (the header). */
+export function lockReadingOf(plans, id, at) {
+  const moment = momentOf(at);
+  const now = todayOf(moment);
+  const entries = entriesOf(plans, now);
+  const entry = entries.find((e) => e && e.plan && String(e.plan.id) === String(id));
+  return { id, now, at: moment, entries, plan: entry ? entry.plan : null };
+}
 
 /** The run the plan document is built from (the header). */
 export async function documentRunOf(plan, entries, { today, runInWorker = null, inline = null } = {}) {

@@ -30,6 +30,7 @@ export const LABELS = Object.freeze({
   [FACT.LOCK_DATE]: { label: 'Locked on', basis: 'a day' },
   [FACT.DOC_CHANCE]: { label: 'When the plan was locked', basis: 'a chance' },
   [FACT.DOC_FIXED_CHANCE]: { label: 'When the plan was locked, to one age', basis: 'a chance' },
+  [FACT.DOC_FIXED_AGE]: { label: 'When the plan was locked, counted to age', basis: 'an age' },
   [FACT.LADDER_MONTHLY]: { label: 'Your plan pays', basis: 'a month before tax' },
   [FACT.STEP_FROM_AGE]: { label: 'Step starts at', basis: 'an age' },
   [FACT.PRICES_FROM]: { label: 'In the prices of', basis: 'a month' },
@@ -112,6 +113,7 @@ export const LABELS = Object.freeze({
   [FACT.GILTS_HELD]: { label: 'Gilts held', basis: 'a count' },
   [FACT.MIX_PLAN]: { label: "The plan's mix", basis: 'a share' },
   [FACT.MIX_HELD]: { label: 'What you hold', basis: 'a share' },
+  [FACT.MIX_HELD_PENSION]: { label: 'What you hold, in your pension', basis: 'a share' },
   [FACT.HOLDINGS_TOTAL]: { label: 'Held in all', basis: TODAY },
   [FACT.HOLDINGS_WRAPPER]: { label: 'Held', basis: TODAY },
   [FACT.STRESS_CHANCE]: { label: 'This line: the money lasts as long as you do', basis: 'a chance' },
@@ -122,7 +124,12 @@ export const LABELS = Object.freeze({
   [FACT.STRESS_FLOOR]: { label: 'If it runs out, still comes in', basis: 'a year after tax' },
   [FACT.MIX_BEST]: { label: 'Lasts best', basis: 'a share' },
   [FACT.PARTNER_CHANCE]: { label: "Your partner's plan lasts", basis: 'a chance' },
-  [FACT.HOUSEHOLD_CHANCE]: { label: 'Together, it lasts', basis: 'a chance' }
+  [FACT.HOUSEHOLD_CHANCE]: { label: 'Together, it lasts', basis: 'a chance' },
+  [FACT.HOUSEHOLD_ALONE]: { label: 'On its own, it lasts', basis: 'a share' },
+  [FACT.HOUSEHOLD_START_TOTAL]: { label: 'The household check starts from', basis: TODAY },
+  [FACT.HOUSEHOLD_START]: { label: 'This plan starts from', basis: TODAY },
+  [FACT.HOUSEHOLD_SURVIVOR_SPEND]: { label: 'The one who is left spends', basis: 'a share' },
+  [FACT.HOUSEHOLD_CARE_COST]: { label: 'Nursing care often costs', basis: 'a year, at today’s prices' }
 });
 
 /** The columns of the year tables (src/reading/yearTable.js), one label each, both views (the simple view's copy reads these). */

@@ -14,6 +14,9 @@ import { PlanRail, changeAction, EditField, UndoToast, fill, Button, LinkButton,
 import { LOCK_DATE } from '../../components/facts.js';
 import { fillMarked } from '../../components/PlanFigures.jsx';
 import { HELD_MIX_SLOTS } from '../../../reading/sentenceMarks.js';
+
+// the mix held (mix.held.#) and the record's total (holdings.total), marked as the full view's What you hold card marks them
+const MIX_LINE_SLOTS = { ...HELD_MIX_SLOTS, total: 'holdings.total' };
 import { planView, planHoldView, planKeepTestView } from '../../state/select.js';
 import { href } from '../../router/routes.js';
 import { PLAN } from '../../copy/plan.js';
@@ -135,7 +138,7 @@ function KeepLine({ l, V, dispatch, planId, KT }) {
                   <label for={`${base}.year.${y.Y}`}>{y.label}</label>
                 </div>
               ))}
-              {k.error && <p class="error" data-testid={`${base}.error`}>{K.noYears}</p>}
+              {k.error && <p class="error" data-testid={`${base}.error`} data-error={k.error}>{k.error === 'tooEarly' ? fill(K.tooEarly, k.errorSlots) : K.noYears}</p>}
             </fieldset>
           )}
           {k.as === 'mine' && (
@@ -357,7 +360,7 @@ function Mix({ V }) {
       <h2>{W.sections.mix}</h2>
       {V.mix ? (
         <>
-          <p class="line" data-testid={`${T}.mix.line`}>{fillMarked(M.line, V.mix, HELD_MIX_SLOTS)}</p>
+          <p class="line" data-testid={`${T}.mix.line`}>{fillMarked(M.line, V.mix, MIX_LINE_SLOTS)}</p>
           <p class="note" data-testid={`${T}.mix.charge`}>{fill(M.charge, V.mix)}</p>
           {V.mix.untagged.length > 0 && <p class="note" data-testid={`${T}.mix.notCounted`}>{fill(M.notCounted, { list: V.mix.untagged.join(', ') })}</p>}
         </>

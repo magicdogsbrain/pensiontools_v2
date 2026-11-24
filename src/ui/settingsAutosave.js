@@ -234,13 +234,14 @@ export function createAutosave(win, doc, o) {
     timer = win.setTimeout(() => { run(); }, ms == null ? delay : ms);
   }
 
-  /** Sends a change waiting to go (and waits for one going); nothing when nothing was changed. */
+  /** Sends a change waiting to go (and waits for one going); nothing when nothing was changed. The save's outcome, else 'nothing'. */
   async function flush() {
     // a box still being typed in (no change yet) counts as changed: a tab, a sub-tab or another plan never draws over it
     const r = root(), ae = doc.activeElement;
     const typing = !!(r && ae && r.contains(ae) && /^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName) && (!o.include || o.include(ae)));
-    if (timer || typing) { if (timer) win.clearTimeout(timer); timer = null; await run(); return; }
-    if (running) await running;
+    if (timer || typing) { if (timer) win.clearTimeout(timer); timer = null; return run(); }
+    if (running) return running;
+    return 'nothing';
   }
 
   /** The form was just drawn from the plan as stored: what it shows now is what is saved. */

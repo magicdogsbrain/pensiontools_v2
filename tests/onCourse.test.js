@@ -116,7 +116,8 @@ describe('the couples, survivor and care checks', () => {
     }
     // 6.25.0: the couples verdict is drawn by src/ui/householdView.js (the household's pooled share first), from the same module
     const view = readFileSync(resolve(process.cwd(), 'src/ui/householdView.js'), 'utf8');
-    expect(view).toMatch(/const share = r\.pooled \? r\.pooled\.success : r\.jointSuccess;\s*\n\s*let html = .*\n.*onCourseAlertClass\(share\)/);
+    // step F6: the share is the one verdict reader's (household.js householdVerdictOf, the pooled share first), as the simple view's
+    expect(view).toMatch(/const share = v \? v\.share : \(r\.pooled \? r\.pooled\.success : r\.jointSuccess\);\s*\n\s*let html = .*\n.*onCourseAlertClass\(share\)/);
     expect(view).toMatch(/if \(isOnCourse\(share\)\) return '';/);
     expect(view).not.toMatch(/0\.85/);
     // the household sweep: the survivor and care verdicts are drawn by the same view module, from the same bar

@@ -25,7 +25,8 @@ import { planPage } from '../../../src/answers/plan/read.js';
 import { MOVE } from '../../../src/v7/copy/move.js';
 import { PLAN } from '../../../src/v7/copy/plan.js';
 import { transitionHtml } from '../../../src/ui/components/TransitionView.js';
-import { transitionHeld, transitionGaps } from '../../../src/ui/keepHoldingsUi.js';
+import { unmarked } from '../../../src/reading/mark.js';
+import { transitionHeld } from '../../../src/ui/keepHoldingsUi.js';
 import { moveInputs } from '../../../src/services/PlanReading.js';
 import { diffHoldings, targetHoldings, yearNeedsOf } from '../../../src/services/TransitionPlanner.js';
 import { stateWith, entryOf, noon, corpus } from './_plans.js';
@@ -88,7 +89,7 @@ describe('Living on it: "Your plan\'s mix" is what is held, never a move', () =>
     expect(text).not.toMatch(/what to buy and sell|Next: (buy|sell)|Totals: buy|What skipping it costs|By [A-Z][a-z]+ \d{4}: (buy|sell)|proceeds pay for the ladder|more than the rung needs/);
     expect(text).toContain(HELD.lead);
     expect(text).not.toContain(MOVE.held.lead);
-    expect(one(root, `${T}.heldLadder.figure`).textContent).toBe('12 of your plan’s 14 gilts are held.');
+    expect(one(root, `${T}.heldLadder.figure`).textContent).toBe('12 of 14 of your plan’s gilts are held.');
     const tr31 = one(root, `${T}.heldLadder.gilts`).querySelector('tr[data-key="gilt:TR31"]');
     expect([...tr31.querySelectorAll('td')].map((td) => td.textContent).slice(0, 4)).toEqual(['0 1/8% Index-linked Treasury Gilt 2031 (TR31)', '2032/33', '15,500', '2,000']);
     const also = one(root, `${T}.heldLadder.also`).textContent;
@@ -111,10 +112,11 @@ describe('Living on it: "Your plan\'s mix" is what is held, never a move', () =>
     // retaken in 7.12.0: transitionHeld also carries the move's readings both views word the same way
     expect(held).toMatchObject({ mode: 'held', heldInfo: V.heldInfo, heldView: V.heldView, phase: 'drawing' });
     const mi = moveInputs(p, { now: noon(TODAY) });
-    const html = transitionHtml({ doc: p.planDocument, target: mi.target, diff: mi.diff, seq: null, prog: mi.prog, holdings: p.holdings, gaps: transitionGaps(p, p.holdings, noon(TODAY)), held });
+    // the count is marked (gilts.held, step F6): the words are read without their marks
+    const html = unmarked(transitionHtml({ doc: p.planDocument, target: mi.target, diff: mi.diff, seq: null, prog: mi.prog, holdings: p.holdings, gaps: ((transitionHeld(p, p.holdings, noon(TODAY)) || {}).gaps || null), held }));
     expect(html).not.toMatch(/>Sell<|>Buy<|Totals: buy|When — a schedule|toggleTransitionDone|Next: <strong>|Things the schedule assumes/);
     expect(html).toContain(HELD.lead);
-    expect(html).toContain('12 of your plan’s 14 gilts are held.');
+    expect(html).toContain('12 of 14 of your plan’s gilts are held.');
     expect(html).toContain('<td data-label="When">29 January 2027</td>');
     expect(html).not.toMatch(/counted toward \d{4}|mature in those years/);
   });

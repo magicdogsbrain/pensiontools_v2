@@ -50,9 +50,9 @@ import { planPage, dateOf, monthWords, offCourseWordsOf } from './read.js';
 import { dayWords } from './dates.js';
 import { pounds } from './income.js';
 import { REVIEW_FIELDS, REVIEW_CHOICES } from './schema.js';
-import { settingsForScreen, whereAmIInputs, moveInputs, historyAscending } from '../../services/PlanReading.js';
+import { settingsForScreen, whereAmIInputs, historyAscending } from '../../services/PlanReading.js';
+import { moveReadingOf, giltsCountOf, ladderGapsOf, mixAgainstPlanOf, planMixOf } from '../../reading/holdings.js';
 import { whereAmI, guardrailOf, bandMeasure, GUARDRAIL_STRATEGIES } from '../../services/PlanDocument.js';
-import { driftOf } from '../../services/TransitionPlanner.js';
 import { RISK_PRESETS } from '../../services/GlidepathService.js';
 import { strategyIdOf, phasesOf, phasesPatch, reviewLogOf, reviewRuleOf, reviewEveryOf, ruleOrNull, windowYearsOrNull, windowOf, windowChosenOf, moveWindowOf, monthsBetween, OFF_COURSE, WINDOW, SAVING_LEVELS, REVIEW_EVERY } from '../../services/Phases.js';
 import { startLaterOf } from '../../services/PlanMove.js';
@@ -189,23 +189,26 @@ function livingReadingOf(plan, { now, pots, entered, older }) {
 
 /**
  * Where the move stands (Moving): months left to the stop, how far each bucket of what is held is from the mix the plan moves
- * to on today's pension (PlanReading.moveInputs `fromSettings`: on an unlocked plan against its settings, in memory), whether
+ * to on today's pension (the page's one diff, src/reading/holdings.js moveReadingOf `fromSettings`: on an unlocked plan against
+ * its settings, in memory; once what is held was accepted, every line as it is), whether
  * it is on course, the lines nothing places, and on a ladder the years not yet held.
  */
 function movingReadingOf(plan, { now, life, log }) {
   const rec = normaliseHoldings(plan && plan.holdings);
   const record = holdingsSummary(rec).count > 0;
-  let mv = null; try { mv = moveInputs(plan, { now, fromSettings: true }); } catch { mv = null; }
-  const d = mv && mv.diff ? driftOf(mv.diff) : null;
+  // the page's one diff (src/reading/holdings.js moveReadingOf; step F6): once what is held was accepted, every line as it is,
+  // as the move page and the full view's Transition tab read it
+  const mv = moveReadingOf(plan, { now, life, fromSettings: true }).m;
+  // a pot plan: the one held mix against the one plan's mix (mixAgainstPlanOf); a ladder: its rungs (below)
+  const x = mixAgainstPlanOf(plan, mv, { now });
+  const d = x ? { kind: 'buckets', drift: x.drift, maxDrift: x.maxDrift } : mv && mv.diff && mv.diff.kind === 'ladder' ? { kind: 'ladder' } : null;
   const w = moveWindowOf(life);
   const windowMonths = w && w.from && w.to ? monthsBetween(w.from, w.to) : null;
   const out = { record, monthsLeft: w && isNum(w.monthsLeft) ? w.monthsLeft : null, windowMonths, stop: w && w.to ? w.to : null,
     buckets: null, maxDrift: null, onTrack: null, untagged: [], ladder: null, ladderLater: !!(mv && mv.ladderLater), noReading: false };
-  if (mv && mv.diff && Array.isArray(mv.diff.unknown)) out.untagged = mv.diff.unknown.map((u) => String(u.label || u.name || u.ticker || '')).filter(Boolean);
+  if (x) out.untagged = x.assumed.slice();
   if (d && d.kind === 'buckets') {
-    const inPlay = num(mv.diff.inPlay);
-    out.buckets = BUCKETS.map((b) => { const x = mv.diff.buckets[b] || { held: 0, target: 0 }; return { bucket: b, held: Math.round(100 * num(x.held) / inPlay), plan: Math.round(100 * num(x.target) / inPlay) }; })
-      .filter((x) => x.held > 0 || x.plan > 0);
+    out.buckets = x.buckets.map((b) => ({ ...b }));
     out.drift = { ...d.drift };
     out.maxDrift = d.maxDrift;
     // the move's start: the first Moving review's drift, else how far the plan's saving level is from the mix it moves to
@@ -214,16 +217,22 @@ function movingReadingOf(plan, { now, life, log }) {
     if (start == null) {
       const level = phasesOf(plan, { now }).saving.strategy.level;
       const P = RISK_PRESETS[level] || RISK_PRESETS.balanced;
-      const mix0 = plan && plan.planDocument && Array.isArray(plan.planDocument.targetMix) && plan.planDocument.targetMix[0] ? plan.planDocument.targetMix[0] : null;
-      const tgt = mix0 ? { equity: num(mix0.equity) / 100, bond: num(mix0.bond) / 100, cash: num(mix0.cash) / 100 } : targetSharesOf(mv);
+      // the plan's own mix (planMixOf: a locked plan's document, else its settings), as the line above says it
+      const pm = planMixOf(plan, { now });
+      const tgt = pm ? { equity: num(pm.shares) / 100, bond: num(pm.bonds) / 100, cash: num(pm.cash) / 100 } : null;
       start = tgt ? Math.round(100 * Math.max(Math.abs(P.equity - tgt.equity), Math.abs(P.bond - tgt.bond), Math.abs(P.cash - tgt.cash))) : null;
     }
     out.onTrack = onTrackOf(d, { start, monthsLeft: out.monthsLeft, windowMonths: out.windowMonths });
     out.toMove = BUCKETS.reduce((t, b) => t + Math.max(0, d.drift[b] || 0), 0);
   } else if (d && d.kind === 'ladder') {
     const thisTY = Number(mv.target && mv.target.thisTaxYear);
-    const years = [...new Set((mv.diff.buy || []).filter((b) => b.kind === 'gilt' && Array.isArray(b.taxYears)).flatMap((b) => b.taxYears.map(Number)))].sort((p, q) => p - q);
-    out.ladder = { held: d.rungs.held, needed: d.rungs.needed, years: years.map(taxYearLabel), gapSoon: !!d.gapSoon, soon: years.filter((Y) => Y === thisTY || Y === thisTY + 1).map(taxYearLabel) };
+    // the one reading of the ladder's gaps (ladderGapsOf), as the move page reads them: a gilt held in part is never "not held yet"
+    const { uncovered: years, parts } = ladderGapsOf(mv.target, mv.diff);
+    // the one "n of m" (giltsCountOf): once accepted, a gilt of the plan held in part is held as the person chose
+    const agreed = !!(life && life.agreed && life.agreed.at);
+    const gc = giltsCountOf(mv.target, mv.diff, { agreed });
+    out.ladder = { held: gc.counted, needed: gc.total, years: years.map(taxYearLabel), soon: years.filter((Y) => Y === thisTY || Y === thisTY + 1).map(taxYearLabel),
+      parts: parts.map((b) => (b.taxYears || []).map((y) => taxYearLabel(+y)).join(', ')).filter(Boolean), partAgreed: agreed };
   } else if (mv && mv.diff && mv.diff.kind === 'none') out.noReading = true;
   return out;
 }
@@ -236,24 +245,9 @@ function movingReadingOf(plan, { now, life, log }) {
  */
 function heldAgainstMixOf(plan, now) {
   if (!(holdingsSummary(normaliseHoldings(plan && plan.holdings)).count > 0)) return null;
-  let mv = null; try { mv = moveInputs(plan, { now, fromSettings: true }); } catch { mv = null; }
-  const d = mv && mv.diff ? driftOf(mv.diff) : null;
-  if (!d || d.kind !== 'buckets') return null;
-  const inPlay = num(mv.diff.inPlay);
-  return {
-    buckets: BUCKETS.map((b) => { const x = mv.diff.buckets[b] || { held: 0, target: 0 }; return { bucket: b, held: Math.round(100 * num(x.held) / inPlay), plan: Math.round(100 * num(x.target) / inPlay) }; }).filter((x) => x.held > 0 || x.plan > 0),
-    maxDrift: d.maxDrift,
-    untagged: Array.isArray(mv.diff.unknown) ? mv.diff.unknown.map((u) => String(u.label || u.name || u.ticker || '')).filter(Boolean) : []
-  };
-}
-
-/** The target's shares of the pension money in play, from a pot plan's diff: { equity, bond, cash } as shares of 1. */
-function targetSharesOf(mv) {
-  const b = mv && mv.diff && mv.diff.buckets;
-  const inPlay = mv && mv.diff ? num(mv.diff.inPlay) : 0;
-  if (!b || !(inPlay > 0)) return null;
-  const t = (k) => num(b[k] && b[k].target) / inPlay;
-  return { equity: t('shares'), bond: t('bonds') + t('diversifiers'), cash: t('cash') };
+  const mv = moveReadingOf(plan, { now, fromSettings: true }).m;   // the one diff (src/reading/holdings.js)
+  const x = mixAgainstPlanOf(plan, mv, { now });                    // the one held mix against the one plan's mix
+  return x ? { buckets: x.buckets.map((b) => ({ ...b })), maxDrift: x.maxDrift, untagged: x.assumed.slice() } : null;
 }
 
 /**
@@ -520,9 +514,9 @@ export function reviewEntryOf(plan, { phase, today, typed = {}, at, reading = nu
     }
   }
   if (phase === 'moving') {
-    let mv = null; try { mv = moveInputs(plan, { now, fromSettings: true }); } catch { mv = null; }
-    const d = mv && mv.diff ? driftOf(mv.diff) : null;
-    if (d && d.kind === 'buckets') { entry.drift = { ...d.drift }; entry.maxDrift = d.maxDrift; }
+    const mv = moveReadingOf(plan, { now, fromSettings: true }).m;   // the one diff (a pot plan's: its marks as they are)
+    const x = mixAgainstPlanOf(plan, mv, { now });                    // the one held mix against the one plan's mix
+    if (x) { entry.drift = { ...x.drift }; entry.maxDrift = x.maxDrift; }
   }
   return entry;
 }

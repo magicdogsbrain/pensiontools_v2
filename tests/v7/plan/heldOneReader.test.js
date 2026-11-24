@@ -17,7 +17,7 @@ import { moveOf } from '../../../src/answers/plan/move.js';
 import { homeOf } from '../../../src/answers/plan/home.js';
 import { moveInputs } from '../../../src/services/PlanReading.js';
 import { transitionHtml } from '../../../src/ui/components/TransitionView.js';
-import { transitionHeld, transitionGaps } from '../../../src/ui/keepHoldingsUi.js';
+import { transitionHeld } from '../../../src/ui/keepHoldingsUi.js';
 import { visibleText } from '../render/checkScreen.js';
 import { noon, stateWith } from './_plans.js';
 import { TODAY, alexLivingRaw, joLivingRaw, living } from './_alexLiving.js';
@@ -34,7 +34,7 @@ const fullTab = (plan) => {
   const mi = moveInputs(plan, { now: noon(TODAY) });
   const div = document.createElement('div');
   div.innerHTML = transitionHtml({ doc: plan.planDocument, target: mi.target, diff: mi.diff, seq: null, prog: mi.prog, holdings: plan.holdings,
-    gaps: transitionGaps(plan, plan.holdings, noon(TODAY)), held: transitionHeld(plan, plan.holdings, noon(TODAY)) });
+    gaps: ((transitionHeld(plan, plan.holdings, noon(TODAY)) || {}).gaps || null), held: transitionHeld(plan, plan.holdings, noon(TODAY)) });
   return div;
 };
 

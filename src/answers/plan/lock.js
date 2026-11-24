@@ -29,7 +29,9 @@ import { journeyAppend } from '../../services/LifeStage.js';
 import { isLockedSettings } from '../../services/LockedPlanGuard.js';
 import { isClosedPlan } from '../../services/PlanClosed.js';
 import { seedDecisionFromStress, planOfRecordFor, unlockPatchesOf, lockFitOf } from '../../services/PlanCommit.js';
-import { DECISION_SEED_KEYS, LOCK_WRITES, UNLOCK_WRITES, DOCUMENT_WRITES, BOOKKEEPING_WRITES, LATER_DRAFT_WRITES } from './schema.js';
+import { DECISION_SEED_KEYS, LOCK_WRITES, UNLOCK_WRITES, DOCUMENT_WRITES, BOOKKEEPING_WRITES, LATER_DRAFT_WRITES, LOCK_AS_READ_WRITES } from './schema.js';
+import { isChargesPct } from '../../services/Charges.js';
+import { isIsaGrowth } from '../../services/IsaGrowth.js';
 import { applyPatch } from './about.js';
 import { laterDraftPatch } from './moveStart.js';
 import { dayWords } from './dates.js';
@@ -96,6 +98,14 @@ export function lockPatch(plan, { now, run, entries = [] }) {
   const ld = laterDraftPatch(plan, { now });
   const later = {};
   for (const [k, v] of Object.entries(ld.patch)) if (!(k in patch)) later[k] = v;
+  // 1c. the charge and how the ISA grows, as the plan read them (schema.js LOCK_AS_READ_WRITES): a plan saved before either
+  // existed reads them from the upgrade, which leaves a locked plan alone, so they are written with the lock, or the plan
+  // would read 0% and a fixed 3% from now on, unlike its document. Only into Stress settings the plan has (never a one-key
+  // map, which would hide the defaults), and, as 1b, left out of `previous`: Undo gives back a draft that reads as it did.
+  const asRead = {};
+  const st = plan.stressTool && isObj(plan.stressTool.settings) ? plan.stressTool.settings : null;
+  if (st && isChargesPct(st.chargesPct)) asRead['stressTool.settings.chargesPct'] = st.chargesPct;
+  if (st && isIsaGrowth(st.isaGrowth)) asRead['stressTool.settings.isaGrowth'] = st.isaGrowth;
   // 2. the lock's flags
   const lockedAt = now.toISOString();
   for (const [k, v] of [['locked', true], ['lockedAt', lockedAt], ['lockedBy', LOCKED_BY]]) {
@@ -117,7 +127,9 @@ export function lockPatch(plan, { now, run, entries = [] }) {
   if (next !== journey) { patch.journey = next; previous.journey = copy(plan.journey); }
   for (const k of Object.keys(patch)) if (!LOCK_WRITES.includes(k)) throw new Error('lockPatch: "' + k + '" is not a declared field path');
   for (const k of Object.keys(later)) if (!LATER_DRAFT_WRITES.includes(k)) throw new Error('lockPatch: "' + k + '" is not a declared field path');
+  for (const k of Object.keys(asRead)) if (!LOCK_AS_READ_WRITES.includes(k)) throw new Error('lockPatch: "' + k + '" is not a declared field path');
   Object.assign(patch, later);
+  for (const [k, v] of Object.entries(asRead)) if (!(k in patch)) patch[k] = v;
   return { ok: true, errors: {}, patch, previous, line: { id: 'locked', slots: { date: dayWords(lockedAt) } }, lockedAt };
 }
 

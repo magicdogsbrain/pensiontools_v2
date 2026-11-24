@@ -80,7 +80,8 @@ export const MOVE = {
     newMoneyNone: 'No new money a month is on the record yet: add it line by line under What you hold.',
     planMix: 'The plan’s mix: shares {shares}%, bonds {bonds}%, cash {cash}%.',
     heldMix: 'What you hold, in your pension: shares {shares}%, bonds {bonds}%, gold and trend {diversifiers}%, cash {cash}%.',
-    starts: 'The move itself starts around {when}.'
+    starts: 'The move itself starts around {when}.',
+    longerWindow: 'A longer move window starts the move earlier. Nothing is moved before it opens.'
   },
   cost: {
     title: 'What skipping it costs',
@@ -141,7 +142,7 @@ export const MOVE = {
       cash: 'Cash: {held}% of your pension now; your plan’s mix has {plan}%.',
       diversifiers: 'Gold and trend: {held}% of your pension now; your plan’s mix has {plan}%.'
     },
-    unknown: 'We could not tell what {name} holds, so it is left out of these figures. You can say what it holds on What you hold.',
+    unknown: 'We could not tell what {name} holds, so it is counted as shares in these figures, as What you hold counts it. You can say what it holds there.',
     review: 'You can test what you hold against your plan, and accept it as your plan, on',
     // ISA, taxable-account and bank lines: outside the pension, so outside the plan's mix
     outsideTitle: 'Outside your pension',

@@ -6,7 +6,14 @@
  *
  *   todayOf(now?)    the local day of `now` (default: the real date) at noon, as dateOf('YYYY-MM-DD') gives it
  *   dayKeyOf(date)   'YYYY-MM-DD' of a Date, local (what a cache keyed to the day compares)
+ *   momentOf(now?)   the instant itself (default: the real time): what a record is STAMPED with (a lock, an unlock, a new
+ *                    version of the plan document), as the simple view stamps it (src/v7/effects/planWrite.js now()). A
+ *                    figure is worked out on the day (todayOf); a stamp says when it happened, never the day's noon.
  */
+export function momentOf(now = new Date()) {
+  return new Date((now instanceof Date ? now : new Date(now)).getTime());
+}
+
 export function todayOf(now = new Date()) {
   const d = now instanceof Date ? now : new Date(now);
   return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12, 0, 0, 0);

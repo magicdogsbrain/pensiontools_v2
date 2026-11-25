@@ -25,6 +25,11 @@ import {
 import { saveTaxYearConfig, getTaxYearConfigAsync } from '../../storage/DecisionRepository.js';
 import { lockPlanIfNeeded } from '../../services/PlanLock.js';
 import { takenBeforeTax, targetOfTaken } from '../../services/BeforeTax.js';
+import { MONTH } from '../../v7/copy/month.js';
+import { yearWords } from '../../services/MonthFill.js';
+
+/** A copy line with its slots filled ('{year}'), as the simple view's fill does. */
+const fill = (t, slots) => String(t).replace(/\{(\w+)\}/g, (m, k) => (slots[k] != null ? String(slots[k]) : m));
 
 // Wizard state
 let wizardElement = null;
@@ -181,8 +186,7 @@ function renderThisYear() {
 
       <div class="wizard-info-box" id="salaryInfoBox">
         ${fromSchedule
-          ? `<p><strong>From your plan's income schedule for this year</strong> — the year-by-year income your plan was priced on
-             (the income steps, or the Budget tool's plan), uplifted to this year's money:</p>`
+          ? `<p><strong>${esc(fill(wizardContext.planYear > 0 ? MONTH.setUp.suggestion.scheduleLeadPrices : MONTH.setUp.suggestion.scheduleLead, { year: yearWords(wizardContext.taxYear) }))}:</strong></p>`
           : ''}
         ${fromSchedule
           ? `<span id="cpiDisplay" hidden>${cpiPercent}</span><span id="netUpliftDisplay" hidden>${netUpliftPct}</span>`

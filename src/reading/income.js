@@ -22,10 +22,19 @@
  *     incomeStepsOf gives for the rows as saved (the same function, so a step says one figure until it is changed)
  *   fixedAtAge(plan, ctx, age)  the income that comes in anyway in the plan year of that age (spend.js guaranteedAtYear on
  *                               the plan's settings and timing: the document's timing when locked)
+ *   yearTakenOf(target, { p, k, share, bands, fixed })  (ruling Z1) a year's figure as the engines hold it — a run's yearly
+ *                               income, a cone's, a plan document's year — as taken before tax: the run's year k of plan
+ *                               p for the months it has (services/PaidYear.js: a part year is the rate of its months, then
+ *                               its share) with the income that comes in anyway in it (`fixed`, in pounds of that year;
+ *                               absent, the plan's own State Pension and other income in it, PaidYear spIn / otherIn), at
+ *                               the tax-free share `share` (incomeStepsOf's taxFreeShare). With no share: the figure.
+ *                               (services/BeforeTax.js, re-exported here: the rule beside takenOfTarget)
  *
  * Pure (the settings are read once, by PlanReading, on ctx.now).
  */
-import { takenOfTarget, taxFreeShareOf } from '../services/BeforeTax.js';
+import { takenOfTarget, taxFreeShareOf, yearTakenOf } from '../services/BeforeTax.js';
+
+export { yearTakenOf };
 import { bandsOf, netOf, safeTiming } from '../answers/plan/about.js';
 import { stepLines, guaranteedAtYear } from '../answers/plan/spend.js';
 import { taxYearLabel } from '../services/PlanTiming.js';
@@ -101,3 +110,4 @@ export function incomeStepsOf(plan, ctx = {}) {
   });
   return { steps, bands, access, locked: isLocked(plan), notSet, taxFreeShare: taxFreeShareOf(settings) };
 }
+

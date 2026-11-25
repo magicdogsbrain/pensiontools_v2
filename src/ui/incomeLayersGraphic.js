@@ -7,6 +7,8 @@
  * rows: [{ age, sp, other, contract, market, need, p10 }]
  */
 import { spIn, otherIn, monthsOf } from '../services/PaidYear.js';
+import { yearTakenOf, takesAsDrawn } from '../services/BeforeTax.js';
+import { taxFreeFractionOf } from '../services/FlexibleAccess.js';
 
 const gbpK = (v) => '£' + Math.round(v / 1000) + 'k';
 export const LAYER_COLORS = { sp: '#94a3b8', other: '#2dd4bf', contract: '#f59e0b', market: '#60a5fa' };
@@ -63,7 +65,13 @@ export function incomeLayersRows(r, p) {
   // income" (6.11.3). used[y] = what the lump paid that year, from the arrivals and the year-end carry.
   const wf = Array.isArray(p.windfallByYear) ? p.windfallByYear : null, carry = Array.isArray(p.windfallCarryByYear) ? p.windfallCarryByYear : null;
   const lumpUsed = (y) => (wf && carry) ? Math.max(0, Math.min(other(y), ((y > 0 ? carry[y - 1] : 0) || 0) + (wf[y] || 0) - (carry[y] || 0))) : 0;
-  const needAt = (y) => ((p.needByYear && p.needByYear[y] != null) ? p.needByYear[y] : (Array.isArray(p.targetSchedule) && p.targetSchedule[y] != null ? p.targetSchedule[y] : p.targetAnnual)) * monthsOf(p, y) / 12;
+  const neededAt = (y) => ((p.needByYear && p.needByYear[y] != null) ? p.needByYear[y] : (Array.isArray(p.targetSchedule) && p.targetSchedule[y] != null ? p.targetSchedule[y] : p.targetAnnual)) * monthsOf(p, y) / 12;
+  // the need as taken before tax (ruling Z1, BeforeTax.yearTakenOf): a way that draws takes less for the same income after
+  // tax when a part of each payment is tax-free (the run's own access and bands); a way that buys its income pays it as held
+  const cfg = p.pnvCfg || {};
+  const share = takesAsDrawn(r.strategyId) ? taxFreeFractionOf(cfg) : 0;
+  const bands = { pa: cfg.pa, brl: cfg.brl, hrl: cfg.hrl };
+  const needAt = (y) => (share > 0 ? yearTakenOf(neededAt(y), { p, k: y, share, bands }) : neededAt(y));
   const p50 = r.cones?.income?.p50 || [], p10 = r.cones?.income?.p10 || [];
   const sig = r.signature || {};
   const rows = [];

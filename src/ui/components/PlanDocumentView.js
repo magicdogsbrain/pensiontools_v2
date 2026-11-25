@@ -21,6 +21,9 @@ import { STRESS as STRESS_ON } from '../../answers/shared/rules.js';
 import { markFact, markWithin, asRecord } from '../../reading/mark.js';
 import { pensionFromWords } from '../../reading/money.js';
 import { LABELS } from '../../reading/labels.js';
+import { yearTakenOf } from '../../reading/income.js';
+import { takesAsDrawn } from '../../services/BeforeTax.js';
+import { monthsOf } from '../../services/PaidYear.js';
 import { FACT, factId } from '../../reading/facts.js';
 import { GUARDRAIL_FACTS, TAKEN_FACTS, PLAN_MIX_SLOTS, POT_FROM_FIND, sentenceHtml } from '../../reading/sentenceMarks.js';
 import { planYearSentence, stepSentence, ladderSentence, potSentence, WHERE_KEYS, stepKeysOf, STEP_FINDS } from '../../reading/where.js';
@@ -71,14 +74,27 @@ export function writtenWhen(doc) {
   return d.createdAt && dateGB(d.createdAt) !== dateGB(d.lockedAt) ? 'As written on ' + dateGB(d.createdAt) : 'As written when the plan was locked';
 }
 
-/** Report header (stands on its own in a PDF). */
-export function planDocumentHeaderHtml(doc) {
+/**
+ * The first step as the header says it (ruling Z1): what is taken a year before tax, from the one reader of the steps
+ * (`steps`, src/reading/income.js, as planDocumentHtml is handed them); an archived version (no reading) says the step as it
+ * was locked, labelled so, never as "a year before tax".
+ */
+export function firstStepText(d, steps = null) {
+  const s0 = d && Array.isArray(d.steps) ? d.steps[0] : null;
+  if (!s0) return '—';
+  const read = Array.isArray(steps) && steps.length === d.steps.length ? steps[0] : null;
+  return read ? money(read.beforeTax) + ' a year before tax, from age ' + esc(String(s0.fromAge))
+    : gbp(s0.amount) + ' a year from age ' + esc(String(s0.fromAge)) + ', as locked, counted as if every pound were taxed';
+}
+
+/** Report header (stands on its own in a PDF). `r.steps`: the one reader's steps (planDocumentHtml's). */
+export function planDocumentHeaderHtml(doc, r = {}) {
   const d = doc || {};
   const asOf = potsAsOfWords(d);
   return '<div class="rpt-header"><h1>Plan document — ' + esc(d.planName || 'My plan') + '</h1>'
     + '<div class="rpt-sub">Locked ' + markFact('lock.date', esc(dayWords(d.lockedAt) || dateGB(d.lockedAt))) + (d.createdAt && d.createdAt !== d.lockedAt ? ' · document created ' + esc(dateGB(d.createdAt)) : '') + ' · PensionTools v' + esc(d.appVersion || '') + ', engine ' + esc(d.engineVersion || '') + '</div>'
     + '<table class="rpt-meta"><tr><td>Strategy</td><td>' + (strategyNameOf(d.strategy) ? markFact('way.name', esc(strategyNameOf(d.strategy))) : '—') + '</td><td>' + (startedAtLock(d) ? 'Plan started' : 'Plan starts') + '</td><td>' + esc(d.decisionRun?.year0 || '—') + (asOf ? ' (locked in plan year ' + asOf.planYear + ')' : '') + '</td></tr>'
-    + '<tr><td>Priced on</td><td>' + gbp(d.pots?.sipp) + (d.pots?.isa ? (d.pots.isaPolicy === 'hold' ? ', ISA ' + gbp(d.pots.isa) + ' held aside' : ' + ISA ' + gbp(d.pots.isa)) : '') + (d.pots?.gia ? ' + GIA ' + gbp(d.pots.gia) : '') + '</td><td>First step</td><td>' + (d.steps?.[0] ? gbp(d.steps[0].amount) + '/yr from age ' + esc(String(d.steps[0].fromAge)) : '—') + '</td></tr></table></div>';
+    + '<tr><td>Priced on</td><td>' + gbp(d.pots?.sipp) + (d.pots?.isa ? (d.pots.isaPolicy === 'hold' ? ', ISA ' + gbp(d.pots.isa) + ' held aside' : ' + ISA ' + gbp(d.pots.isa)) : '') + (d.pots?.gia ? ' + GIA ' + gbp(d.pots.gia) : '') + '</td><td>First step</td><td>' + firstStepText(d, r && r.steps) + '</td></tr></table></div>';
 }
 
 const fmtPct = (v) => String(Math.round((+v || 0) * 100) / 100);
@@ -133,7 +149,7 @@ export function planDocumentHtml(doc, r = {}) {
   if (!d.timing) return '<div class="card"><p class="hint">No plan document yet.</p></div>';
   const t = d.timing;
   let h = '<div class="card pd">';
-  h += planDocumentHeaderHtml(d);
+  h += planDocumentHeaderHtml(d, { steps: r.steps });
   // 7.12.0: locked when its gilt ladder cost more than its pots — said once, at the top (V7's words)
   const ls = lockedShortOf(d);
   if (ls) h += '<div class="alert alert-warning" id="pdLockedShort">' + esc(PLAN.lockedShort.replace('{short}', '£' + ls.short.toLocaleString('en-GB'))) + '</div>';
@@ -165,11 +181,19 @@ export function planDocumentHtml(doc, r = {}) {
   }
   if (d.timeline?.length) {
     const anyContract = d.timeline.some((x) => x.contract > 0), anyLump = d.timeline.some((x) => x.lumpIn?.length || x.lumpOut?.length), anyLumpUse = d.timeline.some((x) => x.lump > 0);
-    const head = ['Plan year', 'Tax year', 'Age', 'Gross income', 'State Pension', 'Other / DB', ...(anyLumpUse ? ['From a lump sum'] : []), anyContract ? 'By contract' : 'From the pot', 'From the market'];
+    // each year's income before tax as it is taken (ruling Z1, src/reading/income.js yearTakenOf): the record's own figure
+    // (held as the engines read it, every pound taxed) converted as it is drawn, with the record's plan, bands and the
+    // plan's tax-free share (`r.taxFreeShare`); a version without the share (archived) says the figure as locked, labelled so
+    // (a way that buys its income pays the figure as held: that is what is taken, BeforeTax.takesAsDrawn)
+    const share = r.taxFreeShare == null || !Number.isFinite(+r.taxFreeShare) ? null : takesAsDrawn(d.strategy && d.strategy.id) ? +r.taxFreeShare : 0;
+    const P = (d.strategy && d.strategy.p) || null, lived = P && +P.yearOffset > 0 ? +P.yearOffset : 0;
+    const grossOf = (x) => { const k = x.y - lived; return share == null ? x.gross : Math.round(yearTakenOf(x.gross, { p: k < 0 ? null : P, k: Math.max(0, k), share, bands: d.assumptions, fixed: (+x.sp || 0) + (+x.other || 0) })); };
+    const head = ['Plan year', 'Tax year', 'Age', share == null ? 'Income as locked (every pound counted as taxed)' : 'Income before tax', 'State Pension', 'Other / DB', ...(anyLumpUse ? ['From a lump sum'] : []), anyContract ? 'By contract' : 'From the pot', 'From the market'];
     if (anyLump) head.push('Lump sums');
     const rows = d.timeline.map((x) => {
-      const fromPot = anyContract ? x.contract : Math.max(0, x.gross - x.sp - x.other - (x.lump || 0));
-      const cells = [String(x.y) + (x.lived ? ' <span class="hint">lived</span>' : '') + (x.cashYear ? ' <span class="hint">cash year</span>' : ''), esc(x.taxYear), String(x.age), gbp(x.gross), x.sp ? gbp(x.sp) : '—', x.other ? gbp(x.other) : '—', ...(anyLumpUse ? [x.lump ? gbp(x.lump) : '—'] : []), fromPot ? gbp(fromPot) : '—', x.market ? gbp(x.market) : '—'];
+      const gross = grossOf(x);
+      const fromPot = anyContract ? x.contract : Math.max(0, gross - x.sp - x.other - (x.lump || 0));
+      const cells = [String(x.y) + (x.lived ? ' <span class="hint">lived</span>' : '') + (x.cashYear ? ' <span class="hint">cash year</span>' : '') + (!x.lived && P && monthsOf(P, x.y - lived) < 12 ? ' <span class="hint">' + monthsOf(P, x.y - lived) + ' months</span>' : ''), esc(x.taxYear), String(x.age), gbp(gross), x.sp ? gbp(x.sp) : '—', x.other ? gbp(x.other) : '—', ...(anyLumpUse ? [x.lump ? gbp(x.lump) : '—'] : []), fromPot ? gbp(fromPot) : '—', x.market ? gbp(x.market) : '—'];
       if (anyLump) cells.push([...(x.lumpIn || []).map((l) => '▲ ' + esc(l.label) + ' ' + gbp(l.amount)), ...(x.lumpOut || []).map((l) => '▼ ' + esc(l.label) + ' ' + gbp(l.amount))].join('<br>') || '');
       return cells;
     });
@@ -177,7 +201,7 @@ export function planDocumentHtml(doc, r = {}) {
     // from that day at that plan year's figures (PlanFromToday.js, "The run's years") — said here, where the years are read.
     const asOf = potsAsOfWords(d);
     tl += '<div class="section-title" style="font-size:13px;margin-top:10px;">Year by year</div>' + table(head, rows)
-      + '<p class="hint">Gross income is the total for the year in today\'s money. "From the market" is the median future\'s contribution over and above the guaranteed layers' + (anyContract ? ' and the rungs bought by contract' : '') + '.'
+      + '<p class="hint">' + (share == null ? 'Income as locked is the total for the year in today\'s money, counted as if every pound were taxed.' : 'Income before tax is what is taken in the year (a first year of fewer months: those months), in today\'s money, with a tax-free part taken as the plan takes it.') + ' "From the market" is the median future\'s contribution over and above the guaranteed layers' + (anyContract ? ' and the rungs bought by contract' : '') + '.'
       + (asOf ? ' The plan was locked in plan year ' + asOf.planYear + ', on the pots as they stood in ' + esc(asOf.month) + ': plan year ' + asOf.planYear + ' here is the twelve months from that month, at plan year ' + asOf.planYear + '\'s figures, and each later year the twelve months after it. The years marked "lived" had already been lived: they show the plan\'s own figures, and nothing was run or bought for them.' : '')
       + '</p>';
   }

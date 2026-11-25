@@ -52,6 +52,17 @@ export function documentStepsOf(plan, now, doc = null) {
   try { const r = incomeStepsOf(plan, contextFor(plan, { now })); return r.locked && r.steps.length ? r.steps : null; } catch { return null; }
 }
 
+/**
+ * The tax-free share the plan document's years are read at (ruling Z1: its year table's income before tax, as taken), from
+ * the one reader (incomeStepsOf's taxFreeShare: the plan's own access, locked with it); null for any version but the plan's
+ * own current document (an archived one is said as it was locked, labelled so).
+ */
+export function documentShareOf(plan, now, doc = null) {
+  if (!plan) return null;
+  if (doc && JSON.stringify((plan.planDocument || {}).steps || null) !== JSON.stringify(doc.steps || null)) return null;
+  try { const r = incomeStepsOf(plan, contextFor(plan, { now })); return r.locked ? r.taxFreeShare : null; } catch { return null; }
+}
+
 /** "We assumed …" beside the access choice when the plan holds none (src/reading/access.js); '' once chosen or locked. */
 export function accessAssumedNoteOf(plan) {
   if (!plan) return '';

@@ -164,7 +164,7 @@ function setUpOf(I, plan, key, ym, typed, now) {
   const sp = ctx.statePension || {};
   return {
     key, year: yearWords(key), month: monthWords(ym), isApril: ctx.isApril, remaining: ctx.remainingMonths, prevMonth: ctx.isApril ? null : monthWords(addMonth(ym, -1)),
-    source: ctx.suggestionSource, declining: (ctx.declineRate || 0) > 0, declinePct: Math.round((ctx.declineRate || 0) * 100),
+    source: ctx.suggestionSource, schedulePrices: +ctx.planYear > 0, declining: (ctx.declineRate || 0) > 0, declinePct: Math.round((ctx.declineRate || 0) * 100),
     suggestion: Math.round(takenBeforeTax(suggestion, takenOpts)), cpiPct: Math.round(cpi * 1000) / 10, defaults: ctx.defaults,
     statePension: (() => { const f = statePensionFact(sp, ym, planSpYearly(I)); return { ...f, slots: { ...f.slots, year: yearWords(key) } }; })(), statePensionLater: sp.amount > 0 && sp.startYm && sp.startYm > ym ? { monthly: pounds(sp.monthlyFull || 0), from: sp.startDate || sp.startYm } : null,
     bands: bandsAssumptionText(final),

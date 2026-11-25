@@ -102,7 +102,11 @@ export const MONTH = {
     suggestion: {
       chain: 'With prices up {cpi}%, this year’s income before tax would be {amount} a year.',
       declining: 'Your plan’s spending falls a little each year (about {pct}% a year at today’s prices). Last year’s income rises with prices, less that fall, to {amount} a year before tax.',
-      'budget-schedule': 'From your plan’s income for this year, raised to this year’s prices: {amount} a year before tax.'
+      // (ruling Z1) the year it is for, and what it counts: never "raised to this year's prices" for a figure that is not
+      // a price rise (a plan's first tax year is its own figure; a later one has the prices since the plan began)
+      'budget-schedule': '{lead}: {amount} a year before tax.',
+      scheduleLead: 'Your plan’s income for {year}, with the income that comes in anyway in {year}',
+      scheduleLeadPrices: 'Your plan’s income for {year}, raised with prices since the plan began, with the income that comes in anyway in {year}'
     },
     /** One fact (TaxYearSetUp.statePensionFact, 7.12.0): "no amount" only when the plan truly holds none. */
     statePension: {

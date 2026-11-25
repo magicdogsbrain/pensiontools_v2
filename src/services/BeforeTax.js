@@ -19,6 +19,7 @@
 import { planDrawdown } from './DrawdownStrategy.js';
 import { grossToNet, netToGross } from './TaxCalculator.js';
 import { taxFreeFractionOf } from './FlexibleAccess.js';
+import { monthsOf, spIn, otherIn } from './PaidYear.js';
 
 const DEFAULT_BANDS = { pa: 12570, brl: 50270, hrl: 125140 };
 const n = (v, d = 0) => (Number.isFinite(+v) ? +v : d);
@@ -64,3 +65,25 @@ export function takenOfTarget(target, settings, { fixed = 0, bands = null } = {}
   const b = bands || {};
   return Math.round(takenBeforeTax(t, { taxFreeFraction: f, fixed, pa: b.pa, brl: b.brl, hrl: b.hrl }));
 }
+
+/**
+ * (ruling Z1) A year's figure as the engines hold it (the target: every pound taxed) for the run's year `k` of plan `p`, as
+ * taken before tax: the year for the months it has (services/PaidYear.js: a part year is the rate of its months, then its
+ * share) with the income that comes in anyway in it (`fixed`, in pounds of that year; absent, the plan's own State Pension
+ * and other income in it, PaidYear spIn / otherIn), at the tax-free share `share`. With no share: the figure. No rounding.
+ */
+export function yearTakenOf(target, { p = null, k = 0, share = 0, bands = null, fixed = null } = {}) {
+  const t = +target || 0;
+  if (!(share > 0) || !(t > 0)) return t;
+  const m = p ? monthsOf(p, k) : 12, r = m / 12;
+  const f = fixed != null ? Math.max(0, +fixed || 0) : p ? spIn(p, k) + otherIn(p, k) : 0;
+  const b = bands || {};
+  return takenBeforeTax(t / r, { taxFreeFraction: share, fixed: f / r, pa: b.pa, brl: b.brl, hrl: b.hrl }) * r;
+}
+
+/**
+ * The ways of drawing whose engine takes from the pension the figure planDrawdown works out (SimulationEngine: Pots &
+ * Valves and Buckets in order), so a tax-free part takes less before tax than the figure held. A way that buys its income
+ * pays the figure as held (its rungs and floors are bought on it), so what is taken is that figure: no conversion.
+ */
+export const takesAsDrawn = (strategyId) => (strategyId || 'pots-and-valves') === 'pots-and-valves' || strategyId === 'buckets-in-order';

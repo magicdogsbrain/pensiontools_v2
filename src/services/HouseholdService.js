@@ -21,6 +21,7 @@ import { deriveTiming } from './PlanTiming.js';
 import { runPositionOf } from './PlanFromToday.js';
 import { grossToNet, netToGross } from './TaxCalculator.js';
 import { oneAnswer } from './OneAnswer.js';
+import { takenOfTarget } from './BeforeTax.js';
 
 /**
  * Per-person yearly gross target (today's money): the schedule the ENGINES run (scheduleFromSteps — the saved per-year
@@ -52,9 +53,10 @@ export function spFor(settings, now = new Date()) {
 }
 
 /**
- * Deterministic household income timeline (today's money, gross-equivalent): what the household
- * needs each year, what is guaranteed (two State Pensions, DB floors, other income), and what
- * must come from the pots — with the years before both State Pensions are in payment flagged (`beforeStatePension`).
+ * Deterministic household income timeline (today's money, before tax): what the household needs each year — each plan's
+ * year before tax as it is taken (`needA`, `needB`: BeforeTax.takenOfTarget, ruling Z1; `targetA`, `targetB` the figures as
+ * the engines hold them) — what is guaranteed (two State Pensions, DB floors, other income), and what must come from the
+ * pots — with the years before both State Pensions are in payment flagged (`beforeStatePension`).
  * `year` counts from today (0 is this year); `calendarYear` is that year's number.
  * @returns {Array<{year, calendarYear, needA, needB, need, spA, spB, db, other, guaranteed, drawNeed, beforeStatePension, endedA, endedB}>}
  */
@@ -76,17 +78,23 @@ export function householdIncomeTimeline(setA, setB, labelYears = null, now = new
     // own start year (it may pay while they still work); it only gains the end.
     const endedA = yA > durA, endedB = yB > durB;
     const inA = !workingA && !endedA, inB = !workingB && !endedB;
-    const needA = inA ? targetForYear(setA, Math.max(0, yA)) : 0;
-    const needB = inB ? targetForYear(setB, Math.max(0, yB)) : 0;
+    const targetA = inA ? targetForYear(setA, Math.max(0, yA)) : 0;
+    const targetB = inB ? targetForYear(setB, Math.max(0, yB)) : 0;
     const spA = (inA && (yA >= a.startYear || a.paidNow)) ? a.annual : 0;
     const spB = (inB && (yB >= b.startYear || b.paidNow)) ? b.annual : 0;
-    const db = (setA.dbAmount > 0 && !endedA && yA >= (setA.dbStartYear || 0) ? setA.dbAmount : 0)
-             + (setB.dbAmount > 0 && !endedB && yB >= (setB.dbStartYear || 0) ? setB.dbAmount : 0);
-    const other = (inA ? (setA.other || 0) : 0) + (inB ? (setB.other || 0) : 0);
+    const dbA = setA.dbAmount > 0 && !endedA && yA >= (setA.dbStartYear || 0) ? setA.dbAmount : 0;
+    const dbB = setB.dbAmount > 0 && !endedB && yB >= (setB.dbStartYear || 0) ? setB.dbAmount : 0;
+    const db = dbA + dbB;
+    const otherA = inA ? (setA.other || 0) : 0, otherB = inB ? (setB.other || 0) : 0;
+    const other = otherA + otherB;
+    // what each needs a year before tax, as it is taken (ruling Z1, services/BeforeTax.js takenOfTarget): the target the
+    // engines read (every pound taxed) with the plan's own tax-free share and the income that comes in anyway that year
+    const needA = inA ? takenOfTarget(targetA, setA, { fixed: spA + dbA + otherA, bands: bandsOf(setA) }) : 0;
+    const needB = inB ? takenOfTarget(targetB, setB, { fixed: spB + dbB + otherB, bands: bandsOf(setB) }) : 0;
     const need = needA + needB;
     const guaranteed = spA + spB + db + other;
     rows.push({
-      year: c, calendarYear: now.getFullYear() + c, needA, needB, need, spA, spB, db, other, guaranteed, workingA, workingB, endedA, endedB,
+      year: c, calendarYear: now.getFullYear() + c, needA, needB, targetA, targetB, need, spA, spB, db, other, guaranteed, workingA, workingB, endedA, endedB,
       drawNeed: Math.max(0, need - guaranteed),
       beforeStatePension: (!workingA && a.annual > 0 && yA < a.startYear && !a.paidNow) || (!workingB && b.annual > 0 && yB < b.startYear && !b.paidNow)
     });

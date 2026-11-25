@@ -74,7 +74,7 @@ describe('the plan document says the year before tax as taken', () => {
     expect(h).toMatch(/£12,01[6-8]/);
     expect(h).toContain('£28,840');
     expect(h).toMatch(/£6,78[8-9]|£6,790/);
-    expect(h).toContain('5 months');
+    expect(h).toContain('part year');
     const old = planDocumentHtml(doc, {});
     expect(old).toContain('Income as locked (every pound counted as taxed)');
     expect(old).toContain('£29,858');

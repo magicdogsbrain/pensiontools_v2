@@ -67,7 +67,7 @@ export const C = {
     partnerTitle: 'Your partner',
     partnerDone: 'That is all we need for a first answer for the two of you.',
     moreTitle: 'More detail (all optional)',
-    stays: 'Your figures stay in this browser until you choose to save them as a plan.',
+    stays: 'Your figures stay in this window until you choose to save them as a plan.',
     tooYoung: 'You cannot normally take a pension before {age}. We have started at {age}.',
     /** Still paying in, and "Start taking it" left alone: the form starts the money at the State Pension age. */
     payingInStart: 'As you are still paying in, we have started at your State Pension age, {age}. Change it to the age you will stop paying in.',

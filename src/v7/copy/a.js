@@ -95,7 +95,7 @@ export const A = {
     /** The same, once the partner's stop is their own (couples-different-years.md 2.1). */
     partnerDoneApart: 'That is all we need for a first answer for the two of you.',
     moreTitle: 'More detail (all optional)',
-    stays: 'Your figures stay in this browser until you choose to save them as a plan.',
+    stays: 'Your figures stay in this window until you choose to save them as a plan.',
     /** Under the spending choice once a level is picked: the level's figure, by household (see `levels`). */
     levelIs: '{level}: {amount} a month for {who} (Retirement Living Standards).',
     levelWho: { single: 'one person', couple: 'a couple' },

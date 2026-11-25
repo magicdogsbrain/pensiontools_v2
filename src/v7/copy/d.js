@@ -80,7 +80,7 @@ export const D = {
     partnerTitle: 'Your partner',
     partnerDone: 'That is all we need for a first answer for the two of you.',
     moreTitle: 'More detail (all optional)',
-    stays: 'Your figures stay in this browser until you choose to keep them as a plan.',
+    stays: 'Your figures stay in this window until you choose to keep them as a plan.',
     /** Under the spending choice once a level is picked. */
     levelIs: '{level}: {amount} a month for {who} (Retirement Living Standards).',
     levelWho: { single: 'one person', couple: 'a couple' },

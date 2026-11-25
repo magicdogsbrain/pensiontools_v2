@@ -94,7 +94,7 @@ export const B = {
     /** The same, once the partner's stop is their own (couples-different-years.md 2.1). */
     partnerDoneApart: 'The number and what to pay in are for the two of you together.',
     moreTitle: 'More detail (all optional)',
-    stays: 'Your figures stay in this browser until you choose to save them as a plan.',
+    stays: 'Your figures stay in this window until you choose to save them as a plan.',
     levelIs: '{level}: {amount} a month for {who} (Retirement Living Standards).',
     levelWho: { single: 'one person', couple: 'a couple' },
     /** Under the three boxes of "A share of your pay" (6.46.0): what lands each month, from the figures typed. */

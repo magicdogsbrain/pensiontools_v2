@@ -654,7 +654,9 @@ function planStep(C) {
   else if (!locked) {
     // the split the plan draws on (its settings' pots are the pension today on a plan still saving: PlanReading.withSaversPensionToday)
     const potStored = r0(ss.equityMin) + r0(ss.bondMin) + r0(ss.cashTarget) + r0(ss.diversifierStart);
-    const k = potStored > 0 && !ss.potsNotSet ? potSipp / potStored : 1;
+    // (wrap-up) no pot given (straight from the wizard, its pots the planner's defaults): the split is £0, as the Pots page and
+    // the full view's Settings say — never the defaults as the person's
+    const k = ss.potsNotSet ? 0 : potStored > 0 ? potSipp / potStored : 1;
     figures.shares = r0(ss.equityMin * k); figures.bonds = r0(ss.bondMin * k); figures.cash = r0(ss.cashTarget * k);
     pots.push(line('pots.split', [money('shares'), ' shares, ', money('bonds'), ' bonds, ', money('cash'), ' cash'], figures, src));
   }
@@ -740,9 +742,11 @@ function planStep(C) {
   if (sm.bought) mix.push(line('mix.bought', [], figures, src, { strategy: sid }));
   else {
     mix.push(line(sm.values.held === 'funds' ? 'mix.heldFunds' : sm.values.held === 'split' ? 'mix.heldSplit' : 'mix.heldLevel', [], figures, src, sm.values.held === 'level' ? { level: sm.values.level } : {}));
-    figures.mixShares = sm.amounts.equity; figures.mixBonds = sm.amounts.bond; figures.mixCash = sm.amounts.cash;
+    // (wrap-up) no pot given: £0 in each, as under Pots, never the planner's defaults
+    const noPot = !locked && !!ss.potsNotSet;
+    figures.mixShares = noPot ? 0 : sm.amounts.equity; figures.mixBonds = noPot ? 0 : sm.amounts.bond; figures.mixCash = noPot ? 0 : sm.amounts.cash;
     const parts = [money('mixShares'), ' shares, ', money('mixBonds'), ' bonds, ', money('mixCash'), ' cash'];
-    if (sm.amounts.div > 0) { figures.mixDiv = sm.amounts.div; parts.push(', ', money('mixDiv'), ' gold and trend funds'); }
+    if (!noPot && sm.amounts.div > 0) { figures.mixDiv = sm.amounts.div; parts.push(', ', money('mixDiv'), ' gold and trend funds'); }
     mix.push(line('mix.amounts', parts, figures, src));
     if (sm.values.held === 'funds') { figures.mixFunds = sm.values.funds.length; mix.push(line('mix.funds', [count('mixFunds'), ' fund' + (sm.values.funds.length === 1 ? '' : 's') + ' on the list'], figures, src)); }
     mix.push(line(sm.amounts.div > 0 ? 'mix.sleeveOn' : 'mix.sleeveOff', [], figures, src));

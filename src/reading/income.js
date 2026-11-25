@@ -6,7 +6,8 @@
  * what is wanted after tax). What a person reads is:
  *   beforeTax       what is TAKEN in that year before tax (services/BeforeTax.js takenOfTarget): with a quarter of each
  *                   pension payment tax-free (the plan's access method) less is taken for the same income; the income that
- *                   comes in anyway that year (State Pension, final-salary, other) is counted as it is
+ *                   comes in anyway that year (State Pension, final-salary, other) is counted as it is. Only for a way
+ *                   that draws (ruling Z1a): a way that buys its income (a ladder, a floor) pays the figure held
  *   monthAfterTax   what reaches the bank a month: the stored figure after tax on the plan's own bands, over twelve
  *
  * Bands: a locked plan's are its document's (assumptions.pa/brl/hrl), every other plan's its own settings' (about.js
@@ -75,6 +76,13 @@ export function stepFiguresOf(stored, { settings = {}, bands, fixed = 0 } = {}) 
   return { beforeTax: takenOfTarget(+stored || 0, settings, { fixed: +fixed || 0, bands: b }), monthAfterTax: Math.round(netOf(+stored || 0, b) / 12) };
 }
 
+/** The way a plan draws by: a locked plan's document's, else its settings' (absent = Pots & Valves). */
+function wayOf(plan, ss) {
+  const doc = isLocked(plan) && plan.planDocument && isObj(plan.planDocument.strategy) ? plan.planDocument.strategy.id : null;
+  const own = plan && plan.stressTool && isObj(plan.stressTool.settings) ? plan.stressTool.settings.strategyId : null;
+  return doc || (ss && ss.strategyId) || own || 'pots-and-valves';
+}
+
 /** The steps as stored and read today: a locked plan's document's, else the settings' (from the plan's own start). */
 function storedSteps(plan, ss, timing) {
   const doc = isLocked(plan) ? plan.planDocument : null;
@@ -96,7 +104,8 @@ export function incomeStepsOf(plan, ctx = {}) {
   const bands = bandsFor(plan, ctx);
   const ageNow = num(timing.shapeAgeNow);
   const access = accessOf(plan, ctx);
-  const settings = { ...ss, accessMethod: access.method };
+  // (ruling Z1a) the way the plan draws by (a locked plan's document's): a way that buys its income says the figure held
+  const settings = { ...ss, accessMethod: access.method, strategyId: wayOf(plan, ss) };
   // a plan nobody gave an income (PlanReading.withPensionToday's `incomeNotSet`: only an age, or straight from the full
   // view's wizard) reads none: no step, no figure, in both views (the full view's box is empty; the planner's default is
   // never said as the person's). A locked plan reads its document's steps.

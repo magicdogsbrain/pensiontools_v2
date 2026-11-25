@@ -56,11 +56,13 @@ export const taxFreeShareOf = (settings) => taxFreeFractionOf(settings || {}, []
  * (7.12.0) A plan's own figure for a year (an income step, a try, the aim: held as the engines read it) as every page says
  * "a year before tax": what is taken, with the plan's own tax-free share (its access method) and the income that comes in
  * anyway that year (`fixed`, taken as it is). Whole pounds. With no tax-free share it is the figure as held.
+ * (ruling Z1a) Only a way that draws converts (`settings.strategyId`, takesAsDrawn below; none named = Pots & Valves): a
+ * way that buys its income buys and pays the figure as held, so that is what it takes before tax.
  * `bands` { pa, brl, hrl } (the plan's own; the defaults otherwise).
  */
 export function takenOfTarget(target, settings, { fixed = 0, bands = null } = {}) {
   const t = n(target);
-  const f = taxFreeShareOf(settings);
+  const f = takesAsDrawn(settings && settings.strategyId) ? taxFreeShareOf(settings) : 0;
   if (!(f > 0) || !(t > 0)) return Math.round(t);
   const b = bands || {};
   return Math.round(takenBeforeTax(t, { taxFreeFraction: f, fixed, pa: b.pa, brl: b.brl, hrl: b.hrl }));

@@ -15,6 +15,7 @@
  * `ss` is the plan's effective Stress settings, `ds` its Decision settings (as saved). Pure.
  */
 import { defaultSpYear } from '../../services/IncomeSchedule.js';
+import { taxYearLabel } from '../../services/PlanTiming.js';
 import { DRAWDOWN_DEFAULTS, SIMULATION_DEFAULTS, TAX_DEFAULTS, ISA_DEFAULTS } from '../../constants.js';
 
 /** The keys the five sections show, by section (the ledger's names: 'stress.x', 'decision.x'). */
@@ -62,8 +63,9 @@ export const OPTIONS = Object.freeze([
     facts: (ss) => [choice('rises', ss.dbIndexation || 'cpi')] },
   { id: 'inc.state-pension-old', keys: ['stress.statePension', 'stress.statePensionYear', 'decision.statePension', 'decision.statePensionYear'],
     set: (ss) => !ss.spStartDate && num(ss.statePension) > 0,
-    // (7.12.0) the plan year the runs start it in (IncomeSchedule.defaultSpYear: the stored 12 is the old default, age 67)
-    facts: (ss) => [money('yearly', ss.statePension), count('fromYear', defaultSpYear(ss))] },
+    // (7.12.0) the plan year the runs start it in (IncomeSchedule.defaultSpYear: the stored 12 is the old default, age 67),
+    // said as the tax year it starts (ruling Z5b: never "years after the first tax year"); the count only with no start year
+    facts: (ss) => [money('yearly', ss.statePension), num(ss.firstTaxYear) ? text('fromYear', taxYearLabel(num(ss.firstTaxYear) + defaultSpYear(ss))) : count('fromYear', defaultSpYear(ss))] },
   { id: 'tax.bands', keys: ['stress.pa', 'stress.brl', 'stress.hrl'],
     set: (ss) => (num(ss.pa) ?? TAX_DEFAULTS.PERSONAL_ALLOWANCE) !== TAX_DEFAULTS.PERSONAL_ALLOWANCE || (num(ss.brl) ?? TAX_DEFAULTS.BASIC_RATE_LIMIT) !== TAX_DEFAULTS.BASIC_RATE_LIMIT || (num(ss.hrl) ?? TAX_DEFAULTS.HIGHER_RATE_LIMIT) !== TAX_DEFAULTS.HIGHER_RATE_LIMIT,
     facts: (ss) => [money('pa', ss.pa ?? TAX_DEFAULTS.PERSONAL_ALLOWANCE), money('brl', ss.brl ?? TAX_DEFAULTS.BASIC_RATE_LIMIT), money('hrl', ss.hrl ?? TAX_DEFAULTS.HIGHER_RATE_LIMIT)] },
@@ -127,8 +129,9 @@ export const OPTIONS = Object.freeze([
   { id: 'lock.unlock', keys: ['decision.unlockedAt', 'decision.unlockCount'],
     set: (ss, ds) => num(ds.unlockCount) > 0,
     facts: (ss, ds) => [count('times', ds.unlockCount ?? 0), date('last', ds.unlockedAt || '')] },
+  // (ruling Z5b) machinery: where Month by month's settings were copied from is never a change the person made
   { id: 'month.seeded', keys: ['decision.seededFrom'],
-    set: (ss, ds) => !!ds.seededFrom,
+    set: () => false,
     facts: (ss, ds) => [text('from', ds.seededFrom || '')] },
   { id: 'mach.configured', keys: ['stress.configured', 'decision.configured'],
     set: () => false,

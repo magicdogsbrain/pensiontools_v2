@@ -105,7 +105,7 @@ function Fact({ rowId, f }) {
   let value;
   if (f.kind === 'yesNo') value = <span data-key={key} data-value={f.v ? 1 : 0}>{f.v ? PLAN.yes : PLAN.no}</span>;
   else if (f.kind === 'choice') value = <span data-key={key} data-choice={f.v}>{PLAN.choices[f.v] || f.v}</span>;
-  else if (f.kind === 'text') value = <span data-key={key} data-text={f.v}>{f.v || '—'}</span>;
+  else if (f.kind === 'text') { const vw = PLAN.options[rowId] && PLAN.options[rowId].values && PLAN.options[rowId].values[f.k]; value = <span data-key={key} data-text={f.v}>{(vw && vw[f.v]) || f.v || '—'}</span>; }
   else value = <Money source={{ v: f.v }} k="v" kind={f.kind} />;
   return <span class="plan-fact">{label}: {value}</span>;
 }

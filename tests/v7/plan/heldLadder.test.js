@@ -139,7 +139,8 @@ describe('Alex: living on the ladder, holding more than the plan', () => {
 describe('Jo: two gilts held below the plan\'s units, £5,000 cash, nothing else', () => {
   const h = heldLadder(living(joLivingRaw()), { today: TODAY });
   it('says which gilts are below, and the cash years against the cash alone', () => {
-    expect([h.gilts.held, h.gilts.total, h.gilts.under, h.gilts.none]).toEqual([12, 14, 2, 0]);
+    // restated by ruling Z3 (25 Nov 2026): a gilt held in part is held (was 12 of 14, the gilts held in full only)
+    expect([h.gilts.held, h.gilts.total, h.gilts.under, h.gilts.none]).toEqual([14, 14, 2, 0]);
     const tr31 = h.gilts.rows.find((r) => r.code === 'TR31'), t41 = h.gilts.rows.find((r) => r.code === 'T41');
     expect(tr31).toMatchObject({ planUnits: 15500, heldUnits: 2000, diff: -13500, state: 'under', money: round10(13500 * order('TR31').indexRatio) });
     expect(t41).toMatchObject({ planUnits: 7800, heldUnits: 500, diff: -7300, state: 'under', money: round10(7300 * order('T41').indexRatio) });

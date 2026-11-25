@@ -87,7 +87,8 @@ describe('what the cash years need, and what Alex\'s pension holds for them', ()
     const tr31 = h.gilts.rows.find((r) => r.code === 'TR31'), t41 = h.gilts.rows.find((r) => r.code === 'T41');
     expect(tr31).toMatchObject({ planUnits: 15500, heldUnits: PART.TR31, diff: PART.TR31 - 15500, state: 'under', years: [2032] });
     expect(t41).toMatchObject({ planUnits: 7800, heldUnits: PART.T41, diff: PART.T41 - 7800, state: 'under', years: [2042] });
-    expect([h.gilts.held, h.gilts.total]).toEqual([12, 14]);
+    // restated by ruling Z3 (25 Nov 2026): a gilt held in part is held (was 12 of 14, the gilts held in full only)
+    expect([h.gilts.held, h.gilts.total]).toEqual([14, 14]);
   });
 
   it('one reader for every view: the move, the home and the full view say the same; "What is covered" says nothing', () => {

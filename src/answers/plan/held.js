@@ -324,10 +324,12 @@ export function heldLadderView(h) {
       if (g.over === 0) figure.push(S('allSame', { total: String(g.total) }));
       else figure.push(S('allHeld', { total: String(g.total) }), S('over', { over: String(g.over), isAre: isAre(g.over) }));
     } else {
-      figure.push(S('someHeld', { held: String(g.held), total: String(g.total) }));
-      if (g.under > 0 && g.none > 0) figure.push(S('underNone', { under: String(g.under), isAre: isAre(g.under), none: String(g.none), noneIsAre: isAre(g.none) }));
-      else if (g.under > 0) figure.push(S('under', { under: String(g.under), isAre: isAre(g.under) }));
-      else if (g.none > 0) figure.push(S('none', { none: String(g.none), isAre: isAre(g.none) }));
+      // (ruling Z3) held = any of it held: how many in full (or above) and how many below the plan's units, then those not held
+      const same = g.rows.filter((r) => r.state === 'same').length;
+      const parts = [same > 0 ? S('partFull', { n: String(same) }) : null, g.over > 0 ? S('partOver', { n: String(g.over) }) : null, g.under > 0 ? S('partUnder', { n: String(g.under) }) : null].filter(Boolean);
+      const partsSaid = parts.length === 3 ? S('parts3', { a: parts[0], b: parts[1], c: parts[2] }) : parts.length === 2 ? S('parts2', { a: parts[0], b: parts[1] }) : parts[0];
+      figure.push(g.held > 0 && parts.length ? S('someHeldParts', { held: String(g.held), total: String(g.total), parts: partsSaid }) : S('someHeld', { held: String(g.held), total: String(g.total) }));
+      if (g.none > 0) figure.push(S('noneHeld', { none: String(g.none), isAre: isAre(g.none) }));
     }
     if (g.over > 0) under.push(S('belowOver'));
     if (g.under + g.none > 0) under.push(S(g.chosen ? 'belowChosen' : 'belowUnder'));

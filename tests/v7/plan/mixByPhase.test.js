@@ -70,7 +70,8 @@ describe('Living on it: "Your plan\'s mix" is what is held, never a move', () =>
     expect(I.kind).toBe('ladder');
     // the plan's gilts: two held below the plan's units
     expect(I.gilts.rows.filter((r) => r.state !== 'same').map((r) => [r.code, r.state, r.heldUnits, r.planUnits])).toEqual([['TR31', 'under', 2000, 15500], ['T41', 'under', 500, 7800]]);
-    expect(I.gilts.held).toBe(I.gilts.total - 2);
+    // restated by ruling Z3 (25 Nov 2026): a gilt held in part is held (was 12 of 14, the gilts held in full only)
+    expect(I.gilts.held).toBe(I.gilts.total);
     // every line beside the plan's gilts, with the day a gilt matures and no tax year
     expect(I.lines.map((x) => [x.label, x.kind, x.matures])).toEqual([
       ['4 1/8% Treasury Gilt 2027', 'gilt', '2027-01-29'], ['4¼% Treasury Gilt 2027', 'gilt', '2027-12-07'], ['1 5/8% Treasury Gilt 2028', 'gilt', '2028-10-22'],
@@ -89,7 +90,8 @@ describe('Living on it: "Your plan\'s mix" is what is held, never a move', () =>
     expect(text).not.toMatch(/what to buy and sell|Next: (buy|sell)|Totals: buy|What skipping it costs|By [A-Z][a-z]+ \d{4}: (buy|sell)|proceeds pay for the ladder|more than the rung needs/);
     expect(text).toContain(HELD.lead);
     expect(text).not.toContain(MOVE.held.lead);
-    expect(one(root, `${T}.heldLadder.figure`).textContent).toBe('12 of 14 of your plan’s gilts are held.');
+    // restated by ruling Z3 (25 Nov 2026): a gilt held in part is held (was 12 of 14, the gilts held in full only)
+    expect(one(root, `${T}.heldLadder.figure`).textContent).toBe('14 of 14 of your plan’s gilts are held: 12 in full, 2 below the plan’s units.');
     const tr31 = one(root, `${T}.heldLadder.gilts`).querySelector('tr[data-key="gilt:TR31"]');
     expect([...tr31.querySelectorAll('td')].map((td) => td.textContent).slice(0, 4)).toEqual(['0 1/8% Index-linked Treasury Gilt 2031 (TR31)', '2032/33', '15,500', '2,000']);
     const also = one(root, `${T}.heldLadder.also`).textContent;
@@ -116,7 +118,7 @@ describe('Living on it: "Your plan\'s mix" is what is held, never a move', () =>
     const html = unmarked(transitionHtml({ doc: p.planDocument, target: mi.target, diff: mi.diff, seq: null, prog: mi.prog, holdings: p.holdings, gaps: ((transitionHeld(p, p.holdings, noon(TODAY)) || {}).gaps || null), held }));
     expect(html).not.toMatch(/>Sell<|>Buy<|Totals: buy|When — a schedule|toggleTransitionDone|Next: <strong>|Things the schedule assumes/);
     expect(html).toContain(HELD.lead);
-    expect(html).toContain('12 of 14 of your plan’s gilts are held.');
+    expect(html).toContain('14 of 14 of your plan’s gilts are held: 12 in full, 2 below the plan’s units.');   // ruling Z3
     expect(html).toContain('<td data-label="When">29 January 2027</td>');
     expect(html).not.toMatch(/counted toward \d{4}|mature in those years/);
   });
@@ -128,7 +130,7 @@ describe('Living on it: "Your plan\'s mix" is what is held, never a move', () =>
     expect(JSON.stringify(tool.result)).not.toMatch(/moves done|ticked/);
     // the gilts held as the page counts them; no "Optional…" (that is the move's) on the step
     expect(tool.figures).toMatchObject({ bought: V.heldInfo.gilts.held, rungs: V.heldInfo.gilts.total });
-    expect(tool.result.text).toBe('12 of 14 gilts held');
+    expect(tool.result.text).toBe('14 of 14 gilts held');   // ruling Z3: a gilt held in part is held (was 12 of 14)
     expect(planPage([{ plan: p }], p.id, 'move', { today: TODAY }).steps.find((x) => x.id === 'move').notes).toEqual([]);
   });
   it('a pot plan living on it: the home says how much of the plan\'s mix is held, never moves done', () => {

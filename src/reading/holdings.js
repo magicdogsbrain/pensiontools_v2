@@ -10,9 +10,8 @@
  *                                         condition for counting (R9), and each line's part is carried (`roles`). Otherwise
  *                                         the plan with its marks (PlanReading.moveInputs, as before).
  *   giltsCountOf(T, D, { agreed })        the ONE "n of m gilts held": { held, part, total, counted } — rungs held in full (or
- *                                         more), rungs held in part, the plan's gilts; `counted` is what "n" says: once the
- *                                         person said this is how they want to hold it (`agreed`), a gilt of the plan they hold
- *                                         in part is held as they chose, so what they hold by choice is never read as 0.
+ *                                         more), rungs held in part, the plan's gilts; `counted` is what "n" says (ruling Z3):
+ *                                         a gilt is held when any of it is held, so the gilts held in full and in part.
  *                                         Never a gilt set against a year by when it matures (R9).
  *   ladderGapsOf(T, D)                    the ONE reading of a ladder's gaps: { uncovered (tax years with no gilt held), parts
  *                                         (the plan's gilts held in part) } — a gilt held in part is never "not held yet"
@@ -79,7 +78,10 @@ export function giltsCountOf(T, D, { agreed = false } = {}) {
   const total = D.rungs ? D.rungs.needed : (T.lines || []).length;
   const held = D.rungs ? D.rungs.held : (D.hold || []).filter((h) => Array.isArray(h.taxYears)).length;
   const part = partRowsOf(D).length;
-  return { held, part, total, counted: agreed ? Math.min(total, held + part) : held };
+  // (ruling Z3) a gilt of the plan is held when any of it is held: `counted` is those held in full and those held in part,
+  // agreed or not (`agreed` is kept for the callers; it no longer changes the count)
+  void agreed;
+  return { held, part, total, counted: Math.min(total, held + part) };
 }
 
 /**

@@ -95,8 +95,10 @@ describe('a saver waiting for the move window', () => {
 describe('the one count, and the order sheet from the same diff', () => {
   const T = { kind: 'ladder', lines: [{ key: 'gilt:A' }, { key: 'gilt:B' }, { key: 'gilt:C' }] };
   const D = { rungs: { held: 1, needed: 3 }, buy: [{ kind: 'gilt', key: 'gilt:B', heldUnits: 400, units: 600 }, { kind: 'gilt', key: 'gilt:C', heldUnits: 0, units: 900 }], hold: [] };
-  it('n of m is the plan\'s gilts held in full; once what is held was accepted, a gilt held in part is held as chosen', () => {
-    expect(giltsCountOf(T, D)).toEqual({ held: 1, part: 1, total: 3, counted: 1 });
+  // restated by ruling Z3 (25 Nov 2026): a gilt is held when any of it is held, so "n" counts the gilts held in part before
+  // the agreement too (was counted: 1, the gilts held in full only); `held` and `part` still say which is which
+  it('n of m is the plan\'s gilts held in full or in part; once what is held was accepted, the same count', () => {
+    expect(giltsCountOf(T, D)).toEqual({ held: 1, part: 1, total: 3, counted: 2 });
     expect(giltsCountOf(T, D, { agreed: true })).toEqual({ held: 1, part: 1, total: 3, counted: 2 });
     expect(giltsCountOf({ kind: 'buckets' }, D)).toBe(null);
   });

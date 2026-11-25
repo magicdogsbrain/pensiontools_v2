@@ -143,9 +143,9 @@ export function heldLadder(plan, { today, life, reading = null } = {}) {
       const note = r.cashNow ? 'cashNow' : r.paid ? 'paid' : !r.matures ? (code ? 'notListed' : 'unknown') : null;
       const conv = h ? conventionalEvidence(h) : null;
       const p = h && r.matures && !r.paid && conv === true && num(h.units) > 0 ? standInPays(h, { today: now }) : null;
-      return { at: r.at, label: r.label, kind: 'gilt', value: r0(r.value), matures: r.matures || null, pays: r.cashNow ? r0(r.pays) : p ? p.amount : null, fixed: !!(p && p.fixed), indexLinked: conv === false && !r.paid, note, forYears: forYearsOf(r.at) };
+      return { at: r.at, label: r.label, kind: 'gilt', wrapper: r.wrapper || 'SIPP', value: r0(r.value), matures: r.matures || null, pays: r.cashNow ? r0(r.pays) : p ? p.amount : null, fixed: !!(p && p.fixed), indexLinked: conv === false && !r.paid, note, forYears: forYearsOf(r.at) };
     }),
-    ...funds.map((r) => ({ at: r.at, label: r.label, kind: 'fund', value: r0(r.value), matures: null, pays: null, fixed: false, indexLinked: false, note: null, forYears: forYearsOf(r.at) }))
+    ...funds.map((r) => ({ at: r.at, label: r.label, kind: 'fund', wrapper: r.wrapper || 'SIPP', value: r0(r.value), matures: null, pays: null, fixed: false, indexLinked: false, note: null, forYears: forYearsOf(r.at) }))
   ].sort((a, b) => num(a.at) - num(b.at));
 
   // 7.12.0 round 3: the cash years as ONE dated reading — when the plan's cash pays out, against when money arrives in the
@@ -372,7 +372,9 @@ export function heldLadderView(h) {
   const noCash = !h.noRecord && !h.cashYears ? S('noCashYears', { cash: P(h.money.cash) }) : null;
 
   const also = h.lines.filter((l) => !l.inCash);
-  const lines = h.noRecord ? [] : also.map((l) => ({ at: l.at, what: l.label, value: P(l.value),
+  // (wrap-up) a ladder that holds the ISA too lists an ISA line here: said as the ISA's, and the heading names it
+  const alsoTitle = !h.noRecord && also.some((l) => l.wrapper === 'ISA') ? 'alsoTitleIsa' : 'alsoTitle';
+  const lines = h.noRecord ? [] : also.map((l) => ({ at: l.at, what: l.wrapper === 'ISA' ? l.label + ' (ISA)' : l.label, value: P(l.value),
     matures: l.note === 'notListed' ? S('notListedCell') : l.note === 'unknown' ? S('unknownCell') : (l.note === 'paid' || l.note === 'cashNow') ? S('maturedCell', { month: monthWords(String(l.matures || '').slice(0, 7)) }) : l.matures ? dayWords(l.matures) : '',
     pays: !l.note && l.pays != null && l.fixed ? S('paysFixed', { amount: P(l.pays) }) : !l.note && l.indexLinked && l.matures ? S('paysIndexLinked') : '' }));
   const notes = [];
@@ -393,7 +395,7 @@ export function heldLadderView(h) {
     for (const e of h.expected) expected.push(S(e.by ? 'expected' : 'expectedNoBy', { label: e.label || { key: 'expectedNoLabel', slots: {} }, amount: P(e.amount), by: e.by ? monthWords(e.by) : '' }));
     for (const l of h.lumps) expected.push(S('lumpCounted', { amount: P(l.amount), year: taxYearLabel(l.Y) }));
   }
-  return { head, summary, figure, gilts, under, cash, noCash, set, lines, notes, outside, expected, footer: S('footer') };
+  return { head, summary, figure, gilts, under, cash, noCash, set, alsoTitle, lines, notes, outside, expected, footer: S('footer') };
 }
 
 /** What you hold, in the held phase on a ladder (7.12.0): the gilts' summary line(s) and the cash years' line, from the one reading. */

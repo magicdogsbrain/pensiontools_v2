@@ -88,6 +88,7 @@ export const HELD = {
 
   // what else the pension holds
   alsoTitle: 'Also in your pension',
+  alsoTitleIsa: 'Also in your pension and ISA',
   alsoColumns: { what: 'What', value: 'Value today', matures: 'Matures', pays: 'Pays by then, with interest' },
   notListedCell: 'not on our list',
   unknownCell: 'not known',

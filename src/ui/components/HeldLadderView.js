@@ -39,7 +39,7 @@ export function heldLadderHtml(v, { holdHref = '#holdingsCard' } = {}) {
     h += lines(v.cash.lines, 'state');
   }
   if (v.noCash || v.lines.length || v.set.length) {
-    h += title(H.alsoTitle);
+    h += title(H[v.alsoTitle] || H.alsoTitle);   // the one reader's heading (answers/plan/held.js heldLadderView)
     if (v.noCash) h += '<p class="hint">' + say(v.noCash) + '</p>';
     if (v.lines.length) h += table('held-also', [A.what, A.value, A.matures, A.pays], v.lines.map((l) => [esc(l.what), esc(l.value), say(l.matures), say(l.pays)]));
     h += lines(v.set, 'set') + lines(v.notes, 'note');

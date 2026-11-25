@@ -65,7 +65,7 @@ export function HeldLadder({ v, prefix, holdHref }) {
       )}
       {(v.noCash || v.lines.length > 0 || v.set.length > 0) && (
         <>
-          <h2>{H.alsoTitle}</h2>
+          <h2>{H[v.alsoTitle] || H.alsoTitle}</h2>
           {v.noCash && <p class="line" data-testid={`${T}.noCash`}>{heldText(v.noCash)}</p>}
           {v.lines.length > 0 && (
             <div class="table-wrap">

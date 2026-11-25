@@ -189,3 +189,20 @@ describe('nothing to read outside the held phase on a ladder', () => {
     expect(heldLadder(living(asMoving(alexLivingRaw())), { today: TODAY })).toBe(null);
   });
 });
+
+// (wrap-up) a ladder that holds the ISA too counts an ISA fund among what else the plan holds: the heading names the ISA,
+// never "Also in your pension" over a fund held in the ISA
+import { heldLadderView } from '../../../src/answers/plan/held.js';
+import { HELD } from '../../../src/v7/copy/held.js';
+describe('what else the plan holds says where it is held', () => {
+  it('each line carries its account; an ISA line among them names the ISA in the heading', () => {
+    const h = heldLadder(living(alexLivingRaw()), { today: TODAY });
+    for (const l of h.lines) expect(['SIPP', 'ISA']).toContain(l.wrapper);
+    expect(heldLadderView(h).alsoTitle).toBe(h.lines.some((l) => l.wrapper === 'ISA') ? 'alsoTitleIsa' : 'alsoTitle');
+    const fund = h.lines.find((l) => l.kind === 'fund');
+    const withIsa = { ...h, lines: [...h.lines, { ...fund, at: 99, label: 'VWRL', wrapper: 'ISA', value: 40000 }] };
+    expect(heldLadderView(withIsa).alsoTitle).toBe('alsoTitleIsa');
+    expect(HELD.alsoTitleIsa).toBe('Also in your pension and ISA');
+    expect(heldLadderView(withIsa).lines.find((l) => l.at === 99).what).toBe('VWRL (ISA)');
+  });
+});

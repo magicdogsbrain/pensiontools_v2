@@ -52,3 +52,17 @@ describe('a ladder\'s part first year: its months still to come at its own rate'
     expect(row.gap).toBe(w.gap);
   });
 });
+
+// (wrap-up) the dated reading of the same cash years says the same months at the same rate: 5 × £2,833 = £14,167, and its
+// total is the cash years' total (one page said "£18,148 still to come" and then "In all £15,034")
+describe('the dated cash years read the part first year at its own rate', () => {
+  it('this year\'s months: 5 × £2,833 = £14,167; the dated total is the cash years\' total', () => {
+    const part = heldLadder(partYear(), { today: TODAY });
+    const months = part.dated.rows.filter((r) => r.kind === 'months');
+    expect(months.reduce((s, r) => s + r.n, 0)).toBe(5);
+    expect(months[0].per).toBe(2833);
+    expect(months.reduce((s, r) => s + r.due, 0)).toBeGreaterThanOrEqual(14166);
+    expect(months.reduce((s, r) => s + r.due, 0)).toBeLessThanOrEqual(14167);
+    expect(Math.abs(part.dated.due - part.cashYears.need)).toBeLessThanOrEqual(1);
+  });
+});

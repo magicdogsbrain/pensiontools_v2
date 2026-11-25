@@ -220,7 +220,9 @@ export function datedCashYears({ now, cash, cashRows, needs, arrivals }) {
     const full = num(needs[r.Y] && needs[r.Y].need);
     const inYear = arrivals.filter((a) => taxYearOfIso(a.date) === r.Y);
     if (r.thisYear && full > 0) {
-      const per = full / 12;
+      // the months still to come at the year's own rate: its need still to come (a part first year's months, E2) over them —
+      // the year's need over twelve paid a part year's months too little, and the total disagreed with the cash years'
+      const per = num(r.need) / Math.max(1, r.monthsLeft);
       const months = []; for (let k = 0; k < r.monthsLeft; k++) months.push(monthPlus(nowMonth, k));
       let run = [];
       const flush = () => { if (run.length) rows.push({ kind: 'months', key: run[0] + '-01', from: run[0], to: run[run.length - 1], n: run.length, per: r0(per), due: r0(per * run.length) }); run = []; };

@@ -49,6 +49,8 @@ export const FACT = Object.freeze({
   PAY_IN_EMPLOYER: 'payIn.employer',
   PAY_IN_TOTAL: 'payIn.total',
   PAY_IN_PCT: 'payIn.pctOfPay',
+  // (ruling Z4) the person's own part of what goes in, as a share of pay, beside the share in all
+  PAY_IN_OWN_PCT: 'payIn.ownPctOfPay',
   // what the person wants
   WANT_INCOME: 'want.income',
   WANT_STOP_AGE: 'want.stopAge',
@@ -57,6 +59,7 @@ export const FACT = Object.freeze({
   SAVER_CHANCE: 'saver.chance',
   SAVER_ENOUGH: 'saver.enough.pounds',
   SAVER_ENOUGH_PCT: 'saver.enough.pct',
+  SAVER_ENOUGH_OWN_PCT: 'saver.enough.ownPct',
   SAVER_INCOME_AT_STOP: 'saver.incomeAtStop',
   // does it last
   LASTS_CHANCE: 'lasts.chance',

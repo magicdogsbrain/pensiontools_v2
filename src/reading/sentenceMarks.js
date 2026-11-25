@@ -101,8 +101,8 @@ export const SAVER_MARKS = Object.freeze({
 /** The block's own filled lines (not the answer's sentences): which slot holds which fact. */
 export const SAVER_SLOTS = Object.freeze({
   want: { amount: FACT.WANT_INCOME, age: FACT.WANT_STOP_AGE },
-  nowShare: { pct: FACT.PAY_IN_PCT },
-  enoughShare: { pct: FACT.SAVER_ENOUGH_PCT },
+  nowShare: { pct: FACT.PAY_IN_PCT, ownPct: FACT.PAY_IN_OWN_PCT },
+  enoughShare: { pct: FACT.SAVER_ENOUGH_PCT, ownPct: FACT.SAVER_ENOUGH_OWN_PCT },
   now: { takeHome: FACT.PAY_IN_TAKE_HOME, employer: FACT.PAY_IN_EMPLOYER, total: FACT.PAY_IN_TOTAL, ownPct: FACT.PAY_IN_PCT }
 });
 /** The slots' facts for a block line id ('now.share' → the pay-in's). */

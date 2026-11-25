@@ -107,7 +107,8 @@ async function countSorry(page) {
   }, SORRY);
 }
 const sawSorry = (page) => page.evaluate(() => sessionStorage.getItem('e2e-sorry') === '1');
-const loads = (page) => page.evaluate(() => Number(sessionStorage.getItem('e2e-loads') || '0'));
+// asked while the page is loading itself again, the question has no page to answer it: that is "not yet", never a failure
+const loads = (page) => page.evaluate(() => Number(sessionStorage.getItem('e2e-loads') || '0')).catch(() => -1);
 
 /**
  * The front door opened on the old release; the deploy; then C asked, as a person would after leaving the tab open. (A

@@ -4323,7 +4323,7 @@
     import { hasCloudData, wipeAllUserData, loadUserProfile, saveUserProfile, guestSnapshot, loadAllScenarios, createScenario as createScenarioDoc, saveScenario as saveScenarioDoc, loadScenario as loadScenarioDoc } from './src/firebase/FirestoreService.js';
     import { startSeedEntry, planFromAnswer, planTargetGuide, budgetSummaryWords } from './src/ui/components/NewPlanFromSeed.js'; import { householdStartWords } from './src/services/PlanSeed.js';   // a plan from a V7 answer (V7 design: save-as-plan.md, C.2); the Household tab's line when one plan begins later (couples-different-years.md 7)
     import { startSummaryHtml, potsAtRetirementLine } from './src/ui/startingPotsWords.js'; import { potAtStop } from './src/reading/atStop.js'; import { stepBoxValue, stepFromBox, firstStepNoteOfPlan, planBandsOf, documentStepsOf, documentShareOf, accessAssumedNoteOf, spLineOfPlan } from './src/ui/incomeStepBox.js'; import { statePensionOf } from './src/reading/statePension.js'; import { spKindOfSettings, spKindForSave, FULL_SP_WEEKLY } from './src/ui/spKindBox.js'; import { stageWordsHtml, whereYouAreHtml } from './src/ui/stageWords.js'; import { stage as readingStage, yearsToGo as readingYearsToGo, ageToday as readingAgeToday, planName as readingPlanName } from './src/reading/timing.js'; import { formatFact, money as fmtMoney } from './src/reading/format.js'; import { budgetLineOf } from './src/reading/budget.js'; import { isaToday as readingIsaToday, pensionBoxOf, isaBoxOf, settingsOf as readingSettingsOf } from './src/reading/money.js'; import { savingInputsOf } from './src/services/PotsAtStop.js'; import { shownPlanName } from './src/services/PlanName.js';
-    import { thisYearOfPlan, yearIncomeHtml, yearFromHtml, yearChangedHtml, yearPlanHtml } from './src/ui/thisYearHtml.js'; import { setUpAgainConfig } from './src/reading/thisYear.js'; import { incomeStepsOf as incomeStepsOfPlan } from './src/reading/income.js';
+    import { thisYearOfPlan, yearIncomeHtml, yearFromHtml, yearChangedHtml, yearPlanHtml } from './src/ui/thisYearHtml.js'; import { setUpAgainConfig } from './src/reading/thisYear.js'; import { incomeStepsOf as incomeStepsOfPlan, stepBeforeTaxFor } from './src/reading/income.js'; import { decisionPlanHeaderHtml } from './src/ui/decisionReportHeader.js';
     import { tick as guestTick, readMinutes as guestMinutes, pendingNag as guestPendingNag, markNagShown as guestMarkNag, isBlocked as guestBlocked, bannerText as guestBannerText, savedChipText, stashHandoff as guestStash, readHandoff as guestReadHandoff, clearHandoff as guestClearHandoff, GUEST_ALLOWANCE_MINUTES } from './src/services/GuestMeter.js';
     // Release notes: data + renderers (see RELEASING.md). The pop-up and the What's new page read the same entries.
     import { RELEASES, releasesSince, compareVersions } from './src/releases.js';
@@ -6627,22 +6627,12 @@
     };
 
     // --- Report export: print-to-PDF (browser print dialog → Save as PDF) + CSV -------------------
-    // A standalone plan header so any exported record stands on its own.
-    function decisionPlanHeaderHtml(s, subtitle) {
-      const pot = (s.equityMin || 0) + (s.bondMin || 0) + (s.cashTarget || 0);
-      const key = pot > 0 ? nearestPresetKey(s.equityMin / pot, s.bondMin / pot, s.cashTarget / pot) : 'balanced';
-      const preset = RISK_PRESETS[key];
-      const gbp = v => '£' + Math.round(v || 0).toLocaleString();
-      const mix = Math.round(preset.equity * 100) + '/' + Math.round(preset.bond * 100) + '/' + Math.round(preset.cash * 100);
-      return `<div class="rpt-header">
-        <h1>Pension Decision Plan</h1>
-        <div class="rpt-sub">${subtitle || ''}</div>
-        <table class="rpt-meta"><tbody>
-          <tr><td>Total pot</td><td>${gbp(pot)}</td><td>Risk level</td><td>${preset.label} (${mix})</td></tr>
-          <tr><td>Bond tent</td><td>${s.equityGlideEnabled ? 'On — rising-equity glidepath' : 'Off'}</td><td>Target income</td><td>${gbp(s.baseSalary)}/yr</td></tr>
-          <tr><td>Duration</td><td>${s.duration || 35} yrs</td><td>Generated</td><td>${new Date().toLocaleDateString('en-GB')}</td></tr>
-        </tbody></table>
-      </div>`;
+    // A standalone plan header so any exported record stands on its own (src/ui/decisionReportHeader.js): its income line is
+    // the plan's first step as the one income reader says it (ruling Z1b), never the stored target.
+    async function firstStepNow() {
+      let sc = null; try { sc = await getActiveScenarioAsync(); } catch (e) { sc = null; }
+      if (!sc) return null;
+      try { return incomeStepsOfPlan(sc, { now: todayOf() }).steps[0] || null; } catch (e) { return null; }
     }
     // Clone the report into a top-level portal and print; @media print hides everything else, so app
     // styling is preserved without opening a popup window. Cleared on afterprint.
@@ -6666,11 +6656,11 @@
     }
     window.printAnnualReport = async function(taxYear) {
       const s = await getDecisionSettingsAsync();
-      printPortal(decisionPlanHeaderHtml(s, 'Annual report — tax year ' + taxYear) + document.getElementById('taxYearDetail').innerHTML);
+      printPortal(decisionPlanHeaderHtml(s, 'Annual report — tax year ' + taxYear, await firstStepNow()) + document.getElementById('taxYearDetail').innerHTML);
     };
     window.printMonthlyReport = async function(dateStr) {
       const s = await getDecisionSettingsAsync();
-      printPortal(decisionPlanHeaderHtml(s, 'Monthly record — ' + dateStr) + document.getElementById('historyDetail').innerHTML);
+      printPortal(decisionPlanHeaderHtml(s, 'Monthly record — ' + dateStr, await firstStepNow()) + document.getElementById('historyDetail').innerHTML);
     };
     window.exportAnnualCsv = function(taxYear) {
       const rows = (typeof allHistoryData !== 'undefined' ? allHistoryData : []).filter(h => h.taxYear === taxYear).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
@@ -8578,6 +8568,8 @@
       const [sc, plans] = await Promise.all([getActiveScenarioAsync().catch(() => null), listScenariosAsync().catch(() => [])]);
       const input = waysInputOf(sc, contextFor(sc, { now: todayOf(), plans }));
       const settings = input.settings;
+      // (ruling Z1b) the plan's first step from the one income reader: each panel's dashed line is it as that way takes it
+      let first = null; try { first = sc ? incomeStepsOfPlan(sc, contextFor(sc, { now: todayOf(), plans })).steps[0] || null : null; } catch (e) { first = null; }
       // a plan with no figures of its own is never ranked on a default income: said, as the simple view says it (step F3)
       if (sc && !planHasFigures(sc)) return { noFigures: missingWords(settings) || DRAFT_WORDS.none, settings };
       const eff = settings;
@@ -8589,13 +8581,13 @@
       try {
         const res = await runInWorker('overview', input,
           (pr) => say('Running ' + pr.name + ' (' + (pr.i + 1) + ' of ' + pr.n + ')…'));
-        window._cmpCache = { key, p: res.p, all: res.all, settings, market: res.market || null };
+        window._cmpCache = { key, p: res.p, all: res.all, settings, first, market: res.market || null };
         return window._cmpCache;
       } catch (e) { console.warn('engine worker unavailable, running inline', e); }
       const p = strategyPlanFor(eff);
       // the one loop over the nine (compareRunner.compareAll, 6.40.0): the same configs, the same order; the progress words are said before each way
       const all = compareAll(p, Object.keys(STRATEGY_NAMES), { onProgress: (i, n, sid) => say('Running ' + STRATEGY_NAMES[sid] + ' (' + (i + 1) + ' of ' + n + ')…') });
-      window._cmpCache = { key, p, all, settings, market: marketStamp() };
+      window._cmpCache = { key, p, all, settings, first, market: marketStamp() };
       return window._cmpCache;
     }
     window.setCmpRank = async function (k) { window._cmpRankBy = k; document.getElementById('stratPage').innerHTML = await strategyOverviewHtml(); window.scrollTo({ top: 0 }); };
@@ -8611,7 +8603,7 @@
     function cmpConesHtml(c) {
       const sts = cmpStrategies(c);
       let h = '';
-      h += '<div class="strat-block"><div class="section-title">1 · What would I get each year?</div><p class="hint" style="margin:0 0 6px;">One panel per strategy, same scale. The line is the middle future; the shaded band runs from a 1-in-10 bad future to a 1-in-10 good one. A flat line with no band is income bought by contract. The dashed line is your first step. <strong>Pots &amp; Valves and Ladder &amp; Ratchet pay the plan in full until a future runs out</strong> — so their income shows little or no band; their uncertainty is in what is left (panel 3).</p><div class="machine-scroll">' + incomeSmallMultiplesSvg({ strategies: sts.map((st) => ({ name: st.name, color: st.color, cone: st.r.cones.income, contract: st.id === 'full-il-gilt' || st.id === 'floor-the-schedule' ? true : (st.id === 'floor-to-age' || st.id === 'bridge-and-engine' || st.id === 'gilt-rotation') ? 'partial' : (st.id === 'pots-and-valves' || st.id === 'ladder-and-ratchet' || st.id === 'buckets-in-order') ? 'untilfail' : false })), startAge: c.p.startAge, planIncome: c.p.targetAnnual }) + '</div></div>';
+      h += '<div class="strat-block"><div class="section-title">1 · What would I get each year?</div><p class="hint" style="margin:0 0 6px;">One panel per strategy, same scale. The line is the middle future; the shaded band runs from a 1-in-10 bad future to a 1-in-10 good one. A flat line with no band is income bought by contract. The dashed line is your first step. <strong>Pots &amp; Valves and Ladder &amp; Ratchet pay the plan in full until a future runs out</strong> — so their income shows little or no band; their uncertainty is in what is left (panel 3).</p><div class="machine-scroll">' + incomeSmallMultiplesSvg({ strategies: sts.map((st) => ({ name: st.name, color: st.color, cone: st.r.cones.income, contract: st.id === 'full-il-gilt' || st.id === 'floor-the-schedule' ? true : (st.id === 'floor-to-age' || st.id === 'bridge-and-engine' || st.id === 'gilt-rotation') ? 'partial' : (st.id === 'pots-and-valves' || st.id === 'ladder-and-ratchet' || st.id === 'buckets-in-order') ? 'untilfail' : false, planIncome: stepBeforeTaxFor(c.first, st.id) })), startAge: c.p.startAge }) + '</div></div>';
       const riskRows = sts.map((st) => ({ name: st.name, color: st.color, mc: st.r.ruin.mc, hist: st.r.ruin.hist, label: st.id === 'floor-and-flex' ? 'a lean year — ' + CMP_WORDS[st.id].fail : st.r.ruinLabel ? 'cut after ' + (st.r.signature.floorToAge ?? st.r.signature.rotateCutAge) + ' — ' + CMP_WORDS[st.id].fail : (st.r.ruin.mc === 0 && st.r.ruin.hist === 0 ? 'cannot run out — ' + CMP_WORDS[st.id].fail : CMP_WORDS[st.id].fail) }));
       h += '<div class="strat-block"><div class="section-title">2 · How likely is it to go wrong?</div><p class="hint" style="margin:0 0 6px;">Bars: share of 1,000 futures in which the plan runs out (or, for Floor to an age, is cut). The white tick is the same thing measured on every real history since 1871. Under each bar: what "going wrong" looks like for that strategy.</p><div class="machine-scroll">' + riskBarsSvg({ rows: riskRows }) + '</div></div>';
       h += '<div class="strat-block"><div class="section-title">3 · What would be left, year by year?</div><p class="hint" style="margin:0 0 6px;">The same six panels for the money itself — all pots plus unpaid rungs, today\'s money. This is where Pots &amp; Valves\' and the ladder\'s uncertainty lives: the band is wide, and a 1-in-10 bad future reaching £0 is a plan that ran out.</p><div class="machine-scroll">' + incomeSmallMultiplesSvg({ strategies: sts.map((st) => ({ name: st.name, color: st.color, cone: st.r.cones.wealth, contract: false })), startAge: c.p.startAge, planIncome: 0 }) + '</div></div>';

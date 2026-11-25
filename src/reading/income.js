@@ -18,6 +18,8 @@
  *     notSet: nobody gave the plan an income (`incomeNotSet`): no steps at all, never the planner's default
  *     the steps as the plan reads them today (the step in force and the later ones, from the plan's own start: spend.js
  *     stepLines; a locked plan's are its document's)
+ *     each step also carries `drawn`: what a way that draws takes for it (the plan's own way may buy its income)
+ *   stepBeforeTaxFor(step, strategyId)  a step as that way takes it (ruling Z1b: the Strategies panels, side by side)
  *   stepFiguresOf(stored, { settings, bands, fixed }) → { beforeTax, monthAfterTax }
  *     the two figures of one stored step: what the simple view's spend page draws for the rows as typed, and what
  *     incomeStepsOf gives for the rows as saved (the same function, so a step says one figure until it is changed)
@@ -33,7 +35,7 @@
  *
  * Pure (the settings are read once, by PlanReading, on ctx.now).
  */
-import { takenOfTarget, taxFreeShareOf, yearTakenOf } from '../services/BeforeTax.js';
+import { takenOfTarget, taxFreeShareOf, yearTakenOf, takesAsDrawn } from '../services/BeforeTax.js';
 
 export { yearTakenOf };
 import { bandsOf, netOf, safeTiming } from '../answers/plan/about.js';
@@ -114,9 +116,20 @@ export function incomeStepsOf(plan, ctx = {}) {
     let fixed = 0;
     if (ageNow != null && s.fromAge != null) { try { fixed = guaranteedAtYear(ss, timing, ageNow, Math.max(0, s.fromAge - ageNow), now); } catch { fixed = 0; } }
     const f = stepFiguresOf(s.amount, { settings, bands, fixed });
+    // (ruling Z1b) what a way that draws takes for this step: a page that sets the ways side by side reads each its own
+    const drawn = takesAsDrawn(settings.strategyId) ? f.beforeTax : takenOfTarget(s.amount, { ...settings, strategyId: 'pots-and-valves' }, { fixed, bands });
     const taxYear = s.taxYear || (ageNow != null && s.fromAge != null && num(timing.firstTaxYear) ? taxYearLabel(timing.firstTaxYear + (s.fromAge - ageNow)) : null);
-    return { fromAge: s.fromAge, stored: s.amount, beforeTax: f.beforeTax, monthAfterTax: f.monthAfterTax, taxYear, decline: s.decline, glideToNext: s.glideToNext };
+    return { fromAge: s.fromAge, stored: s.amount, beforeTax: f.beforeTax, drawn, monthAfterTax: f.monthAfterTax, taxYear, decline: s.decline, glideToNext: s.glideToNext };
   });
   return { steps, bands, access, locked: isLocked(plan), notSet, taxFreeShare: taxFreeShareOf(settings) };
 }
 
+/**
+ * (ruling Z1b) A step of incomeStepsOf a year before tax as a given way takes it: a way that draws (BeforeTax.takesAsDrawn)
+ * the figure it draws, a way that buys its income the figure held. For pages that set the ways side by side (the full
+ * view's Strategies panels); the plan's own way gives the step's own beforeTax. null with no step.
+ */
+export function stepBeforeTaxFor(step, strategyId) {
+  if (!step) return null;
+  return takesAsDrawn(strategyId) ? (step.drawn != null ? step.drawn : step.beforeTax) : step.stored;
+}

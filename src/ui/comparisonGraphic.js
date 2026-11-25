@@ -35,14 +35,18 @@ export function stackedConesSvg({ strategies, year, startAge, title }, o = {}) {
 
 // ---------------------------------------------------------------- one question at a time
 const gk = (v) => '£' + Math.round(v / 1000) + 'k';
-/** Q1: "What would I get each year?" — one small panel per strategy, same axes, income band + median. */
+/**
+ * Q1: "What would I get each year?" — one small panel per strategy, same axes, income band + median. The dashed line is the
+ * first step: a strategy's own `planIncome` (ruling Z1b: as that way takes it before tax), else the one given for all.
+ */
 export function incomeSmallMultiplesSvg({ strategies, startAge, planIncome }, o = {}) {
+  const lineOf = (st) => (st && Number.isFinite(+st.planIncome) && st.planIncome != null ? +st.planIncome : planIncome);
   const cols = Math.min(3, strategies.length), rows = Math.ceil(strategies.length / cols);
   // Nine strategies need room: fix each panel at ~380px so names and axes stay legible
   // (the machine-scroll wrapper provides horizontal scrolling on narrow screens).
   const W = o.width || Math.max(960, cols * 380), cw = W / cols, ch = 190, H = rows * ch + 8;
   const n = Math.max(...strategies.map((s) => s.cone.p50.length));
-  const maxV = Math.max(planIncome || 0, ...strategies.flatMap((s) => s.cone.p90)) * 1.05 || 1;
+  const maxV = Math.max(...strategies.map((st) => lineOf(st) || 0), ...strategies.flatMap((s) => s.cone.p90)) * 1.05 || 1;
   let s = '';
   strategies.forEach((st, k) => {
     const ox = (k % cols) * cw, oy = Math.floor(k / cols) * ch; const padL = 44, padR = 10, padT = 32, padB = 22;
@@ -54,7 +58,8 @@ export function incomeSmallMultiplesSvg({ strategies, startAge, planIncome }, o 
     const label = st.name.length > maxChars ? st.name.slice(0, Math.max(3, maxChars - 1)) + '…' : st.name;
     s += `<text x="${ox + padL}" y="${oy + 14}" font-size="12" font-weight="600" fill="${st.color}">${esc(label)}<title>${esc(st.name)}</title></text>`;
     for (const t of [0, 0.5, 1].map((f) => f * maxV)) s += `<line x1="${ox + padL}" y1="${y(t).toFixed(1)}" x2="${ox + cw - padR}" y2="${y(t).toFixed(1)}" stroke="var(--border,#8883)" opacity=".4"/><text x="${ox + padL - 4}" y="${(y(t) + 3).toFixed(1)}" text-anchor="end" font-size="9" fill="var(--text-muted,#999)">${gk(t)}</text>`;
-    if (planIncome) s += `<line x1="${ox + padL}" y1="${y(planIncome).toFixed(1)}" x2="${ox + cw - padR}" y2="${y(planIncome).toFixed(1)}" stroke="var(--text,#eee)" stroke-dasharray="3 3" opacity=".6"/>`;
+    const pi = lineOf(st);
+    if (pi) s += `<line x1="${ox + padL}" y1="${y(pi).toFixed(1)}" x2="${ox + cw - padR}" y2="${y(pi).toFixed(1)}" stroke="var(--text,#eee)" stroke-dasharray="3 3" opacity=".6"/>`;
     const top = st.cone.p90.map((v, i) => x(i).toFixed(1) + ',' + y(v).toFixed(1)); const bot = st.cone.p10.map((v, i) => x(i).toFixed(1) + ',' + y(v).toFixed(1)).reverse();
     s += `<polygon points="${top.concat(bot).join(' ')}" fill="${st.color}" opacity=".18"/><polyline points="${st.cone.p50.map((v, i) => x(i).toFixed(1) + ',' + y(v).toFixed(1)).join(' ')}" fill="none" stroke="${st.color}" stroke-width="2"/>`;
     for (let i = 0; i < n; i += 10) s += `<text x="${x(i).toFixed(1)}" y="${oy + ch - 6}" text-anchor="middle" font-size="9" fill="var(--text-muted,#999)">${startAge + i}</text>`;

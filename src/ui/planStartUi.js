@@ -27,6 +27,8 @@
  */
 import { stoppedWorkOf, hasStopped, ageOnDate, taxYearStartOf, planYearOf, taxYearLabel, monthName } from '../services/PlanTiming.js';
 import { timingSettingsOf } from '../services/PlanFromSeed.js';
+import { derivedSpDate } from '../answers/plan/income.js';
+import { RULES, fullStatePensionYearly } from '../answers/shared/rules.js';
 // The day of the run's pots, for the Decision tool's ladder month (index.html ladderPositionForPlan; LadderPosition potsDay).
 export { potsDayOf } from '../services/PlanFromToday.js';
 
@@ -136,7 +138,12 @@ export function partnerPlanSettingsOf({ ageToday = null, stopAge = null, stopped
   if (!stopped && !stop) return { ok: false, problem: 'noStop' };
   const { duration: _horizon, ...timing } = wizardSettingsOf({ currentAge: age, retirementAge: stop || '', retired: !!stopped }, now).stressSettings;
   const ages = { currentAge: timing.currentAge, currentAgeAsOf: timing.currentAgeAsOf, retired: timing.retired, retirementAge: timing.retired === false ? timing.retireAge : timing.shapeAgeNow };
-  return { ok: true, stressSettings: timing, ages };
+  // (ruling Z5d) the State Pension every other place assumes: the full new amount, from the State Pension age by date of
+  // birth, dated from the day the age was given (answers/plan/income.js derivedSpDate) — never the planner's £12,000 from 67
+  const day = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+  const spStartDate = derivedSpDate(timing, day);
+  const sp = spStartDate ? { statePension: fullStatePensionYearly(), spStartDate, spWeeklyAmount: RULES.fullStatePensionWeekly } : {};
+  return { ok: true, stressSettings: { ...timing, ...sp }, ages };
 }
 
 /**

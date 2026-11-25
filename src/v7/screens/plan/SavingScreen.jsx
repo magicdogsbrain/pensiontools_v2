@@ -17,7 +17,8 @@ import { SAVING as W } from '../../copy/saving.js';
 import { fillMarked } from '../../components/PlanFigures.jsx';
 import { slotFactsOf } from '../../components/facts.js';
 import { Fact } from '../../../reading/Mark.jsx';
-import { SAVER_MARKS } from '../../../reading/sentenceMarks.js';
+import { SAVER_MARKS, saverSlotsOf } from '../../../reading/sentenceMarks.js';
+import { HOME } from '../../copy/home.js';
 
 /** A way of drawing named inside a sentence ("your plan draws by full gilt ladder"): its name, the first letter small. */
 const wayWords = (id) => { const n = String(PLAN.strategies[id] || id || ''); return n.charAt(0).toLowerCase() + n.slice(1); };
@@ -113,6 +114,8 @@ function Verdict({ V, planId, dispatch }) {
             </div>
             <Sentence s={s.verdictLine} source={result} class="line" data-sentence="verdict" marks={SAVER_MARKS.line} />
           {s.verdictEnough && <Sentence s={s.verdictEnough} source={result} class="line enough-now" data-sentence="verdict-enough" marks={SAVER_MARKS.lineEnough} />}
+            {/* (ruling Z4) what goes in now as a share of pay: the home's line, from the one reading (saverBlock.js payInSharesOf) */}
+            {V.shares && V.shares.now && <p class="line" data-line="nowShare" data-testid={`${T}.verdict.nowShare`}>{fillMarked(HOME.saver.lines.nowShare, V.shares.now.slots, saverSlotsOf('nowShare'))}</p>}
             {s.verdictFour && <Sentence s={s.verdictFour} source={result} class="four" data-testid={`${T}.verdict.four`} />}
             {s.income && <Sentence s={s.income} source={result} class="income" data-testid={`${T}.verdict.income`} marks={SAVER_MARKS.income} />}
             {s.atAim && <Sentence s={s.atAim} source={result} class="bad" />}
@@ -120,6 +123,7 @@ function Verdict({ V, planId, dispatch }) {
           {s.enoughHead && (
             <div class="enough" data-enough={result.enough ? result.enough.how : undefined}>
               <h3><Sentence s={s.enoughHead} source={result} as="span" marks={SAVER_MARKS.enoughHead} /></h3>
+              {V.shares && V.shares.enough && <p class="line" data-line="enoughShare" data-testid={`${T}.verdict.enoughShare`}>{fillMarked(HOME.saver.lines.enoughShare, V.shares.enough.slots, saverSlotsOf('enoughShare'))}</p>}
               {s.enoughLine && <Sentence s={s.enoughLine} source={result} class="enough-line" data-testid={`${T}.enough.line`} />}
               {s.enoughFour && <Sentence s={s.enoughFour} source={result} class="enough-four" />}
               {s.enoughPaused && <Sentence s={s.enoughPaused} source={result} class="note" />}

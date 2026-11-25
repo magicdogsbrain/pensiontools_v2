@@ -22,8 +22,8 @@ export const HOME = {
     /** The block's own lines (answers/plan/saverBlock.js): what you want, and a share of pay beside pounds. */
     lines: {
       want: 'You want {amount} a month after tax, at today’s prices, from age {age}.',
-      nowShare: 'In all that is {pct}% of your pay.',
-      enoughShare: 'That is {pct}% of your pay in all.'
+      nowShare: 'In all that is {pct}% of your pay (you {ownPct}%).',
+      enoughShare: 'That is {pct}% of your pay in all (you {ownPct}%).'
     },
     invalid: 'Some of your plan’s figures are outside what this test can take, so it cannot say yet. Check “About you and when” and “What you pay in”.'
   },

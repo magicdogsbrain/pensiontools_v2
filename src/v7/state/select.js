@@ -69,7 +69,7 @@ export { typedShape, isShapePath, stepsOf as shapeStepsOf } from './shapeDraft.j
 import { yearFigures, shownShare } from './shapeModel.js';
 import { takeReading as cTakeReading } from './pictures.js';
 import { money } from '../../answers/shared/format.js';
-import { saverBlockOf } from './saverBlock.js';
+import { saverBlockOf, payInSharesOf } from './saverBlock.js';
 import { payInWithinReach } from '../../answers/shared/shown.js';
 /** The one reader of a pay-in, every kind (schemaParts.js), for the components and the rail, which read it only through this file. */
 export { payInParts };
@@ -1339,7 +1339,8 @@ export function planSavingView(state) {
   const run = !v || !v.ok ? null
     : S && S.key === v.key ? { status: S.status === 'idle' ? 'working' : S.status, result: S.result, reason: S.reason }
       : { status: 'working', result: null, reason: null };
-  return { ...V, run };
+  // (ruling Z4) the pay-in as a share of pay, the one reading the home and the full view's block draw
+  return { ...V, run, shares: payInSharesOf(v, run && run.result) };
 }
 /**
  * "Check in" (research/saving-enough-and-check-in.md 5.4–5.7; release step R3): the plan source's reading of the step

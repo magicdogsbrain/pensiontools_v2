@@ -69,7 +69,7 @@ describe('the pot at the stop follows the stop', () => {
 });
 
 describe('the household starts from the pot at the new stop', () => {
-  it('"What you would have left, combined" starts at Kim\'s £320,000 plus Sam\'s pot at 62, not £489,898', () => {
+  it('"What you would have left, combined" starts in the year Sam stops: his pot at 62 beside Kim\'s money then, never the stale pot', () => {
     const { kim, sam } = samStoppingAt(62);
     const r = runHousehold(kim, sam, { today: KIM_AND_SAM_TODAY });
     expect(r.ok).toBe(true);
@@ -81,12 +81,26 @@ describe('the household starts from the pot at the new stop', () => {
     const samRun = stressTestStrategy(ss.strategyId || 'pots-and-valves', planFor(ss, NOW));
     const lives = samRun.samples.wealth.map((w) => w[0]).sort((x, y) => x - y);
     const middle = lives[Math.min(lives.length - 1, Math.floor(0.5 * lives.length))];
-    expect(Math.abs(start - (KIM_START + middle))).toBeLessThanOrEqual(1);
+    // (wrap-up) the combined rows are calendar years (HouseholdService.combineHouseholdStrategies startA / startB): the first
+    // is the year Sam stops, his pot at 62 beside Kim's money that many years into her own run, future for future — her
+    // £320,000 is this year's figure, which was the pots at the stop said against today's year
+    const c0 = r.offsets.b;
+    expect(r.offsets.a).toBe(0);
+    expect(c0).toBeGreaterThan(0);
+    const ks = effectiveStressSettings(kim, { now: NOW });
+    const kimRun = stressTestStrategy(ks.strategyId || 'pots-and-valves', planFor(ks, NOW));
+    expect(kimRun.samples.wealth[0][0]).toBe(KIM_START);
+    const m = Math.min(kimRun.samples.wealth.length, samRun.samples.wealth.length);
+    const both = Array.from({ length: m }, (_, i) => kimRun.samples.wealth[i][Math.min(c0, kimRun.samples.wealth[i].length - 1)] + samRun.samples.wealth[i][0]).sort((x, y) => x - y);
+    expect(r.own.combined.potFan[0].year).toBe(c0);
+    expect(Math.abs(start - both[Math.min(both.length - 1, Math.floor(0.5 * both.length))])).toBeLessThanOrEqual(1);
     const at = ss.potAtRetirement;
     expect(middle).toBeGreaterThan(at.careful);
     expect(middle).toBeLessThan(at.good);
     expect(lives[lives.length - 1] - lives[0]).toBeGreaterThan(1000);
-    expect(Math.abs(start - STALE)).toBeGreaterThan(1000);
+    // not the old pot at the stop: Kim's same money with Sam's stale pot beside it is another figure
+    const stale = Array.from({ length: m }, (_, i) => kimRun.samples.wealth[i][Math.min(c0, kimRun.samples.wealth[i].length - 1)] + (STALE - KIM_START)).sort((x, y) => x - y);
+    expect(Math.abs(start - stale[Math.min(stale.length - 1, Math.floor(0.5 * stale.length))])).toBeGreaterThan(1000);
     // the same run from Sam's side: the same start
     const back = runHousehold(sam, kim, { today: KIM_AND_SAM_TODAY });
     expect(Math.abs(back.own.combined.potFan[0].p50 - start)).toBeLessThanOrEqual(1);

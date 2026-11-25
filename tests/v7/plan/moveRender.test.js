@@ -409,8 +409,10 @@ describe('Living on it (7.11.1): the named states as they are — what is held, 
     const y = root.querySelector(`[data-testid="${T}.heldLadder.cashYears"] tr[data-when="2027"]`);
     expect(y.querySelectorAll('td')[2].textContent).toBe('£35,494 at today’s value (it rises with prices) on 22 November 2027: 1¼% Index-linked Treasury Gilt 2027');
     expect(also).toContainEqual(['Vanguard FTSE All-World (Acc)', '£396,769', '', '']);
-    // retaken in 7.12.0: the plan counts the ISA (it is not held aside), so the ISA's fund is beside the plan's gilts too
-    expect(also).toContainEqual(['Vanguard FTSE All-World (Acc)', '£35,052', '', '']);
+    // retaken in 7.12.0: the plan counts the ISA (it is not held aside), so the ISA's fund is beside the plan's gilts too —
+    // said as the ISA's (wrap-up: answers/plan/held.js heldLadderView)
+    expect(also).toContainEqual(['Vanguard FTSE All-World (Acc) (ISA)', '£35,052', '', '']);
+    expect(root.textContent).toContain('Also in your pension and ISA');
     expect(one(root, `${T}.heldLadder.need`).textContent).toMatch(/^Your plan pays 2027\/28 to 2028\/29 from cash: £[\d,]+ still to come\.$/);
     // living on the plan, an ISA line is outside the pension — never "left alone" by a move
     expect(one(root, `${T}.heldLadder.outside`).textContent).toMatch(/^Easy-access savings \(CASH, £8,000\): outside your pension/);

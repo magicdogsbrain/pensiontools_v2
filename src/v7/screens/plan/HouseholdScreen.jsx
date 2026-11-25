@@ -172,10 +172,10 @@ function Verdict({ V, dispatch }) {
         <div class="lever-result" data-testid={`${T}.result`} data-head={v.head}>
           <p class="figure" data-testid={`${T}.headline`}>{C.head[v.head]}. {fillMarked(C.headline, { words: v.words }, HOUSEHOLD_CHANCE)}</p>
           {/* the names of this plan and the figures marked as the full view marks them (household.js householdSlotMarks; step F6) */}
-          {v.tested && <p class="note" data-testid={`${T}.tested`}>{fillMarked(v.tested.same ? C.tested : C.testedTwo, v.tested, householdSlotMarks('tested', v.tested, V.names.a))}</p>}
+          {v.tested && <p class="note" data-testid={`${T}.tested`}>{fillMarked(C[v.tested.key], v.tested, householdSlotMarks('tested', v.tested, V.names.a))}</p>}
           {V.startsSlots ? <p class="note" data-testid={`${T}.starts`}>{fillMarked(C.starts.line, V.startsSlots, householdSlotMarks('starts', V.startsSlots, V.names.a))}</p> : V.starts && <p class="note" data-testid={`${T}.starts`}>{V.starts}</p>}
           {v.pooled && <p class="note" data-testid={`${T}.pooled`}>{C.pooled}</p>}
-          {v.covered.map((x) => <p class="note" key={x.side} data-testid={`${T}.covered`} data-side={x.side}>{fillMarked(x.earliest ? C.coveredEarliest : C.covered, x, householdSlotMarks('covered', x, V.names.a))}</p>)}
+          {v.covered.map((x) => <p class="note" key={x.side} data-testid={`${T}.covered`} data-side={x.side}>{fillMarked(C[x.key], x, householdSlotMarks('covered', x, V.names.a))}</p>)}
           <div class="table-wrap">
             <table class="way-table household-rows" data-testid={`${T}.rows`}>
               <tbody>{v.rows.map((r) => (

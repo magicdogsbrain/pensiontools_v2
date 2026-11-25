@@ -46,10 +46,10 @@ export function householdVerdictHtml(r, o = {}) {
   const v = householdVerdictOf({ combined: r, lasts: o.lasts || null }, names, o.offsets || null, { a: endAgeOf(o.setA, now), b: endAgeOf(o.setB, now) });
   if (!v) return '';
   let s = '<strong>' + esc(C.head[v.head]) + '.</strong> ' + fillHtml(C.headline, { words: v.words }, { words: 'household.chance' });
-  if (v.tested) s += ' ' + fillHtml(v.tested.same ? C.tested : C.testedTwo, v.tested, householdSlotMarks('tested', v.tested, names.a));
+  if (v.tested) s += ' ' + fillHtml(C[v.tested.key], v.tested, householdSlotMarks('tested', v.tested, names.a));
   if (v.pooled) {
     s += ' ' + esc(C.pooled);
-    for (const x of v.covered) s += ' ' + fillHtml(x.earliest ? C.coveredEarliest : C.covered, x, householdSlotMarks('covered', x, names.a));
+    for (const x of v.covered) s += ' ' + fillHtml(C[x.key], x, householdSlotMarks('covered', x, names.a));
   } else {
     s += ' ' + jointVerdictHtml(v.share);
   }

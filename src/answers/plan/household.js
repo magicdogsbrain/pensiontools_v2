@@ -407,18 +407,32 @@ export function householdShareOf(lasts) {
   if (Number.isFinite(lasts.weighted)) return lasts.weighted;
   return Number.isFinite(+lasts.lasted) ? +lasts.lasted / +lasts.n : null;
 }
+/**
+ * (ruling Z5c) A plan's name read as a person's: a given name ("Sam", "Mary Ann"), else null — a plan named any other way
+ * ("Stop at 60 · £1,800 a month", "Pat retired") is never said as a person; its sentences say "you" and "your partner".
+ */
+const NOT_PEOPLE = new Set(['you', 'partner', 'this plan', 'my plan', 'plan', 'your plan', 'example']);
+export function personNameOf(name) {
+  const t = typeof name === 'string' ? name.trim() : '';
+  if (!t || t.length > 30 || NOT_PEOPLE.has(t.toLowerCase())) return null;
+  return /^[A-Z][a-z’'-]+(?: [A-Z][a-z’'-]+)?$/.test(t) ? t : null;
+}
 function verdictView(res, names, offsets, ends) {
   const c = res && res.combined;
   if (!c) return null;
+  // (ruling Z5c) the sentences about a person say the person's name when both plans are named as people, else you / your partner
+  const people = !!(personNameOf(names.a) && personNameOf(names.b));
   const own = householdShareOf(res.lasts);
   const share = own != null ? own : c.pooled ? c.pooled.success : c.jointSuccess;
   const covered = c.pooled ? ['a', 'b'].map((k) => {
     const x = c.pooled[k === 'a' ? 'shortA' : 'shortB'];
     if (!x || !(x.n > 0) || x.median == null) return null;
-    return { side: k, n: String(x.n), of: Number(c.runs).toLocaleString('en-GB'), short: names[k], payer: names[k === 'a' ? 'b' : 'a'], from: String(x.median), earliest: x.earliest != null && x.earliest !== x.median ? String(x.earliest) : null };
+    const earliest = x.earliest != null && x.earliest !== x.median ? String(x.earliest) : null;
+    const key = (people ? 'covered' : k === 'a' ? 'coveredYou' : 'coveredPartner') + (earliest ? 'Earliest' : '');
+    return { side: k, key, n: String(x.n), of: Number(c.runs).toLocaleString('en-GB'), short: names[k], payer: names[k === 'a' ? 'b' : 'a'], from: String(x.median), earliest };
   }).filter(Boolean) : [];
   const tested = ends && ends.a != null && ends.b != null
-    ? (ends.a === ends.b ? { same: true, age: String(ends.a) } : { same: false, a: names.a, b: names.b, ageA: String(ends.a), ageB: String(ends.b) })
+    ? (ends.a === ends.b ? { key: 'tested', same: true, age: String(ends.a) } : { key: people ? 'testedTwo' : 'testedTwoYou', same: false, a: names.a, b: names.b, ageA: String(ends.a), ageB: String(ends.b) })
     : null;
   return {
     head: headOf(share), share, pct: pct(share), words: inTen(share), pooled: !!c.pooled, covered, tested,

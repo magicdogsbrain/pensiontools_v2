@@ -730,6 +730,8 @@ describe('7 — today, byte for byte', () => {
   // Insurance and where a forecast is (every numbers step of A, B and C that asks it), and an answer on course with room says
   // only that there is room, never "as little as" or "stop paying in" (b/answer-B2-on-course, b/answer-have)
   // (V7_PIN_TODAY=1, V7_PIN_SCREENS=1); no figure moved and no other drawing moved
+  // …and a guest's figures are kept per window (ruling Z5e, 25 Nov 2026): every numbers step of A, B and C says they stay
+  // "in this window" (it said "in this browser"), so those 13 were re-pinned (V7_PIN_TODAY=1); no other drawing moved
   const NEW = ['[data-field="partner.stop.kind"]', '[data-field="you.taxFreeTaken"]', '[data-field="partner.taxFreeTaken"]', '[data-region="shape"]',
     '[data-warning-id="drawdown-2028"]', '[data-field="isaGrowth"]', '[data-testid="nav.plans"]', '[data-testid="nav.account"]', '[data-testid="nav.whatsNew"]', '[data-testid="nav.assumptions"]', '[data-testid="front.exampleLine"]',
     // 7.9.0: "Try the bad years" under C's and D's final answers — a button only until pressed; no figure of the answer moves

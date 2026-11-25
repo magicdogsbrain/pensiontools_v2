@@ -19,6 +19,7 @@ import { realYieldForYear } from '../../../src/services/LinkerUniverse.js';
 import { oneAnswer, worstStarts, earlierTestNote } from '../../../src/services/OneAnswer.js';
 import { namedStartRows, SCENARIO_STARTS, decadeFigures, CONTRACT } from '../../../src/services/NamedStarts.js';
 import { generateDrawdownSchedule } from '../../../src/services/DrawdownService.js';
+import { partYearOf } from '../../../src/services/PaidYear.js';
 import { generateGlidepathSchedule } from '../../../src/services/GlidepathService.js';
 import { SCENARIOS } from '../../../src/constants.js';
 import { noon } from './_plans.js';
@@ -95,7 +96,8 @@ export function expectLastsAsPlanner(plan, { today }) {
   const dur = Math.max(1, Math.round(+s.duration || 35));
   expect(x.prices).toBe(0.025);
   if (ref.sid === 'pots-and-valves') {
-    const dd = generateDrawdownSchedule({ ...s, duration: dur }, dur, 0.025, now);
+    // (ruling Z2: the planner's schedule too reads the run's part first year, from the run's plan)
+    const dd = generateDrawdownSchedule({ ...s, duration: dur }, dur, 0.025, now, partYearOf(ref.p));
     expect(x.schedule.map((r) => [r.year, r.pension, r.state, r.tax, r.isa, r.spendable, r.isaLeft])).toEqual(dd.map((r) => [r.year, Math.round(r.sippDraw), Math.round(r.statePension), Math.round(r.tax), Math.round(r.isaDraw), Math.round(r.spendable), Math.round(r.isaBalance)]));
     const gp = generateGlidepathSchedule({ ...s, duration: dur }, 0.025);
     expect(x.glidepath.rows.map((r) => [r.year, r.shares, r.bonds, r.cash, r.total, r.sharesPct])).toEqual(gp.map((r) => [r.year, Math.round(r.equityMin), Math.round(r.bondMin), Math.round(r.cashTarget), Math.round(r.totalMin), Math.round((r.equityShareOfPot || 0) * 100)]));

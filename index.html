@@ -6656,11 +6656,11 @@
     }
     window.printAnnualReport = async function(taxYear) {
       const s = await getDecisionSettingsAsync();
-      printPortal(decisionPlanHeaderHtml(s, 'Annual report — tax year ' + taxYear, await firstStepNow()) + document.getElementById('taxYearDetail').innerHTML);
+      printPortal(decisionPlanHeaderHtml(s, 'Annual report — tax year ' + taxYear, await firstStepNow(), todayOf()) + document.getElementById('taxYearDetail').innerHTML);
     };
     window.printMonthlyReport = async function(dateStr) {
       const s = await getDecisionSettingsAsync();
-      printPortal(decisionPlanHeaderHtml(s, 'Monthly record — ' + dateStr, await firstStepNow()) + document.getElementById('historyDetail').innerHTML);
+      printPortal(decisionPlanHeaderHtml(s, 'Monthly record — ' + dateStr, await firstStepNow(), todayOf()) + document.getElementById('historyDetail').innerHTML);
     };
     window.exportAnnualCsv = function(taxYear) {
       const rows = (typeof allHistoryData !== 'undefined' ? allHistoryData : []).filter(h => h.taxYear === taxYear).sort((a, b) => (a.date || '').localeCompare(b.date || ''));

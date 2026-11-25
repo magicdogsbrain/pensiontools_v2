@@ -6,7 +6,7 @@
   "grossToNet": 6,
   "projectAccumulation": 0,
   "diffHoldings": 0,
-  "newDate": 39,
+  "newDate": 38,
   "boxValue": 89,
   "engineImport": 21
  },
@@ -32,7 +32,7 @@
   "projectAccumulation": {},
   "diffHoldings": {},
   "newDate": {
-   "index.html": 14,
+   "index.html": 13,
    "src/ui/accumulationProjection.js": 1,
    "src/ui/components/NewPlanFromSeed.js": 1,
    "src/ui/components/SetupWizard.js": 1,

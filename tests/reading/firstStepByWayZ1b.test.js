@@ -49,7 +49,7 @@ describe('the Decision report header says the first step before tax as taken', (
   it('the full view passes the reader\'s first step', () => {
     const src = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
     expect(src).not.toMatch(/function decisionPlanHeaderHtml/);
-    expect(src).toMatch(/decisionPlanHeaderHtml\(s, '[^']*' \+ [a-zA-Z]+, await firstStepNow\(\)\)/);
+    expect(src).toMatch(/decisionPlanHeaderHtml\(s, '[^']*' \+ [a-zA-Z]+, await firstStepNow\(\), todayOf\(\)\)/);
   });
 });
 

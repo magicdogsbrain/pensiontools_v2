@@ -100,3 +100,48 @@ describe('the simple view, arriving from "Back to the simple view."', () => {
     p.stop();
   });
 });
+
+// (wrap-up) a figure typed and the link pressed straight away: the save waiting goes first,
+// then the page moves; a save that is refused keeps the person on the page, where the box says why
+import { leaveForView } from '../src/ui/viewSwitch.js';
+describe('the link waits for what was typed', () => {
+  const press = (over = {}) => { const e = { button: 0, metaKey: false, ctrlKey: false, shiftKey: false, altKey: false, prevented: false, preventDefault() { this.prevented = true; }, ...over }; return e; };
+  it('a plain press: the flush first, then the move, then the note', async () => {
+    const s = storage();
+    const seen = [];
+    let done;
+    const flush = () => { seen.push('flush'); return new Promise((r) => { done = () => { seen.push('saved'); r(['saved', 'nothing', undefined]); }; }); };
+    const e = press();
+    const p = leaveForView(e, 'simple', '../#/plan/A1', { flush, go: (h) => seen.push('go ' + h), session: s });
+    expect(e.prevented).toBe(true);
+    await Promise.resolve();
+    expect(seen).toEqual(['flush']);
+    expect(s.getItem(VIEW_SWITCH_KEY)).toBe(null);
+    done();
+    expect(await p).toBe('went');
+    expect(seen).toEqual(['flush', 'saved', 'go ../#/plan/A1']);
+    expect(s.getItem(VIEW_SWITCH_KEY)).toBe('simple');
+  });
+  it('a save refused (a box with a problem, a write that failed): the page stays and nothing is noted', async () => {
+    for (const out of ['problem', 'notSaved']) {
+      const s = storage();
+      const went = [];
+      const e = press();
+      expect(await leaveForView(e, 'full', './classic/', { flush: async () => [out], go: (h) => went.push(h), session: s })).toBe('stay');
+      expect(went).toEqual([]);
+      expect(s.getItem(VIEW_SWITCH_KEY)).toBe(null);
+    }
+    const went = [];
+    expect(await leaveForView(press(), 'full', './classic/', { flush: async () => { throw new Error('offline'); }, go: (h) => went.push(h), session: storage() })).toBe('stay');
+    expect(went).toEqual([]);
+  });
+  it('a press for a new tab is the plain link: noted, nothing held', async () => {
+    const s = storage();
+    const e = press({ metaKey: true });
+    let flushed = false;
+    expect(await leaveForView(e, 'simple', '../#/', { flush: async () => { flushed = true; }, go: () => { throw new Error('no'); }, session: s })).toBe('link');
+    expect(e.prevented).toBe(false);
+    expect(flushed).toBe(false);
+    expect(s.getItem(VIEW_SWITCH_KEY)).toBe('simple');
+  });
+});

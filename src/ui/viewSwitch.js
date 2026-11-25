@@ -11,6 +11,10 @@
  *   viewChoiceToSave(profile, note) the `view` to write: the note when the settings hold another view (or none), else null
  *   followViewSwitch(profile, { session, save, signedIn })   the arriving view's one step: reads and removes the note and,
  *                                   for someone signed in, saves `{ view }` once; returns the view saved, or null
+ *   leaveForView(e, view, href, { flush, go, session })   the press itself (wrap-up): a save waiting (a box just left) is
+ *                                   sent first and the page moves only once it has landed; one refused ('problem',
+ *                                   'notSaved' or a fault) keeps the page, where the box says why. A press for a new tab is
+ *                                   the plain link. → 'went' | 'stay' | 'link'
  */
 export const VIEW_SWITCH_KEY = 'pt_view_switch';
 
@@ -47,4 +51,19 @@ export function followViewSwitch(profile, { session = windowSession(), save = nu
     try { const p = save({ view }); if (p && typeof p.catch === 'function') p.catch(() => {}); } catch (e) { /* the next press tries again */ }
   }
   return view;
+}
+
+const REFUSED = ['problem', 'notSaved'];
+
+export async function leaveForView(e, view, href, { flush = null, go, session = windowSession() } = {}) {
+  const plain = e && e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey;
+  if (!plain || typeof flush !== 'function' || typeof go !== 'function') { noteViewSwitch(view, session); return 'link'; }
+  e.preventDefault();
+  let out;
+  try { out = await flush(); } catch (err) { return 'stay'; }
+  const outs = Array.isArray(out) ? out : [out];
+  if (outs.some((o) => REFUSED.includes(o))) return 'stay';
+  noteViewSwitch(view, session);
+  go(href);
+  return 'went';
 }

@@ -7,7 +7,7 @@
 import { test, expect } from '../helpers/app.js';
 import { clearEmulators, makeAccount, putSettings, plansOf, ALEX } from './emulator.js';
 import { openAt, signIn } from './journeys.js';
-import { CLASSIC_PATH, PROD } from '../helpers/app.js';
+import { CLASSIC_PATH, PROD, V7_PATH } from '../helpers/app.js';
 import { VERSION } from '../../src/constants.js';
 
 test.beforeEach(async () => { await clearEmulators(); });
@@ -218,4 +218,41 @@ test('a saver\'s pension typed on Settings is the pension today on the Accumulat
   expect(await atStop()).toBeGreaterThanOrEqual(before + 7000);
   const plan = (await plansOf(uid))[0];
   expect(plan.accumulationTool.settings.potNow).toBe(52000);
+});
+
+// (wrap-up) a figure typed and the link to the other view pressed straight away, without
+// leaving the box first: the figure is saved before the page moves, both ways. Fictional (Alex, 50, stopping at 60).
+test('a figure typed and the link to the other view pressed at once is saved, both ways', async ({ page }) => {
+  test.setTimeout(300_000);
+  const { uid } = await makeAccount(ALEX);
+  await putSettings(uid, { lastSeenVersion: VERSION, view: 'full' });
+  await openAt(page, '#/account');
+  await signIn(page, ALEX);
+  await expect(page.getByTestId('account.signIn')).toHaveCount(0, { timeout: 30_000 });
+  await newPlan(page, { age: 50, retired: false, retireAge: 60, start: 'start-accumulation' });
+  await page.evaluate(() => window.switchToTab('accumulation'));
+  await expect(page.locator('#acRetireAge')).toHaveValue('60', { timeout: 30_000 });
+  await typeIn(page, page.locator('#acNetMonthly'), '200');
+  await expect(page.getByTestId('accumulation.saveState')).toHaveText('Saved', { timeout: 30_000 });
+  const id = (await plansOf(uid))[0].id;
+  await expect(page.locator('#classicToSimple')).toHaveAttribute('href', new RegExp('#/plan/' + id + '$'), { timeout: 30_000 });
+
+  // the full view: 250 typed, the link pressed with the box still in use
+  await page.locator('#acNetMonthly').click();
+  await page.locator('#acNetMonthly').fill('250');
+  await page.locator('#classicToSimple').click();
+  await expect(page.locator('#app [data-screen]').first()).toBeVisible({ timeout: 30_000 });
+  expect((await plansOf(uid))[0].accumulationTool.settings.netMonthly).toBe(250);
+
+  // the simple view: 300 and a stop at 61 typed on What you pay in, "Show everything." pressed with the box still in use
+  await page.goto(PROD + V7_PATH + '#/plan/' + id + '/saving');
+  const pay = page.getByTestId('plan.saving.netMonthly');
+  await expect(pay).toHaveValue('250', { timeout: 30_000 });
+  await pay.click();
+  await pay.fill('300');
+  await page.getByTestId(/^nav\.everything/).locator('visible=true').first().click();
+  await expect(page.locator('#mainApp:not(.hidden)')).toBeVisible({ timeout: 30_000 });
+  expect((await plansOf(uid))[0].accumulationTool.settings.netMonthly).toBe(300);
+  await page.evaluate(() => window.switchToTab('accumulation'));
+  await expect(page.locator('#acNetMonthly')).toHaveValue('300', { timeout: 30_000 });
 });

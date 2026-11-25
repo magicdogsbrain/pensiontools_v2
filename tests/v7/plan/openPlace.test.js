@@ -116,3 +116,32 @@ describe('activity for the planner\'s idle sign-out (4.3)', () => {
     expect(lastActivity({ getItem() { throw new Error('denied'); } })).toBe(0);
   });
 });
+
+// (wrap-up) "Show everything." pressed straight after typing: leaving the box starts the save,
+// and the full view opens only once it has landed; a save that failed keeps the person on the page, where it is said
+describe('leaving waits for the save on its way', () => {
+  it('a save under way: nothing opens until it is written; then the planner', async () => {
+    const session = fakeStorage();
+    const { store, went } = page(session);
+    store.dispatch({ type: A.PLAN_EDIT, planId: 'abc', path: 'netMonthly', value: '300' });
+    store.dispatch({ type: A.PLAN_SAVE, planId: 'abc', auto: true });
+    expect(store.getState().ui.saving).not.toBe(null);
+    store.dispatch({ type: A.PLAN_CHANGE, planId: 'abc', place: 'saving', back: '#/plan/abc/saving' });
+    await tick();
+    expect(went).toEqual([]);
+    store.dispatch({ type: A.PLAN_SAVED, planId: 'abc', previous: { netMonthly: 200 }, line: null });
+    await tick();
+    expect(went).toEqual([PLANNER]);
+    expect(JSON.parse(session.getItem(OPEN_PLACE_KEY)).planId).toBe('abc');
+  });
+  it('a save that failed: nothing opens, nothing is left in the window', async () => {
+    const session = fakeStorage();
+    const { store, went } = page(session);
+    store.dispatch({ type: A.PLAN_SAVE, planId: 'abc', auto: true });
+    store.dispatch({ type: A.PLAN_CHANGE, planId: 'abc', place: 'saving', back: '#/plan/abc/saving' });
+    store.dispatch({ type: A.PLAN_SAVE_FAILED, planId: 'abc', problem: 'failed' });
+    await tick();
+    expect(went).toEqual([]);
+    expect(session.getItem(OPEN_PLACE_KEY)).toBe(null);
+  });
+});

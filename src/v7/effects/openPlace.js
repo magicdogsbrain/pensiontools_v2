@@ -18,10 +18,12 @@ export const PLANNER = LAYOUT.v7.classic;
 export const SIGN_IN_DOOR = PLANNER + '?signin=1';
 
 export function startOpenPlace(store, { session, now = () => new Date(), go }) {
-  return store.subscribe((state, action, previous) => {
-    if (action.type !== A.PLAN_CHANGE) return;
-    const leaving = state.ui.leaving;
-    if (!leaving || leaving === previous.ui.leaving) return;
+  // (wrap-up) a box left as the link is pressed starts its save (plan/save, auto): the planner opens only once that save,
+  // and one queued behind it, has landed — the page leaving earlier lost what was typed. A save that failed keeps the
+  // person here, where the page says why; nothing is left in the window.
+  const busy = (st) => !!(st.ui.saving || st.ui.saveAgain);
+  let waitingFor = null;
+  const leave = (state, leaving) => {
     const text = makeRequest({ planId: leaving.planId, place: leaving.place, back: leaving.back, at: now().toISOString(), month: leaving.month || null });
     let written = false;
     try {
@@ -29,5 +31,22 @@ export function startOpenPlace(store, { session, now = () => new Date(), go }) {
     } catch { written = false; }
     if (!written) { store.dispatch({ type: A.PLAN_CHANGE_FAILED }); return; }
     Promise.resolve().then(() => go(leaving.place === 'signin' ? SIGN_IN_DOOR : PLANNER));
+  };
+  return store.subscribe((state, action, previous) => {
+    if (waitingFor && action.type !== A.PLAN_CHANGE) {
+      if (state.ui.leaving !== waitingFor) { waitingFor = null; return; }
+      if (busy(state)) return;
+      const leaving = waitingFor;
+      waitingFor = null;
+      if (state.ui.saveProblem) return;
+      leave(state, leaving);
+      return;
+    }
+    if (action.type !== A.PLAN_CHANGE) return;
+    const leaving = state.ui.leaving;
+    if (!leaving || leaving === previous.ui.leaving) return;
+    if (busy(state)) { waitingFor = leaving; return; }
+    waitingFor = null;
+    leave(state, leaving);
   });
 }

@@ -39,7 +39,7 @@ import { holdingsSummary, normaliseHoldings } from '../services/HoldingsRecord.j
 import { planHasFigures } from '../services/DraftDecision.js';
 import { pressIfClosed } from './stressSubTabs.js';
 import { planHasSavingFigures } from '../services/PlanFigures.js';
-import { noteViewSwitch } from './viewSwitch.js';
+import { leaveForView } from './viewSwitch.js';
 import { PLAN_ID } from '../services/OpenPlace.js';
 import { PLAN } from '../v7/copy/plan.js';
 import { HOME } from '../v7/copy/home.js';
@@ -163,7 +163,8 @@ export async function showHomeBanner(win, doc, deps) {
   try {
     const activeId = await deps.getActiveScenarioId();
     const back = doc.getElementById('classicToSimple');
-    if (back) { back.setAttribute('href', simpleLinkHref(activeId)); back.onclick = () => noteViewSwitch('simple'); }   // the link is a choice (7.12.0)
+    // the link is a choice (7.12.0); a figure typed and the link pressed at once is saved first (wrap-up: viewSwitch.js leaveForView)
+    if (back) { const to = simpleLinkHref(activeId); back.setAttribute('href', to); back.onclick = (e) => { leaveForView(e, 'simple', to, { flush: deps.flush || win.flushSettings, go: (h) => win.location.assign(h) }); }; }
     if (!activeId) { banner.style.display = 'none'; return null; }
     const now = deps.now ? deps.now() : new Date();
     const [plans, budget, stress, decision, fromAnswer] = await Promise.all([deps.listScenariosAsync(), deps.getBudgetAsync(), deps.getStressSettingsAsync(), deps.getDecisionSettingsAsync(), deps.planFromAnswer()]);

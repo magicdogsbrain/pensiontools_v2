@@ -21,6 +21,7 @@ import { planSourcing, planSourcingOrdered } from './WithdrawalSourcing.js';
 import { newSleeve, topUpFromSleeve, withdrawFromSleeve, incomeTaxOnSleeve, routeWindfall, GIA_DEFAULTS } from './TaxableSleeve.js';
 import { decisionAnchorYear, taxYearKey, taxYearLabel, pensionOpensSentence } from './PlanTiming.js';
 import { taxFreeFractionOf, LUMP_SUM_ALLOWANCE } from './FlexibleAccess.js';
+import { spInMonthsDrawn } from './TaxYearSetUp.js';
 
 // Tax year from a "YYYY-MM" string. Delegates to the canonical helper, which honours the
 // 6 April boundary; parseMonth resolves the month to day 15 so month-granularity dates
@@ -679,7 +680,8 @@ export function calcDecision(dateStr, equity, bond, cash, deps) {
       // the monthly payment × the months drawn (the earlier months' share sits in the income to date). Plans
       // without the start month keep the old share.
       const firstDrawYm = (() => { const d = new Date(year, month - 1 - (monthsPassedIncludingThis - 1), 1); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); })();
-      const spInDraws = !STATE ? 0 : (spInfo.startYm && spInfo.monthlyFull != null) ? (spInfo.startYm >= firstDrawYm ? STATE : spInfo.monthlyFull * deliverMonths) : STATE * fixedShare;
+      // (ruling Z6: the one function the tax year's set-up uses too)
+      const spInDraws = spInMonthsDrawn({ yearTotal: STATE, monthlyFull: spInfo.monthlyFull, startYm: spInfo.startYm, firstYm: firstDrawYm, months: deliverMonths });
       const annualTaxable = totalAnnualSipp * (1 - taxFreeF) + OTHER * fixedShare + spInDraws + preStartIncome;
 
       // Proper HMRC bands: 20% to BRL, 40% to HRL, 45% above, plus PA taper over £100k.

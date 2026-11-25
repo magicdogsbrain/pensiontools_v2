@@ -474,6 +474,20 @@ export function partYearReason(ctx, inputs, breakdown) {
  * @param {object} params - Confirmed wizard parameters
  * @returns {object} Monthly breakdown with gross, tax, and net values
  */
+/**
+ * (ruling Z6) The State Pension inside the months drawn this tax year, ONE sum for the set-up (calculateMonthlyBreakdown)
+ * and the month (legacyDecision.calcDecision): when it starts on or after the first month drawn, the tax year's own total
+ * (`yearTotal`: partial in the year it starts; none of it is in the income to date); when it was already in payment, the
+ * monthly payment × the months drawn (the earlier months' share sits in the income to date). Without a start month or a
+ * monthly payment, the year's share for the months. No first month known: read as already in payment.
+ */
+export function spInMonthsDrawn({ yearTotal = 0, monthlyFull = null, startYm = null, firstYm = null, months = 12 } = {}) {
+  const total = +yearTotal || 0;
+  if (!(total > 0)) return 0;
+  if (startYm && monthlyFull != null) return firstYm && startYm >= firstYm ? total : monthlyFull * months;
+  return total * months / 12;
+}
+
 export function calculateMonthlyBreakdown(params) {
   const {
     targetSalary,
@@ -547,11 +561,10 @@ export function calculateMonthlyBreakdown(params) {
   // cause is total tax less the tax already due on that earlier income, spread over the months
   // actually drawn. For a full year with nothing earned before, this is the plain annual figure.
   const months = Math.max(1, Math.min(12, remainingMonths || 12));
-  // The State Pension inside the months to come: the year's whole total when it starts on or after the start
-  // month (none of it is in the income to date), the monthly payment × months when it started earlier (6.11.5 —
-  // the monthly figure of 0 before the start month was leaving the year's SP out of the tax altogether).
+  // The State Pension inside the months to come (ruling Z6): the month's own rule, one function (spInMonthsDrawn) — the
+  // year's whole total when it starts on or after the start month, the monthly payment × months when it started earlier.
   const spInDraws = statePension > 0 && statePensionMonthlyFull != null
-    ? (spStartedByStart ? statePensionMonthlyFull * months : statePension)
+    ? spInMonthsDrawn({ yearTotal: statePension, monthlyFull: statePensionMonthlyFull, startYm: spStartYm, firstYm: startYm, months })
     : monthlyStatePensionGross * months;
   // only the taxable part of each pension payment is taxed (f = 0: all of it)
   const monthlySippTaxable = monthlySippGross * (1 - f);

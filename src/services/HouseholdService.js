@@ -351,11 +351,18 @@ export function combineHouseholdStrategies(rA, rB, opts = {}) {
   // An ISA a bought strategy holds aside is outside its test's wealth: added as the plan holds it (leftAtYear), so the
   // combined figure is everything both plans hold (sweep 20 Oct 2026 — it was left out of a ladder plan's side).
   const held = Math.max(0, +opts.heldA || 0) + Math.max(0, +opts.heldB || 0);
+  // (wrap-up) each row is a calendar year from today: a plan still saving starts its run at its stop (startA / startB, the
+  // years from today to its run's year 0), so the rows begin when the later run begins, each plan that many years into its
+  // own run — the pots at the stop were said against this year. Both drawing now (no starts): year 0 is this year, as before.
+  const sA = Math.max(0, Math.round(+opts.startA || 0)), sB = Math.max(0, Math.round(+opts.startB || 0));
+  const c0 = Math.max(sA, sB);
+  const lenA = wa[0] ? wa[0].length : 0, lenB = wb[0] ? wb[0].length : 0;
+  const end = Math.max(lenA + sA, lenB + sB, years);
   const potFan = [];
-  for (let y = 0; y < years; y++) {
+  for (let c = c0; c < end; c++) {
     const vals = [];
-    for (let i = 0; i < m; i++) { const a = bc(wa, i) || [], b = bc(wb, i) || []; vals.push((a[Math.min(y, a.length - 1)] || 0) + (b[Math.min(y, b.length - 1)] || 0) + held); }
-    potFan.push({ year: y, p10: pct(vals, 0.10), p50: pct(vals, 0.50), p90: pct(vals, 0.90) });
+    for (let i = 0; i < m; i++) { const a = bc(wa, i) || [], b = bc(wb, i) || []; vals.push((a[Math.min(c - sA, a.length - 1)] || 0) + (b[Math.min(c - sB, b.length - 1)] || 0) + held); }
+    potFan.push({ year: c, p10: pct(vals, 0.10), p50: pct(vals, 0.50), p90: pct(vals, 0.90) });
   }
   const pooled = pooledVerdict(rA, rB, sa, sb, n, opts, bc);
   return { runs: n, jointSuccess: n ? both / n : 0, successA: n ? okA / n : 0, successB: n ? okB / n : 0, independenceAssumed: n ? (okA / n) * (okB / n) : 0, potFan, sampleFutures: m, byStrategy: true, pooled };
@@ -408,14 +415,16 @@ export function compactStrategyResult(r) {
  * @param {{ own: { settingsA, cfgA, settingsB, cfgB }, together: {…} }} ways
  * @param {{ own: { a: number[], b: number[] }, together: {…} }} needs   each plan's draw need by plan year, each way
  */
-export function runHouseholdWays(ways, needs, idA, idB, test) {
+export function runHouseholdWays(ways, needs, idA, idB, test, starts = null) {
+  // (wrap-up) the years from today to each run's year 0 (householdRun's offsets; a plan started earlier runs from today: 0)
+  const startA = starts ? Math.max(0, +starts.a || 0) : 0, startB = starts ? Math.max(0, +starts.b || 0) : 0;
   const out = {};
   for (const w of Object.keys(ways)) {
     const x = ways[w];
     const A = test(x.settingsA, x.cfgA, idA), B = test(x.settingsB, x.cfgB, idB);
     const nd = (needs && needs[w]) || {};
     out[w] = {
-      combined: (A.r.affordable && B.r.affordable) ? combineHouseholdStrategies(A.r, B.r, { needA: nd.a, needB: nd.b, startAgeA: A.p.startAge, startAgeB: B.p.startAge, heldA: heldIsaOf(A.p, idA), heldB: heldIsaOf(B.p, idB), yearOffsetA: yearOffsetOf(A.p), yearOffsetB: yearOffsetOf(B.p) }) : null,
+      combined: (A.r.affordable && B.r.affordable) ? combineHouseholdStrategies(A.r, B.r, { needA: nd.a, needB: nd.b, startAgeA: A.p.startAge, startAgeB: B.p.startAge, heldA: heldIsaOf(A.p, idA), heldB: heldIsaOf(B.p, idB), yearOffsetA: yearOffsetOf(A.p), yearOffsetB: yearOffsetOf(B.p), startA, startB }) : null,
       rA: compactStrategyResult(A.r), rB: compactStrategyResult(B.r)
     };
   }

@@ -524,7 +524,9 @@ export function comparisonFigures(split, runs, { ages = [67, 75, 90] } = {}) {
     const cmb = r.combined || {};
     const share = cmb.pooled ? cmb.pooled.success : cmb.jointSuccess;
     const c90 = 90 - PA.startAge + PA.off;
-    const fan = at(cmb.potFan, c90);
+    // the fan's rows are calendar years from today (combineHouseholdStrategies): the row of that year, held at the ends
+    const pf = Array.isArray(cmb.potFan) ? cmb.potFan : [];
+    const fan = pf.length ? (pf.find((f) => f.year === c90) || (c90 < pf[0].year ? pf[0] : pf[pf.length - 1])) : null;
     return {
       lasts: { household: futuresOutOfTen(share || 0), a: futuresOutOfTen(r.rA ? 1 - (r.rA.ruin?.mc || 0) / 100 : 0), b: futuresOutOfTen(r.rB ? 1 - (r.rB.ruin?.mc || 0) / 100 : 0), pooled: cmb.pooled || null, shareHousehold: share || 0 },
       potA: ages.map((age) => potAtAge(r.rA, PA, age)), potB: ages.map((age) => potAtAge(r.rB, PB, age)),

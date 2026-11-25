@@ -91,7 +91,7 @@ export function runHousehold(plan, partner, { today, limit = null, need = null, 
   tell(0, total);
   const test = testOf(now);
   const counted = (settings, cfg, id) => { const out = test(settings, cfg, id); runs += 1; tell(runs, total); return out; };
-  const res = runHouseholdWays(ways, split.needs, idOf(s.a), idOf(s.b), counted);
+  const res = runHouseholdWays(ways, split.needs, idOf(s.a), idOf(s.b), counted, offsets);
   const bad = [['a', res.own.rA], ['b', res.own.rB]].find(([, x]) => x && !x.affordable);
   if (bad) return plain({ ok: false, reason: 'unaffordable', which: bad[0], why: bad[1].reason || '', names, basis: { today, engine: 'one-test', runs } });
   const fig = split.applies && res.together && res.together.combined ? comparisonFigures(split, res) : null;

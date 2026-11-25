@@ -57,7 +57,8 @@ function plannerHousehold(a, b) {
   const cfgOf = (st) => createSimulationConfigFromSettings({}, st);
   const ways = { own: { settingsA: sA, cfgA: cfgOf(sA), settingsB: sB, cfgB: cfgOf(sB) } };
   if (split.applies) ways.together = { settingsA: split.settings.a, cfgA: cfgOf(split.settings.a), settingsB: split.settings.b, cfgB: cfgOf(split.settings.b) };
-  const res = runHouseholdWays(ways, split.needs, sA.strategyId || 'pots-and-valves', sB.strategyId || 'pots-and-valves', plannerTest);
+  // each run's start from today rides on (the combined money by calendar year; wrap-up), as the household run hands it on
+  const res = runHouseholdWays(ways, split.needs, sA.strategyId || 'pots-and-valves', sB.strategyId || 'pots-and-valves', plannerTest, { a: startOffset(sA, now), b: startOffset(sB, now) });
   const fig = split.applies && res.together && res.together.combined ? comparisonFigures(split, res) : null;
   return { sA, sB, split, res, fig, timeline: householdIncomeTimeline(sA, sB, null, now), offsets: { a: startOffset(sA, now), b: startOffset(sB, now) } };
 }

@@ -88,8 +88,9 @@ export const HELD = {
   stateAll: 'What arrives by then is {arrives}. With what else you hold, at today’s value, that is {more} more than these years need. Part of it is in shares and funds.',
   stateAllCash: 'Your pension holds {cash} in cash. With what else you hold, at today’s value, that is {more} more than these years need. Part of it is in shares and funds.',
   stateLess: 'What you hold, at today’s value, is {less} less than these years need.',
-  timing: 'One difference from the plan is the timing: {due} is due {when}, before {label} pays on {date}, and your pension holds {cash} in cash. To pay those months you can sell part of something you hold, or wait for that gilt to pay. Anything sold before it matures goes at that day’s price, which can be lower.',
-  timingNoNext: 'One difference from the plan is the timing: {due} is due {when}, and no gilt you hold pays before then. To pay those months you can sell part of something you hold. Anything sold before it matures goes at that day’s price, which can be lower.',
+  // (ruling Z5a) someone living on a ladder is never told to sell: the line says only what is not yet paid for
+  timing: 'One difference from the plan is the timing: {due} is due {when}, before {label} pays on {date}, and your pension holds {cash} in cash. Those months are not yet paid for by cash or by a gilt that pays in them.',
+  timingNoNext: 'One difference from the plan is the timing: {due} is due {when}, and no gilt you hold pays before then. Those months are not yet paid for by cash or by a gilt that pays in them.',
   fixedRisk: 'Held until they mature, these gilts pay fixed sums on known days, as the plan’s cash would. A fixed sum does not rise with prices; the plan’s cash would not have either.',
   setYears: 'You set {label} against {years}.',
   noCashYears: 'No cash years are left: your plan’s gilts pay every year from here. Your pension’s cash is {cash}.',

@@ -76,8 +76,9 @@ describe('what the cash years need, and what Alex\'s pension holds for them', ()
     expect(w).toContain('Your plan pays 2026/27 to 2028/29 from cash: £47,167 still to come.');
     expect(w).toContain('£0: a lump sum the plan counts pays it');
     expect(w).toContain('Held until the day they pay, the cash and these gilts come to £93,619: £46,452 more than these years need.');
-    // November and December, 2 × 34,000 ÷ 12 = 5,666.67, fall before the first of them pays
-    expect(w).toContain('One difference from the plan is the timing: £5,667 is due November to December 2026, before 4 1/8% Treasury Gilt 2027 pays on 29 January 2027, and your pension holds £50 in cash. To pay those months you can sell part of something you hold, or wait for that gilt to pay. Anything sold before it matures goes at that day’s price, which can be lower.');
+    // November and December, 2 × 34,000 ÷ 12 = 5,666.67, fall before the first of them pays (ruling Z5a: no word of selling;
+    // restated 25 Nov 2026, was "To pay those months you can sell part of something you hold …")
+    expect(w).toContain('One difference from the plan is the timing: £5,667 is due November to December 2026, before 4 1/8% Treasury Gilt 2027 pays on 29 January 2027, and your pension holds £50 in cash. Those months are not yet paid for by cash or by a gilt that pays in them.');
     expect(w).toContain('Your plan already counts a lump sum of £40,000 in 2027/28. If the money you expect is that money, it is not extra.');
     expect(w).toContain('Pension elsewhere: £25,000, expected by June 2027. It is not counted, because it may not arrive.');
     expect(w.some((t) => /not (yet )?covered|counts? toward|runs short/.test(t))).toBe(false);

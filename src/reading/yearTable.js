@@ -7,7 +7,8 @@
  *
  *   yearTablesOf({ settings, strategyId, p, r, now, prices, duration }) → { prices, startAge, duration, schedule, glidepath, own }
  *     settings   the plan's effective settings (the one recipe: src/reading/gather.js lastsInputOf)
- *     p, r       the one test's plan and result (a locked ladder: the document's)
+ *     p, r       the one test's plan and result (a locked ladder: the document's); p's part first year (PaidYear.js
+ *                partYearOf) is the schedule's: that row is the year for its months (ruling Z2), its year cell says so
  *     prices     ASSUMED_PRICES unless a what-if says otherwise (the full view's "what if" boxes: never the plan's table)
  *     duration   the plan's own length (settings.duration) unless a what-if says otherwise
  *       schedule   Pots & Valves: year by year (every income in the after-tax figure has its column: the pension, the State
@@ -23,6 +24,9 @@
 import { generateDrawdownSchedule } from '../services/DrawdownService.js';
 import { generateGlidepathSchedule } from '../services/GlidepathService.js';
 import { money } from './format.js';
+import { partYearOf } from '../services/PaidYear.js';
+
+export { partYearOf };
 
 /** The prices the year tables assume (a year): the plan's own assumption, in both views. */
 export const ASSUMED_PRICES = 0.025;
@@ -37,7 +41,8 @@ export function yearTablesOf({ settings, strategyId, p = null, r = null, now, pr
   if (pnv) {
     const s = { ...s0, duration };
     try {
-      schedule = generateDrawdownSchedule(s, duration, prices, now).map((x) => ({ year: x.year, age: startAge + x.year, pension: r0(x.sippDraw), state: r0(x.statePension), ...(x.otherIncome > 0 ? { otherIncome: r0(x.otherIncome) } : {}), tax: r0(x.tax), net: r0(x.netIncome), isa: r0(x.isaDraw), ...(x.giaDraw > 0 ? { gia: r0(x.giaDraw) } : {}), spendable: r0(x.spendable), isaLeft: r0(x.isaBalance) }));
+      // year 0 (or, a plan years in, its current year) for the months it has: services/PaidYear.js partYearOf
+      schedule = generateDrawdownSchedule(s, duration, prices, now, partYearOf(p)).map((x) => ({ year: x.year, age: startAge + x.year, ...(x.months ? { months: x.months } : {}), pension: r0(x.sippDraw), state: r0(x.statePension), ...(x.otherIncome > 0 ? { otherIncome: r0(x.otherIncome) } : {}), tax: r0(x.tax), net: r0(x.netIncome), isa: r0(x.isaDraw), ...(x.giaDraw > 0 ? { gia: r0(x.giaDraw) } : {}), spendable: r0(x.spendable), isaLeft: r0(x.isaBalance) }));
     } catch { schedule = null; }
     try {
       const isaByYear = {};
@@ -79,7 +84,10 @@ export function yearCellText(col, v) {
 export function yearTablesText(t) {
   const x = t || {};
   const { years, floors } = yearColumnsOf(x);
-  const rowsOf = (list, cols) => (Array.isArray(list) ? list.map((r) => ({ key: String(r.year), age: r.age, raw: { ...r }, cells: Object.fromEntries(cols.map((c) => [c, (c === 'gia' || c === 'otherIncome') ? yearCellText(c, r[c] || 0) : yearCellText(c, r[c])])) })) : []);
+  // a year that pays for fewer than twelve months says so in its year cell ("0 (5 months)"): its figures are for those months
+  const cellOf = (c, r) => (c === 'gia' || c === 'otherIncome') ? yearCellText(c, r[c] || 0)
+    : c === 'year' && r.months > 0 && r.months < 12 ? yearCellText(c, r[c]) + ' (' + r.months + (r.months === 1 ? ' month)' : ' months)') : yearCellText(c, r[c]);
+  const rowsOf = (list, cols) => (Array.isArray(list) ? list.map((r) => ({ key: String(r.year), age: r.age, raw: { ...r }, cells: Object.fromEntries(cols.map((c) => [c, cellOf(c, r)])) })) : []);
   const g = x.glidepath;
   return {
     prices: String(Math.round((+x.prices || 0) * 1000) / 10),

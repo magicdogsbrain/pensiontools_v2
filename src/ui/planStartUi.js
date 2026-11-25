@@ -198,10 +198,14 @@ export function yearRowHtml(y, recs, plan, tyCfg, firstSetUpYear, gbp) {
   const actAvgSipp = recs.reduce((t, h) => t + (h.sipp || 0), 0) / recs.length;
   const actTax = recs.reduce((t, h) => t + (h.taxPaidMonthly || h.monthlyTax || 0), 0);
   const lastIsaVal = recs[recs.length - 1].isaBalance ?? null;
-  const planMonthly = plan.sippDraw / 12;
+  // a year of the record that pays for fewer than twelve months (its `months`, 7.12.0: the run's first year, PaidYear.js)
+  // holds those months' draw and tax: a month of it is the draw over its months, as the month's own page asks
+  const recMonths = plan.months > 0 && plan.months < 12 ? plan.months : 0;
+  const planMonthly = plan.sippDraw / (recMonths || 12);
   const drawDelta = actAvgSipp - planMonthly;
-  const fmtD = (d) => (d >= 0 ? '+' : '−') + gbp(Math.round(Math.abs(d)));
-  const part = partialMonths ? (y === 0 ? ' of a ' + partialMonths + '-month first year' : ' of the ' + partialMonths + ' months set up for this tax year')
+  const fmtD = (d) => (d >= 0 || Math.round(Math.abs(d)) === 0 ? '+' : '−') + gbp(Math.round(Math.abs(d)));   // under half a pound: none
+  const shownMonths = partialMonths || recMonths;
+  const part = shownMonths ? (y === 0 ? ' of a ' + shownMonths + '-month first year' : ' of the ' + shownMonths + ' months ' + (partialMonths ? 'set up for this tax year' : 'the plan pays this tax year'))
     : (y === firstSetUpYear && recs.length < 12 ? ' — partial year: planned figures are for a full year' : '');
   return '<tr><td>Year ' + y + ' <span class="hint">(' + recs.length + ' mo' + part + ')</span></td>'
     + '<td>' + gbp(Math.round(planMonthly)) + '/mo</td>'
@@ -209,8 +213,11 @@ export function yearRowHtml(y, recs, plan, tyCfg, firstSetUpYear, gbp) {
     + (partialMonths
       ? '<td>' + gbp(Math.round(partialPlannedTax)) + '<span class="hint"> for ' + partialMonths + ' mo</span></td>'
         + '<td>' + gbp(Math.round(actTax)) + '<span class="hint"> so far (' + recs.length + ' mo)</span></td>'
-      : '<td>' + gbp(Math.round(plan.tax)) + '</td>'
-        + '<td>' + gbp(Math.round(actTax * (12 / recs.length))) + '<span class="hint">/yr pace</span></td>')
+      : recMonths
+        ? '<td>' + gbp(Math.round(plan.tax)) + '<span class="hint"> for ' + recMonths + ' mo</span></td>'
+          + '<td>' + gbp(Math.round(actTax * (recMonths / recs.length))) + '<span class="hint"> pace for ' + recMonths + ' mo</span></td>'
+        : '<td>' + gbp(Math.round(plan.tax)) + '</td>'
+          + '<td>' + gbp(Math.round(actTax * (12 / recs.length))) + '<span class="hint">/yr pace</span></td>')
     + '<td>' + gbp(Math.round(plan.isaBalance)) + (lastIsaVal != null ? ' <span class="hint">vs ' + gbp(Math.round(lastIsaVal)) + '</span>' : '') + '</td></tr>';
 }
 

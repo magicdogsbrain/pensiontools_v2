@@ -29,6 +29,7 @@ import { journeyAppend } from '../../services/LifeStage.js';
 import { isLockedSettings } from '../../services/LockedPlanGuard.js';
 import { isClosedPlan } from '../../services/PlanClosed.js';
 import { seedDecisionFromStress, planOfRecordFor, unlockPatchesOf, lockFitOf } from '../../services/PlanCommit.js';
+import { partYearOf } from '../../services/PaidYear.js';
 import { DECISION_SEED_KEYS, LOCK_WRITES, UNLOCK_WRITES, DOCUMENT_WRITES, BOOKKEEPING_WRITES, LATER_DRAFT_WRITES, LOCK_AS_READ_WRITES } from './schema.js';
 import { isChargesPct } from '../../services/Charges.js';
 import { isIsaGrowth } from '../../services/IsaGrowth.js';
@@ -114,7 +115,7 @@ export function lockPatch(plan, { now, run, entries = [] }) {
   }
   // 3. the plan of record, when the plan has none (PlanLock.lockPlanIfNeeded), from the settings as seeded — before the flags, as the planner reads them
   if (!(plan.decisionTool && plan.decisionTool.planOfRecord)) {
-    patch['decisionTool.planOfRecord'] = planOfRecordFor({ ...ds, ...seeded }, now, { stress: ss });
+    patch['decisionTool.planOfRecord'] = planOfRecordFor({ ...ds, ...seeded }, now, { stress: ss, ...partYearOf(run.p, { fromToday: true }) });   // year 0 for the months it has (the run's)
     previous['decisionTool.planOfRecord'] = copy(plan.decisionTool && plan.decisionTool.planOfRecord);
   }
   // 4. the plan document (its journey is the plan's as it stands: the planner reads it before the stage moves)

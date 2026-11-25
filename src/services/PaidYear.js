@@ -57,3 +57,15 @@ export function paidYearOf(p, y, rate = rateOf(p, y)) {
 
 /** The need alone (paidYearOf's), for a way's yearly draw: `k` is 1-based (plan year k − 1), as the bought ways count. */
 export const needAtK = (p, k, rate) => paidYearOf(p, k - 1, rate).need;
+
+/**
+ * The plan year of a plan (planFromSettings's, or its shape: year0Months, yearOffset, spFirstYearRatioTaxYear) that pays
+ * for fewer than twelve months, as the year-by-year schedule reads it (DrawdownService.generateDrawdownSchedule's
+ * `partYear`): { partYear: { year, months, spFirstYearRatio } }, or {} for a whole year (or no plan). `year` is the row:
+ * the plan's own axis (a plan years in: its current year, `yearOffset`), or 0 with `fromToday` (a schedule run from the
+ * current plan year, as the plan of record is).
+ */
+export function partYearOf(p, { fromToday = false } = {}) {
+  if (!p || !(p.year0Months > 0 && p.year0Months < 12)) return {};
+  return { partYear: { year: !fromToday && +p.yearOffset > 0 ? +p.yearOffset : 0, months: Math.round(p.year0Months), spFirstYearRatio: p.spFirstYearRatioTaxYear } };
+}

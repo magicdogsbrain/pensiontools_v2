@@ -15,6 +15,9 @@ import {
 import { getActivePlanOfRecord, saveActivePlanOfRecord, archivePlanOfRecord, archivePlanDocument, getActiveScenarioAsync } from '../storage/ScenarioRepository.js';
 import { planOfRecordFor, PLAN_OF_RECORD_CPI } from './PlanCommit.js';
 import { forgetLockedPosition, getStressSettingsAsync } from '../storage/StressRepository.js';
+import { planNeedOf } from './PlanNeed.js';
+import { simulationConfigFromSettings } from './SimulationConfig.js';
+import { partYearOf } from './PaidYear.js';
 import { lockPositionOf } from './PlanFromToday.js';
 import { isClosedPlan } from './PlanClosed.js';
 import { PlanLockedError } from './LockedPlanGuard.js';
@@ -30,7 +33,20 @@ export async function buildPlanOfRecord(settings) {
   const s = settings || await getDecisionSettingsAsync();
   // the plan's Stress settings hold the person's age: the years the pension is closed draw nothing on the record (7.4.1)
   let stress = null; try { stress = await getStressSettingsAsync(); } catch { stress = null; }
-  return planOfRecordFor(s, new Date(), { stress });
+  return planOfRecordFor(s, new Date(), { stress, ...recordPartYear(stress) });   // its first year for the months it has (below)
+}
+
+/**
+ * The run's first year for the months it has, as the plan's one test reads it (PlanNeed.planNeedOf on the plan's Stress
+ * settings, the first half of planFromSettings: from the month work stops, or the month of the pots' day, to March), for the
+ * record (PlanCommit.planOfRecordFor `partYear`). {} without the Stress settings or for a whole year.
+ */
+export function recordPartYear(stress, now = new Date()) {
+  if (!stress || typeof stress !== 'object') return {};
+  try {
+    const n = planNeedOf(stress, simulationConfigFromSettings({}, stress, now), { now, startAge: +stress.shapeAgeNow || 57 });
+    return partYearOf({ year0Months: n.y0, spFirstYearRatioTaxYear: n.spFirstYearRatioTaxYear }, { fromToday: true });
+  } catch { return {}; }
 }
 
 /** What depends on the settings right now. Pure facts; the unlock modal is built from this. */

@@ -295,9 +295,14 @@ export const PLAN_OF_RECORD_CPI = 0.04;   // decision-side assumed CPI: slightly
  * (`stress`, which hold the person), counted from the plan's year 0. Without them, or with nothing closed: as before.
  * @param {object} s    the Decision settings (after the seed from the Stress settings, on a lock)
  * @param {Date} now
- * @param {{ stress?: object }} [opts]   the plan's Stress settings, for the years its pension is closed
+ * The run's first year pays for the months it has (7.12.0, services/PaidYear.js; ruling Z2): `partYear` (PaidYear
+ * partYearOf of the one test's plan, from today: { year: 0, months, spFirstYearRatio }) makes the record's first row those
+ * months' draw and tax, with `months`, so plan vs actual reads a month of it as the month's own page asks. Without it every
+ * row is a whole year, as before.
+ * @param {{ stress?: object, partYear?: object }} [opts]   the plan's Stress settings, for the years its pension is closed;
+ *   the run's part first year
  */
-export function planOfRecordFor(s, now, { stress = null } = {}) {
+export function planOfRecordFor(s, now, { stress = null, partYear = null } = {}) {
   const assumedCpi = PLAN_OF_RECORD_CPI;
   const lived = +s.firstTaxYear > 0 ? Math.max(0, planYearOf(now, +s.firstTaxYear)) : 0;
   const run = settingsAsSeenFromToday(s, lived);
@@ -314,8 +319,9 @@ export function planOfRecordFor(s, now, { stress = null } = {}) {
     // record with inflating bands drifted above the actual draw every year (persona test B34).
     // No fund and platform charges on the yardstick (6.19.0, D6): it is built from the Decision settings, frozen at lock,
     // and "plan vs actual" reads it as it was — so 0 explicitly, whatever the settings carry.
-    drawdown: [...livedRows, ...generateDrawdownSchedule({ ...run, taxMode: s.taxMode || 'frozen', pa: s.pa || 12570, brl: s.brl || 50270, hrl: s.hrl || 125140 }, run.duration || 35, assumedCpi, undefined, { chargesPct: 0, ...(closed > 0 ? { closedYears: Math.max(0, closed - lived) } : {}) })
-      .map((r) => ({ year: r.year + lived, sippDraw: Math.round(r.sippDraw), tax: Math.round(r.tax), isaDraw: Math.round(r.isaDraw), isaBalance: Math.round(r.isaBalance), spendable: Math.round(r.spendable) }))],
+    // the run's first year for the months it has (partYear, above): its row says how many (`months`)
+    drawdown: [...livedRows, ...generateDrawdownSchedule({ ...run, taxMode: s.taxMode || 'frozen', pa: s.pa || 12570, brl: s.brl || 50270, hrl: s.hrl || 125140 }, run.duration || 35, assumedCpi, undefined, { chargesPct: 0, ...(closed > 0 ? { closedYears: Math.max(0, closed - lived) } : {}), ...(partYear ? { partYear } : {}) })
+      .map((r) => ({ year: r.year + lived, ...(r.months ? { months: r.months } : {}), sippDraw: Math.round(r.sippDraw), tax: Math.round(r.tax), isaDraw: Math.round(r.isaDraw), isaBalance: Math.round(r.isaBalance), spendable: Math.round(r.spendable) }))],
     // The pots' floors start from the pots the settings hold, which are those of the plan year the plan was locked in: the
     // years lived before it carry no floor (their pots were never entered), as the Decision tool reads them (legacyDecision
     // `potsYear`). A plan locked in its year 0 or before: exactly as before.

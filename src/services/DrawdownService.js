@@ -18,6 +18,7 @@ import { spendingSmileFactor } from './SpendingModel.js';
 import { chargesPctOf, yearlyChargeFactor } from './Charges.js';
 import { isaTodayOrAtRetirement } from './PotsAtRetirement.js';
 import { pensionLockOf } from './PensionLock.js';
+import { spIn } from './PaidYear.js';
 
 /**
  * A year the pension cannot be touched (7.4.1): no pension draw; the money outside it pays what the target would leave in
@@ -40,9 +41,15 @@ function closedYear({ target, fixed, pa, brl, hrl, isaBalance, giaBalance = 0 })
  * @param {number} duration - Years to project
  * @param {number} assumedInflation - Assumed annual inflation
  * @param {Date} [now]
- * @param {{ chargesPct?: number, closedYears?: number }} [opts] - chargesPct: the charge to take off the ISA, in place of
- *   settings.chargesPct; closedYears: the years from year 0 the pension cannot be touched, in place of the settings' own
- *   reading (the plan of record's Decision settings carry no age: PlanCommit reads them from the Stress settings)
+ * @param {{ chargesPct?: number, closedYears?: number, partYear?: { year?: number, months: number, spFirstYearRatio?: number } }} [opts] -
+ *   chargesPct: the charge to take off the ISA, in place of settings.chargesPct; closedYears: the years from year 0 the
+ *   pension cannot be touched, in place of the settings' own reading (the plan of record's Decision settings carry no age:
+ *   PlanCommit reads them from the Stress settings); partYear: the plan year that pays for fewer than twelve months (the
+ *   run's current year, services/PaidYear.js: `year` its row, 0 unless the plan is years in; `months` its months;
+ *   `spFirstYearRatio` the State Pension's share of it when it starts in that year, the run's spFirstYearRatioTaxYear).
+ *   That row is the year for its months, as every engine pays it: the spending of those months, the income that arrives in
+ *   them (the State Pension by PaidYear.spIn), and so what the pots pay — worked as a rate a year and then its share, so its
+ *   tax is the year's rate for its months. The row carries `months`. Absent: every row a whole year, as before.
  * @returns {object[]} Schedule of annual withdrawals
  */
 export function generateDrawdownSchedule(settings, duration, assumedInflation = 0.025, now = new Date(), opts = {}) {
@@ -80,6 +87,10 @@ export function generateDrawdownSchedule(settings, duration, assumedInflation = 
   // it grows like the ISA here. Read only in the closed years: every other year, and every plan with none, is as before.
   let giaBalance = closedYears > 0 ? Math.max(0, +settings.taxableStart || 0) : 0;
 
+  // The plan year that pays for the months it has (7.12.0, services/PaidYear.js): one row, absent a whole year.
+  const pw = opts && opts.partYear;
+  const part = pw && +pw.months > 0 && +pw.months < 12 ? { year: Math.max(0, Math.round(+pw.year || 0)), months: Math.round(+pw.months), spFirstYearRatio: pw.spFirstYearRatio } : null;
+
   for (let year = 0; year <= duration; year++) {
     const cumInf = Math.pow(1 + assumedInflation, year);
     const pa = settings.taxMode === 'frozen' ? settings.pa : settings.pa * cumInf;
@@ -101,8 +112,15 @@ export function generateDrawdownSchedule(settings, duration, assumedInflation = 
 
     // Other pension: CPI-capped uplift (4%), matching the stress engine's cappedInflation.
     const other = (settings.other || 0) * Math.pow(1 + Math.min(assumedInflation, OTHER_INCOME_CAP), year);
+    // the year's share of twelve months: 1, or the part year's months (above)
+    const share = part && year === part.year ? part.months / 12 : 1;
     let statePension = 0;
-    if (year >= spStartYear && spAnnualBase > 0) {
+    if (share < 1) {
+      // what arrives in the part year's months, by the one rule (PaidYear.spIn): none before its start, its first year's share
+      // never more than the year's own months, else every one of them
+      statePension = spIn({ year0Months: part.months, spAnnual: spAnnualBase * cumInf, spStartYear: spStartYear - year,
+        spFirstYearRatioTaxYear: part.spFirstYearRatio ?? spFirstYearRatio }, 0);
+    } else if (year >= spStartYear && spAnnualBase > 0) {
       statePension = spAnnualBase * (year === spStartYear ? spFirstYearRatio : 1) * cumInf;
     }
     let dbPension = 0;
@@ -121,19 +139,28 @@ export function generateDrawdownSchedule(settings, duration, assumedInflation = 
         else extraIncome += inc.annual * Math.pow(1 + Math.min(assumedInflation, 0.05), year);
       }
     }
-    const fixed = other + statePension + dbPension + extraIncome;
+    // a rate a year (a part year's State Pension as the rate of its months), so the year's tax is the year's rate
+    const fixed = other + statePension / share + dbPension + extraIncome;
     const yearsUntilSp = Math.max(0, spStartYear === Infinity ? 0 : spStartYear - year);
 
     const inUfplsPhase = !settings.ufplsYears || year < settings.ufplsYears;
     const taxFreeFraction = (settings.accessMethod === 'ufpls' && inUfplsPhase && lsaRemaining > 0) ? 0.25 : 0;
 
-    const plan = year < closedYears
-      ? closedYear({ target, fixed, pa, brl, hrl, isaBalance, giaBalance })
+    const rated = year < closedYears
+      ? closedYear({ target, fixed, pa, brl, hrl, isaBalance: isaBalance / share, giaBalance: giaBalance / share })
       : planDrawdown({
         targetGross: target, fixedIncome: fixed, pa, brl, hrl,
-        isaBalance, strategy: settings.isaDrawdownStrategy, yearsUntilSp,
+        isaBalance: isaBalance / share, strategy: settings.isaDrawdownStrategy, yearsUntilSp,
         taxFreeFraction
       });
+    // the year's pounds: the rate a year for its months (a whole year: the rate itself, untouched)
+    const plan = share === 1 ? rated : (() => {
+      const o = {};
+      for (const k of ['sippGross', 'isaDraw', 'giaDraw', 'taxable', 'tax', 'net', 'taxFree']) if (rated[k] != null) o[k] = rated[k] * share;
+      o.remainingIsa = isaBalance - (o.isaDraw || 0);
+      if (rated.remainingGia != null) o.remainingGia = giaBalance - (o.giaDraw || 0);
+      return o;
+    })();
     if (lsaRemaining > 0) lsaRemaining = Math.max(0, lsaRemaining - (plan.taxFree || 0));
 
     // What the year pays after tax, before the ISA and other savings: the SIPP (its tax-free part included) and the fixed
@@ -146,17 +173,18 @@ export function generateDrawdownSchedule(settings, duration, assumedInflation = 
 
     schedule.push({
       year,
+      ...(share < 1 ? { months: part.months } : {}),
       brl,
-      other,
+      other: other * share,
       // every income that comes anyway but the State Pension: another pension, a final-salary pension, rent or work. With the
       // SIPP draw and the State Pension, less the tax, it is what the year pays after tax, before the ISA (netIncome).
-      otherIncome: other + dbPension + extraIncome,
+      otherIncome: (other + dbPension + extraIncome) * share,
       statePension,
       sippDraw: plan.sippGross,
       totalTaxable: plan.taxable,
       tax: plan.tax,
       netIncome: netFromTaxable,
-      target,
+      target: target * share,
       isaDraw: plan.isaDraw,
       ...(plan.giaDraw > 0 ? { giaDraw: plan.giaDraw } : {}),   // a closed year paid from the taxable account (above)
       isaBalance: isaStart,

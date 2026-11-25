@@ -24,6 +24,7 @@ import { seedDecisionFromStress, unlockPatchesOf, planOfRecordFor, getDefaultDec
 import * as Repo from '../../../src/storage/ScenarioRepository.js';
 import * as DecisionRepo from '../../../src/storage/DecisionRepository.js';
 import { buildPlanOfRecord, PLAN_OF_RECORD_CPI } from '../../../src/services/PlanLock.js';
+import { partYearOf } from '../../../src/services/PaidYear.js';
 import { lockedPlanWriteRefusal, isLockedSettings, isUnlock } from '../../../src/services/LockedPlanGuard.js';
 import { getDefaultStressSettings } from '../../../src/storage/stressDefaults.js';
 import { deriveStage, journeyAppend } from '../../../src/services/LifeStage.js';
@@ -152,7 +153,8 @@ describe('lockPatch on every unlocked corpus plan: the planner\'s commitPlanLock
       // the plan of record: the planner's own builder on the same settings (the seed, before the flags), to the byte
       if (!(plan.decisionTool && plan.decisionTool.planOfRecord)) {
         const por = P.patch['decisionTool.planOfRecord'];
-        expect(por).toEqual(planOfRecordFor({ ...ds, ...seeded }, now));
+        // (ruling Z2: the record's first year is the run's, for the months it has — the run's plan's part year, from today)
+        expect(por).toEqual(planOfRecordFor({ ...ds, ...seeded }, now, { stress: effectiveStressSettings(plan, { now }), ...partYearOf(run.p, { fromToday: true }) }));
         expect(por.settingsChecksum).toBe(decisionSettingsChecksum(after.decisionTool.settings));   // the lock's flags never move the checksum
         expect(por.savedAt).toBe(now.toISOString());
         expect(por.drawdown.length).toBeGreaterThan(0);

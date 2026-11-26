@@ -40,33 +40,35 @@ export const RELEASES = [
   {
     version: '7.12.0', date: '2026-11-26', engineVersion: '6.40.0',
     title: 'One reading of your plan behind both views',
-    summary: 'The simple view and the full view now work from one reading of each plan, so a figure says the same thing wherever it appears and a change made in one view is there in the other. We corrected several sums on the way: a first year that starts part-way through a tax year, income before tax, and the answers to the front-page questions, which now come from the same test as a kept plan.',
+    summary: 'The simple view and the full view now work from one reading of each plan, so most figures say the same thing in both and most changes made in one view are there in the other. What is not there yet is under Notes. We corrected several sums on the way: a first year that starts part-way through a tax year, income before tax, and the answers to the front-page questions, which in most cases now come from the same test as a kept plan.',
     changes: [
-      'The full view works from the plan as saved, not from its own boxes, with the same day, prices and level as the simple view. A figure typed just before you switch view is saved first.',
+      'The full view works from the plan as saved, not from its own boxes, and uses the same date, the same market prices and the same “How careful?” choice as the simple view. In most of the full view, and on the simple view’s “What you pay in”, a figure typed just before you switch view is saved first; where a page has its own Save button, press it first.',
       '“Am I saving enough?” tests your plan in its own way of drawing, such as a gilt ladder. When the plan knows your pay, it gives the pay-in as a share of your pay as well as in pounds.',
       '“Worst 12 months” and the guaranteed line count income that comes in anyway, such as the State Pension, even after the pots run out. “Worst 12 months” is no longer £0 while that income is paid.'
     ],
     corrections: [
-      'The two views could show different figures for the same plan, and the front-page questions could say “yes” where the plan kept from them said “close”.',
+      'The two views showed different figures for the same plan in many places; most now agree. A front-page question could say “yes” where the plan you kept from that answer said “close”; in most cases both now use the same test.',
       'A first year that starts part-way through a tax year was charged a whole year’s spending. It now pays for its months only, as one sum in every way of drawing, the year table, the plan document and the Decision tool’s planned draw.',
-      '“A year before tax” counted every pound as taxed. It is now what is taken, with the plan’s tax-free share and that year’s other income.',
+      '“A year before tax” counted every pound as taxed. On a plan’s pages, the plan document, the year table and a couple’s table it is now what is taken from the pots, worked out with the plan’s tax-free share and that year’s other income.',
       'The plan’s test counts the State Pension’s first tax year in whole months (it was by days), and Tax Years’ set-up now gives the same monthly tax as the month’s own page.',
-      'For a couple, the household table’s needs are now what is taken, and the combined money starts in the year the later of you stops.',
+      'For a couple, the needs in “Where the money comes from” counted every pound as taxed, and “What you would have left, combined” counted money not yet saved. The needs are now what is taken, and the combined figures start in the year the later of you stops.',
       'A gilt held in part now counts as held, and someone living on a gilt ladder is no longer told to sell on “Your plan’s mix”.'
     ],
     effects: {
       budget: [],
-      stress: ['“Does it last?” can move a little, mainly for a plan whose first year is part of a tax year, a plan with a State Pension starting part-way through a year, and a plan still saving. A locked plan’s document is a record and is not rewritten: “Does it last?” shows today’s test, with the corrected sums, beside the figure from the lock.'],
-      strategies: ['The cost of a gilt ladder, a floor and the other bought ways can move, mainly in a part first year.'],
+      stress: ['“Does it last?” can move a little for a plan whose first year is part of a tax year or whose State Pension starts part-way through a year. For a plan still saving and not locked it can move more: a plan that buys its income, such as a gilt ladder, is now tested on each pot you could have when you stop, so it can fail in futures where that pot cannot buy it. A locked plan’s document is a record and is not rewritten. For a locked plan, “Does it last?” shows today’s test, with the corrected sums, beside the figure from the lock, except for a plan locked on a gilt ladder, which keeps the figures it was locked with.'],
+      strategies: ['A gilt ladder costs less when the first year is part of a tax year, as it buys only that year’s months. The other ways that buy their income can cost more or less in that year, a little more in a year a State Pension starts, and a lump sum, a taxable account or an ISA paid before the pension now lasts longer on them. Floor & Flex no longer buys a final-salary pension or other income twice, so its floor costs less with such income. A plan locked on a gilt ladder keeps its cost.'],
       decision: ['A plan locked before this version keeps the planned draw it was locked with, so in a part first year History still spreads a whole year’s draw over twelve months.'],
       accumulation: ['“Am I saving enough?” can give a different answer, as it now tests your plan’s own way of drawing.'],
-      household: ['A couple’s answers can move, for some by over £100 a month, as each plan now taxes its own income.']
+      household: ['A couple’s answers can move, for some by over £100 a month, as each plan now taxes its own income. For two linked plans on Pots & Valves, “The household’s money lasts …” now comes from the two plans’ own tests, one plan’s money paying on when the other’s runs out, so it can move too.']
     },
-    actions: ['You can open a locked plan and read “Does it last?” again: today’s test uses the corrected sums. Nothing has to be entered again.'],
+    actions: ['You can open a locked plan and read “Does it last?” again: unless it is locked on a gilt ladder, today’s test uses the corrected sums. Nothing has to be entered again.'],
     notes: [
       'Still open: some full-view boxes save when you leave them, not as you type; a few boxes do not yet carry between the views; some figures are in one view only.',
       'Still open: a State Pension starting part-way through a tax year is counted in whole months by the plan’s test and from its start day by Month by month, so they can differ a little in that year.',
-      'Still open: for some couples the front-page answers still use the household’s own sums; some household sentences name a plan where they mean a person; and a plan made with the full view’s “+ New Plan” assumes a State Pension until you enter one.',
+      'Still open: the front-page answers are not yet worked out from a kept plan’s test when what you spend changes with age, when you stop before your pension can be touched or move the start to when it opens, and for some couples, so they can differ from the plan you keep; some household sentences name a plan where they mean a person; and a plan made with the full view’s “+ New Plan” assumes a State Pension of £12,000 a year from 67 until you enter your own.',
+      'Still open: the full view’s Budget page (“Plan target”) and the Decision tool’s Settings still work out a year before tax as if every pound were taxed, so they can show a higher figure than the plan’s own pages.',
+      'Still open: a plan still saving on a gilt ladder can say no future runs it out beside futures where it does not last; “Where you are” can say months were taken “as your plan said” when more was taken; Month by month on a gilt ladder can give two figures for one month; and for some couples “Where the money comes from” counts a State Pension years early.',
       'Engine version 6.40.0.'
     ]
   },

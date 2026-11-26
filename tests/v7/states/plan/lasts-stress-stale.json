@@ -9,7 +9,7 @@
   "env": {
     "today": "2026-09-30",
     "build": "test",
-    "appVersion": "7.11.1",
+    "appVersion": "7.12.0",
     "historyEnd": null
   },
   "session": {
@@ -299,7 +299,7 @@
                 }
               },
               "fingerprint": "2binc4uv848",
-              "engineVersion": "7.11.1",
+              "engineVersion": "7.12.0",
               "documentAt": null,
               "ageRule": "birthday"
             }
@@ -3304,7 +3304,7 @@
                       }
                     },
                     "fingerprint": "2binc4uv848",
-                    "engineVersion": "7.11.1",
+                    "engineVersion": "7.12.0",
                     "documentAt": null,
                     "ageRule": "birthday"
                   }
@@ -3503,7 +3503,7 @@
                     }
                   },
                   "fingerprint": "2binc4uv848",
-                  "engineVersion": "7.11.1",
+                  "engineVersion": "7.12.0",
                   "documentAt": null,
                   "ageRule": "birthday"
                 },

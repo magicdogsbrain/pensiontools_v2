@@ -45,8 +45,10 @@ describe('GiltLadderPlan — the fully deterministic ladder', () => {
     expect(spreadFor(3)).toBe(0.0015); expect(spreadFor(10)).toBe(0.0025); expect(spreadFor(25)).toBe(0.004);
   });
   it('reports affordability honestly with a reason and the shortfall', () => {
-    expect(plan.total).toBeGreaterThan(800000);
-    expect(plan.total).toBeLessThan(900000);
+    // a band wide enough for the day's prices: this file runs against the market data as fetched each night, and a
+    // total a little under £800,000 (real yields up) stopped the nightly refresh for days. It guards the size, not the day.
+    expect(plan.total).toBeGreaterThan(650000);
+    expect(plan.total).toBeLessThan(1000000);
     expect(typeof plan.affordable).toBe('boolean');
     if (!plan.affordable) expect(plan.reason).toMatch(/more than the pot/);
     const rich = buildGiltLadder({ ...base, pot: 2000000 });

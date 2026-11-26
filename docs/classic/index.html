@@ -435,13 +435,6 @@
     .lock-banner > span { flex: 1 1 320px; }
     .lock-banner.amending { border-left-color: #f59e0b; background: rgba(245, 158, 11, 0.08); }
     .lock-banner button { flex: 0 0 auto; }
-    /* Save button in its locked state: looks inert (greyed) but stays clickable to explain the lock. */
-    #dsSaveBtn.btn-locked {
-      background: var(--border);
-      color: var(--text-muted);
-      cursor: not-allowed;
-      opacity: 0.8;
-    }
     /* Disabled controls inside the locked settings read clearly as inert, not broken. */
     #decision-decisionsettings input:disabled,
     #decision-decisionsettings select:disabled,
@@ -810,6 +803,24 @@
         margin: 0 -12px;
         padding: 0 12px;
       }
+    }
+    /* a plain link inside a card reads on the dark card (7.12.0 round 3: the browser's dark blue was nearly invisible) */
+    /* "Keep this": the years box shows only while "Stands in for some years" is chosen (7.12.0 round 3) */
+    .keep-cell .keep-years { display: none; }
+    .keep-cell:has(option[value="rung"]:checked) .keep-years { display: block; }
+    .card a:not([class]) { color: var(--primary); }
+    /* "Your plan's mix" while living on a ladder (7.12.0): under 600px each row is a card of label–value pairs, never cut off */
+    @media (max-width: 599px) {
+      .table-scroll-container table.held-table { min-width: 0; white-space: normal; }
+      .table-scroll-container:has(table.held-table)::after { content: none; }
+      .held-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+      .held-table, .held-table tbody, .held-table tr, .held-table td { display: block; width: 100%; }
+      .held-table tr { border-top: 1px solid var(--border, #ddd); padding: 6px 0; }
+      .held-table td { border: 0; padding: 2px 0; white-space: normal; display: flex; gap: 8px; justify-content: space-between; text-align: right; }
+      .held-table td::before { content: attr(data-label); font-weight: 600; flex: 0 0 auto; text-align: left; }
+      .held-table td:first-child { font-weight: 600; text-align: left; }
+      .held-table td:first-child::before { content: none; }
+      .held-table td:empty { display: none; }
     }
 
     /* Scrollable chart container */
@@ -2153,7 +2164,7 @@
     .assump .assump-kv .note { color: var(--text-muted); font-size: 12px; grid-column: 2; }
     @media (max-width: 700px) { .assump .assump-kv > div { grid-template-columns: 1fr; } .assump .assump-kv .note { grid-column: 1; } }
     </style>
-  <script type="module" crossorigin src="./assets/main-GbO09B2Z.js"></script>
+  <script type="module" crossorigin src="./assets/main-DZeusF3n.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -2199,6 +2210,9 @@
             </div>
             <div class="scenario-dropdown-actions" style="padding-top:0;">
               <button type="button" id="scenarioExportBtn" title="Save a copy of this plan on your own computer. Nothing is sent anywhere." data-on-click="exportActivePlan()">Download this plan (JSON)</button>
+            </div>
+            <div class="scenario-dropdown-actions" style="padding-top:0;">
+              <button type="button" id="planLockExplainBtn" data-on-click="explainPlanLock()">What “draft” and “locked” mean</button>
             </div>
           </div>
         </div>
@@ -2261,12 +2275,7 @@
         <!-- Entry Sub-tab -->
         <div id="decision-entry" class="decision-subtab">
           <div id="dsStrategyPanel" style="display:none; margin-bottom:14px;"></div>
-          <div id="dsSetupBanner" class="alert alert-warning" style="display:none; margin-bottom:14px;">
-            <strong>Set up this plan first.</strong> The recommendation runs on your Settings — your pot,
-            spending need and State Pension — and they're still the defaults, so any answer would be
-            meaningless. It takes a couple of minutes.
-            <button type="button" class="risk-btn" style="margin-left:8px; padding:5px 14px; font-size:13px;" data-on-click="openToolSettingsTab('decision')">Open Settings</button>
-          </div>
+          <div id="dsSetupBanner" class="alert alert-info" style="display:none; margin-bottom:14px;"></div><!-- an unlocked plan's figures, or none yet: src/ui/draftPlanLine.js -->
           <div class="grid-2">
             <!-- Input Panel -->
             <div class="card">
@@ -2397,7 +2406,7 @@
             <div id="decisionOutput">
               <div class="card">
                 <div class="loading">
-                  <p>Enter your fund values and click Calculate to see your recommendation.</p>
+                  <p>Enter your fund values and click Calculate to see this month's figures.</p>
                 </div>
               </div>
             </div>
@@ -2507,7 +2516,7 @@
             <!-- Fund tagging: the list of funds IS the Decision plan's target allocation (auto-applied). -->
             <div id="dsFundsMode" style="display:none; margin-top:14px; border:1px solid var(--border,#cbd5e1); border-radius:8px; padding:12px 14px;">
               <p style="font-size:12px;color:var(--text-muted);margin:0 0 10px;">
-                <strong>Funds to test.</strong> The portfolio this plan's target split is built from — each fund is tagged to a bucket and sub-class (change any of them), and the target allocation follows it. It is <em>not</em> a record of what you hold: that is recorded on the <strong>Transition</strong> tab, and the monthly entry's <em>enter per fund</em> links read it.
+                <strong>Funds to test.</strong> The portfolio this plan's target split is built from — each fund is tagged to a bucket and sub-class (change any of them), and the target allocation follows it. It is <em>not</em> a record of what you hold: that is listed on the <strong>Transition</strong> tab, and the monthly entry's <em>enter per fund</em> links read it.
               </p>
               <div class="row-flex" style="margin-bottom:8px;"><button type="button" class="risk-btn" data-on-click="openPasteHoldingsNear(this)" title="Paste a holdings table (any layout) to use as the list this strategy is tested on — it does not change what you hold">📋 Paste a list to test</button><span class="hint">Works with AJ Bell, HL, ii, Vanguard, Fidelity… copy the table, paste, check the preview.</span></div>
               <div class="fund-search-box" style="position:relative; margin-bottom:10px; max-width:400px;">
@@ -2575,11 +2584,12 @@
             <div class="settings-section">
               <div class="section-title">How you'll take this pension</div>
 <div>
-                <label style="display:block; margin-bottom:6px;">Your 25% tax-free cash</label>
+                <label style="display:block; margin-bottom:6px;">How you take the tax-free part (a quarter of the pension)</label>
                 <div style="display:flex; gap:8px; flex-wrap:wrap;">
                   <button type="button" class="risk-btn" data-access="drawdown" data-on-click="setAccessMethod('ds','drawdown')">Kept separate / already taken</button>
                   <button type="button" class="risk-btn" data-access="ufpls" data-on-click="setAccessMethod('ds','ufpls')">Part of my income (UFPLS)</button>
                 </div>
+                <details style="margin:6px 0 0;"><summary class="hint" style="cursor:pointer;">What each choice means</summary>
                 <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
                   Do you intend to use your tax-free sum as part of your income, or keep it for
                   something else? <strong>Part of my income</strong> models a quarter of every
@@ -2592,31 +2602,36 @@
                   (limiting future pension contributions) and are first taxed on an emergency
                   basis (reclaimable from HMRC). Neither is modelled here.
                 </p>
+                </details>
                 <div id="dsUfplsPhase" style="display:none; margin-top:10px; padding:12px 14px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--card-alt);">
                   <label style="display:block; margin-bottom:4px;">UFPLS for how many years? <span style="color:var(--text-muted); font-weight:normal;">(blank = whole plan)</span></label>
                   <input type="number" id="dsUfplsYears" min="1" max="60" step="1" placeholder="e.g. 10" style="width:120px;">
                   <label style="display:flex; align-items:center; gap:8px; margin-top:8px; cursor:pointer;">
                     <input type="checkbox" id="dsUfplsPcls" style="width:auto;">
-                    <span>Then take the remaining 25% tax-free into my ISA before switching to drawdown</span>
+                    <span>Then take the rest of the tax-free part into my ISA before switching to drawdown</span>
                   </label>
+                  <details style="margin:6px 0 0;"><summary class="hint" style="cursor:pointer;">How the switch works</summary>
                   <p style="font-size:11px;color:var(--text-muted);margin:6px 0 0;">
                     UFPLS never crystallises the untouched pot, so at the switch 25% of whatever
                     remains is still available tax-free (up to your remaining £268,275 allowance).
                     The stress tester moves it into the ISA automatically; the decision tool will
                     remind you to do it when the year arrives.
                   </p>
+                  </details>
                 </div>
                 <input type="hidden" id="dsAccessMethod" value="drawdown">
                 <label style="display:flex; align-items:center; gap:8px; margin-top:10px; cursor:pointer;">
                   <input type="checkbox" id="dsBandFillRecycle" style="width:auto;" data-on-change="syncIsaHoldUI('ds')">
                   <span>Fill my basic-rate band &amp; recycle the surplus into my ISA</span>
                 </label>
+                <details style="margin:4px 0 0;"><summary class="hint" style="cursor:pointer;">What this does</summary>
                 <p style="font-size:11px;color:var(--text-muted);margin:4px 0 0;">
                   Draws extra SIPP up to the 20% band even when your spending doesn't need it, and
                   moves the net into your ISA (capped at the £20,000/yr ISA allowance) — paying 20%
                   now so that money comes out tax-free later. Pauses during protection months and
                   while UFPLS tax-free withdrawals are active.
                 </p>
+                </details>
               </div>
             </div>
 
@@ -2675,7 +2690,6 @@
             </div>
 
             <div class="button-row" style="margin-top: 24px;">
-              <button id="dsSaveBtn" data-on-click="saveDecisionSettingsUI()">Save Settings</button>
               <button id="dsResetBtn" class="secondary" data-on-click="resetDecisionSettingsUI()">Reset to Defaults</button>
             </div>
           </div>
@@ -2771,12 +2785,7 @@
 
         <!-- Monte Carlo Sub-tab -->
         <div id="stress-montecarlo" class="stress-subtab">
-          <div id="ssSetupBanner" class="alert alert-warning" style="display:none; margin-bottom:14px;">
-            <strong>Set up this plan first.</strong> Simulations run on your Settings — your pots,
-            spending need and State Pension — and they're still the defaults, so any result would be
-            meaningless. It takes a couple of minutes.
-            <button type="button" class="risk-btn" style="margin-left:8px; padding:5px 14px; font-size:13px;" data-on-click="openToolSettingsTab('stress')">Open Settings</button>
-          </div>
+          <div id="ssSetupBanner" class="alert alert-info" style="display:none; margin-bottom:14px;"></div><!-- a plan with no figures yet: src/ui/draftPlanLine.js -->
           <div class="card">
             <div id="mcStrategyNote" style="display:none;"></div>
             <p class="hint" style="margin:0 0 8px;">Every number here rests on stated data and assumptions — <button type="button" class="risk-btn" style="padding:2px 10px;" data-on-click="switchToTab('strategies'); setTimeout(() => showStrategyPage('assumptions'), 300);">Assumptions &amp; data</button>.</p>
@@ -2797,11 +2806,11 @@
             <p class="hint" style="margin:0 0 10px;">Run any of the <span data-strategy-count>nine</span> strategies on this plan, or on a what-if version of it. Your saved settings and locked strategy are untouched until you press <em>Use this strategy</em>.</p>
             <div class="form-grid">
               <div class="form-group"><label>Strategy</label><select id="tryStrategy"></select></div>
-              <div class="form-group"><label>SIPP / pension pot (£)</label><input type="number" id="tryPot" step="10000"></div>
+              <div class="form-group"><label id="tryPotLabel" for="tryPot">SIPP / pension pot (£)</label><input type="number" id="tryPot" step="10000"></div>
               <div class="form-group"><label>ISA (£)</label><input type="number" id="tryIsa" step="5000"></div>
               <div class="form-group"><label>ISA policy</label><select id="tryIsaPolicy"><option value="">as saved</option><option value="hold">Hold (powder dry)</option><option value="">Draw as configured</option></select></div>
               <div class="form-group"><label>Income</label><select id="tryIncomeMode" data-on-change="tryIncomeModeChanged(this.value)"><option value="shape">My income shape (as saved)</option><option value="flat">A flat amount</option></select></div>
-              <div class="form-group" id="tryIncomeWrap" style="display:none;"><label>Flat income (£/yr gross, today's money)</label><input type="number" id="tryIncome" step="1000"></div>
+              <div class="form-group" id="tryIncomeWrap" style="display:none;"><label>Flat income (a month after tax, today's money)</label><input type="number" id="tryIncome" step="10"></div>
               <div class="form-group"><label>Years</label><input type="number" id="tryYears" min="5" max="45"></div>
               <div class="form-group" id="tryCutsWrap"><label>Spending cuts in a slump (Pots &amp; Valves)</label><select id="tryCuts"><option value="">as saved</option><option value="on">On</option><option value="off">Off — paid in full until it runs out</option></select></div>
               <div class="form-group"><label>Cut depth (%)</label><input type="number" id="tryCutPct" placeholder="as saved" min="0" max="60" step="5"></div>
@@ -2853,22 +2862,29 @@
         <div id="stress-drawdown" class="stress-subtab hidden">
           <div class="card">
             <h2>SIPP Drawdown Schedule</h2>
-            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Projected annual SIPP withdrawals based on your settings.</p>
-            <div class="form-grid">
-              <div class="form-group">
-                <label>Assumed Inflation (%)</label>
-                <input type="number" id="ddInflation" value="2.5" step="0.1">
-              </div>
-              <div class="form-group">
-                <label>Duration (years)</label>
-                <input type="number" id="ddDuration" value="35">
-              </div>
-            </div>
+            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Your plan year by year: its own length and its own price assumption, the same table as the simple view's "The years, one by one".</p>
             <div style="margin-top: 20px;">
               <button data-on-click="showDrawdownScheduleUI()">Show Schedule</button>
             </div>
           </div>
           <div id="drawdownResults"></div>
+          <div class="card" id="drawdownWhatIf">
+            <h3>What if? <span class="hint" style="font-weight:normal;">A what-if beside the table: your plan's table does not change, and nothing is saved.</span></h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>What if prices rose (% a year)</label>
+                <input type="number" id="ddInflation" step="0.1">
+              </div>
+              <div class="form-group">
+                <label>What if the plan ran for (years)</label>
+                <input type="number" id="ddDuration">
+              </div>
+            </div>
+            <div style="margin-top: 12px;">
+              <button type="button" class="secondary" data-on-click="showDrawdownWhatIfUI()">Try this what-if</button>
+            </div>
+            <div id="drawdownWhatIfResults"></div>
+          </div>
         </div>
 
         <!-- Glidepath Sub-tab -->
@@ -2901,22 +2917,29 @@
         <div id="stress-glidepath" class="stress-subtab hidden">
           <div class="card">
             <h2>Glidepath Visualization</h2>
-            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Shows how fund minimums decline over time with inflation adjustment.</p>
-            <div class="form-grid">
-              <div class="form-group">
-                <label>Assumed Inflation (%)</label>
-                <input type="number" id="gpInflation" value="2.5" step="0.1">
-              </div>
-              <div class="form-group">
-                <label>Duration (years)</label>
-                <input type="number" id="gpDuration" value="35">
-              </div>
-            </div>
+            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">How the pots' floors run down over your plan: its own length and its own price assumption, the same table as the simple view's "The pots' floors over the plan".</p>
             <div style="margin-top: 20px;">
               <button data-on-click="showGlidepathUI()">Show Glidepath</button>
             </div>
           </div>
           <div id="glidepathResults"></div>
+          <div class="card" id="glidepathWhatIf">
+            <h3>What if? <span class="hint" style="font-weight:normal;">A what-if beside the table: your plan's table does not change, and nothing is saved.</span></h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>What if prices rose (% a year)</label>
+                <input type="number" id="gpInflation" step="0.1">
+              </div>
+              <div class="form-group">
+                <label>What if the plan ran for (years)</label>
+                <input type="number" id="gpDuration">
+              </div>
+            </div>
+            <div style="margin-top: 12px;">
+              <button type="button" class="secondary" data-on-click="showGlidepathWhatIfUI()">Try this what-if</button>
+            </div>
+            <div id="glidepathWhatIfResults"></div>
+          </div>
         </div>
 
         <!-- Stress Settings Sub-tab -->
@@ -2953,14 +2976,15 @@
               </div>
             </div>
 
-            <div class="settings-section" data-pnv-only>
+            <div class="settings-section">
               <div class="section-title">How you'll take this pension</div>
 <div>
-                <label style="display:block; margin-bottom:6px;">Your 25% tax-free cash</label>
+                <label style="display:block; margin-bottom:6px;">How you take the tax-free part (a quarter of the pension)</label>
                 <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                  <button type="button" class="risk-btn" data-access="drawdown" data-on-click="setAccessMethod('ss','drawdown')">Kept separate / already taken</button>
-                  <button type="button" class="risk-btn" data-access="ufpls" data-on-click="setAccessMethod('ss','ufpls')">Part of my income (UFPLS)</button>
+                  <button type="button" class="risk-btn" data-access="drawdown" data-on-click="setAccessMethod('ss','drawdown')">Kept separate, or already taken</button>
+                  <button type="button" class="risk-btn" data-access="ufpls" data-on-click="setAccessMethod('ss','ufpls')">Part of my income</button>
                 </div>
+                <details style="margin:6px 0 0;"><summary class="hint" style="cursor:pointer;">What each choice means</summary>
                 <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">
                   Do you intend to use your tax-free sum as part of your income, or keep it for
                   something else? <strong>Part of my income</strong> models a quarter of every
@@ -2973,31 +2997,41 @@
                   (limiting future pension contributions) and are first taxed on an emergency
                   basis (reclaimable from HMRC). Neither is modelled here.
                 </p>
+                </details>
+                <div data-pnv-only><!-- (step F2) the choice above is read by every way of drawing; how long UFPLS runs, and the band fill, are Pots & Valves' own -->
                 <div id="ssUfplsPhase" style="display:none; margin-top:10px; padding:12px 14px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--card-alt);">
-                  <label style="display:block; margin-bottom:4px;">UFPLS for how many years? <span style="color:var(--text-muted); font-weight:normal;">(blank = whole plan)</span></label>
+                  <label style="display:block; margin-bottom:4px;">For how many years <span style="color:var(--text-muted); font-weight:normal;">(blank for the whole plan)</span></label>
                   <input type="number" id="ssUfplsYears" min="1" max="60" step="1" placeholder="e.g. 10" style="width:120px;">
                   <label style="display:flex; align-items:center; gap:8px; margin-top:8px; cursor:pointer;">
                     <input type="checkbox" id="ssUfplsPcls" style="width:auto;">
-                    <span>Then take the remaining 25% tax-free into my ISA before switching to drawdown</span>
+                    <span>Then take the rest of the tax-free part into my ISA before switching to drawdown</span>
                   </label>
+                  <details style="margin:6px 0 0;"><summary class="hint" style="cursor:pointer;">How the switch works</summary>
                   <p style="font-size:11px;color:var(--text-muted);margin:6px 0 0;">
                     UFPLS never crystallises the untouched pot, so at the switch 25% of whatever
                     remains is still available tax-free (up to your remaining £268,275 allowance).
                     The stress tester moves it into the ISA automatically; the decision tool will
                     remind you to do it when the year arrives.
                   </p>
+                  </details>
                 </div>
+                </div><!-- /data-pnv-only (how long UFPLS runs) -->
                 <input type="hidden" id="ssAccessMethod" value="drawdown">
+                <p id="ssAccessAssumed" class="hint" style="margin:6px 0 0;color:var(--warning);"></p>
+                <div data-pnv-only>
                 <label style="display:flex; align-items:center; gap:8px; margin-top:10px; cursor:pointer;">
                   <input type="checkbox" id="ssBandFillRecycle" style="width:auto;" data-on-change="syncIsaHoldUI('ss')">
                   <span>Fill my basic-rate band &amp; recycle the surplus into my ISA</span>
                 </label>
+                <details style="margin:4px 0 0;"><summary class="hint" style="cursor:pointer;">What this does</summary>
                 <p style="font-size:11px;color:var(--text-muted);margin:4px 0 0;">
                   Draws extra SIPP up to the 20% band even when your spending doesn't need it, and
                   moves the net into your ISA (capped at the £20,000/yr ISA allowance) — paying 20%
                   now so that money comes out tax-free later. Pauses during protection months and
                   while UFPLS tax-free withdrawals are active.
                 </p>
+                </details>
+                </div><!-- /data-pnv-only (the band fill) -->
               </div>
             </div>
 
@@ -3133,10 +3167,6 @@
                 </div>
                 <div id="tmPotWrap" style="display:none;margin-top:6px;">
                   <p class="hint" id="tmProjectionLine" style="margin:0 0 4px;"></p>
-                  <div class="row-flex">
-                    <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Or SIPP at retirement (£, today's money) <span class="hlp" tabindex="0" data-tip="Overrides the projection: the pension pot you expect to have on the day, in today's money. Every strategy is priced on the pots at retirement, projected from the pots entered below — the pots the strategy is tested on, not a record of what you hold (that is the Transition tab).">?</span><input type="number" id="tmPotSipp" step="1000" style="width:130px;" data-on-input="renderTiming()"></label>
-                    <label class="hint" style="display:flex;flex-direction:column;gap:2px;">ISA at retirement (£)<input type="number" id="tmPotIsa" step="1000" style="width:120px;" data-on-input="renderTiming()"></label>
-                  </div>
                 </div>
                 <p id="tmSummary" class="hint" style="margin:6px 0 0;"></p>
                 <div id="tmLockedStart" class="lock-banner amending" style="display:none;flex-direction:column;align-items:flex-start;gap:4px;margin-top:8px;"></div>
@@ -3284,8 +3314,9 @@
               </div><!-- /data-pnv-only (risk level or funds list) -->
 
             <div class="form-group" style="margin-top: 16px;">
-              <label>Duration (years) <span class="hint" id="ssDurationAgeHint" style="font-weight:normal;"></span></label>
-              <input type="number" id="ssDuration" value="35" style="max-width:220px;" data-on-input="updateDurationHint()">
+              <label for="ssEndAge">Plan to age <span class="hint" id="ssDurationAgeHint" style="font-weight:normal;"></span></label>
+              <input type="number" id="ssEndAge" min="23" max="110" style="max-width:220px;" data-on-input="endAgeTyped()">
+              <input type="hidden" id="ssDuration" value="35"><!-- the plan's length, kept in step with "Plan to age" (src/ui/endAgeBox.js) -->
               <p id="ssUseDuration" class="hint" style="display:none;margin:4px 0 0;"></p>
               <div class="row-flex" style="margin-top:8px;">
                 <span class="hint">Suggest from longevity:</span>
@@ -3370,7 +3401,7 @@
             <!-- Fund tagging: the list of funds IS your allocation (auto-applied as you edit). -->
             <div id="ssFundsMode" data-pnv-only style="display:none; margin-top:14px; border:1px solid var(--border,#cbd5e1); border-radius:8px; padding:12px 14px;">
               <p style="font-size:12px;color:var(--text-muted);margin:0 0 10px;">
-                <strong>Funds to test.</strong> This list is the portfolio the strategy is stress-tested on — each fund is tagged to a bucket and sub-class (change any of them), and the allocation follows it. It is <em>not</em> a record of what you hold: that is recorded on the <strong>Transition</strong> tab and never changes when you try a strategy. Each strategy keeps its own list; switching strategy puts it away and switching back restores it.
+                <strong>Funds to test.</strong> This list is the portfolio the strategy is stress-tested on — each fund is tagged to a bucket and sub-class (change any of them), and the allocation follows it. It is <em>not</em> a record of what you hold: that is listed on the <strong>Transition</strong> tab and never changes when you try a strategy. Each strategy keeps its own list; switching strategy puts it away and switching back restores it.
               </p>
               <div class="row-flex" style="margin-bottom:8px;"><button type="button" class="risk-btn" data-on-click="openPasteHoldingsNear(this)" title="Paste a holdings table (any layout) to use as the list this strategy is tested on — it does not change what you hold">📋 Paste a list to test</button><span class="hint">Works with AJ Bell, HL, ii, Vanguard, Fidelity… copy the table, paste, check the preview.</span></div>
               <div class="fund-search-box" style="position:relative; margin-bottom:10px; max-width:400px;">
@@ -3430,7 +3461,7 @@
               </div>
               <p id="ssUseTaxable" class="hint" style="display:none;margin:4px 0 0;"></p>
               <label class="hint" style="display:flex;align-items:center;gap:6px;margin-top:6px;">
-                <input type="checkbox" id="ssBedAndIsa" checked style="width:auto;">
+                <input type="checkbox" id="ssBedAndIsa" style="width:auto;">
                 Move £20,000 a year from the taxable account into the ISA (bed-and-ISA) whenever the allowance is unused
               </label>
               <p id="ssIsaHoldNote" class="hint" style="display:none;color:var(--warning);margin:4px 0 0;"></p>
@@ -3562,12 +3593,21 @@
               <div class="section-title">State Pension</div>
               <div class="form-grid">
                 <div class="form-group">
-                  <label>SP Start Date</label>
+                  <label for="ssSpKind">Your State Pension</label>
+                  <select id="ssSpKind" data-on-change="spKindChosen()">
+                    <option value="full">The full amount</option>
+                    <option value="forecast">My forecast</option>
+                    <option value="none">None</option>
+                    <option value="assumed">Leave it as assumed for now</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="ssSpStartDate">State Pension start date</label>
                   <input type="text" id="ssSpStartDate" placeholder="e.g. 6 May 2040" data-on-input="callIfDefined('renderTiming')">
                 </div>
                 <div class="form-group">
                   <label>Weekly Amount (£)</label>
-                  <input type="number" id="ssSpWeeklyAmount" step="0.01" placeholder="e.g. 221.20" data-on-input="callIfDefined('renderIncomeShapePreview')">
+                  <input type="number" id="ssSpWeeklyAmount" step="0.01" placeholder="e.g. 221.20" data-on-input="spWeeklyTyped(this.value)">
                 </div>
                 <div class="form-group">
                   <label>Annual Amount (£/yr)</label>
@@ -3682,7 +3722,7 @@
               <div class="form-group"><label>Current age</label><input type="number" id="acAge" min="18" max="74" data-on-input="recalcAccumulation()"></div>
               <div class="form-group"><label>Retiring at</label><input type="number" id="acRetireAge" min="50" max="75" data-on-input="recalcAccumulation()"></div>
               <div class="form-group"><label>Salary (£/yr gross)</label><input type="number" id="acSalary" data-on-input="recalcAccumulation()"></div>
-              <div class="form-group"><label>Pension pot today (£)</label><input type="number" id="acPotNow" data-on-input="recalcAccumulation()"></div>
+              <div class="form-group"><label>Pension pot today (£)</label><input type="number" id="acPotNow" data-on-input="recalcAccumulation()"><p class="hint" id="acPotLine"></p></div>
             </div>
           </div>
 
@@ -3699,7 +3739,7 @@
               </div>
               <div class="form-group"><label>Employer adds (£/mo gross)</label><input type="number" id="acEmployerMonthly" data-on-input="recalcAccumulation()"></div>
               <div class="form-group"><label>Raise contributions by (%/yr)</label><input type="number" id="acEscalation" value="0" step="0.5" data-on-input="recalcAccumulation()"></div>
-              <div class="form-group"><label>Into ISAs and savings (£/mo) <span class="hlp" tabindex="0" data-tip="What you put into ISAs and other savings each month, from take-home pay (no tax relief). It is raised each year like your pension contributions, grows as Stress tester → Settings says (&quot;How your ISA and savings grow&quot;), and counts in your pots at retirement, the &quot;When could I retire?&quot; spin and a plan you lock while saving.">?</span></label><input type="number" id="acIsaMonthly" min="0" step="50" data-on-input="recalcAccumulation()"></div>
+              <div class="form-group"><label>Into ISAs and savings (£/mo) <span class="hlp" tabindex="0" data-tip="What you put into ISAs and other savings each month, from take-home pay (no tax relief). It is raised each year like your pension contributions, grows as Stress tester → Settings says (&quot;How your ISA and savings grow&quot;), and counts in your pots at retirement, the &quot;When could I retire?&quot; ages and a plan you lock while saving.">?</span></label><input type="number" id="acIsaMonthly" min="0" step="50" data-on-input="recalcAccumulation()"></div>
             </div>
             <div id="acBreakdown" style="margin-top:10px;"></div>
           </div>
@@ -3711,12 +3751,10 @@
           </div>
 
           <div class="settings-section" id="acSweepSection" style="border-color:var(--accent);">
-            <div class="section-title">When could I retire? <span style="font-weight:normal;color:var(--text-muted);font-size:12px;">— the quick spin: if I keep saving and want £Y a year, from which age does the money last to the plan's own age in the share of futures I pick (9 in 10 to start)? A plain count, not the "Am I on course?" test below.</span></div>
-            <p class="hint" style="margin:0 0 8px;">For each age from next year to 75: your pension pot projected to that age from what you hold and pay in, then your strategy run from that age on your income shape. A compass you can re-run every year, not the full stress test.</p>
+            <div class="section-title">When could I retire? <span style="font-weight:normal;color:var(--text-muted);font-size:12px;">— every age, side by side: the simple view's "When can I afford to stop work?" on this plan's figures</span></div>
+            <p class="hint" style="margin:0 0 8px;">For each age from today's to <span data-fixed>75</span>: what you could spend a month if you stopped then, how often the money lasted, and the pot by then — the same answer, from the same figures and futures, as the simple view gives. Spending and the level are the plan's own (change them in Settings).</p>
             <div class="row-flex">
-              <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Income I want (£/yr gross, today's money) <span class="hlp" tabindex="0" data-tip="Leave blank to use your income shape's first step (the plan's own steps, moved to start at each candidate age). Type a flat figure to spin a different level.">?</span><input type="number" id="acSweepIncome" step="1000" placeholder="from your income shape" style="width:150px;"></label>
-              <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Lasting in<select id="acSweepTarget" style="width:170px;"><option value="90" selected>9 in 10</option><option value="85">85% of futures</option><option value="75">3 in 4 (75%)</option><option value="95">95% of futures</option></select></label>
-              <button type="button" data-on-click="runRetireSweep()">Spin it</button>
+              <button type="button" data-on-click="runWhenStop()">Show every age</button>
             </div>
             <div id="acSweepResult" style="margin-top:10px;"></div>
           </div>
@@ -3737,11 +3775,10 @@
           <div class="settings-section">
             <div class="section-title">Am I on course?</div>
             <p style="font-size:12px;color:var(--text-muted);margin:0 0 8px;">
-              Runs your ACTUAL Stress-Tester plan (budget-derived target, allocation, State
-              Pension, access method) through the Monte Carlo to find the pot your plan needs to be
-              <strong>on course</strong>, then compares your projection against it. The answer says how on course was counted.
+              The same answer as your plan's home in the simple view: what you want, what you pay in now, whether that is
+              enough and how often the money lasts, and what would be enough. The figures above are saved as you type them;
+              what you want a month is changed in the boxes under the answer.
             </p>
-            <button type="button" data-on-click="runOnTrackCheck()">Check against my plan's target</button>
             <div id="acOnTrack" style="margin-top:10px;"></div>
           </div>
 
@@ -3757,7 +3794,7 @@
           <div class="button-row" style="margin-top:10px;">
             <button type="button" data-on-click="saveAccumulationUI()">Save</button>
           </div>
-          <p style="font-size:11px;color:var(--text-muted);margin-top:8px;">
+          <p data-fixed="rule" style="font-size:11px;color:var(--text-muted);margin-top:8px;">
             Not financial advice. Annual Allowance £60,000 (tapers above £200k income; £10,000
             MPAA once flexible income has been taken); minimum pension age rises to 57 on
             6 April 2028; salary-sacrifice NI relief capped at £2,000/yr from April 2029.
@@ -3794,9 +3831,14 @@
                 </select>
               </div>
             </div>
+            <p class="hint" id="hhLinkedBy" hidden style="margin:6px 0 0;"></p>
+            <p class="hint" id="hhTheirLine" hidden style="margin:2px 0 0;"></p>
             <div style="display:flex; align-items:center; gap:8px; margin-top:8px; flex-wrap:wrap;">
               <span style="font-size:12px;color:var(--text-muted);">No plan for them yet?</span>
               <input type="text" id="hhNewPlanName" placeholder="e.g. Partner's plan" style="max-width:200px;">
+              <label style="font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:4px;">Their age today <input type="number" id="hhNewPlanAge" min="16" max="110" style="max-width:70px;"></label>
+              <label style="font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:4px;">Stops work at <input type="number" id="hhNewPlanStopAge" min="16" max="110" style="max-width:70px;"></label>
+              <label style="font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="hhNewPlanStopped" style="width:auto;"> Already stopped work</label>
               <button type="button" class="risk-btn" style="padding:5px 12px;font-size:13px;" data-on-click="createPartnerPlan()">Create their plan &amp; switch to it</button>
             </div>
             <button type="button" data-on-click="runHouseholdCheck()" style="margin-top:10px;">Run the household check</button>

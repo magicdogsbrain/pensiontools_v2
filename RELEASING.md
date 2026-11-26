@@ -184,11 +184,11 @@ app hands the other are `src/appLayout.js`'s, chosen by the `LAYOUT` flag at bui
 | Address | What it is | Built by | In `docs/` |
 |---|---|---|---|
 | `/` | PensionTools (V7): the front page, the one installable app (`manifest.json`, named "PensionTools", starting at `/index.html`) | `vite build --config vite.v7.config.js` | `index.html` (`assets/index-*.js`), with the whole public folder: `_headers`, `privacy.html`, `data/`, `sw.js`, `manifest.json`, the icons, `reddit/` |
-| `/classic/` | the classic planner: no manifest, "do not index" (its head and `_headers`) | `vite build` | `classic/index.html` (`classic/assets/main-*.js`), and `classic/data/` (a copy of the market files at release, for its engine worker) |
+| `/classic/` | the classic planner: no manifest, "do not index" (its head and `_headers`) | `vite build` | `classic/index.html` (`classic/assets/main-*.js`) |
 | `/v7/` | the old address: a page that forwards to the same place at `/`, the `#/…` part kept | the V7 build | `v7/index.html`, `v7/forward.js` |
 
-The nightly data job still writes `public/data/` and `docs/data/` only: the classic page reads the root's `../data/`,
-so it is as fresh as V7's. `classic/data/` changes only at a release, as the worker's bundled figures do.
+The nightly data job writes `public/data/` and `docs/data/`: the site's one data folder. Both pages and both workers
+read it (from 7.12.0 the classic page hands its engine worker the folder), so no copy sits beside the classic page.
 `tests/publishedSite.test.js` checks that `docs/` is one whole build in this layout and that the files asked for by
 name are served as files.
 
@@ -197,7 +197,7 @@ name are served as files.
 ```sh
 curl -s https://pensiontools.uk/ | grep -o 'assets/index-[^"]*\.js'                 # = docs/index.html's
 curl -s https://pensiontools.uk/classic/ | grep -o 'assets/main-[^"]*\.js'          # = docs/classic/index.html's
-for p in /privacy.html /data/gilts.json /data/equity.json /classic/data/gilts.json /sw.js /manifest.json; do
+for p in /privacy.html /data/gilts.json /data/equity.json /sw.js /manifest.json; do
   curl -s -o /dev/null -w "%{http_code} %{content_type} $p\n" "https://pensiontools.uk$p"   # 200, and never text/html but for the policy
 done
 curl -sI https://pensiontools.uk/classic/ | grep -i x-robots-tag                       # X-Robots-Tag: noindex

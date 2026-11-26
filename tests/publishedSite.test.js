@@ -221,12 +221,11 @@ describe('docs/, the folder that is deployed', () => {
       for (const u of named) expect(existsSync(at(new URL(u, 'https://site.test' + p).pathname)), `${p} names ${u}`).toBe(true);
     }
   });
-  it('the files asked for by name are files: the policy, the market data (the root\'s and the classic engine worker\'s), the kill switch, the manifest, the headers, the forward', () => {
+  it('the files asked for by name are files: the policy, the market data (one folder at the root, for both pages and both workers), the kill switch, the manifest, the headers, the forward', () => {
     expect(page('/privacy.html')).toMatch(/<h1>Privacy Policy<\/h1>/);
-    // the classic engine worker's copy is made at 7.0 only (in the rollback layout the worker keeps its bundled figures)
-    for (const dir of ['/data/', ...(SWITCHED ? [new URL(L.classic.data, 'https://site.test' + L.classic.at + 'assets/').pathname] : [])]) {
-      for (const f of ['gilts.json', 'equity.json']) expect(() => JSON.parse(page(dir + f)), dir + f).not.toThrow();
-    }
+    // one data folder: the classic page hands its engine worker the root's (src/reading/market.js), so no copy sits beside it
+    for (const f of ['gilts.json', 'equity.json']) expect(() => JSON.parse(page('/data/' + f)), '/data/' + f).not.toThrow();
+    if (SWITCHED) expect(existsSync(at(L.classic.at + 'data')), 'a copy of the market files beside the classic page').toBe(false);
     expect(page('/sw.js')).toBe(read('public/sw.js'));
     expect(page('/manifest.json')).toBe(read('public/manifest.json'));
     expect(page('/_headers')).toBe(read('public/_headers'));
@@ -252,7 +251,7 @@ describe('docs/, the folder that is deployed', () => {
     const base = `http://127.0.0.1:${server.address().port}`;
     try {
       const files = ['/privacy.html', '/data/gilts.json', '/data/equity.json', '/sw.js', '/manifest.json', L.classic.at, L.v7.at, '/',
-        ...(SWITCHED ? [L.classic.at + 'data/gilts.json', L.classic.at + 'data/equity.json', '/v7/forward.js'] : [])];
+        ...(SWITCHED ? ['/v7/forward.js'] : [])];
       for (const p of files) {
         const r = await fetch(base + p);
         expect(r.status, p).toBe(200);

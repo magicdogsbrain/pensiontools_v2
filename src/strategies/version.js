@@ -37,8 +37,8 @@
  *           for a plan that has some and whose pots did not yet belong to a plan year begun — a retired draft in its year 0
  *           with no stop month, a saver's ladder, a plan stored with a later start: the ladder costs less, the spare is more.
  *           Every other plan runs exactly as before.
- *   6.40.0  (NEXT: the stamp moves to it with the release that ships it, beside that release's notes, which
- *           tests/releases.test.js holds to this constant; until then the constant stays 6.39.0)
+ *   6.40.0  (app 7.12.0) Shipped with 7.12.0, beside that release's notes (tests/releases.test.js holds them to this
+ *           constant).
  *           The income that comes anyway (State Pension, a final-salary pension, other income: strategies/incomeAnyway.js)
  *           is counted after a run has run out of money: Pots & Valves and Buckets in order (histories, futures, named starts,
  *           the compare's canned decades) and Ladder & Ratchet. Their "worst 12 months" is never £0 while such income is
@@ -156,4 +156,4 @@
  *           holds, and a pension still closed when the household's split opens it a tax year before the plan does keep the
  *           household model's words for now.
  */
-export const ENGINE_VERSION = '6.39.0';
+export const ENGINE_VERSION = '6.40.0';
